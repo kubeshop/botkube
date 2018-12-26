@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	_, err := rest.InClusterConfig()
+	kubeConfig, err := rest.InClusterConfig()
 	if err != nil {
 		kubeconfigPath := os.Getenv("KUBECONFIG")
 		if kubeconfigPath == "" {
@@ -41,6 +41,11 @@ func init() {
 			log.Logger.Fatal(err)
 		}
 		KubeClient, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			log.Logger.Fatal(err)
+		}
+	} else {
+		KubeClient, err = kubernetes.NewForConfig(kubeConfig)
 		if err != nil {
 			log.Logger.Fatal(err)
 		}
@@ -113,7 +118,7 @@ func CreateMaps() {
 		AllowedEventTypesMap[strings.ToLower(t)] = true
 	}
 
-	log.Logger.Info("AllowedEventKindsMap:: %+v :: %+v", AllowedEventKindsMap, AllowedEventKindsMap[EventKind{"pod", "test"}])
+	log.Logger.Info("AllowedEventKindsMap:: %+v", AllowedEventKindsMap)
 }
 
 // GetObjectMetaData returns metadata of the given object

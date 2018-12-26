@@ -18,7 +18,7 @@ func NewImageTagChecker() *ImageTagChecker {
 
 // Run filers and modifies event struct
 func (f *ImageTagChecker) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Pod" {
+	if event.Kind != "Pod" && event.Type != "create" {
 		return
 	}
 	podObj, ok := object.(*apiV1.Pod)

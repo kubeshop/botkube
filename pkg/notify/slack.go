@@ -21,11 +21,11 @@ type Slack struct {
 
 func NewSlack() Notifier {
 	AttachmentColor = map[events.Level]string{
-		events.Info:     "#00ff00",
-		events.Warn:     "#ffff00",
-		events.Debug:    "#00ff00",
-		events.Error:    "#ff0000",
-		events.Critical: "#ff0000",
+		events.Info:     "good",
+		events.Warn:     "warning",
+		events.Debug:    "good",
+		events.Error:    "danger",
+		events.Critical: "danger",
 	}
 
 	c, err := config.New()

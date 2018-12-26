@@ -26,6 +26,7 @@ type Event struct {
 	Name            string
 	Namespace       string
 	Messages        []string
+	Type            string
 	Reason          string
 	Error           string
 	Level           Level
@@ -34,10 +35,8 @@ type Event struct {
 	EventTime       time.Time
 	FirstTimestamp  time.Time
 	LastTimestamp   time.Time
-	// The number of times this event has occurred.
-	Count int32
-	// What action was taken/failed regarding to the Regarding object.
-	Action string
+	Count           int32
+	Action          string
 }
 
 var LevelMap map[string]Level
@@ -60,8 +59,12 @@ func New(object interface{}, eventType string, kind string) Event {
 		Name:      objectMeta.Name,
 		Namespace: objectMeta.Namespace,
 		Kind:      objectTypeMeta.Kind,
-		Messages:  []string{"Resource " + eventType + "d\n"},
 		Level:     LevelMap[eventType],
+		Type:      eventType,
+	}
+
+	if kind != "events" {
+		event.Messages = []string{"Resource " + eventType + "d\n"}
 	}
 
 	switch obj := object.(type) {

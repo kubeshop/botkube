@@ -74,7 +74,7 @@ kubeopsconfig:
   # Events you want to watch
   events:
     types:
-      - normal
+      #- normal
       - warning
 
   # RBAC events you want to watch

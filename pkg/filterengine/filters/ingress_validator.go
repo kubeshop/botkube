@@ -14,7 +14,7 @@ func NewIngressValidator() *IngressValidator {
 
 // Run filers and modifies event struct
 func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Ingress" {
+	if event.Kind != "Ingress" && event.Type != "create" {
 		return
 	}
 	ingressObj, ok := object.(*extV1beta1.Ingress)

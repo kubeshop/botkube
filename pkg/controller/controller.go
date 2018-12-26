@@ -86,8 +86,8 @@ func RegisterInformers(c *config.Config) {
 					eType := strings.ToLower(eventObj.Type)
 
 					// Filter and forward
-					if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
-						utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && (utils.AllowedEventTypesMap[eType]) {
+					if (utils.AllowedEventKindsMap[utils.EventKind{kind + "s", "all"}] ||
+						utils.AllowedEventKindsMap[utils.EventKind{kind + "s", ns}]) && (utils.AllowedEventTypesMap[eType]) {
 						logging.Logger.Infof("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
 						logEvent(obj, "events", "create", err)
 					}
