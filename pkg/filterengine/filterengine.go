@@ -15,6 +15,7 @@ var (
 	// TODO: load this dynamically
 	Filters = []Filter{
 		filters.NewImageTagChecker(),
+		filters.NewIngressValidator(),
 	}
 )
 

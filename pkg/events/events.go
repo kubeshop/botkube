@@ -60,7 +60,7 @@ func New(object interface{}, eventType string, kind string) Event {
 		Name:      objectMeta.Name,
 		Namespace: objectMeta.Namespace,
 		Kind:      objectTypeMeta.Kind,
-		Messages:  []string{"Resource " + eventType + "d"},
+		Messages:  []string{"Resource " + eventType + "d\n"},
 		Level:     LevelMap[eventType],
 	}
 
