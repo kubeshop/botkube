@@ -173,6 +173,10 @@ func logEvent(obj interface{}, kind, eventType string, err error) error {
 	if err != nil {
 		logging.Logger.Error("Error while receiving event: ", err.Error())
 	}
+	if !config.Notify {
+		logging.Logger.Info("Skipping notification")
+		return nil
+	}
 	event := events.New(obj, eventType, kind)
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
 

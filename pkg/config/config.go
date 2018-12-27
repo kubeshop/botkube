@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 )
 
-var configFileName = "kubeopsconfig.yaml"
+var ConfigFileName = "kubeopsconfig.yaml"
+var Notify = true
 
 type Config struct {
 	Resources       []Resource
@@ -19,7 +20,6 @@ type Config struct {
 
 type K8SEvents struct {
 	Types []string
-	//	Kinds []Resource
 }
 
 type Resource struct {
@@ -45,8 +45,9 @@ type Slack struct {
 func New() (*Config, error) {
 	c := &Config{}
 	configPath := os.Getenv("KUBEOPS_CONFIG_PATH")
-	configFile := filepath.Join(configPath, configFileName)
+	configFile := filepath.Join(configPath, ConfigFileName)
 	file, err := os.Open(configFile)
+	defer file.Close()
 	if err != nil {
 		return c, err
 	}

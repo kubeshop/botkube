@@ -2,7 +2,6 @@ package slack
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/infracloudio/kubeops/pkg/config"
@@ -12,6 +11,15 @@ import (
 
 type SlackBot struct {
 	Token string
+}
+
+type SlackMessage struct {
+	ChannelID    string
+	BotID        string
+	InMessage    string
+	OutMessage   string
+	OutMsgLength int
+	RTM          *slack.RTM
 }
 
 func NewSlackBot() *SlackBot {
@@ -47,7 +55,13 @@ func (s *SlackBot) Start() {
 			}
 			logging.Logger.Debugf("Slack incoming message: %+v", ev)
 			msg := strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
-			handleMessage(rtm, ev.Channel, msg)
+			sm := SlackMessage{
+				ChannelID: ev.Channel,
+				BotID:     botID,
+				InMessage: msg,
+				RTM:       rtm,
+			}
+			sm.HandleMessage()
 
 		case *slack.RTMError:
 			logging.Logger.Errorf("Slack RMT error: %+v", ev.Error())
@@ -60,50 +74,10 @@ func (s *SlackBot) Start() {
 	}
 }
 
-func handleMessage(rtm *slack.RTM, channelID, msg string) {
-	args := strings.Split(msg, " ")
-	isLog := false
-	out, err := runCommand(args, &isLog)
-	if err != nil {
-		if !strings.Contains(out, "Forbidden") {
-			out = "Sorry, I don't understand"
-		}
-		formatAndSendMsg(rtm, channelID, out)
-		return
-	}
-	if isLog {
-		formatAndSendLogs(rtm, channelID, out, msg)
-		return
-	}
-	if strings.ToLower(args[0]) == "help" {
-		formatAndSendHelp(rtm, channelID)
-		return
-	}
-	formatAndSendMsg(rtm, channelID, out)
-}
-
-func runCommand(args []string, isLog *bool) (string, error) {
-	// Use 'default' as a default namespace
-	args = append([]string{"-n", "default"}, args...)
-
-	// Remove unnecessary flags
-	finalArgs := []string{}
-	for _, a := range args {
-		if a == "-f" || strings.HasPrefix(a, "--follow") {
-			continue
-		}
-		if a == "-w" || strings.HasPrefix(a, "--watch") {
-			continue
-		}
-		if a == "log" || a == "logs" {
-			*isLog = true
-		}
-		finalArgs = append(finalArgs, a)
-	}
-
-	cmd := exec.Command("/usr/local/bin/kubectl", finalArgs...)
-	out, err := cmd.CombinedOutput()
-	return string(out), err
+func (sm *SlackMessage) HandleMessage() {
+	sm.OutMessage = ParseAndRunCommand(sm.InMessage)
+	sm.OutMsgLength = len(sm.OutMessage)
+	sm.Send()
 }
 
 func formatAndSendLogs(rtm *slack.RTM, channelID, logs string, filename string) {
@@ -119,26 +93,24 @@ func formatAndSendLogs(rtm *slack.RTM, channelID, logs string, filename string) 
 	}
 }
 
-func formatAndSendMsg(rtm *slack.RTM, channelID, message string) {
-	params := slack.PostMessageParameters{}
-	params.AsUser = true
-	channelID, _, err := rtm.PostMessage(channelID, "```"+message+"```", params)
-	if err != nil {
-		logging.Logger.Error("Error in sending message:", err)
+func (sm SlackMessage) Send() {
+	// Upload message as a file if too long
+	if sm.OutMsgLength >= 3990 {
+		params := slack.FileUploadParameters{
+			Title:    sm.InMessage,
+			Content:  sm.OutMessage,
+			Channels: []string{sm.ChannelID},
+		}
+		_, err := sm.RTM.UploadFile(params)
+		if err != nil {
+			logging.Logger.Error("Error in uploading file:", err)
+		}
+		return
 	}
-}
-
-func formatAndSendHelp(rtm *slack.RTM, channelID string) {
-	params := slack.PostMessageParameters{}
-	params.AsUser = true
-	helpMsg := "```" +
-		"kubeops executes kubectl commands on k8s cluster and returns output.\n" +
-		"Usages:\n" +
-		"    @kubeops <kubectl command without `kubectl` prefix>\n" +
-		"e.g:\n" +
-		"    @kubeops get pods\n" +
-		"    @kubeops logs podname -n namespace```"
-	channelID, _, err := rtm.PostMessage(channelID, helpMsg, params)
+	params := slack.PostMessageParameters{
+		AsUser: true,
+	}
+	_, _, err := sm.RTM.PostMessage(sm.ChannelID, "```"+sm.OutMessage+"```", params)
 	if err != nil {
 		logging.Logger.Error("Error in sending message:", err)
 	}
