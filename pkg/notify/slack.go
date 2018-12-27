@@ -43,7 +43,9 @@ func (s *Slack) Send(event events.Event) error {
 	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", event))
 
 	api := slack.New(s.Token)
-	params := slack.PostMessageParameters{}
+	params := slack.PostMessageParameters{
+		AsUser: true,
+	}
 	attachment := slack.Attachment{
 		Fields: []slack.AttachmentField{
 			slack.AttachmentField{

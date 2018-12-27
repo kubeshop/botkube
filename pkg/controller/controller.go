@@ -85,6 +85,7 @@ func RegisterInformers(c *config.Config) {
 					ns := eventObj.InvolvedObject.Namespace
 					eType := strings.ToLower(eventObj.Type)
 
+					logging.Logger.Debugf("Received event:- kind:%s ns:%s type:%s", kind, ns, eType)
 					// Filter and forward
 					if (utils.AllowedEventKindsMap[utils.EventKind{kind + "s", "all"}] ||
 						utils.AllowedEventKindsMap[utils.EventKind{kind + "s", ns}]) && (utils.AllowedEventTypesMap[eType]) {
