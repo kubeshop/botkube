@@ -50,6 +50,11 @@ kubeopsconfig:
         - all
       events:
         - delete
+    - name: persistentvolumeclaims
+      namespaces:
+        - all
+      events:
+        - delete
     - name: secrets
       namespaces:
         - all
@@ -70,6 +75,32 @@ kubeopsconfig:
         - all
       events:
         - delete
+    - name: roles
+      namespaces:
+        - all
+      events:
+        - delete
+    - name: rolebindings
+      namespaces:
+        - all
+      events:
+        - delete
+    - name: clusterroles
+      namespaces:
+        - all
+      events:
+        - delete
+    - name: clusterrolebindings
+      namespace:
+        - all
+      events:
+        - delete
+    - name: nodes
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
 
   # Events you want to watch
   events:
@@ -77,33 +108,6 @@ kubeopsconfig:
       #- normal
       - warning
 
-  # RBAC events you want to watch
-  #rbac:
-  #  - name: roles
-  #    namespaces:
-  #      - all
-  #    events:
-  #      - create
-  #      - delete
-  #  - name: rolebindings
-  #    namespaces:
-  #      - all
-  #    events:
-  #      - create
-  #      - delete
-  #  - name: clusterroles
-  #    namespaces:
-  #      - all
-  #    events:
-  #      - create
-  #      - delete
-  #  - name: clusterrolebindings
-  #    namespace:
-  #      - all
-  #    events:
-  #      - create
-  #      - delete
-  #   
   # Recommendations you want to receive
   recommendations: true
   

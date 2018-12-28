@@ -50,7 +50,7 @@ func (s *SlackBot) Start() {
 
 		case *slack.MessageEvent:
 			// Serve only if mentioned
-			if !strings.HasPrefix(ev.Text, "<@"+botID+">") {
+			if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
 				continue
 			}
 			logging.Logger.Debugf("Slack incoming message: %+v", ev)

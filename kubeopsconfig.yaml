@@ -1,78 +1,103 @@
-# Resources you want to watch
+## Resources you want to watch
 resources:
   - name: pods
     namespaces:
       - all
-      - default
-      - prod
     events:
-      - all
-      - create
-      - update
       - delete
   - name: services
     namespaces:
-      - default
-    events:
       - all
-  - name: deployment
+    events:
+      - delete
+  - name: deployments
     namespaces:
-      - default
-    events:
       - all
+    events:
+      - delete
   - name: ingresses
     namespaces:
-      - default
-    events:
       - all
-# Events you want to watch
-events:
-  types:
-    - normal
-    - warning
-  kinds:
-    - name: pod
-      namespaces:
-        - default
-    - name: service
-      namespaces:
-        - all
-# RBAC events you want to watch
-rbac:
+    events:
+      - delete
+  - name: nodes
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: namespaces
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: persistentvolumes
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: persistentvolumeclaim
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: secrets
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: configmaps
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: daemonsets
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: jobs
+    namespaces:
+      - all
+    events:
+      - delete
   - name: roles
     namespaces:
       - all
     events:
-      - all
+      - delete
   - name: rolebindings
     namespaces:
       - all
     events:
-      - all
+      - delete
   - name: clusterroles
     namespaces:
       - all
     events:
-      - all
+      - delete
   - name: clusterrolebindings
     namespace:
       - all
     events:
+      - delete
+  - name: nodes
+    namespaces:
       - all
+    events:
+      - create
+      - delete
+
+# Events you want to watch
+events:
+  types:
+    #- normal
+    - warning
    
 # Recommendations you want to receive
 recommendations: true
 
 # Channels configuration
 communications:
-  - slack:
-      channel: 'xxxxx'
-      token: 'xxxxxx'
-  - email:
-      smtpEmail: 'xxxxxx'
-      smtpPassword: 'xxxxxxx'
-      smtpServer: 'xxxxx'
-      smtpPort: 'xxxxxx'
-      notificationEmails:
-        - user1@example.com
-        - group1@example.com
+  slack:
+    channel: 'SLACK_CHANNEL'
+    token: 'SLACK_API_TOKEN'

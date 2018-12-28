@@ -87,8 +87,8 @@ func RegisterInformers(c *config.Config) {
 
 					logging.Logger.Debugf("Received event:- kind:%s ns:%s type:%s", kind, ns, eType)
 					// Filter and forward
-					if (utils.AllowedEventKindsMap[utils.EventKind{kind + "s", "all"}] ||
-						utils.AllowedEventKindsMap[utils.EventKind{kind + "s", ns}]) && (utils.AllowedEventTypesMap[eType]) {
+					if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
+						utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && (utils.AllowedEventTypesMap[eType]) {
 						logging.Logger.Infof("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
 						logEvent(obj, "events", "create", err)
 					}
@@ -99,38 +99,6 @@ func RegisterInformers(c *config.Config) {
 		defer close(stopCh)
 
 		go controller.Run(stopCh)
-	}
-
-	// Register informers for rbac lifecycle events
-	if len(c.Rbac) > 0 {
-		logging.Logger.Info("Registering rbac resource lifecycle informer")
-		for _, r := range c.Rbac {
-			if _, ok := utils.ResourceGetterMap[r.Name]; !ok {
-				continue
-			}
-			object, ok := utils.RtObjectMap[r.Name]
-			if !ok {
-				continue
-			}
-			for _, ns := range r.Namespaces {
-				logging.Logger.Infof("Adding rbac informer for resource:%s namespace:%s", r.Name, ns)
-
-				watchlist := cache.NewListWatchFromClient(
-					utils.ResourceGetterMap[r.Name], r.Name, findNamespace(ns), fields.Everything())
-
-				_, controller := cache.NewInformer(
-					watchlist,
-					object,
-					0*time.Second,
-					registerEventHandlers(r.Name, r.Events),
-				)
-				stopCh := make(chan struct{})
-				defer close(stopCh)
-
-				go controller.Run(stopCh)
-
-			}
-		}
 	}
 
 	sigterm := make(chan os.Signal, 1)

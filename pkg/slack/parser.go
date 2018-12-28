@@ -29,6 +29,7 @@ var AllowedKubectlCommands = map[string]bool{
 var AllowedNotifierCommands = map[string]bool{
 	"notifier": true,
 	"help":     true,
+	"ping":     true,
 }
 
 func ParseAndRunCommand(msg string) string {
@@ -69,27 +70,33 @@ func runKubectlCommand(args []string) string {
 
 // TODO: Have a seperate cli which runs bot commands
 func runNotifierCommand(args []string) string {
-	if strings.ToLower(args[0]) == "help" {
-		return printHelp()
-	}
 	switch len(args) {
+	case 1:
+		if strings.ToLower(args[0]) == "help" {
+			return printHelp()
+		}
+		if strings.ToLower(args[0]) == "ping" {
+			return "pong"
+		}
 	case 2:
-		if strings.ToLower(args[1]) == "start" {
+		if args[0] != "notifier" {
+			return printDefaultMsg()
+		}
+		if args[1] == "start" {
 			config.Notify = true
 			return "Notifier started!"
 		}
-		if strings.ToLower(args[1]) == "stop" {
+		if args[1] == "stop" {
 			config.Notify = false
 			return "Notifier stopped!"
 		}
-		if strings.ToLower(args[1]) == "status" {
+		if args[1] == "status" {
 			if config.Notify == false {
 				return "stopped"
 			}
 			return "running"
 		}
-
-		if strings.ToLower(args[1]) == "showconfig" {
+		if args[1] == "showconfig" {
 			out, err := showControllerConfig()
 			if err != nil {
 				log.Logger.Error("Error in executing showconfig command: ", err)
@@ -118,7 +125,10 @@ func printHelp() string {
 		"notifier stop          Stop sending k8s event notifications to slack (started by default)\n" +
 		"notifier start         Start sending k8s event notifications to slack\n" +
 		"notifier status        Show running status of event notifier\n" +
-		"notifier showconfig    Show kubeops configuration for event notifier\n"
+		"notifier showconfig    Show kubeops configuration for event notifier\n\n" +
+		"Other Commands:\n" +
+		"help                   Show help\n" +
+		"ping                   Check connection health\n"
 	return helpMsg
 
 }

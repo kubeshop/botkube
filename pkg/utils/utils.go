@@ -71,13 +71,14 @@ func CreateMaps() {
 
 	// Runtime object map
 	RtObjectMap["pods"] = &apiV1.Pod{}
+	RtObjectMap["nodes"] = &apiV1.Node{}
 	RtObjectMap["services"] = &apiV1.Service{}
 	RtObjectMap["namespaces"] = &apiV1.Namespace{}
 	RtObjectMap["replicationcontrollers"] = &apiV1.ReplicationController{}
 	RtObjectMap["persistentvolumes"] = &apiV1.PersistentVolume{}
+	RtObjectMap["persistentvolumeclaims"] = &apiV1.PersistentVolumeClaim{}
 	RtObjectMap["secrets"] = &apiV1.Secret{}
 	RtObjectMap["configmaps"] = &apiV1.ConfigMap{}
-	RtObjectMap["events"] = &apiV1.ConfigMap{}
 	RtObjectMap["deployments"] = &extV1beta1.Deployment{}
 	RtObjectMap["daemonsets"] = &extV1beta1.DaemonSet{}
 	RtObjectMap["replicasets"] = &extV1beta1.ReplicaSet{}
@@ -90,10 +91,12 @@ func CreateMaps() {
 
 	// Getter map
 	ResourceGetterMap["pods"] = KubeClient.CoreV1().RESTClient()
+	ResourceGetterMap["nodes"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["services"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["namespaces"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["replicationcontrollers"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["persistentvolumes"] = KubeClient.CoreV1().RESTClient()
+	ResourceGetterMap["persistentvolumeClaim"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["secrets"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["configmaps"] = KubeClient.CoreV1().RESTClient()
 	ResourceGetterMap["deployments"] = KubeClient.ExtensionsV1beta1().RESTClient()
@@ -102,14 +105,18 @@ func CreateMaps() {
 	ResourceGetterMap["ingresses"] = KubeClient.ExtensionsV1beta1().RESTClient()
 	ResourceGetterMap["jobs"] = KubeClient.BatchV1().RESTClient()
 	ResourceGetterMap["roles"] = KubeClient.RbacV1().RESTClient()
-	ResourceGetterMap["rolebinding"] = KubeClient.RbacV1().RESTClient()
+	ResourceGetterMap["rolebindings"] = KubeClient.RbacV1().RESTClient()
 	ResourceGetterMap["clusterroles"] = KubeClient.RbacV1().RESTClient()
 	ResourceGetterMap["clusterrolebindings"] = KubeClient.RbacV1().RESTClient()
 
 	// Allowed event kinds map
 	for _, r := range config.Resources {
 		for _, ns := range r.Namespaces {
-			AllowedEventKindsMap[EventKind{strings.ToLower(r.Name), ns}] = true
+			if r.Name == "ingresses" {
+				AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "es"), ns}] = true
+				continue
+			}
+			AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "s"), ns}] = true
 		}
 	}
 
@@ -137,6 +144,8 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 		objectMeta = object.ObjectMeta
 	case *apiV1.PersistentVolume:
 		objectMeta = object.ObjectMeta
+	case *apiV1.PersistentVolumeClaim:
+		objectMeta = object.ObjectMeta
 	case *apiV1.ReplicationController:
 		objectMeta = object.ObjectMeta
 	case *apiV1.Service:
@@ -154,6 +163,14 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 	case *appsV1beta1.Deployment:
 		objectMeta = object.ObjectMeta
 	case *batchV1.Job:
+		objectMeta = object.ObjectMeta
+	case *rbacV1.Role:
+		objectMeta = object.ObjectMeta
+	case *rbacV1.RoleBinding:
+		objectMeta = object.ObjectMeta
+	case *rbacV1.ClusterRole:
+		objectMeta = object.ObjectMeta
+	case *rbacV1.ClusterRoleBinding:
 		objectMeta = object.ObjectMeta
 	}
 	return objectMeta
@@ -175,6 +192,8 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 		typeMeta = object.TypeMeta
 	case *apiV1.PersistentVolume:
 		typeMeta = object.TypeMeta
+	case *apiV1.PersistentVolumeClaim:
+		typeMeta = object.TypeMeta
 	case *apiV1.ReplicationController:
 		typeMeta = object.TypeMeta
 	case *apiV1.Service:
@@ -192,6 +211,14 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 	case *appsV1beta1.Deployment:
 		typeMeta = object.TypeMeta
 	case *batchV1.Job:
+		typeMeta = object.TypeMeta
+	case *rbacV1.Role:
+		typeMeta = object.TypeMeta
+	case *rbacV1.RoleBinding:
+		typeMeta = object.TypeMeta
+	case *rbacV1.ClusterRole:
+		typeMeta = object.TypeMeta
+	case *rbacV1.ClusterRoleBinding:
 		typeMeta = object.TypeMeta
 	}
 	return typeMeta

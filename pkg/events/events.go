@@ -8,6 +8,7 @@ import (
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	rbacV1 "k8s.io/api/rbac/v1"
 )
 
 type Level string
@@ -88,6 +89,8 @@ func New(object interface{}, eventType string, kind string) Event {
 		event.Kind = "Namespace"
 	case *apiV1.PersistentVolume:
 		event.Kind = "PersistentVolume"
+	case *apiV1.PersistentVolumeClaim:
+		event.Kind = "PersistentVolumeClaim"
 	case *apiV1.ReplicationController:
 		event.Kind = "ReplicationController"
 	case *apiV1.Service:
@@ -106,6 +109,14 @@ func New(object interface{}, eventType string, kind string) Event {
 		event.Kind = "Deployment"
 	case *batchV1.Job:
 		event.Kind = "Job"
+	case *rbacV1.Role:
+		event.Kind = "Role"
+	case *rbacV1.RoleBinding:
+		event.Kind = "RoleBinding"
+	case *rbacV1.ClusterRole:
+		event.Kind = "ClusterRole"
+	case *rbacV1.ClusterRoleBinding:
+		event.Kind = "ClusterRoleBinding"
 	}
 
 	return event

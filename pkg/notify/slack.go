@@ -58,12 +58,15 @@ func (s *Slack) Send(event events.Event) error {
 				Value: event.Name,
 				Short: true,
 			},
-			slack.AttachmentField{
-				Title: "Namespace",
-				Value: event.Namespace,
-				Short: true,
-			},
 		},
+	}
+
+	if event.Namespace != "" {
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Namespace",
+			Value: event.Namespace,
+			Short: true,
+		})
 	}
 
 	if len(event.Messages) > 0 {

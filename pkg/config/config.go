@@ -12,7 +12,6 @@ var Notify = true
 
 type Config struct {
 	Resources       []Resource
-	Rbac            []Resource
 	Recommendations bool
 	Communications  Communications
 	Events          K8SEvents
