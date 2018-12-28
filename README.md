@@ -17,8 +17,8 @@ Syntax:
 ```
 # Resources you want to watch
 resources:
-  - name: RESOURCE_NAME    # Name of the resources e.g pods, deployments, ingresses, etc
-    namespaces:            # List of namespaces, "all" will watch all the resources
+  - name: RESOURCE_NAME    # Name of the resources e.g pods, deployments, ingresses, etc. (Resource name must be in plural form)
+    namespaces:            # List of namespaces, "all" will watch all the namespaces
       - all
     events:                # List lifecycle events you want to receive, e.g create, update, delete OR all
       - all
