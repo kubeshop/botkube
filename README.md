@@ -52,6 +52,25 @@ communications:
     channel: 'SLACK_CHANNEL_NAME'
     token: 'SLACK_API_TOKEN_FOR_THE_BOT'
 ```
+Supported resources:
+- pods
+- nodes
+- services
+- namespaces
+- replicationcontrollers
+- persistentvolumes
+- persistentvolumeclaims
+- secrets
+- configmaps
+- deployments
+- daemonsets
+- replicasets
+- ingresses
+- jobs
+- roles
+- rolebindings
+- clusterroles
+- clusterrolebindings
 
 ## Installing
 ### Using helm
@@ -63,6 +82,6 @@ git clone https://github.com/infracloudio/kubeops.git
 - Update default `kubeopsconfig` in `helm/kubeops/values.yaml` to watch the resources you want.
 - Deploy kubeops using `helm install` in your cluster.
 ```
-helm install --name kubeops11 --namespace kubeops --set kubeopsconfig.communications.slack.channel={SLACK_CHANNEL_NAME} --set kubeopsconfig.communications.slack.token={SLACK_API_TOKEN_FOR_THE_BOT} helm/kubeops/
+helm install --name kubeops --namespace kubeops --set kubeopsconfig.communications.slack.channel={SLACK_CHANNEL_NAME} --set kubeopsconfig.communications.slack.token={SLACK_API_TOKEN_FOR_THE_BOT} helm/kubeops/
 ```
 - Send `@kubeops help` in the channel to see if `kubeops` is responding.
