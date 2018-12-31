@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/infracloudio/kubeops/pkg/config"
+	"github.com/infracloudio/kubeops/pkg/execute"
 	"github.com/infracloudio/kubeops/pkg/logging"
 	"github.com/nlopes/slack"
 )
@@ -79,7 +80,8 @@ func (s *Bot) Start() {
 }
 
 func (sm *slackMessage) HandleMessage() {
-	sm.OutMessage = parseAndRunCommand(sm.InMessage)
+	e := execute.NewDefaultExecutor(sm.InMessage)
+	sm.OutMessage = e.Execute()
 	sm.OutMsgLength = len(sm.OutMessage)
 	sm.Send()
 }
