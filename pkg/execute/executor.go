@@ -31,8 +31,7 @@ var validNotifierCommands = map[string]bool{
 	"ping":     true,
 }
 
-//var kubectlBinary = "/usr/local/bin/kubectl"
-var kubectlBinary = "/snap/bin/kubectl"
+var kubectlBinary = "/usr/local/bin/kubectl"
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
