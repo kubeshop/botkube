@@ -1,5 +1,6 @@
 # kubeops
-Watch kubernetes resources, events and get recommedations
+A slack bot which watches your kubernetes clusters and notifies about resources life cycles, errors, events and provide recommedations about best practices while creating resources.
+You can also ask kubeops to execute kubectl commands on k8s cluster which helps debugging a application or cluster.
 
 ## Building
 ```
@@ -72,7 +73,7 @@ Supported resources:
 - clusterroles
 - clusterrolebindings
 
-## Installing
+## Installing on kubernetes cluster
 ### Using helm
 - Follow https://docs.helm.sh/using_helm/#installing-helm guide to install helm.
 - Clone the kubeops github repository.
