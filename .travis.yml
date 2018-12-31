@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.11
+
+services:
+  - docker
+
+install:
+  - go get -u github.com/golang/dep/cmd/dep
+  - go get -u golang.org/x/lint/golint
+
+before_script:
+  - hack/verify-gofmt.sh
+  - hack/verify-govet.sh
+  - hack/verify-golint.sh
+  - dep ensure
+
+script:
+  - build/docker.sh infracloudio/kubeops latest
