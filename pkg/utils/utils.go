@@ -21,11 +21,15 @@ import (
 )
 
 var (
-	RtObjectMap          map[string]runtime.Object
-	ResourceGetterMap    map[string]cache.Getter
+	// RtObjectMap is a map of resource name to respective runtime object
+	RtObjectMap map[string]runtime.Object
+	// ResourceGetterMap is a map of resource name to resource Getter interface
+	ResourceGetterMap map[string]cache.Getter
+	// AllowedEventKindsMap is a map to filter valid event kinds
 	AllowedEventKindsMap map[EventKind]bool
+	// AllowedEventTypesMap is a map to filter valid event types
 	AllowedEventTypesMap map[string]bool
-
+	// KubeClient is a global kubernetes client to communicate to apiserver
 	KubeClient kubernetes.Interface
 )
 
@@ -50,15 +54,16 @@ func init() {
 			log.Logger.Fatal(err)
 		}
 	}
-	CreateMaps()
+	createMaps()
 }
 
+// EventKind used in AllowedEventKindsMap to filter event kinds
 type EventKind struct {
 	Resource  string
 	Namespace string
 }
 
-func CreateMaps() {
+func createMaps() {
 	config, err := config.New()
 	if err != nil {
 		log.Logger.Fatal("Error in loading configuration. Error:%s", err.Error())
@@ -176,7 +181,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 	return objectMeta
 }
 
-// GetObjectTypeMetadata returns typemetadata of the given object
+// GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 
 	var typeMeta metaV1.TypeMeta

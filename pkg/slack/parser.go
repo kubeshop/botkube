@@ -11,7 +11,7 @@ import (
 	log "github.com/infracloudio/kubeops/pkg/logging"
 )
 
-var AllowedKubectlCommands = map[string]bool{
+var validKubectlCommands = map[string]bool{
 	"api-resources": true,
 	"api-versions":  true,
 	"cluster-info":  true,
@@ -26,18 +26,18 @@ var AllowedKubectlCommands = map[string]bool{
 	"auth":          true,
 }
 
-var AllowedNotifierCommands = map[string]bool{
+var validNotifierCommands = map[string]bool{
 	"notifier": true,
 	"help":     true,
 	"ping":     true,
 }
 
-func ParseAndRunCommand(msg string) string {
+func parseAndRunCommand(msg string) string {
 	args := strings.Split(msg, " ")
-	if AllowedKubectlCommands[args[0]] {
+	if validKubectlCommands[args[0]] {
 		return runKubectlCommand(args)
 	}
-	if AllowedNotifierCommands[args[0]] {
+	if validNotifierCommands[args[0]] {
 		return runNotifierCommand(args)
 	}
 	return "Command not supported. Please run '@kubeops help' to see supported commands"
@@ -110,7 +110,7 @@ func runNotifierCommand(args []string) string {
 
 func printHelp() string {
 	allowedKubectl := ""
-	for k, _ := range AllowedKubectlCommands {
+	for k := range validKubectlCommands {
 		allowedKubectl = allowedKubectl + k + ", "
 	}
 	helpMsg := "kubeops executes kubectl commands on k8s cluster and returns output.\n" +

@@ -1,17 +1,16 @@
 package filterengine
 
 import (
-	//"fmt"
-
 	"github.com/infracloudio/kubeops/pkg/events"
 	"github.com/infracloudio/kubeops/pkg/filterengine/filters"
 	log "github.com/infracloudio/kubeops/pkg/logging"
 )
 
 var (
+	// DefaultFilterEngine contains default implementation for FilterEngine
 	DefaultFilterEngine FilterEngine
 
-	// Create filters list
+	// Filters contains the lists of available filters
 	// TODO: load this dynamically
 	Filters = []Filter{
 		filters.NewImageTagChecker(),
@@ -19,15 +18,17 @@ var (
 	}
 )
 
+// FilterEngine has methods to register and run filters
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event
 	Register(Filter)
 }
 
-type DefaultFilters struct {
+type defaultFilters struct {
 	FiltersList []Filter
 }
 
+// Filter has method to run filter
 type Filter interface {
 	Run(interface{}, *events.Event)
 }
@@ -43,11 +44,11 @@ func init() {
 
 // NewDefaultFilter creates new DefaultFilter object
 func NewDefaultFilter() FilterEngine {
-	return &DefaultFilters{}
+	return &defaultFilters{}
 }
 
 // Run run the filters
-func (f *DefaultFilters) Run(object interface{}, event events.Event) events.Event {
+func (f *defaultFilters) Run(object interface{}, event events.Event) events.Event {
 	log.Logger.Debug("Filterengine running filters")
 	for _, f := range f.FiltersList {
 		f.Run(object, &event)
@@ -56,7 +57,7 @@ func (f *DefaultFilters) Run(object interface{}, event events.Event) events.Even
 }
 
 // Register filter to engine
-func (f *DefaultFilters) Register(filter Filter) {
+func (f *defaultFilters) Register(filter Filter) {
 	log.Logger.Debug("Registering the filter", filter)
 	f.FiltersList = append(f.FiltersList, filter)
 }

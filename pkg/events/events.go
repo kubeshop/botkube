@@ -11,16 +11,23 @@ import (
 	rbacV1 "k8s.io/api/rbac/v1"
 )
 
+// Level type to store event levels
 type Level string
 
 const (
-	Info     Level = "info"
-	Warn     Level = "warn"
-	Debug    Level = "debug"
-	Error    Level = "error"
+	// Info level
+	Info Level = "info"
+	// Warn level
+	Warn Level = "warn"
+	// Debug level
+	Debug Level = "debug"
+	// Error level
+	Error Level = "error"
+	// Critical level
 	Critical Level = "critical"
 )
 
+// Event to store required information from k8s objects
 type Event struct {
 	Code            string
 	Kind            string
@@ -40,6 +47,7 @@ type Event struct {
 	Action          string
 }
 
+// LevelMap is a map of event type to Level
 var LevelMap map[string]Level
 
 func init() {
@@ -52,6 +60,7 @@ func init() {
 	LevelMap["Normal"] = Info
 }
 
+// New extract required details from k8s object and returns new Event object
 func New(object interface{}, eventType string, kind string) Event {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	objectMeta := utils.GetObjectMetaData(object)

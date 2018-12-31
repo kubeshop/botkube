@@ -9,18 +9,17 @@ import (
 	"github.com/nlopes/slack"
 )
 
-var AttachmentColor map[events.Level]string
+var attachmentColor map[events.Level]string
 
-type SlackMessage struct {
-}
-
+// Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
 	Token   string
 	Channel string
 }
 
+// NewSlack returns new Slack object
 func NewSlack() Notifier {
-	AttachmentColor = map[events.Level]string{
+	attachmentColor = map[events.Level]string{
 		events.Info:     "good",
 		events.Warn:     "warning",
 		events.Debug:    "good",
@@ -39,6 +38,7 @@ func NewSlack() Notifier {
 	}
 }
 
+// Send event notification to slack
 func (s *Slack) Send(event events.Event) error {
 	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", event))
 
@@ -48,12 +48,13 @@ func (s *Slack) Send(event events.Event) error {
 	}
 	attachment := slack.Attachment{
 		Fields: []slack.AttachmentField{
-			slack.AttachmentField{
+			{
 				Title: "Kind",
 				Value: event.Kind,
 				Short: true,
 			},
-			slack.AttachmentField{
+			{
+
 				Title: "Name",
 				Value: event.Name,
 				Short: true,
@@ -105,7 +106,7 @@ func (s *Slack) Send(event events.Event) error {
 		})
 	}
 
-	attachment.Color = AttachmentColor[event.Level]
+	attachment.Color = attachmentColor[event.Level]
 	params.Attachments = []slack.Attachment{attachment}
 
 	log.Logger.Infof("Sending message on %v with token %s", s.Channel, s.Token)

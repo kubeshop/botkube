@@ -7,9 +7,13 @@ import (
 	"path/filepath"
 )
 
+// ConfigFileName is a name of kubeops configuration file
 var ConfigFileName = "kubeopsconfig.yaml"
+
+// Notify flag to toggle event notification
 var Notify = true
 
+// Config structure of configuration yaml file
 type Config struct {
 	Resources       []Resource
 	Recommendations bool
@@ -17,24 +21,24 @@ type Config struct {
 	Events          K8SEvents
 }
 
+// K8SEvents contains event types
 type K8SEvents struct {
 	Types []string
 }
 
+// Resource contains resources to watch
 type Resource struct {
 	Name       string
 	Namespaces []string
 	Events     []string
 }
 
-type Namespaces struct {
-	Namespaces []string `json:"namespaces"`
-}
-
+// Communications channels to send events to
 type Communications struct {
 	Slack Slack
 }
 
+// Slack configuration to authentication and send notifications
 type Slack struct {
 	Channel string
 	Token   string

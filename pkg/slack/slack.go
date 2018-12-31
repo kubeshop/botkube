@@ -9,11 +9,13 @@ import (
 	"github.com/nlopes/slack"
 )
 
-type SlackBot struct {
+// Bot listens for user's message, execute commands and sends back the response
+type Bot struct {
 	Token string
 }
 
-type SlackMessage struct {
+// slackMessage contains message details to execute command and send back the result
+type slackMessage struct {
 	ChannelID    string
 	BotID        string
 	InMessage    string
@@ -22,17 +24,19 @@ type SlackMessage struct {
 	RTM          *slack.RTM
 }
 
-func NewSlackBot() *SlackBot {
+// NewSlackBot returns new Bot object
+func NewSlackBot() *Bot {
 	c, err := config.New()
 	if err != nil {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
-	return &SlackBot{
+	return &Bot{
 		Token: c.Communications.Slack.Token,
 	}
 }
 
-func (s *SlackBot) Start() {
+// Start starts the slacknot RTM connection and listens for messages
+func (s *Bot) Start() {
 	api := slack.New(s.Token)
 	authResp, err := api.AuthTest()
 	if err != nil {
@@ -55,7 +59,7 @@ func (s *SlackBot) Start() {
 			}
 			logging.Logger.Debugf("Slack incoming message: %+v", ev)
 			msg := strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
-			sm := SlackMessage{
+			sm := slackMessage{
 				ChannelID: ev.Channel,
 				BotID:     botID,
 				InMessage: msg,
@@ -74,8 +78,8 @@ func (s *SlackBot) Start() {
 	}
 }
 
-func (sm *SlackMessage) HandleMessage() {
-	sm.OutMessage = ParseAndRunCommand(sm.InMessage)
+func (sm *slackMessage) HandleMessage() {
+	sm.OutMessage = parseAndRunCommand(sm.InMessage)
 	sm.OutMsgLength = len(sm.OutMessage)
 	sm.Send()
 }
@@ -93,7 +97,7 @@ func formatAndSendLogs(rtm *slack.RTM, channelID, logs string, filename string) 
 	}
 }
 
-func (sm SlackMessage) Send() {
+func (sm slackMessage) Send() {
 	// Upload message as a file if too long
 	if sm.OutMsgLength >= 3990 {
 		params := slack.FileUploadParameters{

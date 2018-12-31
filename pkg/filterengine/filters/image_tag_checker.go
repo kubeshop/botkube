@@ -9,9 +9,11 @@ import (
 	apiV1 "k8s.io/api/core/v1"
 )
 
+// ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
 type ImageTagChecker struct {
 }
 
+// NewImageTagChecker creates new ImageTagChecker object
 func NewImageTagChecker() *ImageTagChecker {
 	return &ImageTagChecker{}
 }

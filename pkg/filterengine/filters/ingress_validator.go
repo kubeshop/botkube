@@ -5,9 +5,12 @@ import (
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
+// IngressValidator checks if service and tls secret used in ingress specs is already present
+// and adds recommendations to event struct accordingly
 type IngressValidator struct {
 }
 
+// NewIngressValidator returns new IngressValidator object
 func NewIngressValidator() *IngressValidator {
 	return &IngressValidator{}
 }

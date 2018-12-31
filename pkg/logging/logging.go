@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Logger global object for logging across the pkg/
 var Logger = logrus.New()
 
 func init() {

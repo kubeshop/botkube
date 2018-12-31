@@ -30,6 +30,7 @@ func findNamespace(ns string) string {
 	return ns
 }
 
+// RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
 	// Register informers for resource lifecycle events
 	if len(c.Resources) > 0 {
