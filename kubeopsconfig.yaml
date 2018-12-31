@@ -1,0 +1,103 @@
+## Resources you want to watch
+resources:
+  - name: pods
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: services
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: deployments
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: ingresses
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: nodes
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: namespaces
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: persistentvolumes
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: persistentvolumeclaim
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: secrets
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: configmaps
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: daemonsets
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: jobs
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: roles
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: rolebindings
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: clusterroles
+    namespaces:
+      - all
+    events:
+      - delete
+  - name: clusterrolebindings
+    namespace:
+      - all
+    events:
+      - delete
+  - name: nodes
+    namespaces:
+      - all
+    events:
+      - create
+      - delete
+
+# Events you want to watch
+events:
+  types:
+    #- normal
+    - warning
+   
+# Recommendations you want to receive
+recommendations: true
+
+# Channels configuration
+communications:
+  slack:
+    channel: 'SLACK_CHANNEL'
+    token: 'SLACK_API_TOKEN'

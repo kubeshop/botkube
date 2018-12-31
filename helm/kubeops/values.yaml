@@ -1,0 +1,152 @@
+# Default values for kubeops.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: infracloud/kubeops
+  tag: "0.5"
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+kubeopsconfig:
+  ## Resources you want to watch
+  resources:
+    - name: pods
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: services
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: deployments
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: ingresses
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: nodes
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: namespaces
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: persistentvolumes
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: persistentvolumeclaims
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: secrets
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: configmaps
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: daemonsets
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: jobs
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: roles
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: rolebindings
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: clusterroles
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+    - name: clusterrolebindings
+      namespace:
+        - all
+      events:
+        - create
+        - delete
+    - name: nodes
+      namespaces:
+        - all
+      events:
+        - create
+        - delete
+
+  # Events you want to watch
+  events:
+    types:
+      #- normal
+      - warning
+
+  # Recommendations you want to receive
+  recommendations: true
+  
+  # Channels configuration
+  communications:
+    slack:
+      channel: 'SLACK_CHANNEL'
+      token: 'SLACK_API_TOKEN'
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

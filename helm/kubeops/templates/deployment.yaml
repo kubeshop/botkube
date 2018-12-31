@@ -1,0 +1,40 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ include "kubeops.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "kubeops.name" . }}
+    helm.sh/chart: {{ include "kubeops.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    component: controller
+    app: kubeops
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      component: controller
+      app: kubeops
+  template:
+    metadata:
+      labels:
+        component: controller
+        app: kubeops
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "kubeops.fullname" . }}-sa
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: "/config"
+          env:
+            - name: KUBEOPS_CONFIG_PATH
+              value: "/config/"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "kubeops.fullname" . }}-configmap
