@@ -40,9 +40,7 @@ type Event struct {
 	Level           Level
 	Cluster         string
 	Recommendations []string
-	EventTime       time.Time
-	FirstTimestamp  time.Time
-	LastTimestamp   time.Time
+	TimeStamp       time.Time
 	Count           int32
 	Action          string
 }
@@ -71,6 +69,7 @@ func New(object interface{}, eventType string, kind string) Event {
 		Kind:      objectTypeMeta.Kind,
 		Level:     LevelMap[eventType],
 		Type:      eventType,
+		TimeStamp: objectMeta.CreationTimestamp.Time,
 	}
 
 	if kind != "events" {
@@ -85,9 +84,6 @@ func New(object interface{}, eventType string, kind string) Event {
 		event.Name = obj.InvolvedObject.Name
 		event.Namespace = obj.InvolvedObject.Namespace
 		event.Level = LevelMap[obj.Type]
-		event.EventTime = obj.EventTime.Time
-		event.FirstTimestamp = obj.FirstTimestamp.Time
-		event.LastTimestamp = obj.LastTimestamp.Time
 		event.Count = obj.Count
 		event.Action = obj.Action
 	case *apiV1.Pod:

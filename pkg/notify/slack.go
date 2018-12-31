@@ -1,7 +1,9 @@
 package notify
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/infracloudio/kubeops/pkg/config"
 	"github.com/infracloudio/kubeops/pkg/events"
@@ -60,12 +62,22 @@ func (s *Slack) Send(event events.Event) error {
 				Short: true,
 			},
 		},
+		Footer: "kubeops",
+		Ts:     json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
 	}
 
 	if event.Namespace != "" {
 		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
 			Title: "Namespace",
 			Value: event.Namespace,
+			Short: true,
+		})
+	}
+
+	if event.Reason != "" {
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Reason",
+			Value: event.Reason,
 			Short: true,
 		})
 	}
@@ -78,13 +90,6 @@ func (s *Slack) Send(event events.Event) error {
 		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
 			Title: "Message",
 			Value: message,
-		})
-	}
-
-	if event.Reason != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Reason",
-			Value: event.Reason,
 		})
 	}
 
