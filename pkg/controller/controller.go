@@ -20,6 +20,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var startTime time.Time
+
 func findNamespace(ns string) string {
 	if ns == "all" {
 		return apiV1.NamespaceAll
@@ -32,6 +34,7 @@ func findNamespace(ns string) string {
 
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
+	startTime = time.Now().Local()
 	// Register informers for resource lifecycle events
 	if len(c.Resources) > 0 {
 		logging.Logger.Info("Registering resource lifecycle informer")
@@ -52,7 +55,7 @@ func RegisterInformers(c *config.Config) {
 				_, controller := cache.NewInformer(
 					watchlist,
 					object,
-					0*time.Second,
+					30*time.Minute,
 					registerEventHandlers(r.Name, r.Events),
 				)
 				stopCh := make(chan struct{})
@@ -73,7 +76,7 @@ func RegisterInformers(c *config.Config) {
 		_, controller := cache.NewInformer(
 			watchlist,
 			&apiV1.Event{},
-			0*time.Second,
+			30*time.Minute,
 			cache.ResourceEventHandlerFuncs{
 				AddFunc: func(obj interface{}) {
 					key, err := cache.MetaNamespaceKeyFunc(obj)
@@ -138,19 +141,31 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 	return handlerFns
 }
 
-func logEvent(obj interface{}, kind, eventType string, err error) error {
+func logEvent(obj interface{}, kind, eventType string, err error) {
 	if err != nil {
 		logging.Logger.Error("Error while receiving event: ", err.Error())
+		return
 	}
+
+	// Skip older events
+	if eventType == "create" {
+		objectMeta := utils.GetObjectMetaData(obj)
+		if objectMeta.CreationTimestamp.Sub(startTime).Seconds() <= 0 {
+			return
+		}
+	}
+
+	// Check if Notify disabled
 	if !config.Notify {
 		logging.Logger.Info("Skipping notification")
-		return nil
+		return
 	}
+
+	// Create new event object
 	event := events.New(obj, eventType, kind)
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
 
+	// Send notification to communication chennel
 	notifier := notify.NewSlack()
 	notifier.Send(event)
-
-	return nil
 }
