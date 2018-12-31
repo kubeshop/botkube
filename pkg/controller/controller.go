@@ -89,7 +89,7 @@ func RegisterInformers(c *config.Config) {
 					ns := eventObj.InvolvedObject.Namespace
 					eType := strings.ToLower(eventObj.Type)
 
-					logging.Logger.Debugf("Received event:- kind:%s ns:%s type:%s", kind, ns, eType)
+					logging.Logger.Debugf("Received event: kind:%s ns:%s type:%s", kind, ns, eType)
 					// Filter and forward
 					if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
 						utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && (utils.AllowedEventTypesMap[eType]) {
@@ -117,7 +117,7 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 		if event == "all" || event == "create" {
 			handlerFns.AddFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
-				logging.Logger.Infof("Processing add to %v: %s", resourceType, key)
+				logging.Logger.Debugf("Processing add to %v: %s", resourceType, key)
 				logEvent(obj, resourceType, "create", err)
 			}
 		}
@@ -125,7 +125,7 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 		if event == "all" || event == "update" {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(new)
-				logging.Logger.Infof("Processing update to %v: %s", resourceType, key)
+				logging.Logger.Debugf("Processing update to %v: %s", resourceType, key)
 				logEvent(new, resourceType, "update", err)
 			}
 		}
@@ -133,7 +133,7 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 		if event == "all" || event == "delete" {
 			handlerFns.DeleteFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
-				logging.Logger.Infof("Processing delete to %v: %s", resourceType, key)
+				logging.Logger.Debugf("Processing delete to %v: %s", resourceType, key)
 				logEvent(obj, resourceType, "delete", err)
 			}
 		}
@@ -151,6 +151,7 @@ func logEvent(obj interface{}, kind, eventType string, err error) {
 	if eventType == "create" {
 		objectMeta := utils.GetObjectMetaData(obj)
 		if objectMeta.CreationTimestamp.Sub(startTime).Seconds() <= 0 {
+			logging.Logger.Debug("Skipping older events")
 			return
 		}
 	}
