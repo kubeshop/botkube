@@ -1,7 +1,7 @@
 # kubeops
 [![Build Status](https://travis-ci.org/infracloudio/kubeops.svg?branch=master)](https://travis-ci.org/infracloudio/kubeops)
 
-A slack bot which watches your kubernetes clusters and notifies about resources life cycles, errors, events and provide recommedations about best practices while creating resources.
+A slack bot which watches your kubernetes clusters and notifies about resources life cycles, errors, events and provide recommendations about the best practices while creating resources.
 You can also ask kubeops to execute kubectl commands on k8s cluster which helps debugging a application or cluster.
 
 ## Building
