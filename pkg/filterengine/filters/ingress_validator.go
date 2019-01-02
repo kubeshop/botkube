@@ -38,7 +38,7 @@ func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
 			}
 			_, err := ValidServicePort(serviceName, ns, int32(servicePort))
 			if err != nil {
-				event.Messages = append(event.Messages, "Warning: Service "+serviceName+" used in ingress config does not exist or port not exposed\n")
+				event.Messages = append(event.Messages, "Service "+serviceName+" used in ingress config does not exist or port not exposed\n")
 				event.Level = events.Warn
 			}
 		}

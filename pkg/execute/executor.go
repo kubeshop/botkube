@@ -132,11 +132,13 @@ func runNotifierCommand(args []string) string {
 		}
 		if args[1] == "start" {
 			config.Notify = true
-			return "Notifier started!"
+			log.Logger.Info("Notifier enabled")
+			return "Brace yourselves, notifications are coming."
 		}
 		if args[1] == "stop" {
 			config.Notify = false
-			return "Notifier stopped!"
+			log.Logger.Info("Notifier disabled")
+			return "Sure! I won't send you notifications anymore."
 		}
 		if args[1] == "status" {
 			if config.Notify == false {
