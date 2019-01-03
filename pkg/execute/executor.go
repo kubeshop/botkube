@@ -33,6 +33,12 @@ var validNotifierCommands = map[string]bool{
 
 var kubectlBinary = "/usr/local/bin/kubectl"
 
+const (
+	notifierStopMsg   = "Brace yourselves, notifications are coming."
+	notifierStartMsg  = "Sure! I won't send you notifications anymore."
+	unsupportedCmdMsg = "Command not supported. Please run '@kubeops help' to see supported commands."
+)
+
 // Executor is an interface for processes to execute commands
 type Executor interface {
 	Execute() string
@@ -59,7 +65,7 @@ func (e *DefaultExecutor) Execute() string {
 	if validNotifierCommands[args[0]] {
 		return runNotifierCommand(args)
 	}
-	return "Command not supported. Please run '@kubeops help' to see supported commands"
+	return unsupportedCmdMsg
 }
 
 func printHelp() string {
@@ -88,7 +94,7 @@ func printHelp() string {
 }
 
 func printDefaultMsg() string {
-	return "Command not supported. Please run '@kubeops help' to see supported commands"
+	return unsupportedCmdMsg
 }
 
 func runKubectlCommand(args []string) string {
@@ -132,11 +138,13 @@ func runNotifierCommand(args []string) string {
 		}
 		if args[1] == "start" {
 			config.Notify = true
-			return "Notifier started!"
+			log.Logger.Info("Notifier enabled")
+			return notifierStartMsg
 		}
 		if args[1] == "stop" {
 			config.Notify = false
-			return "Notifier stopped!"
+			log.Logger.Info("Notifier disabled")
+			return notifierStopMsg
 		}
 		if args[1] == "status" {
 			if config.Notify == false {

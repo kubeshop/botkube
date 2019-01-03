@@ -6,5 +6,6 @@ import (
 
 // Notifier to send event notification on the communication channels
 type Notifier interface {
-	Send(events.Event) error
+	SendEvent(events.Event) error
+	SendMessage(string) error
 }
