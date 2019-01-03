@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/infracloudio/kubeops/pkg/config"
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/config"
+	log "github.com/infracloudio/botkube/pkg/logging"
 )
 
 var validKubectlCommands = map[string]bool{
@@ -34,9 +34,9 @@ var validNotifierCommands = map[string]bool{
 var kubectlBinary = "/usr/local/bin/kubectl"
 
 const (
-	notifierStopMsg   = "Brace yourselves, notifications are coming."
-	notifierStartMsg  = "Sure! I won't send you notifications anymore."
-	unsupportedCmdMsg = "Command not supported. Please run '@kubeops help' to see supported commands."
+	notifierStartMsg  = "Brace yourselves, notifications are coming."
+	notifierStopMsg   = "Sure! I won't send you notifications anymore."
+	unsupportedCmdMsg = "Command not supported. Please run '@botkube help' to see supported commands."
 )
 
 // Executor is an interface for processes to execute commands
@@ -73,19 +73,19 @@ func printHelp() string {
 	for k := range validKubectlCommands {
 		allowedKubectl = allowedKubectl + k + ", "
 	}
-	helpMsg := "kubeops executes kubectl commands on k8s cluster and returns output.\n" +
+	helpMsg := "botkube executes kubectl commands on k8s cluster and returns output.\n" +
 		"Usages:\n" +
-		"    @kubeops <kubectl command without `kubectl` prefix>\n" +
+		"    @botkube <kubectl command without `kubectl` prefix>\n" +
 		"e.g:\n" +
-		"    @kubeops get pods\n" +
-		"    @kubeops logs podname -n namespace\n" +
+		"    @botkube get pods\n" +
+		"    @botkube logs podname -n namespace\n" +
 		"Allowed kubectl commands:\n" +
 		"    " + allowedKubectl + "\n\n" +
 		"Commands to manage notifier:\n" +
 		"notifier stop          Stop sending k8s event notifications to slack (started by default)\n" +
 		"notifier start         Start sending k8s event notifications to slack\n" +
 		"notifier status        Show running status of event notifier\n" +
-		"notifier showconfig    Show kubeops configuration for event notifier\n\n" +
+		"notifier showconfig    Show botkube configuration for event notifier\n\n" +
 		"Other Commands:\n" +
 		"help                   Show help\n" +
 		"ping                   Check connection health\n"
@@ -165,7 +165,7 @@ func runNotifierCommand(args []string) string {
 }
 
 func showControllerConfig() (string, error) {
-	configPath := os.Getenv("KUBEOPS_CONFIG_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, config.ConfigFileName)
 	file, err := os.Open(configFile)
 	defer file.Close()

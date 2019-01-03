@@ -1,7 +1,7 @@
 package filters
 
 import (
-	"github.com/infracloudio/kubeops/pkg/events"
+	"github.com/infracloudio/botkube/pkg/events"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 )
 

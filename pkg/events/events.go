@@ -3,7 +3,7 @@ package events
 import (
 	"time"
 
-	"github.com/infracloudio/kubeops/pkg/utils"
+	"github.com/infracloudio/botkube/pkg/utils"
 	appsV1beta1 "k8s.io/api/apps/v1beta1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"

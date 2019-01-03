@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-// ConfigFileName is a name of kubeops configuration file
-var ConfigFileName = "kubeopsconfig.yaml"
+// ConfigFileName is a name of botkube configuration file
+var ConfigFileName = "config.yaml"
 
 // Notify flag to toggle event notification
 var Notify = true
@@ -47,7 +47,7 @@ type Slack struct {
 // New returns new Config
 func New() (*Config, error) {
 	c := &Config{}
-	configPath := os.Getenv("KUBEOPS_CONFIG_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, ConfigFileName)
 	file, err := os.Open(configFile)
 	defer file.Close()

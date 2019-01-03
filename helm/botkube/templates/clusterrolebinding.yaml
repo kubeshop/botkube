@@ -1,17 +1,17 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "kubeops.fullname" . }}-clusterrolebinding
+  name: {{ include "botkube.fullname" . }}-clusterrolebinding
   labels:
-    app.kubernetes.io/name: {{ include "kubeops.name" . }}
-    helm.sh/chart: {{ include "kubeops.chart" . }}
+    app.kubernetes.io/name: {{ include "botkube.name" . }}
+    helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "kubeops.fullname" . }}-clusterrole
+  name: {{ include "botkube.fullname" . }}-clusterrole
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kubeops.fullname" . }}-sa
+  name: {{ include "botkube.fullname" . }}-sa
   namespace: {{ .Release.Namespace }}

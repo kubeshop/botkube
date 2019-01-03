@@ -1,7 +1,7 @@
 set +x
 
 BUILD_ROOT=$(dirname $0)
-IMAGE_REPO=${1:-infracloud/kubeops}
+IMAGE_REPO=${1:-infracloud/botkube}
 IMAGE_TAG=${2:-latest}
 
 pushd ${BUILD_ROOT}/..
