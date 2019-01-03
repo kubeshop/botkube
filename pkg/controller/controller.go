@@ -22,6 +22,11 @@ import (
 
 var startTime time.Time
 
+const (
+	controllerStartMsg = "...and now my watch begins! :crossed_swords:"
+	controllerStopMsg  = "my watch has ended!"
+)
+
 func findNamespace(ns string) string {
 	if ns == "all" {
 		return apiV1.NamespaceAll
@@ -34,7 +39,7 @@ func findNamespace(ns string) string {
 
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
-	sendMessage("...and now my watch begins! :crossed_swords:")
+	sendMessage(controllerStartMsg)
 	startTime = time.Now().Local()
 
 	// Get resync period
@@ -122,7 +127,7 @@ func RegisterInformers(c *config.Config) {
 	signal.Notify(sigterm, syscall.SIGTERM)
 	signal.Notify(sigterm, syscall.SIGINT)
 	<-sigterm
-	sendMessage("my watch has ended!")
+	sendMessage(controllerStopMsg)
 }
 
 func registerEventHandlers(resourceType string, events []string) (handlerFns cache.ResourceEventHandlerFuncs) {
@@ -195,6 +200,7 @@ func sendEvent(obj interface{}, kind, eventType string, err error) {
 
 func sendMessage(msg string) {
 	if len(msg) <= 0 {
+		log.Logger.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
 	}
 
