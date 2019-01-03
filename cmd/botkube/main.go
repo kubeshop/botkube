@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/infracloudio/kubeops/pkg/config"
-	"github.com/infracloudio/kubeops/pkg/controller"
-	log "github.com/infracloudio/kubeops/pkg/logging"
-	"github.com/infracloudio/kubeops/pkg/slack"
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/controller"
+	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/slack"
 )
 
 func main() {

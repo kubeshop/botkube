@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/infracloudio/kubeops/pkg/config"
-	"github.com/infracloudio/kubeops/pkg/events"
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/events"
+	log "github.com/infracloudio/botkube/pkg/logging"
 	"github.com/nlopes/slack"
 )
 
@@ -62,7 +62,7 @@ func (s *Slack) SendEvent(event events.Event) error {
 				Short: true,
 			},
 		},
-		Footer: "kubeops",
+		Footer: "botkube",
 	}
 
 	// Add timestamp

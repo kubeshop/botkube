@@ -4,9 +4,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/infracloudio/kubeops/pkg/config"
+	"github.com/infracloudio/botkube/pkg/config"
 
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	log "github.com/infracloudio/botkube/pkg/logging"
 	appsV1beta1 "k8s.io/api/apps/v1beta1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"

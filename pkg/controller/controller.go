@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/infracloudio/kubeops/pkg/config"
-	"github.com/infracloudio/kubeops/pkg/events"
-	"github.com/infracloudio/kubeops/pkg/filterengine"
-	log "github.com/infracloudio/kubeops/pkg/logging"
-	"github.com/infracloudio/kubeops/pkg/notify"
-	"github.com/infracloudio/kubeops/pkg/utils"
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine"
+	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/infracloudio/botkube/pkg/utils"
 
 	apiV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -192,6 +192,11 @@ func sendEvent(obj interface{}, kind, eventType string, err error) {
 	// Create new event object
 	event := events.New(obj, eventType, kind)
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
+
+	if len(event.Kind) <= 0 {
+		log.Logger.Warn("sendEvent received event with Kind nil. Hence skipping.")
+		return
+	}
 
 	// Send notification to communication chennel
 	notifier := notify.NewSlack()
