@@ -3,19 +3,19 @@ FROM golang:1.11-alpine
 RUN mkdir -p /go/src/app
 WORKDIR /go/src/app
 
-CMD ["/controller"]
+CMD ["/botkube"]
 
-RUN mkdir -p /go/src/github.com/infracloudio/kubeops/vendor && \
-    mkdir -p /go/src/github.com/infracloudio/kubeops/cmd && \
-    mkdir -p /go/src/github.com/infracloudio/kubeops/pkg
+RUN mkdir -p /go/src/github.com/infracloudio/botkube/vendor && \
+    mkdir -p /go/src/github.com/infracloudio/botkube/cmd && \
+    mkdir -p /go/src/github.com/infracloudio/botkube/pkg
 
-COPY vendor/ /go/src/github.com/infracloudio/kubeops/vendor
-COPY cmd/ /go/src/github.com/infracloudio/kubeops/cmd
-COPY pkg/ /go/src/github.com/infracloudio/kubeops/pkg
+COPY vendor/ /go/src/github.com/infracloudio/botkube/vendor
+COPY cmd/ /go/src/github.com/infracloudio/botkube/cmd
+COPY pkg/ /go/src/github.com/infracloudio/botkube/pkg
 
-RUN cd /go/src/github.com/infracloudio/kubeops/cmd/controller && \
+RUN cd /go/src/github.com/infracloudio/botkube/cmd/botkube && \
     go build && \
-    cp /go/src/github.com/infracloudio/kubeops/cmd/controller/controller /controller
+    cp /go/src/github.com/infracloudio/botkube/cmd/botkube/botkube /botkube
 
 # Install kubectl
 ENV KUBE_LATEST_VERSION="v1.13.0"

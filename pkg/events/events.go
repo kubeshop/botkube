@@ -3,7 +3,7 @@ package events
 import (
 	"time"
 
-	"github.com/infracloudio/kubeops/pkg/utils"
+	"github.com/infracloudio/botkube/pkg/utils"
 	appsV1beta1 "k8s.io/api/apps/v1beta1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
@@ -51,7 +51,7 @@ var LevelMap map[string]Level
 func init() {
 	LevelMap = make(map[string]Level)
 	LevelMap["create"] = Info
-	LevelMap["Update"] = Debug
+	LevelMap["update"] = Warn
 	LevelMap["delete"] = Critical
 	LevelMap["error"] = Error
 	LevelMap["Warning"] = Critical
@@ -69,7 +69,15 @@ func New(object interface{}, eventType string, kind string) Event {
 		Kind:      objectTypeMeta.Kind,
 		Level:     LevelMap[eventType],
 		Type:      eventType,
-		TimeStamp: objectMeta.CreationTimestamp.Time,
+	}
+
+	// Add TimeStamps
+	if eventType == "create" {
+		event.TimeStamp = objectMeta.CreationTimestamp.Time
+	}
+
+	if eventType == "delete" {
+		event.TimeStamp = objectMeta.DeletionTimestamp.Time
 	}
 
 	if kind != "events" {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/infracloudio/kubeops/pkg/config"
-	"github.com/infracloudio/kubeops/pkg/events"
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/events"
+	log "github.com/infracloudio/botkube/pkg/logging"
 	"github.com/nlopes/slack"
 )
 
@@ -40,8 +40,8 @@ func NewSlack() Notifier {
 	}
 }
 
-// Send event notification to slack
-func (s *Slack) Send(event events.Event) error {
+// SendEvent sends event notification to slack
+func (s *Slack) SendEvent(event events.Event) error {
 	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", event))
 
 	api := slack.New(s.Token)
@@ -62,8 +62,13 @@ func (s *Slack) Send(event events.Event) error {
 				Short: true,
 			},
 		},
-		Footer: "kubeops",
-		Ts:     json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
+		Footer: "botkube",
+	}
+
+	// Add timestamp
+	ts := json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10))
+	if ts > "0" {
+		attachment.Ts = ts
 	}
 
 	if event.Namespace != "" {
@@ -114,8 +119,26 @@ func (s *Slack) Send(event events.Event) error {
 	attachment.Color = attachmentColor[event.Level]
 	params.Attachments = []slack.Attachment{attachment}
 
-	log.Logger.Infof("Sending message on %v with token %s", s.Channel, s.Token)
 	channelID, timestamp, err := api.PostMessage(s.Channel, "", params)
+	if err != nil {
+		log.Logger.Errorf("Error in sending slack message %s", err.Error())
+		return err
+	}
+
+	log.Logger.Infof("Message successfully sent to channel %s at %s", channelID, timestamp)
+	return nil
+}
+
+// SendMessage sends message to slack channel
+func (s *Slack) SendMessage(msg string) error {
+	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", msg))
+
+	api := slack.New(s.Token)
+	params := slack.PostMessageParameters{
+		AsUser: true,
+	}
+
+	channelID, timestamp, err := api.PostMessage(s.Channel, msg, params)
 	if err != nil {
 		log.Logger.Errorf("Error in sending slack message %s", err.Error())
 		return err

@@ -1,10 +1,11 @@
 package notify
 
 import (
-	"github.com/infracloudio/kubeops/pkg/events"
+	"github.com/infracloudio/botkube/pkg/events"
 )
 
 // Notifier to send event notification on the communication channels
 type Notifier interface {
-	Send(events.Event) error
+	SendEvent(events.Event) error
+	SendMessage(string) error
 }

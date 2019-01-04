@@ -1,9 +1,9 @@
 package filterengine
 
 import (
-	"github.com/infracloudio/kubeops/pkg/events"
-	"github.com/infracloudio/kubeops/pkg/filterengine/filters"
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine/filters"
+	log "github.com/infracloudio/botkube/pkg/logging"
 )
 
 var (

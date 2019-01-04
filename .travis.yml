@@ -17,4 +17,4 @@ before_script:
   - dep ensure
 
 script:
-  - build/docker.sh infracloudio/kubeops latest
+  - build/docker.sh infracloudio/botkube latest

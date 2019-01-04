@@ -3,8 +3,8 @@ package filters
 import (
 	"strings"
 
-	"github.com/infracloudio/kubeops/pkg/events"
-	log "github.com/infracloudio/kubeops/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/events"
+	log "github.com/infracloudio/botkube/pkg/logging"
 
 	apiV1 "k8s.io/api/core/v1"
 )
