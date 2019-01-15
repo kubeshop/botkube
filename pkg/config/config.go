@@ -19,6 +19,7 @@ type Config struct {
 	Recommendations bool
 	Communications  Communications
 	Events          K8SEvents
+	Settings        Settings
 }
 
 // K8SEvents contains event types
@@ -42,6 +43,12 @@ type Communications struct {
 type Slack struct {
 	Channel string
 	Token   string
+}
+
+// Settings for multicluster support
+type Settings struct {
+	ClusterName  string
+	AllowKubectl bool
 }
 
 // New returns new Config

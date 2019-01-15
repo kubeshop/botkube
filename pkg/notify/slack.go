@@ -15,8 +15,9 @@ var attachmentColor map[events.Level]string
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
-	Token   string
-	Channel string
+	Token       string
+	Channel     string
+	ClusterName string
 }
 
 // NewSlack returns new Slack object
@@ -35,8 +36,9 @@ func NewSlack() Notifier {
 	}
 
 	return &Slack{
-		Token:   c.Communications.Slack.Token,
-		Channel: c.Communications.Slack.Channel,
+		Token:       c.Communications.Slack.Token,
+		Channel:     c.Communications.Slack.Channel,
+		ClusterName: c.Settings.ClusterName,
 	}
 }
 
@@ -62,7 +64,7 @@ func (s *Slack) SendEvent(event events.Event) error {
 				Short: true,
 			},
 		},
-		Footer: "botkube",
+		Footer: "BotKube",
 	}
 
 	// Add timestamp
@@ -115,6 +117,12 @@ func (s *Slack) SendEvent(event events.Event) error {
 			Value: rec,
 		})
 	}
+
+	// Add clustername in the message
+	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+		Title: "Cluster",
+		Value: s.ClusterName,
+	})
 
 	attachment.Color = attachmentColor[event.Level]
 	params.Attachments = []slack.Attachment{attachment}

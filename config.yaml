@@ -118,3 +118,10 @@ communications:
   slack:
     channel: 'SLACK_CHANNEL'
     token: 'SLACK_API_TOKEN'
+
+# Setting to support multiple clusters
+settings:
+  # Cluster name to differentiate incoming messages
+  clustername: not-configured
+  # Set false to disable kubectl commands execution
+  allowkubectl: false

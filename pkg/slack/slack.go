@@ -12,7 +12,8 @@ import (
 
 // Bot listens for user's message, execute commands and sends back the response
 type Bot struct {
-	Token string
+	Token        string
+	AllowKubectl bool
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -32,13 +33,14 @@ func NewSlackBot() *Bot {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 	return &Bot{
-		Token: c.Communications.Slack.Token,
+		Token:        c.Communications.Slack.Token,
+		AllowKubectl: c.Settings.AllowKubectl,
 	}
 }
 
 // Start starts the slacknot RTM connection and listens for messages
-func (s *Bot) Start() {
-	api := slack.New(s.Token)
+func (b *Bot) Start() {
+	api := slack.New(b.Token)
 	authResp, err := api.AuthTest()
 	if err != nil {
 		logging.Logger.Fatal(err)
@@ -66,7 +68,7 @@ func (s *Bot) Start() {
 				InMessage: msg,
 				RTM:       rtm,
 			}
-			sm.HandleMessage()
+			sm.HandleMessage(b.AllowKubectl)
 
 		case *slack.RTMError:
 			logging.Logger.Errorf("Slack RMT error: %+v", ev.Error())
@@ -79,8 +81,8 @@ func (s *Bot) Start() {
 	}
 }
 
-func (sm *slackMessage) HandleMessage() {
-	e := execute.NewDefaultExecutor(sm.InMessage)
+func (sm *slackMessage) HandleMessage(allowkubectl bool) {
+	e := execute.NewDefaultExecutor(sm.InMessage, allowkubectl)
 	sm.OutMessage = e.Execute()
 	sm.OutMsgLength = len(sm.OutMessage)
 	sm.Send()
