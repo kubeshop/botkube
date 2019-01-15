@@ -34,9 +34,10 @@ var validNotifierCommands = map[string]bool{
 var kubectlBinary = "/usr/local/bin/kubectl"
 
 const (
-	notifierStartMsg  = "Brace yourselves, notifications are coming."
-	notifierStopMsg   = "Sure! I won't send you notifications anymore."
-	unsupportedCmdMsg = "Command not supported. Please run '@botkube help' to see supported commands."
+	notifierStartMsg   = "Brace yourselves, notifications are coming."
+	notifierStopMsg    = "Sure! I won't send you notifications anymore."
+	unsupportedCmdMsg  = "Command not supported. Please run '@botkube help' to see supported commands."
+	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command."
 )
 
 // Executor is an interface for processes to execute commands
@@ -46,13 +47,15 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message string
+	Message      string
+	AllowKubectl bool
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string) Executor {
+func NewDefaultExecutor(msg string, allowkubectl bool) Executor {
 	return &DefaultExecutor{
-		Message: msg,
+		Message:      msg,
+		AllowKubectl: allowkubectl,
 	}
 }
 
@@ -60,6 +63,9 @@ func NewDefaultExecutor(msg string) Executor {
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Split(e.Message, " ")
 	if validKubectlCommands[args[0]] {
+		if !e.AllowKubectl {
+			return kubectlDisabledMsg
+		}
 		return runKubectlCommand(args)
 	}
 	if validNotifierCommands[args[0]] {
