@@ -1,0 +1,208 @@
+---
+# Configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: botkube-configmap
+  labels:
+    app: botkube
+data:
+  config.yaml: |
+    resources:
+      - name: pods                # Name of the resources e.g pods, deployments, ingresses, etc. (Resource name must be in plural form)
+        namespaces:               # List of namespaces, "all" will watch all the namespaces
+          - all
+        events:                   # List of lifecycle events you want to receive, e.g create, update, delete OR all
+          - create
+          - delete
+      - name: services
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: deployments
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: ingresses
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: nodes
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: namespaces
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: persistentvolumes
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: persistentvolumeclaims
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: secrets
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: configmaps
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: daemonsets
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: jobs
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: roles
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: rolebindings
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: clusterroles
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+      - name: clusterrolebindings
+        namespace:
+          - all
+        events:
+          - create
+          - delete
+      - name: nodes
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+  
+    # K8S error/warning events you want to receive for the configured resources
+    events:
+      types:
+        #- normal
+        - warning
+  
+    # Check true if you want to receive recommendations
+    # about the best practices for the created resource
+    recommendations: true
+    
+    # Channels configuration
+    communications:
+      slack:
+        channel: <SLACK_CHANNEL>
+        token: <SLACK_API_TOKEN>
+  
+    # Setting to support multiple clusters
+    settings:
+      # Cluster name to differentiate incoming messages
+      clustername: not-configured
+      # Set false to disable kubectl commands execution
+      allowkubectl: false
+---
+# serviceaccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: botkube-sa
+  labels:
+    app: botkube
+---
+# Source: botkube/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: botkube-clusterrole
+  labels:
+    app: botkube
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "watch", "list"]
+---
+# clusterrolebinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: botkube-clusterrolebinding
+  labels:
+    app: botkube
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: botkube-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: botkube-sa
+  namespace: botkube
+---
+# deployment
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: botkube
+  labels:
+    component: controller
+    app: botkube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: controller
+      app: botkube
+  template:
+    metadata:
+      labels:
+        component: controller
+        app: botkube
+    spec:
+      serviceAccountName: botkube-sa
+      containers:
+        - name: botkube
+          image: "infracloud/botkube:0.2"
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config-volume
+              mountPath: "/config"
+          env:
+            - name: CONFIG_PATH
+              value: "/config/"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: botkube-configmap
