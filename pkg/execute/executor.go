@@ -36,7 +36,7 @@ var kubectlBinary = "/usr/local/bin/kubectl"
 const (
 	notifierStartMsg   = "Brace yourselves, notifications are coming."
 	notifierStopMsg    = "Sure! I won't send you notifications anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run '@botkube help' to see supported commands."
+	unsupportedCmdMsg  = "Command not supported. Please run '@BotKube help' to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command."
 )
 
@@ -79,19 +79,19 @@ func printHelp() string {
 	for k := range validKubectlCommands {
 		allowedKubectl = allowedKubectl + k + ", "
 	}
-	helpMsg := "botkube executes kubectl commands on k8s cluster and returns output.\n" +
+	helpMsg := "BotKube executes kubectl commands on k8s cluster and returns output.\n" +
 		"Usages:\n" +
-		"    @botkube <kubectl command without `kubectl` prefix>\n" +
+		"    @BotKube <kubectl command without `kubectl` prefix>\n" +
 		"e.g:\n" +
-		"    @botkube get pods\n" +
-		"    @botkube logs podname -n namespace\n" +
+		"    @BotKube get pods\n" +
+		"    @BotKube logs podname -n namespace\n" +
 		"Allowed kubectl commands:\n" +
 		"    " + allowedKubectl + "\n\n" +
 		"Commands to manage notifier:\n" +
 		"notifier stop          Stop sending k8s event notifications to slack (started by default)\n" +
 		"notifier start         Start sending k8s event notifications to slack\n" +
 		"notifier status        Show running status of event notifier\n" +
-		"notifier showconfig    Show botkube configuration for event notifier\n\n" +
+		"notifier showconfig    Show BotKube configuration for event notifier\n\n" +
 		"Other Commands:\n" +
 		"help                   Show help\n" +
 		"ping                   Check connection health\n"
