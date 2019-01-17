@@ -88,8 +88,8 @@ func printHelp() string {
 		"Allowed kubectl commands:\n" +
 		"    " + allowedKubectl + "\n\n" +
 		"Commands to manage notifier:\n" +
-		"notifier stop          Stop sending k8s event notifications to slack (started by default)\n" +
-		"notifier start         Start sending k8s event notifications to slack\n" +
+		"notifier stop          Stop sending k8s event notifications to Slack (started by default)\n" +
+		"notifier start         Start sending k8s event notifications to Slack\n" +
 		"notifier status        Show running status of event notifier\n" +
 		"notifier showconfig    Show BotKube configuration for event notifier\n\n" +
 		"Other Commands:\n" +
