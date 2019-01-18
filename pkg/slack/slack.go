@@ -56,46 +56,43 @@ func (b *Bot) Start() {
 			logging.Logger.Debug("Connection Info: ", ev.Info)
 
 		case *slack.MessageEvent:
-			// Check if message posted in a channel
-			chanInfo, _ := api.GetChannelInfo(ev.Channel)
-
-			// Check if message posted in a group
-			groupInfo, _ := api.GetGroupInfo(ev.Channel)
-
-			if chanInfo != nil || groupInfo != nil {
-				// Message posted in a channel/group
-				// Serve only if starts with mention
-				if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
-					continue
-				}
-				logging.Logger.Debugf("Slack incoming message: %+v", ev)
-				msg := strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
-				sm := slackMessage{
-					ChannelID: ev.Channel,
-					BotID:     botID,
-					InMessage: msg,
-					RTM:       rtm,
-				}
-				sm.HandleMessage(b.AllowKubectl)
-				continue
-			}
-
-			// Message posted as a DM
 			// Skip if message posted by BotKube
 			if ev.User == botID {
 				continue
 			}
+
+			// Check if message posted in a channel
+			_, err := api.GetChannelInfo(ev.Channel)
+			if err == nil {
+				// Message posted in a channel
+				// Serve only if starts with mention
+				if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+					continue
+				}
+			} else {
+				// Check if message posted in a group
+				_, err := api.GetGroupInfo(ev.Channel)
+				if err == nil {
+					// Message posted in a group
+					// Serve only if starts with mention
+					if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+						continue
+					}
+				}
+			}
+
+			// Message posted as a DM
 			logging.Logger.Debugf("Slack incoming message: %+v", ev)
-			msg := ev.Text
+			inMessage := ev.Text
 
 			// Trim @BotKube prefix if exists
 			if strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
-				msg = strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
+				inMessage = strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
 			}
 			sm := slackMessage{
 				ChannelID: ev.Channel,
 				BotID:     botID,
-				InMessage: msg,
+				InMessage: inMessage,
 				RTM:       rtm,
 			}
 			sm.HandleMessage(b.AllowKubectl)
