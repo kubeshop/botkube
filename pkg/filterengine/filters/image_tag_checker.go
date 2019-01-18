@@ -1,4 +1,4 @@
-package filters
+package main
 
 import (
 	"strings"
@@ -13,10 +13,8 @@ import (
 type ImageTagChecker struct {
 }
 
-// NewImageTagChecker creates new ImageTagChecker object
-func NewImageTagChecker() *ImageTagChecker {
-	return &ImageTagChecker{}
-}
+// Create new Filter
+var Filter ImageTagChecker
 
 // Run filers and modifies event struct
 func (f *ImageTagChecker) Run(object interface{}, event *events.Event) {

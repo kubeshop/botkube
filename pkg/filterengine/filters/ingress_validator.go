@@ -1,7 +1,8 @@
-package filters
+package main
 
 import (
 	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine/utils"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
@@ -10,10 +11,8 @@ import (
 type IngressValidator struct {
 }
 
-// NewIngressValidator returns new IngressValidator object
-func NewIngressValidator() *IngressValidator {
-	return &IngressValidator{}
-}
+// Create new IngressValidator
+var Filter IngressValidator
 
 // Run filers and modifies event struct
 func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
@@ -32,11 +31,11 @@ func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
 		for _, path := range rule.IngressRuleValue.HTTP.Paths {
 			serviceName := path.Backend.ServiceName
 			servicePort := path.Backend.ServicePort.IntValue()
-			ns := FindNamespaceFromService(serviceName)
+			ns := utils.FindNamespaceFromService(serviceName)
 			if ns == "default" {
 				ns = ingNs
 			}
-			_, err := ValidServicePort(serviceName, ns, int32(servicePort))
+			_, err := utils.ValidServicePort(serviceName, ns, int32(servicePort))
 			if err != nil {
 				event.Messages = append(event.Messages, "Service "+serviceName+" used in ingress config does not exist or port not exposed\n")
 				event.Level = events.Warn
@@ -47,7 +46,7 @@ func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
 
 	// Check if tls secret exists
 	for _, tls := range ingressObj.Spec.TLS {
-		_, err := ValidSecret(tls.SecretName, ingNs)
+		_, err := utils.ValidSecret(tls.SecretName, ingNs)
 		if err != nil {
 			event.Recommendations = append(event.Recommendations, "TLS secret "+tls.SecretName+"does not exist")
 		}
