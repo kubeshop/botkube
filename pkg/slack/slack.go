@@ -56,16 +56,43 @@ func (b *Bot) Start() {
 			logging.Logger.Debug("Connection Info: ", ev.Info)
 
 		case *slack.MessageEvent:
-			// Serve only if mentioned
-			if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+			// Skip if message posted by BotKube
+			if ev.User == botID {
 				continue
 			}
+
+			// Check if message posted in a channel
+			_, err := api.GetChannelInfo(ev.Channel)
+			if err == nil {
+				// Message posted in a channel
+				// Serve only if starts with mention
+				if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+					continue
+				}
+			} else {
+				// Check if message posted in a group
+				_, err := api.GetGroupInfo(ev.Channel)
+				if err == nil {
+					// Message posted in a group
+					// Serve only if starts with mention
+					if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+						continue
+					}
+				}
+			}
+
+			// Message posted as a DM
 			logging.Logger.Debugf("Slack incoming message: %+v", ev)
-			msg := strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
+			inMessage := ev.Text
+
+			// Trim @BotKube prefix if exists
+			if strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+				inMessage = strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
+			}
 			sm := slackMessage{
 				ChannelID: ev.Channel,
 				BotID:     botID,
-				InMessage: msg,
+				InMessage: inMessage,
 				RTM:       rtm,
 			}
 			sm.HandleMessage(b.AllowKubectl)
