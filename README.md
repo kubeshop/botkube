@@ -38,7 +38,7 @@ $ helm install --name botkube --namespace botkube --set config.communications.sl
   **CLUSTER_NAME** is the cluster name set in the incoming messages<br>
   **ALLOW_KUBECTL** set true to allow kubectl command execution by BotKube on the cluster<br>
 
-  Configuration syntax is explained [here](www.botkube.io/configuration).
+  Configuration syntax is explained [here](https://www.botkube.io/configuration) 
 
 - Send **@BotKube ping** in the channel to see if BotKube is running and responding.
 
@@ -60,7 +60,7 @@ $ wget -q https://raw.githubusercontent.com/infracloudio/botkube/master/deploy-a
   **clustername** is the cluster name set in the incoming messages<br>
   **allowkubectl** set true to allow kubectl command execution by BotKube on the cluster<br>
 
-  Configuration syntax is explained [here](www.botkube.io/configuration).
+  Configuration syntax is explained [here](https://www.botkube.io/configuration) 
 
 - Create **botkube** namespace and deploy resources
 
