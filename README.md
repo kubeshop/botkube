@@ -6,6 +6,8 @@ For complete documentation visit www.botkube.io
 A slack bot which keeps eye on your kubernetes resources and notifies about resources life cycles events, errors and warnings. It allows you to define and run certain checks on resouces specs.
 You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
 
+![](botkube-title.jpg)
+
 ## Getting started
 ### Install BotKube app to your slack workspace
 Click the "Add to Slack" button provided to install `BotKube` slack application to your workspace. Once you authorized the application, you will be provided a BOT Access token. Kindly note down that token which will be required while deploying BotKube controller to your cluster
