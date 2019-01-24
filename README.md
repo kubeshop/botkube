@@ -26,7 +26,7 @@ $ git clone https://github.com/infracloudio/botkube.git
 ```
 
 - Update default **config** in **helm/botkube/values.yaml** to watch the resources you want. (by default you will receive **create**, **delete** and **error** events for all the resources in all the namespaces.)
-If you are not interested in events about perticular resource, just remove it's entry from the config file.
+If you are not interested in events about particular resource, just remove it's entry from the config file.
 - Deploy BotKube controller using **helm install** in your cluster.
 ```bash
 $ helm install --name botkube --namespace botkube --set config.communications.slack.channel={SLACK_CHANNEL_NAME},config.communications.slack.token={SLACK_API_TOKEN_FOR_THE_BOT},config.settings.clustername={CLUSTER_NAME},config.settings.allowkubectl={ALLOW_KUBECTL} helm/botkube/
