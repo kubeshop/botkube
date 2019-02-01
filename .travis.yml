@@ -9,12 +9,16 @@ services:
 install:
   - go get -u github.com/golang/dep/cmd/dep
   - go get -u golang.org/x/lint/golint
+  - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
+  - chmod +x get_helm.sh
+  - sudo ./get_helm.sh
 
 before_script:
   - hack/verify-gofmt.sh
   - hack/verify-govet.sh
   - hack/verify-golint.sh
   - dep ensure
+  - helm lint helm/botkube
 
 script:
   - build/docker.sh infracloudio/botkube latest

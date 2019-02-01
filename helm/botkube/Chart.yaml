@@ -1,6 +1,24 @@
 apiVersion: v1
-appVersion: "1.0"
-description: A Helm chart for Kubernetes
 name: botkube
-icon: https://www.botkube.io/images/botkube.ico
+home: https://www.botkube.io
+appVersion: "1.0"
 version: 0.1.0
+icon: https://www.botkube.io/images/botkube.ico
+description: Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster,
+ debug deployments and run specific checks on resources in the cluster.
+sources:
+  - https://github.com/infracloudio/botkube
+keywords:
+  - botkube
+  - kubernetes
+  - kubernetes-monitoring
+  - kubernetes-controller
+  - kubernetes-bot
+  - chatops
+  - bot
+  - botops
+maintainers:
+  - name: PrasadG193
+    email: prasad.ghangal@gmail.com
+  - name: ssudake21
+    email: sanket@infracloud.io
