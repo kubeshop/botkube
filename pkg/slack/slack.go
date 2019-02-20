@@ -14,14 +14,15 @@ import (
 type Bot struct {
 	Token        string
 	AllowKubectl bool
+	ClusterName  string
 	ChannelName  string
-	CheckChannel bool
 }
 
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
 	ChannelID    string
 	BotID        string
+	MessageType  string
 	InMessage    string
 	OutMessage   string
 	OutMsgLength int
@@ -37,8 +38,8 @@ func NewSlackBot() *Bot {
 	return &Bot{
 		Token:        c.Communications.Slack.Token,
 		AllowKubectl: c.Settings.AllowKubectl,
+		ClusterName:  c.Settings.ClusterName,
 		ChannelName:  c.Communications.Slack.Channel,
-		CheckChannel: c.Settings.CheckChannel,
 	}
 }
 
@@ -55,6 +56,7 @@ func (b *Bot) Start() {
 	go rtm.ManageConnection()
 
 	for msg := range rtm.IncomingEvents {
+		isAuthChannel := false
 		switch ev := msg.Data.(type) {
 		case *slack.ConnectedEvent:
 			logging.Logger.Debug("Connection Info: ", ev.Info)
@@ -73,10 +75,9 @@ func (b *Bot) Start() {
 					if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
 						continue
 					}
-					// if config.settings.checkChannel is true
 					// Serve only if current channel is in config
-					if b.CheckChannel && (b.ChannelName != info.Name) {
-						continue
+					if b.ChannelName == info.Name {
+						isAuthChannel = true
 					}
 				}
 			}
@@ -95,7 +96,7 @@ func (b *Bot) Start() {
 				InMessage: inMessage,
 				RTM:       rtm,
 			}
-			sm.HandleMessage(b.AllowKubectl)
+			sm.HandleMessage(b.AllowKubectl, b.ClusterName, b.ChannelName, isAuthChannel)
 
 		case *slack.RTMError:
 			logging.Logger.Errorf("Slack RMT error: %+v", ev.Error())
@@ -108,8 +109,8 @@ func (b *Bot) Start() {
 	}
 }
 
-func (sm *slackMessage) HandleMessage(allowkubectl bool) {
-	e := execute.NewDefaultExecutor(sm.InMessage, allowkubectl)
+func (sm *slackMessage) HandleMessage(allowkubectl bool, clusterName, channelName string, isAuthChannel bool) {
+	e := execute.NewDefaultExecutor(sm.InMessage, allowkubectl, clusterName, channelName, isAuthChannel)
 	sm.OutMessage = e.Execute()
 	sm.OutMsgLength = len(sm.OutMessage)
 	sm.Send()
@@ -141,7 +142,11 @@ func (sm slackMessage) Send() {
 			logging.Logger.Error("Error in uploading file:", err)
 		}
 		return
+	} else if sm.OutMsgLength == 0 {
+		logging.Logger.Info("Invalid request. Dumping the response")
+		return
 	}
+
 	params := slack.PostMessageParameters{
 		AsUser: true,
 	}

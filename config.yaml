@@ -125,5 +125,3 @@ settings:
   clustername: not-configured
   # Set false to disable kubectl commands execution
   allowkubectl: false
-  # Set true only respond to channel in config
-  checkchannel: false
