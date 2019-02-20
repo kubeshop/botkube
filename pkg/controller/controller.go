@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -20,12 +21,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var startTime time.Time
-
 const (
-	controllerStartMsg = "...and now my watch begins! :crossed_swords:"
-	controllerStopMsg  = "my watch has ended!"
+	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
+	controllerStopMsg  = "my watch has ended for cluster '%s'!"
 )
+
+var startTime time.Time
 
 func findNamespace(ns string) string {
 	if ns == "all" {
@@ -39,7 +40,7 @@ func findNamespace(ns string) string {
 
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
-	sendMessage(controllerStartMsg)
+	sendMessage(fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now().Local()
 
 	// Get resync period
@@ -127,7 +128,7 @@ func RegisterInformers(c *config.Config) {
 	signal.Notify(sigterm, syscall.SIGTERM)
 	signal.Notify(sigterm, syscall.SIGINT)
 	<-sigterm
-	sendMessage(controllerStopMsg)
+	sendMessage(fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
 }
 
 func registerEventHandlers(resourceType string, events []string) (handlerFns cache.ResourceEventHandlerFuncs) {
