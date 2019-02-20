@@ -14,6 +14,8 @@ import (
 type Bot struct {
 	Token        string
 	AllowKubectl bool
+	ChannelName  string
+	CheckChannel bool
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -35,6 +37,8 @@ func NewSlackBot() *Bot {
 	return &Bot{
 		Token:        c.Communications.Slack.Token,
 		AllowKubectl: c.Settings.AllowKubectl,
+		ChannelName:  c.Communications.Slack.Channel,
+		CheckChannel: c.Settings.CheckChannel,
 	}
 }
 
@@ -61,21 +65,17 @@ func (b *Bot) Start() {
 				continue
 			}
 
-			// Check if message posted in a channel
-			_, err := api.GetChannelInfo(ev.Channel)
+			info, err := api.GetConversationInfo(ev.Channel, true)
 			if err == nil {
-				// Message posted in a channel
-				// Serve only if starts with mention
-				if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
-					continue
-				}
-			} else {
-				// Check if message posted in a group
-				_, err := api.GetGroupInfo(ev.Channel)
-				if err == nil {
-					// Message posted in a group
+				if info.IsChannel || info.IsPrivate {
+					// Message posted in a channel
 					// Serve only if starts with mention
 					if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+						continue
+					}
+					// if config.settings.checkChannel is true
+					// Serve only if current channel is in config
+					if b.CheckChannel && (b.ChannelName != info.Name) {
 						continue
 					}
 				}
