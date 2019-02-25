@@ -49,6 +49,7 @@ type Slack struct {
 type Settings struct {
 	ClusterName  string
 	AllowKubectl bool
+	CheckChannel bool
 }
 
 // New returns new Config
