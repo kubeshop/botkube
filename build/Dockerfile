@@ -1,6 +1,9 @@
 # Development image
 FROM golang:alpine AS BUILD-ENV
 
+ARG GOOS_VAL 
+ARG GOARCH_VAL
+
 RUN mkdir -p /go/src/github.com/infracloudio/botkube/vendor && \
     mkdir -p /go/src/github.com/infracloudio/botkube/cmd && \
     mkdir -p /go/src/github.com/infracloudio/botkube/pkg
@@ -10,7 +13,7 @@ COPY cmd/ /go/src/github.com/infracloudio/botkube/cmd
 COPY pkg/ /go/src/github.com/infracloudio/botkube/pkg
 
 RUN cd /go/src/github.com/infracloudio/botkube/cmd/botkube && \
-    GOOS=linux GOARCH=amd64 go build -o /go/bin/botkube
+    GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube
 
 ENV KUBE_LATEST_VERSION="v1.13.0"
 
