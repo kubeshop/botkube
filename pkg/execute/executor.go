@@ -32,16 +32,13 @@ var validNotifierCommand = map[string]bool{
 var validPingCommand = map[string]bool{
 	"ping": true,
 }
-var validHelpCommand = map[string]bool{
-	"help": true,
-}
 
 var kubectlBinary = "/usr/local/bin/kubectl"
 
 const (
 	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run '@BotKube help' to see supported commands."
+	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 )
 
@@ -116,60 +113,10 @@ func (e *DefaultExecutor) Execute() string {
 	if validPingCommand[args[0]] {
 		return runPingCommand(args, e.ClusterName)
 	}
-	if validHelpCommand[args[0]] {
-		return printHelp(e.ChannelName)
+	if e.IsAuthChannel {
+		return unsupportedCmdMsg
 	}
-	return unsupportedCmdMsg
-}
-
-func printHelp(channelName string) string {
-	kubecltCmdKeys := make([]string, 0, len(validKubectlCommands))
-	for cmd := range validKubectlCommands {
-		kubecltCmdKeys = append(kubecltCmdKeys, cmd)
-	}
-	allowedKubectl := strings.Join(kubecltCmdKeys, ", ")
-	helpMsg := `
-BotKube Help
-
-Usage:
-    @BotKube <kubectl command without kubectl prefix> [--cluster-name <cluster_name>]
-    @BotKube notifier [stop|start|status|showconfig]
-    @BotKube ping [--cluster-name <cluster-name>]
-
-Description:
-
-Kubectl commands:
-	- Executes kubectl commands on k8s cluster and returns output.
-
-	Example:
-	    @BotKube get pods
-	    @BotKube logs podname -n namespace
-	    @BotKube get deployment --cluster-name cluster_name
-
-	Allowed kubectl commands:
-    	%s
-
-Cluster Status:
-	- List all available Kubernetes Clusters and check connection health. 
-	- If flag specified, gives response from the specified cluster.
-
-	Example:
-		@BotKube ping
-		@BotKube ping --cluster-name mycluster
-
-Notifier commands:
-	- Commands to manage notifier (Runs only on configured channel %s).
-
-	Example:
-		@BotKube notifier stop          Stop sending k8s event notifications to Slack
-		@BotKube notifier start         Start sending k8s event notifications to Slack
-		@BotKube notifier status        Show running status of event notifier
-		@BotKube notifier showconfig    Show BotKube configuration for event notifier
-
-Options:
-	--cluster-name                  Get cluster specific response
-`
-	return fmt.Sprintf(helpMsg, allowedKubectl, channelName)
+	return ""
 }
 
 func printDefaultMsg() string {
