@@ -15,6 +15,7 @@ var (
 	Filters = []Filter{
 		filters.NewImageTagChecker(),
 		filters.NewIngressValidator(),
+		filters.NewPodLabelChecker(),
 	}
 )
 
