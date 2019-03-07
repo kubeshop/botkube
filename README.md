@@ -12,7 +12,7 @@ You can also ask BotKube to execute kubectl commands on k8s cluster which helps 
 ### Install BotKube app to your Slack workspace
 Click the "Add to Slack" button provided to install `BotKube` Slack application to your workspace. Once you authorized the application, you will be provided a BOT Access token. Kindly note down that token which will be required while deploying BotKube controller to your cluster
 
-<a href="https://slack.com/oauth/authorize?scope=commands,bot&client_id=12637824912.569770799590"><img alt=""Add to Slack"" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>
+<a href="https://slack.com/oauth/authorize?scope=commands,bot&client_id=12637824912.569770799590"><img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>
 
 ### Add BotKube to a Slack channel
 After installing BotKube app to your Slack workspace, you could see new bot user with name 'BotKube' create in your workspace. Add that bot to a Slack channel you want to receive notification in. (You can add it by inviting using `@BotKube` message in a required channel)
