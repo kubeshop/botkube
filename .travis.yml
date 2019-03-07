@@ -11,7 +11,7 @@ install:
   - go get -u golang.org/x/lint/golint
   - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
   - chmod +x get_helm.sh
-  - sudo ./get_helm.sh
+  - ./get_helm.sh
 
 before_script:
   - hack/verify-gofmt.sh
@@ -21,4 +21,4 @@ before_script:
   - helm lint helm/botkube
 
 script:
-  - build/docker.sh infracloudio/botkube latest
+  - make 
