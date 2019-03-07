@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: infracloud/botkube
-  tag: "0.4"
+  tag: "latest" 
   pullPolicy: Always
 
 nameOverride: ""
@@ -140,8 +140,6 @@ config:
     clustername: not-configured
     # Set false to disable kubectl commands execution
     allowkubectl: false
-    # Set true only respond to channel in config
-    checkchannel: false
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

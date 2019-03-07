@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -25,19 +26,20 @@ var validKubectlCommands = map[string]bool{
 	"auth":          true,
 }
 
-var validNotifierCommands = map[string]bool{
+var validNotifierCommand = map[string]bool{
 	"notifier": true,
-	"help":     true,
-	"ping":     true,
+}
+var validPingCommand = map[string]bool{
+	"ping": true,
 }
 
 var kubectlBinary = "/usr/local/bin/kubectl"
 
 const (
-	notifierStartMsg   = "Brace yourselves, notifications are coming."
-	notifierStopMsg    = "Sure! I won't send you notifications anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run '@BotKube help' to see supported commands."
-	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command."
+	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
+	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
+	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
+	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 )
 
 // Executor is an interface for processes to execute commands
@@ -47,15 +49,52 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message      string
-	AllowKubectl bool
+	Message       string
+	AllowKubectl  bool
+	ClusterName   string
+	ChannelName   string
+	IsAuthChannel bool
+}
+
+// NotifierAction creates custom type for notifier actions
+type NotifierAction string
+
+// Defines constants for notifier actions
+const (
+	Start      NotifierAction = "start"
+	Stop       NotifierAction = "stop"
+	Status     NotifierAction = "status"
+	ShowConfig NotifierAction = "showconfig"
+)
+
+func (action NotifierAction) String() string {
+	return string(action)
+}
+
+// CommandFlags creates custom type for flags in botkube
+type CommandFlags string
+
+// Defines botkube flags
+const (
+	ClusterFlag    CommandFlags = "--cluster-name"
+	FollowFlag     CommandFlags = "--follow"
+	AbbrFollowFlag CommandFlags = "-f"
+	WatchFlag      CommandFlags = "--watch"
+	AbbrWatchFlag  CommandFlags = "-w"
+)
+
+func (flag CommandFlags) String() string {
+	return string(flag)
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl bool, clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
-		Message:      msg,
-		AllowKubectl: allowkubectl,
+		Message:       msg,
+		AllowKubectl:  allowkubectl,
+		ClusterName:   clusterName,
+		ChannelName:   channelName,
+		IsAuthChannel: isAuthChannel,
 	}
 }
 
@@ -64,110 +103,120 @@ func (e *DefaultExecutor) Execute() string {
 	args := strings.Split(e.Message, " ")
 	if validKubectlCommands[args[0]] {
 		if !e.AllowKubectl {
-			return kubectlDisabledMsg
+			return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
 		}
-		return runKubectlCommand(args)
+		return runKubectlCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
-	if validNotifierCommands[args[0]] {
-		return runNotifierCommand(args)
+	if validNotifierCommand[args[0]] {
+		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
-	return unsupportedCmdMsg
-}
-
-func printHelp() string {
-	allowedKubectl := ""
-	for k := range validKubectlCommands {
-		allowedKubectl = allowedKubectl + k + ", "
+	if validPingCommand[args[0]] {
+		return runPingCommand(args, e.ClusterName)
 	}
-	helpMsg := "BotKube executes kubectl commands on k8s cluster and returns output.\n" +
-		"Usages:\n" +
-		"    @BotKube <kubectl command without `kubectl` prefix>\n" +
-		"e.g:\n" +
-		"    @BotKube get pods\n" +
-		"    @BotKube logs podname -n namespace\n" +
-		"Allowed kubectl commands:\n" +
-		"    " + allowedKubectl + "\n\n" +
-		"Commands to manage notifier:\n" +
-		"notifier stop          Stop sending k8s event notifications to Slack (started by default)\n" +
-		"notifier start         Start sending k8s event notifications to Slack\n" +
-		"notifier status        Show running status of event notifier\n" +
-		"notifier showconfig    Show BotKube configuration for event notifier\n\n" +
-		"Other Commands:\n" +
-		"help                   Show help\n" +
-		"ping                   Check connection health\n"
-	return helpMsg
-
+	if e.IsAuthChannel {
+		return unsupportedCmdMsg
+	}
+	return ""
 }
 
 func printDefaultMsg() string {
 	return unsupportedCmdMsg
 }
 
-func runKubectlCommand(args []string) string {
+func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
 	// Use 'default' as a default namespace
 	args = append([]string{"-n", "default"}, args...)
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
-	for _, a := range args {
-		if a == "-f" || strings.HasPrefix(a, "--follow") {
+	checkFlag := false
+	for _, arg := range args {
+		if checkFlag {
+			if arg != clusterName {
+				return ""
+			}
+			checkFlag = false
 			continue
 		}
-		if a == "-w" || strings.HasPrefix(a, "--watch") {
+		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
 			continue
 		}
-		finalArgs = append(finalArgs, a)
+		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
+			continue
+		}
+		if strings.HasPrefix(arg, ClusterFlag.String()) {
+			if arg == ClusterFlag.String() {
+				checkFlag = true
+			} else if strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1] != clusterName {
+				return ""
+			}
+			isAuthChannel = true
+			continue
+		}
+		finalArgs = append(finalArgs, arg)
 	}
-
+	if isAuthChannel == false {
+		return ""
+	}
 	cmd := exec.Command(kubectlBinary, finalArgs...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Logger.Error("Error in executing kubectl command: ", err)
-		return string(out) + err.Error()
+		return fmt.Sprintf("Cluster: %s\n%s", clusterName, string(out)+err.Error())
 	}
-	return string(out)
+	return fmt.Sprintf("Cluster: %s\n%s", clusterName, string(out))
 }
 
 // TODO: Have a seperate cli which runs bot commands
-func runNotifierCommand(args []string) string {
-	switch len(args) {
-	case 1:
-		if strings.ToLower(args[0]) == "help" {
-			return printHelp()
+func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
+	if isAuthChannel == false {
+		return ""
+	}
+	switch args[1] {
+	case Start.String():
+		config.Notify = true
+		log.Logger.Info("Notifier enabled")
+		return fmt.Sprintf(notifierStartMsg, clusterName)
+	case Stop.String():
+		config.Notify = false
+		log.Logger.Info("Notifier disabled")
+		return fmt.Sprintf(notifierStopMsg, clusterName)
+	case Status.String():
+		if config.Notify == false {
+			return fmt.Sprintf("Notifications are off for cluster '%s'", clusterName)
 		}
-		if strings.ToLower(args[0]) == "ping" {
-			return "pong"
+		return fmt.Sprintf("Notifications are on for cluster '%s'", clusterName)
+	case ShowConfig.String():
+		out, err := showControllerConfig()
+		if err != nil {
+			log.Logger.Error("Error in executing showconfig command: ", err)
+			return "Error in getting configuration!"
 		}
-	case 2:
-		if args[0] != "notifier" {
-			return printDefaultMsg()
-		}
-		if args[1] == "start" {
-			config.Notify = true
-			log.Logger.Info("Notifier enabled")
-			return notifierStartMsg
-		}
-		if args[1] == "stop" {
-			config.Notify = false
-			log.Logger.Info("Notifier disabled")
-			return notifierStopMsg
-		}
-		if args[1] == "status" {
-			if config.Notify == false {
-				return "stopped"
-			}
-			return "running"
-		}
-		if args[1] == "showconfig" {
-			out, err := showControllerConfig()
-			if err != nil {
-				log.Logger.Error("Error in executing showconfig command: ", err)
-				return "Error in getting configuration!"
-			}
-			return out
-		}
+		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
 	}
 	return printDefaultMsg()
+}
+
+func runPingCommand(args []string, clusterName string) string {
+	checkFlag := false
+	for _, arg := range args {
+		if checkFlag {
+			if arg != clusterName {
+				return ""
+			}
+			checkFlag = false
+			continue
+		}
+		if strings.HasPrefix(arg, ClusterFlag.String()) {
+			if arg == ClusterFlag.String() {
+				checkFlag = true
+			} else if strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1] != clusterName {
+				return ""
+			}
+			continue
+		}
+	}
+	return fmt.Sprintf("pong from cluster '%s'", clusterName)
 }
 
 func showControllerConfig() (string, error) {
