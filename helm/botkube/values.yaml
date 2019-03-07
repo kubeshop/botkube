@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: infracloud/botkube
-  tag: "latest" 
+  tag: "0.6"
   pullPolicy: Always
 
 nameOverride: ""

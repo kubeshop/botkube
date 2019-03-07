@@ -194,7 +194,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloud/botkube:0.2"
+          image: "infracloud/botkube:0.6"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
