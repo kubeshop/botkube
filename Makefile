@@ -2,11 +2,11 @@ IMAGE_REPO=infracloud/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status build pre-build tag-image publish
+.PHONY: release git-tag check-git-status build pre-build tag-image publish helm-chart
 
 #Docker Tasks
 #Make a release
-release: check-git-status build tag-image publish git-tag 
+release: check-git-status build tag-image publish helm-chart git-tag 
 	@echo "Successfully released version $(TAG)"
 
 #Create a git tag
@@ -49,3 +49,9 @@ publish:
 	@docker login
 	@docker push $(IMAGE_REPO):$(TAG)
 	@docker push $(IMAGE_REPO):latest	
+
+#Update Helm chart
+helm-chart:
+	@echo "Updating helm charts"
+	@sed -i 's/version.*/version: $(TAG)/' helm/botkube/Chart.yaml
+	@sed -i 's/tag.*/tag: $(TAG)/' helm/botkube/values.yaml
