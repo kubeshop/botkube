@@ -36,21 +36,21 @@ type Resource struct {
 
 // Communications channels to send events to
 type Communications struct {
-	Slack Slack
-
+	Slack         Slack
 	ElasticSearch ElasticSearch
+	Mattermost    Mattermost
 }
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enable  bool
+	Enabled bool
 	Channel string
 	Token   string `yaml:",omitempty"`
 }
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
-	Enable   bool
+	Enabled  bool
 	Username string
 	Password string `yaml:",omitempty"`
 	Server   string
@@ -63,6 +63,15 @@ type Index struct {
 	Type     string
 	Shards   int
 	Replicas int
+}
+
+// Mattermost configuration to authentication and send notifications
+type Mattermost struct {
+	Enabled bool
+	URL     string
+	Token   string
+	Team    string
+	Channel string
 }
 
 // Settings for multicluster support

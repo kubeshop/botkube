@@ -20,13 +20,12 @@ type Bot struct {
 
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
-	ChannelID    string
-	BotID        string
-	MessageType  string
-	InMessage    string
-	OutMessage   string
-	OutMsgLength int
-	RTM          *slack.RTM
+	Event         *slack.MessageEvent
+	BotID         string
+	Request       string
+	Response      string
+	IsAuthChannel bool
+	RTM           *slack.RTM
 }
 
 // NewSlackBot returns new Bot object
@@ -56,47 +55,21 @@ func (b *Bot) Start() {
 	go rtm.ManageConnection()
 
 	for msg := range rtm.IncomingEvents {
-		isAuthChannel := false
 		switch ev := msg.Data.(type) {
 		case *slack.ConnectedEvent:
 			logging.Logger.Debug("Connection Info: ", ev.Info)
 
 		case *slack.MessageEvent:
-			// Skip if message posted by BotKube
-			if ev.User == botID {
+			// Skip if message posted by BotKube or if doesn't start with mention
+			if ev.User == botID || !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
 				continue
 			}
-
-			info, err := api.GetConversationInfo(ev.Channel, true)
-			if err == nil {
-				if info.IsChannel || info.IsPrivate {
-					// Message posted in a channel
-					// Serve only if starts with mention
-					if !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
-						continue
-					}
-					// Serve only if current channel is in config
-					if b.ChannelName == info.Name {
-						isAuthChannel = true
-					}
-				}
-			}
-
-			// Message posted as a DM
-			logging.Logger.Debugf("Slack incoming message: %+v", ev)
-			inMessage := ev.Text
-
-			// Trim @BotKube prefix if exists
-			if strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
-				inMessage = strings.TrimPrefix(ev.Text, "<@"+botID+"> ")
-			}
 			sm := slackMessage{
-				ChannelID: ev.Channel,
-				BotID:     botID,
-				InMessage: inMessage,
-				RTM:       rtm,
+				Event: ev,
+				BotID: botID,
+				RTM:   rtm,
 			}
-			sm.HandleMessage(b.AllowKubectl, b.ClusterName, b.ChannelName, isAuthChannel)
+			sm.HandleMessage(b)
 
 		case *slack.RTMError:
 			logging.Logger.Errorf("Slack RMT error: %+v", ev.Error())
@@ -109,40 +82,35 @@ func (b *Bot) Start() {
 	}
 }
 
-func (sm *slackMessage) HandleMessage(allowkubectl bool, clusterName, channelName string, isAuthChannel bool) {
-	e := execute.NewDefaultExecutor(sm.InMessage, allowkubectl, clusterName, channelName, isAuthChannel)
-	sm.OutMessage = e.Execute()
-	sm.OutMsgLength = len(sm.OutMessage)
-	sm.Send()
-}
+func (sm *slackMessage) HandleMessage(b *Bot) {
+	logging.Logger.Debugf("Slack incoming message: %+v", sm.Event)
+	// Check if message posted in authenticated channel
+	if info, _ := slack.New(b.Token).GetConversationInfo(sm.Event.Channel, true); info.Name == b.ChannelName {
+		sm.IsAuthChannel = true
+	}
 
-func formatAndSendLogs(rtm *slack.RTM, channelID, logs string, filename string) {
-	params := slack.FileUploadParameters{
-		Title:    filename,
-		Content:  logs,
-		Filetype: "log",
-		Channels: []string{channelID},
-	}
-	_, err := rtm.UploadFile(params)
-	if err != nil {
-		logging.Logger.Error("Error in uploading file:", err)
-	}
+	// Trim the @BotKube prefix
+	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+"> ")
+
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	sm.Response = e.Execute()
+	sm.Send()
 }
 
 func (sm slackMessage) Send() {
 	// Upload message as a file if too long
-	if sm.OutMsgLength >= 3990 {
+	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{
-			Title:    sm.InMessage,
-			Content:  sm.OutMessage,
-			Channels: []string{sm.ChannelID},
+			Title:    sm.Request,
+			Content:  sm.Response,
+			Channels: []string{sm.Event.Channel},
 		}
 		_, err := sm.RTM.UploadFile(params)
 		if err != nil {
 			logging.Logger.Error("Error in uploading file:", err)
 		}
 		return
-	} else if sm.OutMsgLength == 0 {
+	} else if len(sm.Response) == 0 {
 		logging.Logger.Info("Invalid request. Dumping the response")
 		return
 	}
@@ -150,8 +118,7 @@ func (sm slackMessage) Send() {
 	params := slack.PostMessageParameters{
 		AsUser: true,
 	}
-	_, _, err := sm.RTM.PostMessage(sm.ChannelID, "```"+sm.OutMessage+"```", params)
-	if err != nil {
+	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, "```"+sm.Response+"```", params); err != nil {
 		logging.Logger.Error("Error in sending message:", err)
 	}
 }

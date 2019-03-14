@@ -25,3 +25,7 @@
 [[constraint]]
   name = "github.com/olivere/elastic"
   version = "6.0.0"
+
+[[constraint]]
+  name = "github.com/mattermost/mattermost-server"
+  version = "4.9.4"
