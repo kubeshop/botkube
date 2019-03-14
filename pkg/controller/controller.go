@@ -205,13 +205,18 @@ func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err er
 
 	var notifier notify.Notifier
 	// Send notification to communication channel
-	if c.Communications.Slack.Enable {
+	if c.Communications.Slack.Enabled {
 		notifier = notify.NewSlack(c)
 		go notifier.SendEvent(event)
 	}
 
-	if c.Communications.ElasticSearch.Enable {
+	if c.Communications.ElasticSearch.Enabled {
 		notifier = notify.NewElasticSearch(c)
+		go notifier.SendEvent(event)
+	}
+
+	if c.Communications.Mattermost.Enabled {
+		notifier = notify.NewMattermost(c)
 		go notifier.SendEvent(event)
 	}
 }
@@ -221,8 +226,12 @@ func sendMessage(c *config.Config, msg string) {
 		log.Logger.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
 	}
-	if c.Communications.Slack.Enable {
+	if c.Communications.Slack.Enabled {
 		notifier := notify.NewSlack(c)
+		go notifier.SendMessage(msg)
+	}
+	if c.Communications.Mattermost.Enabled {
+		notifier := notify.NewMattermost(c)
 		go notifier.SendMessage(msg)
 	}
 }

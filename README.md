@@ -31,7 +31,13 @@ $ git clone https://github.com/infracloudio/botkube.git
 If you are not interested in events about particular resource, just remove it's entry from the config file.
 - Deploy BotKube controller using **helm install** in your cluster.
 ```bash
-$ helm install --name botkube --namespace botkube --set config.communications.slack.channel={SLACK_CHANNEL_NAME},config.communications.slack.token={SLACK_API_TOKEN_FOR_THE_BOT},config.settings.clustername={CLUSTER_NAME},config.settings.allowkubectl={ALLOW_KUBECTL} helm/botkube/
+$ helm install --name botkube --namespace botkube \
+--set config.communications.slack.enabled=true \
+--set config.communications.slack.channel={SLACK_CHANNEL_NAME} \
+--set config.communications.slack.token={SLACK_API_TOKEN_FOR_THE_BOT} \
+--set config.settings.clustername={CLUSTER_NAME} \
+--set config.settings.allowkubectl={ALLOW_KUBECTL} \
+helm/botkube
 ```
 
   where,<br>
@@ -71,6 +77,37 @@ $ kubectl create ns botkube && kubectl create -f deploy-all-in-one.yaml -n botku
 ```
 
 - Check pod status in botkube namespace. Once running, send **@BotKube ping** in the Slack channel to confirm if BotKube is responding correctly.
+
+## Add BotKube to your Mattermost team
+Before adding `BotKube` to your Mattermost team, please make sure you have all the pre-requisites working.
+
+### Pre-requisites
+**Step 1**: Login with System Admin account, and in the Menu proceed to System console -> Integrations -> Custom Integrations and enable `Personal Access Token`.<br><br>
+**Step 2**: To create a Botkube user, if not already created, proceed to menu and Get team invite link. Logout from admin account and paste the link in the address bar and create a user with the username `BotKube`.<br><br>
+**Step 3**: Login as System Admin and in the Menu proceed to System console -> Users. For `BotKube` user, Manage Roles and allow tokens and post_all access.<br><br>
+**Step 4**: Login as BotKube user, in the Menu proceed to Account Settings -> Security -> Personal Access Token -> Create and save the token.
+
+### Configurations
+In the helm chart, config.yaml or deploy-all-in-one.yaml update the following fields for enabling Mattermost support and providing Mattermost config parameters.
+
+**MATTERMOST_SERVER_URL** is the URL where Mattermost is running<br>
+**MATTERMOST_TOKEN** is the Token you received after installing BotKube user and creating Personal Access Token<br>
+**MATTERMOST_TEAM** is the team name where BotKube will be added<br>
+**MATTERMOST_CHANNEL** is the channel name where BotKube will be added<br>
+
+#### Using helm
+
+```bash
+$ helm install --name botkube --namespace botkube \
+--set config.communications.mattermost.enabled=true \
+--set config.communications.mattermost.url={MATTERMOST_SERVER_URL} \
+--set config.communications.mattermost.token={MATTERMOST_TOKEN} \
+--set config.communications.mattermost.team={MATTERMOST_TEAM} \
+--set config.communications.mattermost.channel={MATTERMOST_CHANNEL} \
+--set config.settings.clustername={CLUSTER_NAME} \
+--set config.settings.allowkubectl={ALLOW_KUBECTL} \
+helm/botkube
+```
 
 ## Architecture
 ![](/botkube_arch.jpg)
