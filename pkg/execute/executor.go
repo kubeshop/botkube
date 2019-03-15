@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	log "github.com/infracloudio/botkube/pkg/logging"
@@ -123,19 +124,26 @@ func printDefaultMsg() string {
 	return unsupportedCmdMsg
 }
 
+// Trim single and double quotes from ends of string
+func trimQuotes(clusterValue string) string {
+	return strings.TrimFunc(clusterValue, func(r rune) bool {
+		if r == unicode.SimpleFold('\u0027') || r == unicode.SimpleFold('\u0022') {
+			return true
+		}
+		return false
+	})
+}
+
 func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
 	// Use 'default' as a default namespace
 	args = append([]string{"-n", "default"}, args...)
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
-	checkFlag := false
-	for _, arg := range args {
-		if checkFlag {
-			if arg != clusterName {
-				return ""
-			}
-			checkFlag = false
+	isClusterNameArg := false
+	for index, arg := range args {
+		if isClusterNameArg {
+			isClusterNameArg = false
 			continue
 		}
 		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
@@ -144,11 +152,18 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
 			continue
 		}
+		// Check --cluster-name flag
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
+			// Check if flag value in current or next argument and compare with config.settings.clustername
 			if arg == ClusterFlag.String() {
-				checkFlag = true
-			} else if strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1] != clusterName {
-				return ""
+				if index == len(args)-1 || trimQuotes(args[index+1]) != clusterName {
+					return ""
+				}
+				isClusterNameArg = true
+			} else {
+				if trimQuotes(strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1]) != clusterName {
+					return ""
+				}
 			}
 			isAuthChannel = true
 			continue
