@@ -119,6 +119,19 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:b8774f0cf1c719f5253e92f1fc7880b4186046064c3c23ead99ab568028a6510"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "UT"
+  revision = "1de009706dbeb9d05f18586f0735fcdb7c524481"
+
+[[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -144,6 +157,18 @@
   pruneopts = "UT"
   revision = "b9033a72a20bf84563485e86a2adbea4bf265804"
   version = "v0.4.0"
+
+[[projects]]
+  digest = "1:d1da5ee400cc3c39cf7d920c2db4b04d9407e24a917bf8b99a183aa024081871"
+  name = "github.com/olivere/elastic"
+  packages = [
+    ".",
+    "config",
+    "uritemplates",
+  ]
+  pruneopts = "UT"
+  revision = "407a1d940dcc89e279c579eb393d0bdde8fd9ac4"
+  version = "v6.2.16"
 
 [[projects]]
   branch = "master"
@@ -464,6 +489,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/nlopes/slack",
+    "github.com/olivere/elastic",
     "github.com/sirupsen/logrus",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1beta1",

@@ -77,7 +77,9 @@ func New(object interface{}, eventType string, kind string) Event {
 	}
 
 	if eventType == "delete" {
-		event.TimeStamp = objectMeta.DeletionTimestamp.Time
+		if objectMeta.DeletionTimestamp != nil {
+			event.TimeStamp = objectMeta.DeletionTimestamp.Time
+		}
 	}
 
 	if kind != "events" {
