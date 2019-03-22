@@ -21,18 +21,13 @@ type Slack struct {
 }
 
 // NewSlack returns new Slack object
-func NewSlack() Notifier {
+func NewSlack(c *config.Config) Notifier {
 	attachmentColor = map[events.Level]string{
 		events.Info:     "good",
 		events.Warn:     "warning",
 		events.Debug:    "good",
 		events.Error:    "danger",
 		events.Critical: "danger",
-	}
-
-	c, err := config.New()
-	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	return &Slack{
@@ -44,7 +39,7 @@ func NewSlack() Notifier {
 
 // SendEvent sends event notification to slack
 func (s *Slack) SendEvent(event events.Event) error {
-	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", event))
+	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
 
 	api := slack.New(s.Token)
 	params := slack.PostMessageParameters{
@@ -133,13 +128,13 @@ func (s *Slack) SendEvent(event events.Event) error {
 		return err
 	}
 
-	log.Logger.Infof("Message successfully sent to channel %s at %s", channelID, timestamp)
+	log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	return nil
 }
 
 // SendMessage sends message to slack channel
 func (s *Slack) SendMessage(msg string) error {
-	log.Logger.Info(fmt.Sprintf(">> Sending to slack: %+v", msg))
+	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
 
 	api := slack.New(s.Token)
 	params := slack.PostMessageParameters{
@@ -152,6 +147,6 @@ func (s *Slack) SendMessage(msg string) error {
 		return err
 	}
 
-	log.Logger.Infof("Message successfully sent to channel %s at %s", channelID, timestamp)
+	log.Logger.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)
 	return nil
 }

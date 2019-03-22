@@ -40,7 +40,7 @@ func findNamespace(ns string) string {
 
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
-	sendMessage(fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
+	sendMessage(c, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now().Local()
 
 	// Get resync period
@@ -75,7 +75,7 @@ func RegisterInformers(c *config.Config) {
 					watchlist,
 					object,
 					time.Duration(rsyncTime)*time.Minute,
-					registerEventHandlers(r.Name, r.Events),
+					registerEventHandlers(c, r.Name, r.Events),
 				)
 				stopCh := make(chan struct{})
 				defer close(stopCh)
@@ -113,7 +113,7 @@ func RegisterInformers(c *config.Config) {
 					if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
 						utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && (utils.AllowedEventTypesMap[eType]) {
 						log.Logger.Infof("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
-						sendEvent(obj, "events", "create", err)
+						sendEvent(obj, c, "events", "create", err)
 					}
 				},
 			},
@@ -128,16 +128,16 @@ func RegisterInformers(c *config.Config) {
 	signal.Notify(sigterm, syscall.SIGTERM)
 	signal.Notify(sigterm, syscall.SIGINT)
 	<-sigterm
-	sendMessage(fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
+	sendMessage(c, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
 }
 
-func registerEventHandlers(resourceType string, events []string) (handlerFns cache.ResourceEventHandlerFuncs) {
+func registerEventHandlers(c *config.Config, resourceType string, events []string) (handlerFns cache.ResourceEventHandlerFuncs) {
 	for _, event := range events {
 		if event == "all" || event == "create" {
 			handlerFns.AddFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
 				log.Logger.Debugf("Processing add to %v: %s", resourceType, key)
-				sendEvent(obj, resourceType, "create", err)
+				sendEvent(obj, c, resourceType, "create", err)
 			}
 		}
 
@@ -145,7 +145,7 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 			handlerFns.UpdateFunc = func(old, new interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(new)
 				log.Logger.Debugf("Processing update to %v: %s", resourceType, key)
-				sendEvent(new, resourceType, "update", err)
+				sendEvent(new, c, resourceType, "update", err)
 			}
 		}
 
@@ -153,14 +153,14 @@ func registerEventHandlers(resourceType string, events []string) (handlerFns cac
 			handlerFns.DeleteFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
 				log.Logger.Debugf("Processing delete to %v: %s", resourceType, key)
-				sendEvent(obj, resourceType, "delete", err)
+				sendEvent(obj, c, resourceType, "delete", err)
 			}
 		}
 	}
 	return handlerFns
 }
 
-func sendEvent(obj interface{}, kind, eventType string, err error) {
+func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err error) {
 	if err != nil {
 		log.Logger.Error("Error while receiving event: ", err.Error())
 		return
@@ -178,7 +178,7 @@ func sendEvent(obj interface{}, kind, eventType string, err error) {
 	// Skip older events
 	if eventType == "delete" {
 		objectMeta := utils.GetObjectMetaData(obj)
-		if objectMeta.DeletionTimestamp.Sub(startTime).Seconds() <= 0 {
+		if objectMeta.DeletionTimestamp != nil && objectMeta.DeletionTimestamp.Sub(startTime).Seconds() <= 0 {
 			log.Logger.Debug("Skipping older events")
 			return
 		}
@@ -199,17 +199,26 @@ func sendEvent(obj interface{}, kind, eventType string, err error) {
 		return
 	}
 
-	// Send notification to communication chennel
-	notifier := notify.NewSlack()
-	notifier.SendEvent(event)
+	var notifier notify.Notifier
+	// Send notification to communication channel
+	if c.Communications.Slack.Enable {
+		notifier = notify.NewSlack(c)
+		go notifier.SendEvent(event)
+	}
+
+	if c.Communications.ElasticSearch.Enable {
+		notifier = notify.NewElasticSearch(c)
+		go notifier.SendEvent(event)
+	}
 }
 
-func sendMessage(msg string) {
+func sendMessage(c *config.Config, msg string) {
 	if len(msg) <= 0 {
 		log.Logger.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
 	}
-
-	notifier := notify.NewSlack()
-	notifier.SendMessage(msg)
+	if c.Communications.Slack.Enable {
+		notifier := notify.NewSlack(c)
+		go notifier.SendMessage(msg)
+	}
 }

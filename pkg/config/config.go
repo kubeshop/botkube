@@ -37,12 +37,32 @@ type Resource struct {
 // Communications channels to send events to
 type Communications struct {
 	Slack Slack
+
+	ElasticSearch ElasticSearch
 }
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
+	Enable  bool
 	Channel string
 	Token   string
+}
+
+// ElasticSearch config auth settings
+type ElasticSearch struct {
+	Enable   bool
+	Username string
+	Password string
+	Server   string
+	Index    Index
+}
+
+// Index settings for ELS
+type Index struct {
+	Name     string
+	Type     string
+	Shards   int
+	Replicas int
 }
 
 // Settings for multicluster support

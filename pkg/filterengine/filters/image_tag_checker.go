@@ -43,5 +43,5 @@ func (f *ImageTagChecker) Run(object interface{}, event *events.Event) {
 			event.Recommendations = append(event.Recommendations, ":latest tag used in image '"+c.Image+"' of Container '"+c.Name+"' should be avoided.\n")
 		}
 	}
-	log.Logger.Info("Image tag filter successful!")
+	log.Logger.Debug("Image tag filter successful!")
 }

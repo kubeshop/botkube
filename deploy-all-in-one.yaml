@@ -8,6 +8,7 @@ metadata:
     app: botkube
 data:
   config.yaml: |
+    ## Resources you want to watch
     resources:
       - name: pods                # Name of the resources e.g pods, deployments, ingresses, etc. (Resource name must be in plural form)
         namespaces:               # List of namespaces, "all" will watch all the namespaces
@@ -124,9 +125,24 @@ data:
     
     # Channels configuration
     communications:
+      # Settings for Slack
       slack:
-        channel: <SLACK_CHANNEL>
-        token: <SLACK_API_TOKEN>
+        enable: false
+        channel: 'SLACK_CHANNEL'
+        token: 'SLACK_API_TOKEN'
+
+      # Settings for ELS
+      elasticsearch:
+        enable: false
+        server: 'ELASTICSEARCH_ADDRESS'              # e.g https://example.com:9243
+        username: 'ELASTICSEARCH_USERNAME'
+        password: 'ELASTICSEARCH_PASSWORD'
+        # ELS index settings
+        index:
+          name: botkube
+          type: botkube-event
+          shards: 1
+          replicas: 0
   
     # Setting to support multiple clusters
     settings:
