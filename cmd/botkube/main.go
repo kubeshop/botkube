@@ -17,8 +17,10 @@ func main() {
 	}
 	log.Logger.Info(fmt.Sprintf("Configuration:: %+v\n", Config))
 
-	sb := slack.NewSlackBot()
-	go sb.Start()
+	if Config.Communications.Slack.Enable {
+		sb := slack.NewSlackBot()
+		go sb.Start()
+	}
 
 	controller.RegisterInformers(Config)
 }
