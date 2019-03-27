@@ -14,6 +14,11 @@ func init() {
 	Logger.SetOutput(os.Stdout)
 
 	// Only log the warning severity or above.
-	Logger.SetLevel(logrus.DebugLevel)
+	logLevel, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL"))
+	if err != nil {
+		// Set Info level as a default
+		logLevel = logrus.InfoLevel
+	}
+	Logger.SetLevel(logLevel)
 	Logger.Formatter = &logrus.TextFormatter{ForceColors: true, FullTimestamp: true}
 }
