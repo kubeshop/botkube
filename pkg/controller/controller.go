@@ -186,13 +186,17 @@ func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err er
 
 	// Check if Notify disabled
 	if !config.Notify {
-		log.Logger.Info("Skipping notification")
+		log.Logger.Debug("Skipping notification")
 		return
 	}
 
 	// Create new event object
 	event := events.New(obj, eventType, kind)
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
+	if event.Skip {
+		log.Logger.Debugf("Skipping event: %#v", event)
+		return
+	}
 
 	if len(event.Kind) <= 0 {
 		log.Logger.Warn("sendEvent received event with Kind nil. Hence skipping.")
