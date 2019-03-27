@@ -45,14 +45,14 @@ type Communications struct {
 type Slack struct {
 	Enable  bool
 	Channel string
-	Token   string
+	Token   string `yaml:",omitempty"`
 }
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
 	Enable   bool
 	Username string
-	Password string
+	Password string `yaml:",omitempty"`
 	Server   string
 	Index    Index
 }

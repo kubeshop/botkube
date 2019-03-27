@@ -2,6 +2,7 @@ package execute
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -234,19 +235,37 @@ func runPingCommand(args []string, clusterName string) string {
 	return fmt.Sprintf("pong from cluster '%s'", clusterName)
 }
 
-func showControllerConfig() (string, error) {
+func showControllerConfig() (configYaml string, err error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, config.ConfigFileName)
 	file, err := os.Open(configFile)
 	defer file.Close()
 	if err != nil {
-		return "", err
+		return configYaml, err
 	}
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", err
+		return configYaml, err
 	}
 
-	return string(b), nil
+	c := &config.Config{}
+	if len(b) != 0 {
+		err = yaml.Unmarshal(b, c)
+		if err != nil {
+			return configYaml, err
+		}
+	}
+
+	// hide sensitive info
+	c.Communications.Slack.Token = ""
+	c.Communications.ElasticSearch.Password = ""
+
+	b, err = yaml.Marshal(c)
+	if err != nil {
+		return configYaml, err
+	}
+	configYaml = string(b)
+
+	return configYaml, nil
 }
