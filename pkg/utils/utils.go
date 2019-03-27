@@ -130,7 +130,7 @@ func createMaps() {
 		AllowedEventTypesMap[strings.ToLower(t)] = true
 	}
 
-	log.Logger.Info("AllowedEventKindsMap:: %+v", AllowedEventKindsMap)
+	log.Logger.Infof("Allowed Events - %+v", AllowedEventKindsMap)
 }
 
 // GetObjectMetaData returns metadata of the given object
