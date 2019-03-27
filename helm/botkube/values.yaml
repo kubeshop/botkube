@@ -12,6 +12,9 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+# set one of the log levels- info, warn, debug, error, fatal, panic
+logLevel: info
+
 config:
   ## Resources you want to watch
   resources:
