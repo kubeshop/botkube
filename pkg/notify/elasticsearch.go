@@ -54,7 +54,7 @@ func init() {
 	if err != nil {
 		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
-	if !c.Communications.ElasticSearch.Enable {
+	if !c.Communications.ElasticSearch.Enabled {
 		return
 	}
 	// create elasticsearch client

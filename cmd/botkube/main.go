@@ -6,6 +6,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/mattermost"
 	"github.com/infracloudio/botkube/pkg/slack"
 )
 
@@ -16,10 +17,16 @@ func main() {
 		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
-	if Config.Communications.Slack.Enable {
+	if Config.Communications.Slack.Enabled {
+		log.Logger.Info("Starting slack bot")
 		sb := slack.NewSlackBot()
 		go sb.Start()
 	}
 
+	if Config.Communications.Mattermost.Enabled {
+		log.Logger.Info("Starting mattermost bot")
+		mb := mattermost.NewMattermostBot()
+		mb.Start()
+	}
 	controller.RegisterInformers(Config)
 }

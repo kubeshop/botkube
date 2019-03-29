@@ -117,13 +117,21 @@ recommendations: true
 communications:
   # Settings for Slack
   slack:
-    enable: false
+    enabled: false
     channel: 'SLACK_CHANNEL'
     token: 'SLACK_API_TOKEN'
 
+  # Settings for Mattermost
+  mattermost:
+    enabled: true
+    url: 'MATTERMOST_SERVER_URL'                # e.g https://example.com:9243
+    token: 'MATTERMOST_TOKEN'
+    team: 'MATTERMOST_TEAM'
+    channel: 'MATTERMOST_CHANNEL'
+
   # Settings for ELS
   elasticsearch:
-    enable: false
+    enabled: false
     server: 'ELASTICSEARCH_ADDRESS'              # e.g https://example.com:9243
     username: 'ELASTICSEARCH_USERNAME'
     password: 'ELASTICSEARCH_PASSWORD'
