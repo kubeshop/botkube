@@ -218,7 +218,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloud/botkube:0.6"
+          image: "infracloud/botkube:{BOTKUBE_VERSION}"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -229,6 +229,9 @@ spec:
             # set one of the log levels- info, warn, debug, error, fatal, panic
             - name: LOG_LEVEL
               value: "info"
+            # set BotKube release version
+            - name: BOTKUBE_VERSION
+              value: {BOTKUBE_VERSION}
       volumes:
         - name: config-volume
           configMap:
