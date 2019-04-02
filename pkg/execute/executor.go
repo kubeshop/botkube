@@ -24,7 +24,6 @@ var validKubectlCommands = map[string]bool{
 	"get":           true,
 	"logs":          true,
 	"top":           true,
-	"version":       true,
 	"auth":          true,
 }
 
@@ -33,6 +32,9 @@ var validNotifierCommand = map[string]bool{
 }
 var validPingCommand = map[string]bool{
 	"ping": true,
+}
+var validVersionCommand = map[string]bool{
+	"version": true,
 }
 
 var kubectlBinary = "/usr/local/bin/kubectl"
@@ -113,7 +115,14 @@ func (e *DefaultExecutor) Execute() string {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if validPingCommand[args[0]] {
-		return runPingCommand(args, e.ClusterName)
+		res := runVersionCommand(args, e.ClusterName)
+		if len(res) == 0 {
+			return fmt.Sprintf("pong from cluster '%s'", e.ClusterName)
+		}
+		return fmt.Sprintf("pong from cluster '%s'", e.ClusterName) + "\n\n" + res
+	}
+	if validVersionCommand[args[0]] {
+		return runVersionCommand(args, e.ClusterName)
 	}
 	if e.IsAuthChannel {
 		return unsupportedCmdMsg
@@ -213,7 +222,24 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	return printDefaultMsg()
 }
 
-func runPingCommand(args []string, clusterName string) string {
+func findBotKubeVersion() (versions string) {
+	args := []string{"-c", fmt.Sprintf("%s version --short=true | grep Server", kubectlBinary)}
+	cmd := exec.Command("sh", args...)
+	// Returns "Server Version: xxxx"
+	k8sVersion, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Logger.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
+		k8sVersion = []byte("Server Version: Unknown\n")
+	}
+
+	botkubeVersion := os.Getenv("BOTKUBE_VERSION")
+	if len(botkubeVersion) == 0 {
+		botkubeVersion = "Unknown"
+	}
+	return fmt.Sprintf("K8s %sBotKube version: %s", k8sVersion, botkubeVersion)
+}
+
+func runVersionCommand(args []string, clusterName string) string {
 	checkFlag := false
 	for _, arg := range args {
 		if checkFlag {
@@ -232,7 +258,7 @@ func runPingCommand(args []string, clusterName string) string {
 			continue
 		}
 	}
-	return fmt.Sprintf("pong from cluster '%s'", clusterName)
+	return findBotKubeVersion()
 }
 
 func showControllerConfig() (configYaml string, err error) {
