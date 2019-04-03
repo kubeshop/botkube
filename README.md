@@ -84,8 +84,9 @@ Before adding `BotKube` to your Mattermost team, please make sure you have all t
 ### Pre-requisites
 **Step 1**: Login with System Admin account, and in the Menu proceed to System console -> Integrations -> Custom Integrations and enable `Personal Access Token`.<br><br>
 **Step 2**: To create a Botkube user, if not already created, proceed to menu and Get team invite link. Logout from admin account and paste the link in the address bar and create a user with the username `BotKube`.<br><br>
-**Step 3**: Login as System Admin and in the Menu proceed to System console -> Users. For `BotKube` user, Manage Roles and allow tokens and post_all access.<br><br>
-**Step 4**: Login as BotKube user, in the Menu proceed to Account Settings -> Security -> Personal Access Token -> Create and save the token.
+**Step 3**: To create a Botkube alerts channel, if not already created, click on `Create new channel` and fill the details of the channel. Add BotKube user to the Channel and use the same Channel name in the configuration parameters for Botkube.<br><br>
+**Step 4**: Login as System Admin and in the Menu proceed to System console -> Users. For `BotKube` user, Manage Roles and allow tokens and post_all access.<br><br>
+**Step 5**: Login as BotKube user, in the Menu proceed to Account Settings -> Security -> Personal Access Token -> Create and save the token.
 
 ### Configurations
 In the helm chart, config.yaml or deploy-all-in-one.yaml update the following fields for enabling Mattermost support and providing Mattermost config parameters.
