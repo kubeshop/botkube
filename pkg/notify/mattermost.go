@@ -19,7 +19,7 @@ type Mattermost struct {
 }
 
 // NewMattermost returns new Mattermost object
-func NewMattermost(c *config.Config) Notifier {
+func NewMattermost(c *config.Config) (Notifier, error) {
 	// Load configurations
 	c, err := config.New()
 	if err != nil {
@@ -31,18 +31,20 @@ func NewMattermost(c *config.Config) Notifier {
 	client.SetOAuthToken(c.Communications.Mattermost.Token)
 	botTeam, resp := client.GetTeamByName(c.Communications.Mattermost.Team, "")
 	if resp.Error != nil {
-		log.Logger.Fatal("Error in connecting to Mattermost team. Error: ", resp.Error)
+		log.Logger.Error("Error in connecting to Mattermost team ", c.Communications.Mattermost.Team, "\nError: ", resp.Error)
+		return nil, resp.Error
 	}
 	botChannel, resp := client.GetChannelByName(c.Communications.Mattermost.Channel, botTeam.Id, "")
 	if resp.Error != nil {
-		log.Logger.Fatal("Error in connecting to Mattermost channel. Error: ", resp.Error)
+		log.Logger.Error("Error in connecting to Mattermost channel ", c.Communications.Mattermost.Channel, "\nError: ", resp.Error)
+		return nil, resp.Error
 	}
 
 	return &Mattermost{
 		Client:      client,
 		Channel:     botChannel.Id,
 		ClusterName: c.Settings.ClusterName,
-	}
+	}, nil
 }
 
 // SendEvent sends event notification to Mattermost

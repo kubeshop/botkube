@@ -75,7 +75,7 @@ func (b *Bot) Start() {
 	// Check connection to Mattermost server
 	err := checkServerConnection()
 	if err != nil {
-		logging.Logger.Error("There was a problem pinging the Mattermost server. Error: ", err)
+		logging.Logger.Error("There was a problem pinging the Mattermost server URL: ", b.ServerURL, "\nError: ", err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (mm mattermostMessage) sendMessage() {
 		logging.Logger.Info("Invalid request. Dumping the response")
 		return
 	} else {
-		post.Message = "`" + mm.Response + "`"
+		post.Message = "```\n" + mm.Response + "\n```"
 	}
 
 	// Create a post in the Channel
@@ -157,7 +157,7 @@ func checkServerConnection() error {
 func (b *Bot) getTeam() *model.Team {
 	botTeam, resp := client.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
-		logging.Logger.Fatal("There was a problem finding Mattermost team. Error: ", resp.Error)
+		logging.Logger.Fatal("There was a problem finding Mattermost team ", b.TeamName, "\nError: ", resp.Error)
 	}
 	return botTeam
 }
@@ -166,7 +166,7 @@ func (b *Bot) getTeam() *model.Team {
 func (b *Bot) getUser() *model.User {
 	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, "")
 	if resp.Error != nil {
-		logging.Logger.Fatal("There was a problem finding user in Mattermost. Error: ", resp.Error)
+		logging.Logger.Fatal("There was a problem finding Mattermost user ", BotName, "\nError: ", resp.Error)
 	}
 	return users.Users[0]
 }
@@ -176,10 +176,7 @@ func (b *Bot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := client.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
-		// Creating channel
-		if botChannel, resp = client.CreateChannel(mmChannel(b.ChannelName, b.getTeam().Id)); resp.Error != nil {
-			logging.Logger.Fatal("There was a problem finding channel in Mattermost. Error: ", resp.Error)
-		}
+		logging.Logger.Fatal("There was a problem finding Mattermost channel ", b.ChannelName, "\nError: ", resp.Error)
 	}
 
 	// Adding Botkube user to channel

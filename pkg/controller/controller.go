@@ -222,8 +222,9 @@ func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err er
 	}
 
 	if c.Communications.Mattermost.Enabled {
-		notifier = notify.NewMattermost(c)
-		go notifier.SendEvent(event)
+		if notifier, err = notify.NewMattermost(c); err == nil {
+			go notifier.SendEvent(event)
+		}
 	}
 }
 
@@ -237,8 +238,9 @@ func sendMessage(c *config.Config, msg string) {
 		go notifier.SendMessage(msg)
 	}
 	if c.Communications.Mattermost.Enabled {
-		notifier := notify.NewMattermost(c)
-		go notifier.SendMessage(msg)
+		if notifier, err := notify.NewMattermost(c); err == nil {
+			go notifier.SendMessage(msg)
+		}
 	}
 }
 
