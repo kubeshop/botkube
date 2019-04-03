@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
@@ -24,6 +26,7 @@ import (
 const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
 	controllerStopMsg  = "my watch has ended for cluster '%s'!"
+	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
 )
 
 var startTime time.Time
@@ -42,6 +45,9 @@ func findNamespace(ns string) string {
 func RegisterInformers(c *config.Config) {
 	sendMessage(c, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now().Local()
+
+	// Start config file watcher
+	go configWatcher(c)
 
 	// Get resync period
 	rsyncTimeStr, ok := os.LookupEnv("INFORMERS_RESYNC_PERIOD")
@@ -234,4 +240,47 @@ func sendMessage(c *config.Config, msg string) {
 		notifier := notify.NewMattermost(c)
 		go notifier.SendMessage(msg)
 	}
+}
+
+func configWatcher(c *config.Config) {
+	configPath := os.Getenv("CONFIG_PATH")
+	configFile := filepath.Join(configPath, config.ConfigFileName)
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Logger.Fatal("Failed to create file watcher ", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case _, ok := <-watcher.Events:
+				if !ok {
+					log.Logger.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
+					return
+				}
+				log.Logger.Infof("Config file %s is updated. Hence restarting the Pod", configFile)
+				done <- true
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					log.Logger.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
+					return
+				}
+			}
+		}
+	}()
+	log.Logger.Infof("Registering watcher on configfile %s", configFile)
+	err = watcher.Add(configFile)
+	if err != nil {
+		log.Logger.Errorf("Unable to register watch on config file:%s. Error: %s", configFile, err.Error())
+		return
+	}
+	<-done
+	sendMessage(c, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
+	// Wait for Notifier to send message
+	time.Sleep(5 * time.Second)
+	os.Exit(0)
 }
