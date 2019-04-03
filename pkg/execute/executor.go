@@ -117,7 +117,7 @@ func (e *DefaultExecutor) Execute() string {
 	if validPingCommand[args[0]] {
 		res := runVersionCommand(args, e.ClusterName)
 		if len(res) == 0 {
-			return fmt.Sprintf("pong from cluster '%s'", e.ClusterName)
+			return ""
 		}
 		return fmt.Sprintf("pong from cluster '%s'", e.ClusterName) + "\n\n" + res
 	}
