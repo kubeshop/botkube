@@ -54,3 +54,4 @@ publish:
 helm-chart:
 	@echo "Updating helm charts"
 	@sed -i 's/version.*/version: $(TAG)/' helm/botkube/Chart.yaml
+	@sed -i 's/{BOTKUBE_VERSION}/$(TAG)/' deploy-all-in-one.yaml
