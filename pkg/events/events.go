@@ -29,20 +29,22 @@ const (
 
 // Event to store required information from k8s objects
 type Event struct {
-	Code            string
-	Kind            string
-	Name            string
-	Namespace       string
-	Messages        []string
-	Type            string
-	Reason          string
-	Error           string
-	Level           Level
-	Cluster         string
+	Code      string
+	Kind      string
+	Name      string
+	Namespace string
+	Messages  []string
+	Type      string
+	Reason    string
+	Error     string
+	Level     Level
+	Cluster   string
+	TimeStamp time.Time
+	Count     int32
+	Action    string
+	Skip      bool `json:",omitempty"`
+
 	Recommendations []string
-	TimeStamp       time.Time
-	Count           int32
-	Action          string
 }
 
 // LevelMap is a map of event type to Level
@@ -77,7 +79,9 @@ func New(object interface{}, eventType string, kind string) Event {
 	}
 
 	if eventType == "delete" {
-		event.TimeStamp = objectMeta.DeletionTimestamp.Time
+		if objectMeta.DeletionTimestamp != nil {
+			event.TimeStamp = objectMeta.DeletionTimestamp.Time
+		}
 	}
 
 	if kind != "events" {

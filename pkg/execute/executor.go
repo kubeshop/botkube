@@ -2,11 +2,13 @@ package execute
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	log "github.com/infracloudio/botkube/pkg/logging"
@@ -22,7 +24,6 @@ var validKubectlCommands = map[string]bool{
 	"get":           true,
 	"logs":          true,
 	"top":           true,
-	"version":       true,
 	"auth":          true,
 }
 
@@ -31,6 +32,9 @@ var validNotifierCommand = map[string]bool{
 }
 var validPingCommand = map[string]bool{
 	"ping": true,
+}
+var validVersionCommand = map[string]bool{
+	"version": true,
 }
 
 var kubectlBinary = "/usr/local/bin/kubectl"
@@ -111,7 +115,14 @@ func (e *DefaultExecutor) Execute() string {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if validPingCommand[args[0]] {
-		return runPingCommand(args, e.ClusterName)
+		res := runVersionCommand(args, e.ClusterName)
+		if len(res) == 0 {
+			return ""
+		}
+		return fmt.Sprintf("pong from cluster '%s'", e.ClusterName) + "\n\n" + res
+	}
+	if validVersionCommand[args[0]] {
+		return runVersionCommand(args, e.ClusterName)
 	}
 	if e.IsAuthChannel {
 		return unsupportedCmdMsg
@@ -123,19 +134,26 @@ func printDefaultMsg() string {
 	return unsupportedCmdMsg
 }
 
+// Trim single and double quotes from ends of string
+func trimQuotes(clusterValue string) string {
+	return strings.TrimFunc(clusterValue, func(r rune) bool {
+		if r == unicode.SimpleFold('\u0027') || r == unicode.SimpleFold('\u0022') {
+			return true
+		}
+		return false
+	})
+}
+
 func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
 	// Use 'default' as a default namespace
 	args = append([]string{"-n", "default"}, args...)
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
-	checkFlag := false
-	for _, arg := range args {
-		if checkFlag {
-			if arg != clusterName {
-				return ""
-			}
-			checkFlag = false
+	isClusterNameArg := false
+	for index, arg := range args {
+		if isClusterNameArg {
+			isClusterNameArg = false
 			continue
 		}
 		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
@@ -144,11 +162,18 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
 			continue
 		}
+		// Check --cluster-name flag
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
+			// Check if flag value in current or next argument and compare with config.settings.clustername
 			if arg == ClusterFlag.String() {
-				checkFlag = true
-			} else if strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1] != clusterName {
-				return ""
+				if index == len(args)-1 || trimQuotes(args[index+1]) != clusterName {
+					return ""
+				}
+				isClusterNameArg = true
+			} else {
+				if trimQuotes(strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1]) != clusterName {
+					return ""
+				}
 			}
 			isAuthChannel = true
 			continue
@@ -197,7 +222,24 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	return printDefaultMsg()
 }
 
-func runPingCommand(args []string, clusterName string) string {
+func findBotKubeVersion() (versions string) {
+	args := []string{"-c", fmt.Sprintf("%s version --short=true | grep Server", kubectlBinary)}
+	cmd := exec.Command("sh", args...)
+	// Returns "Server Version: xxxx"
+	k8sVersion, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Logger.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
+		k8sVersion = []byte("Server Version: Unknown\n")
+	}
+
+	botkubeVersion := os.Getenv("BOTKUBE_VERSION")
+	if len(botkubeVersion) == 0 {
+		botkubeVersion = "Unknown"
+	}
+	return fmt.Sprintf("K8s %sBotKube version: %s", k8sVersion, botkubeVersion)
+}
+
+func runVersionCommand(args []string, clusterName string) string {
 	checkFlag := false
 	for _, arg := range args {
 		if checkFlag {
@@ -216,22 +258,40 @@ func runPingCommand(args []string, clusterName string) string {
 			continue
 		}
 	}
-	return fmt.Sprintf("pong from cluster '%s'", clusterName)
+	return findBotKubeVersion()
 }
 
-func showControllerConfig() (string, error) {
+func showControllerConfig() (configYaml string, err error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, config.ConfigFileName)
 	file, err := os.Open(configFile)
 	defer file.Close()
 	if err != nil {
-		return "", err
+		return configYaml, err
 	}
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", err
+		return configYaml, err
 	}
 
-	return string(b), nil
+	c := &config.Config{}
+	if len(b) != 0 {
+		err = yaml.Unmarshal(b, c)
+		if err != nil {
+			return configYaml, err
+		}
+	}
+
+	// hide sensitive info
+	c.Communications.Slack.Token = ""
+	c.Communications.ElasticSearch.Password = ""
+
+	b, err = yaml.Marshal(c)
+	if err != nil {
+		return configYaml, err
+	}
+	configYaml = string(b)
+
+	return configYaml, nil
 }

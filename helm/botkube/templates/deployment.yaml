@@ -26,7 +26,7 @@ spec:
       serviceAccountName: {{ include "botkube.fullname" . }}-sa
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           volumeMounts:
             - name: config-volume
@@ -34,6 +34,10 @@ spec:
           env:
             - name: CONFIG_PATH
               value: "/config/"
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: BOTKUBE_VERSION
+              value: {{ .Chart.Version }}
       volumes:
         - name: config-volume
           configMap:
