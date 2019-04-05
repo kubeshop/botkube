@@ -25,6 +25,7 @@ var validKubectlCommands = map[string]bool{
 	"logs":          true,
 	"top":           true,
 	"auth":          true,
+	"set":           true,
 }
 
 var validNotifierCommand = map[string]bool{
@@ -161,6 +162,12 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 		}
 		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
 			continue
+		}
+		// Parse set image case
+		if strings.Contains(arg, "<http://") && strings.Contains(arg, "=") && strings.Contains(arg, "|") {
+			fullImageArgs := strings.SplitN(arg, "=", 2)
+			imageArgs := strings.SplitN(fullImageArgs[1], "|", 2)
+			arg = fullImageArgs[0] + "=" + strings.TrimRight(imageArgs[1], ">")
 		}
 		// Check --cluster-name flag
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
