@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
 
 	apiV1 "k8s.io/api/core/v1"
@@ -13,13 +14,13 @@ import (
 type ImageTagChecker struct {
 }
 
-// NewImageTagChecker creates new ImageTagChecker object
-func NewImageTagChecker() *ImageTagChecker {
-	return &ImageTagChecker{}
+// Register filter
+func init() {
+	filterengine.DefaultFilterEngine.Register(ImageTagChecker{})
 }
 
 // Run filers and modifies event struct
-func (f *ImageTagChecker) Run(object interface{}, event *events.Event) {
+func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Pod" && event.Type != "create" {
 		return
 	}

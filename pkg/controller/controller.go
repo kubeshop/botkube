@@ -14,6 +14,8 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
+	// Register filters
+	_ "github.com/infracloudio/botkube/pkg/filterengine/filters"
 	log "github.com/infracloudio/botkube/pkg/logging"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"

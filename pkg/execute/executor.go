@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -8,9 +9,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 	"unicode"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
 )
 
@@ -30,11 +33,17 @@ var validKubectlCommands = map[string]bool{
 var validNotifierCommand = map[string]bool{
 	"notifier": true,
 }
+
 var validPingCommand = map[string]bool{
 	"ping": true,
 }
+
 var validVersionCommand = map[string]bool{
 	"version": true,
+}
+
+var validFilterCommand = map[string]bool{
+	"filters": true,
 }
 
 var kubectlBinary = "/usr/local/bin/kubectl"
@@ -43,7 +52,11 @@ const (
 	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
+	incompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
+	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
+	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
 )
 
 // Executor is an interface for processes to execute commands
@@ -91,6 +104,20 @@ func (flag CommandFlags) String() string {
 	return string(flag)
 }
 
+// FiltersAction for options in filter commands
+type FiltersAction string
+
+// Filter command options
+const (
+	FilterList    FiltersAction = "list"
+	FilterEnable  FiltersAction = "enable"
+	FilterDisable FiltersAction = "disable"
+)
+
+func (action FiltersAction) String() string {
+	return string(action)
+}
+
 // NewDefaultExecutor returns new Executor object
 func NewDefaultExecutor(msg string, allowkubectl bool, clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
@@ -123,6 +150,10 @@ func (e *DefaultExecutor) Execute() string {
 	}
 	if validVersionCommand[args[0]] {
 		return runVersionCommand(args, e.ClusterName)
+	}
+	// Check if filter command
+	if validFilterCommand[args[0]] {
+		return runFilterCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if e.IsAuthChannel {
 		return unsupportedCmdMsg
@@ -197,6 +228,10 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	if isAuthChannel == false {
 		return ""
 	}
+	if len(args) < 2 {
+		return incompleteCmdMsg
+	}
+
 	switch args[1] {
 	case Start.String():
 		config.Notify = true
@@ -220,6 +255,60 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
 	}
 	return printDefaultMsg()
+}
+
+// runFilterCommand to list, enable or disable filters
+func runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
+	if isAuthChannel == false {
+		return ""
+	}
+	if len(args) < 2 {
+		return incompleteCmdMsg
+	}
+
+	switch args[1] {
+	case FilterList.String():
+		log.Logger.Debug("List filters")
+		return makeFiltersList()
+
+	// Enable filter
+	case FilterEnable.String():
+		if len(args) < 3 {
+			return fmt.Sprintf(filterNameMissing, makeFiltersList())
+		}
+		log.Logger.Debug("Enable filters", args[2])
+		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], true); err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf(filterEnabled, args[2], clusterName)
+
+	// Disable filter
+	case FilterDisable.String():
+		if len(args) < 3 {
+			return fmt.Sprintf(filterNameMissing, makeFiltersList())
+		}
+		log.Logger.Debug("Disabled filters", args[2])
+		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], false); err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf(filterDisabled, args[2], clusterName)
+	}
+	return printDefaultMsg()
+}
+
+// Use tabwriter to display string in tabular form
+// https://golang.org/pkg/text/tabwriter
+func makeFiltersList() string {
+	buf := new(bytes.Buffer)
+	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
+
+	fmt.Fprintln(w, "FILTER\tENABLED")
+	for k, v := range filterengine.DefaultFilterEngine.ShowFilters() {
+		fmt.Fprintf(w, "%s\t%v\n", k, v)
+	}
+
+	w.Flush()
+	return buf.String()
 }
 
 func findBotKubeVersion() (versions string) {
