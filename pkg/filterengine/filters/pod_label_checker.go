@@ -2,6 +2,7 @@ package filters
 
 import (
 	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
 
 	apiV1 "k8s.io/api/core/v1"
@@ -11,13 +12,13 @@ import (
 type PodLabelChecker struct {
 }
 
-// NewPodLabelChecker creates new PodLabelChecker object
-func NewPodLabelChecker() *PodLabelChecker {
-	return &PodLabelChecker{}
+// Register filter
+func init() {
+	filterengine.DefaultFilterEngine.Register(PodLabelChecker{})
 }
 
 // Run filters and modifies event struct
-func (f *PodLabelChecker) Run(object interface{}, event *events.Event) {
+func (f PodLabelChecker) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Pod" && event.Type != "create" {
 		return
 	}

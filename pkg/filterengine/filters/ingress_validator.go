@@ -2,6 +2,7 @@ package filters
 
 import (
 	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/infracloudio/botkube/pkg/filterengine"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
@@ -10,13 +11,13 @@ import (
 type IngressValidator struct {
 }
 
-// NewIngressValidator returns new IngressValidator object
-func NewIngressValidator() *IngressValidator {
-	return &IngressValidator{}
+// Register filter
+func init() {
+	filterengine.DefaultFilterEngine.Register(IngressValidator{})
 }
 
 // Run filers and modifies event struct
-func (iv *IngressValidator) Run(object interface{}, event *events.Event) {
+func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Ingress" && event.Type != "create" {
 		return
 	}
