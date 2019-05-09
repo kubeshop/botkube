@@ -2,6 +2,7 @@ package mattermost
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -15,10 +16,10 @@ var client *model.Client4
 const (
 	// BotName stores Botkube details
 	BotName = "botkube"
-	// ChannelPurpose describes the purpose of Botkube channel
-	ChannelPurpose = "Botkube alerts"
 	// WebSocketProtocol stores protocol initials for web socket
-	WebSocketProtocol = "ws:"
+	WebSocketProtocol = "ws://"
+	// WebSocketSecureProtocol stores protocol initials for web socket
+	WebSocketSecureProtocol = "wss://"
 )
 
 // Bot listens for user's message, execute commands and sends back the response
@@ -56,32 +57,37 @@ func NewMattermostBot() *Bot {
 	}
 }
 
-// Channel structure in Mattermost
-func mmChannel(channelName, teamID string) *model.Channel {
-	return &model.Channel{
-		Name:        channelName,
-		DisplayName: channelName,
-		Purpose:     ChannelPurpose,
-		Type:        model.CHANNEL_OPEN,
-		TeamId:      teamID,
-	}
-}
-
 // Start establishes mattermost connection and listens for messages
 func (b *Bot) Start() {
 	client = model.NewAPIv4Client(b.ServerURL)
 	client.SetOAuthToken(b.Token)
 
+	// Check if Mattermost URL is valid
+	checkURL, err := url.Parse(b.ServerURL)
+	if err != nil {
+		logging.Logger.Error("The Mattermost URL entered is incorrect. URL: ", b.ServerURL, "\nError: ", err)
+		return
+	}
+
 	// Check connection to Mattermost server
-	err := checkServerConnection()
+	err = checkServerConnection()
 	if err != nil {
 		logging.Logger.Error("There was a problem pinging the Mattermost server URL: ", b.ServerURL, "\nError: ", err)
 		return
 	}
 
 	// Create WebSocketClient and handle messages
-	webSocketURL := WebSocketProtocol + strings.SplitN(b.ServerURL, ":", 2)[1]
-	webSocketClient, _ := model.NewWebSocketClient4(webSocketURL, client.AuthToken)
+	webSocketURL := WebSocketProtocol + checkURL.Host
+	if checkURL.Scheme == "https" {
+		webSocketURL = WebSocketSecureProtocol + checkURL.Host
+	}
+	var modelError *model.AppError
+	webSocketClient, modelError := model.NewWebSocketClient4(webSocketURL, client.AuthToken)
+	if modelError != nil {
+		logging.Logger.Error("Error creating WebSocket for Mattermost connectivity. \nError: ", modelError)
+		return
+	}
+
 	webSocketClient.Listen()
 	go func() {
 		for {

@@ -78,6 +78,12 @@ $ kubectl create ns botkube && kubectl create -f deploy-all-in-one.yaml -n botku
 
 - Check pod status in botkube namespace. Once running, send **@BotKube ping** in the Slack channel to confirm if BotKube is responding correctly.
 
+- To deploy with TLS, download and use deploy-all-in-one-tls.yaml. Replace **ENCODED_CERTIFICATE** with your base64 encoded certificate value in the secret. To get a base64 encoded value of your certificate, use below command and replace <YOUR_CERTIFICATE> with the certificate name.
+
+```bash
+$ cat <YOUR_CERTIFICATE> | base64 -w 0
+```
+
 ## Add BotKube to your Mattermost team
 Before adding `BotKube` to your Mattermost team, please make sure you have all the pre-requisites working.
 
@@ -92,6 +98,7 @@ Before adding `BotKube` to your Mattermost team, please make sure you have all t
 In the helm chart, config.yaml or deploy-all-in-one.yaml update the following fields for enabling Mattermost support and providing Mattermost config parameters.
 
 **MATTERMOST_SERVER_URL** is the URL where Mattermost is running<br>
+**MATTERMOST_CERT** is the SSL certificate file for HTTPS connection. Place it in Helm directory and specify the path<br>
 **MATTERMOST_TOKEN** is the Token you received after installing BotKube user and creating Personal Access Token<br>
 **MATTERMOST_TEAM** is the team name where BotKube will be added<br>
 **MATTERMOST_CHANNEL** is the channel name where BotKube will be added<br>
@@ -102,6 +109,7 @@ In the helm chart, config.yaml or deploy-all-in-one.yaml update the following fi
 $ helm install --name botkube --namespace botkube \
 --set config.communications.mattermost.enabled=true \
 --set config.communications.mattermost.url={MATTERMOST_SERVER_URL} \
+--set config.communications.mattermost.cert={MATTERMOST_CERT} \
 --set config.communications.mattermost.token={MATTERMOST_TOKEN} \
 --set config.communications.mattermost.team={MATTERMOST_TEAM} \
 --set config.communications.mattermost.channel={MATTERMOST_CHANNEL} \
