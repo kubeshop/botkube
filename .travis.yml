@@ -22,3 +22,9 @@ before_script:
 
 script:
   - make 
+
+after_success:
+  - if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+      docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+      docker push infracloud/botkube:latest;
+    fi
