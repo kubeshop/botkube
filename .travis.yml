@@ -24,7 +24,7 @@ script:
   - make 
 
 after_success:
-  - if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+  - if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
       docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
       docker push infracloud/botkube:latest;
     fi
