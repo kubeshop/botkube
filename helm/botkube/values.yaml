@@ -9,7 +9,7 @@ image:
   pullPolicy: Always
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  # tag: latest
+  tag: latest
 
 nameOverride: ""
 fullnameOverride: ""
