@@ -27,8 +27,6 @@ var (
 	ResourceGetterMap map[string]cache.Getter
 	// AllowedEventKindsMap is a map to filter valid event kinds
 	AllowedEventKindsMap map[EventKind]bool
-	// AllowedEventTypesMap is a map to filter valid event types
-	AllowedEventTypesMap map[string]bool
 	// KubeClient is a global kubernetes client to communicate to apiserver
 	KubeClient kubernetes.Interface
 )
@@ -40,11 +38,11 @@ func init() {
 		if kubeconfigPath == "" {
 			kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
 		}
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		botkubeConf, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 		if err != nil {
 			log.Logger.Fatal(err)
 		}
-		KubeClient, err = kubernetes.NewForConfig(config)
+		KubeClient, err = kubernetes.NewForConfig(botkubeConf)
 		if err != nil {
 			log.Logger.Fatal(err)
 		}
@@ -64,7 +62,7 @@ type EventKind struct {
 }
 
 func createMaps() {
-	config, err := config.New()
+	botkubeConf, err := config.New()
 	if err != nil {
 		log.Logger.Fatal("Error in loading configuration. Error:%s", err.Error())
 	}
@@ -72,7 +70,6 @@ func createMaps() {
 	RtObjectMap = make(map[string]runtime.Object)
 	ResourceGetterMap = make(map[string]cache.Getter)
 	AllowedEventKindsMap = make(map[EventKind]bool)
-	AllowedEventTypesMap = make(map[string]bool)
 
 	// Runtime object map
 	RtObjectMap["pods"] = &apiV1.Pod{}
@@ -115,21 +112,20 @@ func createMaps() {
 	ResourceGetterMap["clusterrolebindings"] = KubeClient.RbacV1().RESTClient()
 
 	// Allowed event kinds map
-	for _, r := range config.Resources {
-		for _, ns := range r.Namespaces {
-			if r.Name == "ingresses" {
-				AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "es"), ns}] = true
+	for _, r := range botkubeConf.Resources {
+		for _, e := range r.Events {
+			if e != config.ErrorEvent {
 				continue
 			}
-			AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "s"), ns}] = true
+			for _, ns := range r.Namespaces {
+				if r.Name == "ingresses" {
+					AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "es"), ns}] = true
+					continue
+				}
+				AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "s"), ns}] = true
+			}
 		}
 	}
-
-	// Allowed event types map
-	for _, t := range config.Events.Types {
-		AllowedEventTypesMap[strings.ToLower(t)] = true
-	}
-
 	log.Logger.Infof("Allowed Events - %+v", AllowedEventKindsMap)
 }
 

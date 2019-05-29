@@ -1,11 +1,33 @@
 package config
 
 import (
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v2"
 )
+
+const (
+	// K8s event types allowed to forward
+	AllowedEventType = "warning"
+
+	// CreateEvent when resource is created
+	CreateEvent EventType = "create"
+	// UpdateEvent when resource is updated
+	UpdateEvent EventType = "update"
+	// DeleteEvent when resource deleted
+	DeleteEvent EventType = "delete"
+	// ErrorEvent on errors in resources
+	ErrorEvent EventType = "error"
+	// WarningEvent for warning events
+	WarningEvent EventType = "warning"
+	// AllEvent to watch all events
+	AllEvent EventType = "all"
+)
+
+// EventType to watch
+type EventType string
 
 // ConfigFileName is a name of botkube configuration file
 var ConfigFileName = "config.yaml"
@@ -18,20 +40,14 @@ type Config struct {
 	Resources       []Resource
 	Recommendations bool
 	Communications  Communications
-	Events          K8SEvents
 	Settings        Settings
-}
-
-// K8SEvents contains event types
-type K8SEvents struct {
-	Types []string
 }
 
 // Resource contains resources to watch
 type Resource struct {
 	Name       string
 	Namespaces []string
-	Events     []string
+	Events     []EventType
 }
 
 // Communications channels to send events to
@@ -78,6 +94,10 @@ type Mattermost struct {
 type Settings struct {
 	ClusterName  string
 	AllowKubectl bool
+}
+
+func (eventType EventType) String() string {
+	return string(eventType)
 }
 
 // New returns new Config

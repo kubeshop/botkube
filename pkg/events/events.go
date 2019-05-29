@@ -1,8 +1,11 @@
 package events
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/utils"
 	appsV1beta1 "k8s.io/api/apps/v1beta1"
 	batchV1 "k8s.io/api/batch/v1"
@@ -34,7 +37,7 @@ type Event struct {
 	Name      string
 	Namespace string
 	Messages  []string
-	Type      string
+	Type      config.EventType
 	Reason    string
 	Error     string
 	Level     Level
@@ -48,20 +51,19 @@ type Event struct {
 }
 
 // LevelMap is a map of event type to Level
-var LevelMap map[string]Level
+var LevelMap map[config.EventType]Level
 
 func init() {
-	LevelMap = make(map[string]Level)
-	LevelMap["create"] = Info
-	LevelMap["update"] = Warn
-	LevelMap["delete"] = Critical
-	LevelMap["error"] = Error
-	LevelMap["Warning"] = Critical
-	LevelMap["Normal"] = Info
+	LevelMap = make(map[config.EventType]Level)
+	LevelMap[config.CreateEvent] = Info
+	LevelMap[config.UpdateEvent] = Warn
+	LevelMap[config.DeleteEvent] = Critical
+	LevelMap[config.ErrorEvent] = Error
+	LevelMap[config.WarningEvent] = Error
 }
 
 // New extract required details from k8s object and returns new Event object
-func New(object interface{}, eventType string, kind string) Event {
+func New(object interface{}, eventType config.EventType, kind string) Event {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	objectMeta := utils.GetObjectMetaData(object)
 
@@ -74,18 +76,18 @@ func New(object interface{}, eventType string, kind string) Event {
 	}
 
 	// Add TimeStamps
-	if eventType == "create" {
+	if eventType == config.CreateEvent {
 		event.TimeStamp = objectMeta.CreationTimestamp.Time
 	}
 
-	if eventType == "delete" {
+	if eventType == config.DeleteEvent {
 		if objectMeta.DeletionTimestamp != nil {
 			event.TimeStamp = objectMeta.DeletionTimestamp.Time
 		}
 	}
 
 	if kind != "events" {
-		event.Messages = []string{"Resource " + eventType + "d\n"}
+		event.Messages = []string{fmt.Sprintf("Resource %sd\n", eventType.String())}
 	}
 
 	switch obj := object.(type) {
@@ -95,7 +97,7 @@ func New(object interface{}, eventType string, kind string) Event {
 		event.Kind = obj.InvolvedObject.Kind
 		event.Name = obj.InvolvedObject.Name
 		event.Namespace = obj.InvolvedObject.Namespace
-		event.Level = LevelMap[obj.Type]
+		event.Level = LevelMap[config.EventType(strings.ToLower(obj.Type))]
 		event.Count = obj.Count
 		event.Action = obj.Action
 	case *apiV1.Pod:

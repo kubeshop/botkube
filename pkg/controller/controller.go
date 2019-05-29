@@ -14,6 +14,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
+
 	// Register filters
 	_ "github.com/infracloudio/botkube/pkg/filterengine/filters"
 	log "github.com/infracloudio/botkube/pkg/logging"
@@ -95,42 +96,42 @@ func RegisterInformers(c *config.Config) {
 	}
 
 	// Register informers for k8s events
-	if len(c.Events.Types) > 0 {
-		log.Logger.Infof("Registering kubernetes events informer for types: %+v", c.Events.Types)
-		watchlist := cache.NewListWatchFromClient(
-			utils.KubeClient.CoreV1().RESTClient(), "events", apiV1.NamespaceAll, fields.Everything())
+	//if len(c.Events.Types) > 0 {
+	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.AllowedEventType)
+	watchlist := cache.NewListWatchFromClient(
+		utils.KubeClient.CoreV1().RESTClient(), "events", apiV1.NamespaceAll, fields.Everything())
 
-		_, controller := cache.NewInformer(
-			watchlist,
-			&apiV1.Event{},
-			time.Duration(rsyncTime)*time.Minute,
-			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					key, err := cache.MetaNamespaceKeyFunc(obj)
-					eventObj, ok := obj.(*apiV1.Event)
-					if !ok {
-						return
-					}
+	_, controller := cache.NewInformer(
+		watchlist,
+		&apiV1.Event{},
+		time.Duration(rsyncTime)*time.Minute,
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				key, err := cache.MetaNamespaceKeyFunc(obj)
+				eventObj, ok := obj.(*apiV1.Event)
+				if !ok {
+					return
+				}
 
-					kind := strings.ToLower(eventObj.InvolvedObject.Kind)
-					ns := eventObj.InvolvedObject.Namespace
-					eType := strings.ToLower(eventObj.Type)
+				kind := strings.ToLower(eventObj.InvolvedObject.Kind)
+				ns := eventObj.InvolvedObject.Namespace
+				eType := strings.ToLower(eventObj.Type)
 
-					log.Logger.Debugf("Received event: kind:%s ns:%s type:%s", kind, ns, eType)
-					// Filter and forward
-					if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
-						utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && (utils.AllowedEventTypesMap[eType]) {
-						log.Logger.Debugf("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
-						sendEvent(obj, c, "events", "create", err)
-					}
-				},
+				log.Logger.Debugf("Received event: kind:%s ns:%s type:%s", kind, ns, eType)
+				// Filter and forward
+				if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
+					utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && eType == config.AllowedEventType {
+					log.Logger.Debugf("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
+					sendEvent(obj, c, "events", config.ErrorEvent, err)
+				}
 			},
-		)
-		stopCh := make(chan struct{})
-		defer close(stopCh)
+		},
+	)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 
-		go controller.Run(stopCh)
-	}
+	go controller.Run(stopCh)
+	//}
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGTERM)
@@ -139,43 +140,43 @@ func RegisterInformers(c *config.Config) {
 	sendMessage(c, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
 }
 
-func registerEventHandlers(c *config.Config, resourceType string, events []string) (handlerFns cache.ResourceEventHandlerFuncs) {
+func registerEventHandlers(c *config.Config, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
 	for _, event := range events {
-		if event == "all" || event == "create" {
+		if event == config.AllEvent || event == config.CreateEvent {
 			handlerFns.AddFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
 				log.Logger.Debugf("Processing add to %v: %s", resourceType, key)
-				sendEvent(obj, c, resourceType, "create", err)
+				sendEvent(obj, c, resourceType, config.CreateEvent, err)
 			}
 		}
 
-		if event == "all" || event == "update" {
+		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(new)
-				log.Logger.Debugf("Processing update to %v: %s", resourceType, key)
-				sendEvent(new, c, resourceType, "update", err)
+				log.Logger.Debugf("Processing update to %v: %s\n Object: %+v", resourceType, key, new)
+				sendEvent(new, c, resourceType, config.UpdateEvent, err)
 			}
 		}
 
-		if event == "all" || event == "delete" {
+		if event == config.AllEvent || event == config.DeleteEvent {
 			handlerFns.DeleteFunc = func(obj interface{}) {
 				key, err := cache.MetaNamespaceKeyFunc(obj)
 				log.Logger.Debugf("Processing delete to %v: %s", resourceType, key)
-				sendEvent(obj, c, resourceType, "delete", err)
+				sendEvent(obj, c, resourceType, config.DeleteEvent, err)
 			}
 		}
 	}
 	return handlerFns
 }
 
-func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err error) {
+func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.EventType, err error) {
 	if err != nil {
 		log.Logger.Error("Error while receiving event: ", err.Error())
 		return
 	}
 
 	// Skip older events
-	if eventType == "create" {
+	if eventType == config.CreateEvent {
 		objectMeta := utils.GetObjectMetaData(obj)
 		if objectMeta.CreationTimestamp.Sub(startTime).Seconds() <= 0 {
 			log.Logger.Debug("Skipping older events")
@@ -184,7 +185,7 @@ func sendEvent(obj interface{}, c *config.Config, kind, eventType string, err er
 	}
 
 	// Skip older events
-	if eventType == "delete" {
+	if eventType == config.DeleteEvent {
 		objectMeta := utils.GetObjectMetaData(obj)
 		if objectMeta.DeletionTimestamp != nil && objectMeta.DeletionTimestamp.Sub(startTime).Seconds() <= 0 {
 			log.Logger.Debug("Skipping older events")
