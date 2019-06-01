@@ -119,8 +119,17 @@ func RegisterInformers(c *config.Config) {
 
 				log.Logger.Debugf("Received event: kind:%s ns:%s type:%s", kind, ns, eType)
 				// Filter and forward
-				if (utils.AllowedEventKindsMap[utils.EventKind{kind, "all"}] ||
-					utils.AllowedEventKindsMap[utils.EventKind{kind, ns}]) && eType == config.AllowedEventType {
+				allEvents := utils.EventKind{
+					Resource:  kind,
+					Namespace: "all",
+				}
+
+				nsEvent := utils.EventKind{
+					Resource:  kind,
+					Namespace: ns,
+				}
+				if (utils.AllowedEventKindsMap[allEvents] ||
+					utils.AllowedEventKindsMap[nsEvent]) && eType == config.AllowedEventType {
 					log.Logger.Debugf("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
 					sendEvent(obj, c, "events", config.ErrorEvent, err)
 				}

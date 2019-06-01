@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -64,7 +65,7 @@ type EventKind struct {
 func createMaps() {
 	botkubeConf, err := config.New()
 	if err != nil {
-		log.Logger.Fatal("Error in loading configuration. Error:%s", err.Error())
+		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	RtObjectMap = make(map[string]runtime.Object)
