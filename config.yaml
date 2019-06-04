@@ -3,112 +3,123 @@ resources:
   - name: pods                # Name of the resources e.g pods, deployments, ingresses, etc. (Resource name must be in plural form)
     namespaces:               # List of namespaces, "all" will watch all the namespaces
       - all
-    events:                   # List of lifecycle events you want to receive, e.g create, update, delete OR all
+    events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
       - create
       - delete
+      - error
   - name: services
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: deployments
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: ingresses
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: nodes
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: namespaces
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: persistentvolumes
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: persistentvolumeclaim
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: secrets
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: configmaps
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: daemonsets
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: jobs
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: roles
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: rolebindings
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: clusterroles
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
   - name: clusterrolebindings
     namespace:
       - all
     events:
       - create
       - delete
+      - error
   - name: nodes
     namespaces:
       - all
     events:
       - create
       - delete
+      - error
 
-# K8S error/warning events you want to receive for the configured resources
-events:
-  types:
-    #- normal
-    - warning
-   
 # Check true if you want to receive recommendations
 # about the best practices for the created resource
 recommendations: true
