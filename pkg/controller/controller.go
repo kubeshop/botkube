@@ -96,8 +96,7 @@ func RegisterInformers(c *config.Config) {
 	}
 
 	// Register informers for k8s events
-	//if len(c.Events.Types) > 0 {
-	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.AllowedEventType)
+	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.AllowedEventType.String())
 	watchlist := cache.NewListWatchFromClient(
 		utils.KubeClient.CoreV1().RESTClient(), "events", apiV1.NamespaceAll, fields.Everything())
 
@@ -129,7 +128,7 @@ func RegisterInformers(c *config.Config) {
 					Namespace: ns,
 				}
 				if (utils.AllowedEventKindsMap[allEvents] ||
-					utils.AllowedEventKindsMap[nsEvent]) && eType == config.AllowedEventType {
+					utils.AllowedEventKindsMap[nsEvent]) && eType == config.AllowedEventType.String() {
 					log.Logger.Debugf("Processing add to events: %s. Invoked Object: %s:%s", key, eventObj.InvolvedObject.Kind, eventObj.InvolvedObject.Namespace)
 					sendEvent(obj, c, "events", config.ErrorEvent, err)
 				}
@@ -140,7 +139,6 @@ func RegisterInformers(c *config.Config) {
 	defer close(stopCh)
 
 	go controller.Run(stopCh)
-	//}
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGTERM)

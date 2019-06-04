@@ -10,7 +10,7 @@ import (
 
 const (
 	// AllowedEventType K8s event types allowed to forward
-	AllowedEventType = "warning"
+	AllowedEventType EventType = WarningEvent
 
 	// CreateEvent when resource is created
 	CreateEvent EventType = "create"
