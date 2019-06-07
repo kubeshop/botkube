@@ -25,8 +25,12 @@ check-git-status:
 	@if [ -z "$(shell git remote -v)" ] ; then echo 'No remote to push tags to' && exit 1 ; fi
 	@if [ -z "$(shell git config user.email)" ] ; then echo 'Unable to detect git credentials' && exit 1 ; fi
 
+#Build the binary
+build: pre-build
+	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube 
+
 #Build the image
-build: pre-build 
+container-image: pre-build 
 	@echo "Building docker image"
 	@docker build --build-arg GOOS_VAL=$(shell go env GOOS) --build-arg GOARCH_VAL=$(shell go env GOARCH) -t $(IMAGE_REPO) -f build/Dockerfile --no-cache .
 	@echo "Docker image build successfully"
