@@ -20,7 +20,8 @@ before_script:
   - helm lint helm/botkube
 
 script:
-  - make container-image
+  - make unit-test
+  - make
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
