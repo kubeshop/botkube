@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -106,10 +106,10 @@ func New() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, ConfigFileName)
 	file, err := os.Open(configFile)
-	defer file.Close()
 	if err != nil {
 		return c, err
 	}
+	defer file.Close()
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
