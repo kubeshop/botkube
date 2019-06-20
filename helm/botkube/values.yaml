@@ -103,6 +103,7 @@ config:
       events:
         - create
         - delete
+        - update
         - error
     - name: roles
       namespaces:
