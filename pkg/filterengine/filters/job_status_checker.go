@@ -34,7 +34,7 @@ func (f JobStatusChecker) Run(object interface{}, event *events.Event) {
 
 	// Check latest job conditions
 	jobLen := len(jobObj.Status.Conditions)
-	if jobLen < 1 {
+	if jobLen == 0 {
 		event.Skip = true
 		return
 	}

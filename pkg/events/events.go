@@ -100,6 +100,7 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.Level = LevelMap[config.EventType(strings.ToLower(obj.Type))]
 		event.Count = obj.Count
 		event.Action = obj.Action
+		event.TimeStamp = obj.LastTimestamp.Time
 	case *apiV1.Pod:
 		event.Kind = "Pod"
 	case *apiV1.Node:
