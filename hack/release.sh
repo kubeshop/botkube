@@ -4,7 +4,13 @@ set -e
 
 version=$(cut -d'=' -f2- .release)
 if [[ -z ${version} ]]; then
-    echo "Invalid version set in .release";
+    echo "Invalid version set in .release"
+    exit 1
+fi
+
+
+if [[ -z ${GITHUB_TOKEN} ]]; then
+    echo "GITHUB_TOKEN not set. Usage: GITHUB_TOKEN=<TOKEN> ./hack/release.sh"
     exit 1
 fi
 
@@ -31,11 +37,24 @@ update_chart_yamls() {
     sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one-tls.yaml
 }
 
+publish_release() {
+    local version=$1
+
+    # create gh release
+    gothub release \
+	   --user infracloudio \
+	   --repo botkube \
+	   --tag $version \
+	   --name "$version" \
+	   --description "$version"
+}
+
 update_chart_yamls $version
 generate_changelog $version
 make release
+publish_release $version
 
 echo "=========================== Done ============================="
-echo "Congratulations!! Release ${version} tagged."
-echo "Now go to github releases and publish the release."
+echo "Congratulations!! Release ${version} published."
+echo "Don't forget to add changelog in the release description."
 echo "=============================================================="
