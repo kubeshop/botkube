@@ -16,102 +16,120 @@ data:
         events:                   # List of lifecycle events you want to receive, e.g create, update, delete OR all
           - create
           - delete
+          - error
       - name: services
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: deployments
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: ingresses
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: nodes
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: namespaces
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: persistentvolumes
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: persistentvolumeclaims
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: secrets
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: configmaps
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: daemonsets
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: jobs
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
+          - update
       - name: roles
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: rolebindings
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: clusterroles
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
       - name: clusterrolebindings
         namespace:
           - all
         events:
           - create
           - delete
+          - error
       - name: nodes
         namespaces:
           - all
         events:
           - create
           - delete
+          - error
   
     # K8S error/warning events you want to receive for the configured resources
     events:
@@ -156,8 +174,10 @@ data:
     settings:
       # Cluster name to differentiate incoming messages
       clustername: not-configured
-      # Set false to disable kubectl commands execution
+      # Set true to enable kubectl commands execution
       allowkubectl: false
+      # Set false to disable upgrade notification
+      upgradeNotifier: true
 ---
 # serviceaccount
 apiVersion: v1

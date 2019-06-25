@@ -92,8 +92,9 @@ type Mattermost struct {
 
 // Settings for multicluster support
 type Settings struct {
-	ClusterName  string
-	AllowKubectl bool
+	ClusterName     string
+	AllowKubectl    bool
+	UpgradeNotifier bool `yaml:"upgradeNotifier"`
 }
 
 func (eventType EventType) String() string {

@@ -92,6 +92,7 @@ data:
           - all
         events:
           - create
+          - update
           - delete
           - error
       - name: roles
@@ -169,6 +170,10 @@ data:
       clustername: not-configured
       # Set false to disable kubectl commands execution
       allowkubectl: false
+      # Set true to enable kubectl commands execution
+      allowkubectl: false
+      # Set false to disable upgrade notification
+      upgradeNotifier: true
 ---
 # serviceaccount
 apiVersion: v1
