@@ -182,24 +182,6 @@ func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.
 		return
 	}
 
-	// Skip older events
-	if eventType == config.CreateEvent {
-		objectMeta := utils.GetObjectMetaData(obj)
-		if objectMeta.CreationTimestamp.Sub(startTime).Seconds() <= 0 {
-			log.Logger.Debug("Skipping older events")
-			return
-		}
-	}
-
-	// Skip older events
-	if eventType == config.DeleteEvent {
-		objectMeta := utils.GetObjectMetaData(obj)
-		if objectMeta.DeletionTimestamp != nil && objectMeta.DeletionTimestamp.Sub(startTime).Seconds() <= 0 {
-			log.Logger.Debug("Skipping older events")
-			return
-		}
-	}
-
 	// Check if Notify disabled
 	if !config.Notify {
 		log.Logger.Debug("Skipping notification")
@@ -208,6 +190,16 @@ func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.
 
 	// Create new event object
 	event := events.New(obj, eventType, kind)
+
+	// Skip older events
+	if !event.TimeStamp.IsZero() {
+		//objectMeta := utils.GetObjectMetaData(obj)
+		if event.TimeStamp.Sub(startTime).Seconds() <= 0 {
+			log.Logger.Debug("Skipping older events")
+			return
+		}
+	}
+
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
 	if event.Skip {
 		log.Logger.Debugf("Skipping event: %#v", event)
