@@ -28,5 +28,12 @@ func main() {
 		mb := mattermost.NewMattermostBot()
 		mb.Start()
 	}
+
+	if Config.Settings.UpgradeNotifier {
+		log.Logger.Info("Starting upgrade notifier")
+		go controller.UpgradeNotifier(Config)
+
+	}
+
 	controller.RegisterInformers(Config)
 }

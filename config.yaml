@@ -157,5 +157,7 @@ communications:
 settings:
   # Cluster name to differentiate incoming messages
   clustername: not-configured
-  # Set false to disable kubectl commands execution
+  # Set true to enable kubectl commands execution
   allowkubectl: false
+  # Set false to disable upgrade notification
+  upgradeNotifier: true

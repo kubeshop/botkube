@@ -65,6 +65,22 @@
   revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
 
 [[projects]]
+  digest = "1:dc8f33fafa8072398474e182c9c7dfcd6f1b7c688d78c779f7d19a18720ea5dc"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = "UT"
+  revision = "445d3bd422a8e75398ca4c1a6a287d05056f4068"
+  version = "v26.0.8"
+
+[[projects]]
+  digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "UT"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:41bfd4219241b7f7d6e6fdb13fc712576f1337e68e6b895136283b76928fdd66"
   name = "github.com/google/gofuzz"
   packages = ["."]
@@ -259,6 +275,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -275,12 +299,27 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:25f2747b063c0a656195ef85413cef8c9f2bbe128deab7d39563a6ca1e536070"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "UT"
+  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
+  version = "v1.1.4"
+
+[[projects]]
   branch = "master"
-  digest = "1:427cdd2c12a3290ace873d2f9d3958d126c4d75596dbc09de05852da08a3dab5"
+  digest = "1:ead00edfeb6c6d5709cafa8b8ca88eabe6be6cbd050fa8adc377358003cc8957"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
+    "cast5",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
     "ssh/terminal",
   ]
   pruneopts = "UT"
@@ -557,10 +596,12 @@
   analyzer-version = 1
   input-imports = [
     "github.com/fsnotify/fsnotify",
+    "github.com/google/go-github/github",
     "github.com/mattermost/mattermost-server/model",
     "github.com/nlopes/slack",
     "github.com/olivere/elastic",
     "github.com/sirupsen/logrus",
+    "github.com/stretchr/testify/assert",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1beta1",
     "k8s.io/api/batch/v1",
