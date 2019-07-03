@@ -14,11 +14,14 @@ import (
 
 // JobStatusChecker checks job status and adds message in the events structure
 type JobStatusChecker struct {
+	Description string
 }
 
 // Register filter
 func init() {
-	filterengine.DefaultFilterEngine.Register(JobStatusChecker{})
+	filterengine.DefaultFilterEngine.Register(JobStatusChecker{
+		Description: "Sends notifications only when job succeeds and ignores other job update events.",
+	})
 }
 
 // Run filers and modifies event struct
@@ -48,4 +51,9 @@ func (f JobStatusChecker) Run(object interface{}, event *events.Event) {
 	}
 	event.Reason = c.Reason
 	log.Logger.Debug("Job status checker filter successful!")
+}
+
+// Describe filter
+func (f JobStatusChecker) Describe() string {
+	return f.Description
 }

@@ -9,11 +9,14 @@ import (
 // IngressValidator checks if service and tls secret used in ingress specs is already present
 // and adds recommendations to event struct accordingly
 type IngressValidator struct {
+	Description string
 }
 
 // Register filter
 func init() {
-	filterengine.DefaultFilterEngine.Register(IngressValidator{})
+	filterengine.DefaultFilterEngine.Register(IngressValidator{
+		Description: "Checks if services and tls secrets used in ingress specs are available.",
+	})
 }
 
 // Run filers and modifies event struct
@@ -53,4 +56,9 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 			event.Recommendations = append(event.Recommendations, "TLS secret "+tls.SecretName+"does not exist")
 		}
 	}
+}
+
+// Describe filter
+func (iv IngressValidator) Describe() string {
+	return iv.Description
 }

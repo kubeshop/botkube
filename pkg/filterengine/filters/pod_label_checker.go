@@ -10,11 +10,14 @@ import (
 
 // PodLabelChecker add recommendations to the event object if pod created without any labels
 type PodLabelChecker struct {
+	Description string
 }
 
 // Register filter
 func init() {
-	filterengine.DefaultFilterEngine.Register(PodLabelChecker{})
+	filterengine.DefaultFilterEngine.Register(PodLabelChecker{
+		Description: "Checks and adds recommedations if labels are missing in the pod specs.",
+	})
 }
 
 // Run filters and modifies event struct
@@ -32,4 +35,9 @@ func (f PodLabelChecker) Run(object interface{}, event *events.Event) {
 		event.Recommendations = append(event.Recommendations, "pod '"+podObj.ObjectMeta.Name+"' creation without labels should be avoided.\n")
 	}
 	log.Logger.Debug("Pod label filter successful!")
+}
+
+// Describe filter
+func (f PodLabelChecker) Describe() string {
+	return f.Description
 }

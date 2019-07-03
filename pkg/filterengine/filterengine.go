@@ -17,7 +17,7 @@ var (
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event
 	Register(Filter)
-	ShowFilters() map[string]bool
+	ShowFilters() map[Filter]bool
 	SetFilter(string, bool) error
 }
 
@@ -28,6 +28,7 @@ type defaultFilters struct {
 // Filter has method to run filter
 type Filter interface {
 	Run(interface{}, *events.Event)
+	Describe() string
 }
 
 func init() {
@@ -60,14 +61,8 @@ func (f *defaultFilters) Register(filter Filter) {
 }
 
 // ShowFilters return map of filter name and status
-func (f defaultFilters) ShowFilters() map[string]bool {
-	fmap := make(map[string]bool)
-
-	// Find filter struct name and set map
-	for k, v := range f.FiltersMap {
-		fmap[reflect.TypeOf(k).Name()] = v
-	}
-	return fmap
+func (f defaultFilters) ShowFilters() map[Filter]bool {
+	return f.FiltersMap
 }
 
 // SetFilter sets filter value in FilterMap to enable or disable filter

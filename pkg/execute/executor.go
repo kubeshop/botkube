@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/tabwriter"
 	"unicode"
@@ -302,9 +303,9 @@ func makeFiltersList() string {
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
 
-	fmt.Fprintln(w, "FILTER\tENABLED")
+	fmt.Fprintln(w, "FILTER\tENABLED\tDESCRIPTION")
 	for k, v := range filterengine.DefaultFilterEngine.ShowFilters() {
-		fmt.Fprintf(w, "%s\t%v\n", k, v)
+		fmt.Fprintf(w, "%s\t%v\t%s\n", reflect.TypeOf(k).Name(), v, k.Describe())
 	}
 
 	w.Flush()
