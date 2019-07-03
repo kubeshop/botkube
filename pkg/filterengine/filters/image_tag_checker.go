@@ -12,11 +12,14 @@ import (
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
 type ImageTagChecker struct {
+	Description string
 }
 
 // Register filter
 func init() {
-	filterengine.DefaultFilterEngine.Register(ImageTagChecker{})
+	filterengine.DefaultFilterEngine.Register(ImageTagChecker{
+		Description: "Checks and adds recommendation if 'latest' image tag is used for container image.",
+	})
 }
 
 // Run filers and modifies event struct
@@ -45,4 +48,9 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 		}
 	}
 	log.Logger.Debug("Image tag filter successful!")
+}
+
+// Describe filter
+func (f ImageTagChecker) Describe() string {
+	return f.Description
 }
