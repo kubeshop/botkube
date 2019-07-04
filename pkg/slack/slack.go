@@ -60,8 +60,8 @@ func (b *Bot) Start() {
 			logging.Logger.Debug("Connection Info: ", ev.Info)
 
 		case *slack.MessageEvent:
-			// Skip if message posted by BotKube or if doesn't start with mention
-			if ev.User == botID || !strings.HasPrefix(ev.Text, "<@"+botID+"> ") {
+			// Skip if message posted by BotKube
+			if ev.User == botID {
 				continue
 			}
 			sm := slackMessage{
@@ -85,8 +85,19 @@ func (b *Bot) Start() {
 func (sm *slackMessage) HandleMessage(b *Bot) {
 	logging.Logger.Debugf("Slack incoming message: %+v", sm.Event)
 	// Check if message posted in authenticated channel
-	if info, _ := slack.New(b.Token).GetConversationInfo(sm.Event.Channel, true); info.Name == b.ChannelName {
-		sm.IsAuthChannel = true
+	info, err := slack.New(b.Token).GetConversationInfo(sm.Event.Channel, true)
+	if err == nil {
+		if info.IsChannel || info.IsPrivate {
+			// Message posted in a channel
+			// Serve only if starts with mention
+			if !strings.HasPrefix(sm.Event.Text, "<@"+sm.BotID+"> ") {
+				return
+			}
+			// Serve only if current channel is in config
+			if b.ChannelName == info.Name {
+				sm.IsAuthChannel = true
+			}
+		}
 	}
 
 	// Trim the @BotKube prefix
