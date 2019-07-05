@@ -225,3 +225,14 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 	}
 	return typeMeta
 }
+
+// DeleteDoubleWhiteSpace returns slice that removing whitespace from a arg slice
+func DeleteDoubleWhiteSpace(slice []string) []string {
+	result := []string{}
+	for _, s := range slice {
+		if s != " " {
+			result = append(result, s)
+		}
+	}
+	return result
+}
