@@ -1,4 +1,4 @@
-package slack
+package bot
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"github.com/nlopes/slack"
 )
 
-// Bot listens for user's message, execute commands and sends back the response
-type Bot struct {
+// slackBot listens for user's message, execute commands and sends back the response
+type slackBot struct {
 	Token        string
 	AllowKubectl bool
 	ClusterName  string
@@ -29,12 +29,12 @@ type slackMessage struct {
 }
 
 // NewSlackBot returns new Bot object
-func NewSlackBot() *Bot {
+func NewSlackBot() Bot {
 	c, err := config.New()
 	if err != nil {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
-	return &Bot{
+	return &slackBot{
 		Token:        c.Communications.Slack.Token,
 		AllowKubectl: c.Settings.AllowKubectl,
 		ClusterName:  c.Settings.ClusterName,
@@ -43,7 +43,7 @@ func NewSlackBot() *Bot {
 }
 
 // Start starts the slacknot RTM connection and listens for messages
-func (b *Bot) Start() {
+func (b *slackBot) Start() {
 	api := slack.New(b.Token)
 	authResp, err := api.AuthTest()
 	if err != nil {
@@ -82,7 +82,7 @@ func (b *Bot) Start() {
 	}
 }
 
-func (sm *slackMessage) HandleMessage(b *Bot) {
+func (sm *slackMessage) HandleMessage(b *slackBot) {
 	logging.Logger.Debugf("Slack incoming message: %+v", sm.Event)
 	// Check if message posted in authenticated channel
 	info, err := slack.New(b.Token).GetConversationInfo(sm.Event.Channel, true)
