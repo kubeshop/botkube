@@ -13,6 +13,15 @@ import (
 
 var client *model.Client4
 
+// mmChannelType to find Mattermost channel type
+type mmChannelType string
+
+const (
+	mmChannelPrivate mmChannelType = "P"
+	mmChannelPublic  mmChannelType = "O"
+	mmChannelDM      mmChannelType = "D"
+)
+
 const (
 	// BotName stores Botkube details
 	BotName = "botkube"
@@ -98,7 +107,7 @@ func (b *mmBot) Start() {
 			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 
 			// Skip if message posted by BotKube or doesn't start with mention
-			if post.UserId == b.getUser().Id || !(strings.HasPrefix(post.Message, "@"+BotName+" ")) {
+			if post.UserId == b.getUser().Id {
 				continue
 			}
 			mm := mattermostMessage{
@@ -113,13 +122,23 @@ func (b *mmBot) Start() {
 
 // Check incomming message and take action
 func (mm *mattermostMessage) handleMessage(b *mmBot) {
+	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
+	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
+	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
+		// Message posted in a channel
+		// Serve only if starts with mention
+		if !strings.HasPrefix(post.Message, "@"+BotName+" ") {
+			return
+		}
+	}
+
 	// Check if message posted in authenticated channel
 	if mm.Event.Broadcast.ChannelId == b.getChannel().Id {
 		mm.IsAuthChannel = true
 	}
+	logging.Logger.Debug("Received mattermost event: %+v", mm.Event.Data)
 
-	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
-	// Trim the @BotKube prefix
+	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
 	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.ClusterName, b.ChannelName, mm.IsAuthChannel)
