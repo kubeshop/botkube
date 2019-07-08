@@ -134,7 +134,7 @@ func NewDefaultExecutor(msg string, allowkubectl bool, clusterName, channelName 
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	args := strings.Split(e.Message, " ")
+	args := strings.Fields(e.Message)
 	if validKubectlCommands[args[0]] {
 		if !e.AllowKubectl {
 			return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
