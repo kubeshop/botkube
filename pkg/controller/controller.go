@@ -47,7 +47,7 @@ func findNamespace(ns string) string {
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config) {
 	sendMessage(c, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
-	startTime = time.Now().Local()
+	startTime = time.Now()
 
 	// Start config file watcher
 	go configWatcher(c)
@@ -193,11 +193,18 @@ func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.
 
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
-		//objectMeta := utils.GetObjectMetaData(obj)
-		if event.TimeStamp.Sub(startTime).Seconds() <= 0 {
+		if event.TimeStamp.Before(startTime) {
 			log.Logger.Debug("Skipping older events")
 			return
 		}
+	}
+
+	// After resync, Informer gets OnUpdate call, even if nothing changed.
+	// We need to skip update event if that is happened before current time.
+	// As a workaround, we will be ignoring update events older than 5s of current time.
+	if eventType == config.UpdateEvent && time.Now().Sub(event.TimeStamp).Seconds() > 5 {
+		log.Logger.Debug("Skipping older events")
+		return
 	}
 
 	event = filterengine.DefaultFilterEngine.Run(obj, event)

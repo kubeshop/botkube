@@ -103,16 +103,40 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.TimeStamp = obj.LastTimestamp.Time
 	case *apiV1.Pod:
 		event.Kind = "Pod"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *apiV1.Node:
 		event.Kind = "Node"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *apiV1.Namespace:
 		event.Kind = "Namespace"
 	case *apiV1.PersistentVolume:
 		event.Kind = "PersistentVolume"
 	case *apiV1.PersistentVolumeClaim:
 		event.Kind = "PersistentVolumeClaim"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *apiV1.ReplicationController:
 		event.Kind = "ReplicationController"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *apiV1.Service:
 		event.Kind = "Service"
 	case *apiV1.Secret:
@@ -125,10 +149,28 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.Kind = "Ingress"
 	case *extV1beta1.ReplicaSet:
 		event.Kind = "ReplicaSet"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *appsV1beta1.Deployment:
 		event.Kind = "Deployment"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *batchV1.Job:
 		event.Kind = "Job"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
 	case *rbacV1.Role:
 		event.Kind = "Role"
 	case *rbacV1.RoleBinding:
