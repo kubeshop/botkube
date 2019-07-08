@@ -230,7 +230,7 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 func DeleteDoubleWhiteSpace(slice []string) []string {
 	result := []string{}
 	for _, s := range slice {
-		if s != " " {
+		if len(s) != 0 {
 			result = append(result, s)
 		}
 	}
