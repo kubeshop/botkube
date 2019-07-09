@@ -35,6 +35,7 @@ Now you can build and run BotKube by one of the following ways
 1. This will build BotKube and create a new container image tagged as `infracloud/botkube:latest`
    ```sh
    $ make build
+   $ make container-image
    $ docker tag infracloud/botkube:latest <your_account>/botkube:latest
    $ docker push <your_account>/botkube:latest
    ```
