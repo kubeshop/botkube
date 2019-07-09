@@ -1,4 +1,4 @@
-package mattermost
+package bot
 
 import (
 	"fmt"
@@ -13,6 +13,15 @@ import (
 
 var client *model.Client4
 
+// mmChannelType to find Mattermost channel type
+type mmChannelType string
+
+const (
+	mmChannelPrivate mmChannelType = "P"
+	mmChannelPublic  mmChannelType = "O"
+	mmChannelDM      mmChannelType = "D"
+)
+
 const (
 	// BotName stores Botkube details
 	BotName = "botkube"
@@ -22,8 +31,8 @@ const (
 	WebSocketSecureProtocol = "wss://"
 )
 
-// Bot listens for user's message, execute commands and sends back the response
-type Bot struct {
+// mmBot listens for user's message, execute commands and sends back the response
+type mmBot struct {
 	ServerURL    string
 	Token        string
 	TeamName     string
@@ -41,13 +50,13 @@ type mattermostMessage struct {
 }
 
 // NewMattermostBot returns new Bot object
-func NewMattermostBot() *Bot {
+func NewMattermostBot() Bot {
 	c, err := config.New()
 	if err != nil {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
-	return &Bot{
+	return &mmBot{
 		ServerURL:    c.Communications.Mattermost.URL,
 		Token:        c.Communications.Mattermost.Token,
 		TeamName:     c.Communications.Mattermost.Team,
@@ -58,7 +67,7 @@ func NewMattermostBot() *Bot {
 }
 
 // Start establishes mattermost connection and listens for messages
-func (b *Bot) Start() {
+func (b *mmBot) Start() {
 	client = model.NewAPIv4Client(b.ServerURL)
 	client.SetOAuthToken(b.Token)
 
@@ -98,7 +107,7 @@ func (b *Bot) Start() {
 			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 
 			// Skip if message posted by BotKube or doesn't start with mention
-			if post.UserId == b.getUser().Id || !(strings.HasPrefix(post.Message, "@"+BotName+" ")) {
+			if post.UserId == b.getUser().Id {
 				continue
 			}
 			mm := mattermostMessage{
@@ -112,14 +121,24 @@ func (b *Bot) Start() {
 }
 
 // Check incomming message and take action
-func (mm *mattermostMessage) handleMessage(b *Bot) {
+func (mm *mattermostMessage) handleMessage(b *mmBot) {
+	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
+	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
+	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
+		// Message posted in a channel
+		// Serve only if starts with mention
+		if !strings.HasPrefix(post.Message, "@"+BotName+" ") {
+			return
+		}
+	}
+
 	// Check if message posted in authenticated channel
 	if mm.Event.Broadcast.ChannelId == b.getChannel().Id {
 		mm.IsAuthChannel = true
 	}
+	logging.Logger.Debug("Received mattermost event: %+v", mm.Event.Data)
 
-	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
-	// Trim the @BotKube prefix
+	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
 	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.ClusterName, b.ChannelName, mm.IsAuthChannel)
@@ -160,7 +179,7 @@ func checkServerConnection() error {
 }
 
 // Check if team exists in Mattermost
-func (b *Bot) getTeam() *model.Team {
+func (b *mmBot) getTeam() *model.Team {
 	botTeam, resp := client.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
 		logging.Logger.Fatal("There was a problem finding Mattermost team ", b.TeamName, "\nError: ", resp.Error)
@@ -169,7 +188,7 @@ func (b *Bot) getTeam() *model.Team {
 }
 
 // Check if botkube user exists in Mattermost
-func (b *Bot) getUser() *model.User {
+func (b *mmBot) getUser() *model.User {
 	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, "")
 	if resp.Error != nil {
 		logging.Logger.Fatal("There was a problem finding Mattermost user ", BotName, "\nError: ", resp.Error)
@@ -178,7 +197,7 @@ func (b *Bot) getUser() *model.User {
 }
 
 // Create channel if not present and add botkube user in channel
-func (b *Bot) getChannel() *model.Channel {
+func (b *mmBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := client.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {

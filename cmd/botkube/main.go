@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	log "github.com/infracloudio/botkube/pkg/logging"
-	"github.com/infracloudio/botkube/pkg/mattermost"
-	"github.com/infracloudio/botkube/pkg/slack"
 )
 
 func main() {
@@ -19,13 +18,13 @@ func main() {
 
 	if Config.Communications.Slack.Enabled {
 		log.Logger.Info("Starting slack bot")
-		sb := slack.NewSlackBot()
+		sb := bot.NewSlackBot()
 		go sb.Start()
 	}
 
 	if Config.Communications.Mattermost.Enabled {
 		log.Logger.Info("Starting mattermost bot")
-		mb := mattermost.NewMattermostBot()
+		mb := bot.NewMattermostBot()
 		mb.Start()
 	}
 

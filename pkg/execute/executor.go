@@ -3,7 +3,6 @@ package execute
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,9 +12,12 @@ import (
 	"text/tabwriter"
 	"unicode"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 var validKubectlCommands = map[string]bool{
@@ -132,7 +134,7 @@ func NewDefaultExecutor(msg string, allowkubectl bool, clusterName, channelName 
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	args := strings.Split(e.Message, " ")
+	args := strings.Fields(e.Message)
 	if validKubectlCommands[args[0]] {
 		if !e.AllowKubectl {
 			return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
@@ -178,7 +180,7 @@ func trimQuotes(clusterValue string) string {
 
 func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
 	// Use 'default' as a default namespace
-	args = append([]string{"-n", "default"}, args...)
+	args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
