@@ -234,7 +234,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloud/botkube:0.7.0"
+          image: "infracloud/botkube:v0.8.0"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -247,7 +247,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: 0.7.0
+              value: v0.8.0
       volumes:
         - name: config-volume
           configMap:
