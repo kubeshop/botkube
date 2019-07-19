@@ -183,3 +183,53 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 
 	return event
 }
+
+// Message returns event message in brief format.
+// included as a part of event package to use across handlers.
+func (event *Event) Message() (msg string) {
+	message := ""
+	if len(event.Messages) > 0 {
+		for _, m := range event.Messages {
+			message = message + m
+		}
+	}
+	if len(event.Recommendations) > 0 {
+		recommend := ""
+		for _, m := range event.Recommendations {
+			recommend = recommend + m
+		}
+		message = message + fmt.Sprintf("\nRecommendations: %s", recommend)
+	}
+
+	switch event.Type {
+	case config.CreateEvent, config.DeleteEvent, config.UpdateEvent:
+		msg = fmt.Sprintf(
+			"%s `%s` in of cluster `%s`, namespace `%s` has been %s:\n```%s```",
+			event.Kind,
+			event.Name,
+			event.Cluster,
+			event.Namespace,
+			event.Type+"d",
+			message,
+		)
+	case config.ErrorEvent:
+		msg = fmt.Sprintf(
+			"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+			event.Kind,
+			event.Name,
+			event.Cluster,
+			event.Namespace,
+			message,
+		)
+	case config.WarningEvent:
+		msg = fmt.Sprintf(
+			"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+			event.Kind,
+			event.Name,
+			event.Cluster,
+			event.Namespace,
+			message,
+		)
+	}
+	return msg
+}

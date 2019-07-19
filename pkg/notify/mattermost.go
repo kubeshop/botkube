@@ -16,6 +16,7 @@ type Mattermost struct {
 	Client      *model.Client4
 	Channel     string
 	ClusterName string
+	NotifType   config.NotifType
 }
 
 // NewMattermost returns new Mattermost object
@@ -44,6 +45,7 @@ func NewMattermost(c *config.Config) (Notifier, error) {
 		Client:      client,
 		Channel:     botChannel.Id,
 		ClusterName: c.Settings.ClusterName,
+		NotifType:   c.Communications.Mattermost.NotifType,
 	}, nil
 }
 
@@ -51,69 +53,87 @@ func NewMattermost(c *config.Config) (Notifier, error) {
 func (m *Mattermost) SendEvent(event events.Event) error {
 	log.Logger.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
 
-	fields := []*model.SlackAttachmentField{
-		{
-			Title: "Kind",
-			Value: event.Kind,
-			Short: true,
-		},
-		{
-			Title: "Name",
-			Value: event.Name,
-			Short: true,
-		},
-	}
+	var fields []*model.SlackAttachmentField
 
-	if event.Namespace != "" {
-		fields = append(fields, &model.SlackAttachmentField{
-			Title: "Namespace",
-			Value: event.Namespace,
-			Short: true,
-		})
-	}
-
-	if event.Reason != "" {
-		fields = append(fields, &model.SlackAttachmentField{
-			Title: "Reason",
-			Value: event.Reason,
-			Short: true,
-		})
-	}
-
-	if len(event.Messages) > 0 {
-		message := ""
-		for _, m := range event.Messages {
-			message = message + m
+	switch m.NotifType {
+	case config.LongNotify:
+		fields = []*model.SlackAttachmentField{
+			{
+				Title: "Kind",
+				Value: event.Kind,
+				Short: true,
+			},
+			{
+				Title: "Name",
+				Value: event.Name,
+				Short: true,
+			},
 		}
-		fields = append(fields, &model.SlackAttachmentField{
-			Title: "Message",
-			Value: message,
-		})
-	}
 
-	if event.Action != "" {
-		fields = append(fields, &model.SlackAttachmentField{
-			Title: "Action",
-			Value: event.Action,
-		})
-	}
-
-	if len(event.Recommendations) > 0 {
-		rec := ""
-		for _, r := range event.Recommendations {
-			rec = rec + r
+		if event.Namespace != "" {
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Namespace",
+				Value: event.Namespace,
+				Short: true,
+			})
 		}
-		fields = append(fields, &model.SlackAttachmentField{
-			Title: "Recommendations",
-			Value: rec,
-		})
-	}
 
-	// Add clustername in the message
-	fields = append(fields, &model.SlackAttachmentField{
-		Title: "Cluster",
-		Value: m.ClusterName,
-	})
+		if event.Reason != "" {
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Reason",
+				Value: event.Reason,
+				Short: true,
+			})
+		}
+
+		if len(event.Messages) > 0 {
+			message := ""
+			for _, m := range event.Messages {
+				message = message + m
+			}
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Message",
+				Value: message,
+			})
+		}
+
+		if event.Action != "" {
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Action",
+				Value: event.Action,
+			})
+		}
+
+		if len(event.Recommendations) > 0 {
+			rec := ""
+			for _, r := range event.Recommendations {
+				rec = rec + r
+			}
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Recommendations",
+				Value: rec,
+			})
+		}
+
+		// Add clustername in the message
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Cluster",
+			Value: m.ClusterName,
+		})
+
+	case config.ShortNotify:
+		fallthrough
+
+	default:
+		// set missing cluster name to event object
+		event.Cluster = m.ClusterName
+		fields = []*model.SlackAttachmentField{
+			{
+				Title: fmt.Sprintf("%s", event.Kind+" "+string(event.Type)),
+				Value: event.Message(),
+			},
+		}
+	}
 
 	attachment := []*model.SlackAttachment{{
 		Fields:    fields,

@@ -218,6 +218,12 @@ func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.
 		return
 	}
 
+	// check if Recommendations are disabled
+	if !c.Recommendations {
+		event.Recommendations = nil
+		log.Logger.Debug("Skipping Recommendations in Event Notifications")
+	}
+
 	var notifier notify.Notifier
 	// Send notification to communication channel
 	if c.Communications.Slack.Enabled {
