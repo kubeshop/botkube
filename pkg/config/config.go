@@ -24,6 +24,10 @@ const (
 	WarningEvent EventType = "warning"
 	// AllEvent to watch all events
 	AllEvent EventType = "all"
+	// ShortNotify is the Default NotifType
+	ShortNotify NotifType = "short"
+	// LongNotify for short events notification
+	LongNotify NotifType = "long"
 )
 
 // EventType to watch
@@ -34,6 +38,9 @@ var ConfigFileName = "config.yaml"
 
 // Notify flag to toggle event notification
 var Notify = true
+
+// NotifType to change notification type
+type NotifType string
 
 // Config structure of configuration yaml file
 type Config struct {
@@ -59,9 +66,10 @@ type Communications struct {
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled bool
-	Channel string
-	Token   string `yaml:",omitempty"`
+	Enabled   bool
+	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
+	Token     string    `yaml:",omitempty"`
 }
 
 // ElasticSearch config auth settings
@@ -83,11 +91,12 @@ type Index struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled bool
-	URL     string
-	Token   string
-	Team    string
-	Channel string
+	Enabled   bool
+	URL       string
+	Token     string
+	Team      string
+	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
 }
 
 // Settings for multicluster support

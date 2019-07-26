@@ -18,6 +18,7 @@ type Slack struct {
 	Token       string
 	Channel     string
 	ClusterName string
+	NotifType   config.NotifType
 }
 
 // NewSlack returns new Slack object
@@ -34,6 +35,7 @@ func NewSlack(c *config.Config) Notifier {
 		Token:       c.Communications.Slack.Token,
 		Channel:     c.Communications.Slack.Channel,
 		ClusterName: c.Settings.ClusterName,
+		NotifType:   c.Communications.Slack.NotifType,
 	}
 }
 
@@ -45,21 +47,93 @@ func (s *Slack) SendEvent(event events.Event) error {
 	params := slack.PostMessageParameters{
 		AsUser: true,
 	}
-	attachment := slack.Attachment{
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Kind",
-				Value: event.Kind,
-				Short: true,
-			},
-			{
 
-				Title: "Name",
-				Value: event.Name,
-				Short: true,
+	var attachment slack.Attachment
+
+	switch s.NotifType {
+	case config.LongNotify:
+		attachment = slack.Attachment{
+			Fields: []slack.AttachmentField{
+				{
+					Title: "Kind",
+					Value: event.Kind,
+					Short: true,
+				},
+				{
+
+					Title: "Name",
+					Value: event.Name,
+					Short: true,
+				},
 			},
-		},
-		Footer: "BotKube",
+			Footer: "BotKube",
+		}
+		if event.Namespace != "" {
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Namespace",
+				Value: event.Namespace,
+				Short: true,
+			})
+		}
+
+		if event.Reason != "" {
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Reason",
+				Value: event.Reason,
+				Short: true,
+			})
+		}
+
+		if len(event.Messages) > 0 {
+			message := ""
+			for _, m := range event.Messages {
+				message = message + m
+			}
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Message",
+				Value: message,
+			})
+		}
+
+		if event.Action != "" {
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Action",
+				Value: event.Action,
+			})
+		}
+
+		if len(event.Recommendations) > 0 {
+			rec := ""
+			for _, r := range event.Recommendations {
+				rec = rec + r
+			}
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Recommendations",
+				Value: rec,
+			})
+		}
+
+		// Add clustername in the message
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Cluster",
+			Value: s.ClusterName,
+		})
+
+	case config.ShortNotify:
+		fallthrough
+
+	default:
+		// set missing cluster name to event object
+		event.Cluster = s.ClusterName
+		attachment = slack.Attachment{
+			Fields: []slack.AttachmentField{
+				{
+					Title: fmt.Sprintf("%s", event.Kind+" "+string(event.Type)),
+					Value: event.Message(),
+				},
+			},
+			Footer: "BotKube",
+		}
 	}
 
 	// Add timestamp
@@ -67,57 +141,6 @@ func (s *Slack) SendEvent(event events.Event) error {
 	if ts > "0" {
 		attachment.Ts = ts
 	}
-
-	if event.Namespace != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Namespace",
-			Value: event.Namespace,
-			Short: true,
-		})
-	}
-
-	if event.Reason != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Reason",
-			Value: event.Reason,
-			Short: true,
-		})
-	}
-
-	if len(event.Messages) > 0 {
-		message := ""
-		for _, m := range event.Messages {
-			message = message + m
-		}
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Message",
-			Value: message,
-		})
-	}
-
-	if event.Action != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Action",
-			Value: event.Action,
-		})
-	}
-
-	if len(event.Recommendations) > 0 {
-		rec := ""
-		for _, r := range event.Recommendations {
-			rec = rec + r
-		}
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Recommendations",
-			Value: rec,
-		})
-	}
-
-	// Add clustername in the message
-	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-		Title: "Cluster",
-		Value: s.ClusterName,
-	})
 
 	attachment.Color = attachmentColor[event.Level]
 	params.Attachments = []slack.Attachment{attachment}
