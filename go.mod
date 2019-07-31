@@ -13,6 +13,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/google/go-cmp v0.3.0
 	github.com/google/go-github/v27 v27.0.4
 	github.com/googleapis/gnostic v0.3.0 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
