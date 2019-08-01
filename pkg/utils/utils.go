@@ -120,7 +120,7 @@ func InitInformerMap() {
 				allEvents = true
 				break
 			}
-			for _, ns := range r.Namespaces {
+			for _, ns := range r.Namespaces.Include {
 				AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
 			}
 		}
@@ -129,7 +129,7 @@ func InitInformerMap() {
 		if allEvents {
 			events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
 			for _, ev := range events {
-				for _, ns := range r.Namespaces {
+				for _, ns := range r.Namespaces.Include {
 					AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
 				}
 			}

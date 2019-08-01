@@ -53,8 +53,19 @@ type Config struct {
 // Resource contains resources to watch
 type Resource struct {
 	Name       string
-	Namespaces []string
+	Namespaces Namespaces
 	Events     []EventType
+}
+
+// Namespaces contains namespaces to include and ignore
+// Include contains a list of namespaces to be watched,
+//  - "all" to watch all the namespaces
+// Ignore contains a list of namespaces to be ignored when all namespaces are included
+// It is an optional (omitempty) field which is tandem with Include [all]
+// example : include [all], ignore [x,y,z]
+type Namespaces struct {
+	Include []string
+	Ignore  []string `yaml:",omitempty"`
 }
 
 // Communications channels to send events to
