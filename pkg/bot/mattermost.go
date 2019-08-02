@@ -136,7 +136,7 @@ func (mm *mattermostMessage) handleMessage(b *mmBot) {
 	if mm.Event.Broadcast.ChannelId == b.getChannel().Id {
 		mm.IsAuthChannel = true
 	}
-	logging.Logger.Debug("Received mattermost event: %+v", mm.Event.Data)
+	logging.Logger.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
 	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
