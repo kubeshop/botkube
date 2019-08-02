@@ -7,6 +7,7 @@ package elastic
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -261,7 +262,7 @@ func (s *UpdateByQueryService) Query(query Query) *UpdateByQueryService {
 
 // Refresh indicates whether the effected indexes should be refreshed.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-refresh.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-refresh.html
 // for details.
 func (s *UpdateByQueryService) Refresh(refresh string) *UpdateByQueryService {
 	s.refresh = refresh
@@ -322,9 +323,9 @@ func (s *UpdateByQueryService) Size(size int) *UpdateByQueryService {
 }
 
 // Slices represents the number of slices (default: 1).
-// It used to  be a number, but can be set to "auto" as of 6.3.
+// It used to  be a number, but can be set to "auto" as of 6.7.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.3/docs-update-by-query.html#docs-update-by-query-slice
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-update-by-query.html#docs-update-by-query-slice
 // for details.
 func (s *UpdateByQueryService) Slices(slices interface{}) *UpdateByQueryService {
 	s.slices = slices
@@ -654,10 +655,11 @@ func (s *UpdateByQueryService) Do(ctx context.Context) (*BulkIndexByScrollRespon
 
 	// Get HTTP response
 	res, err := s.client.PerformRequest(ctx, PerformRequestOptions{
-		Method: "POST",
-		Path:   path,
-		Params: params,
-		Body:   body,
+		Method:       "POST",
+		Path:         path,
+		Params:       params,
+		Body:         body,
+		IgnoreErrors: []int{http.StatusConflict},
 	})
 	if err != nil {
 		return nil, err
@@ -701,10 +703,11 @@ func (s *UpdateByQueryService) DoAsync(ctx context.Context) (*StartTaskResult, e
 
 	// Get HTTP response
 	res, err := s.client.PerformRequest(ctx, PerformRequestOptions{
-		Method: "POST",
-		Path:   path,
-		Params: params,
-		Body:   body,
+		Method:       "POST",
+		Path:         path,
+		Params:       params,
+		Body:         body,
+		IgnoreErrors: []int{http.StatusConflict},
 	})
 	if err != nil {
 		return nil, err

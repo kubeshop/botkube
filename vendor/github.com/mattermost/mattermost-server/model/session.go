@@ -12,6 +12,7 @@ import (
 const (
 	SESSION_COOKIE_TOKEN              = "MMAUTHTOKEN"
 	SESSION_COOKIE_USER               = "MMUSERID"
+	SESSION_COOKIE_CSRF               = "MMCSRF"
 	SESSION_CACHE_SIZE                = 35000
 	SESSION_PROP_PLATFORM             = "platform"
 	SESSION_PROP_OS                   = "os"
@@ -38,8 +39,21 @@ type Session struct {
 }
 
 func (me *Session) DeepCopy() *Session {
-	copy := *me
-	return &copy
+	copySession := *me
+
+	if me.Props != nil {
+		copySession.Props = CopyStringMap(me.Props)
+	}
+
+	if me.TeamMembers != nil {
+		copySession.TeamMembers = make([]*TeamMember, len(me.TeamMembers))
+		for index, tm := range me.TeamMembers {
+			copySession.TeamMembers[index] = new(TeamMember)
+			*copySession.TeamMembers[index] = *tm
+		}
+	}
+
+	return &copySession
 }
 
 func (me *Session) ToJson() string {
@@ -120,6 +134,20 @@ func (me *Session) IsMobileApp() bool {
 
 func (me *Session) GetUserRoles() []string {
 	return strings.Fields(me.Roles)
+}
+
+func (me *Session) GenerateCSRF() string {
+	token := NewId()
+	me.AddProp("csrf", token)
+	return token
+}
+
+func (me *Session) GetCSRF() string {
+	if me.Props == nil {
+		return ""
+	}
+
+	return me.Props["csrf"]
 }
 
 func SessionsToJson(o []*Session) string {
