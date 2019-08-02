@@ -25,7 +25,7 @@ func main() {
 	if Config.Communications.Mattermost.Enabled {
 		log.Logger.Info("Starting mattermost bot")
 		mb := bot.NewMattermostBot()
-		mb.Start()
+		go mb.Start()
 	}
 
 	if Config.Settings.UpgradeNotifier {
