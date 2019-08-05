@@ -7,6 +7,7 @@ package elastic
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 )
 
 // DeleteByQueryService deletes documents that match a query.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-delete-by-query.html.
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-delete-by-query.html.
 type DeleteByQueryService struct {
 	client                 *Client
 	index                  []string
@@ -242,7 +243,7 @@ func (s *DeleteByQueryService) Query(query Query) *DeleteByQueryService {
 
 // Refresh indicates whether the effected indexes should be refreshed.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-refresh.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-refresh.html
 // for details.
 func (s *DeleteByQueryService) Refresh(refresh string) *DeleteByQueryService {
 	s.refresh = refresh
@@ -303,9 +304,9 @@ func (s *DeleteByQueryService) Size(size int) *DeleteByQueryService {
 }
 
 // Slices represents the number of slices (default: 1).
-// It used to  be a number, but can be set to "auto" as of 6.3.
+// It used to  be a number, but can be set to "auto" as of 6.7.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.3/docs-delete-by-query.html#docs-delete-by-query-automatic-slice
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-delete-by-query.html#docs-delete-by-query-automatic-slice
 // for details.
 func (s *DeleteByQueryService) Slices(slices interface{}) *DeleteByQueryService {
 	s.slices = slices
@@ -691,16 +692,17 @@ func (s *DeleteByQueryService) DoAsync(ctx context.Context) (*StartTaskResult, e
 // BulkIndexByScrollResponse is the outcome of executing Do with
 // DeleteByQueryService and UpdateByQueryService.
 type BulkIndexByScrollResponse struct {
-	Took             int64  `json:"took"`
-	SliceId          *int64 `json:"slice_id,omitempty"`
-	TimedOut         bool   `json:"timed_out"`
-	Total            int64  `json:"total"`
-	Updated          int64  `json:"updated,omitempty"`
-	Created          int64  `json:"created,omitempty"`
-	Deleted          int64  `json:"deleted"`
-	Batches          int64  `json:"batches"`
-	VersionConflicts int64  `json:"version_conflicts"`
-	Noops            int64  `json:"noops"`
+	Header           http.Header `json:"-"`
+	Took             int64       `json:"took"`
+	SliceId          *int64      `json:"slice_id,omitempty"`
+	TimedOut         bool        `json:"timed_out"`
+	Total            int64       `json:"total"`
+	Updated          int64       `json:"updated,omitempty"`
+	Created          int64       `json:"created,omitempty"`
+	Deleted          int64       `json:"deleted"`
+	Batches          int64       `json:"batches"`
+	VersionConflicts int64       `json:"version_conflicts"`
+	Noops            int64       `json:"noops"`
 	Retries          struct {
 		Bulk   int64 `json:"bulk"`
 		Search int64 `json:"search"`

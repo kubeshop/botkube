@@ -12,7 +12,7 @@ package elastic
 // minimum should match script.
 //
 // For more details, see
-// https://www.elastic.co/guide/en/elasticsearch/reference/6.2/query-dsl-terms-set-query.html
+// https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-terms-set-query.html
 type TermsSetQuery struct {
 	name                     string
 	values                   []interface{}
@@ -25,7 +25,8 @@ type TermsSetQuery struct {
 // NewTermsSetQuery creates and initializes a new TermsSetQuery.
 func NewTermsSetQuery(name string, values ...interface{}) *TermsSetQuery {
 	q := &TermsSetQuery{
-		name: name,
+		name:   name,
+		values: make([]interface{}, 0),
 	}
 	if len(values) > 0 {
 		q.values = append(q.values, values...)

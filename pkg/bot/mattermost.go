@@ -189,7 +189,7 @@ func (b *mmBot) getTeam() *model.Team {
 
 // Check if botkube user exists in Mattermost
 func (b *mmBot) getUser() *model.User {
-	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, "")
+	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
 	if resp.Error != nil {
 		logging.Logger.Fatal("There was a problem finding Mattermost user ", BotName, "\nError: ", resp.Error)
 	}

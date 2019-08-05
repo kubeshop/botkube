@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version is the current version of Elastic.
-	Version = "6.2.16"
+	Version = "6.2.21"
 
 	// DefaultURL is the default endpoint of Elasticsearch on the local machine.
 	// It is used e.g. when initializing a new Client without a specific URL.
@@ -158,7 +158,7 @@ type Client struct {
 //
 // If the sniffer is enabled (the default), the new client then sniffes
 // the cluster via the Nodes Info API
-// (see https://www.elastic.co/guide/en/elasticsearch/reference/6.2/cluster-nodes-info.html#cluster-nodes-info).
+// (see https://www.elastic.co/guide/en/elasticsearch/reference/6.8/cluster-nodes-info.html#cluster-nodes-info).
 // It uses the URLs specified by the caller. The caller is responsible
 // to only pass a list of URLs of nodes that belong to the same cluster.
 // This sniffing process is run on startup and periodically.
@@ -1011,7 +1011,9 @@ func (c *Client) updateConns(conns []*conn) {
 	for _, conn := range conns {
 		var found bool
 		for _, oldConn := range c.conns {
-			if oldConn.NodeID() == conn.NodeID() {
+			// Notice that e.g. in a Kubernetes cluster the NodeID might be
+			// stable while the URL has changed.
+			if oldConn.NodeID() == conn.NodeID() && oldConn.URL() == conn.URL() {
 				// Take over the old connection
 				newConns = append(newConns, oldConn)
 				found = true
@@ -1456,7 +1458,7 @@ func (c *Client) BulkProcessor() *BulkProcessorService {
 
 // Reindex copies data from a source index into a destination index.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-reindex.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-reindex.html
 // for details on the Reindex API.
 func (c *Client) Reindex() *ReindexService {
 	return NewReindexService(c)
@@ -1627,7 +1629,7 @@ func (c *Client) Flush(indices ...string) *IndicesFlushService {
 
 // SyncedFlush performs a synced flush.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.4/indices-synced-flush.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/indices-synced-flush.html
 // for more details on synched flushes and how they differ from a normal
 // Flush.
 func (c *Client) SyncedFlush(indices ...string) *IndicesSyncedFlushService {
@@ -1806,7 +1808,7 @@ func (c *Client) TasksGetTask() *TasksGetTaskService {
 // TODO Snapshot Status
 
 // SnapshotCreate creates a snapshot.
-func (c *Client) SnapshotCreate(repository string, snapshot string) *SnapshotCreateService {
+func (c *Client) SnapshotCreate(repository, snapshot string) *SnapshotCreateService {
 	return NewSnapshotCreateService(c).Repository(repository).Snapshot(snapshot)
 }
 
@@ -1816,7 +1818,7 @@ func (c *Client) SnapshotCreateRepository(repository string) *SnapshotCreateRepo
 }
 
 // SnapshotDelete deletes a snapshot in a snapshot repository.
-func (c *Client) SnapshotDelete(repository string, snapshot string) *SnapshotDeleteService {
+func (c *Client) SnapshotDelete(repository, snapshot string) *SnapshotDeleteService {
 	return NewSnapshotDeleteService(c).Repository(repository).Snapshot(snapshot)
 }
 
@@ -1838,6 +1840,11 @@ func (c *Client) SnapshotGet(repository string) *SnapshotGetService {
 // SnapshotVerifyRepository verifies a snapshot repository.
 func (c *Client) SnapshotVerifyRepository(repository string) *SnapshotVerifyRepositoryService {
 	return NewSnapshotVerifyRepositoryService(c).Repository(repository)
+}
+
+// SnapshotRestore restores the specified indices from a given snapshot
+func (c *Client) SnapshotRestore(repository, snapshot string) *SnapshotRestoreService {
+	return NewSnapshotRestoreService(c).Repository(repository).Snapshot(snapshot)
 }
 
 // -- Scripting APIs --
@@ -1864,6 +1871,23 @@ func (c *Client) DeleteScript() *DeleteScriptService {
 
 func (c *Client) XPackInfo() *XPackInfoService {
 	return NewXPackInfoService(c)
+}
+
+// -- X-Pack Index Lifecycle Management --
+
+// XPackIlmPutLifecycle adds or modifies an ilm policy.
+func (c *Client) XPackIlmPutLifecycle() *XPackIlmPutLifecycleService {
+	return NewXPackIlmPutLifecycleService(c)
+}
+
+// XPackIlmGettLifecycle gets an ilm policy.
+func (c *Client) XPackIlmGetLifecycle() *XPackIlmGetLifecycleService {
+	return NewXPackIlmGetLifecycleService(c)
+}
+
+// XPackIlmDeleteLifecycle deletes an ilm policy.
+func (c *Client) XPackIlmDeleteLifecycle() *XPackIlmDeleteLifecycleService {
+	return NewXPackIlmDeleteLifecycleService(c)
 }
 
 // -- X-Pack Security --

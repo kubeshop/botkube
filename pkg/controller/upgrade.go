@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v27/github"
 	"github.com/infracloudio/botkube/pkg/config"
 	log "github.com/infracloudio/botkube/pkg/logging"
 )

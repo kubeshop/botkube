@@ -14,7 +14,7 @@ import (
 
 // BulkIndexRequest is a request to add a document to Elasticsearch.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-bulk.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-bulk.html
 // for details.
 type BulkIndexRequest struct {
 	BulkableRequest
@@ -24,7 +24,7 @@ type BulkIndexRequest struct {
 	opType          string
 	routing         string
 	parent          string
-	version         int64  // default is MATCH_ANY
+	version         *int64 // default is MATCH_ANY
 	versionType     string // default is "internal"
 	doc             interface{}
 	pipeline        string
@@ -47,7 +47,7 @@ type bulkIndexRequestCommandOp struct {
 	// RetryOnConflict is "_retry_on_conflict" for 6.0 and "retry_on_conflict" for 6.1+.
 	RetryOnConflict *int   `json:"retry_on_conflict,omitempty"`
 	Routing         string `json:"routing,omitempty"`
-	Version         int64  `json:"version,omitempty"`
+	Version         *int64 `json:"version,omitempty"`
 	VersionType     string `json:"version_type,omitempty"`
 	Pipeline        string `json:"pipeline,omitempty"`
 }
@@ -95,7 +95,7 @@ func (r *BulkIndexRequest) Id(id string) *BulkIndexRequest {
 
 // OpType specifies if this request should follow create-only or upsert
 // behavior. This follows the OpType of the standard document index API.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-index_.html#operation-type
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-index_.html#operation-type
 // for details.
 func (r *BulkIndexRequest) OpType(opType string) *BulkIndexRequest {
 	r.opType = opType
@@ -120,7 +120,8 @@ func (r *BulkIndexRequest) Parent(parent string) *BulkIndexRequest {
 // Version indicates the version of the document as part of an optimistic
 // concurrency model.
 func (r *BulkIndexRequest) Version(version int64) *BulkIndexRequest {
-	r.version = version
+	v := version
+	r.version = &v
 	r.source = nil
 	return r
 }
@@ -128,7 +129,7 @@ func (r *BulkIndexRequest) Version(version int64) *BulkIndexRequest {
 // VersionType specifies how versions are created. It can be e.g. internal,
 // external, external_gte, or force.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-index_.html#index-versioning
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-index_.html#index-versioning
 // for details.
 func (r *BulkIndexRequest) VersionType(versionType string) *BulkIndexRequest {
 	r.versionType = versionType
@@ -169,7 +170,7 @@ func (r *BulkIndexRequest) String() string {
 
 // Source returns the on-wire representation of the index request,
 // split into an action-and-meta-data line and an (optional) source line.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-bulk.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-bulk.html
 // for details.
 func (r *BulkIndexRequest) Source() ([]string, error) {
 	// { "index" : { "_index" : "test", "_type" : "type1", "_id" : "1" } }

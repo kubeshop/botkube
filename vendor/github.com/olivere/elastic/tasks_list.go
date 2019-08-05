@@ -16,7 +16,7 @@ import (
 
 // TasksListService retrieves the list of currently executing tasks
 // on one ore more nodes in the cluster. It is part of the Task Management API
-// documented at https://www.elastic.co/guide/en/elasticsearch/reference/6.2/tasks.html.
+// documented at https://www.elastic.co/guide/en/elasticsearch/reference/6.8/tasks.html.
 //
 // It is supported as of Elasticsearch 2.3.0.
 type TasksListService struct {
@@ -246,5 +246,6 @@ type TaskInfo struct {
 // StartTaskResult is used in cases where a task gets started asynchronously and
 // the operation simply returnes a TaskID to watch for via the Task Management API.
 type StartTaskResult struct {
-	TaskId string `json:"task"`
+	Header http.Header `json:"-"`
+	TaskId string      `json:"task"`
 }

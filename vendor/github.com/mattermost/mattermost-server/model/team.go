@@ -26,28 +26,36 @@ const (
 )
 
 type Team struct {
-	Id                 string `json:"id"`
-	CreateAt           int64  `json:"create_at"`
-	UpdateAt           int64  `json:"update_at"`
-	DeleteAt           int64  `json:"delete_at"`
-	DisplayName        string `json:"display_name"`
-	Name               string `json:"name"`
-	Description        string `json:"description"`
-	Email              string `json:"email"`
-	Type               string `json:"type"`
-	CompanyName        string `json:"company_name"`
-	AllowedDomains     string `json:"allowed_domains"`
-	InviteId           string `json:"invite_id"`
-	AllowOpenInvite    bool   `json:"allow_open_invite"`
-	LastTeamIconUpdate int64  `json:"last_team_icon_update,omitempty"`
+	Id                 string  `json:"id"`
+	CreateAt           int64   `json:"create_at"`
+	UpdateAt           int64   `json:"update_at"`
+	DeleteAt           int64   `json:"delete_at"`
+	DisplayName        string  `json:"display_name"`
+	Name               string  `json:"name"`
+	Description        string  `json:"description"`
+	Email              string  `json:"email"`
+	Type               string  `json:"type"`
+	CompanyName        string  `json:"company_name"`
+	AllowedDomains     string  `json:"allowed_domains"`
+	InviteId           string  `json:"invite_id"`
+	AllowOpenInvite    bool    `json:"allow_open_invite"`
+	LastTeamIconUpdate int64   `json:"last_team_icon_update,omitempty"`
+	SchemeId           *string `json:"scheme_id"`
+	GroupConstrained   *bool   `json:"group_constrained"`
 }
 
 type TeamPatch struct {
-	DisplayName     *string `json:"display_name"`
-	Description     *string `json:"description"`
-	CompanyName     *string `json:"company_name"`
-	InviteId        *string `json:"invite_id"`
-	AllowOpenInvite *bool   `json:"allow_open_invite"`
+	DisplayName      *string `json:"display_name"`
+	Description      *string `json:"description"`
+	CompanyName      *string `json:"company_name"`
+	AllowedDomains   *string `json:"allowed_domains"`
+	AllowOpenInvite  *bool   `json:"allow_open_invite"`
+	GroupConstrained *bool   `json:"group_constrained"`
+}
+
+type TeamForExport struct {
+	Team
+	SchemeName *string
 }
 
 type Invites struct {
@@ -142,6 +150,10 @@ func (o *Team) IsValid() *AppError {
 
 	if len(o.Description) > TEAM_DESCRIPTION_MAX_LENGTH {
 		return NewAppError("Team.IsValid", "model.team.is_valid.description.app_error", nil, "id="+o.Id, http.StatusBadRequest)
+	}
+
+	if len(o.InviteId) == 0 {
+		return NewAppError("Team.IsValid", "model.team.is_valid.invite_id.app_error", nil, "id="+o.Id, http.StatusBadRequest)
 	}
 
 	if IsReservedTeamName(o.Name) {
@@ -240,7 +252,6 @@ func CleanTeamName(s string) string {
 
 func (o *Team) Sanitize() {
 	o.Email = ""
-	o.AllowedDomains = ""
 }
 
 func (t *Team) Patch(patch *TeamPatch) {
@@ -256,12 +267,16 @@ func (t *Team) Patch(patch *TeamPatch) {
 		t.CompanyName = *patch.CompanyName
 	}
 
-	if patch.InviteId != nil {
-		t.InviteId = *patch.InviteId
+	if patch.AllowedDomains != nil {
+		t.AllowedDomains = *patch.AllowedDomains
 	}
 
 	if patch.AllowOpenInvite != nil {
 		t.AllowOpenInvite = *patch.AllowOpenInvite
+	}
+
+	if patch.GroupConstrained != nil {
+		t.GroupConstrained = patch.GroupConstrained
 	}
 }
 

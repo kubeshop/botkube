@@ -15,7 +15,7 @@ import (
 // IndicesAnalyzeService performs the analysis process on a text and returns
 // the tokens breakdown of the text.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/indices-analyze.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/indices-analyze.html
 // for detail.
 type IndicesAnalyzeService struct {
 	client      *Client
@@ -185,7 +185,7 @@ func (s *IndicesAnalyzeService) Do(ctx context.Context) (*IndicesAnalyzeResponse
 	} else {
 		// Request parameters are deprecated in 5.1.1, and we must use a JSON
 		// structure in the body to pass the parameters.
-		// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/indices-analyze.html
+		// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/indices-analyze.html
 		body = s.request
 	}
 
@@ -238,11 +238,12 @@ type IndicesAnalyzeResponse struct {
 }
 
 type IndicesAnalyzeResponseToken struct {
-	Token       string `json:"token"`
-	StartOffset int    `json:"start_offset"`
-	EndOffset   int    `json:"end_offset"`
-	Type        string `json:"type"`
-	Position    int    `json:"position"`
+	Token          string `json:"token"`
+	StartOffset    int    `json:"start_offset"`
+	EndOffset      int    `json:"end_offset"`
+	Type           string `json:"type"`
+	Position       int    `json:"position"`
+	PositionLength int    `json:"positionLength"` // seems to be wrong in 6.8 (no snake_case), see https://github.com/elastic/elasticsearch/blob/6.8/server/src/main/java/org/elasticsearch/action/admin/indices/analyze/AnalyzeResponse.java
 }
 
 type IndicesAnalyzeResponseDetail struct {

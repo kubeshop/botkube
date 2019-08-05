@@ -15,7 +15,7 @@ import (
 
 // GetScriptService reads a stored script in Elasticsearch.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/modules-scripting.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/modules-scripting.html
 // for details.
 type GetScriptService struct {
 	client *Client
@@ -108,8 +108,8 @@ func (s *GetScriptService) Do(ctx context.Context) (*GetScriptResponse, error) {
 	return ret, nil
 }
 
-// GetScriptResponse is the result of deleting a stored script
-// in Elasticsearch.
+// GetScriptResponse is the result of getting a stored script
+// from Elasticsearch.
 type GetScriptResponse struct {
 	Id     string          `json:"_id"`
 	Found  bool            `json:"found"`

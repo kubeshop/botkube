@@ -8,11 +8,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
 // ReindexService is a method to copy documents from one index to another.
-// It is documented at https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-reindex.html.
+// It is documented at https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-reindex.html.
 type ReindexService struct {
 	client              *Client
 	pretty              bool
@@ -28,6 +29,7 @@ type ReindexService struct {
 	conflicts           string
 	size                *int
 	script              *Script
+	headers             http.Header
 }
 
 // NewReindexService creates a new ReindexService.
@@ -54,9 +56,9 @@ func (s *ReindexService) RequestsPerSecond(requestsPerSecond int) *ReindexServic
 }
 
 // Slices specifies the number of slices this task should be divided into. Defaults to 1.
-// It used to  be a number, but can be set to "auto" as of 6.3.
+// It used to  be a number, but can be set to "auto" as of 6.7.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.3/docs-reindex.html#docs-reindex-slice
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-reindex.html#docs-reindex-slice
 // for details.
 func (s *ReindexService) Slices(slices interface{}) *ReindexService {
 	s.slices = slices
@@ -66,7 +68,7 @@ func (s *ReindexService) Slices(slices interface{}) *ReindexService {
 // Refresh indicates whether Elasticsearch should refresh the effected indexes
 // immediately.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-refresh.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-refresh.html
 // for details.
 func (s *ReindexService) Refresh(refresh string) *ReindexService {
 	s.refresh = refresh
@@ -84,6 +86,15 @@ func (s *ReindexService) Timeout(timeout string) *ReindexService {
 // reindex is complete.
 func (s *ReindexService) WaitForCompletion(waitForCompletion bool) *ReindexService {
 	s.waitForCompletion = &waitForCompletion
+	return s
+}
+
+// Header sets headers on the request
+func (s *ReindexService) Header(name string, value string) *ReindexService {
+	if s.headers == nil {
+		s.headers = http.Header{}
+	}
+	s.headers.Add(name, value)
 	return s
 }
 
@@ -286,10 +297,11 @@ func (s *ReindexService) Do(ctx context.Context) (*BulkIndexByScrollResponse, er
 
 	// Get HTTP response
 	res, err := s.client.PerformRequest(ctx, PerformRequestOptions{
-		Method: "POST",
-		Path:   path,
-		Params: params,
-		Body:   body,
+		Method:  "POST",
+		Path:    path,
+		Params:  params,
+		Body:    body,
+		Headers: s.headers,
 	})
 	if err != nil {
 		return nil, err
@@ -300,6 +312,7 @@ func (s *ReindexService) Do(ctx context.Context) (*BulkIndexByScrollResponse, er
 	if err := s.client.decoder.Decode(res.Body, ret); err != nil {
 		return nil, err
 	}
+	ret.Header = res.Header
 	return ret, nil
 }
 
@@ -333,10 +346,11 @@ func (s *ReindexService) DoAsync(ctx context.Context) (*StartTaskResult, error) 
 
 	// Get HTTP response
 	res, err := s.client.PerformRequest(ctx, PerformRequestOptions{
-		Method: "POST",
-		Path:   path,
-		Params: params,
-		Body:   body,
+		Method:  "POST",
+		Path:    path,
+		Params:  params,
+		Body:    body,
+		Headers: s.headers,
 	})
 	if err != nil {
 		return nil, err
@@ -347,6 +361,7 @@ func (s *ReindexService) DoAsync(ctx context.Context) (*StartTaskResult, error) 
 	if err := s.client.decoder.Decode(res.Body, ret); err != nil {
 		return nil, err
 	}
+	ret.Header = res.Header
 	return ret, nil
 }
 
@@ -586,7 +601,7 @@ func (ri *ReindexRemoteInfo) Source() (interface{}, error) {
 // ReindexDestination is the destination of a Reindex API call.
 // It is basically the meta data of a BulkIndexRequest.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-reindex.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-reindex.html
 // fsourcer details.
 type ReindexDestination struct {
 	index       string
@@ -596,6 +611,7 @@ type ReindexDestination struct {
 	opType      string
 	version     int64  // default is MATCH_ANY
 	versionType string // default is "internal"
+	pipeline    string
 }
 
 // NewReindexDestination returns a new ReindexDestination.
@@ -645,7 +661,7 @@ func (r *ReindexDestination) Parent(parent string) *ReindexDestination {
 
 // OpType specifies if this request should follow create-only or upsert
 // behavior. This follows the OpType of the standard document index API.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/6.2/docs-index_.html#operation-type
+// See https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-index_.html#operation-type
 // for details.
 func (r *ReindexDestination) OpType(opType string) *ReindexDestination {
 	r.opType = opType
@@ -662,6 +678,12 @@ func (r *ReindexDestination) Version(version int64) *ReindexDestination {
 // VersionType specifies how versions are created.
 func (r *ReindexDestination) VersionType(versionType string) *ReindexDestination {
 	r.versionType = versionType
+	return r
+}
+
+// Pipeline specifies the pipeline to use for reindexing.
+func (r *ReindexDestination) Pipeline(pipeline string) *ReindexDestination {
+	r.pipeline = pipeline
 	return r
 }
 
@@ -688,6 +710,9 @@ func (r *ReindexDestination) Source() (interface{}, error) {
 	}
 	if r.versionType != "" {
 		source["version_type"] = r.versionType
+	}
+	if r.pipeline != "" {
+		source["pipeline"] = r.pipeline
 	}
 	return source, nil
 }
