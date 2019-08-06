@@ -28,7 +28,7 @@ require (
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/nicksnyder/go-i18n v1.10.1 // indirect
-	github.com/nlopes/slack v0.4.0
+	github.com/nlopes/slack v0.5.1-0.20190623232825-2891986e2a3e
 	github.com/olivere/elastic v6.2.21+incompatible
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect

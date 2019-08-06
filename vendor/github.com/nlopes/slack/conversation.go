@@ -2,14 +2,13 @@ package slack
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"strconv"
 	"strings"
 )
 
 // Conversation is the foundation for IM and BaseGroupConversation
-type conversation struct {
+type Conversation struct {
 	ID                 string   `json:"id"`
 	Created            JSONTime `json:"created"`
 	IsOpen             bool     `json:"is_open"`
@@ -36,8 +35,8 @@ type conversation struct {
 }
 
 // GroupConversation is the foundation for Group and Channel
-type groupConversation struct {
-	conversation
+type GroupConversation struct {
+	Conversation
 	Name       string   `json:"name"`
 	Creator    string   `json:"creator"`
 	IsArchived bool     `json:"is_archived"`
@@ -67,10 +66,11 @@ type GetUsersInConversationParameters struct {
 }
 
 type GetConversationsForUserParameters struct {
-	UserID string
-	Cursor string
-	Types  []string
-	Limit  int
+	UserID          string
+	Cursor          string
+	Types           []string
+	Limit           int
+	ExcludeArchived bool
 }
 
 type responseMetaData struct {
@@ -99,13 +99,15 @@ func (api *Client) GetUsersInConversationContext(ctx context.Context, params *Ge
 		ResponseMetaData responseMetaData `json:"response_metadata"`
 		SlackResponse
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.members", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.members", values, &response)
 	if err != nil {
 		return nil, "", err
 	}
-	if !response.Ok {
-		return nil, "", errors.New(response.Error)
+
+	if err := response.Err(); err != nil {
+		return nil, "", err
 	}
+
 	return response.Members, response.ResponseMetaData.NextCursor, nil
 }
 
@@ -118,7 +120,9 @@ func (api *Client) GetConversationsForUser(params *GetConversationsForUserParame
 func (api *Client) GetConversationsForUserContext(ctx context.Context, params *GetConversationsForUserParameters) (channels []Channel, nextCursor string, err error) {
 	values := url.Values{
 		"token": {api.token},
-		"user":  {params.UserID},
+	}
+	if params.UserID != "" {
+		values.Add("user", params.UserID)
 	}
 	if params.Cursor != "" {
 		values.Add("cursor", params.Cursor)
@@ -129,19 +133,20 @@ func (api *Client) GetConversationsForUserContext(ctx context.Context, params *G
 	if params.Types != nil {
 		values.Add("types", strings.Join(params.Types, ","))
 	}
+	if params.ExcludeArchived {
+		values.Add("exclude_archived", "true")
+	}
 	response := struct {
 		Channels         []Channel        `json:"channels"`
 		ResponseMetaData responseMetaData `json:"response_metadata"`
 		SlackResponse
 	}{}
-	err = postSlackMethod(ctx, api.httpclient, "users.conversations", values, &response, api.debug)
+	err = api.postMethod(ctx, "users.conversations", values, &response)
 	if err != nil {
 		return nil, "", err
 	}
-	if !response.Ok {
-		return nil, "", errors.New(response.Error)
-	}
-	return response.Channels, response.ResponseMetaData.NextCursor, nil
+
+	return response.Channels, response.ResponseMetaData.NextCursor, response.Err()
 }
 
 // ArchiveConversation archives a conversation
@@ -156,7 +161,7 @@ func (api *Client) ArchiveConversationContext(ctx context.Context, channelID str
 		"channel": {channelID},
 	}
 	response := SlackResponse{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.archive", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.archive", values, &response)
 	if err != nil {
 		return err
 	}
@@ -176,7 +181,7 @@ func (api *Client) UnArchiveConversationContext(ctx context.Context, channelID s
 		"channel": {channelID},
 	}
 	response := SlackResponse{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.unarchive", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.unarchive", values, &response)
 	if err != nil {
 		return err
 	}
@@ -200,7 +205,7 @@ func (api *Client) SetTopicOfConversationContext(ctx context.Context, channelID,
 		SlackResponse
 		Channel *Channel `json:"channel"`
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.setTopic", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.setTopic", values, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +229,7 @@ func (api *Client) SetPurposeOfConversationContext(ctx context.Context, channelI
 		SlackResponse
 		Channel *Channel `json:"channel"`
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.setPurpose", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.setPurpose", values, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +253,7 @@ func (api *Client) RenameConversationContext(ctx context.Context, channelID, cha
 		SlackResponse
 		Channel *Channel `json:"channel"`
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.rename", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.rename", values, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +277,7 @@ func (api *Client) InviteUsersToConversationContext(ctx context.Context, channel
 		SlackResponse
 		Channel *Channel `json:"channel"`
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.invite", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.invite", values, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +298,7 @@ func (api *Client) KickUserFromConversationContext(ctx context.Context, channelI
 		"user":    {user},
 	}
 	response := SlackResponse{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.kick", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.kick", values, &response)
 	if err != nil {
 		return err
 	}
@@ -318,7 +323,7 @@ func (api *Client) CloseConversationContext(ctx context.Context, channelID strin
 		AlreadyClosed bool `json:"already_closed"`
 	}{}
 
-	err = postSlackMethod(ctx, api.httpclient, "conversations.close", values, &response, api.debug)
+	err = api.postMethod(ctx, "conversations.close", values, &response)
 	if err != nil {
 		return false, false, err
 	}
@@ -338,13 +343,12 @@ func (api *Client) CreateConversationContext(ctx context.Context, channelName st
 		"name":       {channelName},
 		"is_private": {strconv.FormatBool(isPrivate)},
 	}
-	response, err := channelRequest(
-		ctx, api.httpclient, "conversations.create", values, api.debug)
+	response, err := api.channelRequest(ctx, "conversations.create", values)
 	if err != nil {
 		return nil, err
 	}
 
-	return &response.Channel, response.Err()
+	return &response.Channel, nil
 }
 
 // GetConversationInfo retrieves information about a conversation
@@ -359,8 +363,7 @@ func (api *Client) GetConversationInfoContext(ctx context.Context, channelID str
 		"channel":        {channelID},
 		"include_locale": {strconv.FormatBool(includeLocale)},
 	}
-	response, err := channelRequest(
-		ctx, api.httpclient, "conversations.info", values, api.debug)
+	response, err := api.channelRequest(ctx, "conversations.info", values)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +383,7 @@ func (api *Client) LeaveConversationContext(ctx context.Context, channelID strin
 		"channel": {channelID},
 	}
 
-	response, err := channelRequest(ctx, api.httpclient, "conversations.leave", values, api.debug)
+	response, err := api.channelRequest(ctx, "conversations.leave", values)
 	if err != nil {
 		return false, err
 	}
@@ -436,7 +439,7 @@ func (api *Client) GetConversationRepliesContext(ctx context.Context, params *Ge
 		Messages []Message `json:"messages"`
 	}{}
 
-	err = postSlackMethod(ctx, api.httpclient, "conversations.replies", values, &response, api.debug)
+	err = api.postMethod(ctx, "conversations.replies", values, &response)
 	if err != nil {
 		return nil, false, "", err
 	}
@@ -476,7 +479,7 @@ func (api *Client) GetConversationsContext(ctx context.Context, params *GetConve
 		ResponseMetaData responseMetaData `json:"response_metadata"`
 		SlackResponse
 	}{}
-	err = postSlackMethod(ctx, api.httpclient, "conversations.list", values, &response, api.debug)
+	err = api.postMethod(ctx, "conversations.list", values, &response)
 	if err != nil {
 		return nil, "", err
 	}
@@ -513,7 +516,7 @@ func (api *Client) OpenConversationContext(ctx context.Context, params *OpenConv
 		AlreadyOpen bool     `json:"already_open"`
 		SlackResponse
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.open", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.open", values, &response)
 	if err != nil {
 		return nil, false, false, err
 	}
@@ -537,7 +540,7 @@ func (api *Client) JoinConversationContext(ctx context.Context, channelID string
 		} `json:"response_metadata"`
 		SlackResponse
 	}{}
-	err := postSlackMethod(ctx, api.httpclient, "conversations.join", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.join", values, &response)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -599,12 +602,10 @@ func (api *Client) GetConversationHistoryContext(ctx context.Context, params *Ge
 
 	response := GetConversationHistoryResponse{}
 
-	err := postSlackMethod(ctx, api.httpclient, "conversations.history", values, &response, api.debug)
+	err := api.postMethod(ctx, "conversations.history", values, &response)
 	if err != nil {
 		return nil, err
 	}
-	if !response.Ok {
-		return nil, errors.New(response.Error)
-	}
-	return &response, nil
+
+	return &response, response.Err()
 }
