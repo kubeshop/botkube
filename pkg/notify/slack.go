@@ -44,9 +44,6 @@ func (s *Slack) SendEvent(event events.Event) error {
 	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
 
 	api := slack.New(s.Token)
-	params := slack.PostMessageParameters{
-		AsUser: true,
-	}
 
 	var attachment slack.Attachment
 
@@ -141,13 +138,11 @@ func (s *Slack) SendEvent(event events.Event) error {
 	if ts > "0" {
 		attachment.Ts = ts
 	}
-
 	attachment.Color = attachmentColor[event.Level]
-	params.Attachments = []slack.Attachment{attachment}
 
 	// non empty value in event.channel demands redirection of events to a different channel
 	if event.Channel != "" {
-		channelID, timestamp, err := api.PostMessage(event.Channel, "", params)
+		channelID, timestamp, err := api.PostMessage(event.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Logger.Errorf("Error in sending slack message %s", err.Error())
 			// send error message to default channel
@@ -164,7 +159,7 @@ func (s *Slack) SendEvent(event events.Event) error {
 		log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	} else {
 		// empty value in event.channel sends notifications to default channel.
-		channelID, timestamp, err := api.PostMessage(s.Channel, "", params)
+		channelID, timestamp, err := api.PostMessage(s.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Logger.Errorf("Error in sending slack message %s", err.Error())
 			return err
@@ -179,11 +174,8 @@ func (s *Slack) SendMessage(msg string) error {
 	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
 
 	api := slack.New(s.Token)
-	params := slack.PostMessageParameters{
-		AsUser: true,
-	}
 
-	channelID, timestamp, err := api.PostMessage(s.Channel, msg, params)
+	channelID, timestamp, err := api.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
 		log.Logger.Errorf("Error in sending slack message %s", err.Error())
 		return err

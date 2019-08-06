@@ -126,10 +126,7 @@ func (sm slackMessage) Send() {
 		return
 	}
 
-	params := slack.PostMessageParameters{
-		AsUser: true,
-	}
-	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, "```"+sm.Response+"```", params); err != nil {
+	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, slack.MsgOptionText("```"+sm.Response+"```", false), slack.MsgOptionAsUser(true)); err != nil {
 		logging.Logger.Error("Error in sending message:", err)
 	}
 }
