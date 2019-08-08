@@ -10,84 +10,91 @@ data:
   config.yaml: |
     ## Resources you want to watch
     resources:
-      - name: pods                # Name of the resources e.g pods, deployments, ingresses, etc. (Resource name must be in plural form)
-        namespaces:               # List of namespaces, "all" will watch all the namespaces
+      - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
+        namespaces:              # List of namespaces, "all" will watch all the namespaces
           - all
-        events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
+        events:                  # List of lifecycle events you want to receive, e.g create, update, delete OR all
           - create
           - delete
           - error
-      - name: services
+      - name: service
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: deployments
+      - name: deployment
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: ingresses
+      - name: statefulset
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: nodes
+      - name: ingress
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: namespaces
+      - name: node
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: persistentvolumes
+      - name: namespace
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: persistentvolumeclaims
+      - name: persistentvolume
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: secrets
+      - name: persistentvolumeclaim
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: configmaps
+      - name: secret
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: daemonsets
+      - name: configmap
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: jobs
+      - name: daemonset
+        namespaces:
+          - all
+        events:
+          - create
+          - delete
+          - error
+      - name: job
         namespaces:
           - all
         events:
@@ -95,35 +102,28 @@ data:
           - update
           - delete
           - error
-      - name: roles
+      - name: role
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: rolebindings
+      - name: rolebinding
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: clusterroles
+      - name: clusterrole
         namespaces:
           - all
         events:
           - create
           - delete
           - error
-      - name: clusterrolebindings
-        namespace:
-          - all
-        events:
-          - create
-          - delete
-          - error
-      - name: nodes
+      - name: clusterrolebinding
         namespaces:
           - all
         events:
@@ -170,8 +170,6 @@ data:
     settings:
       # Cluster name to differentiate incoming messages
       clustername: not-configured
-      # Set false to disable kubectl commands execution
-      allowkubectl: false
       # Set true to enable kubectl commands execution
       allowkubectl: false
       # Set false to disable upgrade notification

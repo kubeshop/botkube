@@ -3,18 +3,18 @@ package utils
 import (
 	"fmt"
 	"os"
-	"strings"
+	"strconv"
+	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
-
 	log "github.com/infracloudio/botkube/pkg/logging"
-	appsV1beta1 "k8s.io/api/apps/v1beta1"
+	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 	rbacV1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -22,17 +22,18 @@ import (
 )
 
 var (
-	// RtObjectMap is a map of resource name to respective runtime object
-	RtObjectMap map[string]runtime.Object
-	// ResourceGetterMap is a map of resource name to resource Getter interface
-	ResourceGetterMap map[string]cache.Getter
+	// ResourceInformerMap is a map of resource name to resource Getter interface
+	ResourceInformerMap map[string]cache.SharedIndexInformer
 	// AllowedEventKindsMap is a map to filter valid event kinds
 	AllowedEventKindsMap map[EventKind]bool
 	// KubeClient is a global kubernetes client to communicate to apiserver
 	KubeClient kubernetes.Interface
+	// KubeInformerFactory is a global SharedInformerFactory object to watch resources
+	KubeInformerFactory informers.SharedInformerFactory
 )
 
-func init() {
+// InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
+func InitKubeClient() {
 	kubeConfig, err := rest.InClusterConfig()
 	if err != nil {
 		kubeconfigPath := os.Getenv("KUBECONFIG")
@@ -53,79 +54,87 @@ func init() {
 			log.Logger.Fatal(err)
 		}
 	}
-	createMaps()
 }
 
 // EventKind used in AllowedEventKindsMap to filter event kinds
 type EventKind struct {
 	Resource  string
 	Namespace string
+	EventType config.EventType
 }
 
-func createMaps() {
+// InitInformerMap initializes helper maps to filter events
+func InitInformerMap() {
 	botkubeConf, err := config.New()
 	if err != nil {
 		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
-	RtObjectMap = make(map[string]runtime.Object)
-	ResourceGetterMap = make(map[string]cache.Getter)
+	// Get resync period
+	rsyncTimeStr, ok := os.LookupEnv("INFORMERS_RESYNC_PERIOD")
+	if !ok {
+		rsyncTimeStr = "30"
+	}
+	rsyncTime, err := strconv.Atoi(rsyncTimeStr)
+	if err != nil {
+		log.Logger.Fatal("Error in reading INFORMERS_RESYNC_PERIOD env var.", err)
+	}
+
+	// Create shared informer factory
+	KubeInformerFactory = informers.NewSharedInformerFactory(KubeClient, time.Duration(rsyncTime)*time.Minute)
+
+	// Init maps
+	ResourceInformerMap = make(map[string]cache.SharedIndexInformer)
 	AllowedEventKindsMap = make(map[EventKind]bool)
 
-	// Runtime object map
-	RtObjectMap["pods"] = &apiV1.Pod{}
-	RtObjectMap["nodes"] = &apiV1.Node{}
-	RtObjectMap["services"] = &apiV1.Service{}
-	RtObjectMap["namespaces"] = &apiV1.Namespace{}
-	RtObjectMap["replicationcontrollers"] = &apiV1.ReplicationController{}
-	RtObjectMap["persistentvolumes"] = &apiV1.PersistentVolume{}
-	RtObjectMap["persistentvolumeclaims"] = &apiV1.PersistentVolumeClaim{}
-	RtObjectMap["secrets"] = &apiV1.Secret{}
-	RtObjectMap["configmaps"] = &apiV1.ConfigMap{}
-	RtObjectMap["deployments"] = &extV1beta1.Deployment{}
-	RtObjectMap["daemonsets"] = &extV1beta1.DaemonSet{}
-	RtObjectMap["replicasets"] = &extV1beta1.ReplicaSet{}
-	RtObjectMap["ingresses"] = &extV1beta1.Ingress{}
-	RtObjectMap["jobs"] = &batchV1.Job{}
-	RtObjectMap["roles"] = &rbacV1.Role{}
-	RtObjectMap["rolebindings"] = &rbacV1.RoleBinding{}
-	RtObjectMap["clusterroles"] = &rbacV1.ClusterRole{}
-	RtObjectMap["clusterrolebindings"] = &rbacV1.ClusterRoleBinding{}
+	// Informer map
+	ResourceInformerMap["pod"] = KubeInformerFactory.Core().V1().Pods().Informer()
+	ResourceInformerMap["node"] = KubeInformerFactory.Core().V1().Nodes().Informer()
+	ResourceInformerMap["service"] = KubeInformerFactory.Core().V1().Services().Informer()
+	ResourceInformerMap["namespace"] = KubeInformerFactory.Core().V1().Namespaces().Informer()
+	ResourceInformerMap["replicationcontroller"] = KubeInformerFactory.Core().V1().ReplicationControllers().Informer()
+	ResourceInformerMap["persistentvolume"] = KubeInformerFactory.Core().V1().PersistentVolumes().Informer()
+	ResourceInformerMap["persistentvolumeClaim"] = KubeInformerFactory.Core().V1().PersistentVolumeClaims().Informer()
+	ResourceInformerMap["secret"] = KubeInformerFactory.Core().V1().Secrets().Informer()
+	ResourceInformerMap["configmap"] = KubeInformerFactory.Core().V1().ConfigMaps().Informer()
 
-	// Getter map
-	ResourceGetterMap["pods"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["nodes"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["services"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["namespaces"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["replicationcontrollers"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["persistentvolumes"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["persistentvolumeClaim"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["secrets"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["configmaps"] = KubeClient.CoreV1().RESTClient()
-	ResourceGetterMap["deployments"] = KubeClient.ExtensionsV1beta1().RESTClient()
-	ResourceGetterMap["daemonsets"] = KubeClient.ExtensionsV1beta1().RESTClient()
-	ResourceGetterMap["replicasets"] = KubeClient.ExtensionsV1beta1().RESTClient()
-	ResourceGetterMap["ingresses"] = KubeClient.ExtensionsV1beta1().RESTClient()
-	ResourceGetterMap["jobs"] = KubeClient.BatchV1().RESTClient()
-	ResourceGetterMap["roles"] = KubeClient.RbacV1().RESTClient()
-	ResourceGetterMap["rolebindings"] = KubeClient.RbacV1().RESTClient()
-	ResourceGetterMap["clusterroles"] = KubeClient.RbacV1().RESTClient()
-	ResourceGetterMap["clusterrolebindings"] = KubeClient.RbacV1().RESTClient()
+	ResourceInformerMap["deployment"] = KubeInformerFactory.Apps().V1().Deployments().Informer()
+	ResourceInformerMap["daemonset"] = KubeInformerFactory.Apps().V1().DaemonSets().Informer()
+	ResourceInformerMap["replicaset"] = KubeInformerFactory.Apps().V1().ReplicaSets().Informer()
+	ResourceInformerMap["statefulset"] = KubeInformerFactory.Apps().V1().StatefulSets().Informer()
+
+	ResourceInformerMap["ingress"] = KubeInformerFactory.Extensions().V1beta1().Ingresses().Informer()
+
+	ResourceInformerMap["job"] = KubeInformerFactory.Batch().V1().Jobs().Informer()
+
+	ResourceInformerMap["role"] = KubeInformerFactory.Rbac().V1().Roles().Informer()
+	ResourceInformerMap["rolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
+	ResourceInformerMap["clusterrole"] = KubeInformerFactory.Rbac().V1().ClusterRoles().Informer()
+	ResourceInformerMap["clusterrolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
 
 	// Allowed event kinds map
 	for _, r := range botkubeConf.Resources {
+		allEvents := false
 		for _, e := range r.Events {
-			if e != config.ErrorEvent {
-				continue
+			if e == config.AllEvent {
+				allEvents = true
+				break
 			}
 			for _, ns := range r.Namespaces {
-				if r.Name == "ingresses" {
-					AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "es"), ns}] = true
-					continue
-				}
-				AllowedEventKindsMap[EventKind{strings.TrimSuffix(r.Name, "s"), ns}] = true
+				AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
 			}
 		}
+
+		// For AllEvent type, add all events to map
+		if allEvents {
+			events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
+			for _, ev := range events {
+				for _, ns := range r.Namespaces {
+					AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
+				}
+			}
+		}
+
 	}
 	log.Logger.Infof("Allowed Events - %+v", AllowedEventKindsMap)
 }
@@ -156,16 +165,22 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 		objectMeta = object.ObjectMeta
 	case *apiV1.ConfigMap:
 		objectMeta = object.ObjectMeta
-	case *extV1beta1.DaemonSet:
+
+	case *appsV1.DaemonSet:
 		objectMeta = object.ObjectMeta
+	case *appsV1.ReplicaSet:
+		objectMeta = object.ObjectMeta
+	case *appsV1.Deployment:
+		objectMeta = object.ObjectMeta
+	case *appsV1.StatefulSet:
+		objectMeta = object.ObjectMeta
+
 	case *extV1beta1.Ingress:
 		objectMeta = object.ObjectMeta
-	case *extV1beta1.ReplicaSet:
-		objectMeta = object.ObjectMeta
-	case *appsV1beta1.Deployment:
-		objectMeta = object.ObjectMeta
+
 	case *batchV1.Job:
 		objectMeta = object.ObjectMeta
+
 	case *rbacV1.Role:
 		objectMeta = object.ObjectMeta
 	case *rbacV1.RoleBinding:
@@ -204,16 +219,22 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 		typeMeta = object.TypeMeta
 	case *apiV1.ConfigMap:
 		typeMeta = object.TypeMeta
-	case *extV1beta1.DaemonSet:
+
+	case *appsV1.DaemonSet:
 		typeMeta = object.TypeMeta
+	case *appsV1.ReplicaSet:
+		typeMeta = object.TypeMeta
+	case *appsV1.Deployment:
+		typeMeta = object.TypeMeta
+	case *appsV1.StatefulSet:
+		typeMeta = object.TypeMeta
+
 	case *extV1beta1.Ingress:
 		typeMeta = object.TypeMeta
-	case *extV1beta1.ReplicaSet:
-		typeMeta = object.TypeMeta
-	case *appsV1beta1.Deployment:
-		typeMeta = object.TypeMeta
+
 	case *batchV1.Job:
 		typeMeta = object.TypeMeta
+
 	case *rbacV1.Role:
 		typeMeta = object.TypeMeta
 	case *rbacV1.RoleBinding:

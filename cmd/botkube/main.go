@@ -7,6 +7,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 func main() {
@@ -34,5 +35,8 @@ func main() {
 
 	}
 
+	// Init KubeClient, InformerMap and start controller
+	utils.InitKubeClient()
+	utils.InitInformerMap()
 	controller.RegisterInformers(Config)
 }
