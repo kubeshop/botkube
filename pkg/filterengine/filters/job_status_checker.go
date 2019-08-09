@@ -27,7 +27,7 @@ func init() {
 // Run filers and modifies event struct
 func (f JobStatusChecker) Run(object interface{}, event *events.Event) {
 	// Run filter only on Job update event
-	if event.Kind != "Job" && event.Type != config.UpdateEvent {
+	if event.Kind != "Job" || event.Type != config.UpdateEvent {
 		return
 	}
 	jobObj, ok := object.(*batchV1.Job)

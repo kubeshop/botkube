@@ -7,7 +7,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/utils"
-	appsV1beta1 "k8s.io/api/apps/v1beta1"
+	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
@@ -81,6 +81,8 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	}
 
 	if eventType == config.DeleteEvent {
+		// Set current time as a timestamp if DeletionTimestamp is nil
+		event.TimeStamp = time.Now()
 		if objectMeta.DeletionTimestamp != nil {
 			event.TimeStamp = objectMeta.DeletionTimestamp.Time
 		}
@@ -143,11 +145,13 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.Kind = "Secret"
 	case *apiV1.ConfigMap:
 		event.Kind = "ConfigMap"
-	case *extV1beta1.DaemonSet:
-		event.Kind = "DaemonSet"
+
 	case *extV1beta1.Ingress:
 		event.Kind = "Ingress"
-	case *extV1beta1.ReplicaSet:
+
+	case *appsV1.DaemonSet:
+		event.Kind = "DaemonSet"
+	case *appsV1.ReplicaSet:
 		event.Kind = "ReplicaSet"
 		if eventType == config.UpdateEvent {
 			condLen := len(obj.Status.Conditions)
@@ -155,7 +159,7 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
 			}
 		}
-	case *appsV1beta1.Deployment:
+	case *appsV1.Deployment:
 		event.Kind = "Deployment"
 		if eventType == config.UpdateEvent {
 			condLen := len(obj.Status.Conditions)
@@ -163,6 +167,15 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
 			}
 		}
+	case *appsV1.StatefulSet:
+		event.Kind = "StatefulSet"
+		if eventType == config.UpdateEvent {
+			condLen := len(obj.Status.Conditions)
+			if condLen != 0 {
+				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
+			}
+		}
+
 	case *batchV1.Job:
 		event.Kind = "Job"
 		if eventType == config.UpdateEvent {
