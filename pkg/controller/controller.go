@@ -37,8 +37,10 @@ func RegisterInformers(c *config.Config) {
 	sendMessage(c, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now()
 
-	// Start config file watcher
-	go configWatcher(c)
+	// Start config file watcher if enabled
+	if c.Settings.ConfigWatcher {
+		go configWatcher(c)
+	}
 
 	// Register informers for resource lifecycle events
 	if len(c.Resources) > 0 {

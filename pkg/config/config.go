@@ -103,6 +103,7 @@ type Mattermost struct {
 type Settings struct {
 	ClusterName     string
 	AllowKubectl    bool
+	ConfigWatcher   bool
 	UpgradeNotifier bool `yaml:"upgradeNotifier"`
 }
 
