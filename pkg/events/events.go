@@ -75,14 +75,17 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		Type:      eventType,
 	}
 
+	// initialize event.TimeStamp with the time of event creation
+	// event.TimeStamp is overwritten later based on the type of the event or
+	// kind of the object associated with it
+	event.TimeStamp = time.Now()
+
 	// Add TimeStamps
 	if eventType == config.CreateEvent {
 		event.TimeStamp = objectMeta.CreationTimestamp.Time
 	}
 
 	if eventType == config.DeleteEvent {
-		// Set current time as a timestamp if DeletionTimestamp is nil
-		event.TimeStamp = time.Now()
 		if objectMeta.DeletionTimestamp != nil {
 			event.TimeStamp = objectMeta.DeletionTimestamp.Time
 		}
