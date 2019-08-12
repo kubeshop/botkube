@@ -142,12 +142,34 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 	}}
 
 	post := &model.Post{}
-	post.ChannelId = m.Channel
 	post.Props = map[string]interface{}{
 		"attachments": attachment,
 	}
-	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-		log.Logger.Error("Failed to send message. Error: ", resp.Error)
+
+	// non empty value in event.channel demands redirection of events to a different channel
+	if event.Channel != "" {
+		post.ChannelId = event.Channel
+
+		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
+			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			// send error message to default channel
+			msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, resp.Error, event.Channel)
+			go m.SendMessage(msg)
+			// sending missed event to default channel
+			// reset event.Channel and send event
+			event.Channel = ""
+			go m.SendEvent(event)
+			return resp.Error
+		}
+		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
+	} else {
+		post.ChannelId = m.Channel
+		// empty value in event.channel sends notifications to default channel.
+		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
+			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			return resp.Error
+		}
+		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
 	}
 	return nil
 }

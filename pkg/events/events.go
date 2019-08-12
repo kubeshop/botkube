@@ -42,6 +42,7 @@ type Event struct {
 	Error     string
 	Level     Level
 	Cluster   string
+	Channel   string
 	TimeStamp time.Time
 	Count     int32
 	Action    string
@@ -220,7 +221,7 @@ func (event *Event) Message() (msg string) {
 	switch event.Type {
 	case config.CreateEvent, config.DeleteEvent, config.UpdateEvent:
 		msg = fmt.Sprintf(
-			"%s `%s` in of cluster `%s`, namespace `%s` has been %s:\n```%s```",
+			"%s `%s` of cluster `%s`, namespace `%s` has been %s:\n```%s```",
 			event.Kind,
 			event.Name,
 			event.Cluster,

@@ -147,6 +147,17 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 	switch object := obj.(type) {
 	case *apiV1.Event:
 		objectMeta = object.ObjectMeta
+		// pass InvolvedObject`s annotations into Event`s annotations
+		// for filtering event objects based on InvolvedObject`s annotations
+		if len(objectMeta.Annotations) == 0 {
+			objectMeta.Annotations = ExtractAnnotaions(object)
+		} else {
+			// Append InvolvedObject`s annotations to existing event object`s annotations map
+			for key, value := range ExtractAnnotaions(object) {
+				objectMeta.Annotations[key] = value
+			}
+		}
+
 	case *apiV1.Pod:
 		objectMeta = object.ObjectMeta
 	case *apiV1.Node:
@@ -256,4 +267,122 @@ func DeleteDoubleWhiteSpace(slice []string) []string {
 		}
 	}
 	return result
+}
+
+// ExtractAnnotaions returns annotations of InvolvedObject for the given event
+func ExtractAnnotaions(obj *apiV1.Event) map[string]string {
+
+	switch obj.InvolvedObject.Kind {
+	case "Pod":
+		object, err := KubeClient.CoreV1().Pods(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Node":
+		object, err := KubeClient.CoreV1().Nodes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Namespace":
+		object, err := KubeClient.CoreV1().Namespaces().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "PersistentVolume":
+		object, err := KubeClient.CoreV1().PersistentVolumes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "PersistentVolumeClaim":
+		object, err := KubeClient.CoreV1().PersistentVolumeClaims(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "ReplicationController":
+		object, err := KubeClient.CoreV1().ReplicationControllers(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Service":
+		object, err := KubeClient.CoreV1().Services(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Secret":
+		object, err := KubeClient.CoreV1().Secrets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "ConfigMap":
+		object, err := KubeClient.CoreV1().ConfigMaps(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "DaemonSet":
+		object, err := KubeClient.ExtensionsV1beta1().DaemonSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Ingress":
+		object, err := KubeClient.ExtensionsV1beta1().Ingresses(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+
+	case "ReplicaSet":
+		object, err := KubeClient.ExtensionsV1beta1().ReplicaSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Deployment":
+		object, err := KubeClient.ExtensionsV1beta1().Deployments(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Job":
+		object, err := KubeClient.BatchV1().Jobs(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "Role":
+		object, err := KubeClient.RbacV1().Roles(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "RoleBinding":
+		object, err := KubeClient.RbacV1().RoleBindings(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "ClusterRole":
+		object, err := KubeClient.RbacV1().ClusterRoles().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	case "ClusterRoleBinding":
+		object, err := KubeClient.RbacV1().ClusterRoleBindings().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+		if err == nil {
+			return object.ObjectMeta.Annotations
+		}
+		log.Logger.Error(err)
+	}
+
+	return map[string]string{}
 }

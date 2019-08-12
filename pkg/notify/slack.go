@@ -145,13 +145,32 @@ func (s *Slack) SendEvent(event events.Event) error {
 	attachment.Color = attachmentColor[event.Level]
 	params.Attachments = []slack.Attachment{attachment}
 
-	channelID, timestamp, err := api.PostMessage(s.Channel, "", params)
-	if err != nil {
-		log.Logger.Errorf("Error in sending slack message %s", err.Error())
-		return err
+	// non empty value in event.channel demands redirection of events to a different channel
+	if event.Channel != "" {
+		channelID, timestamp, err := api.PostMessage(event.Channel, "", params)
+		if err != nil {
+			log.Logger.Errorf("Error in sending slack message %s", err.Error())
+			// send error message to default channel
+			if err.Error() == "channel_not_found" {
+				msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, err.Error(), event.Channel)
+				go s.SendMessage(msg)
+				// sending missed event to default channel
+				// reset event.Channel and send event
+				event.Channel = ""
+				go s.SendEvent(event)
+			}
+			return err
+		}
+		log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
+	} else {
+		// empty value in event.channel sends notifications to default channel.
+		channelID, timestamp, err := api.PostMessage(s.Channel, "", params)
+		if err != nil {
+			log.Logger.Errorf("Error in sending slack message %s", err.Error())
+			return err
+		}
+		log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	}
-
-	log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	return nil
 }
 
