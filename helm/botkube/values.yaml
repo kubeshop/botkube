@@ -17,6 +17,9 @@ fullnameOverride: ""
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
+# Proxy URL to use
+proxyURL: None
+
 config:
   ## Resources you want to watch
   resources:
