@@ -220,33 +220,67 @@ func (event *Event) Message() (msg string) {
 
 	switch event.Type {
 	case config.CreateEvent, config.DeleteEvent, config.UpdateEvent:
-		msg = fmt.Sprintf(
-			"%s `%s` of cluster `%s`, namespace `%s` has been %s:\n```%s```",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			event.Type+"d",
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"%s `%s` in of cluster `%s` has been %s:\n```%s```",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Type+"d",
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"%s `%s` in of cluster `%s`, namespace `%s` has been %s:\n```%s```",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				event.Type+"d",
+				message,
+			)
+		}
 	case config.ErrorEvent:
-		msg = fmt.Sprintf(
-			"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"Error Occurred in %s: `%s` of cluster `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				message,
+			)
+		}
 	case config.WarningEvent:
-		msg = fmt.Sprintf(
-			"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"Warning %s: `%s` of cluster `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				message,
+			)
+		}
 	}
 	return msg
 }
