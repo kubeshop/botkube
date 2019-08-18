@@ -17,9 +17,6 @@ fullnameOverride: ""
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
-# Proxy URL to use
-proxyURL: None
-
 config:
   ## Resources you want to watch
   resources:
@@ -203,6 +200,9 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
+extraEnv:   # Extra environment variables to pass to the botkube container, example HTTP_PROXY
+  #HTTP_PROXY: <proxyURL>:<port>
+  
 nodeSelector: {}
 
 tolerations: []

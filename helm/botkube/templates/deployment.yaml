@@ -42,10 +42,12 @@ spec:
               value: {{ .Values.logLevel | quote }}
             - name: BOTKUBE_VERSION
               value: {{ .Chart.Version }}
-          {{- if ne .Values.proxyURL "None" }}
-            - name: HTTP_PROXY
-              value: {{ .Values.proxyURL }}
-          {{ end }}              
+        {{- if .Values.extraEnv }}
+          {{- range $name, $value := .Values.extraEnv }}
+            - name: {{ $name }}
+              value: {{ quote $value }}
+          {{- end }}
+        {{- end }}            
       volumes:
         - name: config-volume
           configMap:
