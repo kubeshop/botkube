@@ -3,6 +3,7 @@ package filters
 import (
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
+	log "github.com/infracloudio/botkube/pkg/logging"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
@@ -56,6 +57,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 			event.Recommendations = append(event.Recommendations, "TLS secret "+tls.SecretName+"does not exist")
 		}
 	}
+	log.Logger.Debug("Ingress Validator filter successful!")
 }
 
 // Describe filter

@@ -109,40 +109,16 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.TimeStamp = obj.LastTimestamp.Time
 	case *apiV1.Pod:
 		event.Kind = "Pod"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *apiV1.Node:
 		event.Kind = "Node"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *apiV1.Namespace:
 		event.Kind = "Namespace"
 	case *apiV1.PersistentVolume:
 		event.Kind = "PersistentVolume"
 	case *apiV1.PersistentVolumeClaim:
 		event.Kind = "PersistentVolumeClaim"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *apiV1.ReplicationController:
 		event.Kind = "ReplicationController"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *apiV1.Service:
 		event.Kind = "Service"
 	case *apiV1.Secret:
@@ -157,37 +133,14 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.Kind = "DaemonSet"
 	case *appsV1.ReplicaSet:
 		event.Kind = "ReplicaSet"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *appsV1.Deployment:
 		event.Kind = "Deployment"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 	case *appsV1.StatefulSet:
 		event.Kind = "StatefulSet"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
 
 	case *batchV1.Job:
 		event.Kind = "Job"
-		if eventType == config.UpdateEvent {
-			condLen := len(obj.Status.Conditions)
-			if condLen != 0 {
-				event.TimeStamp = obj.Status.Conditions[condLen-1].LastTransitionTime.Time
-			}
-		}
+
 	case *rbacV1.Role:
 		event.Kind = "Role"
 	case *rbacV1.RoleBinding:
@@ -220,33 +173,67 @@ func (event *Event) Message() (msg string) {
 
 	switch event.Type {
 	case config.CreateEvent, config.DeleteEvent, config.UpdateEvent:
-		msg = fmt.Sprintf(
-			"%s `%s` of cluster `%s`, namespace `%s` has been %s:\n```%s```",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			event.Type+"d",
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"%s `%s` in of cluster `%s` has been %s:\n```%s```",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Type+"d",
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"%s `%s` in of cluster `%s`, namespace `%s` has been %s:\n```%s```",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				event.Type+"d",
+				message,
+			)
+		}
 	case config.ErrorEvent:
-		msg = fmt.Sprintf(
-			"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"Error Occurred in %s: `%s` of cluster `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				message,
+			)
+		}
 	case config.WarningEvent:
-		msg = fmt.Sprintf(
-			"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
-			event.Kind,
-			event.Name,
-			event.Cluster,
-			event.Namespace,
-			message,
-		)
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"Warning %s: `%s` of cluster `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				message,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+				event.Namespace,
+				message,
+			)
+		}
 	}
 	return msg
 }
