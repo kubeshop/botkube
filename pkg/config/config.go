@@ -9,9 +9,6 @@ import (
 )
 
 const (
-	// AllowedEventType K8s event types allowed to forward
-	AllowedEventType EventType = WarningEvent
-
 	// CreateEvent when resource is created
 	CreateEvent EventType = "create"
 	// UpdateEvent when resource is updated
@@ -22,6 +19,10 @@ const (
 	ErrorEvent EventType = "error"
 	// WarningEvent for warning events
 	WarningEvent EventType = "warning"
+	// NormalEvent for Normal events
+	NormalEvent EventType = "normal"
+	// InfoEvent for insignificant Info events
+	InfoEvent EventType = "info"
 	// AllEvent to watch all events
 	AllEvent EventType = "all"
 	// ShortNotify is the Default NotifType

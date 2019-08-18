@@ -93,7 +93,13 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	}
 
 	if kind != "events" {
-		event.Messages = []string{fmt.Sprintf("Resource %sd\n", eventType.String())}
+		switch eventType {
+		case config.ErrorEvent, config.InfoEvent:
+			event.Messages = []string{fmt.Sprintf("Resource %s\n", eventType.String())}
+		default:
+			// Events like create, update, delete comes with an extra 'd' at the end
+			event.Messages = []string{fmt.Sprintf("Resource %sd\n", eventType.String())}
+		}
 	}
 
 	switch obj := object.(type) {
