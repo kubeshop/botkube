@@ -19,6 +19,7 @@ resources:
       - all
     events:
       - create
+      - update
       - delete
       - error
   - name: statefulset
@@ -26,6 +27,7 @@ resources:
       - all
     events:
       - create
+      - update
       - delete
       - error
   - name: ingress
@@ -89,9 +91,9 @@ resources:
       - all
     events:
       - create
+      - update
       - delete
       - error
-      - update
   - name: role
     namespaces:
       - all

@@ -74,7 +74,7 @@ func RegisterInformers(c *config.Config) {
 
 			// If event type is AllowedEventType and configured for the resource
 			if strings.ToLower(eventObj.Type) == config.AllowedEventType.String() {
-				sendEvent(obj, c, kind, config.ErrorEvent)
+				sendEvent(obj, nil, c, kind, config.ErrorEvent)
 			}
 		},
 	})
@@ -95,26 +95,29 @@ func registerEventHandlers(c *config.Config, resourceType string, events []confi
 	for _, event := range events {
 		if event == config.AllEvent || event == config.CreateEvent {
 			handlerFns.AddFunc = func(obj interface{}) {
-				sendEvent(obj, c, resourceType, config.CreateEvent)
+				log.Logger.Debugf("Processing add to %v", resourceType)
+				sendEvent(obj, nil, c, resourceType, config.CreateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
-				sendEvent(new, c, resourceType, config.UpdateEvent)
+				log.Logger.Debugf("Processing update to %v\n Object: %+v\n", resourceType, new)
+				sendEvent(new, old, c, resourceType, config.UpdateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.DeleteEvent {
 			handlerFns.DeleteFunc = func(obj interface{}) {
-				sendEvent(obj, c, resourceType, config.DeleteEvent)
+				log.Logger.Debugf("Processing delete to %v", resourceType)
+				sendEvent(obj, nil, c, resourceType, config.DeleteEvent)
 			}
 		}
 	}
 	return handlerFns
 }
 
-func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.EventType) {
+func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType config.EventType) {
 	// Filter namespaces
 	objectMeta := utils.GetObjectMetaData(obj)
 	if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
@@ -140,12 +143,16 @@ func sendEvent(obj interface{}, c *config.Config, kind string, eventType config.
 		}
 	}
 
-	// After resync, Informer gets OnUpdate call, even if nothing changed.
-	// We need to skip update event if that is happened before current time.
-	// As a workaround, we will be ignoring update events older than 5s of current time.
-	if eventType == config.UpdateEvent && time.Now().Sub(event.TimeStamp).Seconds() > 5 {
-		log.Logger.Debug("Skipping older events")
-		return
+	// check for siginificant Update Events in objects
+	if eventType == config.UpdateEvent {
+		updateMsg := utils.Diff(oldObj, obj)
+		if len(updateMsg) > 0 {
+			event.Messages = append(event.Messages, updateMsg)
+		} else {
+			// skipping least significant update
+			log.Logger.Debug("skipping least significant Update event")
+			event.Skip = true
+		}
 	}
 
 	event = filterengine.DefaultFilterEngine.Run(obj, event)

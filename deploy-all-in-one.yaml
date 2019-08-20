@@ -29,6 +29,7 @@ data:
           - all
         events:
           - create
+          - update
           - delete
           - error
       - name: statefulset
@@ -36,6 +37,7 @@ data:
           - all
         events:
           - create
+          - update
           - delete
           - error
       - name: ingress

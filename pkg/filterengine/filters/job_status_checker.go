@@ -45,6 +45,8 @@ func (f JobStatusChecker) Run(object interface{}, event *events.Event) {
 	if c.Type == batchV1.JobComplete {
 		event.Messages = []string{"Job succeeded!"}
 		event.TimeStamp = c.LastTransitionTime.Time
+		// overwrite event.Skip in case of Job succeeded (Job update) events
+		event.Skip = false
 	} else {
 		event.Skip = true
 		return

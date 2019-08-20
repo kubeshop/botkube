@@ -39,6 +39,7 @@ config:
         - all
       events:
         - create
+        - update
         - delete
         - error
     - name: statefulset
@@ -46,6 +47,7 @@ config:
         - all
       events:
         - create
+        - update
         - delete
         - error
     - name: ingress
@@ -109,8 +111,8 @@ config:
         - all
       events:
         - create
-        - delete
         - update
+        - delete
         - error
     - name: role
       namespaces:
