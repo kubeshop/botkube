@@ -122,6 +122,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType
 	objectMeta := utils.GetObjectMetaData(obj)
 	if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
 		!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: eventType}] {
+		log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
 		return
 	}
 	log.Logger.Debugf("Processing %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
