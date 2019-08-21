@@ -55,7 +55,8 @@ func RegisterInformers(c *config.Config) {
 	}
 
 	// Register informers for k8s events
-	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.AllowedEventType.String())
+	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
+	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
 
 	utils.KubeInformerFactory.Core().V1().Events().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -72,9 +73,13 @@ func RegisterInformers(c *config.Config) {
 			// Kind of involved object
 			kind := strings.ToLower(eventObj.InvolvedObject.Kind)
 
-			// If event type is AllowedEventType and configured for the resource
-			if strings.ToLower(eventObj.Type) == config.AllowedEventType.String() {
+			switch strings.ToLower(eventObj.Type) {
+			case config.WarningEvent.String():
+				// Send WarningEvent as ErrorEvents
 				sendEvent(obj, nil, c, kind, config.ErrorEvent)
+			case config.NormalEvent.String():
+				// Send NormalEvent as Insignificant InfoEvent
+				sendEvent(obj, nil, c, kind, config.InfoEvent)
 			}
 		},
 	})
@@ -120,11 +125,23 @@ func registerEventHandlers(c *config.Config, resourceType string, events []confi
 func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType config.EventType) {
 	// Filter namespaces
 	objectMeta := utils.GetObjectMetaData(obj)
-	if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
-		!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: eventType}] {
-		log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
-		return
+
+	switch eventType {
+	case config.InfoEvent:
+		// Skip if ErrorEvent is not configured for the resource
+		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: config.ErrorEvent}] &&
+			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
+			log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+			return
+		}
+	default:
+		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
+			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: eventType}] {
+			log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+			return
+		}
 	}
+
 	log.Logger.Debugf("Processing %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
 
 	// Check if Notify disabled
@@ -156,9 +173,16 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType
 		}
 	}
 
+	// Filter events
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
 	if event.Skip {
 		log.Logger.Debugf("Skipping event: %#v", event)
+		return
+	}
+
+	// Skip unpromoted insignificant InfoEvents
+	if event.Type == config.InfoEvent {
+		log.Logger.Debugf("Skipping Insignificant InfoEvent: %#v", event)
 		return
 	}
 
