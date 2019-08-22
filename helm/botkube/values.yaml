@@ -146,7 +146,7 @@ config:
   recommendations: true
 
   ssl:                                          # For using custom SSL certificates
-    cert:                                       # SSL Certificate file. Leave it None for http connection. e.g certs/my-cert.crt
+    cert: None                                  # SSL Certificate file. Leave it None for http connection. e.g certs/my-cert.crt
 
   # Channels configuration
   communications:
