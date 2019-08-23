@@ -195,8 +195,9 @@ config:
   # about the best practices for the created resource
   recommendations: true
 
-  ssl:                                          # For using custom SSL certificates
-    cert: None                                  # SSL Certificate file. Leave it None for http connection. e.g certs/my-cert.crt
+  ssl:                                           # For using custom SSL certificates
+    enabled: false                               # Set to true and specify cert path in the next line after uncommenting
+  #  cert:                                       # SSL Certificate file e.g certs/my-cert.crt
 
   # Channels configuration
   communications:

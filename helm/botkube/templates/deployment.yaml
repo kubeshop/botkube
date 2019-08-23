@@ -31,7 +31,7 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
-          {{- if ne .Values.config.ssl.cert "None" }}
+          {{- if .Values.config.ssl.cert enabled }}
             - name: certs
               mountPath: "/etc/ssl/certs"
           {{ end }}
@@ -52,7 +52,7 @@ spec:
         - name: config-volume
           configMap:
             name: {{ include "botkube.fullname" . }}-configmap
-      {{- if ne .Values.config.ssl.cert "None" }} 
+      {{- if .Values.config.ssl.cert enabled }} 
         - name: certs
           secret:
             secretName: {{ include "botkube.fullname" . }}-secret
