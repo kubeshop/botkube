@@ -195,7 +195,8 @@ config:
   # about the best practices for the created resource
   recommendations: true
 
-  #ssl:                                          # Enable section for using custom SSL certificates
+  ssl:                                           # For using custom SSL certificates
+    enabled: false                               # Set to true and specify cert path in the next line after uncommenting
     #cert:                                       # SSL Certificate file e.g certs/my-cert.crt
 
   # Channels configuration
