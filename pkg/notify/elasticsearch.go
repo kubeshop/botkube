@@ -15,25 +15,27 @@ var elsClient *elastic.Client
 
 // ElasticSearch contains auth cred and index setting
 type ElasticSearch struct {
-	Username string
-	Password string
-	Server   string
-	Index    string
-	Shards   int
-	Replicas int
-	Type     string
+	Username    string
+	Password    string
+	Server      string
+	Index       string
+	Shards      int
+	Replicas    int
+	Type        string
+	ClusterName string
 }
 
 // NewElasticSearch returns new Slack object
 func NewElasticSearch(c *config.Config) Notifier {
 	return &ElasticSearch{
-		Username: c.Communications.ElasticSearch.Username,
-		Password: c.Communications.ElasticSearch.Password,
-		Server:   c.Communications.ElasticSearch.Server,
-		Index:    c.Communications.ElasticSearch.Index.Name,
-		Type:     c.Communications.ElasticSearch.Index.Type,
-		Shards:   c.Communications.ElasticSearch.Index.Shards,
-		Replicas: c.Communications.ElasticSearch.Index.Replicas,
+		Username:    c.Communications.ElasticSearch.Username,
+		Password:    c.Communications.ElasticSearch.Password,
+		Server:      c.Communications.ElasticSearch.Server,
+		Index:       c.Communications.ElasticSearch.Index.Name,
+		Type:        c.Communications.ElasticSearch.Index.Type,
+		Shards:      c.Communications.ElasticSearch.Index.Shards,
+		Replicas:    c.Communications.ElasticSearch.Index.Replicas,
+		ClusterName: c.Settings.ClusterName,
 	}
 }
 
@@ -68,6 +70,9 @@ func init() {
 func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	log.Logger.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
+
+	// set missing cluster name to event object
+	event.Cluster = e.ClusterName
 
 	// Create elsClient if not created
 	if elsClient == nil {
