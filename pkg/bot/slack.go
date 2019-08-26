@@ -10,12 +10,14 @@ import (
 	"github.com/nlopes/slack"
 )
 
-// slackBot listens for user's message, execute commands and sends back the response
-type slackBot struct {
+// SlackBot listens for user's message, execute commands and sends back the response
+type SlackBot struct {
 	Token        string
 	AllowKubectl bool
 	ClusterName  string
 	ChannelName  string
+	SlackURL     string
+	BotID        string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -26,6 +28,7 @@ type slackMessage struct {
 	Response      string
 	IsAuthChannel bool
 	RTM           *slack.RTM
+	SlackClient   *slack.Client
 }
 
 // NewSlackBot returns new Bot object
@@ -34,7 +37,7 @@ func NewSlackBot() Bot {
 	if err != nil {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
-	return &slackBot{
+	return &SlackBot{
 		Token:        c.Communications.Slack.Token,
 		AllowKubectl: c.Settings.AllowKubectl,
 		ClusterName:  c.Settings.ClusterName,
@@ -43,18 +46,24 @@ func NewSlackBot() Bot {
 }
 
 // Start starts the slacknot RTM connection and listens for messages
-func (b *slackBot) Start() {
+func (b *SlackBot) Start() {
+	var botID string
 	api := slack.New(b.Token)
-	authResp, err := api.AuthTest()
-	if err != nil {
-		logging.Logger.Fatal(err)
+	if len(b.SlackURL) != 0 {
+		api = slack.New(b.Token, slack.OptionAPIURL(b.SlackURL))
+		botID = b.BotID
+	} else {
+		authResp, err := api.AuthTest()
+		if err != nil {
+			logging.Logger.Fatal(err)
+		}
+		botID = authResp.UserID
 	}
-	botID := authResp.UserID
 
-	rtm := api.NewRTM()
-	go rtm.ManageConnection()
+	RTM := api.NewRTM()
+	go RTM.ManageConnection()
 
-	for msg := range rtm.IncomingEvents {
+	for msg := range RTM.IncomingEvents {
 		switch ev := msg.Data.(type) {
 		case *slack.ConnectedEvent:
 			logging.Logger.Debug("Connection Info: ", ev.Info)
@@ -65,9 +74,10 @@ func (b *slackBot) Start() {
 				continue
 			}
 			sm := slackMessage{
-				Event: ev,
-				BotID: botID,
-				RTM:   rtm,
+				Event:       ev,
+				BotID:       botID,
+				RTM:         RTM,
+				SlackClient: api,
 			}
 			sm.HandleMessage(b)
 
@@ -82,10 +92,11 @@ func (b *slackBot) Start() {
 	}
 }
 
-func (sm *slackMessage) HandleMessage(b *slackBot) {
+func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	logging.Logger.Debugf("Slack incoming message: %+v", sm.Event)
+
 	// Check if message posted in authenticated channel
-	info, err := slack.New(b.Token).GetConversationInfo(sm.Event.Channel, true)
+	info, err := sm.SlackClient.GetConversationInfo(sm.Event.Channel, true)
 	if err == nil {
 		if info.IsChannel || info.IsPrivate {
 			// Message posted in a channel
@@ -99,9 +110,16 @@ func (sm *slackMessage) HandleMessage(b *slackBot) {
 			}
 		}
 	}
+	// Serve only if current channel is in config
+	if b.ChannelName == sm.Event.Channel {
+		sm.IsAuthChannel = true
+	}
 
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+"> ")
+	if len(sm.Request) == 0 {
+		return
+	}
 
 	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()

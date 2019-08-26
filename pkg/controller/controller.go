@@ -33,13 +33,13 @@ const (
 var startTime time.Time
 
 // RegisterInformers creates new informer controllers to watch k8s resources
-func RegisterInformers(c *config.Config) {
-	sendMessage(c, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
+func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
+	sendMessage(c, notifiers, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now()
 
 	// Start config file watcher if enabled
 	if c.Settings.ConfigWatcher {
-		go configWatcher(c)
+		go configWatcher(c, notifiers)
 	}
 
 	// Register informers for resource lifecycle events
@@ -50,7 +50,7 @@ func RegisterInformers(c *config.Config) {
 				continue
 			}
 			log.Logger.Infof("Adding informer for resource:%s", r.Name)
-			utils.ResourceInformerMap[r.Name].AddEventHandler(registerEventHandlers(c, r.Name, r.Events))
+			utils.ResourceInformerMap[r.Name].AddEventHandler(registerEventHandlers(c, notifiers, r.Name, r.Events))
 		}
 	}
 
@@ -76,10 +76,10 @@ func RegisterInformers(c *config.Config) {
 			switch strings.ToLower(eventObj.Type) {
 			case config.WarningEvent.String():
 				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, kind, config.ErrorEvent)
+				sendEvent(obj, nil, c, notifiers, kind, config.ErrorEvent)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, kind, config.InfoEvent)
+				sendEvent(obj, nil, c, notifiers, kind, config.InfoEvent)
 			}
 		},
 	})
@@ -93,36 +93,36 @@ func RegisterInformers(c *config.Config) {
 	signal.Notify(sigterm, syscall.SIGTERM)
 	signal.Notify(sigterm, syscall.SIGINT)
 	<-sigterm
-	sendMessage(c, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
+	sendMessage(c, notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
 }
 
-func registerEventHandlers(c *config.Config, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
+func registerEventHandlers(c *config.Config, notifiers []notify.Notifier, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
 	for _, event := range events {
 		if event == config.AllEvent || event == config.CreateEvent {
 			handlerFns.AddFunc = func(obj interface{}) {
 				log.Logger.Debugf("Processing add to %v", resourceType)
-				sendEvent(obj, nil, c, resourceType, config.CreateEvent)
+				sendEvent(obj, nil, c, notifiers, resourceType, config.CreateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
 				log.Logger.Debugf("Processing update to %v\n Object: %+v\n", resourceType, new)
-				sendEvent(new, old, c, resourceType, config.UpdateEvent)
+				sendEvent(new, old, c, notifiers, resourceType, config.UpdateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.DeleteEvent {
 			handlerFns.DeleteFunc = func(obj interface{}) {
 				log.Logger.Debugf("Processing delete to %v", resourceType)
-				sendEvent(obj, nil, c, resourceType, config.DeleteEvent)
+				sendEvent(obj, nil, c, notifiers, resourceType, config.DeleteEvent)
 			}
 		}
 	}
 	return handlerFns
 }
 
-func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType config.EventType) {
+func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Notifier, kind string, eventType config.EventType) {
 	// Filter namespaces
 	objectMeta := utils.GetObjectMetaData(obj)
 
@@ -197,42 +197,25 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, kind string, eventType
 		log.Logger.Debug("Skipping Recommendations in Event Notifications")
 	}
 
-	var notifier notify.Notifier
-	// Send notification to communication channel
-	if c.Communications.Slack.Enabled {
-		notifier = notify.NewSlack(c)
-		go notifier.SendEvent(event)
-	}
-
-	if c.Communications.ElasticSearch.Enabled {
-		notifier = notify.NewElasticSearch(c)
-		go notifier.SendEvent(event)
-	}
-
-	if c.Communications.Mattermost.Enabled {
-		if notifier, err := notify.NewMattermost(c); err == nil {
-			go notifier.SendEvent(event)
-		}
+	// Send event over notifiers
+	for _, n := range notifiers {
+		go n.SendEvent(event)
 	}
 }
 
-func sendMessage(c *config.Config, msg string) {
+func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 	if len(msg) <= 0 {
 		log.Logger.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
 	}
-	if c.Communications.Slack.Enabled {
-		notifier := notify.NewSlack(c)
-		go notifier.SendMessage(msg)
-	}
-	if c.Communications.Mattermost.Enabled {
-		if notifier, err := notify.NewMattermost(c); err == nil {
-			go notifier.SendMessage(msg)
-		}
+
+	// Send message over notifiers
+	for _, n := range notifiers {
+		go n.SendMessage(msg)
 	}
 }
 
-func configWatcher(c *config.Config) {
+func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 	configPath := os.Getenv("CONFIG_PATH")
 	configFile := filepath.Join(configPath, config.ConfigFileName)
 
@@ -269,7 +252,7 @@ func configWatcher(c *config.Config) {
 		return
 	}
 	<-done
-	sendMessage(c, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
+	sendMessage(c, notifiers, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
 	// Wait for Notifier to send message
 	time.Sleep(5 * time.Second)
 	os.Exit(0)

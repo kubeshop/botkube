@@ -11,7 +11,13 @@ import (
 	"github.com/nlopes/slack"
 )
 
-var attachmentColor map[events.Level]string
+var attachmentColor = map[events.Level]string{
+	events.Info:     "good",
+	events.Warn:     "warning",
+	events.Debug:    "good",
+	events.Error:    "danger",
+	events.Critical: "danger",
+}
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
@@ -19,18 +25,11 @@ type Slack struct {
 	Channel     string
 	ClusterName string
 	NotifType   config.NotifType
+	SlackURL    string // Useful only for testing
 }
 
 // NewSlack returns new Slack object
 func NewSlack(c *config.Config) Notifier {
-	attachmentColor = map[events.Level]string{
-		events.Info:     "good",
-		events.Warn:     "warning",
-		events.Debug:    "good",
-		events.Error:    "danger",
-		events.Critical: "danger",
-	}
-
 	return &Slack{
 		Token:       c.Communications.Slack.Token,
 		Channel:     c.Communications.Slack.Channel,
@@ -39,15 +38,9 @@ func NewSlack(c *config.Config) Notifier {
 	}
 }
 
-// SendEvent sends event notification to slack
-func (s *Slack) SendEvent(event events.Event) error {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
-
-	api := slack.New(s.Token)
-
-	var attachment slack.Attachment
-
-	switch s.NotifType {
+// FormatSlackMessage with attachments
+func FormatSlackMessage(event events.Event, notifyType config.NotifType, clusterName string) (attachment slack.Attachment) {
+	switch notifyType {
 	case config.LongNotify:
 		attachment = slack.Attachment{
 			Fields: []slack.AttachmentField{
@@ -110,10 +103,21 @@ func (s *Slack) SendEvent(event events.Event) error {
 			})
 		}
 
+		if len(event.Warnings) > 0 {
+			rec := ""
+			for _, r := range event.Warnings {
+				rec = rec + r
+			}
+			attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+				Title: "Warnings",
+				Value: rec,
+			})
+		}
+
 		// Add clustername in the message
 		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
 			Title: "Cluster",
-			Value: s.ClusterName,
+			Value: clusterName,
 		})
 
 	case config.ShortNotify:
@@ -121,7 +125,7 @@ func (s *Slack) SendEvent(event events.Event) error {
 
 	default:
 		// set missing cluster name to event object
-		event.Cluster = s.ClusterName
+		event.Cluster = clusterName
 		attachment = slack.Attachment{
 			Fields: []slack.AttachmentField{
 				{
@@ -139,6 +143,18 @@ func (s *Slack) SendEvent(event events.Event) error {
 		attachment.Ts = ts
 	}
 	attachment.Color = attachmentColor[event.Level]
+	return attachment
+}
+
+// SendEvent sends event notification to slack
+func (s *Slack) SendEvent(event events.Event) error {
+	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
+
+	api := slack.New(s.Token)
+	if len(s.SlackURL) != 0 {
+		api = slack.New(s.Token, slack.OptionAPIURL(s.SlackURL))
+	}
+	attachment := FormatSlackMessage(event, s.NotifType, s.ClusterName)
 
 	// non empty value in event.channel demands redirection of events to a different channel
 	if event.Channel != "" {
@@ -174,6 +190,9 @@ func (s *Slack) SendMessage(msg string) error {
 	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
 
 	api := slack.New(s.Token)
+	if len(s.SlackURL) != 0 {
+		api = slack.New(s.Token, slack.OptionAPIURL(s.SlackURL))
+	}
 
 	channelID, timestamp, err := api.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {

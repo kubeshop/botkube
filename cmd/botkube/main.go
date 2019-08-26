@@ -7,6 +7,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -29,14 +30,27 @@ func main() {
 		go mb.Start()
 	}
 
+	// List notifiers
+	var notifiers []notify.Notifier
+	if Config.Communications.Slack.Enabled {
+		notifiers = append(notifiers, notify.NewSlack(Config))
+	}
+	if Config.Communications.Mattermost.Enabled {
+		if notifier, err := notify.NewMattermost(Config); err == nil {
+			notifiers = append(notifiers, notifier)
+		}
+	}
+	if Config.Communications.ElasticSearch.Enabled {
+		notifiers = append(notifiers, notify.NewElasticSearch(Config))
+	}
+
 	if Config.Settings.UpgradeNotifier {
 		log.Logger.Info("Starting upgrade notifier")
-		go controller.UpgradeNotifier(Config)
-
+		go controller.UpgradeNotifier(Config, notifiers)
 	}
 
 	// Init KubeClient, InformerMap and start controller
 	utils.InitKubeClient()
 	utils.InitInformerMap()
-	controller.RegisterInformers(Config)
+	controller.RegisterInformers(Config, notifiers)
 }

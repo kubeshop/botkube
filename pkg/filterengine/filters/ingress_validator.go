@@ -1,6 +1,9 @@
 package filters
 
 import (
+	"fmt"
+
+	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
@@ -22,7 +25,7 @@ func init() {
 
 // Run filers and modifies event struct
 func (iv IngressValidator) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Ingress" && event.Type != "create" {
+	if event.Kind != "Ingress" || event.Type != config.CreateEvent {
 		return
 	}
 	ingressObj, ok := object.(*extV1beta1.Ingress)
@@ -43,11 +46,9 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 			}
 			_, err := ValidServicePort(serviceName, ns, int32(servicePort))
 			if err != nil {
-				event.Messages = append(event.Messages, "Service "+serviceName+" used in ingress config does not exist or port not exposed\n")
-				event.Level = events.Warn
+				event.Warnings = append(event.Warnings, fmt.Sprintf("Service '%s' used in ingress '%s' config does not exist or port '%v' not exposed\n", serviceName, ingressObj.Name, servicePort))
 			}
 		}
-
 	}
 
 	// Check if tls secret exists
