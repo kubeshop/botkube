@@ -3,6 +3,7 @@ package filters
 import (
 	"strings"
 
+	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
@@ -24,7 +25,7 @@ func init() {
 
 // Run filers and modifies event struct
 func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Pod" && event.Type != "create" {
+	if event.Kind != "Pod" || event.Type != config.CreateEvent {
 		return
 	}
 	podObj, ok := object.(*apiV1.Pod)

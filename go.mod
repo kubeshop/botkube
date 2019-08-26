@@ -28,12 +28,13 @@ require (
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/nicksnyder/go-i18n v1.10.1 // indirect
-	github.com/nlopes/slack v0.4.0
+	github.com/nlopes/slack v0.5.1-0.20190623232825-2891986e2a3e
 	github.com/olivere/elastic v6.2.21+incompatible
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/stretchr/testify v1.3.0
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect

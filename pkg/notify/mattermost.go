@@ -115,6 +115,17 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 			})
 		}
 
+		if len(event.Warnings) > 0 {
+			rec := ""
+			for _, r := range event.Warnings {
+				rec = rec + r
+			}
+			fields = append(fields, &model.SlackAttachmentField{
+				Title: "Warnings",
+				Value: rec,
+			})
+		}
+
 		// Add clustername in the message
 		fields = append(fields, &model.SlackAttachmentField{
 			Title: "Cluster",

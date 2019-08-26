@@ -2,11 +2,11 @@ IMAGE_REPO=infracloud/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status build container-image pre-build tag-image publish unit-test system-check
+.PHONY: release git-tag check-git-status build container-image pre-build tag-image publish test system-check
 
 #Docker Tasks
 #Make a release
-release: check-git-status unit-test container-image tag-image publish git-tag
+release: check-git-status test container-image tag-image publish git-tag
 	@echo "Successfully releeased version $(TAG)"
 
 #Create a git tag
@@ -25,10 +25,10 @@ check-git-status:
 	@if [ -z "$(shell git remote -v)" ] ; then echo 'ERROR: No remote to push tags to' && exit 1 ; fi
 	@if [ -z "$(shell git config user.email)" ] ; then echo 'ERROR: Unable to detect git credentials' && exit 1 ; fi
 
-# unit-test
-unit-test: system-check
-	@echo "Starting unit tests"
-	@./hack/unit-test.sh -v
+# test
+test: system-check
+	@echo "Starting unit and integration tests"
+	@./hack/runtests.sh
 
 #Build the binary
 build: pre-build

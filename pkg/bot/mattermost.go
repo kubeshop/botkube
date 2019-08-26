@@ -31,8 +31,8 @@ const (
 	WebSocketSecureProtocol = "wss://"
 )
 
-// mmBot listens for user's message, execute commands and sends back the response
-type mmBot struct {
+// MMBot listens for user's message, execute commands and sends back the response
+type MMBot struct {
 	ServerURL    string
 	Token        string
 	TeamName     string
@@ -56,7 +56,7 @@ func NewMattermostBot() Bot {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
-	return &mmBot{
+	return &MMBot{
 		ServerURL:    c.Communications.Mattermost.URL,
 		Token:        c.Communications.Mattermost.Token,
 		TeamName:     c.Communications.Mattermost.Team,
@@ -67,7 +67,7 @@ func NewMattermostBot() Bot {
 }
 
 // Start establishes mattermost connection and listens for messages
-func (b *mmBot) Start() {
+func (b *MMBot) Start() {
 	client = model.NewAPIv4Client(b.ServerURL)
 	client.SetOAuthToken(b.Token)
 
@@ -121,7 +121,7 @@ func (b *mmBot) Start() {
 }
 
 // Check incomming message and take action
-func (mm *mattermostMessage) handleMessage(b *mmBot) {
+func (mm *mattermostMessage) handleMessage(b *MMBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
@@ -179,7 +179,7 @@ func checkServerConnection() error {
 }
 
 // Check if team exists in Mattermost
-func (b *mmBot) getTeam() *model.Team {
+func (b *MMBot) getTeam() *model.Team {
 	botTeam, resp := client.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
 		logging.Logger.Fatal("There was a problem finding Mattermost team ", b.TeamName, "\nError: ", resp.Error)
@@ -188,7 +188,7 @@ func (b *mmBot) getTeam() *model.Team {
 }
 
 // Check if botkube user exists in Mattermost
-func (b *mmBot) getUser() *model.User {
+func (b *MMBot) getUser() *model.User {
 	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
 	if resp.Error != nil {
 		logging.Logger.Fatal("There was a problem finding Mattermost user ", BotName, "\nError: ", resp.Error)
@@ -197,7 +197,7 @@ func (b *mmBot) getUser() *model.User {
 }
 
 // Create channel if not present and add botkube user in channel
-func (b *mmBot) getChannel() *model.Channel {
+func (b *MMBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := client.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
