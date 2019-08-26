@@ -49,6 +49,7 @@ type Event struct {
 	Skip      bool `json:",omitempty"`
 
 	Recommendations []string
+	Warnings        []string
 }
 
 // LevelMap is a map of event type to Level
@@ -172,9 +173,16 @@ func (event *Event) Message() (msg string) {
 	if len(event.Recommendations) > 0 {
 		recommend := ""
 		for _, m := range event.Recommendations {
-			recommend = recommend + m
+			recommend = recommend + "- " + m
 		}
-		message = message + fmt.Sprintf("\nRecommendations: %s", recommend)
+		message = message + fmt.Sprintf("Recommendations:\n%s", recommend)
+	}
+	if len(event.Warnings) > 0 {
+		warning := ""
+		for _, m := range event.Warnings {
+			warning = warning + "- " + m
+		}
+		message = message + fmt.Sprintf("Warnings:\n%s", warning)
 	}
 
 	switch event.Type {

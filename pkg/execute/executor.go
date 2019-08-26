@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -74,6 +73,11 @@ type DefaultExecutor struct {
 	ClusterName   string
 	ChannelName   string
 	IsAuthChannel bool
+}
+
+// CommandRunner is an interface to run bash commands
+type CommandRunner interface {
+	Run() (string, error)
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -217,13 +221,15 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 	if isAuthChannel == false {
 		return ""
 	}
-	cmd := exec.Command(kubectlBinary, finalArgs...)
-	out, err := cmd.CombinedOutput()
+
+	// Get command runner
+	runner := NewCommandRunner(kubectlBinary, finalArgs)
+	out, err := runner.Run()
 	if err != nil {
 		log.Logger.Error("Error in executing kubectl command: ", err)
-		return fmt.Sprintf("Cluster: %s\n%s", clusterName, string(out)+err.Error())
+		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
 	}
-	return fmt.Sprintf("Cluster: %s\n%s", clusterName, string(out))
+	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
 }
 
 // TODO: Have a seperate cli which runs bot commands
@@ -316,12 +322,12 @@ func makeFiltersList() string {
 
 func findBotKubeVersion() (versions string) {
 	args := []string{"-c", fmt.Sprintf("%s version --short=true | grep Server", kubectlBinary)}
-	cmd := exec.Command("sh", args...)
+	runner := NewCommandRunner("sh", args)
 	// Returns "Server Version: xxxx"
-	k8sVersion, err := cmd.CombinedOutput()
+	k8sVersion, err := runner.Run()
 	if err != nil {
 		log.Logger.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
-		k8sVersion = []byte("Server Version: Unknown\n")
+		k8sVersion = "Server Version: Unknown\n"
 	}
 
 	botkubeVersion := os.Getenv("BOTKUBE_VERSION")
