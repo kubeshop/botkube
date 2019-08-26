@@ -1,20 +1,25 @@
 # Development image
-FROM golang:alpine AS BUILD-ENV
+FROM golang:1.12-alpine3.10 AS BUILD-ENV
 
 ARG GOOS_VAL 
 ARG GOARCH_VAL
 
-RUN mkdir -p /go/src/github.com/infracloudio/botkube/vendor && \
-    mkdir -p /go/src/github.com/infracloudio/botkube/cmd && \
-    mkdir -p /go/src/github.com/infracloudio/botkube/pkg
+# Add git
+RUN apk update && apk add git
 
-COPY vendor/ /go/src/github.com/infracloudio/botkube/vendor
-COPY cmd/ /go/src/github.com/infracloudio/botkube/cmd
-COPY pkg/ /go/src/github.com/infracloudio/botkube/pkg
+WORKDIR /app
 
-RUN cd /go/src/github.com/infracloudio/botkube/cmd/botkube && \
-    GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube
+# Download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
+# Copy source
+COPY . .
+
+# Build binary
+RUN GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube ./cmd/botkube 
+
+# Install kubectl binary
 ENV KUBE_LATEST_VERSION="v1.13.0"
 
 RUN apk add --no-cache ca-certificates bash git \
@@ -22,7 +27,7 @@ RUN apk add --no-cache ca-certificates bash git \
     && chmod +x /usr/local/bin/kubectl
 
 # Production image
-FROM alpine
+FROM alpine:3.10
 
 COPY --from=BUILD-ENV /go/bin/botkube /go/bin/botkube
 COPY --from=BUILD-ENV /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
