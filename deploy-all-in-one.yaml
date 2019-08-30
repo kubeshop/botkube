@@ -305,3 +305,7 @@ spec:
         - name: config-volume
           configMap:
             name: botkube-configmap
+      # run as non privilaged user
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101

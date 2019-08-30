@@ -14,6 +14,12 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
+# Configure securityContext to manage user Privileges in pods
+# set to run as a Non-Privileged user by default
+securityContext:
+  runAsUser: 101
+  runAsGroup: 101
+
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
