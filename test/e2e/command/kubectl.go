@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/execute"
+	exec "github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 	tests := map[string]kubectlCommand{
 		"BotKube get pods": {
 			command:  "get pods",
-			expected: fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n default get pods"]),
+			expected: fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName, exec.KubectlResponse["-n default get pods"]),
 		},
 	}
 

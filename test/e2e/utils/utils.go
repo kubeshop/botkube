@@ -18,6 +18,12 @@ type SlackMessage struct {
 	Attachments []slack.Attachment
 }
 
+// MsTeamsCard structure
+type MsTeamsCard struct {
+	Summary  string           `json:"summary"`
+	Sections []notify.Section `json:"sections"`
+}
+
 // WebhookPayload structure
 type WebhookPayload struct {
 	Summary     string             `json:"summary"`
@@ -31,8 +37,9 @@ type CreateObjects struct {
 	Namespace              string
 	Specs                  runtime.Object
 	NotifType              config.NotifType
-	ExpectedWebhookPayload WebhookPayload
 	ExpectedSlackMessage   SlackMessage
+	ExpectedMsTeamsCard    MsTeamsCard
+	ExpectedWebhookPayload WebhookPayload
 }
 
 // CreateResource with fake client

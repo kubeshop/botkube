@@ -1,4 +1,3 @@
-## test_config.yaml for Integration Testing
 ## Resources you want to watch
 resources:
   - name: pod                # Name of the resources e.g pod, deployment, ingress, etc.
@@ -210,7 +209,13 @@ communications:
       type: botkube-event
       shards: 1
       replicas: 0
-  
+
+  # Settings for MsTeams
+  msteams:
+    enabled: true
+    url: 'MSTEAMS_WEBHOOK_URL'                 # e.g https://example.com:80
+    notiftype: short                           # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
+
   # Settings for Webhook
   webhook:
     enabled: true

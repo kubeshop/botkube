@@ -9,6 +9,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
+	"github.com/infracloudio/botkube/test/msteams"
 	"github.com/infracloudio/botkube/test/webhook"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
@@ -24,6 +25,7 @@ import (
 type TestEnv struct {
 	K8sClient     kubernetes.Interface
 	SlackServer   *slacktest.Server
+	MsTeamsServer *msteams.Server
 	WebhookServer *webhook.Server
 	SlackMessages chan (*slack.MessageEvent)
 	Config        *config.Config
@@ -54,6 +56,9 @@ func New() *TestEnv {
 		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
 		testEnv.SetupFakeSlack()
 	}
+	if testEnv.Config.Communications.MsTeams.Enabled {
+		testEnv.SetupFakeMsTeams()
+	}
 	if testEnv.Config.Communications.Webhook.Enabled {
 		testEnv.SetupFakeWebhook()
 	}
@@ -63,6 +68,7 @@ func New() *TestEnv {
 
 // SetupFakeSlack create fake Slack server to mock Slack
 func (e *TestEnv) SetupFakeSlack() {
+	log.Printf("Performing Integration Tests on Slack Notifer")
 	s := slacktest.NewTestServer()
 	s.SetBotName("BotKube")
 	go s.Start()
@@ -82,8 +88,30 @@ func (e TestEnv) GetLastSeenSlackMessage() *string {
 	return nil
 }
 
+// SetupFakeMsTeams create fake MsTeams server to mock MsTeams
+func (e *TestEnv) SetupFakeMsTeams() {
+	log.Printf("Performing Integration Tests on MsTeams Notifer")
+	s := msteams.NewTestServer()
+	go s.Start()
+
+	e.MsTeamsServer = s
+}
+
+// GetLastReceivedCard return last message received by fake webhook server
+func (e TestEnv) GetLastReceivedCard() *utils.MsTeamsCard {
+
+	time.Sleep(time.Second)
+
+	allReceivedCards := e.MsTeamsServer.GetReceivedCards()
+	if len(allReceivedCards) != 0 {
+		return &allReceivedCards[len(allReceivedCards)-1]
+	}
+	return nil
+}
+
 // SetupFakeWebhook create fake Slack server to mock Slack
 func (e *TestEnv) SetupFakeWebhook() {
+	log.Printf("Performing Integration Tests on Webhook Notifer")
 	s := webhook.NewTestServer()
 	go s.Start()
 

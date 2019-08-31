@@ -30,6 +30,10 @@ func (c *context) testCreateResource(t *testing.T) {
 			ExpectedSlackMessage: testutils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `test-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
+			ExpectedMsTeamsCard: testutils.MsTeamsCard{
+				Sections: []notify.Section{{ActivityTitle: "Pod `test-pod` in of cluster `test-cluster-1`, namespace `test` has been created:", Facts: []notify.Fact(nil), Markdown: true}, {ActivityTitle: "> Resource created\n\n\nRecommendations:\n\n- pod 'test-pod' creation without labels should be avoided.\n", Facts: []notify.Fact(nil), Markdown: true}},
+				Summary:  "Pod `test-pod` in of cluster `test-cluster-1`, namespace `test` has been created:",
+			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "test-pod", Namespace: "test", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
@@ -42,6 +46,10 @@ func (c *context) testCreateResource(t *testing.T) {
 			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Service create", Value: "Service `test-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\n```", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedMsTeamsCard: testutils.MsTeamsCard{
+				Summary:  "Service `test-service` in of cluster `test-cluster-1`, namespace `test` has been created:",
+				Sections: []notify.Section{{ActivityTitle: "Service `test-service` in of cluster `test-cluster-1`, namespace `test` has been created:", Facts: []notify.Fact(nil), Markdown: true}, {ActivityTitle: "> Resource created\n\n", Facts: []notify.Fact(nil), Markdown: true}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Service", Name: "test-service", Namespace: "test", Cluster: "test-cluster-1"},
@@ -67,6 +75,13 @@ func (c *context) testCreateResource(t *testing.T) {
 				assert.NoError(t, err, "message should decode properly")
 				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 				assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
+			}
+
+			if c.TestEnv.Config.Communications.MsTeams.Enabled {
+				// Get last seen msteams card
+				lastSeenCard := c.GetLastReceivedCard()
+				assert.Equal(t, test.ExpectedMsTeamsCard.Sections, lastSeenCard.Sections)
+				assert.Equal(t, test.ExpectedMsTeamsCard.Summary, lastSeenCard.Summary)
 			}
 
 			if c.TestEnv.Config.Communications.Webhook.Enabled {

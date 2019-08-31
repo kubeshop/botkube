@@ -210,6 +210,12 @@ communications:
       shards: 1
       replicas: 0
 
+  # Settings for MsTeams
+  msteams:
+    enabled: false
+    url: 'MSTEAMS_WEBHOOK_URL'                 # e.g https://example.com:80
+    notiftype: short                           # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
+
   # Settings for Webhook
   webhook:
     enabled: false

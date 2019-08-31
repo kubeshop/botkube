@@ -74,6 +74,7 @@ type Communications struct {
 	Slack         Slack
 	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
+	MsTeams       MsTeams
 	Webhook       Webhook
 }
 
@@ -109,6 +110,13 @@ type Mattermost struct {
 	Token     string
 	Team      string
 	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
+}
+
+// MsTeams configuration to send notifications
+type MsTeams struct {
+	Enabled   bool
+	URL       string
 	NotifType NotifType `yaml:",omitempty"`
 }
 

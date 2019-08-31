@@ -44,6 +44,14 @@ func TestRun(t *testing.T) {
 		notifiers = append(notifiers, fakeWebhookNotifier)
 	}
 
+	if testEnv.Config.Communications.MsTeams.Enabled {
+		fakeMsTeamsNotifier := &notify.MsTeams{
+			URL:         testEnv.MsTeamsServer.GetAPIURL(),
+			ClusterName: testEnv.Config.Settings.ClusterName,
+		}
+		notifiers = append(notifiers, fakeMsTeamsNotifier)
+	}
+
 	utils.KubeClient = testEnv.K8sClient
 	utils.InitInformerMap()
 

@@ -30,6 +30,10 @@ func (c *context) testFilters(t *testing.T) {
 			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
+			ExpectedMsTeamsCard: utils.MsTeamsCard{
+				Sections: []notify.Section{{ActivityTitle: "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:", Facts: []notify.Fact(nil), Markdown: true}, {ActivityTitle: "> Resource created\n\n\nRecommendations:\n\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n", Facts: []notify.Fact(nil), Markdown: true}},
+				Summary:  "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:",
+			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "nginx-pod", Namespace: "test", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
@@ -44,6 +48,10 @@ func (c *context) testFilters(t *testing.T) {
 			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
+			ExpectedMsTeamsCard: utils.MsTeamsCard{
+				Sections: []notify.Section{{ActivityTitle: "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:", Facts: []notify.Fact(nil), Markdown: true}, {ActivityTitle: "> Resource created\n\n\nRecommendations:\n\n- pod 'pod-wo-label' creation without labels should be avoided.\n", Facts: []notify.Fact(nil), Markdown: true}},
+				Summary:  "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:",
+			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "pod-wo-label", Namespace: "test", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
@@ -57,6 +65,10 @@ func (c *context) testFilters(t *testing.T) {
 			Specs:     &extV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: extV1beta1.IngressSpec{Rules: []extV1beta1.IngressRule{{IngressRuleValue: extV1beta1.IngressRuleValue{HTTP: &extV1beta1.HTTPIngressRuleValue{Paths: []extV1beta1.HTTPIngressPath{{Path: "testpath", Backend: extV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Ingress create", Value: "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedMsTeamsCard: utils.MsTeamsCard{
+				Sections: []notify.Section{{ActivityTitle: "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:", Facts: []notify.Fact(nil), Markdown: true}, {ActivityTitle: "> Resource created\n\n\nWarnings:\n\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n", Facts: []notify.Fact(nil), Markdown: true}},
+				Summary:  "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:",
 			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Ingress", Name: "ingress-with-service", Namespace: "test", Cluster: "test-cluster-1"},
@@ -82,6 +94,13 @@ func (c *context) testFilters(t *testing.T) {
 				assert.NoError(t, err, "message should decode properly")
 				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 				assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
+			}
+
+			if c.TestEnv.Config.Communications.MsTeams.Enabled {
+				// Get last seen msteams card
+				lastSeenCard := c.GetLastReceivedCard()
+				assert.Equal(t, test.ExpectedMsTeamsCard.Sections, lastSeenCard.Sections)
+				assert.Equal(t, test.ExpectedMsTeamsCard.Summary, lastSeenCard.Summary)
 			}
 
 			if c.TestEnv.Config.Communications.Webhook.Enabled {

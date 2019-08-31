@@ -43,6 +43,9 @@ func main() {
 	if Config.Communications.ElasticSearch.Enabled {
 		notifiers = append(notifiers, notify.NewElasticSearch(Config))
 	}
+	if Config.Communications.MsTeams.Enabled {
+		notifiers = append(notifiers, notify.NewMsTeams(Config))
+	}
 	if Config.Communications.Webhook.Enabled {
 		notifiers = append(notifiers, notify.NewWebhook(Config))
 	}

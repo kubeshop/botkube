@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
+	exec "github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 	tests := map[string]botkubeCommand{
 		"BotKube ping": {
 			command:  "ping",
-			expected: fmt.Sprintf("```pong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s```", c.Config.Settings.ClusterName, execute.K8sVersion, botkubeVersion),
+			expected: fmt.Sprintf("```pong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s```", c.Config.Settings.ClusterName, exec.K8sVersion, botkubeVersion),
 		},
 		"BotKube filters list": {
 			command: "filters list",

@@ -29,6 +29,15 @@ func (c *context) testWelcome(t *testing.T) {
 		assert.Equal(t, c.TestEnv.Config.Communications.Slack.Channel, m.Channel)
 		assert.Equal(t, expected, m.Text)
 	}
+
+	if c.TestEnv.Config.Communications.MsTeams.Enabled {
+
+		// Get last seen msteams card
+		lastSeenCard := c.GetLastReceivedCard()
+
+		// Convert text message into Slack message structure
+		assert.Equal(t, expected, lastSeenCard.Summary)
+	}
 }
 
 // E2ETests run welcome tests
