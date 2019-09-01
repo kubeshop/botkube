@@ -24,7 +24,7 @@ func (c *context) testWelcome(t *testing.T) {
 
 	// Convert text message into Slack message structure
 	m := slack.Message{}
-	err := json.Unmarshal([]byte(lastSeenMsg), &m)
+	err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 	assert.NoError(t, err, "message should decode properly")
 	assert.Equal(t, c.Env.Config.Communications.Slack.Channel, m.Channel)
 	assert.Equal(t, expected, m.Text)

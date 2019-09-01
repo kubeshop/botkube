@@ -42,7 +42,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 
 			// Convert text message into Slack message structure
 			m := slack.Message{}
-			err := json.Unmarshal([]byte(lastSeenMsg), &m)
+			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 			assert.Equal(t, test.expected, m.Text)
