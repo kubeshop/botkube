@@ -216,7 +216,12 @@ data:
           type: botkube-event
           shards: 1
           replicas: 0
-  
+      
+      # Settings for Webhook
+      webhook:
+        enabled: false
+        url: 'WEBHOOK_URL'                          # e.g https://example.com:80
+
     # Setting to support multiple clusters
     settings:
       # Cluster name to differentiate incoming messages

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/nlopes/slack"
 	v1 "k8s.io/api/core/v1"
@@ -17,13 +18,21 @@ type SlackMessage struct {
 	Attachments []slack.Attachment
 }
 
+// WebhookPayload structure
+type WebhookPayload struct {
+	Summary     string             `json:summary`
+	EventMeta   notify.EventMeta   `json:"meta"`
+	EventStatus notify.EventStatus `json:"status"`
+}
+
 // CreateObjects stores specs for creating a k8s fake object and expected Slack response
 type CreateObjects struct {
-	Kind      string
-	Namespace string
-	Specs     runtime.Object
-	NotifType config.NotifType
-	Expected  SlackMessage
+	Kind                   string
+	Namespace              string
+	Specs                  runtime.Object
+	NotifType              config.NotifType
+	ExpectedWebhookPayload WebhookPayload
+	ExpectedSlackMessage   SlackMessage
 }
 
 // CreateResource with fake client

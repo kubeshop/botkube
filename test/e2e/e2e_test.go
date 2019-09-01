@@ -22,14 +22,27 @@ func TestRun(t *testing.T) {
 	testEnv := env.New()
 
 	// Fake notifiers
-	fakeSlackNotifier := &notify.Slack{
-		Token:       testEnv.Config.Communications.Slack.Token,
-		Channel:     testEnv.Config.Communications.Slack.Channel,
-		ClusterName: testEnv.Config.Settings.ClusterName,
-		NotifType:   testEnv.Config.Communications.Slack.NotifType,
-		SlackURL:    testEnv.SlackServer.GetAPIURL(),
+	notifiers := []notify.Notifier{}
+
+	if testEnv.Config.Communications.Slack.Enabled {
+		fakeSlackNotifier := &notify.Slack{
+			Token:       testEnv.Config.Communications.Slack.Token,
+			Channel:     testEnv.Config.Communications.Slack.Channel,
+			ClusterName: testEnv.Config.Settings.ClusterName,
+			NotifType:   testEnv.Config.Communications.Slack.NotifType,
+			SlackURL:    testEnv.SlackServer.GetAPIURL(),
+		}
+
+		notifiers = append(notifiers, fakeSlackNotifier)
 	}
-	notifiers := []notify.Notifier{fakeSlackNotifier}
+
+	if testEnv.Config.Communications.Webhook.Enabled {
+		fakeWebhookNotifier := &notify.Webhook{
+			URL:         testEnv.WebhookServer.GetAPIURL(),
+			ClusterName: testEnv.Config.Settings.ClusterName,
+		}
+		notifiers = append(notifiers, fakeWebhookNotifier)
+	}
 
 	utils.KubeClient = testEnv.K8sClient
 	utils.InitInformerMap()
