@@ -57,3 +57,9 @@ spec:
           secret:
             secretName: {{ include "botkube.fullname" . }}-secret
       {{ end }}
+      {{- if .Values.securityContext }}
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+      {{ end }}
+

@@ -29,6 +29,13 @@ RUN apk add --no-cache ca-certificates bash git \
 # Production image
 FROM alpine:3.10
 
+# Create Non Privilaged user
+RUN groupadd -g 101 botkube && \
+ useradd -r -u 101 -g botkube botkube
+
+# Run as Non Privilaged user
+USER botkube
+
 COPY --from=BUILD-ENV /go/bin/botkube /go/bin/botkube
 COPY --from=BUILD-ENV /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=BUILD-ENV /usr/local/bin/kubectl /usr/local/bin/kubectl
