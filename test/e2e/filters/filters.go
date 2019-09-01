@@ -9,7 +9,7 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	extV1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -62,7 +62,7 @@ func (c *context) testFilters(t *testing.T) {
 
 			// Convert text message into Slack message structure
 			m := slack.Message{}
-			err := json.Unmarshal([]byte(lastSeenMsg), &m)
+			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 			assert.Equal(t, test.Expected.Attachments, m.Attachments)

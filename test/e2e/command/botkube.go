@@ -13,7 +13,7 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,7 +55,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 
 			// Convert text message into Slack message structure
 			m := slack.Message{}
-			err := json.Unmarshal([]byte(lastSeenMsg), &m)
+			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 			switch test.command {
@@ -106,7 +106,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 
 		// Convert text message into Slack message structure
 		m := slack.Message{}
-		err := json.Unmarshal([]byte(lastSeenMsg), &m)
+		err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 		assert.NoError(t, err, "message should decode properly")
 		assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 		assert.Equal(t, fmt.Sprintf("```Sure! I won't send you notifications from cluster '%s' anymore.```", c.Config.Settings.ClusterName), m.Text)
@@ -132,7 +132,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 
 		// Convert text message into Slack message structure
 		m := slack.Message{}
-		err := json.Unmarshal([]byte(lastSeenMsg), &m)
+		err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 		assert.NoError(t, err, "message should decode properly")
 		assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 		assert.NotEqual(t, pod.Expected.Attachments, m.Attachments)
@@ -149,7 +149,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 
 		// Convert text message into Slack message structure
 		m := slack.Message{}
-		err := json.Unmarshal([]byte(lastSeenMsg), &m)
+		err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 		assert.NoError(t, err, "message should decode properly")
 		assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 		assert.Equal(t, fmt.Sprintf("```Brace yourselves, notifications are coming from cluster '%s'.```", c.Config.Settings.ClusterName), m.Text)
