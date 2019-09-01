@@ -33,12 +33,14 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 		},
 		"BotKube filters list": {
 			command: "filters list",
-			expected: "FILTER            ENABLED DESCRIPTION\n" +
-				"IngressValidator  true    Checks if services and tls secrets used in ingress specs are available.\n" +
-				"JobStatusChecker  true    Sends notifications only when job succeeds and ignores other job update events.\n" +
-				"NodeEventsChecker true    Sends notifications on node level critical events.\n" +
-				"PodLabelChecker   true    Checks and adds recommedations if labels are missing in the pod specs.\n" +
-				"ImageTagChecker   true    Checks and adds recommendation if 'latest' image tag is used for container image.\n",
+			expected: "FILTER                  ENABLED DESCRIPTION\n" +
+				"NamespaceChecker        true    Checks if event belongs to blocklisted namespaces and filter them.\n" +
+				"NodeEventsChecker       true    Sends notifications on node level critical events.\n" +
+				"ObjectAnnotationChecker true    Checks if annotations botkube.io/* present in object specs and filters them.\n" +
+				"PodLabelChecker         true    Checks and adds recommedations if labels are missing in the pod specs.\n" +
+				"ImageTagChecker         true    Checks and adds recommendation if 'latest' image tag is used for container image.\n" +
+				"IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.\n" +
+				"JobStatusChecker        true    Sends notifications only when job succeeds and ignores other job update events.\n",
 		},
 	}
 

@@ -55,7 +55,6 @@ func (c *context) testCreateResource(t *testing.T) {
 			err := json.Unmarshal([]byte(lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 			assert.Equal(t, test.Expected.Attachments, m.Attachments)
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: "all", EventType: config.CreateEvent}] ||
 				utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: test.Namespace, EventType: config.CreateEvent}]
