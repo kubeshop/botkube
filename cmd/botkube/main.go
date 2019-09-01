@@ -43,7 +43,9 @@ func main() {
 	if Config.Communications.ElasticSearch.Enabled {
 		notifiers = append(notifiers, notify.NewElasticSearch(Config))
 	}
-
+	if Config.Communications.Webhook.Enabled {
+		notifiers = append(notifiers, notify.NewWebhook(Config))
+	}
 	if Config.Settings.UpgradeNotifier {
 		log.Logger.Info("Starting upgrade notifier")
 		go controller.UpgradeNotifier(Config, notifiers)

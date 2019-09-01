@@ -74,6 +74,7 @@ type Communications struct {
 	Slack         Slack
 	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
+	Webhook       Webhook
 }
 
 // Slack configuration to authentication and send notifications
@@ -109,6 +110,12 @@ type Mattermost struct {
 	Team      string
 	Channel   string
 	NotifType NotifType `yaml:",omitempty"`
+}
+
+// Webhook configuration to send notifications
+type Webhook struct {
+	Enabled bool
+	URL     string
 }
 
 // Settings for multicluster support

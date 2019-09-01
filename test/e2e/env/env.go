@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/test/e2e/utils"
+	"github.com/infracloudio/botkube/test/webhook"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
 	"k8s.io/client-go/kubernetes"
@@ -21,6 +23,7 @@ import (
 type TestEnv struct {
 	K8sClient     kubernetes.Interface
 	SlackServer   *slacktest.Server
+	WebhookServer *webhook.Server
 	SlackMessages chan (*slack.MessageEvent)
 	Config        *config.Config
 }
@@ -45,6 +48,9 @@ func New() *TestEnv {
 	testEnv.Config.Communications.Slack.Token = "ABCDEFG"
 	testEnv.Config.Communications.Slack.Channel = "cloud-alerts"
 
+	//Set Webhook
+	testEnv.Config.Communications.Webhook.Enabled = true
+
 	// Add settings
 	testEnv.Config.Settings.ClusterName = "test-cluster-1"
 	testEnv.Config.Settings.AllowKubectl = true
@@ -55,6 +61,7 @@ func New() *TestEnv {
 	testEnv.K8sClient = fake.NewSimpleClientset()
 	testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
 	testEnv.SetupFakeSlack()
+	testEnv.SetupFakeWebhook()
 
 	return testEnv
 }
@@ -76,6 +83,20 @@ func (e TestEnv) GetLastSeenSlackMessage() *string {
 	}
 	return nil
 }
+
+// SetupFakeWebhook create fake Slack server to mock Slack
+func (e *TestEnv) SetupFakeWebhook() {
+	s := webhook.NewTestServer()
+	go s.Start()
+
+	e.WebhookServer = s
+}
+
+// GetLastReceivedPayload return last message received by fake webhook server
+func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
+	allSeenMessages := e.WebhookServer.GetReceivedPayloads()
+	if len(allSeenMessages) != 0 {
+		return &allSeenMessages[len(allSeenMessages)-1]
 	}
-	return ""
+	return nil
 }

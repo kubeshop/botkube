@@ -118,7 +118,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 		Kind:      "pod",
 		Namespace: "test",
 		Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-notifier"}},
-		Expected: utils.SlackMessage{
+		ExpectedSlackMessage: utils.SlackMessage{
 			Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `test-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 		},
 	}
@@ -135,7 +135,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 		err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 		assert.NoError(t, err, "message should decode properly")
 		assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-		assert.NotEqual(t, pod.Expected.Attachments, m.Attachments)
+		assert.NotEqual(t, pod.ExpectedSlackMessage.Attachments, m.Attachments)
 	})
 
 	// Revert and Enable notifier

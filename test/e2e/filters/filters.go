@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
@@ -27,8 +28,13 @@ func (c *context) testFilters(t *testing.T) {
 			Kind:      "pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "nginx-pod", Labels: map[string]string{"env": "test"}}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "nginx", Image: "nginx:latest"}}}},
-			Expected: utils.SlackMessage{
+			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedWebhookPayload: utils.WebhookPayload{
+				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "nginx-pod", Namespace: "test", Cluster: "test-cluster-1"},
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
+				Summary:     "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```",
 			},
 		},
 
@@ -36,8 +42,13 @@ func (c *context) testFilters(t *testing.T) {
 			Kind:      "pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-wo-label"}},
-			Expected: utils.SlackMessage{
+			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedWebhookPayload: utils.WebhookPayload{
+				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "pod-wo-label", Namespace: "test", Cluster: "test-cluster-1"},
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
+				Summary:     "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```",
 			},
 		},
 
@@ -45,8 +56,13 @@ func (c *context) testFilters(t *testing.T) {
 			Kind:      "ingress",
 			Namespace: "test",
 			Specs:     &extV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: extV1beta1.IngressSpec{Rules: []extV1beta1.IngressRule{{IngressRuleValue: extV1beta1.IngressRuleValue{HTTP: &extV1beta1.HTTPIngressRuleValue{Paths: []extV1beta1.HTTPIngressPath{{Path: "testpath", Backend: extV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
-			Expected: utils.SlackMessage{
+			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Ingress create", Value: "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedWebhookPayload: utils.WebhookPayload{
+				EventMeta:   notify.EventMeta{Kind: "Ingress", Name: "ingress-with-service", Namespace: "test", Cluster: "test-cluster-1"},
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
+				Summary:     "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```",
 			},
 		},
 	}
@@ -65,7 +81,13 @@ func (c *context) testFilters(t *testing.T) {
 			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, test.Expected.Attachments, m.Attachments)
+			assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
+
+			// Get last seen webhook payload
+			lastSeenPayload := c.GetLastReceivedPayload()
+			assert.Equal(t, test.ExpectedWebhookPayload.EventMeta, lastSeenPayload.EventMeta)
+			assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
+			assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
 		})
 	}
 }
