@@ -3,7 +3,6 @@ package create
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -57,22 +56,26 @@ func (c *context) testCreateResource(t *testing.T) {
 			// Inject an event into the fake client.
 			testutils.CreateResource(t, test)
 
-			// Get last seen slack message
-			time.Sleep(time.Second)
-			lastSeenMsg := c.GetLastSeenSlackMessage()
+			if c.TestEnv.Config.Communications.Slack.Enabled {
 
-			// Convert text message into Slack message structure
-			m := slack.Message{}
-			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
-			assert.NoError(t, err, "message should decode properly")
-			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
+				// Get last seen slack message
+				lastSeenMsg := c.GetLastSeenSlackMessage()
 
-			// Get last seen webhook payload
-			lastSeenPayload := c.GetLastReceivedPayload()
-			assert.Equal(t, test.ExpectedWebhookPayload.EventMeta, lastSeenPayload.EventMeta)
-			assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
-			assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
+				// Convert text message into Slack message structure
+				m := slack.Message{}
+				err := json.Unmarshal([]byte(*lastSeenMsg), &m)
+				assert.NoError(t, err, "message should decode properly")
+				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
+				assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
+			}
+
+			if c.TestEnv.Config.Communications.Webhook.Enabled {
+				// Get last seen webhook payload
+				lastSeenPayload := c.GetLastReceivedPayload()
+				assert.Equal(t, test.ExpectedWebhookPayload.EventMeta, lastSeenPayload.EventMeta)
+				assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
+				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
+			}
 
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: "all", EventType: config.CreateEvent}] ||
 				utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: test.Namespace, EventType: config.CreateEvent}]

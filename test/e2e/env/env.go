@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
@@ -37,31 +38,25 @@ type E2ETest interface {
 func New() *TestEnv {
 	testEnv := &TestEnv{}
 
+	// Loads `/test/config.yaml` for Integration Testing
 	conf, err := config.New()
 	if err != nil {
 		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 	testEnv.Config = conf
 
-	// Set Slack Api token
-	testEnv.Config.Communications.Slack.Enabled = true
-	testEnv.Config.Communications.Slack.Token = "ABCDEFG"
-	testEnv.Config.Communications.Slack.Channel = "cloud-alerts"
-
-	//Set Webhook
-	testEnv.Config.Communications.Webhook.Enabled = true
-
-	// Add settings
-	testEnv.Config.Settings.ClusterName = "test-cluster-1"
-	testEnv.Config.Settings.AllowKubectl = true
-
 	// Set fake BotKube version
 	os.Setenv("BOTKUBE_VERSION", "v9.99.9")
 
 	testEnv.K8sClient = fake.NewSimpleClientset()
-	testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
-	testEnv.SetupFakeSlack()
-	testEnv.SetupFakeWebhook()
+
+	if testEnv.Config.Communications.Slack.Enabled {
+		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
+		testEnv.SetupFakeSlack()
+	}
+	if testEnv.Config.Communications.Webhook.Enabled {
+		testEnv.SetupFakeWebhook()
+	}
 
 	return testEnv
 }
@@ -77,6 +72,9 @@ func (e *TestEnv) SetupFakeSlack() {
 
 // GetLastSeenSlackMessage return last message received by fake slack server
 func (e TestEnv) GetLastSeenSlackMessage() *string {
+
+	time.Sleep(time.Second)
+
 	allSeenMessages := e.SlackServer.GetSeenOutboundMessages()
 	if len(allSeenMessages) != 0 {
 		return &allSeenMessages[len(allSeenMessages)-1]
@@ -94,6 +92,9 @@ func (e *TestEnv) SetupFakeWebhook() {
 
 // GetLastReceivedPayload return last message received by fake webhook server
 func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
+
+	time.Sleep(time.Second)
+
 	allSeenMessages := e.WebhookServer.GetReceivedPayloads()
 	if len(allSeenMessages) != 0 {
 		return &allSeenMessages[len(allSeenMessages)-1]

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/test/e2e/env"
@@ -33,19 +32,20 @@ func (c *context) testKubectlCommand(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Send message to a channel
-			c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, test.command)
+			if c.TestEnv.Config.Communications.Slack.Enabled {
+				// Send message to a channel
+				c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, test.command)
 
-			// Get last seen slack message
-			time.Sleep(time.Second)
-			lastSeenMsg := c.GetLastSeenSlackMessage()
+				// Get last seen slack message
+				lastSeenMsg := c.GetLastSeenSlackMessage()
 
-			// Convert text message into Slack message structure
-			m := slack.Message{}
-			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
-			assert.NoError(t, err, "message should decode properly")
-			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, test.expected, m.Text)
+				// Convert text message into Slack message structure
+				m := slack.Message{}
+				err := json.Unmarshal([]byte(*lastSeenMsg), &m)
+				assert.NoError(t, err, "message should decode properly")
+				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
+				assert.Equal(t, test.expected, m.Text)
+			}
 		})
 	}
 }
