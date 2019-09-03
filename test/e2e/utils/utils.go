@@ -20,7 +20,7 @@ type SlackMessage struct {
 
 // WebhookPayload structure
 type WebhookPayload struct {
-	Summary     string             `json:summary`
+	Summary     string             `json:"summary"`
 	EventMeta   notify.EventMeta   `json:"meta"`
 	EventStatus notify.EventStatus `json:"status"`
 }

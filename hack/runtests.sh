@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export CONFIG_PATH=`pwd`
+export CONFIG_PATH="$(pwd)/test"
 
 # Run unit and integration tests excluding dependencies
 PACKAGES=$(go list ./... | grep -v '/vendor/')

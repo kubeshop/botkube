@@ -51,8 +51,11 @@ func TestRun(t *testing.T) {
 	go controller.RegisterInformers(testEnv.Config, notifiers)
 	t.Run("Welcome", welcome.E2ETests(testEnv))
 
-	// Start fake Slack bot
-	StartFakeSlackBot(testEnv)
+	if testEnv.Config.Communications.Slack.Enabled {
+		// Start fake Slack bot
+		StartFakeSlackBot(testEnv)
+	}
+
 	time.Sleep(time.Second)
 
 	// Make test suite
