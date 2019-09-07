@@ -146,11 +146,14 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		}
 	}
 
-	attachment := []*model.SlackAttachment{{
-		Fields:    fields,
-		Footer:    "BotKube",
-		Timestamp: json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
-	}}
+	attachment := []*model.SlackAttachment{
+		{
+			Pretext:   fmt.Sprintf("*%s*", event.Title),
+			Fields:    fields,
+			Footer:    "BotKube",
+			Timestamp: json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
+		},
+	}
 
 	post := &model.Post{}
 	post.Props = map[string]interface{}{

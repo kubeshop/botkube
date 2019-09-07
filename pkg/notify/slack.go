@@ -43,6 +43,7 @@ func FormatSlackMessage(event events.Event, notifyType config.NotifType, cluster
 	switch notifyType {
 	case config.LongNotify:
 		attachment = slack.Attachment{
+			Pretext: fmt.Sprintf("*%s*", event.Title),
 			Fields: []slack.AttachmentField{
 				{
 					Title: "Kind",

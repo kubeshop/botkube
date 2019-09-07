@@ -33,6 +33,7 @@ const (
 // Event to store required information from k8s objects
 type Event struct {
 	Code      string
+	Title     string
 	Kind      string
 	Name      string
 	Namespace string
@@ -96,10 +97,10 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	if kind != "events" {
 		switch eventType {
 		case config.ErrorEvent, config.InfoEvent:
-			event.Messages = []string{fmt.Sprintf("Resource %s\n", eventType.String())}
+			event.Title = fmt.Sprintf("Resource %s", eventType.String())
 		default:
 			// Events like create, update, delete comes with an extra 'd' at the end
-			event.Messages = []string{fmt.Sprintf("Resource %sd\n", eventType.String())}
+			event.Title = fmt.Sprintf("Resource %sd", eventType.String())
 		}
 	}
 
@@ -190,64 +191,62 @@ func (event *Event) Message() (msg string) {
 		switch event.Kind {
 		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
 			msg = fmt.Sprintf(
-				"%s `%s` in of cluster `%s` has been %s:\n```%s```",
+				"%s *%s/%s* has been %s in *%s* cluster",
 				event.Kind,
+				event.Namespace,
 				event.Name,
-				event.Cluster,
 				event.Type+"d",
-				message,
+				event.Cluster,
 			)
 		default:
 			msg = fmt.Sprintf(
-				"%s `%s` in of cluster `%s`, namespace `%s` has been %s:\n```%s```",
+				"%s *%s/%s* has been %s in *%s* cluster",
 				event.Kind,
-				event.Name,
-				event.Cluster,
 				event.Namespace,
+				event.Name,
 				event.Type+"d",
-				message,
+				event.Cluster,
 			)
 		}
 	case config.ErrorEvent:
 		switch event.Kind {
 		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
 			msg = fmt.Sprintf(
-				"Error Occurred in %s: `%s` of cluster `%s`:\n```%s``` ",
+				"Error Occurred in %s: *%s* in *%s* cluster",
 				event.Kind,
 				event.Name,
 				event.Cluster,
-				message,
 			)
 		default:
 			msg = fmt.Sprintf(
-				"Error Occurred in %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				"Error Occurred in %s: *%s* in *%s* cluster",
 				event.Kind,
 				event.Name,
 				event.Cluster,
-				event.Namespace,
-				message,
 			)
 		}
 	case config.WarningEvent:
 		switch event.Kind {
 		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
 			msg = fmt.Sprintf(
-				"Warning %s: `%s` of cluster `%s`:\n```%s``` ",
+				"Warning %s: *%s* in *%s* cluster",
 				event.Kind,
 				event.Name,
 				event.Cluster,
-				message,
 			)
 		default:
 			msg = fmt.Sprintf(
-				"Warning %s: `%s` of cluster `%s`, namespace `%s`:\n```%s``` ",
+				"Warning %s: *%s* in *%s* cluster",
 				event.Kind,
 				event.Name,
 				event.Cluster,
-				event.Namespace,
-				message,
 			)
 		}
+	}
+
+	// Add message in the attachment if there is any
+	if len(message) > 0 {
+		msg += fmt.Sprintf("\n```%s```", message)
 	}
 	return msg
 }
