@@ -28,12 +28,12 @@ func (c *context) testFilters(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "nginx-pod", Labels: map[string]string{"env": "test"}}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "nginx", Image: "nginx:latest"}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod *test/nginx-pod* has been created in *test-cluster-1* cluster\n```Recommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "nginx-pod", Namespace: "test", Cluster: "test-cluster-1"},
-				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
-				Summary:     "Pod `nginx-pod` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```",
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
+				Summary:     "Pod *test/nginx-pod* has been created in *test-cluster-1* cluster\n```Recommendations:\n- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.\n```",
 			},
 		},
 
@@ -42,12 +42,12 @@ func (c *context) testFilters(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-wo-label"}},
 			ExpectedSlackMessage: utils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod *test/pod-wo-label* has been created in *test-cluster-1* cluster\n```Recommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "pod-wo-label", Namespace: "test", Cluster: "test-cluster-1"},
-				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
-				Summary:     "Pod `pod-wo-label` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nRecommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```",
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
+				Summary:     "Pod *test/pod-wo-label* has been created in *test-cluster-1* cluster\n```Recommendations:\n- pod 'pod-wo-label' creation without labels should be avoided.\n```",
 			},
 		},
 
@@ -56,12 +56,12 @@ func (c *context) testFilters(t *testing.T) {
 			Namespace: "test",
 			Specs:     &extV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: extV1beta1.IngressSpec{Rules: []extV1beta1.IngressRule{{IngressRuleValue: extV1beta1.IngressRuleValue{HTTP: &extV1beta1.HTTPIngressRuleValue{Paths: []extV1beta1.HTTPIngressPath{{Path: "testpath", Backend: extV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Ingress create", Value: "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Ingress create", Value: "Ingress *test/ingress-with-service* has been created in *test-cluster-1* cluster\n```Warnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Ingress", Name: "ingress-with-service", Namespace: "test", Cluster: "test-cluster-1"},
-				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: "", Messages: []string{"Resource created\n"}},
-				Summary:     "Ingress `ingress-with-service` in of cluster `test-cluster-1`, namespace `test` has been created:\n```Resource created\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```",
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
+				Summary:     "Ingress *test/ingress-with-service* has been created in *test-cluster-1* cluster\n```Warnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```",
 			},
 		},
 	}
