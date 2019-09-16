@@ -25,6 +25,7 @@ before_script:
 script:
   - make test
   - make
+  - make container-image
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then

@@ -22,7 +22,7 @@ RUN GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube ./cmd/botk
 # Install kubectl binary
 ENV KUBE_LATEST_VERSION="v1.13.0"
 
-RUN apk add --no-cache ca-certificates bash git \
+RUN apk add --no-cache ca-certificates git \
     && wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBE_LATEST_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
@@ -30,8 +30,8 @@ RUN apk add --no-cache ca-certificates bash git \
 FROM alpine:3.10
 
 # Create Non Privilaged user
-RUN groupadd -g 101 botkube && \
- useradd -r -u 101 -g botkube botkube
+RUN addgroup --gid 101 botkube && \
+    adduser -S --uid 101 --ingroup botkube botkube
 
 # Run as Non Privilaged user
 USER botkube
