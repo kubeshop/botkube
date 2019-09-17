@@ -28,7 +28,25 @@ script:
   - make container-image
 
 after_success:
-  - if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-      docker push infracloud/botkube:latest;
+  - |
+    if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+      docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+      docker push infracloud/botkube:latest
+    fi
+
+  - |
+    if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+      cd ..
+      git config --global user.email "botkube-ci@infracloud.io"
+      git config --global user.name "BotKube CI"
+      git clone https://github.com/infracloudio/charts.git
+      cd charts
+      git fetch
+      git branch
+      git pull origin gh-pages
+      helm package --app-version v9.99.9-dev --version v9.99.9-dev ${TRAVIS_BUILD_DIR}/helm/botkube/
+      helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
+      git add .
+      git commit -m "Update BotKube latest helm chart"
+      git push https://${GH_TOKEN}@github.com/infracloudio/charts.git
     fi
