@@ -1,4 +1,4 @@
-IMAGE_REPO=infracloud/botkube
+IMAGE_REPO=infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
