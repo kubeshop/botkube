@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: infracloud/botkube
+  repository: infracloudio/botkube
   pullPolicy: Always
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
