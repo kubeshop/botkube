@@ -101,7 +101,7 @@ func (b *MMBot) Start() {
 	go func() {
 		for {
 			event := <-webSocketClient.EventChannel
-			if event.Event != model.WEBSOCKET_EVENT_POSTED {
+			if event == nil || event.Event != model.WEBSOCKET_EVENT_POSTED {
 				continue
 			}
 			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
