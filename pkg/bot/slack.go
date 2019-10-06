@@ -130,6 +130,7 @@ func (sm slackMessage) Send() {
 	// Upload message as a file if too long
 	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{
+			Filename: sm.Request,
 			Title:    sm.Request,
 			Content:  sm.Response,
 			Channels: []string{sm.Event.Channel},
