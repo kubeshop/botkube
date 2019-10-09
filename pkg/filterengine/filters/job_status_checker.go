@@ -4,6 +4,8 @@
 package filters
 
 import (
+	"time"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
@@ -35,21 +37,24 @@ func (f JobStatusChecker) Run(object interface{}, event *events.Event) {
 		return
 	}
 
+	event.Skip = true
 	// Check latest job conditions
 	jobLen := len(jobObj.Status.Conditions)
 	if jobLen == 0 {
-		event.Skip = true
 		return
 	}
 	c := jobObj.Status.Conditions[jobLen-1]
 	if c.Type == batchV1.JobComplete {
 		event.Messages = []string{"Job succeeded!"}
+		// Make sure that we are not considering older events
+		// Skip older update events if timestamp difference is more than 30sec
+		if !event.TimeStamp.IsZero() && time.Now().Sub(c.LastTransitionTime.Time) > 30*time.Second {
+			log.Logger.Debugf("JobStatusChecker Skipping older event: %#v", event)
+			return
+		}
 		event.TimeStamp = c.LastTransitionTime.Time
 		// overwrite event.Skip in case of Job succeeded (Job update) events
 		event.Skip = false
-	} else {
-		event.Skip = true
-		return
 	}
 	event.Reason = c.Reason
 	log.Logger.Debug("Job status checker filter successful!")
