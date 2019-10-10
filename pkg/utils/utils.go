@@ -11,7 +11,7 @@ import (
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
-	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	rbacV1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -103,7 +103,7 @@ func InitInformerMap() {
 	ResourceInformerMap["replicaset"] = KubeInformerFactory.Apps().V1().ReplicaSets().Informer()
 	ResourceInformerMap["statefulset"] = KubeInformerFactory.Apps().V1().StatefulSets().Informer()
 
-	ResourceInformerMap["ingress"] = KubeInformerFactory.Extensions().V1beta1().Ingresses().Informer()
+	ResourceInformerMap["ingress"] = KubeInformerFactory.Networking().V1beta1().Ingresses().Informer()
 
 	ResourceInformerMap["job"] = KubeInformerFactory.Batch().V1().Jobs().Informer()
 
@@ -186,7 +186,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 	case *appsV1.StatefulSet:
 		objectMeta = object.ObjectMeta
 
-	case *extV1beta1.Ingress:
+	case *networkV1beta1.Ingress:
 		objectMeta = object.ObjectMeta
 
 	case *batchV1.Job:
@@ -240,7 +240,7 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 	case *appsV1.StatefulSet:
 		typeMeta = object.TypeMeta
 
-	case *extV1beta1.Ingress:
+	case *networkV1beta1.Ingress:
 		typeMeta = object.TypeMeta
 
 	case *batchV1.Job:

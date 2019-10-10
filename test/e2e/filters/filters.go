@@ -10,7 +10,7 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -54,7 +54,7 @@ func (c *context) testFilters(t *testing.T) {
 		"test IngressValidator filter": {
 			Kind:      "ingress",
 			Namespace: "test",
-			Specs:     &extV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: extV1beta1.IngressSpec{Rules: []extV1beta1.IngressRule{{IngressRuleValue: extV1beta1.IngressRuleValue{HTTP: &extV1beta1.HTTPIngressRuleValue{Paths: []extV1beta1.HTTPIngressPath{{Path: "testpath", Backend: extV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
+			Specs:     &networkV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: networkV1beta1.IngressSpec{Rules: []networkV1beta1.IngressRule{{IngressRuleValue: networkV1beta1.IngressRuleValue{HTTP: &networkV1beta1.HTTPIngressRuleValue{Paths: []networkV1beta1.HTTPIngressPath{{Path: "testpath", Backend: networkV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Ingress create", Value: "Ingress *test/ingress-with-service* has been created in *test-cluster-1* cluster\n```Warnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
 			},

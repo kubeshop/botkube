@@ -7,7 +7,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
-	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	networkV1beta1 "k8s.io/api/networking/v1beta1"
 )
 
 // IngressValidator checks if service and tls secret used in ingress specs is already present
@@ -28,7 +28,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Ingress" || event.Type != config.CreateEvent {
 		return
 	}
-	ingressObj, ok := object.(*extV1beta1.Ingress)
+	ingressObj, ok := object.(*networkV1beta1.Ingress)
 	if !ok {
 		return
 	}
