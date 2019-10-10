@@ -8,7 +8,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/nlopes/slack"
 	v1 "k8s.io/api/core/v1"
-	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -51,8 +51,8 @@ func CreateResource(t *testing.T, obj CreateObjects) {
 			t.Fatalf("Failed to create service: %v", err)
 		}
 	case "ingress":
-		s := obj.Specs.(*extV1beta1.Ingress)
-		_, err := utils.KubeClient.ExtensionsV1beta1().Ingresses(obj.Namespace).Create(s)
+		s := obj.Specs.(*networkV1beta1.Ingress)
+		_, err := utils.KubeClient.NetworkingV1beta1().Ingresses(obj.Namespace).Create(s)
 		if err != nil {
 			t.Fatalf("Failed to create service: %v", err)
 		}

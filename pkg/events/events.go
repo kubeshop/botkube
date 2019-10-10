@@ -10,7 +10,7 @@ import (
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	apiV1 "k8s.io/api/core/v1"
-	extV1beta1 "k8s.io/api/extensions/v1beta1"
+	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	rbacV1 "k8s.io/api/rbac/v1"
 )
 
@@ -134,7 +134,7 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	case *apiV1.ConfigMap:
 		event.Kind = "ConfigMap"
 
-	case *extV1beta1.Ingress:
+	case *networkV1beta1.Ingress:
 		event.Kind = "Ingress"
 
 	case *appsV1.DaemonSet:
