@@ -5,7 +5,7 @@ ARG GOOS_VAL
 ARG GOARCH_VAL
 
 # Add git
-RUN apk update && apk add git
+RUN apk update && apk add git curl
 
 WORKDIR /app
 
@@ -20,10 +20,8 @@ COPY . .
 RUN GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube ./cmd/botkube 
 
 # Install kubectl binary
-ENV KUBE_LATEST_VERSION="v1.13.0"
-
 RUN apk add --no-cache ca-certificates git \
-    && wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBE_LATEST_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl \
+    && wget -q https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
 # Production image
