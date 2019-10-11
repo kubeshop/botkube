@@ -154,9 +154,9 @@ resources:
       - create
       - delete
       - error
-  - name: clusterrolebindings
+  - name: clusterrole
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         - 
