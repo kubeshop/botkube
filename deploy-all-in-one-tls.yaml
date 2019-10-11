@@ -272,7 +272,7 @@ subjects:
   name: botkube-sa
   namespace: botkube
 ---
-# Secret
+# Certificate for Mattermost integration: https://www.botkube.io/installation/mattermost/
 apiVersion: v1
 kind: Secret
 metadata:
