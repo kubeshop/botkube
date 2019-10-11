@@ -1,5 +1,6 @@
 # BotKube
 [![Build Status](https://travis-ci.org/infracloudio/botkube.svg?branch=master)](https://travis-ci.org/infracloudio/botkube) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube) [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io) [![Slack](https://botkube-slack.herokuapp.com/badge.svg)](http://join.botkube.io/) [![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube)
+[![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/infracloudio/botkube/releases/latest)
 
 For complete documentation visit www.botkube.io
 
