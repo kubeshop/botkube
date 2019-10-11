@@ -181,7 +181,10 @@ config:
         - error
     - name: clusterrole
       namespaces:
-        - all
+        include:
+          - all
+        ignore:
+          - 
       events:
         - create
         - delete
