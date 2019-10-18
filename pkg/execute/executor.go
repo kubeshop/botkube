@@ -153,6 +153,9 @@ func (e *DefaultExecutor) Execute() string {
 		if len(res) == 0 {
 			return ""
 		}
+    if !e.IsAuthChannel {
+      return ""
+    }
 		return fmt.Sprintf("pong from cluster '%s'", e.ClusterName) + "\n\n" + res
 	}
 	if validVersionCommand[args[0]] {
