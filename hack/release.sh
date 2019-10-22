@@ -29,8 +29,8 @@ update_chart_yamls() {
 
     sed -i "s/version.*/version: ${version}/" helm/botkube/Chart.yaml
     sed -i "s/appVersion.*/appVersion: ${version}/" helm/botkube/Chart.yaml
-    sed -i "s/\bimage: \"infracloud\/botkube.*\b/image: \"infracloud\/botkube:${version}/g" deploy-all-in-one.yaml
-    sed -i "s/\bimage: \"infracloud\/botkube.*\b/image: \"infracloud\/botkube:${version}/g" deploy-all-in-one-tls.yaml
+    sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one.yaml
+    sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one-tls.yaml
 
     oldVersion=$(echo $(awk '/BOTKUBE_VERSION/ {getline; print}' deploy-all-in-one.yaml))
     sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one.yaml
