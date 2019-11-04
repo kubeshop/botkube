@@ -12,27 +12,27 @@ data:
     resources:
       - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
         namespaces:
-          include:  
+          include:
             - all
           ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
-            -                     # example : include [all], ignore [x,y,z] 
+            -                     # example : include [all], ignore [x,y,z]
         events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
           - create
           - delete
           - error
       - name: service
         namespaces:
-          include:  
+          include:
             - all
           ignore:
-            - 
+            -
         events:
           - create
           - delete
           - error
       - name: deployment
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -43,7 +43,7 @@ data:
           - error
       - name: statefulset
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -54,7 +54,7 @@ data:
           - error
       - name: ingress
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -64,7 +64,7 @@ data:
           - error
       - name: node
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -74,7 +74,7 @@ data:
           - error
       - name: namespace
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -84,7 +84,7 @@ data:
           - error
       - name: persistentvolume
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -94,7 +94,7 @@ data:
           - error
       - name: persistentvolumeclaim
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -104,7 +104,7 @@ data:
           - error
       - name: secret
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -114,7 +114,7 @@ data:
           - error
       - name: configmap
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -124,7 +124,7 @@ data:
           - error
       - name: daemonset
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -135,7 +135,7 @@ data:
           - error
       - name: job
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -146,7 +146,7 @@ data:
           - error
       - name: role
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -156,7 +156,7 @@ data:
           - error
       - name: rolebinding
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -176,7 +176,7 @@ data:
           - error
       - name: clusterrolebinding
         namespaces:
-          include:  
+          include:
             - all
           ignore:
             -
@@ -184,11 +184,11 @@ data:
           - create
           - delete
           - error
-  
+
     # Check true if you want to receive recommendations
     # about the best practices for the created resource
     recommendations: true
-    
+
     # Channels configuration
     communications:
       # Settings for Slack
@@ -197,7 +197,7 @@ data:
         channel: 'SLACK_CHANNEL'
         token: 'SLACK_API_TOKEN'
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
-      
+
       # Settings for Mattermost
       mattermost:
         enabled: false
@@ -206,7 +206,7 @@ data:
         team: 'MATTERMOST_TEAM'                     # Mattermost Team to configure with BotKube
         channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
-      
+
       # Settings for ELS
       elasticsearch:
         enable: false
@@ -219,7 +219,7 @@ data:
           type: botkube-event
           shards: 1
           replicas: 0
-      
+
       # Settings for Webhook
       webhook:
         enabled: false
