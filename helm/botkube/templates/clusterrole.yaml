@@ -11,3 +11,9 @@ rules:
   - apiGroups: ["*"]
     resources: ["*"]
     verbs: ["get", "watch", "list"]
+{{- if .Values.podSecurityPolicy.enabled }}
+  - apiGroups: ["extensions"]
+    resourceNames: ["botkube-psp"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]}
+{{ end }}
