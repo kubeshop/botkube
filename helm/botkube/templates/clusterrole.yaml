@@ -15,5 +15,5 @@ rules:
   - apiGroups: ["extensions"]
     resourceNames: ["botkube-psp"]
     resources: ["podsecuritypolicies"]
-    verbs: ["use"]}
+    verbs: ["use"]
 {{ end }}
