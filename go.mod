@@ -26,7 +26,7 @@ require (
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/nicksnyder/go-i18n v1.10.1 // indirect
-	github.com/nlopes/slack v0.5.1-0.20190623232825-2891986e2a3e
+	github.com/nlopes/slack v0.6.1-0.20191106133607-d06c2a2b3249
 	github.com/olivere/elastic v6.2.21+incompatible
 	github.com/onsi/ginkgo v1.10.2 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect
@@ -55,3 +55,5 @@ require (
 	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d // indirect
 )
+
+go 1.13
