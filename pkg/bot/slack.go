@@ -66,7 +66,7 @@ func (b *SlackBot) Start() {
 	for msg := range RTM.IncomingEvents {
 		switch ev := msg.Data.(type) {
 		case *slack.ConnectedEvent:
-			logging.Logger.Debug("Connection Info: ", ev.Info)
+			logging.Logger.Debug("BotKube connected!")
 
 		case *slack.MessageEvent:
 			// Skip if message posted by BotKube
@@ -84,9 +84,25 @@ func (b *SlackBot) Start() {
 		case *slack.RTMError:
 			logging.Logger.Errorf("Slack RMT error: %+v", ev.Error())
 
+		case *slack.ConnectionErrorEvent:
+			logging.Logger.Errorf("Slack connection error: %+v", ev.Error())
+
+		case *slack.IncomingEventError:
+			logging.Logger.Errorf("Slack incoming event error: %+v", ev.Error())
+
+		case *slack.OutgoingErrorEvent:
+			logging.Logger.Errorf("Slack outgoing event error: %+v", ev.Error())
+
+		case *slack.UnmarshallingErrorEvent:
+			logging.Logger.Errorf("Slack unmarshalling error: %+v", ev.Error())
+
+		case *slack.RateLimitedError:
+			logging.Logger.Errorf("Slack rate limiting error: %+v", ev.Error())
+
 		case *slack.InvalidAuthEvent:
 			logging.Logger.Error("Invalid Credentials")
 			return
+
 		default:
 		}
 	}
