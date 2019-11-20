@@ -1,0 +1,20 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "botkube.fullname" . }}
+  labels: 
+    app.kubernetes.io/name: {{ include "botkube.name" . }}
+    helm.sh/chart: {{ include "botkube.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}  
+    app: botkube
+spec:
+  type: ClusterIP
+  ports:
+  - name: {{ .Values.service.name }}
+    port: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.targetPort }}
+  selector:
+    app: botkube 
+{{- end }}

@@ -42,6 +42,8 @@ spec:
               value: {{ .Values.logLevel | quote }}
             - name: BOTKUBE_VERSION
               value: {{ .Chart.Version }}
+            - name: METRICS_PORT
+              value: {{ .Values.service.targetPort | quote }} 
         {{- if .Values.extraEnv }}
           {{- range $name, $value := .Values.extraEnv }}
             - name: {{ $name }}

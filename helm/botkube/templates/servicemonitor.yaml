@@ -1,0 +1,31 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "botkube.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "botkube.name" . }}
+    helm.sh/chart: {{ include "botkube.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- if .Values.serviceMonitor.labels }}
+    {{- toYaml .Values.serviceMonitor.labels | nindent 4 }}
+    {{- end }}
+
+spec:
+  endpoints:
+  - interval: {{ .Values.serviceMonitor.interval }}
+    port: {{ .Values.serviceMonitor.port }}
+    path: {{ .Values.serviceMonitor.path }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "botkube.name" . }}
+      helm.sh/chart: {{ include "botkube.chart" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      component: controller
+      app: botkube
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+{{- end }}
