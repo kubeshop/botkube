@@ -28,12 +28,12 @@ func (c *context) testCreateResource(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Pod create", Value: "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```Recommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "Pod Created", Fields: []slack.AttachmentField{{Value: "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "test-pod", Namespace: "test", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
-				Summary:     "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```Recommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```",
+				Summary:     "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```",
 			},
 		},
 		"create service in configured namespace": {
@@ -41,12 +41,24 @@ func (c *context) testCreateResource(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Fields: []slack.AttachmentField{{Title: "Service create", Value: "Service *test/test-service* has been created in *test-cluster-1* cluster", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "Service Created", Fields: []slack.AttachmentField{{Value: "Service *test/test-service* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Service", Name: "test-service", Namespace: "test", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
-				Summary:     "Service *test/test-service* has been created in *test-cluster-1* cluster",
+				Summary:     "Service *test/test-service* has been created in *test-cluster-1* cluster\n",
+			},
+		},
+		"create a namespace": {
+			Kind:  "namespace",
+			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			ExpectedSlackMessage: testutils.SlackMessage{
+				Attachments: []slack.Attachment{{Color: "good", Title: "Namespace Created", Fields: []slack.AttachmentField{{Value: "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedWebhookPayload: testutils.WebhookPayload{
+				EventMeta:   notify.EventMeta{Kind: "Namespace", Name: "test-namespace", Namespace: "", Cluster: "test-cluster-1"},
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
+				Summary:     "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n",
 			},
 		},
 	}

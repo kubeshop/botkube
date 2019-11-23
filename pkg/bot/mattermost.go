@@ -98,6 +98,7 @@ func (b *MMBot) Start() {
 	}
 
 	webSocketClient.Listen()
+	logging.Logger.Info("BotKube connected to Mattermost!")
 	go func() {
 		for {
 			event := <-webSocketClient.EventChannel

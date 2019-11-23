@@ -10,7 +10,7 @@ import (
 	log "github.com/infracloudio/botkube/pkg/logging"
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
-	apiV1 "k8s.io/api/core/v1"
+	coreV1 "k8s.io/api/core/v1"
 	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	rbacV1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,7 +145,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 	var objectMeta metaV1.ObjectMeta
 
 	switch object := obj.(type) {
-	case *apiV1.Event:
+	case *coreV1.Event:
 		objectMeta = object.ObjectMeta
 		// pass InvolvedObject`s annotations into Event`s annotations
 		// for filtering event objects based on InvolvedObject`s annotations
@@ -158,23 +158,23 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 			}
 		}
 
-	case *apiV1.Pod:
+	case *coreV1.Pod:
 		objectMeta = object.ObjectMeta
-	case *apiV1.Node:
+	case *coreV1.Node:
 		objectMeta = object.ObjectMeta
-	case *apiV1.Namespace:
+	case *coreV1.Namespace:
 		objectMeta = object.ObjectMeta
-	case *apiV1.PersistentVolume:
+	case *coreV1.PersistentVolume:
 		objectMeta = object.ObjectMeta
-	case *apiV1.PersistentVolumeClaim:
+	case *coreV1.PersistentVolumeClaim:
 		objectMeta = object.ObjectMeta
-	case *apiV1.ReplicationController:
+	case *coreV1.ReplicationController:
 		objectMeta = object.ObjectMeta
-	case *apiV1.Service:
+	case *coreV1.Service:
 		objectMeta = object.ObjectMeta
-	case *apiV1.Secret:
+	case *coreV1.Secret:
 		objectMeta = object.ObjectMeta
-	case *apiV1.ConfigMap:
+	case *coreV1.ConfigMap:
 		objectMeta = object.ObjectMeta
 
 	case *appsV1.DaemonSet:
@@ -210,25 +210,25 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 	var typeMeta metaV1.TypeMeta
 
 	switch object := obj.(type) {
-	case *apiV1.Event:
+	case *coreV1.Event:
 		typeMeta = object.TypeMeta
-	case *apiV1.Pod:
+	case *coreV1.Pod:
 		typeMeta = object.TypeMeta
-	case *apiV1.Node:
+	case *coreV1.Node:
 		typeMeta = object.TypeMeta
-	case *apiV1.Namespace:
+	case *coreV1.Namespace:
 		typeMeta = object.TypeMeta
-	case *apiV1.PersistentVolume:
+	case *coreV1.PersistentVolume:
 		typeMeta = object.TypeMeta
-	case *apiV1.PersistentVolumeClaim:
+	case *coreV1.PersistentVolumeClaim:
 		typeMeta = object.TypeMeta
-	case *apiV1.ReplicationController:
+	case *coreV1.ReplicationController:
 		typeMeta = object.TypeMeta
-	case *apiV1.Service:
+	case *coreV1.Service:
 		typeMeta = object.TypeMeta
-	case *apiV1.Secret:
+	case *coreV1.Secret:
 		typeMeta = object.TypeMeta
-	case *apiV1.ConfigMap:
+	case *coreV1.ConfigMap:
 		typeMeta = object.TypeMeta
 
 	case *appsV1.DaemonSet:
@@ -270,7 +270,7 @@ func DeleteDoubleWhiteSpace(slice []string) []string {
 }
 
 // ExtractAnnotaions returns annotations of InvolvedObject for the given event
-func ExtractAnnotaions(obj *apiV1.Event) map[string]string {
+func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
 
 	switch obj.InvolvedObject.Kind {
 	case "Pod":

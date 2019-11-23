@@ -20,7 +20,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 
-	apiV1 "k8s.io/api/core/v1"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -65,7 +65,7 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 				log.Logger.Errorf("Failed to get MetaNamespaceKey from event resource")
 				return
 			}
-			eventObj, ok := obj.(*apiV1.Event)
+			eventObj, ok := obj.(*coreV1.Event)
 			if !ok {
 				return
 			}
@@ -151,7 +151,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	}
 
 	// Create new event object
-	event := events.New(obj, eventType, kind)
+	event := events.New(obj, eventType, kind, c.Settings.ClusterName)
 
 	// Skip older events
 	if !event.TimeStamp.IsZero() {

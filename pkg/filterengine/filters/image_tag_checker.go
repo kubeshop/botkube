@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -8,7 +9,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	log "github.com/infracloudio/botkube/pkg/logging"
 
-	apiV1 "k8s.io/api/core/v1"
+	coreV1 "k8s.io/api/core/v1"
 )
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
@@ -28,7 +29,7 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Pod" || event.Type != config.CreateEvent {
 		return
 	}
-	podObj, ok := object.(*apiV1.Pod)
+	podObj, ok := object.(*coreV1.Pod)
 	if !ok {
 		return
 	}
@@ -37,7 +38,7 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 	for _, ic := range podObj.Spec.InitContainers {
 		images := strings.Split(ic.Image, ":")
 		if len(images) == 1 || images[1] == "latest" {
-			event.Recommendations = append(event.Recommendations, ":latest tag used in image '"+ic.Image+"' of initContainer '"+ic.Name+"' should be avoided.\n")
+			event.Recommendations = append(event.Recommendations, fmt.Sprintf(":latest tag used in image '%s' of initContainer '%s' should be avoided.", ic.Image, ic.Name))
 		}
 	}
 
@@ -45,7 +46,7 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 	for _, c := range podObj.Spec.Containers {
 		images := strings.Split(c.Image, ":")
 		if len(images) == 1 || images[1] == "latest" {
-			event.Recommendations = append(event.Recommendations, ":latest tag used in image '"+c.Image+"' of Container '"+c.Name+"' should be avoided.\n")
+			event.Recommendations = append(event.Recommendations, fmt.Sprintf(":latest tag used in image '%s' of Container '%s' should be avoided.", c.Image, c.Name))
 		}
 	}
 	log.Logger.Debug("Image tag filter successful!")

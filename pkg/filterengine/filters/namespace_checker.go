@@ -24,6 +24,10 @@ func init() {
 
 // Run filters and modifies event struct
 func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
+	// Skip filter for cluster scoped resource
+	if len(event.Namespace) == 0 {
+		return
+	}
 	// load config.yaml
 	botkubeConfig, err := config.New()
 	if err != nil {
@@ -39,7 +43,6 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 				}
 			}
 		}
-
 	}
 	log.Logger.Debug("Ignore Namespaces filter successful!")
 }

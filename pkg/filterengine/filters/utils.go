@@ -5,18 +5,18 @@ import (
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/utils"
-	apiV1 "k8s.io/api/core/v1"
+	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ValidService returns Service object is service given service exists in the given namespace
-func ValidService(name, namespace string) (*apiV1.Service, error) {
+func ValidService(name, namespace string) (*coreV1.Service, error) {
 	serviceClient := utils.KubeClient.CoreV1().Services(namespace)
 	return serviceClient.Get(name, metaV1.GetOptions{})
 }
 
 // ValidServicePort returns valid Service object if given service with the port exists in the given namespace
-func ValidServicePort(name, namespace string, port int32) (*apiV1.Service, error) {
+func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, error) {
 	serviceClient := utils.KubeClient.CoreV1().Services(namespace)
 	service, err := serviceClient.Get(name, metaV1.GetOptions{})
 	if err != nil {
@@ -31,7 +31,7 @@ func ValidServicePort(name, namespace string, port int32) (*apiV1.Service, error
 }
 
 // ValidSecret return Secret object if the secret is present in the specified object
-func ValidSecret(name, namespace string) (*apiV1.Secret, error) {
+func ValidSecret(name, namespace string) (*coreV1.Secret, error) {
 	secretClient := utils.KubeClient.CoreV1().Secrets(namespace)
 	return secretClient.Get(name, metaV1.GetOptions{})
 }

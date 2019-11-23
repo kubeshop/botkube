@@ -9,7 +9,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/utils"
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
-	apiV1 "k8s.io/api/core/v1"
+	coreV1 "k8s.io/api/core/v1"
 	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	rbacV1 "k8s.io/api/rbac/v1"
 )
@@ -66,7 +66,7 @@ func init() {
 }
 
 // New extract required details from k8s object and returns new Event object
-func New(object interface{}, eventType config.EventType, kind string) Event {
+func New(object interface{}, eventType config.EventType, kind, clusterName string) Event {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	objectMeta := utils.GetObjectMetaData(object)
 
@@ -76,6 +76,7 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		Kind:      objectTypeMeta.Kind,
 		Level:     LevelMap[eventType],
 		Type:      eventType,
+		Cluster:   clusterName,
 	}
 
 	// initialize event.TimeStamp with the time of event creation
@@ -97,15 +98,15 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	if kind != "events" {
 		switch eventType {
 		case config.ErrorEvent, config.InfoEvent:
-			event.Title = fmt.Sprintf("Resource %s", eventType.String())
+			event.Title = strings.Title(fmt.Sprintf("%s %s", kind, eventType.String()))
 		default:
 			// Events like create, update, delete comes with an extra 'd' at the end
-			event.Title = fmt.Sprintf("Resource %sd", eventType.String())
+			event.Title = strings.Title(fmt.Sprintf("%s %sd", kind, eventType.String()))
 		}
 	}
 
 	switch obj := object.(type) {
-	case *apiV1.Event:
+	case *coreV1.Event:
 		event.Reason = obj.Reason
 		event.Messages = append(event.Messages, obj.Message)
 		event.Kind = obj.InvolvedObject.Kind
@@ -115,23 +116,23 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 		event.Count = obj.Count
 		event.Action = obj.Action
 		event.TimeStamp = obj.LastTimestamp.Time
-	case *apiV1.Pod:
+	case *coreV1.Pod:
 		event.Kind = "Pod"
-	case *apiV1.Node:
+	case *coreV1.Node:
 		event.Kind = "Node"
-	case *apiV1.Namespace:
+	case *coreV1.Namespace:
 		event.Kind = "Namespace"
-	case *apiV1.PersistentVolume:
+	case *coreV1.PersistentVolume:
 		event.Kind = "PersistentVolume"
-	case *apiV1.PersistentVolumeClaim:
+	case *coreV1.PersistentVolumeClaim:
 		event.Kind = "PersistentVolumeClaim"
-	case *apiV1.ReplicationController:
+	case *coreV1.ReplicationController:
 		event.Kind = "ReplicationController"
-	case *apiV1.Service:
+	case *coreV1.Service:
 		event.Kind = "Service"
-	case *apiV1.Secret:
+	case *coreV1.Secret:
 		event.Kind = "Secret"
-	case *apiV1.ConfigMap:
+	case *coreV1.ConfigMap:
 		event.Kind = "ConfigMap"
 
 	case *networkV1beta1.Ingress:
@@ -160,93 +161,4 @@ func New(object interface{}, eventType config.EventType, kind string) Event {
 	}
 
 	return event
-}
-
-// Message returns event message in brief format.
-// included as a part of event package to use across handlers.
-func (event *Event) Message() (msg string) {
-	message := ""
-	if len(event.Messages) > 0 {
-		for _, m := range event.Messages {
-			message = message + m
-		}
-	}
-	if len(event.Recommendations) > 0 {
-		recommend := ""
-		for _, m := range event.Recommendations {
-			recommend = recommend + "- " + m
-		}
-		message = message + fmt.Sprintf("Recommendations:\n%s", recommend)
-	}
-	if len(event.Warnings) > 0 {
-		warning := ""
-		for _, m := range event.Warnings {
-			warning = warning + "- " + m
-		}
-		message = message + fmt.Sprintf("Warnings:\n%s", warning)
-	}
-
-	switch event.Type {
-	case config.CreateEvent, config.DeleteEvent, config.UpdateEvent:
-		switch event.Kind {
-		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
-			msg = fmt.Sprintf(
-				"%s *%s/%s* has been %s in *%s* cluster",
-				event.Kind,
-				event.Namespace,
-				event.Name,
-				event.Type+"d",
-				event.Cluster,
-			)
-		default:
-			msg = fmt.Sprintf(
-				"%s *%s/%s* has been %s in *%s* cluster",
-				event.Kind,
-				event.Namespace,
-				event.Name,
-				event.Type+"d",
-				event.Cluster,
-			)
-		}
-	case config.ErrorEvent:
-		switch event.Kind {
-		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
-			msg = fmt.Sprintf(
-				"Error Occurred in %s: *%s* in *%s* cluster",
-				event.Kind,
-				event.Name,
-				event.Cluster,
-			)
-		default:
-			msg = fmt.Sprintf(
-				"Error Occurred in %s: *%s* in *%s* cluster",
-				event.Kind,
-				event.Name,
-				event.Cluster,
-			)
-		}
-	case config.WarningEvent:
-		switch event.Kind {
-		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
-			msg = fmt.Sprintf(
-				"Warning %s: *%s* in *%s* cluster",
-				event.Kind,
-				event.Name,
-				event.Cluster,
-			)
-		default:
-			msg = fmt.Sprintf(
-				"Warning %s: *%s* in *%s* cluster",
-				event.Kind,
-				event.Name,
-				event.Cluster,
-			)
-		}
-	}
-
-	// Add message in the attachment if there is any
-	if len(message) > 0 {
-		msg += fmt.Sprintf("\n```%s```", message)
-	}
-	return msg
 }

@@ -26,11 +26,10 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		fakeSlackNotifier := &notify.Slack{
-			Token:       testEnv.Config.Communications.Slack.Token,
-			Channel:     testEnv.Config.Communications.Slack.Channel,
-			ClusterName: testEnv.Config.Settings.ClusterName,
-			NotifType:   testEnv.Config.Communications.Slack.NotifType,
-			SlackURL:    testEnv.SlackServer.GetAPIURL(),
+			Token:     testEnv.Config.Communications.Slack.Token,
+			Channel:   testEnv.Config.Communications.Slack.Channel,
+			NotifType: testEnv.Config.Communications.Slack.NotifType,
+			SlackURL:  testEnv.SlackServer.GetAPIURL(),
 		}
 
 		notifiers = append(notifiers, fakeSlackNotifier)

@@ -46,7 +46,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 			}
 			_, err := ValidServicePort(serviceName, ns, int32(servicePort))
 			if err != nil {
-				event.Warnings = append(event.Warnings, fmt.Sprintf("Service '%s' used in ingress '%s' config does not exist or port '%v' not exposed\n", serviceName, ingressObj.Name, servicePort))
+				event.Warnings = append(event.Warnings, fmt.Sprintf("Service '%s' used in ingress '%s' config does not exist or port '%v' not exposed", serviceName, ingressObj.Name, servicePort))
 			}
 		}
 	}
@@ -55,7 +55,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	for _, tls := range ingressObj.Spec.TLS {
 		_, err := ValidSecret(tls.SecretName, ingNs)
 		if err != nil {
-			event.Recommendations = append(event.Recommendations, "TLS secret "+tls.SecretName+"does not exist")
+			event.Recommendations = append(event.Recommendations, fmt.Sprintf("TLS secret %s does not exist", tls.SecretName))
 		}
 	}
 	log.Logger.Debug("Ingress Validator filter successful!")
