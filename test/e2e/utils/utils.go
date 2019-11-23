@@ -56,5 +56,13 @@ func CreateResource(t *testing.T, obj CreateObjects) {
 		if err != nil {
 			t.Fatalf("Failed to create service: %v", err)
 		}
+	case "namespace":
+		s := obj.Specs.(*v1.Namespace)
+		_, err := utils.KubeClient.CoreV1().Namespaces().Create(s)
+		if err != nil {
+			t.Fatalf("Failed to create service: %v", err)
+		}
+	default:
+		t.Fatalf("CreateResource method is not defined for resource %s", obj.Kind)
 	}
 }
