@@ -102,16 +102,6 @@ data:
           - create
           - delete
           - error
-      - name: secret
-        namespaces:
-          include:
-            - all
-          ignore:
-            -
-        events:
-          - create
-          - delete
-          - error
       - name: configmap
         namespaces:
           include:
