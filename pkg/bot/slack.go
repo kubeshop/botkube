@@ -66,7 +66,7 @@ func (b *SlackBot) Start() {
 	for msg := range RTM.IncomingEvents {
 		switch ev := msg.Data.(type) {
 		case *slack.ConnectedEvent:
-			logging.Logger.Debug("BotKube connected!")
+			logging.Logger.Info("BotKube connected to Slack!")
 
 		case *slack.MessageEvent:
 			// Skip if message posted by BotKube
