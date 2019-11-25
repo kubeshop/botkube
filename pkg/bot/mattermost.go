@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -10,8 +9,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/logging"
 	"github.com/mattermost/mattermost-server/model"
 )
-
-var client *model.Client4
 
 // mmChannelType to find Mattermost channel type
 type mmChannelType string
@@ -33,12 +30,15 @@ const (
 
 // MMBot listens for user's message, execute commands and sends back the response
 type MMBot struct {
-	ServerURL    string
 	Token        string
 	TeamName     string
 	ChannelName  string
 	ClusterName  string
 	AllowKubectl bool
+	ServerURL    string
+	WebSocketURL string
+	WSClient     *model.WebSocketClient
+	APIClient    *model.Client4
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -47,13 +47,14 @@ type mattermostMessage struct {
 	Response      string
 	Request       string
 	IsAuthChannel bool
+	APIClient     *model.Client4
 }
 
 // NewMattermostBot returns new Bot object
 func NewMattermostBot() Bot {
 	c, err := config.New()
 	if err != nil {
-		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		logging.Logger.Fatalf("Error in loading configuration. Error: %s", err.Error())
 	}
 
 	return &MMBot{
@@ -68,61 +69,49 @@ func NewMattermostBot() Bot {
 
 // Start establishes mattermost connection and listens for messages
 func (b *MMBot) Start() {
-	client = model.NewAPIv4Client(b.ServerURL)
-	client.SetOAuthToken(b.Token)
+	b.APIClient = model.NewAPIv4Client(b.ServerURL)
+	b.APIClient.SetOAuthToken(b.Token)
 
 	// Check if Mattermost URL is valid
 	checkURL, err := url.Parse(b.ServerURL)
 	if err != nil {
-		logging.Logger.Error("The Mattermost URL entered is incorrect. URL: ", b.ServerURL, "\nError: ", err)
-		return
-	}
-
-	// Check connection to Mattermost server
-	err = checkServerConnection()
-	if err != nil {
-		logging.Logger.Error("There was a problem pinging the Mattermost server URL: ", b.ServerURL, "\nError: ", err)
+		logging.Logger.Errorf("The Mattermost URL entered is incorrect. URL: %s. Error: %s", b.ServerURL, err.Error())
 		return
 	}
 
 	// Create WebSocketClient and handle messages
-	webSocketURL := WebSocketProtocol + checkURL.Host
+	b.WebSocketURL = WebSocketProtocol + checkURL.Host
 	if checkURL.Scheme == "https" {
-		webSocketURL = WebSocketSecureProtocol + checkURL.Host
+		b.WebSocketURL = WebSocketSecureProtocol + checkURL.Host
 	}
-	var modelError *model.AppError
-	webSocketClient, modelError := model.NewWebSocketClient4(webSocketURL, client.AuthToken)
-	if modelError != nil {
-		logging.Logger.Error("Error creating WebSocket for Mattermost connectivity. \nError: ", modelError)
+
+	// Check connection to Mattermost server
+	err = b.checkServerConnection()
+	if err != nil {
+		logging.Logger.Fatalf("There was a problem pinging the Mattermost server URL %s. %s", b.ServerURL, err.Error())
 		return
 	}
 
-	webSocketClient.Listen()
-	logging.Logger.Info("BotKube connected to Mattermost!")
 	go func() {
+		// It is obeserved that Mattermost server closes connections unexpectedly after some time.
+		// For now, we are adding retry logic to reconnect to the server
+		// https://github.com/infracloudio/botkube/issues/201
+		logging.Logger.Info("BotKube connected to Mattermost!")
 		for {
-			event := <-webSocketClient.EventChannel
-			if event == nil || event.Event != model.WEBSOCKET_EVENT_POSTED {
-				continue
+			var appErr *model.AppError
+			b.WSClient, appErr = model.NewWebSocketClient4(b.WebSocketURL, b.APIClient.AuthToken)
+			if appErr != nil {
+				logging.Logger.Errorf("Error creating WebSocket for Mattermost connectivity. %v", appErr)
+				return
 			}
-			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
-
-			// Skip if message posted by BotKube or doesn't start with mention
-			if post.UserId == b.getUser().Id {
-				continue
-			}
-			mm := mattermostMessage{
-				Event:         event,
-				IsAuthChannel: false,
-			}
-			mm.handleMessage(b)
+			b.listen()
 		}
 	}()
 	return
 }
 
 // Check incomming message and take action
-func (mm *mattermostMessage) handleMessage(b *MMBot) {
+func (mm *mattermostMessage) handleMessage(b MMBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
@@ -153,7 +142,7 @@ func (mm mattermostMessage) sendMessage() {
 	post.ChannelId = mm.Event.Broadcast.ChannelId
 	// Create file if message is too large
 	if len(mm.Response) >= 3990 {
-		res, resp := client.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
+		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
 		if resp.Error != nil {
 			logging.Logger.Error("Error occured while uploading file. Error: ", resp.Error)
 		}
@@ -166,46 +155,83 @@ func (mm mattermostMessage) sendMessage() {
 	}
 
 	// Create a post in the Channel
-	if _, resp := client.CreatePost(post); resp.Error != nil {
+	if _, resp := mm.APIClient.CreatePost(post); resp.Error != nil {
 		logging.Logger.Error("Failed to send message. Error: ", resp.Error)
 	}
 }
 
 // Check if Mattermost server is reachable
-func checkServerConnection() error {
-	if _, resp := client.GetOldClientConfig(""); resp.Error != nil {
+func (b MMBot) checkServerConnection() error {
+	// Check api connection
+	if _, resp := b.APIClient.GetOldClientConfig(""); resp.Error != nil {
+		return resp.Error
+	}
+
+	// Get channel list
+	_, resp := b.APIClient.GetTeamByName(b.TeamName, "")
+	if resp.Error != nil {
 		return resp.Error
 	}
 	return nil
 }
 
 // Check if team exists in Mattermost
-func (b *MMBot) getTeam() *model.Team {
-	botTeam, resp := client.GetTeamByName(b.TeamName, "")
+func (b MMBot) getTeam() *model.Team {
+	botTeam, resp := b.APIClient.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
-		logging.Logger.Fatal("There was a problem finding Mattermost team ", b.TeamName, "\nError: ", resp.Error)
+		logging.Logger.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
 	}
 	return botTeam
 }
 
 // Check if botkube user exists in Mattermost
-func (b *MMBot) getUser() *model.User {
-	users, resp := client.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
+func (b MMBot) getUser() *model.User {
+	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
 	if resp.Error != nil {
-		logging.Logger.Fatal("There was a problem finding Mattermost user ", BotName, "\nError: ", resp.Error)
+		logging.Logger.Fatalf("There was a problem finding Mattermost user %s. %s", BotName, resp.Error)
 	}
 	return users.Users[0]
 }
 
 // Create channel if not present and add botkube user in channel
-func (b *MMBot) getChannel() *model.Channel {
+func (b MMBot) getChannel() *model.Channel {
 	// Checking if channel exists
-	botChannel, resp := client.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
+	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
-		logging.Logger.Fatal("There was a problem finding Mattermost channel ", b.ChannelName, "\nError: ", resp.Error)
+		logging.Logger.Fatalf("There was a problem finding Mattermost channel %s. %s", b.ChannelName, resp.Error)
 	}
 
 	// Adding Botkube user to channel
-	client.AddChannelMember(botChannel.Id, b.getUser().Id)
+	b.APIClient.AddChannelMember(botChannel.Id, b.getUser().Id)
 	return botChannel
+}
+
+func (b MMBot) listen() {
+	b.WSClient.Listen()
+	defer b.WSClient.Close()
+	for {
+		if b.WSClient.ListenError != nil {
+			logging.Logger.Debugf("Mattermost websocket listen error %s. Reconnecting...", b.WSClient.ListenError)
+			return
+		}
+
+		event := <-b.WSClient.EventChannel
+		if event == nil {
+			continue
+		}
+		if event.Event == model.WEBSOCKET_EVENT_POSTED {
+			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
+
+			// Skip if message posted by BotKube or doesn't start with mention
+			if post.UserId == b.getUser().Id {
+				continue
+			}
+			mm := mattermostMessage{
+				Event:         event,
+				IsAuthChannel: false,
+				APIClient:     b.APIClient,
+			}
+			mm.handleMessage(b)
+		}
+	}
 }
