@@ -1,13 +1,37 @@
 # Change Log
 
+## [v0.9.1](https://github.com/infracloudio/botkube/tree/v0.9.1) (2019-11-25)
+[Full Changelog](https://github.com/infracloudio/botkube/compare/v0.9.0...v0.9.1)
+
+**Fixed bugs:**
+
+- \[BUG\] BotKube not notifying about cluster-scoped resource [\#218](https://github.com/infracloudio/botkube/issues/218)
+- \[BUG\] BotKube stops responding to the commands after Slack update [\#216](https://github.com/infracloudio/botkube/issues/216)
+- \[BUG\] botkube.io is not accessible  [\#210](https://github.com/infracloudio/botkube/issues/210)
+- \[BUG\] ping message isn't filtered by Channel Id \(mattermost\) [\#205](https://github.com/infracloudio/botkube/issues/205)
+- \[BUG\] Failed to list \*v1beta1.Ingress: the server could not find the requested resources [\#204](https://github.com/infracloudio/botkube/issues/204)
+- \[Mattermost\] Bot stop responding to commands after a while [\#201](https://github.com/infracloudio/botkube/issues/201)
+- \[BUG\] Botkube sends slack notifications multiple times for an event [\#181](https://github.com/infracloudio/botkube/issues/181)
+
+**Merged pull requests:**
+
+- Add colors to Mattermost notification attachments [\#223](https://github.com/infracloudio/botkube/pull/223) ([PrasadG193](https://github.com/PrasadG193))
+- Add mattermost connection retry logic [\#222](https://github.com/infracloudio/botkube/pull/222) ([PrasadG193](https://github.com/PrasadG193))
+- Fix cluster scoped resource notification issue [\#221](https://github.com/infracloudio/botkube/pull/221) ([PrasadG193](https://github.com/PrasadG193))
+- Update slack dep to work with latest Slack api changes [\#217](https://github.com/infracloudio/botkube/pull/217) ([PrasadG193](https://github.com/PrasadG193))
+- Remove errant } from clusterrole helm template [\#213](https://github.com/infracloudio/botkube/pull/213) ([baronomasia](https://github.com/baronomasia))
+- Update image repo in release script [\#207](https://github.com/infracloudio/botkube/pull/207) ([PrasadG193](https://github.com/PrasadG193))
+- Add pod security policy so botkube works in restricted clusters [\#195](https://github.com/infracloudio/botkube/pull/195) ([baronomasia](https://github.com/baronomasia))
+
 ## [v0.9.0](https://github.com/infracloudio/botkube/tree/v0.9.0) (2019-10-11)
 [Full Changelog](https://github.com/infracloudio/botkube/compare/v0.8.0...v0.9.0)
 
 **Implemented enhancements:**
 
+- Add basic proxy support for helm deployment [\#155](https://github.com/infracloudio/botkube/issues/155)
+- Customizable \(or one-liner\) notifications [\#58](https://github.com/infracloudio/botkube/issues/58)
 - Run as non-root [\#161](https://github.com/infracloudio/botkube/issues/161)
 - \[Kubernetes/Helm\] Make cert usage generic [\#160](https://github.com/infracloudio/botkube/issues/160)
-- Add basic proxy support for helm deployment [\#155](https://github.com/infracloudio/botkube/issues/155)
 - Send Alert for Image Version Updates [\#151](https://github.com/infracloudio/botkube/issues/151)
 - Ability to disable config file watcher [\#150](https://github.com/infracloudio/botkube/issues/150)
 - Unit-Test code in Travis [\#144](https://github.com/infracloudio/botkube/issues/144)
@@ -20,7 +44,6 @@
 - Annotations Based Multi-Channel support [\#132](https://github.com/infracloudio/botkube/issues/132)
 - Send more info with update resource notification [\#131](https://github.com/infracloudio/botkube/issues/131)
 - Exclude or Ignore Namespaces [\#128](https://github.com/infracloudio/botkube/issues/128)
-- Customizable \(or one-liner\) notifications [\#58](https://github.com/infracloudio/botkube/issues/58)
 
 **Fixed bugs:**
 
@@ -63,13 +86,10 @@
 - Enhance Update Events with resource spec diff and Change event message formats [\#158](https://github.com/infracloudio/botkube/pull/158) ([codenio](https://github.com/codenio))
 - add proxyURL, deployment env variable if-loop [\#156](https://github.com/infracloudio/botkube/pull/156) ([rajinator](https://github.com/rajinator))
 - Add E2E Integration tests [\#154](https://github.com/infracloudio/botkube/pull/154) ([PrasadG193](https://github.com/PrasadG193))
-- Add flag to control Config Watcher [\#152](https://github.com/infracloudio/botkube/pull/152) ([codenio](https://github.com/codenio))
 - Unskip error and update events for old resources [\#148](https://github.com/infracloudio/botkube/pull/148) ([codenio](https://github.com/codenio))
 - Use SharedInformerFactory instead of cache.Informer [\#146](https://github.com/infracloudio/botkube/pull/146) ([PrasadG193](https://github.com/PrasadG193))
 - \[unit test\] Enable Unit test and add target in Makefile [\#145](https://github.com/infracloudio/botkube/pull/145) ([codenio](https://github.com/codenio))
-- \[feature\] Add Support Go Modules, Remove dep dependencies [\#141](https://github.com/infracloudio/botkube/pull/141) ([codenio](https://github.com/codenio))
 - Fix minor bugs [\#140](https://github.com/infracloudio/botkube/pull/140) ([codenio](https://github.com/codenio))
-- \[feature\] Add support for ignoring namespaces [\#139](https://github.com/infracloudio/botkube/pull/139) ([codenio](https://github.com/codenio))
 - \[feature\] Add Object Annotation filter, Fixes \#132, \#133 [\#138](https://github.com/infracloudio/botkube/pull/138) ([codenio](https://github.com/codenio))
 - Enhance Notification : short/long notification type [\#127](https://github.com/infracloudio/botkube/pull/127) ([codenio](https://github.com/codenio))
 
@@ -105,6 +125,9 @@
 
 **Merged pull requests:**
 
+- Add flag to control Config Watcher [\#152](https://github.com/infracloudio/botkube/pull/152) ([codenio](https://github.com/codenio))
+- \[feature\] Add Support Go Modules, Remove dep dependencies [\#141](https://github.com/infracloudio/botkube/pull/141) ([codenio](https://github.com/codenio))
+- \[feature\] Add support for ignoring namespaces [\#139](https://github.com/infracloudio/botkube/pull/139) ([codenio](https://github.com/codenio))
 - Merge develop to master [\#125](https://github.com/infracloudio/botkube/pull/125) ([PrasadG193](https://github.com/PrasadG193))
 - Fix timestamp for update events [\#124](https://github.com/infracloudio/botkube/pull/124) ([PrasadG193](https://github.com/PrasadG193))
 - Trim whitespaces in the BotKube command [\#122](https://github.com/infracloudio/botkube/pull/122) ([PrasadG193](https://github.com/PrasadG193))
@@ -124,9 +147,9 @@
 - Add new event type "error" in config to watch error events on a resource [\#98](https://github.com/infracloudio/botkube/pull/98) ([PrasadG193](https://github.com/PrasadG193))
 - \[Travis CI\] don't push container image for PR builds [\#94](https://github.com/infracloudio/botkube/pull/94) ([bhavin192](https://github.com/bhavin192))
 - Build and push docker image from develop [\#93](https://github.com/infracloudio/botkube/pull/93) ([PrasadG193](https://github.com/PrasadG193))
-- \[helm chart\] make image tag configurable [\#89](https://github.com/infracloudio/botkube/pull/89) ([bhavin192](https://github.com/bhavin192))
 - Add support to manage filters with @BotKube command [\#84](https://github.com/infracloudio/botkube/pull/84) ([PrasadG193](https://github.com/PrasadG193))
 - SSL support for Mattermost in Botkube [\#83](https://github.com/infracloudio/botkube/pull/83) ([arush-sal](https://github.com/arush-sal))
+- Add support for elasticsearch interface [\#59](https://github.com/infracloudio/botkube/pull/59) ([PrasadG193](https://github.com/PrasadG193))
 
 ## [v0.7.0](https://github.com/infracloudio/botkube/tree/v0.7.0) (2019-04-04)
 [Full Changelog](https://github.com/infracloudio/botkube/compare/v0.6.0...v0.7.0)
@@ -152,7 +175,9 @@
 
 **Merged pull requests:**
 
+- \[helm chart\] make image tag configurable [\#89](https://github.com/infracloudio/botkube/pull/89) ([bhavin192](https://github.com/bhavin192))
 - CHANGELOG.md [\#78](https://github.com/infracloudio/botkube/pull/78) ([PrasadG193](https://github.com/PrasadG193))
+- merge develop to master [\#77](https://github.com/infracloudio/botkube/pull/77) ([PrasadG193](https://github.com/PrasadG193))
 - Mattermost implementation changes for botkube channel. [\#76](https://github.com/infracloudio/botkube/pull/76) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Check cluster-name for ping command [\#75](https://github.com/infracloudio/botkube/pull/75) ([PrasadG193](https://github.com/PrasadG193))
 - Add logic to restart BotKube pod if config file is updated [\#74](https://github.com/infracloudio/botkube/pull/74) ([PrasadG193](https://github.com/PrasadG193))
@@ -161,8 +186,6 @@
 - Add Skip var in Event struct to skip an event [\#67](https://github.com/infracloudio/botkube/pull/67) ([PrasadG193](https://github.com/PrasadG193))
 - Hide sensitive info while displaying configuration [\#65](https://github.com/infracloudio/botkube/pull/65) ([PrasadG193](https://github.com/PrasadG193))
 - Add badges for Slack and docs [\#61](https://github.com/infracloudio/botkube/pull/61) ([bhavin192](https://github.com/bhavin192))
-- Add support for elasticsearch interface [\#59](https://github.com/infracloudio/botkube/pull/59) ([PrasadG193](https://github.com/PrasadG193))
-- Add support for Mattermost [\#55](https://github.com/infracloudio/botkube/pull/55) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Issue \#51: Added target in Makefile to update helm version [\#54](https://github.com/infracloudio/botkube/pull/54) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Modified cluster flag to support quotes [\#52](https://github.com/infracloudio/botkube/pull/52) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Issue \#27: Added filter to add warning if pod created without label [\#48](https://github.com/infracloudio/botkube/pull/48) ([mugdha-adhav](https://github.com/mugdha-adhav))
@@ -185,6 +208,7 @@
 
 **Merged pull requests:**
 
+- Add support for Mattermost [\#55](https://github.com/infracloudio/botkube/pull/55) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Merge develop to master [\#49](https://github.com/infracloudio/botkube/pull/49) ([PrasadG193](https://github.com/PrasadG193))
 - Merge master into develop [\#47](https://github.com/infracloudio/botkube/pull/47) ([PrasadG193](https://github.com/PrasadG193))
 - Issue \#46: Removed @botkube help commands. Added Makefile to add support for git tags and docker build with versioning [\#45](https://github.com/infracloudio/botkube/pull/45) ([mugdha-adhav](https://github.com/mugdha-adhav))
@@ -205,7 +229,6 @@
 
 **Merged pull requests:**
 
-- merge develop to master [\#77](https://github.com/infracloudio/botkube/pull/77) ([PrasadG193](https://github.com/PrasadG193))
 - Added check slack channel in config, when get message  [\#39](https://github.com/infracloudio/botkube/pull/39) ([gimmetm](https://github.com/gimmetm))
 - Issues \#37 and \#16: Added multi-cluster support and added cluster-name in botkube commands [\#38](https://github.com/infracloudio/botkube/pull/38) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Add "helm lint" check to travis ci build [\#35](https://github.com/infracloudio/botkube/pull/35) ([PrasadG193](https://github.com/PrasadG193))
