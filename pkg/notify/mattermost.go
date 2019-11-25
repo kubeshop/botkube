@@ -66,6 +66,7 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 
 	attachment := []*model.SlackAttachment{
 		{
+			Color:     attachmentColor[event.Level],
 			Title:     event.Title,
 			Fields:    fields,
 			Footer:    "BotKube",
