@@ -2,13 +2,19 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
+)
+
+const (
+	defaultMetricsPort = "2112"
 )
 
 func main() {
@@ -29,6 +35,13 @@ func main() {
 		mb := bot.NewMattermostBot()
 		go mb.Start()
 	}
+
+	// Prometheus metrics
+	metricsPort, exists := os.LookupEnv("METRICS_PORT")
+	if !exists {
+		metricsPort = defaultMetricsPort
+	}
+	go metrics.ServeMetrics(metricsPort)
 
 	// List notifiers
 	var notifiers []notify.Notifier
