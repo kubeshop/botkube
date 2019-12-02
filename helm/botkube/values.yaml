@@ -61,6 +61,11 @@ config:
         - update
         - delete
         - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec
+          - status
     - name: statefulset
       namespaces:
         include:  
@@ -72,6 +77,11 @@ config:
         - update
         - delete
         - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec
+          - status
     - name: ingress
       namespaces:
         include:  
@@ -153,6 +163,11 @@ config:
         - update
         - delete
         - error
+      updateSetting: 
+        includeDiff: true
+        fields:
+          - spec
+          - status
     - name: role
       namespaces:
         include:  
