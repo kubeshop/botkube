@@ -46,6 +46,9 @@ var Notify = true
 // NotifType to change notification type
 type NotifType string
 
+// FieldType to specify the resource fields for which to get notification
+type FieldType string
+
 // Config structure of configuration yaml file
 type Config struct {
 	Resources       []Resource
@@ -56,9 +59,16 @@ type Config struct {
 
 // Resource contains resources to watch
 type Resource struct {
-	Name       string
-	Namespaces Namespaces
-	Events     []EventType
+	Name          string
+	Namespaces    Namespaces
+	Events        []EventType
+	UpdateSetting UpdateSetting `yaml:"updateSetting"`
+}
+
+//UpdateSetting struct defines updateEvent fields specification
+type UpdateSetting struct {
+	Fields      []FieldType
+	IncludeDiff bool `yaml:"includeDiff"`
 }
 
 // Namespaces contains namespaces to include and ignore

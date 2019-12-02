@@ -163,7 +163,16 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 
 	// check for siginificant Update Events in objects
 	if eventType == config.UpdateEvent {
-		updateMsg := utils.Diff(oldObj, obj)
+		var updateMsg string
+		// Check if all namespaces allowed
+		updateSetting, exist := utils.AllowedUpdateEventsMap[utils.KindNS{Resource: kind, Namespace: "all"}]
+		if !exist {
+			// Check if specified namespace is allowed
+			updateSetting, exist = utils.AllowedUpdateEventsMap[utils.KindNS{Resource: kind, Namespace: objectMeta.Namespace}]
+		}
+		if exist {
+			updateMsg = utils.Diff(oldObj, obj, updateSetting)
+		}
 		if len(updateMsg) > 0 {
 			event.Messages = append(event.Messages, updateMsg)
 		} else {

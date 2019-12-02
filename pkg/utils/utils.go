@@ -26,6 +26,8 @@ var (
 	ResourceInformerMap map[string]cache.SharedIndexInformer
 	// AllowedEventKindsMap is a map to filter valid event kinds
 	AllowedEventKindsMap map[EventKind]bool
+	// AllowedUpdateEventsMap is a map of resourceand namespace to updateconfig
+	AllowedUpdateEventsMap map[KindNS]config.UpdateSetting
 	// KubeClient is a global kubernetes client to communicate to apiserver
 	KubeClient kubernetes.Interface
 	// KubeInformerFactory is a global SharedInformerFactory object to watch resources
@@ -63,6 +65,12 @@ type EventKind struct {
 	EventType config.EventType
 }
 
+// KindNS used in AllowedUpdateEventsMap
+type KindNS struct {
+	Resource  string
+	Namespace string
+}
+
 // InitInformerMap initializes helper maps to filter events
 func InitInformerMap() {
 	botkubeConf, err := config.New()
@@ -86,6 +94,7 @@ func InitInformerMap() {
 	// Init maps
 	ResourceInformerMap = make(map[string]cache.SharedIndexInformer)
 	AllowedEventKindsMap = make(map[EventKind]bool)
+	AllowedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
 	// Informer map
 	ResourceInformerMap["pod"] = KubeInformerFactory.Core().V1().Pods().Informer()
@@ -112,7 +121,7 @@ func InitInformerMap() {
 	ResourceInformerMap["clusterrole"] = KubeInformerFactory.Rbac().V1().ClusterRoles().Informer()
 	ResourceInformerMap["clusterrolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
 
-	// Allowed event kinds map
+	// Allowed event kinds map and Allowed Update Events Map
 	for _, r := range botkubeConf.Resources {
 		allEvents := false
 		for _, e := range r.Events {
@@ -123,6 +132,12 @@ func InitInformerMap() {
 			for _, ns := range r.Namespaces.Include {
 				AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
 			}
+			// AllowedUpdateEventsMap entry is created only for UpdateEvent
+			if e == config.UpdateEvent {
+				for _, ns := range r.Namespaces.Include {
+					AllowedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
+				}
+			}
 		}
 
 		// For AllEvent type, add all events to map
@@ -131,12 +146,13 @@ func InitInformerMap() {
 			for _, ev := range events {
 				for _, ns := range r.Namespaces.Include {
 					AllowedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
+					AllowedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
 				}
 			}
 		}
-
 	}
 	log.Logger.Infof("Allowed Events - %+v", AllowedEventKindsMap)
+	log.Logger.Infof("Allowed UpdateEvents - %+v", AllowedUpdateEventsMap)
 }
 
 // GetObjectMetaData returns metadata of the given object

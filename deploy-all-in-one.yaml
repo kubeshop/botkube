@@ -41,6 +41,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec
+            - status
       - name: statefulset
         namespaces:
           include:
@@ -52,6 +57,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields: 
+            - spec
+            - status
       - name: ingress
         namespaces:
           include:
@@ -123,6 +133,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec
+            - status
       - name: job
         namespaces:
           include:
@@ -134,6 +149,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec
+            - status
       - name: role
         namespaces:
           include:
