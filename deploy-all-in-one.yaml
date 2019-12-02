@@ -309,8 +309,12 @@ spec:
               value: v0.9.1
       volumes:
         - name: config-volume
-          configMap:
-            name: botkube-configmap
+          projected:
+            sources:
+            - configMap:
+                name: botkube-configmap
+            - secret:
+                name: botkube-secret
       # run as non privilaged user
       securityContext:
         runAsUser: 101
