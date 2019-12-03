@@ -194,7 +194,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: botkube-secret
+  name: botkube-communication-secret
 type: Opaque
 stringData:
   communication.yaml: |
@@ -314,7 +314,7 @@ spec:
             - configMap:
                 name: botkube-configmap
             - secret:
-                name: botkube-secret
+                name: botkube-communication-secret
       # run as non privilaged user
       securityContext:
         runAsUser: 101

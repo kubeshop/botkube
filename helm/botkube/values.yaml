@@ -202,7 +202,19 @@ config:
     enabled: false                               # Set to true and specify cert path in the next line after uncommenting
     #cert:                                       # SSL Certificate file e.g certs/my-cert.crt
 
-  # Channels configuration
+  # Setting to support multiple clusters
+  settings:
+    # Cluster name to differentiate incoming messages
+    clustername: not-configured
+    # Set true to enable kubectl commands execution
+    allowkubectl: false
+    # Set true to enable config watcher
+    configwatcher: true
+    # Set false to disable upgrade notification
+    upgradeNotifier: true
+
+communication:
+  # Communication settings
   communications:
     # Settings for Slack
     slack:
@@ -237,18 +249,6 @@ config:
     webhook:
       enabled: false
       url: 'WEBHOOK_URL'                          # e.g https://example.com:80
-
-
-  # Setting to support multiple clusters
-  settings:
-    # Cluster name to differentiate incoming messages
-    clustername: not-configured
-    # Set true to enable kubectl commands execution
-    allowkubectl: false
-    # Set true to enable config watcher
-    configwatcher: true
-    # Set false to disable upgrade notification
-    upgradeNotifier: true
 
 service:
   name: metrics
