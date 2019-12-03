@@ -194,6 +194,8 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: botkube-communication-secret
+  labels:
+    app: botkube
 type: Opaque
 stringData:
   communication.yaml: |
