@@ -27,7 +27,7 @@ securityContext:
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
-config:
+resourceConfig:
   ## Resources you want to watch
   resources:
     - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
@@ -213,7 +213,7 @@ config:
     # Set false to disable upgrade notification
     upgradeNotifier: true
 
-communication:
+communicationConfig:
   # Communication settings
   communications:
     # Settings for Slack

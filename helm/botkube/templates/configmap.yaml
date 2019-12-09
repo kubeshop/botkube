@@ -8,8 +8,8 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  config.yaml: |
-  {{- with .Values.config }}
+  resource_config.yaml: |
+  {{- with .Values.resourceConfig }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 

@@ -34,11 +34,11 @@ const (
 // EventType to watch
 type EventType string
 
-// ConfigFileName is a name of botkube configuration file
-var ConfigFileName = "config.yaml"
+// ResourceConfigFileName is a name of botkube resource configuration file
+var ResourceConfigFileName = "resource_config.yaml"
 
-// CommunicationFileName is a name of botkube communication file
-var CommunicationFileName = "communication.yaml"
+// CommunicationConfigFileName is a name of botkube communication configuration file
+var CommunicationConfigFileName = "comm_config.yaml"
 
 // Notify flag to toggle event notification
 var Notify = true
@@ -137,14 +137,14 @@ func (eventType EventType) String() string {
 func New() (*Config, error) {
 	c := &Config{}
 	configPath := os.Getenv("CONFIG_PATH")
-	configFilePath := filepath.Join(configPath, ConfigFileName)
-	configFile, err := os.Open(configFilePath)
-	defer configFile.Close()
+	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
+	resourceConfigFile, err := os.Open(resourceConfigFilePath)
+	defer resourceConfigFile.Close()
 	if err != nil {
 		return c, err
 	}
 
-	b, err := ioutil.ReadAll(configFile)
+	b, err := ioutil.ReadAll(resourceConfigFile)
 	if err != nil {
 		return c, err
 	}
@@ -153,14 +153,14 @@ func New() (*Config, error) {
 		yaml.Unmarshal(b, c)
 	}
 
-	communicationFilePath := filepath.Join(configPath, CommunicationFileName)
-	communicationFile, err := os.Open(communicationFilePath)
-	defer communicationFile.Close()
+	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+	communicationConfigFile, err := os.Open(communicationConfigFilePath)
+	defer communicationConfigFile.Close()
 	if err != nil {
 		return c, err
 	}
 
-	b, err = ioutil.ReadAll(communicationFile)
+	b, err = ioutil.ReadAll(communicationConfigFile)
 	if err != nil {
 		return c, err
 	}

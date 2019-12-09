@@ -199,7 +199,7 @@ metadata:
     app: botkube
 type: Opaque
 stringData:
-  communication.yaml: |
+  comm_config.yaml: |
     # Communication settings
     communications:
       # Settings for Slack
