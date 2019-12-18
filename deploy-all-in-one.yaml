@@ -179,7 +179,28 @@ data:
     # about the best practices for the created resource
     recommendations: true
 
-    # Channels configuration
+    # Setting to support multiple clusters
+    settings:
+      # Cluster name to differentiate incoming messages
+      clustername: not-configured
+      # Set true to enable kubectl commands execution
+      allowkubectl: false
+      # Set true to enable config watcher
+      configwatcher: true
+      # Set false to disable upgrade notification
+      upgradeNotifier: true
+---
+# secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: botkube-communication-secret
+  labels:
+    app: botkube
+type: Opaque
+stringData:
+  comm_config.yaml: |
+    # Communication settings
     communications:
       # Settings for Slack
       slack:
@@ -214,17 +235,6 @@ data:
       webhook:
         enabled: false
         url: 'WEBHOOK_URL'                          # e.g https://example.com:80
-
-    # Setting to support multiple clusters
-    settings:
-      # Cluster name to differentiate incoming messages
-      clustername: not-configured
-      # Set true to enable kubectl commands execution
-      allowkubectl: false
-      # Set true to enable config watcher
-      configwatcher: true
-      # Set false to disable upgrade notification
-      upgradeNotifier: true
 ---
 # serviceaccount
 apiVersion: v1
@@ -301,8 +311,12 @@ spec:
               value: v0.9.1
       volumes:
         - name: config-volume
-          configMap:
-            name: botkube-configmap
+          projected:
+            sources:
+            - configMap:
+                name: botkube-configmap
+            - secret:
+                name: botkube-communication-secret
       # run as non privilaged user
       securityContext:
         runAsUser: 101
