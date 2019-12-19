@@ -217,7 +217,7 @@ func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 
 func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 	configPath := os.Getenv("CONFIG_PATH")
-	configFile := filepath.Join(configPath, config.ResourceConfigFileName)
+	configFile := filepath.Join(configPath, config.ConfigFileName)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
