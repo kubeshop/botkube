@@ -178,28 +178,7 @@ data:
     # about the best practices for the created resource
     recommendations: true
 
-    # Setting to support multiple clusters
-    settings:
-      # Cluster name to differentiate incoming messages
-      clustername: not-configured
-      # Set true to enable kubectl commands execution
-      allowkubectl: false
-      # Set true to enable config watcher
-      configwatcher: true
-      # Set false to disable upgrade notification
-      upgradeNotifier: true
----
-# secret
-apiVersion: v1
-kind: Secret
-metadata:
-  name: botkube-communication-secret
-  labels:
-    app: botkube
-type: Opaque
-stringData:
-  comm_config.yaml: |
-    # Communication settings
+    # Channels configuration
     communications:
       # Settings for Slack
       slack:
@@ -234,6 +213,18 @@ stringData:
       webhook:
         enabled: false
         url: 'WEBHOOK_URL'                          # e.g https://example.com:80
+
+
+    # Setting to support multiple clusters
+    settings:
+      # Cluster name to differentiate incoming messages
+      clustername: not-configured
+      # Set true to enable kubectl commands execution
+      allowkubectl: false
+      # Set true to enable config watcher
+      configwatcher: true
+      # Set false to disable upgrade notification
+      upgradeNotifier: true
 ---
 # serviceaccount
 apiVersion: v1
@@ -275,7 +266,7 @@ subjects:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: botkube-certificate-secret
+  name: botkube-secret
   labels:
     app: botkube
 data:
@@ -322,15 +313,11 @@ spec:
               value: v0.9.1
       volumes:
         - name: config-volume
-          projected:
-            sources:
-            - configMap:
-                name: botkube-configmap
-            - secret:
-                name: botkube-communication-secret
+          configMap:
+            name: botkube-configmap
         - name: certs
           secret:
-            secretName: botkube-certificate-secret
+            secretName: botkube-secret
       # run as non privilaged user
       securityContext:
         runAsUser: 101

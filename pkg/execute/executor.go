@@ -361,7 +361,7 @@ func runVersionCommand(args []string, clusterName string) string {
 
 func showControllerConfig() (configYaml string, err error) {
 	configPath := os.Getenv("CONFIG_PATH")
-	configFile := filepath.Join(configPath, config.ResourceConfigFileName)
+	configFile := filepath.Join(configPath, config.ConfigFileName)
 	file, err := os.Open(configFile)
 	defer file.Close()
 	if err != nil {

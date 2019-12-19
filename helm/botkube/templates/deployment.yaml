@@ -52,16 +52,12 @@ spec:
         {{- end }}            
       volumes:
         - name: config-volume
-          projected:
-            sources:
-            - configMap:
-                name: {{ include "botkube.fullname" . }}-configmap
-            - secret:
-                name: {{ include "botkube.fullname" . }}-communication-secret
+          configMap:
+            name: {{ include "botkube.fullname" . }}-configmap
       {{- if .Values.config.ssl.enabled }} 
         - name: certs
           secret:
-            secretName: {{ include "botkube.fullname" . }}-certificate-secret
+            secretName: {{ include "botkube.fullname" . }}-secret
       {{ end }}
       {{- if .Values.securityContext }}
       securityContext:
