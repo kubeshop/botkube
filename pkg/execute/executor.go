@@ -3,9 +3,7 @@ package execute
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"text/tabwriter"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
+	"github.com/infracloudio/botkube/pkg/logging"
 	log "github.com/infracloudio/botkube/pkg/logging"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
@@ -360,32 +359,16 @@ func runVersionCommand(args []string, clusterName string) string {
 }
 
 func showControllerConfig() (configYaml string, err error) {
-	configPath := os.Getenv("CONFIG_PATH")
-	configFile := filepath.Join(configPath, config.ResourceConfigFileName)
-	file, err := os.Open(configFile)
-	defer file.Close()
+	c, err := config.New()
 	if err != nil {
-		return configYaml, err
-	}
-
-	b, err := ioutil.ReadAll(file)
-	if err != nil {
-		return configYaml, err
-	}
-
-	c := &config.Config{}
-	if len(b) != 0 {
-		err = yaml.Unmarshal(b, c)
-		if err != nil {
-			return configYaml, err
-		}
+		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	// hide sensitive info
 	c.Communications.Slack.Token = ""
 	c.Communications.ElasticSearch.Password = ""
 
-	b, err = yaml.Marshal(c)
+	b, err := yaml.Marshal(c)
 	if err != nil {
 		return configYaml, err
 	}
