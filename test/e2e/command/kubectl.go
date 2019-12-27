@@ -14,6 +14,7 @@ import (
 type kubectlCommand struct {
 	command  string
 	expected string
+	channel  string
 }
 
 type context struct {
@@ -24,9 +25,15 @@ type context struct {
 func (c *context) testKubectlCommand(t *testing.T) {
 	// Test cases
 	tests := map[string]kubectlCommand{
-		"BotKube get pods": {
+		"BotKube get pods from configured channel": {
 			command:  "get pods",
 			expected: fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n default get pods"]),
+			channel:  c.Config.Communications.Slack.Channel,
+		},
+		"BotKube get pods out of configured channel": {
+			command:  "get pods",
+			expected: fmt.Sprintf("<@U023BECGF> get pods"),
+			channel:  "dummy",
 		},
 	}
 
@@ -34,7 +41,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Send message to a channel
-				c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, test.command)
+				c.SlackServer.SendMessageToBot(test.channel, test.command)
 
 				// Get last seen slack message
 				lastSeenMsg := c.GetLastSeenSlackMessage()
@@ -43,7 +50,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 				m := slack.Message{}
 				err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 				assert.NoError(t, err, "message should decode properly")
-				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
+				assert.Equal(t, test.channel, m.Channel)
 				assert.Equal(t, test.expected, m.Text)
 			}
 		})

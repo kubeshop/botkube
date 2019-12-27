@@ -185,6 +185,8 @@ settings:
   clustername: not-configured
   # Set true to enable kubectl commands execution
   allowkubectl: false
+  # Set true to enable commands execution from configured channel only
+  restrictAccess: false
   # Set true to enable config watcher
   configwatcher: true
   # Set false to disable upgrade notification

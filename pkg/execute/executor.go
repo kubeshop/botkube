@@ -67,11 +67,12 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message       string
-	AllowKubectl  bool
-	ClusterName   string
-	ChannelName   string
-	IsAuthChannel bool
+	Message        string
+	AllowKubectl   bool
+	RestrictAccess bool
+	ClusterName    string
+	ChannelName    string
+	IsAuthChannel  bool
 }
 
 // CommandRunner is an interface to run bash commands
@@ -125,13 +126,14 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl bool, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
-		Message:       msg,
-		AllowKubectl:  allowkubectl,
-		ClusterName:   clusterName,
-		ChannelName:   channelName,
-		IsAuthChannel: isAuthChannel,
+		Message:        msg,
+		AllowKubectl:   allowkubectl,
+		RestrictAccess: restrictAccess,
+		ClusterName:    clusterName,
+		ChannelName:    channelName,
+		IsAuthChannel:  isAuthChannel,
 	}
 }
 
@@ -141,6 +143,10 @@ func (e *DefaultExecutor) Execute() string {
 	if validKubectlCommands[args[0]] {
 		if !e.AllowKubectl {
 			return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+		}
+		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
+		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+			return ""
 		}
 		return runKubectlCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
@@ -220,7 +226,6 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 	if isAuthChannel == false {
 		return ""
 	}
-
 	// Get command runner
 	runner := NewCommandRunner(kubectlBinary, finalArgs)
 	out, err := runner.Run()
