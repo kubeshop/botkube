@@ -125,6 +125,7 @@ type Webhook struct {
 type Settings struct {
 	ClusterName     string
 	AllowKubectl    bool
+	RestrictAccess  bool `yaml:"restrictAccess"`
 	ConfigWatcher   bool
 	UpgradeNotifier bool `yaml:"upgradeNotifier"`
 }

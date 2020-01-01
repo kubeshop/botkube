@@ -77,12 +77,13 @@ func StartFakeSlackBot(testenv *env.TestEnv) {
 
 		// Fake bot
 		sb := &bot.SlackBot{
-			Token:        testenv.Config.Communications.Slack.Token,
-			AllowKubectl: testenv.Config.Settings.AllowKubectl,
-			ClusterName:  testenv.Config.Settings.ClusterName,
-			ChannelName:  testenv.Config.Communications.Slack.Channel,
-			SlackURL:     testenv.SlackServer.GetAPIURL(),
-			BotID:        testenv.SlackServer.BotID,
+			Token:          testenv.Config.Communications.Slack.Token,
+			AllowKubectl:   testenv.Config.Settings.AllowKubectl,
+			RestrictAccess: testenv.Config.Settings.RestrictAccess,
+			ClusterName:    testenv.Config.Settings.ClusterName,
+			ChannelName:    testenv.Config.Communications.Slack.Channel,
+			SlackURL:       testenv.SlackServer.GetAPIURL(),
+			BotID:          testenv.SlackServer.BotID,
 		}
 		go sb.Start()
 	}

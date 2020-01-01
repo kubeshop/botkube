@@ -12,12 +12,13 @@ import (
 
 // SlackBot listens for user's message, execute commands and sends back the response
 type SlackBot struct {
-	Token        string
-	AllowKubectl bool
-	ClusterName  string
-	ChannelName  string
-	SlackURL     string
-	BotID        string
+	Token          string
+	AllowKubectl   bool
+	RestrictAccess bool
+	ClusterName    string
+	ChannelName    string
+	SlackURL       string
+	BotID          string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -38,10 +39,11 @@ func NewSlackBot() Bot {
 		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 	return &SlackBot{
-		Token:        c.Communications.Slack.Token,
-		AllowKubectl: c.Settings.AllowKubectl,
-		ClusterName:  c.Settings.ClusterName,
-		ChannelName:  c.Communications.Slack.Channel,
+		Token:          c.Communications.Slack.Token,
+		AllowKubectl:   c.Settings.AllowKubectl,
+		RestrictAccess: c.Settings.RestrictAccess,
+		ClusterName:    c.Settings.ClusterName,
+		ChannelName:    c.Communications.Slack.Channel,
 	}
 }
 
@@ -137,7 +139,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }
