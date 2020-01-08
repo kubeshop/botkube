@@ -10,6 +10,7 @@ data:
   config.yaml: |
     ## Resources you want to watch
     resources:
+      - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
         namespaces:
           include:
             - all
@@ -40,6 +41,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec.template.spec.containers[*].image
+            - status.availableReplicas
       - name: statefulset
         namespaces:
           include:
@@ -51,6 +57,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec.template.spec.containers[*].image
+            - status.readyReplicas
       - name: ingress
         namespaces:
           include:
@@ -119,9 +130,14 @@ data:
             -
         events:
           - create
-          - delete
           - update
+          - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec.template.spec.containers[*].image
+            - status.numberReady
       - name: job
         namespaces:
           include:
@@ -133,6 +149,11 @@ data:
           - update
           - delete
           - error
+        updateSetting:
+          includeDiff: true
+          fields:
+            - spec.template.spec.containers[*].image
+            - status.conditions[*].type
       - name: role
         namespaces:
           include:

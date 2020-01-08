@@ -15,7 +15,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -25,7 +25,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - update
@@ -34,14 +34,14 @@ resources:
     updateSetting:
       includeDiff: true
       fields:
-        - spec
-        - status
+        - spec.template.spec.containers[*].image
+        - status.availableReplicas
   - name: statefulset
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - update
@@ -50,14 +50,14 @@ resources:
     updateSetting:
       includeDiff: true
       fields:
-        - spec
-        - status
+        - spec.template.spec.containers[*].image
+        - status.readyReplicas
   - name: ingress
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -67,7 +67,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -77,7 +77,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -87,7 +87,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -97,7 +97,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -107,7 +107,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -117,7 +117,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -127,17 +127,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: job
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
+        -
     events:
       - create
       - update
@@ -146,14 +136,30 @@ resources:
     updateSetting:
       includeDiff: true
       fields:
-        - spec
-        - status
+        - spec.template.spec.containers[*].image
+        - status.numberReady
+  - name: job
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - update
+      - delete
+      - error
+    updateSetting:
+      includeDiff: true
+      fields:
+        - spec.template.spec.containers[*].image
+        - status.conditions[*].type
   - name: role
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -163,7 +169,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -173,7 +179,7 @@ resources:
       include:
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
@@ -183,7 +189,7 @@ resources:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
