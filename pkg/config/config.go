@@ -46,9 +46,6 @@ var Notify = true
 // NotifType to change notification type
 type NotifType string
 
-// FieldType to specify the resource fields for which to get notification
-type FieldType string
-
 // Config structure of configuration yaml file
 type Config struct {
 	Resources       []Resource
@@ -67,7 +64,7 @@ type Resource struct {
 
 //UpdateSetting struct defines updateEvent fields specification
 type UpdateSetting struct {
-	Fields      []FieldType
+	Fields      []string
 	IncludeDiff bool `yaml:"includeDiff"`
 }
 

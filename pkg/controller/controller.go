@@ -173,8 +173,12 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 		if exist {
 			updateMsg = utils.Diff(oldObj, obj, updateSetting)
 		}
+
+		// Send update notification only if fields in updateSetting are changed
 		if len(updateMsg) > 0 {
-			event.Messages = append(event.Messages, updateMsg)
+			if updateSetting.IncludeDiff {
+				event.Messages = append(event.Messages, updateMsg)
+			}
 		} else {
 			// skipping least significant update
 			log.Logger.Debug("skipping least significant Update event")
