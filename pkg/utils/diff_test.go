@@ -23,7 +23,13 @@ type Other struct {
 
 // Spec mocks ObjectSpec field in kubernetes object
 type Spec struct {
-	Port int
+	Port       int
+	Containers []Container
+}
+
+// Container mocks ObjectSpec.Container field in kubernetes object
+type Container struct {
+	Image string
 }
 
 // Status mocks ObjectStatus field in kubernetes object
@@ -56,27 +62,27 @@ func TestDiff(t *testing.T) {
 		expected ExpectedDiff
 	}{
 		`Spec Diff`: {
-			old:    Object{Spec: Spec{Port: 81}, Other: Other{Foo: "bar"}},
-			new:    Object{Spec: Spec{Port: 83}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []config.FieldType{"Spec"}, IncludeDiff: true},
+			old:    Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
+			new:    Object{Spec: Spec{Containers: []Container{{Image: "nginx:latest"}}}, Other: Other{Foo: "bar"}},
+			update: config.UpdateSetting{Fields: []string{"Spec.Containers[*].Image"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "{utils.Object}.Spec.Port",
-				X:    "81",
-				Y:    "83",
+				Path: "Spec.Containers[*].Image",
+				X:    "nginx:1.14",
+				Y:    "nginx:latest",
 			},
 		},
 		`Non Spec Diff`: {
-			old:      Object{Spec: Spec{Port: 81}, Other: Other{Foo: "bar"}},
-			new:      Object{Spec: Spec{Port: 81}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []config.FieldType{"metadata"}, IncludeDiff: true},
+			old:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
+			new:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
 		},
 		`Status Diff`: {
 			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
 			new:    Object{Status: Status{Replicas: 2}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []config.FieldType{"Status"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"Status.Replicas"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "{utils.Object}.Status.Replicas",
+				Path: "Status.Replicas",
 				X:    "1",
 				Y:    "2",
 			},
@@ -84,15 +90,15 @@ func TestDiff(t *testing.T) {
 		`Non Status Diff`: {
 			old:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
 			new:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []config.FieldType{"metadata"}, IncludeDiff: true},
+			update:   config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
 		},
 		`Data Diff`: {
 			old:    Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "bar"}},
 			new:    Object{Data: Data{Properties: "Color: red"}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []config.FieldType{"Data"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"Data.Properties"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "{utils.Object}.Data.Properties",
+				Path: "Data.Properties",
 				X:    "Color: blue",
 				Y:    "Color: red",
 			},
@@ -100,15 +106,15 @@ func TestDiff(t *testing.T) {
 		`Non Data Diff`: {
 			old:      Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "bar"}},
 			new:      Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []config.FieldType{"metadata"}, IncludeDiff: true},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
 			new:    Object{Rules: Rules{Verbs: "watch"}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []config.FieldType{"Rules"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"Rules.Verbs"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "{utils.Object}.Rules.Verbs",
+				Path: "Rules.Verbs",
 				X:    "list",
 				Y:    "watch",
 			},
@@ -116,7 +122,7 @@ func TestDiff(t *testing.T) {
 		`Non Rules Diff`: {
 			old:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
 			new:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []config.FieldType{"metadata"}, IncludeDiff: true},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
 		},
 	}
