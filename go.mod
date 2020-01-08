@@ -13,7 +13,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
-	github.com/google/go-cmp v0.3.1
+	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/go-github/v27 v27.0.4
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -21,7 +21,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect
-	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattermost/gorp v2.0.0+incompatible // indirect
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
@@ -33,8 +32,6 @@ require (
 	github.com/pelletier/go-toml v1.5.0 // indirect
 	github.com/prometheus/client_golang v1.2.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
@@ -46,13 +43,12 @@ require (
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.2.4
-	k8s.io/api v0.0.0-20191009075622-910e671eb668
-	k8s.io/apimachinery v0.0.0-20191006235458-f9f2f3f8ab02
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
-	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d // indirect
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
+	k8s.io/client-go v0.17.0
+	k8s.io/kubectl v0.17.0
 )
 
 go 1.13
