@@ -32,7 +32,7 @@ config:
   resources:
     - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
       namespaces:
-        include:  
+        include:
           - all
         ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
           -                     # example : include [all], ignore [x,y,z] 
@@ -42,17 +42,17 @@ config:
         - error
     - name: service
       namespaces:
-        include:  
+        include:
           - all
         ignore:
-          - 
+          -
       events:
         - create
         - delete
         - error
     - name: deployment
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -64,11 +64,11 @@ config:
       updateSetting:
         includeDiff: true
         fields:
-          - spec
-          - status
+          - spec.template.spec.containers[*].image
+          - status.availableReplicas
     - name: statefulset
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -80,11 +80,11 @@ config:
       updateSetting:
         includeDiff: true
         fields:
-          - spec
-          - status
+          - spec.template.spec.containers[*].image
+          - status.readyReplicas
     - name: ingress
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -94,7 +94,7 @@ config:
         - error
     - name: node
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -104,7 +104,7 @@ config:
         - error
     - name: namespace
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -114,7 +114,7 @@ config:
         - error
     - name: persistentvolume
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -124,7 +124,7 @@ config:
         - error
     - name: persistentvolumeclaim
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -134,7 +134,7 @@ config:
         - error
     - name: configmap
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -144,17 +144,7 @@ config:
         - error
     - name: daemonset
       namespaces:
-        include:  
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: job
-      namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -163,14 +153,30 @@ config:
         - update
         - delete
         - error
-      updateSetting: 
+      updateSetting:
         includeDiff: true
         fields:
-          - spec
-          - status
+          - spec.template.spec.containers[*].image
+          - status.numberReady
+    - name: job
+      namespaces:
+        include:
+          - all
+        ignore:
+          -
+      events:
+        - create
+        - update
+        - delete
+        - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec.template.spec.containers[*].image
+          - status.conditions[*].type
     - name: role
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -180,7 +186,7 @@ config:
         - error
     - name: rolebinding
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
@@ -193,14 +199,14 @@ config:
         include:
           - all
         ignore:
-          - 
+          -
       events:
         - create
         - delete
         - error
     - name: clusterrolebinding
       namespaces:
-        include:  
+        include:
           - all
         ignore:
           -
