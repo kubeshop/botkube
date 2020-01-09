@@ -9,42 +9,42 @@ import (
 
 // Object mocks kubernetes objects
 type Object struct {
-	Spec   Spec
-	Status Status
-	Data   Data
-	Rules  Rules
-	Other  Other
+	Spec   Spec   `json:"spec"`
+	Status Status `json:"status"`
+	Data   Data   `json:"data"`
+	Rules  Rules  `json:"rules"`
+	Other  Other  `json:"other"`
 }
 
 // Other mocks fileds like MetaData, Status etc in kubernetes objects
 type Other struct {
-	Foo string
+	Foo string `json:"foo"`
 }
 
 // Spec mocks ObjectSpec field in kubernetes object
 type Spec struct {
-	Port       int
-	Containers []Container
+	Port       int         `json:"port"`
+	Containers []Container `json:"containers"`
 }
 
 // Container mocks ObjectSpec.Container field in kubernetes object
 type Container struct {
-	Image string
+	Image string `json:"image"`
 }
 
 // Status mocks ObjectStatus field in kubernetes object
 type Status struct {
-	Replicas int
+	Replicas int `json:"replicas"`
 }
 
 // Data mocks ObjectData field in kubernetes object like configmap
 type Data struct {
-	Properties string
+	Properties string `json:"properties"`
 }
 
 // Rules mocks ObjectRules field in kubernetes object
 type Rules struct {
-	Verbs string
+	Verbs string `json:"verbs"`
 }
 
 // ExpectedDiff struct to generate expected diff
@@ -64,9 +64,9 @@ func TestDiff(t *testing.T) {
 		`Spec Diff`: {
 			old:    Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
 			new:    Object{Spec: Spec{Containers: []Container{{Image: "nginx:latest"}}}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []string{"Spec.Containers[*].Image"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"spec.containers[*].image"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "Spec.Containers[*].Image",
+				Path: "spec.containers[*].image",
 				X:    "nginx:1.14",
 				Y:    "nginx:latest",
 			},
@@ -80,9 +80,9 @@ func TestDiff(t *testing.T) {
 		`Status Diff`: {
 			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
 			new:    Object{Status: Status{Replicas: 2}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []string{"Status.Replicas"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"status.replicas"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "Status.Replicas",
+				Path: "status.replicas",
 				X:    "1",
 				Y:    "2",
 			},
@@ -94,27 +94,27 @@ func TestDiff(t *testing.T) {
 			expected: ExpectedDiff{},
 		},
 		`Data Diff`: {
-			old:    Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "bar"}},
-			new:    Object{Data: Data{Properties: "Color: red"}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []string{"Data.Properties"}, IncludeDiff: true},
+			old:    Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
+			new:    Object{Data: Data{Properties: "color: red"}, Other: Other{Foo: "bar"}},
+			update: config.UpdateSetting{Fields: []string{"data.properties"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "Data.Properties",
-				X:    "Color: blue",
-				Y:    "Color: red",
+				Path: "data.properties",
+				X:    "color: blue",
+				Y:    "color: red",
 			},
 		},
 		`Non Data Diff`: {
-			old:      Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "bar"}},
-			new:      Object{Data: Data{Properties: "Color: blue"}, Other: Other{Foo: "boo"}},
+			old:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
+			new:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
 			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
 			new:    Object{Rules: Rules{Verbs: "watch"}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []string{"Rules.Verbs"}, IncludeDiff: true},
+			update: config.UpdateSetting{Fields: []string{"rules.verbs"}, IncludeDiff: true},
 			expected: ExpectedDiff{
-				Path: "Rules.Verbs",
+				Path: "rules.verbs",
 				X:    "list",
 				Y:    "watch",
 			},
