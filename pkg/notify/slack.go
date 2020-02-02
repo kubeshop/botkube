@@ -210,14 +210,14 @@ func slackShortNotification(event events.Event) slack.Attachment {
 		Title: event.Title,
 		Fields: []slack.AttachmentField{
 			{
-				Value: formatShortMessage(event),
+				Value: FormatShortMessage(event),
 			},
 		},
 		Footer: "BotKube",
 	}
 }
 
-func formatShortMessage(event events.Event) (msg string) {
+func FormatShortMessage(event events.Event) (msg string) {
 	additionalMsg := ""
 	if len(event.Messages) > 0 {
 		for _, m := range event.Messages {

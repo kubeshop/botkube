@@ -120,9 +120,10 @@ type Namespaces struct {
 // CommunicationsConfig channels to send events to
 type CommunicationsConfig struct {
 	Slack         Slack
-	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
 	Webhook       Webhook
+	Teams         Teams
+	ElasticSearch ElasticSearch
 }
 
 // Slack configuration to authentication and send notifications
@@ -166,6 +167,16 @@ type Mattermost struct {
 	Team      string
 	Channel   string
 	NotifType NotifType `yaml:",omitempty"`
+}
+
+// Teams creds for authentication with MS Teams
+type Teams struct {
+	Enabled     bool
+	AppID       string `yaml:"appID,omitempty"`
+	AppPassword string `yaml:"appPassword,omitempty"`
+	Team        string
+	Channel     string
+	NotifType   NotifType `yaml:",omitempty"`
 }
 
 // Webhook configuration to send notifications

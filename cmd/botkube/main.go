@@ -55,6 +55,9 @@ func startController() error {
 		return fmt.Errorf("Error in loading configuration. Error:%s", err.Error())
 	}
 
+	// List notifiers
+	notifiers := notify.ListNotifiers(conf.Communications)
+
 	if conf.Communications.Slack.Enabled {
 		log.Info("Starting slack bot")
 		sb := bot.NewSlackBot(conf)
@@ -67,8 +70,13 @@ func startController() error {
 		go mb.Start()
 	}
 
-	notifiers := notify.ListNotifiers(conf.Communications)
-	log.Infof("Notifier List: config=%#v list=%#v\n", conf.Communications, notifiers)
+	if conf.Communications.Teams.Enabled {
+		log.Logger.Info("Starting MS Teams bot")
+		tb := bot.NewTeamsBot(conf)
+		notifiers = append(notifiers, tb)
+		go tb.Start()
+	}
+
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")
