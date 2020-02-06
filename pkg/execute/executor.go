@@ -140,11 +140,16 @@ func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, clus
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
+
 	if validKubectlCommands[args[0]] {
-		if !e.AllowKubectl {
-			return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
-		}
 		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
+		if !e.AllowKubectl {
+			if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
+				return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+			}
+			return ""
+		}
+
 		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 			return ""
 		}
