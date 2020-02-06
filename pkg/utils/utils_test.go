@@ -20,7 +20,7 @@ func TestGetClusterNameFromKubectlCmd(t *testing.T) {
 		{input: "--cluster-name ", expected: ""},
 		{input: "--cluster-name=", expected: ""},
 		{input: "", expected: ""},
-		{input: "--cluster-name minikube1", expected: "minikube1"},
+		{input: "--cluster-nameminikube1", expected: ""},
 	}
 
 	for _, ts := range tests {
