@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -401,4 +402,16 @@ func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
 	}
 
 	return map[string]string{}
+}
+
+//GetClusterNameFromKubectlCmd this will return cluster name from kubectl command
+func GetClusterNameFromKubectlCmd(cmd string) string {
+	r, _ := regexp.Compile(`--cluster-name[=|' ']([^\s]*)`)
+	//this gives 2 match with cluster name and without
+	matchedArray := r.FindStringSubmatch(cmd)
+	var s string = ""
+	if len(matchedArray) >= 2 {
+		s = matchedArray[1]
+	}
+	return s
 }
