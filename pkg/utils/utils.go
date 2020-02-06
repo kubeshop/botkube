@@ -409,7 +409,7 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 	r, _ := regexp.Compile(`--cluster-name[=|' ']([^\s]*)`)
 	//this gives 2 match with cluster name and without
 	matchedArray := r.FindStringSubmatch(cmd)
-	var s string = ""
+	var s string
 	if len(matchedArray) >= 2 {
 		s = matchedArray[1]
 	}
