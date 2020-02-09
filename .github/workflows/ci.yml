@@ -21,39 +21,35 @@ jobs:
         go get -u golang.org/x/lint/golint
     - name: Before build
       run: |
-        ls $GOPATH/bin
+        echo Workflow trigger - ${{ github.event_name }}
         ./hack/verify-gofmt.sh
         ./hack/verify-govet.sh
         ./hack/verify-golint.sh
         go mod verify
-        helm lint helm/botkube
     - name: make test, make build, make docker-image
       run: |
         make test
         make
         make container-image
-    - name: Push docker images # should be a CD action
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'github-actions-impl')
+    - name: Push docker images
+      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
-        echo github.event_name - ${{ github.event_name }}
-        echo github.ref -branch or tag - ${{ github.ref }} 
-        echo github.head_ref - source branch - ${{ github.head_ref }} 
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker tag infracloudio/botkube:latest ameydev/botkube:latest
-        docker push ameydev/botkube:latest
+        docker push infracloudio/botkube:latest
     - name: Install helm
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'github-actions-impl')
+      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
         curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
         chmod +x get_helm.sh
         ./get_helm.sh
-    - name: Release Helm template # should be a CD action
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'github-actions-impl')
+        helm lint helm/botkube
+    - name: Release Helm template
+      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
         cd ..
         git config --global user.email "botkube-ci@infracloud.io"
         git config --global user.name "BotKube CI"
-        git clone https://github.com/ameydev/charts.git
+        git clone https://github.com/infracloudio/charts.git
         cd charts
         git fetch
         git branch
@@ -63,4 +59,4 @@ jobs:
         helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
         git add .
         git commit -m "Update BotKube latest helm chart"
-        git push https://${{ secrets.GH_TOKEN }}@github.com/ameydev/charts.git
+        git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git
