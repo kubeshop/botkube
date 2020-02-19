@@ -55,7 +55,7 @@ jobs:
         git branch
         git pull origin gh-pages
         helm init --client-only
-        helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace	}}/helm/botkube/
+        helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace }}/helm/botkube/
         helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
         git add .
         git commit -m "Update BotKube latest helm chart"
