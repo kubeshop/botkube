@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	validNotifierCommand = map[string]bool{
+	ValidNotifierCommand = map[string]bool{
 		"notifier": true,
 	}
 	validPingCommand = map[string]bool{
@@ -65,10 +65,10 @@ var (
 )
 
 const (
-	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
+	NotifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	incompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	IncompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
@@ -178,7 +178,7 @@ func (e *DefaultExecutor) Execute() string {
 			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
 		}
 	}
-	if validNotifierCommand[args[0]] {
+	if ValidNotifierCommand[args[0]] {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if validPingCommand[args[0]] {
@@ -275,14 +275,14 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 		return ""
 	}
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return IncompleteCmdMsg
 	}
 
 	switch args[1] {
 	case Start.String():
 		config.Notify = true
-		log.Info("Notifier enabled")
-		return fmt.Sprintf(notifierStartMsg, clusterName)
+		log.Logger.Info("Notifier enabled")
+		return fmt.Sprintf(NotifierStartMsg, clusterName)
 	case Stop.String():
 		config.Notify = false
 		log.Info("Notifier disabled")
@@ -309,7 +309,7 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 		return ""
 	}
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return IncompleteCmdMsg
 	}
 
 	switch args[1] {
