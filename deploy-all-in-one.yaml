@@ -1,13 +1,19 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: botkube
+---
 # Configmap
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: botkube-configmap
+  namespace: botkube
   labels:
     app: botkube
 data:
-  config.yaml: |
+  resource_config.yaml: |
     ## Resources you want to watch
     resources:
       - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
@@ -217,6 +223,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: botkube-communication-secret
+  namespace: botkube
   labels:
     app: botkube
 type: Opaque
@@ -263,6 +270,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: botkube-sa
+  namespace: botkube
   labels:
     app: botkube
 ---
@@ -299,6 +307,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: botkube
+  namespace: botkube
   labels:
     component: controller
     app: botkube
@@ -317,7 +326,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloudio/botkube:v0.9.1"
+          image: "infracloudio/botkube:latest"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -330,7 +339,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: v0.9.1
+              value: v9.99.9-dev
       volumes:
         - name: config-volume
           projected:
