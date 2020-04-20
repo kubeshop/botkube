@@ -29,6 +29,7 @@ update_chart_yamls() {
 
     sed -i "s/version.*/version: ${version}/" helm/botkube/Chart.yaml
     sed -i "s/appVersion.*/appVersion: ${version}/" helm/botkube/Chart.yaml
+    sed -i "s/\btag:.*/tag: ${version}/" helm/botkube/values.yaml
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one.yaml
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one-tls.yaml
 
