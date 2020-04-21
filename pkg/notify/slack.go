@@ -289,6 +289,24 @@ func formatShortMessage(event events.Event) (msg string) {
 				event.Cluster,
 			)
 		}
+	case config.InfoEvent, config.NormalEvent:
+		switch event.Kind {
+		case "Namespace", "Node", "PersistentVolume", "ClusterRole", "ClusterRoleBinding":
+			msg = fmt.Sprintf(
+				"%s Info: *%s* in *%s* cluster\n",
+				event.Kind,
+				event.Name,
+				event.Cluster,
+			)
+		default:
+			msg = fmt.Sprintf(
+				"%s Info: *%s/%s* in *%s* cluster\n",
+				event.Kind,
+				event.Namespace,
+				event.Name,
+				event.Cluster,
+			)
+		}
 	}
 
 	// Add message in the attachment if there is any
