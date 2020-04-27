@@ -23,8 +23,8 @@ FROM golang:1.13-alpine3.10 AS BUILD-ENV
 ARG GOOS_VAL 
 ARG GOARCH_VAL
 
-# Add git
-RUN apk update && apk add git curl
+# Add git curl and gcc
+RUN apk update && apk add git curl build-base 
 
 WORKDIR /app
 
