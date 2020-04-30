@@ -20,8 +20,7 @@
 # Development image
 FROM golang:1.12-alpine3.10 AS BUILD-ENV
 
-ARG GOOS_VAL 
-ARG GOARCH_VAL
+ARG TARGETPLATFORM
 
 # Add git
 RUN apk update && apk add git curl
@@ -36,11 +35,14 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube ./cmd/botkube 
+RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
+    GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3); export GOARM=${GOARM:1} && \
+    go build -o /go/bin/botkube ./cmd/botkube
 
 # Install kubectl binary
 RUN apk add --no-cache ca-certificates git \
-    && wget -q https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl \
+    && wget -q https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/${GOARCH}/kubectl -O /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
 # Production image
