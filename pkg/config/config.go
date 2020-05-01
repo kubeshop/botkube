@@ -147,11 +147,17 @@ type Webhook struct {
 	URL     string
 }
 
+// Kubectl configuration for executing commands inside cluster
+type Kubectl struct {
+	Enabled          bool
+	DefaultNamespace string
+	RestrictAccess   bool `yaml:"restrictAccess"`
+}
+
 // Settings for multicluster support
 type Settings struct {
 	ClusterName     string
-	AllowKubectl    bool
-	RestrictAccess  bool `yaml:"restrictAccess"`
+	Kubectl         Kubectl
 	ConfigWatcher   bool
 	UpgradeNotifier bool `yaml:"upgradeNotifier"`
 }

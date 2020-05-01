@@ -86,12 +86,13 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message        string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	ChannelName    string
-	IsAuthChannel  bool
+	Message          string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	ChannelName      string
+	IsAuthChannel    bool
+	DefaultNamespace string
 }
 
 // CommandRunner is an interface to run bash commands
@@ -145,14 +146,15 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace, clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
-		Message:        msg,
-		AllowKubectl:   allowkubectl,
-		RestrictAccess: restrictAccess,
-		ClusterName:    clusterName,
-		ChannelName:    channelName,
-		IsAuthChannel:  isAuthChannel,
+		Message:          msg,
+		AllowKubectl:     allowkubectl,
+		RestrictAccess:   restrictAccess,
+		ClusterName:      clusterName,
+		ChannelName:      channelName,
+		IsAuthChannel:    isAuthChannel,
+		DefaultNamespace: defaultNamespace,
 	}
 }
 
@@ -172,7 +174,7 @@ func (e *DefaultExecutor) Execute() string {
 		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 			return ""
 		}
-		return runKubectlCommand(args, e.ClusterName, e.IsAuthChannel)
+		return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
 	}
 	if validNotifierCommand[args[0]] {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
@@ -211,9 +213,14 @@ func trimQuotes(clusterValue string) string {
 	})
 }
 
-func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
-	// Use 'default' as a default namespace
-	args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
+
+	// run commands in namespace specified under Config.Settings.DefaultNamespace field
+	if len(defaultNamespace) != 0 {
+		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+	} else {
+		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+	}
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
