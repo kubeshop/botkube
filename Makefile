@@ -36,14 +36,8 @@ build: pre-build
 	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
 	@echo "Build completed successfully"
 
-# Build the image
-container-image: pre-build
-	@echo "Building docker image"
-	@docker build --build-arg GOOS_VAL=$(shell go env GOOS) --build-arg GOARCH_VAL=$(shell go env GOARCH) -t $(IMAGE_REPO) -f build/Dockerfile --no-cache .
-	@echo "Docker image build successfully"
-
 # Buildx, Tag & Push Dev
-buildx-container-image-build: pre-build
+buildx-container-image-build:
 	export DOCKER_CLI_EXPERIMENTAL=enabled
 	@if ! docker buildx ls | grep -q container-builder; then\
 		docker buildx create --platform "linux/amd64,linux/arm64,linux/arm/v7" --name container-builder --use;\
@@ -51,10 +45,10 @@ buildx-container-image-build: pre-build
 	docker buildx build --platform "linux/amd64,linux/arm64,linux/arm/v7" \
 		-t $(IMAGE_REPO):$(DEV_TAG) \
 		-f build/Dockerfile \
-		. --push
+		.
 
 # Buildx, Tag & Push Release
-buildx-container-image-release: pre-built
+buildx-container-image-release:
 	export DOCKER_CLI_EXPERIMENTAL=enabled
 	@if ! docker buildx ls | grep -q container-builder; then\
 		docker buildx create --platform "linux/amd64,linux/arm64,linux/arm/v7" --name container-builder --use;\
