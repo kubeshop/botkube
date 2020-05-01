@@ -8,6 +8,7 @@ services:
 
 env:
   - GO111MODULE=on
+  - DOCKER_BUILDKIT=1
 
 install:
   - go get -u golang.org/x/lint/golint
@@ -16,10 +17,9 @@ install:
   - ./get_helm.sh
 
 before_script:
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - sudo apt-get update
-  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  - docker build --platform=local -o . git://github.com/docker/buildx
+  - mkdir -p ~/.docker/cli-plugins
+  - mv buildx ~/.docker/cli-plugins/docker-buildx
   - hack/verify-gofmt.sh
   - hack/verify-govet.sh
   - hack/verify-golint.sh
