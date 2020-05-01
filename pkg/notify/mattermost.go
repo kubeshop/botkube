@@ -39,23 +39,15 @@ type Mattermost struct {
 
 // NewMattermost returns new Mattermost object
 func NewMattermost(c *config.Config) (Notifier, error) {
-	// Load configurations
-	c, err := config.New()
-	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
-
 	// Set configurations for Mattermost server
 	client := model.NewAPIv4Client(c.Communications.Mattermost.URL)
 	client.SetOAuthToken(c.Communications.Mattermost.Token)
 	botTeam, resp := client.GetTeamByName(c.Communications.Mattermost.Team, "")
 	if resp.Error != nil {
-		log.Logger.Error("Error in connecting to Mattermost team ", c.Communications.Mattermost.Team, "\nError: ", resp.Error)
 		return nil, resp.Error
 	}
 	botChannel, resp := client.GetChannelByName(c.Communications.Mattermost.Channel, botTeam.Id, "")
 	if resp.Error != nil {
-		log.Logger.Error("Error in connecting to Mattermost channel ", c.Communications.Mattermost.Channel, "\nError: ", resp.Error)
 		return nil, resp.Error
 	}
 

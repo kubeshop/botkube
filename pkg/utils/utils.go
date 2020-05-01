@@ -93,7 +93,7 @@ type KindNS struct {
 
 // InitInformerMap initializes helper maps to filter events
 func InitInformerMap() {
-	botkubeConf, err := config.New()
+	conf, err := config.New()
 	if err != nil {
 		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
@@ -142,7 +142,7 @@ func InitInformerMap() {
 	ResourceInformerMap["clusterrolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
 
 	// Allowed event kinds map and Allowed Update Events Map
-	for _, r := range botkubeConf.Resources {
+	for _, r := range conf.Resources {
 		allEvents := false
 		for _, e := range r.Events {
 			if e == config.AllEvent {

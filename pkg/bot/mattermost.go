@@ -71,12 +71,7 @@ type mattermostMessage struct {
 }
 
 // NewMattermostBot returns new Bot object
-func NewMattermostBot() Bot {
-	c, err := config.New()
-	if err != nil {
-		logging.Logger.Fatalf("Error in loading configuration. Error: %s", err.Error())
-	}
-
+func NewMattermostBot(c *config.Config) Bot {
 	return &MMBot{
 		ServerURL:      c.Communications.Mattermost.URL,
 		Token:          c.Communications.Mattermost.Token,

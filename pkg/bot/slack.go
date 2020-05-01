@@ -20,7 +20,6 @@
 package bot
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -52,11 +51,7 @@ type slackMessage struct {
 }
 
 // NewSlackBot returns new Bot object
-func NewSlackBot() Bot {
-	c, err := config.New()
-	if err != nil {
-		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
+func NewSlackBot(c *config.Config) Bot {
 	return &SlackBot{
 		Token:          c.Communications.Slack.Token,
 		AllowKubectl:   c.Settings.AllowKubectl,
