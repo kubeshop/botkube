@@ -23,7 +23,6 @@ before_script:
   - helm lint helm/botkube
 
 script:
-  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - make test
   - make
   - make buildx-container-image-build
@@ -31,6 +30,7 @@ script:
 after_success:
   - |
     if [[ "$TRAVIS_BRANCH" == "develop" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+      docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
       make buildx-container-image-release
     fi
 
