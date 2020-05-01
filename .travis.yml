@@ -9,6 +9,7 @@ services:
 env:
   - GO111MODULE=on
   - DOCKER_BUILDKIT=1
+  - DOCKER_CLI_EXPERIMENTAL=enabled
 
 install:
   - go get -u golang.org/x/lint/golint
