@@ -49,16 +49,17 @@ const (
 
 // MMBot listens for user's message, execute commands and sends back the response
 type MMBot struct {
-	Token          string
-	TeamName       string
-	ChannelName    string
-	ClusterName    string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ServerURL      string
-	WebSocketURL   string
-	WSClient       *model.WebSocketClient
-	APIClient      *model.Client4
+	Token            string
+	TeamName         string
+	ChannelName      string
+	ClusterName      string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ServerURL        string
+	WebSocketURL     string
+	WSClient         *model.WebSocketClient
+	APIClient        *model.Client4
+	DefaultNamespace string
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -73,13 +74,14 @@ type mattermostMessage struct {
 // NewMattermostBot returns new Bot object
 func NewMattermostBot(c *config.Config) Bot {
 	return &MMBot{
-		ServerURL:      c.Communications.Mattermost.URL,
-		Token:          c.Communications.Mattermost.Token,
-		TeamName:       c.Communications.Mattermost.Team,
-		ChannelName:    c.Communications.Mattermost.Channel,
-		ClusterName:    c.Settings.ClusterName,
-		AllowKubectl:   c.Settings.AllowKubectl,
-		RestrictAccess: c.Settings.RestrictAccess,
+		ServerURL:        c.Communications.Mattermost.URL,
+		Token:            c.Communications.Mattermost.Token,
+		TeamName:         c.Communications.Mattermost.Team,
+		ChannelName:      c.Communications.Mattermost.Channel,
+		ClusterName:      c.Settings.ClusterName,
+		AllowKubectl:     c.Settings.Kubectl.Enabled,
+		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
 	}
 }
 
@@ -147,7 +149,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
-	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.ClusterName, b.ChannelName, mm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, mm.IsAuthChannel)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }

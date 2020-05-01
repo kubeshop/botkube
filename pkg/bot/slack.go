@@ -30,13 +30,14 @@ import (
 
 // SlackBot listens for user's message, execute commands and sends back the response
 type SlackBot struct {
-	Token          string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	ChannelName    string
-	SlackURL       string
-	BotID          string
+	Token            string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	ChannelName      string
+	SlackURL         string
+	BotID            string
+	DefaultNamespace string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -53,11 +54,12 @@ type slackMessage struct {
 // NewSlackBot returns new Bot object
 func NewSlackBot(c *config.Config) Bot {
 	return &SlackBot{
-		Token:          c.Communications.Slack.Token,
-		AllowKubectl:   c.Settings.AllowKubectl,
-		RestrictAccess: c.Settings.RestrictAccess,
-		ClusterName:    c.Settings.ClusterName,
-		ChannelName:    c.Communications.Slack.Channel,
+		Token:            c.Communications.Slack.Token,
+		AllowKubectl:     c.Settings.Kubectl.Enabled,
+		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		ClusterName:      c.Settings.ClusterName,
+		ChannelName:      c.Communications.Slack.Channel,
+		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
 	}
 }
 
@@ -153,7 +155,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }
