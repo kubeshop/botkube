@@ -8,7 +8,7 @@ RELEASE_TAG=$(shell cut -d'=' -f2- .release)
 #Docker Tasks
 #Make a release
 release: check-git-status test container-image tag-image publish git-tag
-	@echo "Successfully releeased version $(RELEASE_TAG)"
+	@echo "Successfully released version $(RELEASE_TAG)"
 
 #Create a git tag
 git-tag:
