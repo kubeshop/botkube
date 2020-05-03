@@ -8,8 +8,6 @@ services:
 
 env:
   - GO111MODULE=on
-  - DOCKER_BUILDKIT=1
-  - DOCKER_CLI_EXPERIMENTAL=enabled
 
 install:
   - go get -u golang.org/x/lint/golint
@@ -18,9 +16,11 @@ install:
   - ./get_helm.sh
 
 before_script:
-  - docker build --platform=local -o . git://github.com/docker/buildx
-  - mkdir -p ~/.docker/cli-plugins
-  - mv buildx ~/.docker/cli-plugins/docker-buildx
+  - curl -fsSL https://get.docker.com | sh
+  - echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
+  - mkdir -p $HOME/.docker
+  - echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
+  - sudo service docker start
   - hack/verify-gofmt.sh
   - hack/verify-govet.sh
   - hack/verify-golint.sh
