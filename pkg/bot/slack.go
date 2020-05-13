@@ -1,7 +1,25 @@
+// Copyright (c) 2019 InfraCloud Technologies
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package bot
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -12,13 +30,14 @@ import (
 
 // SlackBot listens for user's message, execute commands and sends back the response
 type SlackBot struct {
-	Token          string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	ChannelName    string
-	SlackURL       string
-	BotID          string
+	Token            string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	ChannelName      string
+	SlackURL         string
+	BotID            string
+	DefaultNamespace string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -33,17 +52,14 @@ type slackMessage struct {
 }
 
 // NewSlackBot returns new Bot object
-func NewSlackBot() Bot {
-	c, err := config.New()
-	if err != nil {
-		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
+func NewSlackBot(c *config.Config) Bot {
 	return &SlackBot{
-		Token:          c.Communications.Slack.Token,
-		AllowKubectl:   c.Settings.AllowKubectl,
-		RestrictAccess: c.Settings.RestrictAccess,
-		ClusterName:    c.Settings.ClusterName,
-		ChannelName:    c.Communications.Slack.Channel,
+		Token:            c.Communications.Slack.Token,
+		AllowKubectl:     c.Settings.Kubectl.Enabled,
+		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		ClusterName:      c.Settings.ClusterName,
+		ChannelName:      c.Communications.Slack.Channel,
+		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
 	}
 }
 
@@ -139,7 +155,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }

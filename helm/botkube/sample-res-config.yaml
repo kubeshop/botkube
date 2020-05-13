@@ -36,20 +36,66 @@ config:
           - all
       events:
         - create
+        - update
         - delete
         - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec.template.spec.containers[*].image
+          - status.availableReplicas
     - name: statefulset
       namespaces:
         include:  
           - all
       events:
         - create
+        - update
         - delete
         - error
-    - name: ingress
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec.template.spec.containers[*].image
+          - status.readyReplicas
+    - name: daemonset
       namespaces:
-        include:  
+        include:
           - all
+        ignore:
+          -
+      events:
+        - create
+        - update
+        - delete
+        - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec.template.spec.containers[*].image
+          - status.numberReady
+    - name: job
+      namespaces:
+        include:
+          - all
+        ignore:
+          -
+      events:
+        - create
+        - update
+        - delete
+        - error
+      updateSetting:
+        includeDiff: true
+        fields:
+          - spec.template.spec.containers[*].image
+          - status.conditions[*].type
+    - name: node
+      namespaces:
+        include:
+          - all
+        ignore:
+          -
       events:
         - create
         - delete

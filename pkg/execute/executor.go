@@ -1,3 +1,22 @@
+// Copyright (c) 2019 InfraCloud Technologies
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package execute
 
 import (
@@ -67,12 +86,13 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message        string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	ChannelName    string
-	IsAuthChannel  bool
+	Message          string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	ChannelName      string
+	IsAuthChannel    bool
+	DefaultNamespace string
 }
 
 // CommandRunner is an interface to run bash commands
@@ -126,14 +146,15 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace, clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
-		Message:        msg,
-		AllowKubectl:   allowkubectl,
-		RestrictAccess: restrictAccess,
-		ClusterName:    clusterName,
-		ChannelName:    channelName,
-		IsAuthChannel:  isAuthChannel,
+		Message:          msg,
+		AllowKubectl:     allowkubectl,
+		RestrictAccess:   restrictAccess,
+		ClusterName:      clusterName,
+		ChannelName:      channelName,
+		IsAuthChannel:    isAuthChannel,
+		DefaultNamespace: defaultNamespace,
 	}
 }
 
@@ -153,7 +174,7 @@ func (e *DefaultExecutor) Execute() string {
 		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 			return ""
 		}
-		return runKubectlCommand(args, e.ClusterName, e.IsAuthChannel)
+		return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
 	}
 	if validNotifierCommand[args[0]] {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
@@ -192,9 +213,14 @@ func trimQuotes(clusterValue string) string {
 	})
 }
 
-func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
-	// Use 'default' as a default namespace
-	args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
+
+	// run commands in namespace specified under Config.Settings.DefaultNamespace field
+	if len(defaultNamespace) != 0 {
+		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+	} else {
+		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+	}
 
 	// Remove unnecessary flags
 	finalArgs := []string{}

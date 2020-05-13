@@ -1,3 +1,4 @@
+{{- if .Values.rbac.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -13,5 +14,6 @@ roleRef:
   name: {{ include "botkube.fullname" . }}-clusterrole
 subjects:
 - kind: ServiceAccount
-  name: {{ include "botkube.fullname" . }}-sa
+  name: {{ include "botkube.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
+{{ end }}

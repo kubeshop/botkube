@@ -1,3 +1,22 @@
+// Copyright (c) 2019 InfraCloud Technologies
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package main
 
 import (
@@ -19,20 +38,20 @@ const (
 
 func main() {
 	log.Logger.Info("Starting controller")
-	Config, err := config.New()
+	conf, err := config.New()
 	if err != nil {
 		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
-	if Config.Communications.Slack.Enabled {
+	if conf.Communications.Slack.Enabled {
 		log.Logger.Info("Starting slack bot")
-		sb := bot.NewSlackBot()
+		sb := bot.NewSlackBot(conf)
 		go sb.Start()
 	}
 
-	if Config.Communications.Mattermost.Enabled {
+	if conf.Communications.Mattermost.Enabled {
 		log.Logger.Info("Starting mattermost bot")
-		mb := bot.NewMattermostBot()
+		mb := bot.NewMattermostBot(conf)
 		go mb.Start()
 	}
 
@@ -43,29 +62,40 @@ func main() {
 	}
 	go metrics.ServeMetrics(metricsPort)
 
-	// List notifiers
-	var notifiers []notify.Notifier
-	if Config.Communications.Slack.Enabled {
-		notifiers = append(notifiers, notify.NewSlack(Config))
-	}
-	if Config.Communications.Mattermost.Enabled {
-		if notifier, err := notify.NewMattermost(Config); err == nil {
-			notifiers = append(notifiers, notifier)
-		}
-	}
-	if Config.Communications.ElasticSearch.Enabled {
-		notifiers = append(notifiers, notify.NewElasticSearch(Config))
-	}
-	if Config.Communications.Webhook.Enabled {
-		notifiers = append(notifiers, notify.NewWebhook(Config))
-	}
-	if Config.Settings.UpgradeNotifier {
+	notifiers := listNotifiers(conf)
+	// Start upgrade notifier
+	if conf.Settings.UpgradeNotifier {
 		log.Logger.Info("Starting upgrade notifier")
-		go controller.UpgradeNotifier(Config, notifiers)
+		go controller.UpgradeNotifier(conf, notifiers)
 	}
 
 	// Init KubeClient, InformerMap and start controller
 	utils.InitKubeClient()
 	utils.InitInformerMap()
-	controller.RegisterInformers(Config, notifiers)
+	controller.RegisterInformers(conf, notifiers)
+}
+
+func listNotifiers(conf *config.Config) []notify.Notifier {
+	var notifiers []notify.Notifier
+	if conf.Communications.Slack.Enabled {
+		notifiers = append(notifiers, notify.NewSlack(conf))
+	}
+	if conf.Communications.Mattermost.Enabled {
+		if notifier, err := notify.NewMattermost(conf); err == nil {
+			notifiers = append(notifiers, notifier)
+		} else {
+			log.Logger.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
+		}
+	}
+	if conf.Communications.ElasticSearch.Enabled {
+		if els, err := notify.NewElasticSearch(conf); err == nil {
+			notifiers = append(notifiers, els)
+		} else {
+			log.Logger.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
+		}
+	}
+	if conf.Communications.Webhook.Enabled {
+		notifiers = append(notifiers, notify.NewWebhook(conf))
+	}
+	return notifiers
 }

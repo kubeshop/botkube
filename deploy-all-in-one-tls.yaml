@@ -1,13 +1,19 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: botkube
+---
 # Configmap
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: botkube-configmap
+  namespace: botkube
   labels:
     app: botkube
 data:
-  config.yaml: |
+  resource_config.yaml: |
     ## Resources you want to watch
     resources:
       - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
@@ -203,10 +209,14 @@ data:
     settings:
       # Cluster name to differentiate incoming messages
       clustername: not-configured
-      # Set true to enable kubectl commands execution
-      allowkubectl: false
-      # Set true to enable commands execution from configured channel only
-      restrictAccess: false
+      # Kubectl executor configs
+      kubectl:
+        # Set true to enable kubectl commands execution
+        enabled: false
+        # set Namespace to execute botkube kubectl commands by default
+        defaultNamespace: default
+        # Set true to enable commands execution from configured channel only
+        restrictAccess: false
       # Set true to enable config watcher
       configwatcher: true
       # Set false to disable upgrade notification
@@ -217,6 +227,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: botkube-communication-secret
+  namespace: botkube
   labels:
     app: botkube
 type: Opaque
@@ -263,6 +274,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: botkube-sa
+  namespace: botkube
   labels:
     app: botkube
 ---
@@ -309,6 +321,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: botkube
+  namespace: botkube
   labels:
     component: controller
     app: botkube
@@ -327,7 +340,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloudio/botkube:v0.9.1"
+          image: "infracloudio/botkube:v0.10.0"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -342,7 +355,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: v0.9.1
+              value: v0.10.0
       volumes:
         - name: config-volume
           projected:
