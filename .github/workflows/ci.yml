@@ -16,7 +16,7 @@ jobs:
       uses: actions/setup-go@v1
       with:
         go-version: 1.13
-    - name: install golint
+    - name: Install golint
       run: |
         go get -u golang.org/x/lint/golint
     - name: Before build
@@ -26,11 +26,12 @@ jobs:
         ./hack/verify-govet.sh
         ./hack/verify-golint.sh
         go mod verify
-    - name: make test, make build, make docker-image
+    - name: Build and test
       run: |
         make test
         make
-        make container-image
+    - name: Build container image
+      run: make container-image
     - name: Push docker images
       if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
@@ -43,7 +44,7 @@ jobs:
         chmod +x get_helm.sh
         ./get_helm.sh
         helm lint helm/botkube
-    - name: Release Helm template
+    - name: Update and publish helm chart
       if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
         cd ..
