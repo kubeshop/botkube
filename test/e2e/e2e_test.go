@@ -104,6 +104,8 @@ func StartFakeSlackBot(testenv *env.TestEnv) {
 			SlackURL:         testenv.SlackServer.GetAPIURL(),
 			BotID:            testenv.SlackServer.BotID,
 			DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
+			Verbs:            testenv.Config.Settings.Kubectl.Commands.Verbs,
+			Resources:        testenv.Config.Settings.Kubectl.Commands.Resources,
 		}
 		go sb.Start()
 	}
