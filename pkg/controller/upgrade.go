@@ -27,7 +27,7 @@ import (
 
 	"github.com/google/go-github/v27/github"
 	"github.com/infracloudio/botkube/pkg/config"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 )
 
@@ -42,7 +42,7 @@ func checkRelease(c *config.Config, notifiers []notify.Notifier) {
 	client := github.NewClient(nil)
 	release, _, err := client.Repositories.GetLatestRelease(ctx, "infracloudio", "botkube")
 	if err == nil {
-		log.Logger.Debugf(fmt.Sprintf("Upgrade notifier:: latest release info=%+v", release))
+		log.Debugf(fmt.Sprintf("Upgrade notifier:: latest release info=%+v", release))
 		if len(os.Getenv("BOTKUBE_VERSION")) == 0 || release.TagName == nil {
 			return
 		}

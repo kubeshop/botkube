@@ -25,7 +25,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -93,7 +93,7 @@ func (b *MMBot) Start() {
 	// Check if Mattermost URL is valid
 	checkURL, err := url.Parse(b.ServerURL)
 	if err != nil {
-		logging.Logger.Errorf("The Mattermost URL entered is incorrect. URL: %s. Error: %s", b.ServerURL, err.Error())
+		log.Errorf("The Mattermost URL entered is incorrect. URL: %s. Error: %s", b.ServerURL, err.Error())
 		return
 	}
 
@@ -106,7 +106,7 @@ func (b *MMBot) Start() {
 	// Check connection to Mattermost server
 	err = b.checkServerConnection()
 	if err != nil {
-		logging.Logger.Fatalf("There was a problem pinging the Mattermost server URL %s. %s", b.ServerURL, err.Error())
+		log.Fatalf("There was a problem pinging the Mattermost server URL %s. %s", b.ServerURL, err.Error())
 		return
 	}
 
@@ -114,12 +114,12 @@ func (b *MMBot) Start() {
 		// It is obeserved that Mattermost server closes connections unexpectedly after some time.
 		// For now, we are adding retry logic to reconnect to the server
 		// https://github.com/infracloudio/botkube/issues/201
-		logging.Logger.Info("BotKube connected to Mattermost!")
+		log.Info("BotKube connected to Mattermost!")
 		for {
 			var appErr *model.AppError
 			b.WSClient, appErr = model.NewWebSocketClient4(b.WebSocketURL, b.APIClient.AuthToken)
 			if appErr != nil {
-				logging.Logger.Errorf("Error creating WebSocket for Mattermost connectivity. %v", appErr)
+				log.Errorf("Error creating WebSocket for Mattermost connectivity. %v", appErr)
 				return
 			}
 			b.listen()
@@ -144,7 +144,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	if mm.Event.Broadcast.ChannelId == b.getChannel().Id {
 		mm.IsAuthChannel = true
 	}
-	logging.Logger.Debugf("Received mattermost event: %+v", mm.Event.Data)
+	log.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
 	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
@@ -162,11 +162,11 @@ func (mm mattermostMessage) sendMessage() {
 	if len(mm.Response) >= 3990 {
 		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
 		if resp.Error != nil {
-			logging.Logger.Error("Error occured while uploading file. Error: ", resp.Error)
+			log.Error("Error occured while uploading file. Error: ", resp.Error)
 		}
 		post.FileIds = []string{string(res.FileInfos[0].Id)}
 	} else if len(mm.Response) == 0 {
-		logging.Logger.Info("Invalid request. Dumping the response")
+		log.Info("Invalid request. Dumping the response")
 		return
 	} else {
 		post.Message = "```\n" + mm.Response + "\n```"
@@ -174,7 +174,7 @@ func (mm mattermostMessage) sendMessage() {
 
 	// Create a post in the Channel
 	if _, resp := mm.APIClient.CreatePost(post); resp.Error != nil {
-		logging.Logger.Error("Failed to send message. Error: ", resp.Error)
+		log.Error("Failed to send message. Error: ", resp.Error)
 	}
 }
 
@@ -197,7 +197,7 @@ func (b MMBot) checkServerConnection() error {
 func (b MMBot) getTeam() *model.Team {
 	botTeam, resp := b.APIClient.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
-		logging.Logger.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
+		log.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
 	}
 	return botTeam
 }
@@ -206,7 +206,7 @@ func (b MMBot) getTeam() *model.Team {
 func (b MMBot) getUser() *model.User {
 	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
 	if resp.Error != nil {
-		logging.Logger.Fatalf("There was a problem finding Mattermost user %s. %s", BotName, resp.Error)
+		log.Fatalf("There was a problem finding Mattermost user %s. %s", BotName, resp.Error)
 	}
 	return users.Users[0]
 }
@@ -216,7 +216,7 @@ func (b MMBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
-		logging.Logger.Fatalf("There was a problem finding Mattermost channel %s. %s", b.ChannelName, resp.Error)
+		log.Fatalf("There was a problem finding Mattermost channel %s. %s", b.ChannelName, resp.Error)
 	}
 
 	// Adding Botkube user to channel
@@ -229,7 +229,7 @@ func (b MMBot) listen() {
 	defer b.WSClient.Close()
 	for {
 		if b.WSClient.ListenError != nil {
-			logging.Logger.Debugf("Mattermost websocket listen error %s. Reconnecting...", b.WSClient.ListenError)
+			log.Debugf("Mattermost websocket listen error %s. Reconnecting...", b.WSClient.ListenError)
 			return
 		}
 

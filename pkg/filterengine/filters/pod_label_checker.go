@@ -25,7 +25,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 
 	coreV1 "k8s.io/api/core/v1"
 )
@@ -56,7 +56,7 @@ func (f PodLabelChecker) Run(object interface{}, event *events.Event) {
 	if len(podObj.ObjectMeta.Labels) == 0 {
 		event.Recommendations = append(event.Recommendations, fmt.Sprintf("pod '%s' creation without labels should be avoided.", podObj.ObjectMeta.Name))
 	}
-	log.Logger.Debug("Pod label filter successful!")
+	log.Debug("Pod label filter successful!")
 }
 
 // Describe filter
