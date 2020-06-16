@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	appsV1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -64,16 +64,16 @@ func InitKubeClient() {
 		}
 		botkubeConf, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 		if err != nil {
-			log.Logger.Fatal(err)
+			log.Fatal(err)
 		}
 		KubeClient, err = kubernetes.NewForConfig(botkubeConf)
 		if err != nil {
-			log.Logger.Fatal(err)
+			log.Fatal(err)
 		}
 	} else {
 		KubeClient, err = kubernetes.NewForConfig(kubeConfig)
 		if err != nil {
-			log.Logger.Fatal(err)
+			log.Fatal(err)
 		}
 	}
 }
@@ -95,7 +95,7 @@ type KindNS struct {
 func InitInformerMap() {
 	conf, err := config.New()
 	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	// Get resync period
@@ -105,7 +105,7 @@ func InitInformerMap() {
 	}
 	rsyncTime, err := strconv.Atoi(rsyncTimeStr)
 	if err != nil {
-		log.Logger.Fatal("Error in reading INFORMERS_RESYNC_PERIOD env var.", err)
+		log.Fatal("Error in reading INFORMERS_RESYNC_PERIOD env var.", err)
 	}
 
 	// Create shared informer factory
@@ -171,8 +171,8 @@ func InitInformerMap() {
 			}
 		}
 	}
-	log.Logger.Infof("Allowed Events - %+v", AllowedEventKindsMap)
-	log.Logger.Infof("Allowed UpdateEvents - %+v", AllowedUpdateEventsMap)
+	log.Infof("Allowed Events - %+v", AllowedEventKindsMap)
+	log.Infof("Allowed UpdateEvents - %+v", AllowedUpdateEventsMap)
 }
 
 // GetObjectMetaData returns metadata of the given object
@@ -314,110 +314,110 @@ func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Node":
 		object, err := KubeClient.CoreV1().Nodes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Namespace":
 		object, err := KubeClient.CoreV1().Namespaces().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "PersistentVolume":
 		object, err := KubeClient.CoreV1().PersistentVolumes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "PersistentVolumeClaim":
 		object, err := KubeClient.CoreV1().PersistentVolumeClaims(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "ReplicationController":
 		object, err := KubeClient.CoreV1().ReplicationControllers(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Service":
 		object, err := KubeClient.CoreV1().Services(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Secret":
 		object, err := KubeClient.CoreV1().Secrets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "ConfigMap":
 		object, err := KubeClient.CoreV1().ConfigMaps(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "DaemonSet":
 		object, err := KubeClient.ExtensionsV1beta1().DaemonSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Ingress":
 		object, err := KubeClient.ExtensionsV1beta1().Ingresses(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 
 	case "ReplicaSet":
 		object, err := KubeClient.ExtensionsV1beta1().ReplicaSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Deployment":
 		object, err := KubeClient.ExtensionsV1beta1().Deployments(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Job":
 		object, err := KubeClient.BatchV1().Jobs(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "Role":
 		object, err := KubeClient.RbacV1().Roles(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "RoleBinding":
 		object, err := KubeClient.RbacV1().RoleBindings(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "ClusterRole":
 		object, err := KubeClient.RbacV1().ClusterRoles().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	case "ClusterRoleBinding":
 		object, err := KubeClient.RbacV1().ClusterRoleBindings().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 		if err == nil {
 			return object.ObjectMeta.Annotations
 		}
-		log.Logger.Error(err)
+		log.Error(err)
 	}
 
 	return map[string]string{}

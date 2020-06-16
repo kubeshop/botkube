@@ -26,7 +26,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -60,7 +60,7 @@ func NewMattermost(c *config.Config) (Notifier, error) {
 
 // SendEvent sends event notification to Mattermost
 func (m *Mattermost) SendEvent(event events.Event) error {
-	log.Logger.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
+	log.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
 
 	var fields []*model.SlackAttachmentField
 
@@ -95,7 +95,7 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		post.ChannelId = event.Channel
 
 		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			log.Error("Failed to send message. Error: ", resp.Error)
 			// send error message to default channel
 			msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, resp.Error, event.Channel)
 			go m.SendMessage(msg)
@@ -105,15 +105,15 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 			go m.SendEvent(event)
 			return resp.Error
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
+		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
 	} else {
 		post.ChannelId = m.Channel
 		// empty value in event.channel sends notifications to default channel.
 		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			log.Error("Failed to send message. Error: ", resp.Error)
 			return resp.Error
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
+		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
 	}
 	return nil
 }
@@ -124,7 +124,7 @@ func (m *Mattermost) SendMessage(msg string) error {
 	post.ChannelId = m.Channel
 	post.Message = msg
 	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-		log.Logger.Error("Failed to send message. Error: ", resp.Error)
+		log.Error("Failed to send message. Error: ", resp.Error)
 	}
 	return nil
 }

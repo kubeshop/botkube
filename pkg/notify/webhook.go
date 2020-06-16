@@ -28,7 +28,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // Webhook contains URL and ClusterName
@@ -100,11 +100,11 @@ func (w *Webhook) SendEvent(event events.Event) (err error) {
 
 	err = w.PostWebhook(jsonPayload)
 	if err != nil {
-		log.Logger.Error(err.Error())
-		log.Logger.Debugf("Event Not Sent to Webhook %v", event)
+		log.Error(err.Error())
+		log.Debugf("Event Not Sent to Webhook %v", event)
 	}
 
-	log.Logger.Debugf("Event successfully sent to Webhook %v", event)
+	log.Debugf("Event successfully sent to Webhook %v", event)
 	return nil
 }
 
