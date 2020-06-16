@@ -38,8 +38,6 @@ type SlackBot struct {
 	SlackURL         string
 	BotID            string
 	DefaultNamespace string
-	Verbs            []string
-	Resources        []string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -62,8 +60,6 @@ func NewSlackBot(c *config.Config) Bot {
 		ClusterName:      c.Settings.ClusterName,
 		ChannelName:      c.Communications.Slack.Channel,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
-		Verbs:            c.Settings.Kubectl.Commands.Verbs,
-		Resources:        c.Settings.Kubectl.Commands.Resources,
 	}
 }
 
@@ -160,7 +156,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	}
 
 	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, b.ChannelName, sm.IsAuthChannel, b.Verbs, b.Resources)
+		b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }

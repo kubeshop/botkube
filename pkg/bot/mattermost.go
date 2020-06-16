@@ -60,8 +60,6 @@ type MMBot struct {
 	WSClient         *model.WebSocketClient
 	APIClient        *model.Client4
 	DefaultNamespace string
-	Verbs            []string
-	Resources        []string
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -84,8 +82,6 @@ func NewMattermostBot(c *config.Config) Bot {
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
-		Verbs:            c.Settings.Kubectl.Commands.Verbs,
-		Resources:        c.Settings.Kubectl.Commands.Resources,
 	}
 }
 
@@ -154,7 +150,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
 	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, b.ChannelName, mm.IsAuthChannel, b.Verbs, b.Resources)
+		b.ClusterName, b.ChannelName, mm.IsAuthChannel)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }
