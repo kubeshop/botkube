@@ -32,8 +32,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/logging"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -261,7 +260,7 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 	runner := NewCommandRunner(kubectlBinary, finalArgs)
 	out, err := runner.Run()
 	if err != nil {
-		log.Logger.Error("Error in executing kubectl command: ", err)
+		log.Error("Error in executing kubectl command: ", err)
 		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
 	}
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
@@ -279,11 +278,11 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	switch args[1] {
 	case Start.String():
 		config.Notify = true
-		log.Logger.Info("Notifier enabled")
+		log.Info("Notifier enabled")
 		return fmt.Sprintf(notifierStartMsg, clusterName)
 	case Stop.String():
 		config.Notify = false
-		log.Logger.Info("Notifier disabled")
+		log.Info("Notifier disabled")
 		return fmt.Sprintf(notifierStopMsg, clusterName)
 	case Status.String():
 		if config.Notify == false {
@@ -293,7 +292,7 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	case ShowConfig.String():
 		out, err := showControllerConfig()
 		if err != nil {
-			log.Logger.Error("Error in executing showconfig command: ", err)
+			log.Error("Error in executing showconfig command: ", err)
 			return "Error in getting configuration!"
 		}
 		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
@@ -312,7 +311,7 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 
 	switch args[1] {
 	case FilterList.String():
-		log.Logger.Debug("List filters")
+		log.Debug("List filters")
 		return makeFiltersList()
 
 	// Enable filter
@@ -320,7 +319,7 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, makeFiltersList())
 		}
-		log.Logger.Debug("Enable filters", args[2])
+		log.Debug("Enable filters", args[2])
 		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], true); err != nil {
 			return err.Error()
 		}
@@ -331,7 +330,7 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, makeFiltersList())
 		}
-		log.Logger.Debug("Disabled filters", args[2])
+		log.Debug("Disabled filters", args[2])
 		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], false); err != nil {
 			return err.Error()
 		}
@@ -361,7 +360,7 @@ func findBotKubeVersion() (versions string) {
 	// Returns "Server Version: xxxx"
 	k8sVersion, err := runner.Run()
 	if err != nil {
-		log.Logger.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
+		log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
 		k8sVersion = "Server Version: Unknown\n"
 	}
 
@@ -397,7 +396,7 @@ func runVersionCommand(args []string, clusterName string) string {
 func showControllerConfig() (configYaml string, err error) {
 	c, err := config.New()
 	if err != nil {
-		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	// hide sensitive info

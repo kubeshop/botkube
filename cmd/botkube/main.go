@@ -26,7 +26,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
@@ -37,20 +37,20 @@ const (
 )
 
 func main() {
-	log.Logger.Info("Starting controller")
+	log.Info("Starting controller")
 	conf, err := config.New()
 	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	if conf.Communications.Slack.Enabled {
-		log.Logger.Info("Starting slack bot")
+		log.Info("Starting slack bot")
 		sb := bot.NewSlackBot(conf)
 		go sb.Start()
 	}
 
 	if conf.Communications.Mattermost.Enabled {
-		log.Logger.Info("Starting mattermost bot")
+		log.Info("Starting mattermost bot")
 		mb := bot.NewMattermostBot(conf)
 		go mb.Start()
 	}
@@ -65,7 +65,7 @@ func main() {
 	notifiers := listNotifiers(conf)
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
-		log.Logger.Info("Starting upgrade notifier")
+		log.Info("Starting upgrade notifier")
 		go controller.UpgradeNotifier(conf, notifiers)
 	}
 
@@ -84,14 +84,14 @@ func listNotifiers(conf *config.Config) []notify.Notifier {
 		if notifier, err := notify.NewMattermost(conf); err == nil {
 			notifiers = append(notifiers, notifier)
 		} else {
-			log.Logger.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
+			log.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
 		}
 	}
 	if conf.Communications.ElasticSearch.Enabled {
 		if els, err := notify.NewElasticSearch(conf); err == nil {
 			notifiers = append(notifiers, els)
 		} else {
-			log.Logger.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
+			log.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
 		}
 	}
 	if conf.Communications.Webhook.Enabled {

@@ -25,7 +25,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/olivere/elastic"
 )
 
@@ -71,7 +71,7 @@ type index struct {
 
 // SendEvent sends event notification to slack
 func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
+	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
 
 	// set missing cluster name to event object
@@ -80,7 +80,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	// Create index if not exists
 	exists, err := e.ELSClient.IndexExists(e.Index).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
 	}
 	if !exists {
@@ -95,7 +95,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 		}
 		_, err := e.ELSClient.CreateIndex(e.Index).BodyJson(mapping).Do(ctx)
 		if err != nil {
-			log.Logger.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
+			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
 		}
 	}
@@ -103,15 +103,15 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	// Send event to els
 	_, err = e.ELSClient.Index().Index(e.Index).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
 	_, err = e.ELSClient.Flush().Index(e.Index).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Logger.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
 	return nil
 }
 

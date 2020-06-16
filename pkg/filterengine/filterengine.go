@@ -24,7 +24,7 @@ import (
 	"reflect"
 
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 var (
@@ -63,7 +63,7 @@ func NewDefaultFilter() FilterEngine {
 
 // Run run the filters
 func (f *defaultFilters) Run(object interface{}, event events.Event) events.Event {
-	log.Logger.Debug("Filterengine running filters")
+	log.Debug("Filterengine running filters")
 	// Run registered filters
 	for k, v := range f.FiltersMap {
 		if v {
@@ -75,7 +75,7 @@ func (f *defaultFilters) Run(object interface{}, event events.Event) events.Even
 
 // Register filter to engine
 func (f *defaultFilters) Register(filter Filter) {
-	log.Logger.Info("Registering the filter ", reflect.TypeOf(filter).Name())
+	log.Info("Registering the filter ", reflect.TypeOf(filter).Name())
 	f.FiltersMap[filter] = true
 }
 
