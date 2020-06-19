@@ -68,14 +68,15 @@ var validFilterCommand = map[string]bool{
 var kubectlBinary = "/usr/local/bin/kubectl"
 
 const (
-	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
-	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	incompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
-	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
-	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
-	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
-	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+	notifierStartMsg      = "Brace yourselves, notifications are coming from cluster '%s'."
+	notifierStopMsg       = "Sure! I won't send you notifications from cluster '%s' anymore."
+	unsupportedCmdMsg     = "Command not supported. Please run /botkubehelp to see supported commands."
+	incompleteCmdMsg      = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	kubectlDisabledMsg    = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
+	filterNameMissing     = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	filterEnabled         = "I have enabled '%s' filter on '%s' cluster."
+	filterDisabled        = "Done. I won't run '%s' filter on '%s' cluster."
+	unauthorizedAccessMsg = "Sorry, the admin hasn't given me the permission to execute the above command on this channel"
 )
 
 // Executor is an interface for processes to execute commands
@@ -89,7 +90,7 @@ type DefaultExecutor struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	ChannelName      string
+	Profile          config.Profile
 	IsAuthChannel    bool
 	DefaultNamespace string
 }
@@ -145,13 +146,13 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, defaultNamespace string, clusterName string, Profile config.Profile, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
 		Message:          msg,
 		AllowKubectl:     allowkubectl,
 		RestrictAccess:   restrictAccess,
 		ClusterName:      clusterName,
-		ChannelName:      channelName,
+		Profile:          Profile,
 		IsAuthChannel:    isAuthChannel,
 		DefaultNamespace: defaultNamespace,
 	}
@@ -173,7 +174,12 @@ func (e *DefaultExecutor) Execute() string {
 		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 			return ""
 		}
-		return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+		if authorizeCommandByProfile(e.Profile, args) {
+			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+		} else {
+			return unauthorizedAccessMsg
+		}
+
 	}
 	if validNotifierCommand[args[0]] {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
@@ -410,4 +416,23 @@ func showControllerConfig() (configYaml string, err error) {
 	configYaml = string(b)
 
 	return configYaml, nil
+}
+
+// authorizeCommandByProfile function check if channel has permission to run the specific command or not based on access rules defined in corresponding profile
+func authorizeCommandByProfile(Profile config.Profile, args []string) bool {
+	authorized_command := false
+
+	if len(args) >= 1 {
+		allowed_operations := Profile.Kubectl.Commands.Verbs
+		if _, authorized_command = utils.Find(allowed_operations, args[0]); !authorized_command {
+			return false
+		}
+	}
+	if len(args) >= 2 {
+		allowed_resources := Profile.Kubectl.Commands.Resources
+		if _, authorized_command = utils.Find(allowed_resources, args[1]); !authorized_command {
+			return false
+		}
+	}
+	return authorized_command
 }

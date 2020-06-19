@@ -1,0 +1,39 @@
+profiles:
+  # based on use-case like profile for development environment
+  - name: 'DEVELOPMENT'     
+    namespaces: ["ns1", "ns2"]
+    kubectl:
+      Enabled: true
+      commands:
+        # method which are allowed
+        verbs: ["get", "logs"]
+        # resource configuration which is allowed
+        resources: ["Deployments", "Pods", "Services"]
+        # enable notification about specific resources
+           
+   
+  # Profile: For Production resources 
+  - name: 'PRODUCTION'
+    namespaces: ["ns1", "ns2"]
+    kubectl:
+      Enabled: true
+      commands:
+        # method which are allowed
+        verbs: ["get", "logs", "describe", "diff", "explain", "top"]
+        # resource configuration which is allowed
+        resources: ["Deployments", "Pods", "Services", "Nodes", "Ingresses", "Roles"]  
+        # enable notification about specific resources
+          
+
+  # Profile: BOTKUBE_ADMIN 
+  - name: 'BOTKUBE_ADMIN'
+    # by default all namespaces will be included
+    namespaces: []
+    kubectl:
+      Enabled: true
+      commands:
+        # method which are allowed
+        verbs: ["get", "logs", "describe" ,"api-resources", "api-versions", "cluster-info", "diff", "explain", "top", "auth"]
+        # resource configuration which is allowed
+        resources: [ "Pods", "Services","Namespaces", "Nodes","ReplicationControllers", "PersistentVolumes", "PersistentVolumeClaims", "Secrets", "ConfigMaps", "Deployments", "DaemonSets", "ReplicaSets", "StatefulSets", "Ingresses", "Jobs", "Roles", "RoleBindings", "ClusterRoles"]  
+        # enable notification about specific resources

@@ -51,7 +51,6 @@ const (
 type MMBot struct {
 	Token            string
 	TeamName         string
-	ChannelName      string
 	ClusterName      string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -60,6 +59,7 @@ type MMBot struct {
 	WSClient         *model.WebSocketClient
 	APIClient        *model.Client4
 	DefaultNamespace string
+	Accessbindings   []config.Accessbinding
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -77,7 +77,7 @@ func NewMattermostBot(c *config.Config) Bot {
 		ServerURL:        c.Communications.Mattermost.URL,
 		Token:            c.Communications.Mattermost.Token,
 		TeamName:         c.Communications.Mattermost.Team,
-		ChannelName:      c.Communications.Mattermost.Channel,
+		Accessbindings:   c.Communications.Mattermost.Accessbindings,
 		ClusterName:      c.Settings.ClusterName,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
@@ -141,15 +141,17 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	}
 
 	// Check if message posted in authenticated channel
-	if mm.Event.Broadcast.ChannelId == b.getChannel().Id {
-		mm.IsAuthChannel = true
+	for _, AccessBind := range b.Accessbindings {
+		if mm.Event.Broadcast.ChannelId == b.getChannel(AccessBind.ChannelName).Id {
+			mm.IsAuthChannel = true
+		}
 	}
 	log.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
 	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
-	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, mm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, mm.IsAuthChannel)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }
@@ -212,16 +214,25 @@ func (b MMBot) getUser() *model.User {
 }
 
 // Create channel if not present and add botkube user in channel
-func (b MMBot) getChannel() *model.Channel {
+func (b MMBot) getChannel(channelName string) *model.Channel {
 	// Checking if channel exists
-	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
+	botChannel, resp := b.APIClient.GetChannelByName(ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
-		log.Fatalf("There was a problem finding Mattermost channel %s. %s", b.ChannelName, resp.Error)
+		log.Fatalf("There was a problem finding Mattermost channel %s. %s", ChannelName, resp.Error)
 	}
 
 	// Adding Botkube user to channel
 	b.APIClient.AddChannelMember(botChannel.Id, b.getUser().Id)
 	return botChannel
+}
+
+// getChannelById return name of mattermost channel by processing channel ID
+func (b MMBot) getChannelById(channelId string) *model.Channel {
+	botChannelName, resp := b.APIClient.GetChannel(channelId)
+	if resp.Error != nil {
+		log.Fatalf("There was a problem finding Mattermost channel having id %s, err: %s", channelId, resp.Error)
+	}
+	return botChannelName
 }
 
 func (b MMBot) listen() {

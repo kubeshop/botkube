@@ -21,11 +21,6 @@ package utils
 
 import (
 	"fmt"
-	"os"
-	"regexp"
-	"strconv"
-	"time"
-
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/log"
 	appsV1 "k8s.io/api/apps/v1"
@@ -39,6 +34,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var (
@@ -433,4 +433,15 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 		s = matchedArray[1]
 	}
 	return s
+}
+
+// Find takes a slice and looks for an element in it. If found it will
+// return it's key, otherwise it will return -1 and a bool of false.
+func Find(slice []string, val string) (int, bool) {
+	for i, item := range slice {
+		if strings.ToUpper(item) == strings.ToUpper(val) {
+			return i, true
+		}
+	}
+	return -1, false
 }

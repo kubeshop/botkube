@@ -20,10 +20,12 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/infracloudio/botkube/pkg/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -58,6 +60,9 @@ var ResourceConfigFileName = "resource_config.yaml"
 
 // CommunicationConfigFileName is a name of botkube communication configuration file
 var CommunicationConfigFileName = "comm_config.yaml"
+
+// AccessConfigFileName is a name of botkube profile configuration file
+var AccessConfigFileName = "access_config.yaml"
 
 // Notify flag to toggle event notification
 var Notify = true
@@ -108,10 +113,53 @@ type Communications struct {
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled   bool
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
-	Token     string    `yaml:",omitempty"`
+	Enabled        bool
+	NotifType      NotifType `yaml:",omitempty"`
+	Token          string    `yaml:",omitempty"`
+	Accessbindings []Accessbinding
+}
+
+// Accessbinding maps channel to profile
+type Accessbinding struct {
+	ChannelName  string
+	ProfileName  string `yaml:"profile"`
+	ProfileValue Profile
+}
+
+// Profile defines access limititation for a specific channel
+type Profile struct {
+	Name       string
+	Namespaces []string `yaml:"namespaces"`
+	Kubectl    Profile_kubectl
+}
+
+// Kubectl_profile defines access limitation of kubectl access
+type Profile_kubectl struct {
+	Enabled  bool
+	Commands Commands
+}
+
+// Commands map type of kubectl command to allow
+type Commands struct {
+	Verbs     []string
+	Resources []string
+}
+
+// AllProfiles contain all defined profiles
+type AllProfiles struct {
+	Profiles []Profile
+}
+
+// getProfile will return specific profile out of all defined profiles based on supplied profile name
+func (all AllProfiles) getProfile(profileName string) (Profile, error) {
+	p := Profile{}
+	for _, profile := range all.Profiles {
+		if profile.Name == profileName {
+			p = profile
+			return p, nil
+		}
+	}
+	return p, errors.New("Selected profile not found in the provided profiles")
 }
 
 // ElasticSearch config auth settings
@@ -133,12 +181,12 @@ type Index struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled   bool
-	URL       string
-	Token     string
-	Team      string
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
+	Enabled        bool
+	URL            string
+	Token          string
+	Team           string
+	NotifType      NotifType `yaml:",omitempty"`
+	Accessbindings []Accessbinding
 }
 
 // Webhook configuration to send notifications
@@ -183,7 +231,10 @@ func New() (*Config, error) {
 	}
 
 	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+		err = yaml.Unmarshal(b, c)
+		if err != nil {
+			log.Fatalf("Unmarshal: %v", err)
+		}
 	}
 
 	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
@@ -199,7 +250,45 @@ func New() (*Config, error) {
 	}
 
 	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+		err = yaml.Unmarshal(b, c)
+		if err != nil {
+			log.Fatalf("Unmarshal: %v", err)
+		}
 	}
+
+	accessConfigFilePath := filepath.Join(configPath, AccessConfigFileName)
+	accessConfigFile, err := os.Open(accessConfigFilePath)
+	defer accessConfigFile.Close()
+	if err != nil {
+		return c, err
+	}
+
+	b, err = ioutil.ReadAll(accessConfigFile)
+	if err != nil {
+		return c, err
+	}
+	profiles := &AllProfiles{}
+	if len(b) != 0 {
+		err = yaml.Unmarshal(b, profiles)
+		if err != nil {
+			log.Fatalf("Unmarshal error: %v", err)
+		}
+	}
+	// Map right profile's value with config: For slack
+	for i, AccessBind := range c.Communications.Slack.Accessbindings {
+		c.Communications.Slack.Accessbindings[i].ProfileValue, err = profiles.getProfile(AccessBind.ProfileName)
+		if err != nil {
+			log.Fatalf("Unmarshal error: %v", err)
+		}
+	}
+
+	// Map right profile's value with config: For mattermost
+	for i, AccessBind := range c.Communications.Mattermost.Accessbindings {
+		c.Communications.Mattermost.Accessbindings[i].ProfileValue, err = profiles.getProfile(AccessBind.ProfileName)
+		if err != nil {
+			log.Fatalf("Unmarshal error: %v", err)
+		}
+	}
+
 	return c, nil
 }

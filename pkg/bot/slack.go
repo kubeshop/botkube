@@ -34,7 +34,7 @@ type SlackBot struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	ChannelName      string
+	Accessbindings   []config.Accessbinding
 	SlackURL         string
 	BotID            string
 	DefaultNamespace string
@@ -58,7 +58,7 @@ func NewSlackBot(c *config.Config) Bot {
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelName:      c.Communications.Slack.Channel,
+		Accessbindings:   c.Communications.Slack.Accessbindings,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
 	}
 }
@@ -139,14 +139,13 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 				return
 			}
 			// Serve only if current channel is in config
-			if b.ChannelName == info.Name {
-				sm.IsAuthChannel = true
-			}
 		}
 	}
 	// Serve only if current channel is in config
-	if b.ChannelName == sm.Event.Channel {
-		sm.IsAuthChannel = true
+	for _, AccessBind := range b.Accessbindings {
+		if AccessBind.ChannelName == sm.Event.Channel {
+			sm.IsAuthChannel = true
+		}
 	}
 
 	// Trim the @BotKube prefix
@@ -154,8 +153,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	if len(sm.Request) == 0 {
 		return
 	}
-
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.Accessbindings.ProfileValue, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }

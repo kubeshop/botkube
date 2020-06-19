@@ -61,12 +61,12 @@ communications:
     token: 'SLACK_API_TOKEN'
     notiftype: short  
     accessbindings:
-      - channel_name: developers
+      - channelName: developers
         # all profiles listed under access_conf.yml to limit access
         profile: DEVELOPMENT    
-      - channel_name: production
+      - channelName: production
         profile: PRODUCTION
-      - channel_name: admin
+      - channelName: admin
         profile: BOTKUBE_ADMIN
 
 
