@@ -63,7 +63,7 @@ func TestRun(t *testing.T) {
 	}
 
 	utils.KubeClient = testEnv.K8sClient
-	utils.InitInformerMap()
+	utils.InitInformerMap(testEnv.Config)
 
 	// Start controller with fake notifiers
 	go controller.RegisterInformers(testEnv.Config, notifiers)
@@ -104,8 +104,6 @@ func StartFakeSlackBot(testenv *env.TestEnv) {
 			SlackURL:         testenv.SlackServer.GetAPIURL(),
 			BotID:            testenv.SlackServer.BotID,
 			DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
-			Verbs:            testenv.Config.Settings.Kubectl.Commands.Verbs,
-			Resources:        testenv.Config.Settings.Kubectl.Commands.Resources,
 		}
 		go sb.Start()
 	}
