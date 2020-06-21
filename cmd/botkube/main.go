@@ -71,7 +71,8 @@ func main() {
 
 	// Init KubeClient, InformerMap and start controller
 	utils.InitKubeClient()
-	utils.InitInformerMap()
+	utils.InitInformerMap(conf)
+	utils.InitResourceMap(conf)
 	controller.RegisterInformers(conf, notifiers)
 }
 

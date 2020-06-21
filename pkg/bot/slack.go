@@ -155,7 +155,8 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
+		b.ClusterName, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }

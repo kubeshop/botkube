@@ -63,7 +63,8 @@ func TestRun(t *testing.T) {
 	}
 
 	utils.KubeClient = testEnv.K8sClient
-	utils.InitInformerMap()
+	utils.InitInformerMap(testEnv.Config)
+	utils.InitResourceMap(testEnv.Config)
 
 	// Start controller with fake notifiers
 	go controller.RegisterInformers(testEnv.Config, notifiers)

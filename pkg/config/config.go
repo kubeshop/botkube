@@ -150,8 +150,15 @@ type Webhook struct {
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
 	Enabled          bool
+	Commands         Commands
 	DefaultNamespace string
 	RestrictAccess   bool `yaml:"restrictAccess"`
+}
+
+// Commands allowed in bot
+type Commands struct {
+	Verbs     []string
+	Resources []string
 }
 
 // Settings for multicluster support
