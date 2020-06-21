@@ -210,7 +210,7 @@ settings:
     # List of allowed commands
     commands:
       # method which are allowed
-      verbs: ["api-resources","api-versions","cluster-info","describe","diff","explain","get","logs","top","auth"]
+      verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
       # resource configuration which is allowed
       resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "serviceaccounts"]
     # set Namespace to execute botkube kubectl commands by default

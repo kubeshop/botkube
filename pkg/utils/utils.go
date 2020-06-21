@@ -428,6 +428,9 @@ func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
 
 // InitResourceMap initializes helper maps to allow kubectl execution for required resources
 func InitResourceMap(conf *config.Config) {
+	if !conf.Settings.Kubectl.Enabled {
+		return
+	}
 	KindResourceMap = make(map[string]string)
 	ShortnameResourceMap = make(map[string]string)
 	AllowedKubectlResourceMap = make(map[string]bool)
@@ -457,6 +460,8 @@ func InitResourceMap(conf *config.Config) {
 			}
 		}
 	}
+	log.Infof("AllowedKubectlResourceMap - %+v", AllowedKubectlResourceMap)
+	log.Infof("AllowedKubectlVerbMap - %+v", AllowedKubectlVerbMap)
 	log.Infof("KindResourceMap - %+v", KindResourceMap)
 	log.Infof("ShortnameResourceMap - %+v", ShortnameResourceMap)
 }
