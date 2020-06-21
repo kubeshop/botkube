@@ -14,7 +14,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	bkevents "github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	log "github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 )
 
@@ -56,8 +56,8 @@ func NewWebhookHandler() (*WebhookHandler, error) {
 		}
 		extSink = append(extSink, elsSink)
 	}
-	log.Logger.Infof("Notifier List: config=%#v list=%#v\n", *commConf, notify.ListNotifiers(commConf.Communications))
-	log.Logger.Infof("External Sink List: config=%#v list=%#v\n", *conf, extSink)
+	log.Infof("Notifier List: config=%#v list=%#v\n", *commConf, notify.ListNotifiers(commConf.Communications))
+	log.Infof("External Sink List: config=%#v list=%#v\n", *conf, extSink)
 	return &WebhookHandler{
 		BotKubeNotifiers: notify.ListNotifiers(commConf.Communications),
 		ExternalSink:     extSink,
@@ -68,11 +68,11 @@ func NewWebhookHandler() (*WebhookHandler, error) {
 func (wh *WebhookHandler) sendToExtSink(event []byte) {
 	kevent := kaudit.Event{}
 	if err := json.Unmarshal(event, &kevent); err != nil {
-		log.Logger.Errorf("Failed to unmarshal audit event. %v", err.Error())
+		log.Errorf("Failed to unmarshal audit event. %v", err.Error())
 	}
 	for _, s := range wh.ExternalSink {
 		if err := s.SendAuditEvent(kevent); err != nil {
-			log.Logger.Error(err.Error())
+			log.Error(err.Error())
 		}
 	}
 }
@@ -84,13 +84,13 @@ func (wh *WebhookHandler) HandlePost(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Logger.Error(err)
+		log.Error(err)
 		http.Error(w, fmt.Sprintf("Bad Request. Error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 	eventList := EventList{}
 	if err := json.Unmarshal(data, &eventList); err != nil {
-		log.Logger.Error(err)
+		log.Error(err)
 		http.Error(w, fmt.Sprintf(err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -102,20 +102,20 @@ func (wh *WebhookHandler) HandlePost(w http.ResponseWriter, r *http.Request) {
 func (wh *WebhookHandler) ParseAndSend(eventList EventList) {
 	events, err := wh.RulesAllowed(eventList, wh.Config.Notifier.Rules)
 	if err != nil {
-		log.Logger.Errorf("Failed to evaluate rules. %+v", err)
+		log.Errorf("Failed to evaluate rules. %+v", err)
 		return
 	}
 	for _, event := range events {
-		log.Logger.Infof("Sending event %s %#v\n", string(event.event), event.matchedRule)
+		log.Infof("Sending event %s %#v\n", string(event.event), event.matchedRule)
 		bkEvent, err := wh.mapToBotKubeEvent(event)
 		if err != nil {
-			log.Logger.Errorf("Failed to map Audit event to BotKube event. %+v", err)
+			log.Errorf("Failed to map Audit event to BotKube event. %+v", err)
 			continue
 		}
 
 		// Send event over notifiers
 		for _, n := range wh.BotKubeNotifiers {
-			log.Logger.Infof("Sending to %#v\n", n)
+			log.Infof("Sending to %#v\n", n)
 			go n.SendEvent(bkEvent)
 		}
 	}

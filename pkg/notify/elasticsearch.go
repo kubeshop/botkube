@@ -110,7 +110,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 
 // SendEvent sends event notification to slack
 func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
+	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
 
 	// Create index if not exists
@@ -124,7 +124,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 // SendAuditEvent sends audit event to sink
 // TODO: Create interface for audit events
 func (e *ElasticSearch) SendAuditEvent(event audit.Event) error {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
+	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
 
 	// Create index if not exists

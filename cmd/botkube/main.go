@@ -80,13 +80,13 @@ func main() {
 	go metrics.ServeMetrics(metricsPort)
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Logger.Error(err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
 
 func startController() error {
-	log.Logger.Info("Starting controller")
+	log.Info("Starting controller")
 	conf, err := config.New()
 	if err != nil {
 		return fmt.Errorf("Error in loading configuration. Error:%s", err.Error())
@@ -105,7 +105,7 @@ func startController() error {
 	}
 
 	notifiers := notify.ListNotifiers(conf.Communications)
-	log.Logger.Infof("Notifier List: config=%#v list=%#v\n", conf.Communications, notifiers)
+	log.Infof("Notifier List: config=%#v list=%#v\n", conf.Communications, notifiers)
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")
@@ -122,10 +122,10 @@ func startController() error {
 
 func startAuditWhServer() error {
 	config := config.NewAuditServerConfig()
-	log.Logger.Infof("Started accepting requests on port=%s", config.Port)
+	log.Infof("Started accepting requests on port=%s", config.Port)
 	whHandler, err := audit.NewWebhookHandler()
 	if err != nil {
-		log.Logger.Fatal(err)
+		log.Fatal(err)
 	}
 	http.HandleFunc(Path, whHandler.HandlePost)
 	return http.ListenAndServeTLS(":"+config.Port, config.TLSCert, config.TLSKey, nil)

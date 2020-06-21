@@ -21,7 +21,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"regexp"
 	"strconv"

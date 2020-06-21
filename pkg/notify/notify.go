@@ -24,7 +24,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // Notifier to send event notification on the communication channels
@@ -42,14 +42,14 @@ func ListNotifiers(conf config.CommunicationsConfig) []Notifier {
 		if notifier, err := NewMattermost(conf.Mattermost); err == nil {
 			notifiers = append(notifiers, notifier)
 		} else {
-			log.Logger.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
+			log.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
 		}
 	}
 	if conf.ElasticSearch.Enabled {
 		if els, err := NewElasticSearch(conf.ElasticSearch); err == nil {
 			notifiers = append(notifiers, els)
 		} else {
-			log.Logger.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
+			log.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
 		}
 	}
 	if conf.Webhook.Enabled {
