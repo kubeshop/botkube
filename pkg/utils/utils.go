@@ -426,6 +426,7 @@ func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
 	return map[string]string{}
 }
 
+// InitResourceMap initializes helper maps to allow kubectl execution for required resources
 func InitResourceMap(conf *config.Config) {
 	KindResourceMap = make(map[string]string)
 	ShortnameResourceMap = make(map[string]string)
