@@ -36,36 +36,33 @@ import (
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
-var validKubectlCommands = map[string]bool{
-	"api-resources": true,
-	"api-versions":  true,
-	"cluster-info":  true,
-	"describe":      true,
-	"diff":          true,
-	"explain":       true,
-	"get":           true,
-	"logs":          true,
-	"top":           true,
-	"auth":          true,
-}
+var (
+	validNotifierCommand = map[string]bool{
+		"notifier": true,
+	}
+	validPingCommand = map[string]bool{
+		"ping": true,
+	}
+	validVersionCommand = map[string]bool{
+		"version": true,
+	}
+	validFilterCommand = map[string]bool{
+		"filters": true,
+	}
+	validDebugCommands = map[string]bool{
+		"exec":         true,
+		"logs":         true,
+		"attach":       true,
+		"auth":         true,
+		"api-versions": true,
+		"cluster-info": true,
+		"cordon":       true,
+		"drain":        true,
+		"uncordon":     true,
+	}
 
-var validNotifierCommand = map[string]bool{
-	"notifier": true,
-}
-
-var validPingCommand = map[string]bool{
-	"ping": true,
-}
-
-var validVersionCommand = map[string]bool{
-	"version": true,
-}
-
-var validFilterCommand = map[string]bool{
-	"filters": true,
-}
-
-var kubectlBinary = "/usr/local/bin/kubectl"
+	kubectlBinary = "/usr/local/bin/kubectl"
+)
 
 const (
 	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
@@ -145,7 +142,8 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace,
+	clusterName, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
 		Message:          msg,
 		AllowKubectl:     allowkubectl,
@@ -161,19 +159,24 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
 
-	if validKubectlCommands[args[0]] {
-		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-		if !e.AllowKubectl {
-			if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
-				return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+	if len(args) >= 2 && utils.AllowedKubectlVerbMap[args[0]] {
+		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
+			utils.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
+			utils.AllowedKubectlResourceMap[utils.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
+			utils.AllowedKubectlResourceMap[utils.ShortnameResourceMap[strings.ToLower(args[1])]] { // Check if matches with short name
+			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
+			if !e.AllowKubectl {
+				if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
+					return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+				}
+				return ""
 			}
-			return ""
-		}
 
-		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
-			return ""
+			if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+				return ""
+			}
+			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
 		}
-		return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
 	}
 	if validNotifierCommand[args[0]] {
 		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)

@@ -9,7 +9,7 @@ image:
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  tag: v0.10.0
+  tag: latest
 
 nameOverride: ""
 fullnameOverride: ""
@@ -231,6 +231,12 @@ config:
     kubectl:
       # Set true to enable kubectl commands execution
       enabled: false
+      # List of allowed commands
+      commands:
+        # method which are allowed
+        verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
+        # resource configuration which is allowed
+        resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
       # set Namespace to execute botkube kubectl commands by default
       defaultNamespace: default
       # Set true to enable commands execution from configured channel only

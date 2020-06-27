@@ -104,6 +104,7 @@ type Communications struct {
 	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
 	Webhook       Webhook
+	Telegram      Telegram
 }
 
 // Slack configuration to authentication and send notifications
@@ -112,6 +113,16 @@ type Slack struct {
 	Channel   string
 	NotifType NotifType `yaml:",omitempty"`
 	Token     string    `yaml:",omitempty"`
+}
+
+// Telegram configuration to authentication and send notifications
+type Telegram struct {
+	Enabled   bool
+	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
+	Token     string    `yaml:",omitempty"`
+	Groupid   int64
+	Debug     bool
 }
 
 // ElasticSearch config auth settings
@@ -150,8 +161,15 @@ type Webhook struct {
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
 	Enabled          bool
+	Commands         Commands
 	DefaultNamespace string
 	RestrictAccess   bool `yaml:"restrictAccess"`
+}
+
+// Commands allowed in bot
+type Commands struct {
+	Verbs     []string
+	Resources []string
 }
 
 // Settings for multicluster support

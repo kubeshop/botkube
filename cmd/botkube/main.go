@@ -55,6 +55,12 @@ func main() {
 		go mb.Start()
 	}
 
+	if conf.Communications.Telegram.Enabled {
+		log.Info("Starting telegram bot")
+		sb := bot.NewTelegramBot(conf)
+		go sb.Start()
+	}
+
 	// Prometheus metrics
 	metricsPort, exists := os.LookupEnv("METRICS_PORT")
 	if !exists {
@@ -71,7 +77,8 @@ func main() {
 
 	// Init KubeClient, InformerMap and start controller
 	utils.InitKubeClient()
-	utils.InitInformerMap()
+	utils.InitInformerMap(conf)
+	utils.InitResourceMap(conf)
 	controller.RegisterInformers(conf, notifiers)
 }
 
