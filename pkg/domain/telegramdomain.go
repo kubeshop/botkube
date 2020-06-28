@@ -65,6 +65,7 @@ func (bot ITBot) DefaultNamespace() string {
 	return bot.defaultNamespace
 }
 
+//Debug Enables the debug
 func (bot ITBot) Debug() bool {
 	return bot.debug
 }
@@ -77,22 +78,31 @@ type ITMsg struct {
 	command     string
 }
 
+//WithRequest create immutable telegram message with request
 func (tMsg ITMsg) WithRequest(request tgbotapi.Update) ITMsg {
 	tMsg.request = request
 	return tMsg
 }
+
+//WithResponseTxt create immutable telegram message with response text
 func (tMsg ITMsg) WithResponseTxt(responseTxt string) ITMsg {
 	tMsg.responseTxt = responseTxt
 	return tMsg
 }
+
+//WithResponse create immutable telegram message with Response
 func (tMsg ITMsg) WithResponse(response tgbotapi.MessageConfig) ITMsg {
 	tMsg.response = response
 	return tMsg
 }
+
+//WithCommand create immutable telegram message with Command
 func (tMsg ITMsg) WithCommand(command string) ITMsg {
 	tMsg.command = command
 	return tMsg
 }
+
+//IsLongResponse check size of the reponse
 func (tMsg ITMsg) IsLongResponse() bool {
 	if len(tMsg.responseTxt) >= 3990 {
 		return true
@@ -100,6 +110,7 @@ func (tMsg ITMsg) IsLongResponse() bool {
 	return false
 }
 
+//HasKeyBoard check the response if it has a keyboard
 func (tMsg ITMsg) HasKeyBoard() bool {
 	if tMsg.response.ReplyMarkup != nil {
 		return true
@@ -107,15 +118,22 @@ func (tMsg ITMsg) HasKeyBoard() bool {
 	return false
 }
 
+//Request accessor
 func (tMsg ITMsg) Request() tgbotapi.Update {
 	return tMsg.request
 }
+
+//ResponseTxt accessor
 func (tMsg ITMsg) ResponseTxt() string {
 	return tMsg.responseTxt
 }
+
+//Response accessor
 func (tMsg ITMsg) Response() tgbotapi.MessageConfig {
 	return tMsg.response
 }
+
+//Command accessor
 func (tMsg ITMsg) Command() string {
 	return tMsg.command
 }
