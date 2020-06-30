@@ -55,7 +55,7 @@ func NewTelegramBot(c *config.Config) Bot {
 
 func isCommandF(itBot domain.ITBot, msg interface{}) bool {
 	message := msg.(tgbotapi.Update)
-	if message.Message.Chat.ID == itBot.GroupID() && message.Message.Command() != "" {
+	if message.Message.Chat.ID == itBot.GroupID() && message.Message.IsCommand() {
 		return true
 	}
 	return false
@@ -75,7 +75,6 @@ func processSimpleCommand(ctx context.Context, msg interface{}) (interface{}, er
 	reply := tgbotapi.NewMessage(message.Message.Chat.ID, "")
 	reply.Text = "I recieved your command: " + message.Message.Text
 	validCommand := "ignore"
-	// reply.ParseMode = "Markdown"
 	switch message.Message.Command() {
 	case "help":
 		reply.Text = "Avaliable commands /api_versions /ping \n /status /get  /logs"
@@ -100,7 +99,7 @@ func processSimpleCommand(ctx context.Context, msg interface{}) (interface{}, er
 	case "auth":
 		validCommand = "auth " + message.Message.CommandArguments()
 	default:
-		reply.Text = "Command not supported. Please run /botkubehelp to see supported commands."
+		reply.Text = "Command not supported. Please run /botkubehelp to see supported commands"
 	}
 
 	itMsg := domain.ITMsg{}.WithRequest(message).WithCommand(validCommand).WithResponse(reply)
@@ -118,12 +117,9 @@ func processKubeCommandF(ctx context.Context, msg interface{}, itBot domain.ITBo
 		" ",
 		true)
 	reply := message.Response()
-	log.Info("Inside processKubeCommandF message.Command()  " + message.Command())
-	log.Info("Inside processKubeCommandF   message.Command() != 'ignore'"+message.Command() != "ignore")
+	log.Debug("Inside processKubeCommandF   message.Command() != 'ignore'"+message.Command() != "ignore")
 	if message.Command() != "ignore" {
-		log.Info("Inside processKubeCommandF processing kubecommand " + message.Command())
 		kubeResponse := commandExecutor.Execute()
-		log.Info("Inside processKubeCommandF responce from kube  " + kubeResponse)
 		reply = tgbotapi.NewMessage(message.Request().Message.Chat.ID, "")
 		reply.ReplyToMessageID = message.Request().Message.MessageID
 		reply.Text = kubeResponse
