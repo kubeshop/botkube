@@ -19,8 +19,13 @@ communications:
   # Settings for ELS
   elasticsearch:
     enabled: false
-    server: 'ELASTICSEARCH_ADDRESS'              # e.g https://example.com:9243
-    username: 'ELASTICSEARCH_USERNAME'
+    awsSigning:
+      enabled: false                             # enable awsSigning using IAM for Elastisearch hosted on AWS, if true make sure AWS encvironment variables are set. Refer https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+      awsRegion: "us-east-1"                     # AWS region where Elasticsearch is deployed
+      awsAccessKey: ""
+      awsSecretKey: ""
+    server: ""                                   # e.g https://example.com:9243
+    username: 'ELASTICSEARCH_USERNAME'           # Basic Auth
     password: 'ELASTICSEARCH_PASSWORD'
     # ELS index settings
     index:

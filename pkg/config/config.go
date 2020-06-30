@@ -116,19 +116,26 @@ type Slack struct {
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
-	Enabled  bool
-	Username string
-	Password string `yaml:",omitempty"`
-	Server   string
-	Index    Index
+	Enabled		bool
+	Username	string
+	Password	string `yaml:",omitempty"`
+	Server  	string
+	AWSSigning 	AWSSigning `yaml:"awsSigning"`
+	Index		Index
+}
+
+// AWSSigning contains AWS configurations
+type AWSSigning struct {
+	Enabled		bool
+	AWSRegion	string `yaml:"awsRegion"`
 }
 
 // Index settings for ELS
 type Index struct {
-	Name     string
-	Type     string
-	Shards   int
-	Replicas int
+	Name     	string
+	Type     	string
+	Shards   	int
+	Replicas 	int
 }
 
 // Mattermost configuration to authentication and send notifications
