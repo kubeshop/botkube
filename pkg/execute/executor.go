@@ -159,7 +159,7 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
 
-	if len(args) >= 2 && utils.AllowedKubectlVerbMap[args[0]] {
+	if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
 		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
 			utils.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
 			utils.AllowedKubectlResourceMap[utils.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
