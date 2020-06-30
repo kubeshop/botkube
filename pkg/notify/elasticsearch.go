@@ -22,12 +22,11 @@ package notify
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/sha1sum/aws_signing_client"
-	"time"
-
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
@@ -47,26 +46,16 @@ type ElasticSearch struct {
 
 // NewElasticSearch returns new ElasticSearch object
 func NewElasticSearch(c *config.Config) (Notifier, error) {
+	const AWSService = "es"
 	if c.Communications.ElasticSearch.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		creds := credentials.NewEnvCredentials()
 		signer := v4.NewSigner(creds)
-		awsClient, err := aws_signing_client.New(
-			signer,
-			nil,
-			"es",
-			c.Communications.ElasticSearch.AWSSigning.AWSRegion)
+		awsClient, err := aws_signing_client.New(signer, nil, AWSService, c.Communications.ElasticSearch.AWSSigning.AWSRegion)
 		if err != nil {
 			return nil, err
 		}
-		elsClient, err := elastic.NewClient(
-			elastic.SetURL(c.Communications.ElasticSearch.Server),
-			elastic.SetScheme("https"),
-			elastic.SetHttpClient(awsClient),
-			elastic.SetSniff(false),
-			elastic.SetHealthcheck(false),
-			elastic.SetGzip(false),
-		)
+		elsClient, err := elastic.NewClient(elastic.SetURL(c.Communications.ElasticSearch.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false),elastic.SetGzip(false))
 		if err != nil {
 			return nil, err
 		}
@@ -114,6 +103,7 @@ type index struct {
 
 // SendEvent sends event notification to slack
 func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
+	const indexSuffixFormat = "02-01-2006"
 	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
 
@@ -121,7 +111,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	event.Cluster = e.ClusterName
 
 	// Create index if not exists
-	exists, err := e.ELSClient.IndexExists(e.Index + "-" + time.Now().Format("02-01-2006")).Do(ctx)
+	exists, err := e.ELSClient.IndexExists(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
@@ -136,7 +126,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 				},
 			},
 		}
-		_, err := e.ELSClient.CreateIndex(e.Index + "-" + time.Now().Format("02-01-2006")).BodyJson(mapping).Do(ctx)
+		_, err := e.ELSClient.CreateIndex(e.Index + "-" + time.Now().Format(indexSuffixFormat)).BodyJson(mapping).Do(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
@@ -144,17 +134,17 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(e.Index + "-" + time.Now().Format("02-01-2006")).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
-	_, err = e.ELSClient.Flush().Index(e.Index + "-" + time.Now().Format("02-01-2006")).Do(ctx)
+	_, err = e.ELSClient.Flush().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index + "-" + time.Now().Format("02-01-2006"))
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index + "-" + time.Now().Format(indexSuffixFormat))
 	return nil
 }
 

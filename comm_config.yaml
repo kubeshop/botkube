@@ -24,8 +24,8 @@ communications:
       awsRegion: "us-east-1"                     # AWS region where Elasticsearch is deployed
       awsAccessKey: ""
       awsSecretKey: ""
-    server: ""                                   # e.g https://example.com:9243
-    username: 'ELASTICSEARCH_USERNAME'           # Basic Auth
+    server: 'ELASTICSEARCH_ADDRESS'                                    # e.g https://example.com:9243
+    username: 'ELASTICSEARCH_USERNAME'                                 # Basic Auth
     password: 'ELASTICSEARCH_PASSWORD'
     # ELS index settings
     index:
