@@ -24,13 +24,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/sha1sum/aws_signing_client"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/olivere/elastic"
+	"github.com/sha1sum/aws_signing_client"
+)
+
+const (
+	// indexSuffixFormat is the date format that would be appended to the index name
+	indexSuffixFormat = "02-01-2006"
+	// AWSService for the AWS client to authenticate against
+	AWSService = "es"
 )
 
 // ElasticSearch contains auth cred and index setting
@@ -46,7 +53,6 @@ type ElasticSearch struct {
 
 // NewElasticSearch returns new ElasticSearch object
 func NewElasticSearch(c *config.Config) (Notifier, error) {
-	const AWSService = "es"
 	if c.Communications.ElasticSearch.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		creds := credentials.NewEnvCredentials()
@@ -55,7 +61,7 @@ func NewElasticSearch(c *config.Config) (Notifier, error) {
 		if err != nil {
 			return nil, err
 		}
-		elsClient, err := elastic.NewClient(elastic.SetURL(c.Communications.ElasticSearch.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false),elastic.SetGzip(false))
+		elsClient, err := elastic.NewClient(elastic.SetURL(c.Communications.ElasticSearch.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(false))
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +92,7 @@ func NewElasticSearch(c *config.Config) (Notifier, error) {
 		Shards:      c.Communications.ElasticSearch.Index.Shards,
 		Replicas:    c.Communications.ElasticSearch.Index.Replicas,
 		ClusterName: c.Settings.ClusterName,
-	}, nil	
+	}, nil
 }
 
 type mapping struct {
@@ -103,7 +109,6 @@ type index struct {
 
 // SendEvent sends event notification to slack
 func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
-	const indexSuffixFormat = "02-01-2006"
 	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 	ctx := context.Background()
 
@@ -144,7 +149,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index + "-" + time.Now().Format(indexSuffixFormat))
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index+"-"+time.Now().Format(indexSuffixFormat))
 	return nil
 }
 
