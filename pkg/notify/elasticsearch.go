@@ -25,6 +25,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
@@ -55,11 +58,19 @@ type ElasticSearch struct {
 func NewElasticSearch(c *config.Config) (Notifier, error) {
 	var elsClient *elastic.Client
 	var err error
+	var creds *credentials.Credentials
 	if c.Communications.ElasticSearch.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
-		creds := credentials.NewEnvCredentials()
+		sess := session.Must(session.NewSession())
+		if c.Communications.ElasticSearch.AWSSigning.RoleArn != "" {
+			creds = stscreds.NewCredentials(sess, c.Communications.ElasticSearch.AWSSigning.RoleArn)
+		} else {
+			creds = ec2rolecreds.NewCredentials(sess)
+		}
+
 		signer := v4.NewSigner(creds)
 		awsClient, err := aws_signing_client.New(signer, nil, awsService, c.Communications.ElasticSearch.AWSSigning.AWSRegion)
+
 		if err != nil {
 			return nil, err
 		}
