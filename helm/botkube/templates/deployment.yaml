@@ -22,6 +22,9 @@ spec:
         app: botkube
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- if .Values.extraPodAnnotations }}
+{{ toYaml .Values.extraAnnotations | indent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "botkube.serviceAccountName" . }}
       containers:
