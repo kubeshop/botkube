@@ -3,7 +3,8 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
-
+# Extra annotations to pass to the botkube pod
+extraAnnotations: {}
 image:
   repository: infracloudio/botkube
   pullPolicy: IfNotPresent
