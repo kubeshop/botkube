@@ -128,6 +128,7 @@ type ElasticSearch struct {
 type AWSSigning struct {
 	Enabled   bool
 	AWSRegion string `yaml:"awsRegion"`
+	RoleArn   string `yaml:"roleArn"`
 }
 
 // Index settings for ELS
