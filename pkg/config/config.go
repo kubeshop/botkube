@@ -127,11 +127,18 @@ type Telegram struct {
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
-	Enabled  bool
-	Username string
-	Password string `yaml:",omitempty"`
-	Server   string
-	Index    Index
+	Enabled    bool
+	Username   string
+	Password   string `yaml:",omitempty"`
+	Server     string
+	AWSSigning AWSSigning `yaml:"awsSigning"`
+	Index      Index
+}
+
+// AWSSigning contains AWS configurations
+type AWSSigning struct {
+	Enabled   bool
+	AWSRegion string `yaml:"awsRegion"`
 }
 
 // Index settings for ELS
