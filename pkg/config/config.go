@@ -87,6 +87,7 @@ type Config struct {
 	Settings        Settings
 }
 
+// Communications contains communication config
 type Communications struct {
 	Communications CommunicationsConfig
 }
@@ -199,6 +200,7 @@ func (eventType EventType) String() string {
 	return string(eventType)
 }
 
+// NewCommunicationsConfig return new communication config object
 func NewCommunicationsConfig() (*Communications, error) {
 	c := &Communications{}
 	configPath := os.Getenv("CONFIG_PATH")

@@ -33,6 +33,7 @@ type Notifier interface {
 	SendMessage(string) error
 }
 
+// ListNotifiers returns list of configured notifiers
 func ListNotifiers(conf config.CommunicationsConfig) []Notifier {
 	var notifiers []Notifier
 	if conf.Slack.Enabled {
