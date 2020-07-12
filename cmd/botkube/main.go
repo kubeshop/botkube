@@ -37,10 +37,22 @@ const (
 )
 
 func main() {
+	// Prometheus metrics
+	metricsPort, exists := os.LookupEnv("METRICS_PORT")
+	if !exists {
+		metricsPort = defaultMetricsPort
+	}
+	go metrics.ServeMetrics(metricsPort)
+	if err := startController(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func startController() error {
 	log.Info("Starting controller")
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		return fmt.Errorf("Error in loading configuration. Error:%s", err.Error())
 	}
 
 	if conf.Communications.Slack.Enabled {
@@ -55,14 +67,8 @@ func main() {
 		go mb.Start()
 	}
 
-	// Prometheus metrics
-	metricsPort, exists := os.LookupEnv("METRICS_PORT")
-	if !exists {
-		metricsPort = defaultMetricsPort
-	}
-	go metrics.ServeMetrics(metricsPort)
-
-	notifiers := listNotifiers(conf)
+	notifiers := notify.ListNotifiers(conf.Communications)
+	log.Infof("Notifier List: config=%#v list=%#v\n", conf.Communications, notifiers)
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")
@@ -74,29 +80,5 @@ func main() {
 	utils.InitInformerMap(conf)
 	utils.InitResourceMap(conf)
 	controller.RegisterInformers(conf, notifiers)
-}
-
-func listNotifiers(conf *config.Config) []notify.Notifier {
-	var notifiers []notify.Notifier
-	if conf.Communications.Slack.Enabled {
-		notifiers = append(notifiers, notify.NewSlack(conf))
-	}
-	if conf.Communications.Mattermost.Enabled {
-		if notifier, err := notify.NewMattermost(conf); err == nil {
-			notifiers = append(notifiers, notifier)
-		} else {
-			log.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
-		}
-	}
-	if conf.Communications.ElasticSearch.Enabled {
-		if els, err := notify.NewElasticSearch(conf); err == nil {
-			notifiers = append(notifiers, els)
-		} else {
-			log.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
-		}
-	}
-	if conf.Communications.Webhook.Enabled {
-		notifiers = append(notifiers, notify.NewWebhook(conf))
-	}
-	return notifiers
+	return nil
 }
