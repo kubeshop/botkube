@@ -48,10 +48,24 @@ const (
 	ShortNotify NotifType = "short"
 	// LongNotify for short events notification
 	LongNotify NotifType = "long"
+
+	// Info level
+	Info Level = "info"
+	// Warn level
+	Warn Level = "warn"
+	// Debug level
+	Debug Level = "debug"
+	// Error level
+	Error Level = "error"
+	// Critical level
+	Critical Level = "critical"
 )
 
 // EventType to watch
 type EventType string
+
+// Level type to store event levels
+type Level string
 
 // ResourceConfigFileName is a name of botkube resource configuration file
 var ResourceConfigFileName = "resource_config.yaml"
@@ -69,8 +83,13 @@ type NotifType string
 type Config struct {
 	Resources       []Resource
 	Recommendations bool
-	Communications  Communications
+	Communications  CommunicationsConfig
 	Settings        Settings
+}
+
+// Communications contains communication config
+type Communications struct {
+	Communications CommunicationsConfig
 }
 
 // Resource contains resources to watch
@@ -98,8 +117,8 @@ type Namespaces struct {
 	Ignore  []string `yaml:",omitempty"`
 }
 
-// Communications channels to send events to
-type Communications struct {
+// CommunicationsConfig channels to send events to
+type CommunicationsConfig struct {
 	Slack         Slack
 	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
@@ -181,6 +200,28 @@ func (eventType EventType) String() string {
 	return string(eventType)
 }
 
+// NewCommunicationsConfig return new communication config object
+func NewCommunicationsConfig() (*Communications, error) {
+	c := &Communications{}
+	configPath := os.Getenv("CONFIG_PATH")
+	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+	communicationConfigFile, err := os.Open(communicationConfigFilePath)
+	defer communicationConfigFile.Close()
+	if err != nil {
+		return c, err
+	}
+
+	b, err := ioutil.ReadAll(communicationConfigFile)
+	if err != nil {
+		return c, err
+	}
+
+	if len(b) != 0 {
+		yaml.Unmarshal(b, c)
+	}
+	return c, nil
+}
+
 // New returns new Config
 func New() (*Config, error) {
 	c := &Config{}
@@ -201,20 +242,11 @@ func New() (*Config, error) {
 		yaml.Unmarshal(b, c)
 	}
 
-	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+	comm, err := NewCommunicationsConfig()
 	if err != nil {
-		return c, err
+		return nil, err
 	}
+	c.Communications = comm.Communications
 
-	b, err = ioutil.ReadAll(communicationConfigFile)
-	if err != nil {
-		return c, err
-	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
-	}
 	return c, nil
 }
