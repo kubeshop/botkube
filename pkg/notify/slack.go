@@ -91,12 +91,6 @@ func (s *Slack) SendEvent(event events.Event) error {
 // SendMessage sends message to slack channel
 func (s *Slack) SendMessage(msg string) error {
 	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
-
-	//api := slack.New(s.Token)
-	//if len(s.SlackURL) != 0 {
-	//	api = slack.New(s.Token, slack.OptionAPIURL(s.SlackURL))
-	//}
-
 	channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
 		log.Errorf("Error in sending slack message %s", err.Error())
