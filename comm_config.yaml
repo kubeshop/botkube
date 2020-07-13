@@ -21,7 +21,7 @@ communications:
         # all profiles listed under access_conf.yaml to limit access
       - channelName: 'MATTERMOST_CHANNEL_NAME'
         profile: 'BOTKUBE_ADMIN'
-        
+
   # Settings for MS Teams
   teams:
     enabled: false
@@ -59,8 +59,4 @@ communications:
   # Settings for Webhook
   webhook:
     enabled: false
-<<<<<<< HEAD
-    url: 'WEBHOOK_URL'                        # e.g https://example.com:80
-=======
     url: 'WEBHOOK_URL'                           # e.g https://example.com:80
->>>>>>> Profile feature -> 1. config changes
