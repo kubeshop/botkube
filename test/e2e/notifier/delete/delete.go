@@ -109,7 +109,7 @@ func (c *context) testDeleteEvent(t *testing.T) {
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 
 				// Get last seen slack message
-				lastSeenMsg := c.GetLastSeenSlackMessage()
+				lastSeenMsg := c.GetLastSeenSlackMessage(1)
 
 				// Convert text message into Slack message structure
 				m := slack.Message{}

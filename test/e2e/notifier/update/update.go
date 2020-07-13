@@ -116,7 +116,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 			// Inject an event into the fake client.
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Get last seen slack message
-				lastSeenMsg := c.GetLastSeenSlackMessage()
+				lastSeenMsg := c.GetLastSeenSlackMessage(1)
 				// Convert text message into Slack message structure
 				m := slack.Message{}
 				err := json.Unmarshal([]byte(*lastSeenMsg), &m)
