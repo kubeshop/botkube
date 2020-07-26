@@ -18,11 +18,11 @@ communications:
 
   # Settings for MS Teams
   teams:
-    enabled: true
-    appID: "4300ff5c-ec94-4f13-a0ed-b9bf4a9da064"
-    appPassword: "XkuXl18Bl6pU-=e7oZRkuDLdbERDzI-/"
-    port: 3978
+    enabled: false
+    appID: 'APPLICATION_ID'
+    appPassword: 'APPLICATION_PASSWORD'
     notiftype: short
+    port: 3978
   
   # Settings for ELS
   elasticsearch:

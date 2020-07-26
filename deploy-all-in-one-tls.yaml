@@ -272,6 +272,14 @@ stringData:
           type: botkube-event
           shards: 1
           replicas: 0
+
+      # Settings for MS Teams
+      teams:
+        enabled: false
+        appID: 'APPLICATION_ID'
+        appPassword: 'APPLICATION_PASSWORD'
+        notiftype: short
+        port: 3978
     
       # Settings for Webhook
       webhook:

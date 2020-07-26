@@ -30,7 +30,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (
