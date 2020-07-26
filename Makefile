@@ -42,7 +42,13 @@ build: pre-build
 # Build the image
 container-image: pre-build
 	@echo "Building docker image"
-	@docker build --build-arg GOOS_VAL=$(shell go env GOOS) --build-arg GOARCH_VAL=$(shell go env GOARCH) -t $(IMAGE_REPO) -f build/Dockerfile --no-cache .
+	@if ! DOCKER_CLI_EXPERIMENTAL=enabled docker buildx ls | grep -q container-builder; then\
+		DOCKER_CLI_EXPERIMENTAL=enabled docker buildx create --name container-builder --use;\
+	fi
+	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform "linux/amd64,linux/arm64,linux/arm/v7" \
+		-t $(IMAGE_REPO) \
+		-f build/Dockerfile \
+		. --push
 	@echo "Docker image build successfully"
 
 # system checks
