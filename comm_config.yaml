@@ -18,9 +18,10 @@ communications:
 
   # Settings for MS Teams
   teams:
-    enabled: false
-    appID: 'TEAMS_APP_ID'
-    appPassword: 'TEAMS_APP_PASSWORD'
+    enabled: true
+    appID: "4300ff5c-ec94-4f13-a0ed-b9bf4a9da064"
+    appPassword: "XkuXl18Bl6pU-=e7oZRkuDLdbERDzI-/"
+    port: 3978
     notiftype: short
   
   # Settings for ELS

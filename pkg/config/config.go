@@ -59,6 +59,13 @@ const (
 	Error Level = "error"
 	// Critical level
 	Critical Level = "critical"
+
+	// Slack bot platform
+	SlackBot BotPlatform = "slack"
+	// MattermostBot bot platform
+	MattermostBot BotPlatform = "mattermost"
+	// TeamsBot bot platform
+	TeamsBot BotPlatform = "teams"
 )
 
 // EventType to watch
@@ -66,6 +73,9 @@ type EventType string
 
 // Level type to store event levels
 type Level string
+
+// BotPlatform supported by BotKube
+type BotPlatform string
 
 // ResourceConfigFileName is a name of botkube resource configuration file
 var ResourceConfigFileName = "resource_config.yaml"
@@ -175,7 +185,7 @@ type Teams struct {
 	AppID       string `yaml:"appID,omitempty"`
 	AppPassword string `yaml:"appPassword,omitempty"`
 	Team        string
-	Channel     string
+	Port        string
 	NotifType   NotifType `yaml:",omitempty"`
 }
 

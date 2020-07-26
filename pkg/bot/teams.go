@@ -31,7 +31,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
@@ -45,21 +45,29 @@ const (
 	convTypePersonal  = "personal"
 	channelSetCmd     = "set default channel"
 	maxMessageSize    = 15700
+	contentTypeCard   = "application/vnd.microsoft.card.adaptive"
+	contentTypeFile   = "application/vnd.microsoft.teams.card.file.consent"
+	responseFileName  = "response.txt"
+
+	activityFileUpload = "fileUpload"
+	activityAccept     = "accept"
+	activityUploadInfo = "uploadInfo"
 )
 
 var _ Bot = (*Teams)(nil)
 
 // Teams contains credentials to start Teams backend server
 type Teams struct {
-	AppID          string
-	AppPassword    string
-	MessagePath    string
-	Port           string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	NotifType      config.NotifType
-	Adapter        core.Adapter
+	AppID            string
+	AppPassword      string
+	MessagePath      string
+	Port             string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	NotifType        config.NotifType
+	Adapter          core.Adapter
+	DefaultNamespace string
 
 	ConversationRef *schema.ConversationReference
 }
@@ -72,15 +80,20 @@ type ConsentContext struct {
 func NewTeamsBot(c *config.Config) *Teams {
 	// Set notifier off by default
 	config.Notify = false
+	port := defaultPort
+	if c.Communications.Teams.Port != "" {
+		port = c.Communications.Teams.Port
+	}
 	return &Teams{
-		AppID:          c.Communications.Teams.AppID,
-		AppPassword:    c.Communications.Teams.AppPassword,
-		NotifType:      c.Communications.Teams.NotifType,
-		MessagePath:    defaultMsgPath,
-		Port:           defaultPort,
-		AllowKubectl:   c.Settings.AllowKubectl,
-		RestrictAccess: c.Settings.RestrictAccess,
-		ClusterName:    c.Settings.ClusterName,
+		AppID:            c.Communications.Teams.AppID,
+		AppPassword:      c.Communications.Teams.AppPassword,
+		NotifType:        c.Communications.Teams.NotifType,
+		MessagePath:      defaultMsgPath,
+		Port:             port,
+		AllowKubectl:     c.Settings.Kubectl.Enabled,
+		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		ClusterName:      c.Settings.ClusterName,
 	}
 }
 
@@ -93,27 +106,28 @@ func (t *Teams) Start() {
 	}
 	t.Adapter, err = core.NewBotAdapter(setting)
 	if err != nil {
-		logging.Logger.Errorf("Failed Start teams bot. %+v", err)
+		log.Errorf("Failed Start teams bot. %+v", err)
 		return
 	}
 	// Start consent cleanup
 	http.HandleFunc(t.MessagePath, t.processActivity)
-	logging.Logger.Infof("Started MS Teams server on port %s", defaultPort)
-	logging.Logger.Errorf("Error in MS Teams server. %v", http.ListenAndServe(fmt.Sprintf(":%s", t.Port), nil))
+	log.Infof("Started MS Teams server on port %s", defaultPort)
+	log.Errorf("Error in MS Teams server. %v", http.ListenAndServe(fmt.Sprintf(":%s", t.Port), nil))
 }
 
 func (t *Teams) deleteConsent(ID string, convRef schema.ConversationReference) {
-	logging.Logger.Debugf("Deleting activity %s\n", ID)
+	log.Debugf("Deleting activity %s\n", ID)
 	if err := t.Adapter.DeleteActivity(context.Background(), ID, convRef); err != nil {
-		logging.Logger.Errorf("Failed to delete activity. %s", err.Error())
+		log.Errorf("Failed to delete activity. %s", err.Error())
 	}
 }
 
 func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
+	log.Debugf("Received activity %v\n", req)
 	activity, err := t.Adapter.ParseRequest(ctx, req)
 	if err != nil {
-		logging.Logger.Errorf("Failed to parse Teams request. %s", err.Error())
+		log.Errorf("Failed to parse Teams request. %s", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -126,8 +140,8 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 					// send file upload request
 					attachments := []schema.Attachment{
 						{
-							ContentType: "application/vnd.microsoft.teams.card.file.consent",
-							Name:        "response.txt",
+							ContentType: contentTypeFile,
+							Name:        responseFileName,
 							Content: map[string]interface{}{
 								"description": turn.Activity.Text,
 								"sizeInBytes": len(resp),
@@ -151,10 +165,10 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			if err != nil {
 				return schema.Activity{}, fmt.Errorf("failed to read file: %s", err.Error())
 			}
-			if turn.Activity.Value["type"] != "fileUpload" {
+			if turn.Activity.Value["type"] != activityFileUpload {
 				return schema.Activity{}, nil
 			}
-			if turn.Activity.Value["action"] != "accept" {
+			if turn.Activity.Value["action"] != activityAccept {
 				return schema.Activity{}, nil
 			}
 			if turn.Activity.Value["context"] == nil {
@@ -163,7 +177,7 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 
 			// Parse upload info from invoke accept response
 			uploadInfo := schema.UploadInfo{}
-			infoJSON, err := json.Marshal(turn.Activity.Value["uploadInfo"])
+			infoJSON, err := json.Marshal(turn.Activity.Value[activityUploadInfo])
 			if err != nil {
 				return schema.Activity{}, err
 			}
@@ -182,11 +196,12 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			msg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(consentCtx.Command), "<at>BotKube</at>"))
-			e := execute.NewDefaultExecutor(msg, t.AllowKubectl, t.RestrictAccess, t.ClusterName, true)
+			e := execute.NewDefaultExecutor(msg, t.AllowKubectl, t.RestrictAccess, t.DefaultNamespace,
+				t.ClusterName, config.TeamsBot, "", true)
 			out := e.Execute()
 
 			actJSON, _ := json.MarshalIndent(turn.Activity, "", "  ")
-			logging.Logger.Debugf("Incoming MSTeams Activity: %s", actJSON)
+			log.Debugf("Incoming MSTeams Activity: %s", actJSON)
 
 			// upload file
 			err = t.putRequest(uploadInfo.UploadURL, []byte(out))
@@ -197,7 +212,7 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			// notify user about uploaded file
 			fileAttach := []schema.Attachment{
 				{
-					ContentType: "application/vnd.microsoft.teams.card.file.info",
+					ContentType: contentTypeFile,
 					ContentURL:  uploadInfo.ContentURL,
 					Name:        uploadInfo.Name,
 					Content: map[string]interface{}{
@@ -210,7 +225,7 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 		},
 	})
 	if err != nil {
-		logging.Logger.Errorf("Failed to process request. %s", err.Error())
+		log.Errorf("Failed to process request. %s", err.Error())
 	}
 }
 
@@ -239,7 +254,8 @@ func (t *Teams) processMessage(activity schema.Activity) string {
 	}
 
 	// Multicluster is not supported for Teams
-	e := execute.NewDefaultExecutor(msg, t.AllowKubectl, t.RestrictAccess, t.ClusterName, true)
+	e := execute.NewDefaultExecutor(msg, t.AllowKubectl, t.RestrictAccess, t.DefaultNamespace,
+		t.ClusterName, config.TeamsBot, "", true)
 	return fmt.Sprintf("```\n%s\n```", e.Execute())
 }
 
@@ -270,16 +286,16 @@ func (t *Teams) putRequest(u string, data []byte) error {
 func (t *Teams) SendEvent(event events.Event) error {
 	card := formatTeamsMessage(event, t.NotifType)
 	if err := t.sendProactiveMessage(card); err != nil {
-		logging.Logger.Errorf("Failed to send notification. %s", err.Error())
+		log.Errorf("Failed to send notification. %s", err.Error())
 	}
-	logging.Logger.Debugf("Event successfully sent to MS Teams >> %+v", event)
+	log.Debugf("Event successfully sent to MS Teams >> %+v", event)
 	return nil
 }
 
 // SendMessage sends message to MsTeams
 func (t *Teams) SendMessage(msg string) error {
 	if t.ConversationRef == nil {
-		logging.Logger.Infof("Skipping SendMessage since conversation ref not set")
+		log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
 	err := t.Adapter.ProactiveMessage(context.TODO(), *t.ConversationRef, coreActivity.HandlerFuncs{
@@ -290,20 +306,20 @@ func (t *Teams) SendMessage(msg string) error {
 	if err != nil {
 		return err
 	}
-	logging.Logger.Debug("Message successfully sent to MS Teams")
+	log.Debug("Message successfully sent to MS Teams")
 	return nil
 }
 
 func (t *Teams) sendProactiveMessage(card map[string]interface{}) error {
 	if t.ConversationRef == nil {
-		logging.Logger.Infof("Skipping SendMessage since conversation ref not set")
+		log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
 	err := t.Adapter.ProactiveMessage(context.TODO(), *t.ConversationRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			attachments := []schema.Attachment{
 				{
-					ContentType: "application/vnd.microsoft.card.adaptive",
+					ContentType: contentTypeCard,
 					Content:     card,
 				},
 			}

@@ -14,12 +14,12 @@ const (
 	schemaContext = "http://schema.org/extensions"
 )
 
-var themeColor = map[events.Level]string{
-	events.Info:     "good",
-	events.Warn:     "warning",
-	events.Debug:    "good",
-	events.Error:    "attention",
-	events.Critical: "attention",
+var themeColor = map[config.Level]string{
+	config.Info:     "good",
+	config.Warn:     "warning",
+	config.Debug:    "good",
+	config.Error:    "attention",
+	config.Critical: "attention",
 }
 
 type Fact map[string]interface{}

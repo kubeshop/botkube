@@ -30,6 +30,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (
@@ -71,7 +72,7 @@ func startController() error {
 	}
 
 	if conf.Communications.Teams.Enabled {
-		log.Logger.Info("Starting MS Teams bot")
+		log.Info("Starting MS Teams bot")
 		tb := bot.NewTeamsBot(conf)
 		notifiers = append(notifiers, tb)
 		go tb.Start()
