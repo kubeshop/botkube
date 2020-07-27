@@ -38,7 +38,6 @@ import (
 )
 
 const (
-	defaultMsgPath    = "/api/messages"
 	defaultPort       = "3978"
 	consentBufferSize = 100
 	longRespNotice    = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
@@ -80,15 +79,19 @@ type ConsentContext struct {
 func NewTeamsBot(c *config.Config) *Teams {
 	// Set notifier off by default
 	config.Notify = false
-	port := defaultPort
-	if c.Communications.Teams.Port != "" {
-		port = c.Communications.Teams.Port
+	port := c.Communications.Teams.Port
+	if port == "" {
+		port = defaultPort
+	}
+	msgPath := c.Communications.Teams.MessagePath
+	if msgPath == "" {
+		msgPath = "/"
 	}
 	return &Teams{
 		AppID:            c.Communications.Teams.AppID,
 		AppPassword:      c.Communications.Teams.AppPassword,
 		NotifType:        c.Communications.Teams.NotifType,
-		MessagePath:      defaultMsgPath,
+		MessagePath:      msgPath,
 		Port:             port,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,

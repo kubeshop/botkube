@@ -186,6 +186,7 @@ type Teams struct {
 	AppPassword string `yaml:"appPassword,omitempty"`
 	Team        string
 	Port        string
+	MessagePath string
 	NotifType   NotifType `yaml:",omitempty"`
 }
 
