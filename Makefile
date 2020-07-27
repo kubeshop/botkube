@@ -48,7 +48,7 @@ container-image: pre-build
 	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform "linux/amd64,linux/arm64,linux/arm/v7" \
 		-t $(IMAGE_REPO) \
 		-f build/Dockerfile \
-		. --push
+		. --load
 	@echo "Docker image build successfully"
 
 # system checks
