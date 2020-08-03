@@ -60,7 +60,7 @@ const (
 	// Critical level
 	Critical Level = "critical"
 
-	// Slack bot platform
+	// SlackBot bot platform
 	SlackBot BotPlatform = "slack"
 	// MattermostBot bot platform
 	MattermostBot BotPlatform = "mattermost"

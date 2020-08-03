@@ -217,6 +217,7 @@ func slackShortNotification(event events.Event) slack.Attachment {
 	}
 }
 
+// FormatShortMessage prepares message in short event format
 func FormatShortMessage(event events.Event) (msg string) {
 	additionalMsg := ""
 	if len(event.Messages) > 0 {

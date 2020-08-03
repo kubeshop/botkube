@@ -37,6 +37,7 @@ import (
 )
 
 var (
+	// ValidNotifierCommand is a map of valid notifier commands
 	ValidNotifierCommand = map[string]bool{
 		"notifier": true,
 	}
@@ -65,14 +66,17 @@ var (
 )
 
 const (
-	NotifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	IncompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+
+	// NotifierStartMsg notifier enabled response message
+	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
+	// IncompleteCmdMsg incomplete command response message
+	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."

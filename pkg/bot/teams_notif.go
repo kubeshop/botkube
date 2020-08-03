@@ -22,7 +22,7 @@ var themeColor = map[config.Level]string{
 	config.Critical: "attention",
 }
 
-type Fact map[string]interface{}
+type fact map[string]interface{}
 
 func formatTeamsMessage(event events.Event, notifType config.NotifType) map[string]interface{} {
 	switch notifType {
@@ -35,7 +35,6 @@ func formatTeamsMessage(event events.Event, notifType config.NotifType) map[stri
 	default:
 		return teamsShortNotification(event)
 	}
-	return nil
 }
 
 func teamsShortNotification(event events.Event) map[string]interface{} {
@@ -67,29 +66,29 @@ func teamsLongNotification(event events.Event) map[string]interface{} {
 		"version": "1.0",
 	}
 
-	sectionFacts := []Fact{}
+	sectionFacts := []fact{}
 
 	if event.Cluster != "" {
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Cluster",
 			"value": event.Cluster,
 		})
 	}
 
-	sectionFacts = append(sectionFacts, Fact{
+	sectionFacts = append(sectionFacts, fact{
 		"title": "Name",
 		"value": event.Name,
 	})
 
 	if event.Namespace != "" {
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Namespace",
 			"value": event.Namespace,
 		})
 	}
 
 	if event.Reason != "" {
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Reason",
 			"value": event.Reason,
 		})
@@ -100,14 +99,14 @@ func teamsLongNotification(event events.Event) map[string]interface{} {
 		for _, m := range event.Messages {
 			message = message + m + "\n"
 		}
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Message",
 			"value": message,
 		})
 	}
 
 	if event.Action != "" {
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Action",
 			"value": event.Action,
 		})
@@ -118,7 +117,7 @@ func teamsLongNotification(event events.Event) map[string]interface{} {
 		for _, r := range event.Recommendations {
 			rec = rec + r + "\n"
 		}
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Recommendations",
 			"value": rec,
 		})
@@ -129,7 +128,7 @@ func teamsLongNotification(event events.Event) map[string]interface{} {
 		for _, w := range event.Warnings {
 			warn = warn + w + "\n"
 		}
-		sectionFacts = append(sectionFacts, Fact{
+		sectionFacts = append(sectionFacts, fact{
 			"title": "Warnings",
 			"value": warn,
 		})

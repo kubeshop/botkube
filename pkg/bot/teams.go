@@ -71,7 +71,7 @@ type Teams struct {
 	ConversationRef *schema.ConversationReference
 }
 
-type ConsentContext struct {
+type consentContext struct {
 	Command string
 }
 
@@ -189,7 +189,7 @@ func (t *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			// Parse context
-			consentCtx := ConsentContext{}
+			consentCtx := consentContext{}
 			ctxJSON, err := json.Marshal(turn.Activity.Value["context"])
 			if err != nil {
 				return schema.Activity{}, err
@@ -286,6 +286,7 @@ func (t *Teams) putRequest(u string, data []byte) error {
 	return nil
 }
 
+// SendEvent sends event message via Bot interface
 func (t *Teams) SendEvent(event events.Event) error {
 	card := formatTeamsMessage(event, t.NotifType)
 	if err := t.sendProactiveMessage(card); err != nil {
