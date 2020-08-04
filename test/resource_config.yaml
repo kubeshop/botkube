@@ -20,7 +20,7 @@
 ## test_config.yaml for Integration Testing
 ## Resources you want to watch
 resources:
-  - name: pods.v1                # Name of the resources e.g pod, deployment, ingress, etc.
+  - name: v1/pods                # Name of the resources e.g pod, deployment, ingress, etc.
     namespaces:               # List of namespaces, "all" will watch all the namespaces
       include:  
         - all
@@ -30,161 +30,184 @@ resources:
       - create
       - delete
       - error
-  - name: services.v1
+  - name: v1/services
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
       - error
-  - name: deployments.v1.apps
+  - name: apps/v1/deployments
     namespaces:
       include:  
         - all
       ignore:
-        - 
-    events:
-      - create
-      - update
-      - delete
-      - update
-      - error
-  - name: statefulsets.v1.apps
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
+        -
     events:
       - create
       - update
       - delete
       - error
-  - name: ingresses.v1beta1.networking.k8s.io
+    updateSetting:
+      includeDiff: true
+      fields:
+        - spec.template.spec.containers[*].image
+        - status.availableReplicas
+  - name: apps/v1/statefulsets
     namespaces:
       include:  
         - all
       ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: nodes.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: namespaces.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: persistentvolumes.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: persistentvolumeclaims.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: secrets.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: configmaps.v1
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: daemonsets.v1.apps
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
-    events:
-      - create
-      - delete
-      - error
-  - name: jobs.v1.batch
-    namespaces:
-      include:  
-        - all
-      ignore:
-        - 
+        -
     events:
       - create
       - update
       - delete
       - error
-  - name: roles.v1.rbac.authorization.k8s.io
+  - name: networking.k8s.io/v1beta1/ingresses
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
       - error
-  - name: rolebindings.v1.rbac.authorization.k8s.io
+  - name: v1/nodes
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
       - error
-  - name: clusterrolebindings.v1.rbac.authorization.k8s.io
+  - name: v1/namespaces
     namespaces:
       include:  
         - all
       ignore:
-        - 
+        -
     events:
       - create
       - delete
       - error
-
+  - name: v1/persistentvolumes
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: v1/persistentvolumeclaims
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: v1/secrets
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: v1/configmaps
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: apps/v1/daemonsets
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+    updateSetting:
+      includeDiff: true
+      fields:
+        - spec.template.spec.containers[*].image
+        - status.numberReady
+  - name: batch/v1/jobs
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - update
+      - delete
+      - error
+    updateSetting:
+      includeDiff: true
+      fields:
+        - spec.template.spec.containers[*].image
+        - status.conditions[*].type
+  - name: rbac.authorization.k8s.io/v1/roles
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: rbac.authorization.k8s.io/v1/rolebindings
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+    namespaces:
+      include:  
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  # - name: litmuschaos.io/v1alpha1/chaosengines
+  #   namespaces:
+  #     include:
+  #       - all
+  #     ignore:
+  #       -
+  #   events:
+  #     - create
+  #     - delete
+  #     - error
 # Check true if you want to receive recommendations
 # about the best practices for the created resource
 recommendations: true

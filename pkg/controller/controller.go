@@ -174,7 +174,6 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 
 	// Create new event object
 	event := events.New(obj, eventType, kind, c.Settings.ClusterName)
-
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
 		if event.TimeStamp.Before(startTime) {

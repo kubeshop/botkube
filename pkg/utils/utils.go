@@ -87,7 +87,7 @@ func InitKubeClient() {
 		// Initiate discovery client for REST resource mapping
 		discoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
 		if err != nil {
-			log.Logger.Fatalf("Unable to create Discovery Client: %v")
+			log.Logger.Fatalf("Unable to create Discovery Client")
 		}
 		DynamicKubeClient, err = dynamic.NewForConfig(botkubeConf)
 		if err != nil {
@@ -97,7 +97,7 @@ func InitKubeClient() {
 		// Initiate discovery client for REST resource mapping
 		discoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
 		if err != nil {
-			log.Logger.Fatalf("Unable to create Discovery Client: %v")
+			log.Logger.Fatalf("Unable to create Discovery Client")
 		}
 		DynamicKubeClient, err = dynamic.NewForConfig(kubeConfig)
 		if err != nil {
@@ -146,7 +146,6 @@ func InitInformerMap(conf *config.Config) {
 
 	for _, v := range conf.Resources {
 		gvr := ParseResourceArg(v.Name)
-		fmt.Printf(("Will create Informer for: %v, GroupVersionResource: %v"), v.Name, gvr)
 		ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
 	}
 
@@ -224,7 +223,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 // GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 
-	k := obj.(*unstructured.Unstructured)
+	k := obj.(*unstructured.Unstructured).DeepCopy()
 	return metaV1.TypeMeta{
 		APIVersion: k.GetAPIVersion(),
 		Kind:       k.GetKind(),

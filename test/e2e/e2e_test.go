@@ -62,7 +62,7 @@ func TestRun(t *testing.T) {
 		notifiers = append(notifiers, fakeWebhookNotifier)
 	}
 
-	utils.KubeClient = testEnv.K8sClient
+	utils.DynamicKubeClient = testEnv.K8sClient
 	utils.InitInformerMap(testEnv.Config)
 	utils.InitResourceMap(testEnv.Config)
 

@@ -101,10 +101,10 @@ func New(object interface{}, eventType config.EventType, kind, clusterName strin
 	if kind != "Event" {
 		switch eventType {
 		case config.ErrorEvent, config.InfoEvent:
-			event.Title = strings.Title(fmt.Sprintf("%s %s", kind, eventType.String()))
+			event.Title = fmt.Sprintf("%s %s", kind, eventType.String())
 		default:
 			// Events like create, update, delete comes with an extra 'd' at the end
-			event.Title = strings.Title(fmt.Sprintf("%s %sd", kind, eventType.String()))
+			event.Title = fmt.Sprintf("%s %sd", kind, eventType.String())
 		}
 	}
 

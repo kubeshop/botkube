@@ -44,9 +44,10 @@ func init() {
 
 // Run filters and modifies event struct
 func (f PodLabelChecker) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Pod" && event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(object).Kind == "Event" {
+	if event.Kind != "Pod" || event.Type != config.CreateEvent {
 		return
 	}
+
 	podObjectMeta := utils.GetObjectMetaData(object)
 
 	// Check labels in pod
