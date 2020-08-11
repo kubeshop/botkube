@@ -267,6 +267,14 @@ communications:
     channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
     notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
+  # Settings for MS Teams
+  teams:
+    enabled: false
+    appID: 'APPLICATION_ID'
+    appPassword: 'APPLICATION_PASSWORD'
+    notiftype: short
+    port: 3978
+
   # Settings for ELS
   elasticsearch:
     enabled: false
@@ -293,6 +301,18 @@ service:
   name: metrics
   port: 2112
   targetPort: 2112  
+
+# Ingress settings to expose teams endpoint
+ingress:
+  create: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  host: 'HOST'
+  urlPath: "/"
+  tls:
+    enabled: false
+    secretName: ''
+
             
 serviceMonitor:
   ## If true, a ServiceMonitor CR is created for a botkube

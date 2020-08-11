@@ -150,7 +150,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
 	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, b.ChannelName, mm.IsAuthChannel)
+		b.ClusterName, config.MattermostBot, b.ChannelName, mm.IsAuthChannel)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }
