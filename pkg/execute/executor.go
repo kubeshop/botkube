@@ -50,6 +50,9 @@ var (
 	validFilterCommand = map[string]bool{
 		"filters": true,
 	}
+	validInfoCommand = map[string]bool{
+		"commands": true,
+	}
 	validDebugCommands = map[string]bool{
 		"exec":         true,
 		"logs":         true,
@@ -77,6 +80,9 @@ const (
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
 	// IncompleteCmdMsg incomplete command response message
 	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+
+	//IncompleteInfoCmdMsg incomplete command response message
+	IncompleteInfoCmdMsg = "You missed to pass correct option i.e. list"
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
@@ -146,6 +152,14 @@ const (
 	FilterDisable FiltersAction = "disable"
 )
 
+// InfoAction for options in Info commands
+type InfoAction string
+
+// Info command options
+const (
+	InfoList InfoAction = "list"
+)
+
 func (action FiltersAction) String() string {
 	return string(action)
 }
@@ -205,6 +219,12 @@ func (e *DefaultExecutor) Execute() string {
 	if validFilterCommand[args[0]] {
 		return e.runFilterCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
+
+	//Check if info command
+	if validInfoCommand[args[0]] {
+		return e.runInfoCommand(args, e.IsAuthChannel)
+	}
+
 	if e.IsAuthChannel {
 		return printDefaultMsg(e.Platform)
 	}
@@ -353,6 +373,34 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 		return fmt.Sprintf(filterDisabled, args[2], clusterName)
 	}
 	return printDefaultMsg(e.Platform)
+}
+
+//runInfoCommand to list allowed commands
+func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) string {
+	if isAuthChannel == false {
+		return ""
+	}
+	if len(args) < 2 && args[1] != string(InfoList) {
+		return IncompleteInfoCmdMsg
+	}
+	return makeCommandInfoList()
+}
+
+func makeCommandInfoList() string {
+	var b strings.Builder
+	fmt.Fprintln(&b, "allowed verbs:")
+	for k, v := range utils.AllowedKubectlVerbMap {
+		if v {
+			fmt.Fprintf(&b, "- %s\n", k)
+		}
+	}
+	fmt.Fprintln(&b, "allowed resources:")
+	for k, v := range utils.AllowedKubectlResourceMap {
+		if v {
+			fmt.Fprintf(&b, "- %s\n", k)
+		}
+	}
+	return b.String()
 }
 
 // Use tabwriter to display string in tabular form
