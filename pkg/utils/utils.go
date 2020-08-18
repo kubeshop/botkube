@@ -480,7 +480,7 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 	return s
 }
 
-//Get the formated commands list
+//GetFormatedCommandsList get the formated commands list
 func GetFormatedCommandsList(header string, commands map[string]bool) string {
 	var b bytes.Buffer
 	fmt.Fprintln(&b, header)
