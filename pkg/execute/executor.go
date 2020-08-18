@@ -81,9 +81,6 @@ const (
 	// IncompleteCmdMsg incomplete command response message
 	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 
-	//IncompleteInfoCmdMsg incomplete command response message
-	IncompleteInfoCmdMsg = "You missed to pass correct option i.e. list"
-
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
 	teamsIncompleteCmdMsg  = "You missed to pass options for the command. Please run /botkubehelp to see command options."
@@ -381,26 +378,15 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return ""
 	}
 	if len(args) < 2 && args[1] != string(InfoList) {
-		return IncompleteInfoCmdMsg
+		return IncompleteCmdMsg
 	}
 	return makeCommandInfoList()
 }
 
 func makeCommandInfoList() string {
-	var b strings.Builder
-	fmt.Fprintln(&b, "allowed verbs:")
-	for k, v := range utils.AllowedKubectlVerbMap {
-		if v {
-			fmt.Fprintf(&b, "- %s\n", k)
-		}
-	}
-	fmt.Fprintln(&b, "allowed resources:")
-	for k, v := range utils.AllowedKubectlResourceMap {
-		if v {
-			fmt.Fprintf(&b, "- %s\n", k)
-		}
-	}
-	return b.String()
+	allowedVerbs := utils.GetFormatedCommandsList("allowed verbs:", utils.AllowedKubectlVerbMap)
+	allowedResources := utils.GetFormatedCommandsList("allowed resources:", utils.AllowedKubectlResourceMap)
+	return allowedVerbs + allowedResources
 }
 
 // Use tabwriter to display string in tabular form
