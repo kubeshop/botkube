@@ -171,9 +171,8 @@ func (e *DefaultExecutor) Execute() string {
 	if len(args) == 0 {
 		if e.IsAuthChannel {
 			return printDefaultMsg(e.Platform)
-		} else {
-			return ""
 		}
+		return ""
 	}
 	if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
 		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
