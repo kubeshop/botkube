@@ -169,7 +169,11 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
 	if len(args) == 0 {
-		return printDefaultMsg(e.Platform)
+		if e.IsAuthChannel {
+			return printDefaultMsg(e.Platform)
+		} else {
+			return ""
+		}
 	}
 	if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
 		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
