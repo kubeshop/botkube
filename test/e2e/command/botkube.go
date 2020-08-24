@@ -28,7 +28,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
@@ -115,7 +114,6 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 
 func compareFilters(expected, actual []string) bool {
 	if len(expected) != len(actual) {
-		log.Infof("************************Expected %d Actual %d", len(expected), len(actual))
 		return false
 	}
 
@@ -129,7 +127,6 @@ func compareFilters(expected, actual []string) bool {
 			}
 		}
 		if !found {
-			log.Infof("************************Not Found %s", a)
 			return false
 		}
 	}

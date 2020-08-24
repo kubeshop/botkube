@@ -480,8 +480,8 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 	return s
 }
 
-//GetFormatedCommandsList get the formated commands list
-func GetFormatedCommandsList(header string, commands map[string]bool) string {
+//GetStingInYamlFormat get the formated commands list
+func GetStingInYamlFormat(header string, commands map[string]bool) string {
 	var b bytes.Buffer
 	fmt.Fprintln(&b, header)
 	for k, v := range commands {

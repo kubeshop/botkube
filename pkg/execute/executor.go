@@ -149,12 +149,12 @@ const (
 	FilterDisable FiltersAction = "disable"
 )
 
-// InfoAction for options in Info commands
-type InfoAction string
+// infoAction for options in Info commands
+type infoAction string
 
 // Info command options
 const (
-	InfoList InfoAction = "list"
+	InfoList infoAction = "list"
 )
 
 func (action FiltersAction) String() string {
@@ -389,8 +389,8 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 }
 
 func makeCommandInfoList() string {
-	allowedVerbs := utils.GetFormatedCommandsList("allowed verbs:", utils.AllowedKubectlVerbMap)
-	allowedResources := utils.GetFormatedCommandsList("allowed resources:", utils.AllowedKubectlResourceMap)
+	allowedVerbs := utils.GetStingInYamlFormat("allowed verbs:", utils.AllowedKubectlVerbMap)
+	allowedResources := utils.GetStingInYamlFormat("allowed resources:", utils.AllowedKubectlResourceMap)
 	return allowedVerbs + allowedResources
 }
 
