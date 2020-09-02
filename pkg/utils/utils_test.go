@@ -51,13 +51,13 @@ func TestGetClusterNameFromKubectlCmd(t *testing.T) {
 	}
 }
 
-func TestGetStingInYamlFormat(t *testing.T) {
+func TestGetStringInYamlFormat(t *testing.T) {
 	var header = "allowed verbs"
 	var commands = map[string]bool{
 		"api-versions": true,
 	}
 	expected := fmt.Sprintf(header + "\n  - api-versions\n")
-	got := GetStingInYamlFormat(header, commands)
+	got := GetStringInYamlFormat(header, commands)
 	if got != expected {
 		t.Errorf("expected: %v, got: %v", expected, got)
 	}

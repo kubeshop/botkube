@@ -389,8 +389,8 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 }
 
 func makeCommandInfoList() string {
-	allowedVerbs := utils.GetStingInYamlFormat("allowed verbs:", utils.AllowedKubectlVerbMap)
-	allowedResources := utils.GetStingInYamlFormat("allowed resources:", utils.AllowedKubectlResourceMap)
+	allowedVerbs := utils.GetStringInYamlFormat("allowed verbs:", utils.AllowedKubectlVerbMap)
+	allowedResources := utils.GetStringInYamlFormat("allowed resources:", utils.AllowedKubectlResourceMap)
 	return allowedVerbs + allowedResources
 }
 
