@@ -20,6 +20,8 @@
 package utils
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -476,4 +478,16 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 		s = matchedArray[1]
 	}
 	return s
+}
+
+//GetStringInYamlFormat get the formated commands list
+func GetStringInYamlFormat(header string, commands map[string]bool) string {
+	var b bytes.Buffer
+	fmt.Fprintln(&b, header)
+	for k, v := range commands {
+		if v {
+			fmt.Fprintf(&b, "  - %s\n", k)
+		}
+	}
+	return b.String()
 }

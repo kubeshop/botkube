@@ -50,6 +50,9 @@ var (
 	validFilterCommand = map[string]bool{
 		"filters": true,
 	}
+	validInfoCommand = map[string]bool{
+		"commands": true,
+	}
 	validDebugCommands = map[string]bool{
 		"exec":         true,
 		"logs":         true,
@@ -146,6 +149,14 @@ const (
 	FilterDisable FiltersAction = "disable"
 )
 
+// infoAction for options in Info commands
+type infoAction string
+
+// Info command options
+const (
+	infoList infoAction = "list"
+)
+
 func (action FiltersAction) String() string {
 	return string(action)
 }
@@ -210,6 +221,12 @@ func (e *DefaultExecutor) Execute() string {
 	if validFilterCommand[args[0]] {
 		return e.runFilterCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
+
+	//Check if info command
+	if validInfoCommand[args[0]] {
+		return e.runInfoCommand(args, e.IsAuthChannel)
+	}
+
 	if e.IsAuthChannel {
 		return printDefaultMsg(e.Platform)
 	}
@@ -358,6 +375,23 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 		return fmt.Sprintf(filterDisabled, args[2], clusterName)
 	}
 	return printDefaultMsg(e.Platform)
+}
+
+//runInfoCommand to list allowed commands
+func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) string {
+	if isAuthChannel == false {
+		return ""
+	}
+	if len(args) < 2 && args[1] != string(infoList) {
+		return IncompleteCmdMsg
+	}
+	return makeCommandInfoList()
+}
+
+func makeCommandInfoList() string {
+	allowedVerbs := utils.GetStringInYamlFormat("allowed verbs:", utils.AllowedKubectlVerbMap)
+	allowedResources := utils.GetStringInYamlFormat("allowed resources:", utils.AllowedKubectlResourceMap)
+	return allowedVerbs + allowedResources
 }
 
 // Use tabwriter to display string in tabular form
