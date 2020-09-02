@@ -154,7 +154,7 @@ type infoAction string
 
 // Info command options
 const (
-	InfoList infoAction = "list"
+	infoList infoAction = "list"
 )
 
 func (action FiltersAction) String() string {
@@ -382,7 +382,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 	if isAuthChannel == false {
 		return ""
 	}
-	if len(args) < 2 && args[1] != string(InfoList) {
+	if len(args) < 2 && args[1] != string(infoList) {
 		return IncompleteCmdMsg
 	}
 	return makeCommandInfoList()
