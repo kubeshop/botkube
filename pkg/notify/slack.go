@@ -26,50 +26,44 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/nlopes/slack"
 )
 
-var attachmentColor = map[events.Level]string{
-	events.Info:     "good",
-	events.Warn:     "warning",
-	events.Debug:    "good",
-	events.Error:    "danger",
-	events.Critical: "danger",
+var attachmentColor = map[config.Level]string{
+	config.Info:     "good",
+	config.Warn:     "warning",
+	config.Debug:    "good",
+	config.Error:    "danger",
+	config.Critical: "danger",
 }
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
-	Token     string
 	Channel   string
 	NotifType config.NotifType
-	SlackURL  string // Useful only for testing
+	Client    *slack.Client
 }
 
 // NewSlack returns new Slack object
-func NewSlack(c *config.Config) Notifier {
+func NewSlack(c config.Slack) Notifier {
 	return &Slack{
-		Token:     c.Communications.Slack.Token,
-		Channel:   c.Communications.Slack.Channel,
-		NotifType: c.Communications.Slack.NotifType,
+		Channel:   c.Channel,
+		NotifType: c.NotifType,
+		Client:    slack.New(c.Token),
 	}
 }
 
 // SendEvent sends event notification to slack
 func (s *Slack) SendEvent(event events.Event) error {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
-
-	api := slack.New(s.Token)
-	if len(s.SlackURL) != 0 {
-		api = slack.New(s.Token, slack.OptionAPIURL(s.SlackURL))
-	}
+	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
 	attachment := formatSlackMessage(event, s.NotifType)
 
 	// non empty value in event.channel demands redirection of events to a different channel
 	if event.Channel != "" {
-		channelID, timestamp, err := api.PostMessage(event.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+		channelID, timestamp, err := s.Client.PostMessage(event.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
-			log.Logger.Errorf("Error in sending slack message %s", err.Error())
+			log.Errorf("Error in sending slack message %s", err.Error())
 			// send error message to default channel
 			if err.Error() == "channel_not_found" {
 				msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, err.Error(), event.Channel)
@@ -81,35 +75,29 @@ func (s *Slack) SendEvent(event events.Event) error {
 			}
 			return err
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
+		log.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	} else {
 		// empty value in event.channel sends notifications to default channel.
-		channelID, timestamp, err := api.PostMessage(s.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+		channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
-			log.Logger.Errorf("Error in sending slack message %s", err.Error())
+			log.Errorf("Error in sending slack message %s", err.Error())
 			return err
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
+		log.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
 	}
 	return nil
 }
 
 // SendMessage sends message to slack channel
 func (s *Slack) SendMessage(msg string) error {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
-
-	api := slack.New(s.Token)
-	if len(s.SlackURL) != 0 {
-		api = slack.New(s.Token, slack.OptionAPIURL(s.SlackURL))
-	}
-
-	channelID, timestamp, err := api.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
+	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
+	channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
-		log.Logger.Errorf("Error in sending slack message %s", err.Error())
+		log.Errorf("Error in sending slack message %s", err.Error())
 		return err
 	}
 
-	log.Logger.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)
+	log.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)
 	return nil
 }
 
@@ -222,14 +210,15 @@ func slackShortNotification(event events.Event) slack.Attachment {
 		Title: event.Title,
 		Fields: []slack.AttachmentField{
 			{
-				Value: formatShortMessage(event),
+				Value: FormatShortMessage(event),
 			},
 		},
 		Footer: "BotKube",
 	}
 }
 
-func formatShortMessage(event events.Event) (msg string) {
+// FormatShortMessage prepares message in short event format
+func FormatShortMessage(event events.Event) (msg string) {
 	additionalMsg := ""
 	if len(event.Messages) > 0 {
 		for _, m := range event.Messages {

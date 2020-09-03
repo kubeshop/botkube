@@ -22,7 +22,13 @@ spec:
         app: botkube
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- if .Values.extraAnnotations }}
+{{ toYaml .Values.extraAnnotations | indent 8 }}
+      {{- end }}
     spec:
+      {{- if .Values.priorityClassName }}
+      priorityClassName: "{{ .Values.priorityClassName }}"
+      {{- end }}
       serviceAccountName: {{ include "botkube.serviceAccountName" . }}
       containers:
         - name: {{ .Chart.Name }}
@@ -76,3 +82,8 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+

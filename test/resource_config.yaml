@@ -203,10 +203,21 @@ recommendations: true
 settings:
   # Cluster name to differentiate incoming messages
   clustername: test-cluster-1
-  # Set true to enable kubectl commands execution
-  allowkubectl: true
-  # Set true to enable commands execution from configured channel only
-  restrictAccess: true
+  # Kubectl executor configs
+  kubectl:
+    # Set true to enable kubectl commands execution
+    enabled: true
+    # List of allowed commands
+    commands:
+      # method which are allowed
+      verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
+      # resource configuration which is allowed
+      resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
+
+    # set Namespace to execute botkube kubectl commands by default
+    defaultNamespace: default
+    # Set true to enable commands execution from configured channel only
+    restrictAccess: true
   # Set true to enable config watcher
   configwatcher: false
   # Set false to disable upgrade notification

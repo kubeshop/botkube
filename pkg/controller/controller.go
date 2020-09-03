@@ -35,7 +35,7 @@ import (
 
 	// Register filters
 	_ "github.com/infracloudio/botkube/pkg/filterengine/filters"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 
@@ -45,7 +45,7 @@ import (
 
 const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
-	controllerStopMsg  = "my watch has ended for cluster '%s'!"
+	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
 )
 
@@ -63,25 +63,25 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 
 	// Register informers for resource lifecycle events
 	if len(c.Resources) > 0 {
-		log.Logger.Info("Registering resource lifecycle informer")
+		log.Info("Registering resource lifecycle informer")
 		for _, r := range c.Resources {
 			if _, ok := utils.ResourceInformerMap[r.Name]; !ok {
 				continue
 			}
-			log.Logger.Infof("Adding informer for resource:%s", r.Name)
+			log.Infof("Adding informer for resource:%s", r.Name)
 			utils.ResourceInformerMap[r.Name].AddEventHandler(registerEventHandlers(c, notifiers, r.Name, r.Events))
 		}
 	}
 
 	// Register informers for k8s events
-	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
-	log.Logger.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
+	log.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
+	log.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
 
 	utils.KubeInformerFactory.Core().V1().Events().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			_, err := cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
-				log.Logger.Errorf("Failed to get MetaNamespaceKey from event resource")
+				log.Errorf("Failed to get MetaNamespaceKey from event resource")
 				return
 			}
 			eventObj, ok := obj.(*coreV1.Event)
@@ -109,31 +109,33 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 	utils.KubeInformerFactory.Start(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM)
-	signal.Notify(sigterm, syscall.SIGINT)
+	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGSTOP)
+
 	<-sigterm
 	sendMessage(c, notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
+	// Sleep for some time to send termination notification
+	time.Sleep(5 * time.Second)
 }
 
 func registerEventHandlers(c *config.Config, notifiers []notify.Notifier, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
 	for _, event := range events {
 		if event == config.AllEvent || event == config.CreateEvent {
 			handlerFns.AddFunc = func(obj interface{}) {
-				log.Logger.Debugf("Processing add to %v", resourceType)
+				log.Debugf("Processing add to %v", resourceType)
 				sendEvent(obj, nil, c, notifiers, resourceType, config.CreateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
-				log.Logger.Debugf("Processing update to %v\n Object: %+v\n", resourceType, new)
+				log.Debugf("Processing update to %v\n Object: %+v\n", resourceType, new)
 				sendEvent(new, old, c, notifiers, resourceType, config.UpdateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.DeleteEvent {
 			handlerFns.DeleteFunc = func(obj interface{}) {
-				log.Logger.Debugf("Processing delete to %v", resourceType)
+				log.Debugf("Processing delete to %v", resourceType)
 				sendEvent(obj, nil, c, notifiers, resourceType, config.DeleteEvent)
 			}
 		}
@@ -150,22 +152,22 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 		// Skip if ErrorEvent is not configured for the resource
 		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: config.ErrorEvent}] &&
 			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
-			log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	default:
 		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
 			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: eventType}] {
-			log.Logger.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	}
 
-	log.Logger.Debugf("Processing %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+	log.Debugf("Processing %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
 
 	// Check if Notify disabled
 	if !config.Notify {
-		log.Logger.Debug("Skipping notification")
+		log.Debug("Skipping notification")
 		return
 	}
 
@@ -175,7 +177,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
 		if event.TimeStamp.Before(startTime) {
-			log.Logger.Debug("Skipping older events")
+			log.Debug("Skipping older events")
 			return
 		}
 	}
@@ -200,7 +202,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 			}
 		} else {
 			// skipping least significant update
-			log.Logger.Debug("skipping least significant Update event")
+			log.Debug("skipping least significant Update event")
 			event.Skip = true
 		}
 	}
@@ -208,25 +210,25 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	// Filter events
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
 	if event.Skip {
-		log.Logger.Debugf("Skipping event: %#v", event)
+		log.Debugf("Skipping event: %#v", event)
 		return
 	}
 
 	// Skip unpromoted insignificant InfoEvents
 	if event.Type == config.InfoEvent {
-		log.Logger.Debugf("Skipping Insignificant InfoEvent: %#v", event)
+		log.Debugf("Skipping Insignificant InfoEvent: %#v", event)
 		return
 	}
 
 	if len(event.Kind) <= 0 {
-		log.Logger.Warn("sendEvent received event with Kind nil. Hence skipping.")
+		log.Warn("sendEvent received event with Kind nil. Hence skipping.")
 		return
 	}
 
 	// check if Recommendations are disabled
 	if !c.Recommendations {
 		event.Recommendations = nil
-		log.Logger.Debug("Skipping Recommendations in Event Notifications")
+		log.Debug("Skipping Recommendations in Event Notifications")
 	}
 
 	// Send event over notifiers
@@ -237,7 +239,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 
 func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 	if len(msg) <= 0 {
-		log.Logger.Warn("sendMessage received string with length 0. Hence skipping.")
+		log.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
 	}
 
@@ -253,7 +255,7 @@ func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Logger.Fatal("Failed to create file watcher ", err)
+		log.Fatal("Failed to create file watcher ", err)
 	}
 	defer watcher.Close()
 
@@ -263,24 +265,24 @@ func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 			select {
 			case _, ok := <-watcher.Events:
 				if !ok {
-					log.Logger.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
+					log.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
 					return
 				}
-				log.Logger.Infof("Config file %s is updated. Hence restarting the Pod", configFile)
+				log.Infof("Config file %s is updated. Hence restarting the Pod", configFile)
 				done <- true
 
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					log.Logger.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
+					log.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
 					return
 				}
 			}
 		}
 	}()
-	log.Logger.Infof("Registering watcher on configfile %s", configFile)
+	log.Infof("Registering watcher on configfile %s", configFile)
 	err = watcher.Add(configFile)
 	if err != nil {
-		log.Logger.Errorf("Unable to register watch on config file:%s. Error: %s", configFile, err.Error())
+		log.Errorf("Unable to register watch on config file:%s. Error: %s", configFile, err.Error())
 		return
 	}
 	<-done

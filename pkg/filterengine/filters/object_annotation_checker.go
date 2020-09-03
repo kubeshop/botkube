@@ -22,7 +22,7 @@ package filters
 import (
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -55,15 +55,15 @@ func (f ObjectAnnotationChecker) Run(object interface{}, event *events.Event) {
 	// Check annotations in object
 	if isObjectNotifDisabled(obj) {
 		event.Skip = true
-		log.Logger.Debug("Object Notification Disable through annotations")
+		log.Debug("Object Notification Disable through annotations")
 	}
 
 	if channel, ok := reconfigureChannel(obj); ok {
 		event.Channel = channel
-		log.Logger.Debugf("Redirecting Event Notifications to channel: %s", channel)
+		log.Debugf("Redirecting Event Notifications to channel: %s", channel)
 	}
 
-	log.Logger.Debug("Object annotations filter successful!")
+	log.Debug("Object annotations filter successful!")
 }
 
 // Describe filter
@@ -76,7 +76,7 @@ func (f ObjectAnnotationChecker) Describe() string {
 func isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
 
 	if obj.Annotations[DisableAnnotation] == "true" {
-		log.Logger.Debug("Skipping Disabled Event Notifications!")
+		log.Debug("Skipping Disabled Event Notifications!")
 		return true
 	}
 	return false

@@ -32,51 +32,58 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/logging"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
-var validKubectlCommands = map[string]bool{
-	"api-resources": true,
-	"api-versions":  true,
-	"cluster-info":  true,
-	"describe":      true,
-	"diff":          true,
-	"explain":       true,
-	"get":           true,
-	"logs":          true,
-	"top":           true,
-	"auth":          true,
-}
+var (
+	// ValidNotifierCommand is a map of valid notifier commands
+	ValidNotifierCommand = map[string]bool{
+		"notifier": true,
+	}
+	validPingCommand = map[string]bool{
+		"ping": true,
+	}
+	validVersionCommand = map[string]bool{
+		"version": true,
+	}
+	validFilterCommand = map[string]bool{
+		"filters": true,
+	}
+	validInfoCommand = map[string]bool{
+		"commands": true,
+	}
+	validDebugCommands = map[string]bool{
+		"exec":         true,
+		"logs":         true,
+		"attach":       true,
+		"auth":         true,
+		"api-versions": true,
+		"cluster-info": true,
+		"cordon":       true,
+		"drain":        true,
+		"uncordon":     true,
+	}
 
-var validNotifierCommand = map[string]bool{
-	"notifier": true,
-}
-
-var validPingCommand = map[string]bool{
-	"ping": true,
-}
-
-var validVersionCommand = map[string]bool{
-	"version": true,
-}
-
-var validFilterCommand = map[string]bool{
-	"filters": true,
-}
-
-var kubectlBinary = "/usr/local/bin/kubectl"
+	kubectlBinary = "/usr/local/bin/kubectl"
+)
 
 const (
-	notifierStartMsg   = "Brace yourselves, notifications are coming from cluster '%s'."
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	incompleteCmdMsg   = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+
+	// NotifierStartMsg notifier enabled response message
+	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
+	// IncompleteCmdMsg incomplete command response message
+	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+
+	// Custom messages for teams platform
+	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
+	teamsIncompleteCmdMsg  = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 )
 
 // Executor is an interface for processes to execute commands
@@ -86,12 +93,14 @@ type Executor interface {
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	Message        string
-	AllowKubectl   bool
-	RestrictAccess bool
-	ClusterName    string
-	ChannelName    string
-	IsAuthChannel  bool
+	Platform         config.BotPlatform
+	Message          string
+	AllowKubectl     bool
+	RestrictAccess   bool
+	ClusterName      string
+	ChannelName      string
+	IsAuthChannel    bool
+	DefaultNamespace string
 }
 
 // CommandRunner is an interface to run bash commands
@@ -140,42 +149,63 @@ const (
 	FilterDisable FiltersAction = "disable"
 )
 
+// infoAction for options in Info commands
+type infoAction string
+
+// Info command options
+const (
+	infoList infoAction = "list"
+)
+
 func (action FiltersAction) String() string {
 	return string(action)
 }
 
 // NewDefaultExecutor returns new Executor object
-func NewDefaultExecutor(msg string, allowkubectl bool, restrictAccess bool, clusterName, channelName string, isAuthChannel bool) Executor {
+func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace,
+	clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
-		Message:        msg,
-		AllowKubectl:   allowkubectl,
-		RestrictAccess: restrictAccess,
-		ClusterName:    clusterName,
-		ChannelName:    channelName,
-		IsAuthChannel:  isAuthChannel,
+		Platform:         platform,
+		Message:          msg,
+		AllowKubectl:     allowkubectl,
+		RestrictAccess:   restrictAccess,
+		ClusterName:      clusterName,
+		ChannelName:      channelName,
+		IsAuthChannel:    isAuthChannel,
+		DefaultNamespace: defaultNamespace,
 	}
 }
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
-
-	if validKubectlCommands[args[0]] {
-		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-		if !e.AllowKubectl {
-			if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
-				return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
-			}
-			return ""
+	if len(args) == 0 {
+		if e.IsAuthChannel {
+			return printDefaultMsg(e.Platform)
 		}
-
-		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
-			return ""
-		}
-		return runKubectlCommand(args, e.ClusterName, e.IsAuthChannel)
+		return ""
 	}
-	if validNotifierCommand[args[0]] {
-		return runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
+	if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
+		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
+			utils.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
+			utils.AllowedKubectlResourceMap[utils.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
+			utils.AllowedKubectlResourceMap[utils.ShortnameResourceMap[strings.ToLower(args[1])]] { // Check if matches with short name
+			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
+			if !e.AllowKubectl {
+				if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
+					return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+				}
+				return ""
+			}
+
+			if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+				return ""
+			}
+			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+		}
+	}
+	if ValidNotifierCommand[args[0]] {
+		return e.runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if validPingCommand[args[0]] {
 		res := runVersionCommand(args, e.ClusterName)
@@ -189,15 +219,24 @@ func (e *DefaultExecutor) Execute() string {
 	}
 	// Check if filter command
 	if validFilterCommand[args[0]] {
-		return runFilterCommand(args, e.ClusterName, e.IsAuthChannel)
+		return e.runFilterCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
+
+	//Check if info command
+	if validInfoCommand[args[0]] {
+		return e.runInfoCommand(args, e.IsAuthChannel)
+	}
+
 	if e.IsAuthChannel {
-		return unsupportedCmdMsg
+		return printDefaultMsg(e.Platform)
 	}
 	return ""
 }
 
-func printDefaultMsg() string {
+func printDefaultMsg(p config.BotPlatform) string {
+	if p == config.TeamsBot {
+		return teamsUnsupportedCmdMsg
+	}
 	return unsupportedCmdMsg
 }
 
@@ -211,9 +250,14 @@ func trimQuotes(clusterValue string) string {
 	})
 }
 
-func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) string {
-	// Use 'default' as a default namespace
-	args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
+
+	// run commands in namespace specified under Config.Settings.DefaultNamespace field
+	if len(defaultNamespace) != 0 {
+		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+	} else {
+		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
+	}
 
 	// Remove unnecessary flags
 	finalArgs := []string{}
@@ -254,29 +298,29 @@ func runKubectlCommand(args []string, clusterName string, isAuthChannel bool) st
 	runner := NewCommandRunner(kubectlBinary, finalArgs)
 	out, err := runner.Run()
 	if err != nil {
-		log.Logger.Error("Error in executing kubectl command: ", err)
+		log.Error("Error in executing kubectl command: ", err)
 		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
 	}
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
 }
 
 // TODO: Have a seperate cli which runs bot commands
-func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
+func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if isAuthChannel == false {
 		return ""
 	}
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return IncompleteCmdMsg
 	}
 
 	switch args[1] {
 	case Start.String():
 		config.Notify = true
-		log.Logger.Info("Notifier enabled")
-		return fmt.Sprintf(notifierStartMsg, clusterName)
+		log.Info("Notifier enabled")
+		return fmt.Sprintf(NotifierStartMsg, clusterName)
 	case Stop.String():
 		config.Notify = false
-		log.Logger.Info("Notifier disabled")
+		log.Info("Notifier disabled")
 		return fmt.Sprintf(notifierStopMsg, clusterName)
 	case Status.String():
 		if config.Notify == false {
@@ -286,26 +330,26 @@ func runNotifierCommand(args []string, clusterName string, isAuthChannel bool) s
 	case ShowConfig.String():
 		out, err := showControllerConfig()
 		if err != nil {
-			log.Logger.Error("Error in executing showconfig command: ", err)
+			log.Error("Error in executing showconfig command: ", err)
 			return "Error in getting configuration!"
 		}
 		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
 	}
-	return printDefaultMsg()
+	return printDefaultMsg(e.Platform)
 }
 
 // runFilterCommand to list, enable or disable filters
-func runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
+func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if isAuthChannel == false {
 		return ""
 	}
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return IncompleteCmdMsg
 	}
 
 	switch args[1] {
 	case FilterList.String():
-		log.Logger.Debug("List filters")
+		log.Debug("List filters")
 		return makeFiltersList()
 
 	// Enable filter
@@ -313,7 +357,7 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, makeFiltersList())
 		}
-		log.Logger.Debug("Enable filters", args[2])
+		log.Debug("Enable filters", args[2])
 		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], true); err != nil {
 			return err.Error()
 		}
@@ -324,13 +368,30 @@ func runFilterCommand(args []string, clusterName string, isAuthChannel bool) str
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, makeFiltersList())
 		}
-		log.Logger.Debug("Disabled filters", args[2])
+		log.Debug("Disabled filters", args[2])
 		if err := filterengine.DefaultFilterEngine.SetFilter(args[2], false); err != nil {
 			return err.Error()
 		}
 		return fmt.Sprintf(filterDisabled, args[2], clusterName)
 	}
-	return printDefaultMsg()
+	return printDefaultMsg(e.Platform)
+}
+
+//runInfoCommand to list allowed commands
+func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) string {
+	if isAuthChannel == false {
+		return ""
+	}
+	if len(args) < 2 && args[1] != string(infoList) {
+		return IncompleteCmdMsg
+	}
+	return makeCommandInfoList()
+}
+
+func makeCommandInfoList() string {
+	allowedVerbs := utils.GetStringInYamlFormat("allowed verbs:", utils.AllowedKubectlVerbMap)
+	allowedResources := utils.GetStringInYamlFormat("allowed resources:", utils.AllowedKubectlResourceMap)
+	return allowedVerbs + allowedResources
 }
 
 // Use tabwriter to display string in tabular form
@@ -354,7 +415,7 @@ func findBotKubeVersion() (versions string) {
 	// Returns "Server Version: xxxx"
 	k8sVersion, err := runner.Run()
 	if err != nil {
-		log.Logger.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
+		log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
 		k8sVersion = "Server Version: Unknown\n"
 	}
 
@@ -390,7 +451,7 @@ func runVersionCommand(args []string, clusterName string) string {
 func showControllerConfig() (configYaml string, err error) {
 	c, err := config.New()
 	if err != nil {
-		logging.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 
 	// hide sensitive info

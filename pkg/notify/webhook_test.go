@@ -54,8 +54,7 @@ func TestPostWebhook(t *testing.T) {
 			defer ts.Close()
 			// create a dummy webhook object to test
 			w := &Webhook{
-				URL:         ts.URL,
-				ClusterName: "test",
+				URL: ts.URL,
 			}
 
 			err := w.PostWebhook(&WebhookPayload{})

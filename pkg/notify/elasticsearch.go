@@ -23,39 +23,79 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/olivere/elastic"
+	"github.com/sha1sum/aws_signing_client"
 )
 
-// elsClient ElasticSearch client
-var elsClient *elastic.Client
+const (
+	// indexSuffixFormat is the date format that would be appended to the index name
+	indexSuffixFormat = "02-01-2006"
+	// awsService for the AWS client to authenticate against
+	awsService = "es"
+)
 
 // ElasticSearch contains auth cred and index setting
 type ElasticSearch struct {
-	Username    string
-	Password    string
-	Server      string
-	Index       string
-	Shards      int
-	Replicas    int
-	Type        string
-	ClusterName string
+	ELSClient *elastic.Client
+	Server    string
+	Index     string
+	Shards    int
+	Replicas  int
+	Type      string
 }
 
-// NewElasticSearch returns new Slack object
-func NewElasticSearch(c *config.Config) Notifier {
-	return &ElasticSearch{
-		Username:    c.Communications.ElasticSearch.Username,
-		Password:    c.Communications.ElasticSearch.Password,
-		Server:      c.Communications.ElasticSearch.Server,
-		Index:       c.Communications.ElasticSearch.Index.Name,
-		Type:        c.Communications.ElasticSearch.Index.Type,
-		Shards:      c.Communications.ElasticSearch.Index.Shards,
-		Replicas:    c.Communications.ElasticSearch.Index.Replicas,
-		ClusterName: c.Settings.ClusterName,
+// NewElasticSearch returns new ElasticSearch object
+func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
+	var elsClient *elastic.Client
+	var err error
+	var creds *credentials.Credentials
+	if c.AWSSigning.Enabled {
+		// Get credentials from environment variables and create the AWS Signature Version 4 signer
+		sess := session.Must(session.NewSession())
+		if c.AWSSigning.RoleArn != "" {
+			creds = stscreds.NewCredentials(sess, c.AWSSigning.RoleArn)
+		} else {
+			creds = ec2rolecreds.NewCredentials(sess)
+		}
+
+		signer := v4.NewSigner(creds)
+		awsClient, err := aws_signing_client.New(signer, nil, awsService, c.AWSSigning.AWSRegion)
+
+		if err != nil {
+			return nil, err
+		}
+		elsClient, err = elastic.NewClient(elastic.SetURL(c.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(false))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// create elasticsearch client
+		elsClient, err = elastic.NewClient(
+			elastic.SetURL(c.Server),
+			elastic.SetBasicAuth(c.Username, c.Password),
+			elastic.SetSniff(false),
+			elastic.SetHealthcheck(false),
+			elastic.SetGzip(true),
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
+	return &ElasticSearch{
+		ELSClient: elsClient,
+		Index:     c.Index.Name,
+		Type:      c.Index.Type,
+		Shards:    c.Index.Shards,
+		Replicas:  c.Index.Replicas,
+	}, nil
 }
 
 type mapping struct {
@@ -70,42 +110,11 @@ type index struct {
 	Replicas int `json:"number_of_replicas"`
 }
 
-func init() {
-	c, err := config.New()
-	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
-	if !c.Communications.ElasticSearch.Enabled {
-		return
-	}
-	// create elasticsearch client
-	elsClient, err = elastic.NewClient(elastic.SetURL(c.Communications.ElasticSearch.Server), elastic.SetBasicAuth(c.Communications.ElasticSearch.Username, c.Communications.ElasticSearch.Password), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(true))
-	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to create els client. Error:%s", err.Error()))
-	}
-}
-
-// SendEvent sends event notification to slack
-func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
-	log.Logger.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
-	ctx := context.Background()
-
-	// set missing cluster name to event object
-	event.Cluster = e.ClusterName
-
-	// Create elsClient if not created
-	if elsClient == nil {
-		elsClient, err = elastic.NewClient(elastic.SetURL(e.Server), elastic.SetBasicAuth(e.Username, e.Password), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(true))
-		if err != nil {
-			log.Logger.Error(fmt.Sprintf("Failed to create els client. Error:%s", err.Error()))
-			return err
-		}
-	}
-
+func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
 	// Create index if not exists
-	exists, err := elsClient.IndexExists(e.Index).Do(ctx)
+	exists, err := e.ELSClient.IndexExists(e.Index).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
 	}
 	if !exists {
@@ -118,25 +127,38 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 				},
 			},
 		}
-		_, err := elsClient.CreateIndex(e.Index).BodyJson(mapping).Do(ctx)
+		_, err := e.ELSClient.CreateIndex(e.Index).BodyJson(mapping).Do(ctx)
 		if err != nil {
-			log.Logger.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
+			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
 		}
 	}
 
 	// Send event to els
-	_, err = elsClient.Index().Index(e.Index).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(e.Index).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
-	_, err = elsClient.Flush().Index(e.Index).Do(ctx)
+	_, err = e.ELSClient.Flush().Index(e.Index).Do(ctx)
 	if err != nil {
-		log.Logger.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
+		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Logger.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
+	return nil
+}
+
+// SendEvent sends event notification to slack
+func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
+	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
+	ctx := context.Background()
+
+	// Create index if not exists
+	if err := e.flushIndex(ctx, event); err != nil {
+		return err
+	}
+
 	return nil
 }
 

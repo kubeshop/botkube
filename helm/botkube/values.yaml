@@ -3,13 +3,16 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
-
+# Extra annotations to pass to the botkube pod
+extraAnnotations: {}
+# Priority class name for the pod
+priorityClassName: ""
 image:
   repository: infracloudio/botkube
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  tag: v0.10.0
+  tag: latest
 
 nameOverride: ""
 fullnameOverride: ""
@@ -227,10 +230,20 @@ config:
   settings:
     # Cluster name to differentiate incoming messages
     clustername: not-configured
-    # Set true to enable kubectl commands execution
-    allowkubectl: false
-    # Set true to enable commands execution from configured channel only
-    restrictAccess: false
+    # Kubectl executor configs
+    kubectl:
+      # Set true to enable kubectl commands execution
+      enabled: false
+      # List of allowed commands
+      commands:
+        # method which are allowed
+        verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
+        # resource configuration which is allowed
+        resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
+      # set Namespace to execute botkube kubectl commands by default
+      defaultNamespace: default
+      # Set true to enable commands execution from configured channel only
+      restrictAccess: false
     # Set true to enable config watcher
     configwatcher: true
     # Set false to disable upgrade notification
@@ -254,11 +267,23 @@ communications:
     channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
     notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
+  # Settings for MS Teams
+  teams:
+    enabled: false
+    appID: 'APPLICATION_ID'
+    appPassword: 'APPLICATION_PASSWORD'
+    notiftype: short
+    port: 3978
+
   # Settings for ELS
   elasticsearch:
     enabled: false
-    server: 'ELASTICSEARCH_ADDRESS'              # e.g https://example.com:9243
-    username: 'ELASTICSEARCH_USERNAME'
+    awsSigning:
+      enabled: false                            # enable awsSigning using IAM for Elastisearch hosted on AWS, if true make sure AWS environment variables are set. Refer https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+      awsRegion: "us-east-1"                    # AWS region where Elasticsearch is deployed
+      roleArn: ''                               # AWS IAM Role arn to assume for credentials, use this only if you dont want to use the EC2 instance role or not running on AWS instance
+    server: 'ELASTICSEARCH_ADDRESS'             # e.g https://example.com:9243
+    username: 'ELASTICSEARCH_USERNAME'          # Basic Auth
     password: 'ELASTICSEARCH_PASSWORD'
     # ELS index settings
     index:
@@ -276,6 +301,18 @@ service:
   name: metrics
   port: 2112
   targetPort: 2112  
+
+# Ingress settings to expose teams endpoint
+ingress:
+  create: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  host: 'HOST'
+  urlPath: "/"
+  tls:
+    enabled: false
+    secretName: ''
+
             
 serviceMonitor:
   ## If true, a ServiceMonitor CR is created for a botkube
@@ -320,3 +357,5 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   #name:
+  # annotations for the service account
+  annotations: {}

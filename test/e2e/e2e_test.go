@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nlopes/slack"
+
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -45,10 +47,9 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		fakeSlackNotifier := &notify.Slack{
-			Token:     testEnv.Config.Communications.Slack.Token,
 			Channel:   testEnv.Config.Communications.Slack.Channel,
 			NotifType: testEnv.Config.Communications.Slack.NotifType,
-			SlackURL:  testEnv.SlackServer.GetAPIURL(),
+			Client:    slack.New(testEnv.Config.Communications.Slack.Token, slack.OptionAPIURL(testEnv.SlackServer.GetAPIURL())),
 		}
 
 		notifiers = append(notifiers, fakeSlackNotifier)
@@ -56,14 +57,14 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Webhook.Enabled {
 		fakeWebhookNotifier := &notify.Webhook{
-			URL:         testEnv.WebhookServer.GetAPIURL(),
-			ClusterName: testEnv.Config.Settings.ClusterName,
+			URL: testEnv.WebhookServer.GetAPIURL(),
 		}
 		notifiers = append(notifiers, fakeWebhookNotifier)
 	}
 
 	utils.KubeClient = testEnv.K8sClient
-	utils.InitInformerMap()
+	utils.InitInformerMap(testEnv.Config)
+	utils.InitResourceMap(testEnv.Config)
 
 	// Start controller with fake notifiers
 	go controller.RegisterInformers(testEnv.Config, notifiers)
@@ -96,13 +97,14 @@ func StartFakeSlackBot(testenv *env.TestEnv) {
 
 		// Fake bot
 		sb := &bot.SlackBot{
-			Token:          testenv.Config.Communications.Slack.Token,
-			AllowKubectl:   testenv.Config.Settings.AllowKubectl,
-			RestrictAccess: testenv.Config.Settings.RestrictAccess,
-			ClusterName:    testenv.Config.Settings.ClusterName,
-			ChannelName:    testenv.Config.Communications.Slack.Channel,
-			SlackURL:       testenv.SlackServer.GetAPIURL(),
-			BotID:          testenv.SlackServer.BotID,
+			Token:            testenv.Config.Communications.Slack.Token,
+			AllowKubectl:     testenv.Config.Settings.Kubectl.Enabled,
+			RestrictAccess:   testenv.Config.Settings.Kubectl.RestrictAccess,
+			ClusterName:      testenv.Config.Settings.ClusterName,
+			ChannelName:      testenv.Config.Communications.Slack.Channel,
+			SlackURL:         testenv.SlackServer.GetAPIURL(),
+			BotID:            testenv.SlackServer.BotID,
+			DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
 		}
 		go sb.Start()
 	}

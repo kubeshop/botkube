@@ -26,7 +26,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -38,37 +38,29 @@ type Mattermost struct {
 }
 
 // NewMattermost returns new Mattermost object
-func NewMattermost(c *config.Config) (Notifier, error) {
-	// Load configurations
-	c, err := config.New()
-	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
-
+func NewMattermost(c config.Mattermost) (Notifier, error) {
 	// Set configurations for Mattermost server
-	client := model.NewAPIv4Client(c.Communications.Mattermost.URL)
-	client.SetOAuthToken(c.Communications.Mattermost.Token)
-	botTeam, resp := client.GetTeamByName(c.Communications.Mattermost.Team, "")
+	client := model.NewAPIv4Client(c.URL)
+	client.SetOAuthToken(c.Token)
+	botTeam, resp := client.GetTeamByName(c.Team, "")
 	if resp.Error != nil {
-		log.Logger.Error("Error in connecting to Mattermost team ", c.Communications.Mattermost.Team, "\nError: ", resp.Error)
 		return nil, resp.Error
 	}
-	botChannel, resp := client.GetChannelByName(c.Communications.Mattermost.Channel, botTeam.Id, "")
+	botChannel, resp := client.GetChannelByName(c.Channel, botTeam.Id, "")
 	if resp.Error != nil {
-		log.Logger.Error("Error in connecting to Mattermost channel ", c.Communications.Mattermost.Channel, "\nError: ", resp.Error)
 		return nil, resp.Error
 	}
 
 	return &Mattermost{
 		Client:    client,
 		Channel:   botChannel.Id,
-		NotifType: c.Communications.Mattermost.NotifType,
+		NotifType: c.NotifType,
 	}, nil
 }
 
 // SendEvent sends event notification to Mattermost
 func (m *Mattermost) SendEvent(event events.Event) error {
-	log.Logger.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
+	log.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
 
 	var fields []*model.SlackAttachmentField
 
@@ -103,7 +95,7 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		post.ChannelId = event.Channel
 
 		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			log.Error("Failed to send message. Error: ", resp.Error)
 			// send error message to default channel
 			msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, resp.Error, event.Channel)
 			go m.SendMessage(msg)
@@ -113,15 +105,15 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 			go m.SendEvent(event)
 			return resp.Error
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
+		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
 	} else {
 		post.ChannelId = m.Channel
 		// empty value in event.channel sends notifications to default channel.
 		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Logger.Error("Failed to send message. Error: ", resp.Error)
+			log.Error("Failed to send message. Error: ", resp.Error)
 			return resp.Error
 		}
-		log.Logger.Debugf("Event successfully sent to channel %s", post.ChannelId)
+		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
 	}
 	return nil
 }
@@ -132,7 +124,7 @@ func (m *Mattermost) SendMessage(msg string) error {
 	post.ChannelId = m.Channel
 	post.Message = msg
 	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-		log.Logger.Error("Failed to send message. Error: ", resp.Error)
+		log.Error("Failed to send message. Error: ", resp.Error)
 	}
 	return nil
 }
@@ -219,7 +211,7 @@ func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
 func mmShortNotification(event events.Event) []*model.SlackAttachmentField {
 	return []*model.SlackAttachmentField{
 		{
-			Value: formatShortMessage(event),
+			Value: FormatShortMessage(event),
 		},
 	}
 }

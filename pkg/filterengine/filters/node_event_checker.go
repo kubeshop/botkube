@@ -27,7 +27,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	coreV1 "k8s.io/api/core/v1"
 
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 const (
@@ -68,16 +68,16 @@ func (f NodeEventsChecker) Run(object interface{}, event *events.Event) {
 	switch event.Reason {
 	case NodeNotReady:
 		event.Type = config.ErrorEvent
-		event.Level = events.Critical
+		event.Level = config.Critical
 	case NodeReady:
 		event.Type = config.InfoEvent
-		event.Level = events.Info
+		event.Level = config.Info
 	default:
 		// skip events with least significant reasons
 		event.Skip = true
 	}
 
-	log.Logger.Debug("Node Critical Event filter successful!")
+	log.Debug("Node Critical Event filter successful!")
 }
 
 // Describe filter

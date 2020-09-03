@@ -22,13 +22,14 @@ package utils
 import (
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/nlopes/slack"
 	v1 "k8s.io/api/core/v1"
 	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 // SlackMessage structure

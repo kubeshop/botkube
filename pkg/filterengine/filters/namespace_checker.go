@@ -26,7 +26,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // NamespaceChecker ignore events from blocklisted namespaces
@@ -50,8 +50,8 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 	// load config.yaml
 	botkubeConfig, err := config.New()
 	if err != nil {
-		log.Logger.Errorf(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-		log.Logger.Debug("Skipping ignore namespace filter.")
+		log.Errorf(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		log.Debug("Skipping ignore namespace filter.")
 	}
 	if botkubeConfig != nil {
 		for _, resource := range botkubeConfig.Resources {
@@ -63,7 +63,7 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 			}
 		}
 	}
-	log.Logger.Debug("Ignore Namespaces filter successful!")
+	log.Debug("Ignore Namespaces filter successful!")
 }
 
 // Describe filter

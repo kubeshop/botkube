@@ -26,7 +26,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
@@ -37,54 +37,56 @@ const (
 )
 
 func main() {
-	log.Logger.Info("Starting controller")
-	Config, err := config.New()
-	if err != nil {
-		log.Logger.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-	}
-
-	if Config.Communications.Slack.Enabled {
-		log.Logger.Info("Starting slack bot")
-		sb := bot.NewSlackBot()
-		go sb.Start()
-	}
-
-	if Config.Communications.Mattermost.Enabled {
-		log.Logger.Info("Starting mattermost bot")
-		mb := bot.NewMattermostBot()
-		go mb.Start()
-	}
-
 	// Prometheus metrics
 	metricsPort, exists := os.LookupEnv("METRICS_PORT")
 	if !exists {
 		metricsPort = defaultMetricsPort
 	}
 	go metrics.ServeMetrics(metricsPort)
+	if err := startController(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func startController() error {
+	log.Info("Starting controller")
+	conf, err := config.New()
+	if err != nil {
+		return fmt.Errorf("Error in loading configuration. Error:%s", err.Error())
+	}
 
 	// List notifiers
-	var notifiers []notify.Notifier
-	if Config.Communications.Slack.Enabled {
-		notifiers = append(notifiers, notify.NewSlack(Config))
+	notifiers := notify.ListNotifiers(conf.Communications)
+
+	if conf.Communications.Slack.Enabled {
+		log.Info("Starting slack bot")
+		sb := bot.NewSlackBot(conf)
+		go sb.Start()
 	}
-	if Config.Communications.Mattermost.Enabled {
-		if notifier, err := notify.NewMattermost(Config); err == nil {
-			notifiers = append(notifiers, notifier)
-		}
+
+	if conf.Communications.Mattermost.Enabled {
+		log.Info("Starting mattermost bot")
+		mb := bot.NewMattermostBot(conf)
+		go mb.Start()
 	}
-	if Config.Communications.ElasticSearch.Enabled {
-		notifiers = append(notifiers, notify.NewElasticSearch(Config))
+
+	if conf.Communications.Teams.Enabled {
+		log.Info("Starting MS Teams bot")
+		tb := bot.NewTeamsBot(conf)
+		notifiers = append(notifiers, tb)
+		go tb.Start()
 	}
-	if Config.Communications.Webhook.Enabled {
-		notifiers = append(notifiers, notify.NewWebhook(Config))
-	}
-	if Config.Settings.UpgradeNotifier {
-		log.Logger.Info("Starting upgrade notifier")
-		go controller.UpgradeNotifier(Config, notifiers)
+
+	// Start upgrade notifier
+	if conf.Settings.UpgradeNotifier {
+		log.Info("Starting upgrade notifier")
+		go controller.UpgradeNotifier(conf, notifiers)
 	}
 
 	// Init KubeClient, InformerMap and start controller
 	utils.InitKubeClient()
-	utils.InitInformerMap()
-	controller.RegisterInformers(Config, notifiers)
+	utils.InitInformerMap(conf)
+	utils.InitResourceMap(conf)
+	controller.RegisterInformers(conf, notifiers)
+	return nil
 }

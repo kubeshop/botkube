@@ -48,10 +48,34 @@ const (
 	ShortNotify NotifType = "short"
 	// LongNotify for short events notification
 	LongNotify NotifType = "long"
+
+	// Info level
+	Info Level = "info"
+	// Warn level
+	Warn Level = "warn"
+	// Debug level
+	Debug Level = "debug"
+	// Error level
+	Error Level = "error"
+	// Critical level
+	Critical Level = "critical"
+
+	// SlackBot bot platform
+	SlackBot BotPlatform = "slack"
+	// MattermostBot bot platform
+	MattermostBot BotPlatform = "mattermost"
+	// TeamsBot bot platform
+	TeamsBot BotPlatform = "teams"
 )
 
 // EventType to watch
 type EventType string
+
+// Level type to store event levels
+type Level string
+
+// BotPlatform supported by BotKube
+type BotPlatform string
 
 // ResourceConfigFileName is a name of botkube resource configuration file
 var ResourceConfigFileName = "resource_config.yaml"
@@ -69,8 +93,13 @@ type NotifType string
 type Config struct {
 	Resources       []Resource
 	Recommendations bool
-	Communications  Communications
+	Communications  CommunicationsConfig
 	Settings        Settings
+}
+
+// Communications contains communication config
+type Communications struct {
+	Communications CommunicationsConfig
 }
 
 // Resource contains resources to watch
@@ -98,12 +127,13 @@ type Namespaces struct {
 	Ignore  []string `yaml:",omitempty"`
 }
 
-// Communications channels to send events to
-type Communications struct {
+// CommunicationsConfig channels to send events to
+type CommunicationsConfig struct {
 	Slack         Slack
-	ElasticSearch ElasticSearch
 	Mattermost    Mattermost
 	Webhook       Webhook
+	Teams         Teams
+	ElasticSearch ElasticSearch
 }
 
 // Slack configuration to authentication and send notifications
@@ -116,11 +146,19 @@ type Slack struct {
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
-	Enabled  bool
-	Username string
-	Password string `yaml:",omitempty"`
-	Server   string
-	Index    Index
+	Enabled    bool
+	Username   string
+	Password   string `yaml:",omitempty"`
+	Server     string
+	AWSSigning AWSSigning `yaml:"awsSigning"`
+	Index      Index
+}
+
+// AWSSigning contains AWS configurations
+type AWSSigning struct {
+	Enabled   bool
+	AWSRegion string `yaml:"awsRegion"`
+	RoleArn   string `yaml:"roleArn"`
 }
 
 // Index settings for ELS
@@ -141,23 +179,69 @@ type Mattermost struct {
 	NotifType NotifType `yaml:",omitempty"`
 }
 
+// Teams creds for authentication with MS Teams
+type Teams struct {
+	Enabled     bool
+	AppID       string `yaml:"appID,omitempty"`
+	AppPassword string `yaml:"appPassword,omitempty"`
+	Team        string
+	Port        string
+	MessagePath string
+	NotifType   NotifType `yaml:",omitempty"`
+}
+
 // Webhook configuration to send notifications
 type Webhook struct {
 	Enabled bool
 	URL     string
 }
 
+// Kubectl configuration for executing commands inside cluster
+type Kubectl struct {
+	Enabled          bool
+	Commands         Commands
+	DefaultNamespace string
+	RestrictAccess   bool `yaml:"restrictAccess"`
+}
+
+// Commands allowed in bot
+type Commands struct {
+	Verbs     []string
+	Resources []string
+}
+
 // Settings for multicluster support
 type Settings struct {
 	ClusterName     string
-	AllowKubectl    bool
-	RestrictAccess  bool `yaml:"restrictAccess"`
+	Kubectl         Kubectl
 	ConfigWatcher   bool
 	UpgradeNotifier bool `yaml:"upgradeNotifier"`
 }
 
 func (eventType EventType) String() string {
 	return string(eventType)
+}
+
+// NewCommunicationsConfig return new communication config object
+func NewCommunicationsConfig() (*Communications, error) {
+	c := &Communications{}
+	configPath := os.Getenv("CONFIG_PATH")
+	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+	communicationConfigFile, err := os.Open(communicationConfigFilePath)
+	defer communicationConfigFile.Close()
+	if err != nil {
+		return c, err
+	}
+
+	b, err := ioutil.ReadAll(communicationConfigFile)
+	if err != nil {
+		return c, err
+	}
+
+	if len(b) != 0 {
+		yaml.Unmarshal(b, c)
+	}
+	return c, nil
 }
 
 // New returns new Config
@@ -180,20 +264,11 @@ func New() (*Config, error) {
 		yaml.Unmarshal(b, c)
 	}
 
-	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+	comm, err := NewCommunicationsConfig()
 	if err != nil {
-		return c, err
+		return nil, err
 	}
+	c.Communications = comm.Communications
 
-	b, err = ioutil.ReadAll(communicationConfigFile)
-	if err != nil {
-		return c, err
-	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
-	}
 	return c, nil
 }
