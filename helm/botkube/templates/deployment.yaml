@@ -49,13 +49,17 @@ spec:
             - name: BOTKUBE_VERSION
               value: {{ .Chart.Version }}
             - name: METRICS_PORT
-              value: {{ .Values.service.targetPort | quote }} 
+              value: {{ .Values.service.targetPort | quote }}
         {{- if .Values.extraEnv }}
           {{- range $name, $value := .Values.extraEnv }}
             - name: {{ $name }}
               value: {{ quote $value }}
           {{- end }}
-        {{- end }}            
+        {{- end }}
+          {{- if .Values.resources }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
       volumes:
         - name: config-volume
           projected:
