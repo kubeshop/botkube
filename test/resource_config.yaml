@@ -216,7 +216,6 @@ recommendations: true
 settings:
   # Cluster name to differentiate incoming messages
   clustername: test-cluster-1
-<<<<<<< HEAD
   # Kubectl executor configs
   kubectl:
     # Set true to enable kubectl commands execution
@@ -231,12 +230,6 @@ settings:
     defaultNamespace: default
     # Set true to enable commands execution from configured channel only
     restrictAccess: true
-=======
-  # Set true to enable kubectl commands execution
-  allowkubectl: true
-  # Set true to enable commands execution from configured channel only
-  restrictAccess: true
->>>>>>> (feat.) Added Dynamic Informer replacing Kube Client, and informer
   # Set true to enable config watcher
   configwatcher: false
   # Set false to disable upgrade notification

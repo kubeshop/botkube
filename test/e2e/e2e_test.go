@@ -63,6 +63,7 @@ func TestRun(t *testing.T) {
 	}
 
 	utils.DynamicKubeClient = testEnv.K8sClient
+	utils.DiscoveryClient = testEnv.DiscoFake
 	utils.InitInformerMap(testEnv.Config)
 	utils.InitResourceMap(testEnv.Config)
 

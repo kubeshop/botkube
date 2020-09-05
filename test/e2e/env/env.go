@@ -32,8 +32,10 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
 )
 
 // TestEnv to store objects required for e2e testing
@@ -42,6 +44,7 @@ import (
 // SlackMessages: Channel to store incoming Slack messages from BotKube
 // Config	: BotKube config provided with config.yaml
 type TestEnv struct {
+	DiscoFake     discovery.DiscoveryInterface
 	K8sClient     dynamic.Interface
 	SlackServer   *slacktest.Server
 	WebhookServer *webhook.Server
@@ -70,6 +73,7 @@ func New() *TestEnv {
 
 	s := runtime.NewScheme()
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
+	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
 
 	//s.
 	if testEnv.Config.Communications.Slack.Enabled {

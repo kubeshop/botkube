@@ -106,7 +106,7 @@ func CreateResource(t *testing.T, obj CreateObjects) {
 		if err != nil {
 			t.Fatalf("Failed to create ingress: %v", err)
 		}
-	case "v1/namespaces":
+	case "namespace":
 		s := unstructured.Unstructured{}
 		k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
 		if ok != nil {

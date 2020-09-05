@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	log "github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -112,7 +112,7 @@ func New(object interface{}, eventType config.EventType, kind, clusterName strin
 		var eventObj coreV1.Event
 		err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
-			log.Logger.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
+			log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
 		}
 		event.Reason = eventObj.Reason
 		event.Messages = append(event.Messages, eventObj.Message)

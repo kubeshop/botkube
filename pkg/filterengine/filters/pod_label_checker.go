@@ -26,7 +26,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
-	log "github.com/infracloudio/botkube/pkg/logging"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 

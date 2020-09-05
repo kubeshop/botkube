@@ -20,7 +20,6 @@
 package utils
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"regexp"
@@ -29,8 +28,7 @@ import (
 	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/log"
-	log "github.com/infracloudio/botkube/pkg/logging"
+	log "github.com/infracloudio/botkube/pkg/log"
 
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,6 +67,8 @@ var (
 	// Mapper is a global DeferredDiscoveryRESTMapper object, which maps all resources present on
 	// the cluster, and create relation between GVR, and GVK
 	Mapper *restmapper.DeferredDiscoveryRESTMapper
+	// DiscoveryClient implements
+	DiscoveryClient discovery.DiscoveryInterface
 )
 
 // InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
@@ -87,7 +87,7 @@ func InitKubeClient() {
 		// Initiate discovery client for REST resource mapping
 		discoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
 		if err != nil {
-			log.Logger.Fatalf("Unable to create Discovery Client")
+			log.Fatalf("Unable to create Discovery Client")
 		}
 		DynamicKubeClient, err = dynamic.NewForConfig(botkubeConf)
 		if err != nil {
@@ -95,9 +95,9 @@ func InitKubeClient() {
 		}
 	} else {
 		// Initiate discovery client for REST resource mapping
-		discoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
+		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
 		if err != nil {
-			log.Logger.Fatalf("Unable to create Discovery Client")
+			log.Fatal(err)
 		}
 		DynamicKubeClient, err = dynamic.NewForConfig(kubeConfig)
 		if err != nil {
@@ -148,7 +148,6 @@ func InitInformerMap(conf *config.Config) {
 		gvr := ParseResourceArg(v.Name)
 		ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
 	}
-
 	// Allowed event kinds map and Allowed Update Events Map
 	for _, r := range conf.Resources {
 		allEvents := false
@@ -206,7 +205,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 		var eventObj coreV1.Event
 		err := TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
-			log.Logger.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+			log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 		}
 		if len(objectMeta.Annotations) == 0 {
 			objectMeta.Annotations = ExtractAnnotationsFromEvent(&eventObj)
@@ -246,11 +245,11 @@ func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
 
 	mapping, err := Mapper.RESTMapping(obj.InvolvedObject.GroupVersionKind().GroupKind(), obj.InvolvedObject.GroupVersionKind().Version)
 	if err != nil {
-		log.Logger.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
+		log.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
 	}
 	annotations, err := DynamicKubeClient.Resource(mapping.Resource).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
 	if err != nil {
-		log.Logger.Error(err)
+		log.Error(err)
 		return obj.GetAnnotations()
 	}
 	return annotations.GetAnnotations()
@@ -273,7 +272,7 @@ func InitResourceMap(conf *config.Config) {
 		AllowedKubectlVerbMap[r] = true
 	}
 
-	resourceList, err := KubeClient.Discovery().ServerResources()
+	resourceList, err := DiscoveryClient.ServerResources()
 	if err != nil {
 		log.Errorf("Failed to get resource list in k8s cluster. %v", err)
 		return
