@@ -211,7 +211,7 @@ func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
 func mmShortNotification(event events.Event) []*model.SlackAttachmentField {
 	return []*model.SlackAttachmentField{
 		{
-			Value: formatShortMessage(event),
+			Value: FormatShortMessage(event),
 		},
 	}
 }

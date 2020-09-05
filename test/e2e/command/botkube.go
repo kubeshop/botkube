@@ -59,8 +59,29 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"ImageTagChecker         true    Checks and adds recommendation if 'latest' image tag is used for container image.\n" +
 				"IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.\n",
 		},
+		"BotKube commands list": {
+			command: "commands list",
+			expected: "allowed verbs:\n" +
+				"  - api-resources\n" +
+				"  - describe\n" +
+				"  - diff\n" +
+				"  - explain\n" +
+				"  - get\n" +
+				"  - logs\n" +
+				"  - api-versions\n" +
+				"  - cluster-info\n" +
+				"  - top\n" +
+				"  - auth\n" +
+				"allowed resources:\n" +
+				"  - nodes\n" +
+				"  - deployments\n" +
+				"  - pods\n" +
+				"  - namespaces\n" +
+				"  - daemonsets\n" +
+				"  - statefulsets\n" +
+				"  - storageclasses\n",
+		},
 	}
-
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if c.TestEnv.Config.Communications.Slack.Enabled {
@@ -80,6 +101,9 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				case "filters list":
 					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
 					assert.Equal(t, fl, true)
+				case "commands list":
+					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
+					assert.Equal(t, cl, true)
 				default:
 					assert.Equal(t, test.expected, m.Text)
 				}

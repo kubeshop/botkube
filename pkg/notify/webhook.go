@@ -86,7 +86,7 @@ func (w *Webhook) SendEvent(event events.Event) (err error) {
 			Error:    event.Error,
 			Messages: event.Messages,
 		},
-		EventSummary:    formatShortMessage(event),
+		EventSummary:    FormatShortMessage(event),
 		TimeStamp:       event.TimeStamp,
 		Recommendations: event.Recommendations,
 		Warnings:        event.Warnings,

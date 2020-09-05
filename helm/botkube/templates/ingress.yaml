@@ -1,0 +1,33 @@
+{{ if .Values.ingress.create }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ include "botkube.fullname" . }}
+  labels: 
+    app.kubernetes.io/name: {{ include "botkube.name" . }}
+    helm.sh/chart: {{ include "botkube.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}  
+    app: botkube
+  annotations:
+    {{- if .Values.ingress.annotations }}
+{{ toYaml .Values.ingress.annotations | indent 4 }}
+    {{- end }}
+spec:
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+  - http:
+      paths:
+        - path: {{ .Values.ingress.urlPath }}
+          backend:
+            serviceName: {{ include "botkube.fullname" . }}
+            servicePort: {{ .Values.communications.teams.port }}
+    {{- if .Values.ingress.host }}
+    host: {{ .Values.ingress.host }}
+    {{- end }}
+{{- end -}}

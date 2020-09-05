@@ -47,7 +47,7 @@ import (
 
 const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
-	controllerStopMsg  = "my watch has ended for cluster '%s'!"
+	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
 	event              = "v1/events"
 )
@@ -112,10 +112,12 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 	utils.DynamicKubeInformerFactory.Start(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM)
-	signal.Notify(sigterm, syscall.SIGINT)
+	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGSTOP)
+
 	<-sigterm
 	sendMessage(c, notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
+	// Sleep for some time to send termination notification
+	time.Sleep(5 * time.Second)
 }
 
 func registerEventHandlers(c *config.Config, notifiers []notify.Notifier, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {

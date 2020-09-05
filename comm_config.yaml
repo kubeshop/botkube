@@ -15,6 +15,14 @@ communications:
     team: 'MATTERMOST_TEAM'			# Mattermost Team to configure with BotKube 
     channel: 'MATTERMOST_CHANNEL'		# Mattermost Channel for receiving BotKube alerts 
     notiftype: short                           # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
+
+  # Settings for MS Teams
+  teams:
+    enabled: false
+    appID: 'APPLICATION_ID'
+    appPassword: 'APPLICATION_PASSWORD'
+    notiftype: short
+    port: 3978
   
   # Settings for ELS
   elasticsearch:
