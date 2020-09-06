@@ -25,9 +25,6 @@ import (
 	"path/filepath"
 
 	"gopkg.in/yaml.v2"
-
-	//auth package for GCP
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 const (

@@ -186,7 +186,11 @@ func InitInformerMap(conf *config.Config) {
 
 // GetObjectMetaData returns metadata of the given object
 func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
-	unstructuredObject := obj.(*unstructured.Unstructured).DeepCopy()
+	unstructuredObject, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return metaV1.ObjectMeta{}
+	}
+	unstructuredObject = unstructuredObject.DeepCopy()
 	objectMeta := metaV1.ObjectMeta{
 		Name:                       unstructuredObject.GetName(),
 		GenerateName:               unstructuredObject.GetGenerateName(),
@@ -224,7 +228,11 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 // GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 
-	k := obj.(*unstructured.Unstructured).DeepCopy()
+	k, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return metaV1.TypeMeta{}
+	}
+	k = k.DeepCopy()
 	return metaV1.TypeMeta{
 		APIVersion: k.GetAPIVersion(),
 		Kind:       k.GetKind(),
