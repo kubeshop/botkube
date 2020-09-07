@@ -1,7 +1,7 @@
 ## test_config.yaml for Integration Testing
 ## Resources you want to watch
 resources:
-  - name: v1/pods             # Name of the resources e.g pod, deployment, ingress, etc.
+  - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
     namespaces:               # List of namespaces, "all" will watch all the namespaces
       include:  
         - all
