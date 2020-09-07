@@ -198,16 +198,6 @@ resources:
       - create
       - delete
       - error
-  # - name: litmuschaos.io/v1alpha1/chaosengines
-  #   namespaces:
-  #     include:
-  #       - all
-  #     ignore:
-  #       -
-  #   events:
-  #     - create
-  #     - delete
-  #     - error
 # Check true if you want to receive recommendations
 # about the best practices for the created resource
 recommendations: true
