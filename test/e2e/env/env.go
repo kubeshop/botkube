@@ -75,7 +75,6 @@ func New() *TestEnv {
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
 	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
 
-	//s.
 	if testEnv.Config.Communications.Slack.Enabled {
 		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
 		testEnv.SetupFakeSlack()
