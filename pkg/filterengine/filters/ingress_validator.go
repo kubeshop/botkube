@@ -21,12 +21,16 @@ package filters
 
 import (
 	"fmt"
+	"reflect"
+
+	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
-	networkV1beta1 "k8s.io/api/networking/v1beta1"
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 // IngressValidator checks if service and tls secret used in ingress specs is already present
@@ -44,12 +48,13 @@ func init() {
 
 // Run filers and modifies event struct
 func (iv IngressValidator) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Ingress" || event.Type != config.CreateEvent {
+	if event.Kind != "Ingress" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(object).Kind == "Event" {
 		return
 	}
-	ingressObj, ok := object.(*networkV1beta1.Ingress)
-	if !ok {
-		return
+	var ingressObj v1beta1.Ingress
+	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &ingressObj)
+	if err != nil {
+		log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(ingressObj))
 	}
 
 	ingNs := ingressObj.ObjectMeta.Namespace

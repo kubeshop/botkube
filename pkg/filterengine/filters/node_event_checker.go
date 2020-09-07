@@ -25,9 +25,8 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	coreV1 "k8s.io/api/core/v1"
-
 	"github.com/infracloudio/botkube/pkg/log"
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 const (
@@ -53,8 +52,7 @@ func init() {
 func (f NodeEventsChecker) Run(object interface{}, event *events.Event) {
 
 	// Check for Event object
-	_, ok := object.(*coreV1.Event)
-	if !ok {
+	if utils.GetObjectTypeMetaData(object).Kind == "Event" {
 		return
 	}
 

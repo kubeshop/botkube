@@ -24,11 +24,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
@@ -39,7 +39,9 @@ import (
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 
+	"github.com/fsnotify/fsnotify"
 	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -47,6 +49,7 @@ const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
 	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
+	event              = "v1/events"
 )
 
 var startTime time.Time
@@ -77,15 +80,16 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 	log.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
 	log.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
 
-	utils.KubeInformerFactory.Core().V1().Events().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	utils.DynamicKubeInformerFactory.ForResource(utils.ParseResourceArg(event)).Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			_, err := cache.MetaNamespaceKeyFunc(obj)
+			var eventObj coreV1.Event
+			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+			if err != nil {
+				log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+			}
+			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
 				log.Errorf("Failed to get MetaNamespaceKey from event resource")
-				return
-			}
-			eventObj, ok := obj.(*coreV1.Event)
-			if !ok {
 				return
 			}
 
@@ -102,11 +106,10 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			}
 		},
 	})
-
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	utils.KubeInformerFactory.Start(stopCh)
+	utils.DynamicKubeInformerFactory.Start(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGSTOP)
@@ -173,7 +176,6 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 
 	// Create new event object
 	event := events.New(obj, eventType, kind, c.Settings.ClusterName)
-
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
 		if event.TimeStamp.Before(startTime) {

@@ -28,31 +28,57 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	service = "v1/services"
+	secret  = "v1/secrets"
+)
+
 // ValidService returns Service object is service given service exists in the given namespace
 func ValidService(name, namespace string) (*coreV1.Service, error) {
-	serviceClient := utils.KubeClient.CoreV1().Services(namespace)
-	return serviceClient.Get(name, metaV1.GetOptions{})
+	unstructuredService, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(service)).Namespace(namespace).Get(name, metaV1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var serviceObject coreV1.Service
+	err = utils.TransformIntoTypedObject(unstructuredService, &serviceObject)
+	if err != nil {
+		return nil, err
+	}
+	return &serviceObject, nil
 }
 
 // ValidServicePort returns valid Service object if given service with the port exists in the given namespace
 func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, error) {
-	serviceClient := utils.KubeClient.CoreV1().Services(namespace)
-	service, err := serviceClient.Get(name, metaV1.GetOptions{})
+	unstructuredService, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(service)).Namespace(namespace).Get(name, metaV1.GetOptions{})
 	if err != nil {
-		return service, err
+		return nil, err
 	}
-	for _, p := range service.Spec.Ports {
+	var serviceObject coreV1.Service
+	err = utils.TransformIntoTypedObject(unstructuredService, &serviceObject)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range serviceObject.Spec.Ports {
 		if p.Port == port {
-			return service, nil
+			return &serviceObject, nil
 		}
 	}
-	return service, fmt.Errorf("Port %d is not exposed by the service %s", port, name)
+	return &serviceObject, fmt.Errorf("Port %d is not exposed by the service %s", port, name)
 }
 
 // ValidSecret return Secret object if the secret is present in the specified object
 func ValidSecret(name, namespace string) (*coreV1.Secret, error) {
-	secretClient := utils.KubeClient.CoreV1().Secrets(namespace)
-	return secretClient.Get(name, metaV1.GetOptions{})
+	unstructuredSecret, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(secret)).Namespace(namespace).Get(name, metaV1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var secretObject coreV1.Secret
+	err = utils.TransformIntoTypedObject(unstructuredSecret, &secretObject)
+	if err != nil {
+		return nil, err
+	}
+	return &secretObject, nil
+
 }
 
 // FindNamespaceFromService returns namespace from fully qualified domain name

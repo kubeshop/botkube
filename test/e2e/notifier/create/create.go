@@ -21,6 +21,7 @@ package create
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -47,7 +48,7 @@ func (c *context) testCreateResource(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Title: "Pod Created", Fields: []slack.AttachmentField{{Value: "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "v1/pods created", Fields: []slack.AttachmentField{{Value: "Pod *test/test-pod* has been created in *test-cluster-1* cluster\n```\nRecommendations:\n- pod 'test-pod' creation without labels should be avoided.\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Pod", Name: "test-pod", Namespace: "test", Cluster: "test-cluster-1"},
@@ -60,7 +61,7 @@ func (c *context) testCreateResource(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Title: "Service Created", Fields: []slack.AttachmentField{{Value: "Service *test/test-service* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "v1/services created", Fields: []slack.AttachmentField{{Value: "Service *test/test-service* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Service", Name: "test-service", Namespace: "test", Cluster: "test-cluster-1"},
@@ -72,7 +73,7 @@ func (c *context) testCreateResource(t *testing.T) {
 			Kind:  "namespace",
 			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Title: "Namespace Created", Fields: []slack.AttachmentField{{Value: "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "v1/namespaces created", Fields: []slack.AttachmentField{{Value: "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: testutils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Namespace", Name: "test-namespace", Namespace: "", Cluster: "test-cluster-1"},
@@ -107,9 +108,8 @@ func (c *context) testCreateResource(t *testing.T) {
 				assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
 				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
 			}
-
-			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: "all", EventType: config.CreateEvent}] ||
-				utils.AllowedEventKindsMap[utils.EventKind{Resource: test.Kind, Namespace: test.Namespace, EventType: config.CreateEvent}]
+			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{Resource: fmt.Sprintf("v1/%vs", test.Kind), Namespace: "all", EventType: config.CreateEvent}] ||
+				utils.AllowedEventKindsMap[utils.EventKind{Resource: fmt.Sprintf("v1/%vs", test.Kind), Namespace: test.Namespace, EventType: config.CreateEvent}]
 			assert.Equal(t, isAllowed, true)
 		})
 	}
