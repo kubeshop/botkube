@@ -75,7 +75,6 @@ var (
 
 // InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
 func InitKubeClient() {
-	var discoveryClient *discovery.DiscoveryClient
 	kubeConfig, err := rest.InClusterConfig()
 	if err != nil {
 		kubeconfigPath := os.Getenv("KUBECONFIG")
@@ -87,7 +86,7 @@ func InitKubeClient() {
 			log.Fatal(err)
 		}
 		// Initiate discovery client for REST resource mapping
-		discoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
+		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
 		if err != nil {
 			log.Fatalf("Unable to create Discovery Client")
 		}
@@ -107,7 +106,7 @@ func InitKubeClient() {
 		}
 	}
 
-	discoCacheClient := cacheddiscovery.NewMemCacheClient(discoveryClient)
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(DiscoveryClient)
 	discoCacheClient.Invalidate()
 	Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
