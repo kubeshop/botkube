@@ -20,9 +20,9 @@
 ## test_config.yaml for Integration Testing
 ## Resources you want to watch
 resources:
-  - name: v1/pods                # Name of the resources e.g pod, deployment, ingress, etc.
+  - name: v1/pods             # Name of the resources e.g pod, deployment, ingress, etc.
     namespaces:               # List of namespaces, "all" will watch all the namespaces
-      include:  
+      include:
         - all
       ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
         -                     # example : include [all], ignore [x,y,z] 
@@ -32,7 +32,7 @@ resources:
       - error
   - name: v1/services
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -42,7 +42,7 @@ resources:
       - error
   - name: apps/v1/deployments
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -58,7 +58,7 @@ resources:
         - status.availableReplicas
   - name: apps/v1/statefulsets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -69,7 +69,7 @@ resources:
       - error
   - name: networking.k8s.io/v1beta1/ingresses
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -79,7 +79,7 @@ resources:
       - error
   - name: v1/nodes
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -89,7 +89,7 @@ resources:
       - error
   - name: v1/namespaces
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -99,7 +99,7 @@ resources:
       - error
   - name: v1/persistentvolumes
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -109,7 +109,7 @@ resources:
       - error
   - name: v1/persistentvolumeclaims
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -119,7 +119,7 @@ resources:
       - error
   - name: v1/secrets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -129,7 +129,7 @@ resources:
       - error
   - name: v1/configmaps
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -139,7 +139,7 @@ resources:
       - error
   - name: apps/v1/daemonsets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -154,7 +154,7 @@ resources:
         - status.numberReady
   - name: batch/v1/jobs
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -170,7 +170,7 @@ resources:
         - status.conditions[*].type
   - name: rbac.authorization.k8s.io/v1/roles
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -180,7 +180,7 @@ resources:
       - error
   - name: rbac.authorization.k8s.io/v1/rolebindings
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -190,7 +190,17 @@ resources:
       - error
   - name: rbac.authorization.k8s.io/v1/clusterrolebindings
     namespaces:
-      include:  
+      include:
+        - all
+      ignore:
+        -
+    events:
+      - create
+      - delete
+      - error
+  - name: samplecontroller.k8s.io/v1alpha1/foos
+    namespaces:
+      include:
         - all
       ignore:
         -
