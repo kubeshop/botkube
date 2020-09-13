@@ -26,13 +26,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/execute"
+	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
 type botkubeCommand struct {
@@ -159,7 +161,8 @@ func (c *context) testNotifierCommand(t *testing.T) {
 
 	// Create pod and verify that BotKube is not sending notifications
 	pod := utils.CreateObjects{
-		Kind:      "pod",
+		GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+		Kind:      "Pod",
 		Namespace: "test",
 		Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-notifier"}},
 		ExpectedSlackMessage: utils.SlackMessage{

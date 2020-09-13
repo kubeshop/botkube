@@ -20,7 +20,6 @@
 package utils
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/nlopes/slack"
@@ -32,26 +31,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
-)
-
-var (
-	podGVR = schema.GroupVersionResource{
-		Version:  "v1",
-		Resource: "pods",
-	}
-	serviceGVR = schema.GroupVersionResource{
-		Version:  "v1",
-		Resource: "services",
-	}
-	namespaceGVR = schema.GroupVersionResource{
-		Version:  "v1",
-		Resource: "namespaces",
-	}
-	ingressGVR = schema.GroupVersionResource{
-		Group:    "networking.k8s.io",
-		Version:  "v1",
-		Resource: "namespaces",
-	}
 )
 
 // SlackMessage structure
@@ -69,6 +48,7 @@ type WebhookPayload struct {
 
 // CreateObjects stores specs for creating a k8s fake object and expected Slack response
 type CreateObjects struct {
+	GVR                    schema.GroupVersionResource
 	Kind                   string
 	Namespace              string
 	Specs                  runtime.Object
@@ -79,60 +59,17 @@ type CreateObjects struct {
 
 // CreateResource with fake client
 func CreateResource(t *testing.T, obj CreateObjects) {
-
-	switch obj.Kind {
-	case "pod":
-		// convert the runtime.Object to unstructured.Unstructured
-		s := unstructured.Unstructured{}
-		k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-		if ok != nil {
-			t.Fatalf("Failed to convert pod object into unstructured")
-		}
-		s.Object = k
-		s.SetGroupVersionKind(podGVR.GroupVersion().WithKind(strings.Title(strings.ToLower(obj.Kind))))
-		_, err := utils.DynamicKubeClient.Resource(podGVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("Failed to create pod: %v", err)
-		}
-	case "service":
-		s := unstructured.Unstructured{}
-		k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-		if ok != nil {
-			t.Fatalf("Failed to convert pod object into unstructured")
-		}
-		s.Object = k
-		s.SetGroupVersionKind(serviceGVR.GroupVersion().WithKind(strings.Title(strings.ToLower(obj.Kind))))
-		_, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	case "ingress":
-		s := unstructured.Unstructured{}
-		k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-		if ok != nil {
-			t.Fatalf("Failed to convert pod object into unstructured")
-		}
-		s.Object = k
-		s.SetGroupVersionKind(ingressGVR.GroupVersion().WithKind(strings.Title(strings.ToLower(obj.Kind))))
-
-		_, err := utils.DynamicKubeClient.Resource(ingressGVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("Failed to create ingress: %v", err)
-		}
-	case "namespace":
-		s := unstructured.Unstructured{}
-		k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-		if ok != nil {
-			t.Fatalf("Failed to convert pod object into unstructured")
-		}
-		s.Object = k
-		s.SetGroupVersionKind(namespaceGVR.GroupVersion().WithKind(strings.Title(strings.ToLower(obj.Kind))))
-		_, err := utils.DynamicKubeClient.Resource(namespaceGVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
-		if err != nil {
-			t.Fatalf("Failed to create namespace: %v", err)
-		}
-
-	default:
-		t.Fatalf("CreateResource method is not defined for resource %s", obj.Kind)
+	// convert the runtime.Object to unstructured.Unstructured
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+	// Create resource
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
 }
