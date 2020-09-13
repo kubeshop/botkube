@@ -23,15 +23,17 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/test/e2e/env"
-	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	networkV1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/infracloudio/botkube/test/e2e/env"
+	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
 type context struct {
@@ -43,7 +45,8 @@ func (c *context) testFilters(t *testing.T) {
 	// Test cases
 	tests := map[string]utils.CreateObjects{
 		"test ImageTagChecker filter": {
-			Kind:      "pod",
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+			Kind:      "Pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "nginx-pod", Labels: map[string]string{"env": "test"}}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "nginx", Image: "nginx:latest"}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
@@ -57,7 +60,8 @@ func (c *context) testFilters(t *testing.T) {
 		},
 
 		"test PodLabelChecker filter": {
-			Kind:      "pod",
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+			Kind:      "Pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-wo-label"}},
 			ExpectedSlackMessage: utils.SlackMessage{
@@ -71,7 +75,8 @@ func (c *context) testFilters(t *testing.T) {
 		},
 
 		"test IngressValidator filter": {
-			Kind:      "ingress",
+			GVR:       schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1beta1", Resource: "ingresses"},
+			Kind:      "Ingress",
 			Namespace: "test",
 			Specs:     &networkV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: networkV1beta1.IngressSpec{Rules: []networkV1beta1.IngressRule{{IngressRuleValue: networkV1beta1.IngressRuleValue{HTTP: &networkV1beta1.HTTPIngressRuleValue{Paths: []networkV1beta1.HTTPIngressPath{{Path: "testpath", Backend: networkV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
 			ExpectedSlackMessage: utils.SlackMessage{

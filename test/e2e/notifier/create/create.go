@@ -24,15 +24,18 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nlopes/slack"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	samplev1alpha1 "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/env"
 	testutils "github.com/infracloudio/botkube/test/e2e/utils"
-	"github.com/nlopes/slack"
-	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type context struct {
@@ -44,7 +47,8 @@ func (c *context) testCreateResource(t *testing.T) {
 	// Test cases
 	tests := map[string]testutils.CreateObjects{
 		"create pod in configured namespace": {
-			Kind:      "pod",
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+			Kind:      "Pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
@@ -57,7 +61,8 @@ func (c *context) testCreateResource(t *testing.T) {
 			},
 		},
 		"create service in configured namespace": {
-			Kind:      "service",
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
+			Kind:      "Service",
 			Namespace: "test",
 			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
@@ -70,7 +75,8 @@ func (c *context) testCreateResource(t *testing.T) {
 			},
 		},
 		"create a namespace": {
-			Kind:  "namespace",
+			GVR:   schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
+			Kind:  "Namespace",
 			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			ExpectedSlackMessage: testutils.SlackMessage{
 				Attachments: []slack.Attachment{{Color: "good", Title: "v1/namespaces created", Fields: []slack.AttachmentField{{Value: "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
@@ -79,6 +85,20 @@ func (c *context) testCreateResource(t *testing.T) {
 				EventMeta:   notify.EventMeta{Kind: "Namespace", Name: "test-namespace", Namespace: "", Cluster: "test-cluster-1"},
 				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
 				Summary:     "Namespace *test-namespace* has been created in *test-cluster-1* cluster\n",
+			},
+		},
+		"create a foo CR": {
+			GVR:       schema.GroupVersionResource{Group: "samplecontroller.k8s.io", Version: "v1alpha1", Resource: "foos"},
+			Kind:      "Foo",
+			Namespace: "test",
+			Specs:     &samplev1alpha1.Foo{ObjectMeta: metav1.ObjectMeta{Name: "test-foo"}},
+			ExpectedSlackMessage: testutils.SlackMessage{
+				Attachments: []slack.Attachment{{Color: "good", Title: "samplecontroller.k8s.io/v1alpha1/foos created", Fields: []slack.AttachmentField{{Value: "Foo *test/test-foo* has been created in *test-cluster-1* cluster\n", Short: false}}, Footer: "BotKube"}},
+			},
+			ExpectedWebhookPayload: testutils.WebhookPayload{
+				EventMeta:   notify.EventMeta{Kind: "Foo", Name: "test-foo", Namespace: "test", Cluster: "test-cluster-1"},
+				EventStatus: notify.EventStatus{Type: "create", Level: "info", Reason: "", Error: ""},
+				Summary:     "Foo *test/test-foo* has been created in *test-cluster-1* cluster\n",
 			},
 		},
 	}
@@ -108,8 +128,19 @@ func (c *context) testCreateResource(t *testing.T) {
 				assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
 				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
 			}
-			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{Resource: fmt.Sprintf("v1/%vs", test.Kind), Namespace: "all", EventType: config.CreateEvent}] ||
-				utils.AllowedEventKindsMap[utils.EventKind{Resource: fmt.Sprintf("v1/%vs", test.Kind), Namespace: test.Namespace, EventType: config.CreateEvent}]
+
+			resource := fmt.Sprintf("%s/%s/%s", test.GVR.Group, test.GVR.Version, test.GVR.Resource)
+			if test.GVR.Group == "" {
+				resource = fmt.Sprintf("%s/%s", test.GVR.Version, test.GVR.Resource)
+			}
+			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
+				Resource:  resource,
+				Namespace: "all",
+				EventType: config.CreateEvent}] ||
+				utils.AllowedEventKindsMap[utils.EventKind{
+					Resource:  resource,
+					Namespace: test.Namespace,
+					EventType: config.CreateEvent}]
 			assert.Equal(t, isAllowed, true)
 		})
 	}

@@ -26,9 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/test/e2e/utils"
-	"github.com/infracloudio/botkube/test/webhook"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,6 +33,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/test/e2e/utils"
+	"github.com/infracloudio/botkube/test/webhook"
 )
 
 // TestEnv to store objects required for e2e testing

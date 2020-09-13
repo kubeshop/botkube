@@ -50,6 +50,7 @@ require (
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
 	k8s.io/kubectl v0.17.0
+	k8s.io/sample-controller v0.17.0
 )
 
 go 1.13
