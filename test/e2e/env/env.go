@@ -28,16 +28,13 @@ import (
 
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/kubectl/pkg/scheme"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
@@ -80,7 +77,7 @@ func New() *TestEnv {
 
 	s := runtime.NewScheme()
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
-	testEnv.DiscoFake = kubeFake.NewSimpleClientset(testRuntimeObjects()...).Discovery()
+	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
 	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
@@ -134,179 +131,4 @@ func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
 		return &allSeenMessages[len(allSeenMessages)-1]
 	}
 	return nil
-}
-
-func testRuntimeObjects() []runtime.Object {
-	var objectList []runtime.Object
-	podGvk := schema.FromAPIVersionAndKind("v1", "Pod")
-	obj, _ := scheme.Scheme.New(podGvk)
-	objectList = append(objectList, obj)
-	return objectList
-
-}
-func testDynamicResources() []*restmapper.APIGroupResources {
-	return []*restmapper.APIGroupResources{
-		{
-			Group: metav1.APIGroup{
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{Name: "pods", Namespaced: true, Kind: "Pod"},
-					{Name: "services", Namespaced: true, Kind: "Service"},
-					{Name: "replicationcontrollers", Namespaced: true, Kind: "ReplicationController"},
-					{Name: "componentstatuses", Namespaced: false, Kind: "ComponentStatus"},
-					{Name: "nodes", Namespaced: false, Kind: "Node"},
-					{Name: "secrets", Namespaced: true, Kind: "Secret"},
-					{Name: "configmaps", Namespaced: true, Kind: "ConfigMap"},
-					{Name: "namespacedtype", Namespaced: true, Kind: "NamespacedType"},
-					{Name: "namespaces", Namespaced: false, Kind: "Namespace"},
-					{Name: "resourcequotas", Namespaced: true, Kind: "ResourceQuota"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "extensions",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1beta1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
-					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
-					{Name: "replicasets", Namespaced: true, Kind: "ReplicaSet"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "apps",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
-					{Version: "v1beta2"},
-					{Version: "v1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
-					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
-					{Name: "replicasets", Namespaced: true, Kind: "ReplicaSet"},
-				},
-				"v1beta2": {
-					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
-				},
-				"v1": {
-					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
-					{Name: "replicasets", Namespaced: true, Kind: "ReplicaSet"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "autoscaling",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1"},
-					{Version: "v2beta1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v2beta1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{Name: "horizontalpodautoscalers", Namespaced: true, Kind: "HorizontalPodAutoscaler"},
-				},
-				"v2beta1": {
-					{Name: "horizontalpodautoscalers", Namespaced: true, Kind: "HorizontalPodAutoscaler"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "storage.k8s.io",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
-					{Version: "v0"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1beta1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
-					{Name: "storageclasses", Namespaced: false, Kind: "StorageClass"},
-				},
-				// bogus version of a known group/version/resource to make sure kubectl falls back to generic object mode
-				"v0": {
-					{Name: "storageclasses", Namespaced: false, Kind: "StorageClass"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "rbac.authorization.k8s.io",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
-					{Version: "v1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{Name: "clusterroles", Namespaced: false, Kind: "ClusterRole"},
-				},
-				"v1beta1": {
-					{Name: "clusterrolebindings", Namespaced: false, Kind: "ClusterRoleBinding"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "company.com",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{Name: "bars", Namespaced: true, Kind: "Bar"},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				Name: "unit-test.test.com",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{GroupVersion: "unit-test.test.com/v1", Version: "v1"},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{
-					GroupVersion: "unit-test.test.com/v1",
-					Version:      "v1"},
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{Name: "widgets", Namespaced: true, Kind: "Widget"},
-				},
-			},
-		},
-		// {
-		// 	Group: metav1.APIGroup{
-		// 		Name: "apitest",
-		// 		Versions: []metav1.GroupVersionForDiscovery{
-		// 			{GroupVersion: "apitest/unlikelyversion", Version: "unlikelyversion"},
-		// 		},
-		// 		PreferredVersion: metav1.GroupVersionForDiscovery{
-		// 			GroupVersion: "apitest/unlikelyversion",
-		// 			Version:      "unlikelyversion"},
-		// 	},
-		// 	VersionedResources: map[string][]metav1.APIResource{
-		// 		"unlikelyversion": {
-		// 			{Name: "types", SingularName: "type", Namespaced: false, Kind: "Type"},
-		// 		},
-		// 	},
-		// },
-	}
 }

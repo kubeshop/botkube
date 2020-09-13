@@ -2,7 +2,6 @@ package env
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -152,11 +151,5 @@ func FakeCachedDiscoveryInterface() discovery.CachedDiscoveryInterface {
 	}
 
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(fake)
-	getRes, err := discoCacheClient.ServerResources()
-	if err != nil {
-		fmt.Printf("Printing Error: %v\n", err)
-	}
-	fmt.Printf("ServerResources: %v\n", getRes)
-
 	return discoCacheClient
 }
