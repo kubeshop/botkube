@@ -43,6 +43,7 @@ func (c *fakeDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
 	return c.groupList, c.groupListErr
 }
 
+// FakeCachedDiscoveryInterface registers all the resources in the resource_config.yaml
 func FakeCachedDiscoveryInterface() discovery.CachedDiscoveryInterface {
 	podGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	serviceGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}
@@ -110,25 +111,39 @@ func FakeCachedDiscoveryInterface() discovery.CachedDiscoveryInterface {
 							ShortNames:   []string{"svc"},
 						},
 						{
+							Name:         namespaceGVR.Resource,
+							SingularName: "namespace",
+							Namespaced:   true,
+							Kind:         "Namespace",
+							ShortNames:   []string{"ns"},
+						},
+					},
+				},
+			},
+			ingressGVR.GroupVersion().String(): {
+				list: &metav1.APIResourceList{
+					GroupVersion: ingressGVR.GroupVersion().String(),
+					APIResources: []metav1.APIResource{
+						{
 							Name:         ingressGVR.Resource,
 							SingularName: "ingress",
 							Namespaced:   true,
 							Kind:         "Ingress",
 							ShortNames:   []string{"ingress"},
 						},
+					},
+				},
+			},
+			fooGVR.GroupVersion().String(): {
+				list: &metav1.APIResourceList{
+					GroupVersion: fooGVR.GroupVersion().String(),
+					APIResources: []metav1.APIResource{
 						{
 							Name:         fooGVR.Resource,
 							SingularName: "foo",
 							Namespaced:   true,
 							Kind:         "Foo",
 							ShortNames:   []string{"foo"},
-						},
-						{
-							Name:         namespaceGVR.Resource,
-							SingularName: "namespace",
-							Namespaced:   true,
-							Kind:         "Namespace",
-							ShortNames:   []string{"ns"},
 						},
 					},
 				},
