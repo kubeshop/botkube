@@ -330,7 +330,7 @@ func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 		s := strings.SplitN(arg, "/", 2)
 		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
 	}
-
+	fmt.Println(Mapper.String())
 	// Validate the GVR provided
 	if _, err := Mapper.ResourcesFor(gvr); err != nil {
 		return schema.GroupVersionResource{}, err

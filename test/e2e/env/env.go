@@ -30,12 +30,14 @@ import (
 	"github.com/nlopes/slack/slacktest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/kubectl/pkg/scheme"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
@@ -78,10 +80,9 @@ func New() *TestEnv {
 
 	s := runtime.NewScheme()
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
-	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
-	discoCacheClient := cacheddiscovery.NewMemCacheClient(testEnv.DiscoFake)
-	testEnv.Mapper = restmapper.NewDiscoveryRESTMapper(discoCacheClient)
-	testEnv.Mapper.Reset()
+	testEnv.DiscoFake = kubeFake.NewSimpleClientset(testRuntimeObjects()...).Discovery()
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
+	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
@@ -135,6 +136,14 @@ func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
 	return nil
 }
 
+func testRuntimeObjects() []runtime.Object {
+	var objectList []runtime.Object
+	podGvk := schema.FromAPIVersionAndKind("v1", "Pod")
+	obj, _ := scheme.Scheme.New(podGvk)
+	objectList = append(objectList, obj)
+	return objectList
+
+}
 func testDynamicResources() []*restmapper.APIGroupResources {
 	return []*restmapper.APIGroupResources{
 		{
