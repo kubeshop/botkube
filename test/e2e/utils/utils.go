@@ -26,8 +26,8 @@ import (
 	"github.com/nlopes/slack"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -35,10 +35,23 @@ import (
 )
 
 var (
-	podGVR       = utils.ParseResourceArg("v1/pods")
-	serviceGVR   = utils.ParseResourceArg("v1/services")
-	ingressGVR   = utils.ParseResourceArg("networking.k8s.io/v1beta1/ingresses")
-	namespaceGVR = utils.ParseResourceArg("v1/namespaces")
+	podGVR = schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "pods",
+	}
+	serviceGVR = schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "services",
+	}
+	namespaceGVR = schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "namespaces",
+	}
+	ingressGVR = schema.GroupVersionResource{
+		Group:    "networking.k8s.io",
+		Version:  "v1",
+		Resource: "namespaces",
+	}
 )
 
 // SlackMessage structure
