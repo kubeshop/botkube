@@ -146,7 +146,12 @@ func InitInformerMap(conf *config.Config) {
 	AllowedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
 	for _, v := range conf.Resources {
-		gvr := ParseResourceArg(v.Name)
+		gvr, err := ParseResourceArg(v.Name)
+		if err != nil {
+			log.Infof("Unable to parse resource: %v\n", v.Name)
+			continue
+		}
+
 		ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
 	}
 	// Allowed event kinds map and Allowed Update Events Map
@@ -317,7 +322,7 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 }
 
 // ParseResourceArg parses the group/version/resource args and create a schema.GroupVersionResource
-func ParseResourceArg(arg string) schema.GroupVersionResource {
+func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 	var gvr schema.GroupVersionResource
 	if strings.Count(arg, "/") >= 2 {
 		s := strings.SplitN(arg, "/", 3)
@@ -325,9 +330,13 @@ func ParseResourceArg(arg string) schema.GroupVersionResource {
 	} else if strings.Count(arg, "/") == 1 {
 		s := strings.SplitN(arg, "/", 2)
 		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
-
 	}
-	return gvr
+
+	// Validate the GVR provided
+	if _, err := Mapper.ResourcesFor(gvr); err != nil {
+		return schema.GroupVersionResource{}, err
+	}
+	return gvr, nil
 }
 
 // TransformIntoTypedObject uses unstructured interface and creates a typed object

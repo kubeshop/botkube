@@ -23,19 +23,27 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/infracloudio/botkube/pkg/utils"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/infracloudio/botkube/pkg/utils"
 )
 
-const (
-	service = "v1/services"
-	secret  = "v1/secrets"
+var (
+	serviceGVR = schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "services",
+	}
+	secretGVR = schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "secrets",
+	}
 )
 
 // ValidService returns Service object is service given service exists in the given namespace
 func ValidService(name, namespace string) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(service)).Namespace(namespace).Get(name, metaV1.GetOptions{})
+	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +57,7 @@ func ValidService(name, namespace string) (*coreV1.Service, error) {
 
 // ValidServicePort returns valid Service object if given service with the port exists in the given namespace
 func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(service)).Namespace(namespace).Get(name, metaV1.GetOptions{})
+	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +76,7 @@ func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, erro
 
 // ValidSecret return Secret object if the secret is present in the specified object
 func ValidSecret(name, namespace string) (*coreV1.Secret, error) {
-	unstructuredSecret, err := utils.DynamicKubeClient.Resource(utils.ParseResourceArg(secret)).Namespace(namespace).Get(name, metaV1.GetOptions{})
+	unstructuredSecret, err := utils.DynamicKubeClient.Resource(secretGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

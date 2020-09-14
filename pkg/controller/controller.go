@@ -42,6 +42,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -49,8 +50,12 @@ const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
 	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
-	event              = "v1/events"
 )
+
+var eventGVR = schema.GroupVersionResource{
+	Version:  "v1",
+	Resource: "events",
+}
 
 var startTime time.Time
 
@@ -79,8 +84,7 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 	// Register informers for k8s events
 	log.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
 	log.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
-
-	utils.DynamicKubeInformerFactory.ForResource(utils.ParseResourceArg(event)).Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	utils.DynamicKubeInformerFactory.ForResource(eventGVR).Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)

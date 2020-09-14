@@ -30,9 +30,11 @@ import (
 	"github.com/nlopes/slack/slacktest"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/restmapper"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
@@ -51,6 +53,7 @@ type TestEnv struct {
 	WebhookServer *webhook.Server
 	SlackMessages chan (*slack.MessageEvent)
 	Config        *config.Config
+	Mapper        *restmapper.DeferredDiscoveryRESTMapper
 }
 
 // E2ETest interface to run tests
@@ -75,6 +78,8 @@ func New() *TestEnv {
 	s := runtime.NewScheme()
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
 	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
+	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
