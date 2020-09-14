@@ -149,9 +149,10 @@ func InitInformerMap(conf *config.Config) {
 		gvr, err := ParseResourceArg(v.Name)
 		if err != nil {
 			log.Infof("Unable to parse resource: %v\n", v.Name)
-		} else {
-			ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
+			continue
 		}
+
+		ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
 	}
 	// Allowed event kinds map and Allowed Update Events Map
 	for _, r := range conf.Resources {
@@ -330,7 +331,7 @@ func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 		s := strings.SplitN(arg, "/", 2)
 		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
 	}
-	fmt.Println(Mapper.String())
+
 	// Validate the GVR provided
 	if _, err := Mapper.ResourcesFor(gvr); err != nil {
 		return schema.GroupVersionResource{}, err
