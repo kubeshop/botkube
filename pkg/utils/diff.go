@@ -33,13 +33,13 @@ type diffReporter struct {
 func (d diffReporter) exec(x, y interface{}) (string, bool) {
 	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
-		log.Debug("Failed to find value from jsonpath: %s, object: %+v. Error: %v", d.field, x, err)
+		log.Debugf("Failed to find value from jsonpath: %s, object: %+v. Error: %v", d.field, x, err)
 		return "", false
 	}
 
 	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
-		log.Debug("Failed to find value from jsonpath: %s, object: %+v, Error: %v", d.field, y, err)
+		log.Debugf("Failed to find value from jsonpath: %s, object: %+v, Error: %v", d.field, y, err)
 		return "", false
 	}
 
