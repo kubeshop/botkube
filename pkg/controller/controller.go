@@ -205,10 +205,10 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 			var x, y *unstructured.Unstructured
 			var ok bool
 			if x, ok = oldObj.(*unstructured.Unstructured); !ok {
-				log.Error("Invalid object. Skipping event: %#v", event)
+				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
 			if y, ok = obj.(*unstructured.Unstructured); !ok {
-				log.Error("Invalid object. Skipping event: %#v", event)
+				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
 			updateMsg = utils.Diff(x.Object, y.Object, updateSetting)
 		}
