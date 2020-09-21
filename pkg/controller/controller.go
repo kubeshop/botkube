@@ -97,16 +97,19 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 				return
 			}
 
-			// Kind of involved object
-			kind := strings.ToLower(eventObj.InvolvedObject.Kind)
-
+			// Find involved object type
+			gvr, err := utils.GetResourceFromKind(eventObj.InvolvedObject.GroupVersionKind())
+			if err != nil {
+				log.Errorf("Failed to get involved object: %v", err)
+				return
+			}
 			switch strings.ToLower(eventObj.Type) {
 			case config.WarningEvent.String():
 				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, notifiers, kind, config.ErrorEvent)
+				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.ErrorEvent)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, notifiers, kind, config.InfoEvent)
+				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.InfoEvent)
 			}
 		},
 	})
@@ -150,27 +153,27 @@ func registerEventHandlers(c *config.Config, notifiers []notify.Notifier, resour
 	return handlerFns
 }
 
-func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Notifier, kind string, eventType config.EventType) {
+func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Notifier, resource string, eventType config.EventType) {
 	// Filter namespaces
 	objectMeta := utils.GetObjectMetaData(obj)
 
 	switch eventType {
 	case config.InfoEvent:
 		// Skip if ErrorEvent is not configured for the resource
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: config.ErrorEvent}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
-			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: config.ErrorEvent}] &&
+			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
+			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	default:
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: "all", EventType: eventType}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: kind, Namespace: objectMeta.Namespace, EventType: eventType}] {
-			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: eventType}] &&
+			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: eventType}] {
+			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	}
 
-	log.Debugf("Processing %s to %s/%v in %s namespaces", eventType, kind, objectMeta.Name, objectMeta.Namespace)
+	log.Debugf("Processing %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 
 	// Check if Notify disabled
 	if !config.Notify {
@@ -179,7 +182,7 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	}
 
 	// Create new event object
-	event := events.New(obj, eventType, kind, c.Settings.ClusterName)
+	event := events.New(obj, eventType, resource, c.Settings.ClusterName)
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
 		if event.TimeStamp.Before(startTime) {
@@ -188,17 +191,26 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 		}
 	}
 
-	// check for siginificant Update Events in objects
+	// Check for significant Update Events in objects
 	if eventType == config.UpdateEvent {
 		var updateMsg string
 		// Check if all namespaces allowed
-		updateSetting, exist := utils.AllowedUpdateEventsMap[utils.KindNS{Resource: kind, Namespace: "all"}]
+		updateSetting, exist := utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: "all"}]
 		if !exist {
 			// Check if specified namespace is allowed
-			updateSetting, exist = utils.AllowedUpdateEventsMap[utils.KindNS{Resource: kind, Namespace: objectMeta.Namespace}]
+			updateSetting, exist = utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
 		}
 		if exist {
-			updateMsg = utils.Diff(oldObj, obj, updateSetting)
+			// Calculate object diff as per the updateSettings
+			var x, y *unstructured.Unstructured
+			var ok bool
+			if x, ok = oldObj.(*unstructured.Unstructured); !ok {
+				log.Error("Invalid object. Skipping event: %#v", event)
+			}
+			if y, ok = obj.(*unstructured.Unstructured); !ok {
+				log.Error("Invalid object. Skipping event: %#v", event)
+			}
+			updateMsg = utils.Diff(x.Object, y.Object, updateSetting)
 		}
 
 		// Send update notification only if fields in updateSetting are changed
@@ -253,6 +265,13 @@ func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 	for _, n := range notifiers {
 		go n.SendMessage(msg)
 	}
+}
+
+func gvrToString(gvr schema.GroupVersionResource) string {
+	if gvr.Group == "" {
+		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
+	}
+	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
 }
 
 func configWatcher(c *config.Config, notifiers []notify.Notifier) {

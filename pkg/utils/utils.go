@@ -254,17 +254,26 @@ func DeleteDoubleWhiteSpace(slice []string) []string {
 	return result
 }
 
+// GetResourceFromKind returns resource name for given Kind
+func GetResourceFromKind(gvk schema.GroupVersionKind) (schema.GroupVersionResource, error) {
+	mapping, err := Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
+	}
+	return mapping.Resource, nil
+}
+
 // ExtractAnnotationsFromEvent returns annotations of InvolvedObject for the given event
 func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
-
-	mapping, err := Mapper.RESTMapping(obj.InvolvedObject.GroupVersionKind().GroupKind(), obj.InvolvedObject.GroupVersionKind().Version)
-	if err != nil {
-		log.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
-	}
-	annotations, err := DynamicKubeClient.Resource(mapping.Resource).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+	gvr, err := GetResourceFromKind(obj.InvolvedObject.GroupVersionKind())
 	if err != nil {
 		log.Error(err)
-		return obj.GetAnnotations()
+		return nil
+	}
+	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+	if err != nil {
+		log.Error(err)
+		return nil
 	}
 	return annotations.GetAnnotations()
 }
