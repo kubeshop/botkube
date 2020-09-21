@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/log"
 )
 
 type diffReporter struct {
@@ -32,11 +33,13 @@ type diffReporter struct {
 func (d diffReporter) exec(x, y interface{}) (string, bool) {
 	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
+		log.Debugf("Failed to find value from jsonpath: %s, object: %+v. Error: %v", d.field, x, err)
 		return "", false
 	}
 
 	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
+		log.Debugf("Failed to find value from jsonpath: %s, object: %+v, Error: %v", d.field, y, err)
 		return "", false
 	}
 
@@ -49,6 +52,7 @@ func (d diffReporter) exec(x, y interface{}) (string, bool) {
 
 // Diff provides differences between two objects spec
 func Diff(x, y interface{}, updatesetting config.UpdateSetting) string {
+
 	msg := ""
 	for _, val := range updatesetting.Fields {
 		var d diffReporter

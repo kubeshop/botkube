@@ -69,7 +69,7 @@ func init() {
 }
 
 // New extract required details from k8s object and returns new Event object
-func New(object interface{}, eventType config.EventType, kind, clusterName string) Event {
+func New(object interface{}, eventType config.EventType, resource, clusterName string) Event {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	objectMeta := utils.GetObjectMetaData(object)
 
@@ -84,7 +84,7 @@ func New(object interface{}, eventType config.EventType, kind, clusterName strin
 
 	// initialize event.TimeStamp with the time of event creation
 	// event.TimeStamp is overwritten later based on the type of the event or
-	// kind of the object associated with it
+	// resource of the object associated with it
 	event.TimeStamp = time.Now()
 
 	// Add TimeStamps
@@ -98,14 +98,12 @@ func New(object interface{}, eventType config.EventType, kind, clusterName strin
 		}
 	}
 
-	if kind != "Event" {
-		switch eventType {
-		case config.ErrorEvent, config.InfoEvent:
-			event.Title = fmt.Sprintf("%s %s", kind, eventType.String())
-		default:
-			// Events like create, update, delete comes with an extra 'd' at the end
-			event.Title = fmt.Sprintf("%s %sd", kind, eventType.String())
-		}
+	switch eventType {
+	case config.ErrorEvent, config.InfoEvent:
+		event.Title = fmt.Sprintf("%s %s", resource, eventType.String())
+	default:
+		// Events like create, update, delete comes with an extra 'd' at the end
+		event.Title = fmt.Sprintf("%s %sd", resource, eventType.String())
 	}
 
 	if objectTypeMeta.Kind == "Event" {
