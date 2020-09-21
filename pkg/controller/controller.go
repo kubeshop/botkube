@@ -202,15 +202,15 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 		}
 		if exist {
 			// Calculate object diff as per the updateSettings
-			var x, y *unstructured.Unstructured
+			var oldUnstruct, newUnstruct *unstructured.Unstructured
 			var ok bool
-			if x, ok = oldObj.(*unstructured.Unstructured); !ok {
+			if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
 				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
-			if y, ok = obj.(*unstructured.Unstructured); !ok {
+			if newUnstruct, ok = obj.(*unstructured.Unstructured); !ok {
 				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
-			updateMsg = utils.Diff(x.Object, y.Object, updateSetting)
+			updateMsg = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
 		}
 
 		// Send update notification only if fields in updateSetting are changed
