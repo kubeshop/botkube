@@ -33,14 +33,13 @@ type diffReporter struct {
 func (d diffReporter) exec(x, y interface{}) (string, bool) {
 	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
+		// Happens when the fields were not set by the time event was issued, do not return in that case
 		log.Debugf("Failed to find value from jsonpath: %s, object: %+v. Error: %v", d.field, x, err)
-		return "", false
 	}
 
 	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
 		log.Debugf("Failed to find value from jsonpath: %s, object: %+v, Error: %v", d.field, y, err)
-		return "", false
 	}
 
 	// treat <none> and false as same fields
