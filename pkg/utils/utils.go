@@ -20,23 +20,29 @@
 package utils
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/log"
-	appsV1 "k8s.io/api/apps/v1"
-	batchV1 "k8s.io/api/batch/v1"
+	log "github.com/infracloudio/botkube/pkg/log"
+
 	coreV1 "k8s.io/api/core/v1"
-	networkV1beta1 "k8s.io/api/networking/v1beta1"
-	rbacV1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -56,10 +62,15 @@ var (
 	KindResourceMap map[string]string
 	// ShortnameResourceMap contains resource name to short name mapping
 	ShortnameResourceMap map[string]string
-	// KubeClient is a global kubernetes client to communicate to apiserver
-	KubeClient kubernetes.Interface
-	// KubeInformerFactory is a global SharedInformerFactory object to watch resources
-	KubeInformerFactory informers.SharedInformerFactory
+	// DynamicKubeClient is a global dynamic kubernetes client to communicate to apiserver
+	DynamicKubeClient dynamic.Interface
+	// DynamicKubeInformerFactory is a global DynamicSharedInformerFactory object to watch resources
+	DynamicKubeInformerFactory dynamicinformer.DynamicSharedInformerFactory
+	// Mapper is a global DeferredDiscoveryRESTMapper object, which maps all resources present on
+	// the cluster, and create relation between GVR, and GVK
+	Mapper *restmapper.DeferredDiscoveryRESTMapper
+	// DiscoveryClient implements
+	DiscoveryClient discovery.DiscoveryInterface
 )
 
 // InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
@@ -74,16 +85,31 @@ func InitKubeClient() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		KubeClient, err = kubernetes.NewForConfig(botkubeConf)
+		// Initiate discovery client for REST resource mapping
+		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
+		if err != nil {
+			log.Fatalf("Unable to create Discovery Client")
+		}
+		DynamicKubeClient, err = dynamic.NewForConfig(botkubeConf)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		KubeClient, err = kubernetes.NewForConfig(kubeConfig)
+		// Initiate discovery client for REST resource mapping
+		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		DynamicKubeClient, err = dynamic.NewForConfig(kubeConfig)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(DiscoveryClient)
+	discoCacheClient.Invalidate()
+	Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
+
 }
 
 // EventKind used in AllowedEventKindsMap to filter event kinds
@@ -111,39 +137,23 @@ func InitInformerMap(conf *config.Config) {
 		log.Fatal("Error in reading INFORMERS_RESYNC_PERIOD env var.", err)
 	}
 
-	// Create shared informer factory
-	KubeInformerFactory = informers.NewSharedInformerFactory(KubeClient, time.Duration(rsyncTime)*time.Minute)
+	// Create dynamic shared informer factory
+	DynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(DynamicKubeClient, time.Duration(rsyncTime)*time.Minute)
 
 	// Init maps
 	ResourceInformerMap = make(map[string]cache.SharedIndexInformer)
 	AllowedEventKindsMap = make(map[EventKind]bool)
 	AllowedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
-	// Informer map
-	ResourceInformerMap["pod"] = KubeInformerFactory.Core().V1().Pods().Informer()
-	ResourceInformerMap["node"] = KubeInformerFactory.Core().V1().Nodes().Informer()
-	ResourceInformerMap["service"] = KubeInformerFactory.Core().V1().Services().Informer()
-	ResourceInformerMap["namespace"] = KubeInformerFactory.Core().V1().Namespaces().Informer()
-	ResourceInformerMap["replicationcontroller"] = KubeInformerFactory.Core().V1().ReplicationControllers().Informer()
-	ResourceInformerMap["persistentvolume"] = KubeInformerFactory.Core().V1().PersistentVolumes().Informer()
-	ResourceInformerMap["persistentvolumeClaim"] = KubeInformerFactory.Core().V1().PersistentVolumeClaims().Informer()
-	ResourceInformerMap["secret"] = KubeInformerFactory.Core().V1().Secrets().Informer()
-	ResourceInformerMap["configmap"] = KubeInformerFactory.Core().V1().ConfigMaps().Informer()
+	for _, v := range conf.Resources {
+		gvr, err := ParseResourceArg(v.Name)
+		if err != nil {
+			log.Infof("Unable to parse resource: %v\n", v.Name)
+			continue
+		}
 
-	ResourceInformerMap["deployment"] = KubeInformerFactory.Apps().V1().Deployments().Informer()
-	ResourceInformerMap["daemonset"] = KubeInformerFactory.Apps().V1().DaemonSets().Informer()
-	ResourceInformerMap["replicaset"] = KubeInformerFactory.Apps().V1().ReplicaSets().Informer()
-	ResourceInformerMap["statefulset"] = KubeInformerFactory.Apps().V1().StatefulSets().Informer()
-
-	ResourceInformerMap["ingress"] = KubeInformerFactory.Networking().V1beta1().Ingresses().Informer()
-
-	ResourceInformerMap["job"] = KubeInformerFactory.Batch().V1().Jobs().Informer()
-
-	ResourceInformerMap["role"] = KubeInformerFactory.Rbac().V1().Roles().Informer()
-	ResourceInformerMap["rolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
-	ResourceInformerMap["clusterrole"] = KubeInformerFactory.Rbac().V1().ClusterRoles().Informer()
-	ResourceInformerMap["clusterrolebinding"] = KubeInformerFactory.Rbac().V1().RoleBindings().Informer()
-
+		ResourceInformerMap[v.Name] = DynamicKubeInformerFactory.ForResource(gvr).Informer()
+	}
 	// Allowed event kinds map and Allowed Update Events Map
 	for _, r := range conf.Resources {
 		allEvents := false
@@ -180,65 +190,41 @@ func InitInformerMap(conf *config.Config) {
 
 // GetObjectMetaData returns metadata of the given object
 func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
-
-	var objectMeta metaV1.ObjectMeta
-
-	switch object := obj.(type) {
-	case *coreV1.Event:
-		objectMeta = object.ObjectMeta
-		// pass InvolvedObject`s annotations into Event`s annotations
-		// for filtering event objects based on InvolvedObject`s annotations
+	unstructuredObject, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return metaV1.ObjectMeta{}
+	}
+	unstructuredObject = unstructuredObject.DeepCopy()
+	objectMeta := metaV1.ObjectMeta{
+		Name:                       unstructuredObject.GetName(),
+		GenerateName:               unstructuredObject.GetGenerateName(),
+		Namespace:                  unstructuredObject.GetNamespace(),
+		ResourceVersion:            unstructuredObject.GetResourceVersion(),
+		Generation:                 unstructuredObject.GetGeneration(),
+		CreationTimestamp:          unstructuredObject.GetCreationTimestamp(),
+		DeletionTimestamp:          unstructuredObject.GetDeletionTimestamp(),
+		DeletionGracePeriodSeconds: unstructuredObject.GetDeletionGracePeriodSeconds(),
+		Labels:                     unstructuredObject.GetLabels(),
+		Annotations:                unstructuredObject.GetAnnotations(),
+		OwnerReferences:            unstructuredObject.GetOwnerReferences(),
+		Finalizers:                 unstructuredObject.GetFinalizers(),
+		ClusterName:                unstructuredObject.GetClusterName(),
+		ManagedFields:              unstructuredObject.GetManagedFields(),
+	}
+	if GetObjectTypeMetaData(obj).Kind == "Event" {
+		var eventObj coreV1.Event
+		err := TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+		if err != nil {
+			log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+		}
 		if len(objectMeta.Annotations) == 0 {
-			objectMeta.Annotations = ExtractAnnotaions(object)
+			objectMeta.Annotations = ExtractAnnotationsFromEvent(&eventObj)
 		} else {
 			// Append InvolvedObject`s annotations to existing event object`s annotations map
-			for key, value := range ExtractAnnotaions(object) {
+			for key, value := range ExtractAnnotationsFromEvent(&eventObj) {
 				objectMeta.Annotations[key] = value
 			}
 		}
-
-	case *coreV1.Pod:
-		objectMeta = object.ObjectMeta
-	case *coreV1.Node:
-		objectMeta = object.ObjectMeta
-	case *coreV1.Namespace:
-		objectMeta = object.ObjectMeta
-	case *coreV1.PersistentVolume:
-		objectMeta = object.ObjectMeta
-	case *coreV1.PersistentVolumeClaim:
-		objectMeta = object.ObjectMeta
-	case *coreV1.ReplicationController:
-		objectMeta = object.ObjectMeta
-	case *coreV1.Service:
-		objectMeta = object.ObjectMeta
-	case *coreV1.Secret:
-		objectMeta = object.ObjectMeta
-	case *coreV1.ConfigMap:
-		objectMeta = object.ObjectMeta
-
-	case *appsV1.DaemonSet:
-		objectMeta = object.ObjectMeta
-	case *appsV1.ReplicaSet:
-		objectMeta = object.ObjectMeta
-	case *appsV1.Deployment:
-		objectMeta = object.ObjectMeta
-	case *appsV1.StatefulSet:
-		objectMeta = object.ObjectMeta
-
-	case *networkV1beta1.Ingress:
-		objectMeta = object.ObjectMeta
-
-	case *batchV1.Job:
-		objectMeta = object.ObjectMeta
-
-	case *rbacV1.Role:
-		objectMeta = object.ObjectMeta
-	case *rbacV1.RoleBinding:
-		objectMeta = object.ObjectMeta
-	case *rbacV1.ClusterRole:
-		objectMeta = object.ObjectMeta
-	case *rbacV1.ClusterRoleBinding:
-		objectMeta = object.ObjectMeta
 	}
 	return objectMeta
 }
@@ -246,55 +232,15 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 // GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 
-	var typeMeta metaV1.TypeMeta
-
-	switch object := obj.(type) {
-	case *coreV1.Event:
-		typeMeta = object.TypeMeta
-	case *coreV1.Pod:
-		typeMeta = object.TypeMeta
-	case *coreV1.Node:
-		typeMeta = object.TypeMeta
-	case *coreV1.Namespace:
-		typeMeta = object.TypeMeta
-	case *coreV1.PersistentVolume:
-		typeMeta = object.TypeMeta
-	case *coreV1.PersistentVolumeClaim:
-		typeMeta = object.TypeMeta
-	case *coreV1.ReplicationController:
-		typeMeta = object.TypeMeta
-	case *coreV1.Service:
-		typeMeta = object.TypeMeta
-	case *coreV1.Secret:
-		typeMeta = object.TypeMeta
-	case *coreV1.ConfigMap:
-		typeMeta = object.TypeMeta
-
-	case *appsV1.DaemonSet:
-		typeMeta = object.TypeMeta
-	case *appsV1.ReplicaSet:
-		typeMeta = object.TypeMeta
-	case *appsV1.Deployment:
-		typeMeta = object.TypeMeta
-	case *appsV1.StatefulSet:
-		typeMeta = object.TypeMeta
-
-	case *networkV1beta1.Ingress:
-		typeMeta = object.TypeMeta
-
-	case *batchV1.Job:
-		typeMeta = object.TypeMeta
-
-	case *rbacV1.Role:
-		typeMeta = object.TypeMeta
-	case *rbacV1.RoleBinding:
-		typeMeta = object.TypeMeta
-	case *rbacV1.ClusterRole:
-		typeMeta = object.TypeMeta
-	case *rbacV1.ClusterRoleBinding:
-		typeMeta = object.TypeMeta
+	k, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return metaV1.TypeMeta{}
 	}
-	return typeMeta
+	k = k.DeepCopy()
+	return metaV1.TypeMeta{
+		APIVersion: k.GetAPIVersion(),
+		Kind:       k.GetKind(),
+	}
 }
 
 // DeleteDoubleWhiteSpace returns slice that removing whitespace from a arg slice
@@ -308,122 +254,28 @@ func DeleteDoubleWhiteSpace(slice []string) []string {
 	return result
 }
 
-// ExtractAnnotaions returns annotations of InvolvedObject for the given event
-func ExtractAnnotaions(obj *coreV1.Event) map[string]string {
-
-	switch obj.InvolvedObject.Kind {
-	case "Pod":
-		object, err := KubeClient.CoreV1().Pods(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Node":
-		object, err := KubeClient.CoreV1().Nodes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Namespace":
-		object, err := KubeClient.CoreV1().Namespaces().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "PersistentVolume":
-		object, err := KubeClient.CoreV1().PersistentVolumes().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "PersistentVolumeClaim":
-		object, err := KubeClient.CoreV1().PersistentVolumeClaims(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "ReplicationController":
-		object, err := KubeClient.CoreV1().ReplicationControllers(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Service":
-		object, err := KubeClient.CoreV1().Services(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Secret":
-		object, err := KubeClient.CoreV1().Secrets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "ConfigMap":
-		object, err := KubeClient.CoreV1().ConfigMaps(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "DaemonSet":
-		object, err := KubeClient.ExtensionsV1beta1().DaemonSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Ingress":
-		object, err := KubeClient.ExtensionsV1beta1().Ingresses(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-
-	case "ReplicaSet":
-		object, err := KubeClient.ExtensionsV1beta1().ReplicaSets(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Deployment":
-		object, err := KubeClient.ExtensionsV1beta1().Deployments(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Job":
-		object, err := KubeClient.BatchV1().Jobs(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "Role":
-		object, err := KubeClient.RbacV1().Roles(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "RoleBinding":
-		object, err := KubeClient.RbacV1().RoleBindings(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "ClusterRole":
-		object, err := KubeClient.RbacV1().ClusterRoles().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
-	case "ClusterRoleBinding":
-		object, err := KubeClient.RbacV1().ClusterRoleBindings().Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
-		if err == nil {
-			return object.ObjectMeta.Annotations
-		}
-		log.Error(err)
+// GetResourceFromKind returns resource name for given Kind
+func GetResourceFromKind(gvk schema.GroupVersionKind) (schema.GroupVersionResource, error) {
+	mapping, err := Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
 	}
+	return mapping.Resource, nil
+}
 
-	return map[string]string{}
+// ExtractAnnotationsFromEvent returns annotations of InvolvedObject for the given event
+func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
+	gvr, err := GetResourceFromKind(obj.InvolvedObject.GroupVersionKind())
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	return annotations.GetAnnotations()
 }
 
 // InitResourceMap initializes helper maps to allow kubectl execution for required resources
@@ -443,7 +295,7 @@ func InitResourceMap(conf *config.Config) {
 		AllowedKubectlVerbMap[r] = true
 	}
 
-	resourceList, err := KubeClient.Discovery().ServerResources()
+	resourceList, err := DiscoveryClient.ServerResources()
 	if err != nil {
 		log.Errorf("Failed to get resource list in k8s cluster. %v", err)
 		return
@@ -476,4 +328,39 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 		s = matchedArray[1]
 	}
 	return s
+}
+
+// ParseResourceArg parses the group/version/resource args and create a schema.GroupVersionResource
+func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
+	var gvr schema.GroupVersionResource
+	if strings.Count(arg, "/") >= 2 {
+		s := strings.SplitN(arg, "/", 3)
+		gvr = schema.GroupVersionResource{Group: s[0], Version: s[1], Resource: s[2]}
+	} else if strings.Count(arg, "/") == 1 {
+		s := strings.SplitN(arg, "/", 2)
+		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
+	}
+
+	// Validate the GVR provided
+	if _, err := Mapper.ResourcesFor(gvr); err != nil {
+		return schema.GroupVersionResource{}, err
+	}
+	return gvr, nil
+}
+
+// TransformIntoTypedObject uses unstructured interface and creates a typed object
+func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
+	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
+}
+
+//GetStringInYamlFormat get the formated commands list
+func GetStringInYamlFormat(header string, commands map[string]bool) string {
+	var b bytes.Buffer
+	fmt.Fprintln(&b, header)
+	for k, v := range commands {
+		if v {
+			fmt.Fprintf(&b, "  - %s\n", k)
+		}
+	}
+	return b.String()
 }

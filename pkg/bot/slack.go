@@ -156,12 +156,12 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	}
 
 	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+		b.ClusterName, config.SlackBot, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }
 
-func (sm slackMessage) Send() {
+func (sm *slackMessage) Send() {
 	// Upload message as a file if too long
 	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{

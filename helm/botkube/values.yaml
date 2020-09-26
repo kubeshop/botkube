@@ -33,17 +33,18 @@ logLevel: info
 config:
   ## Resources you want to watch
   resources:
-    - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
-      namespaces:
+    - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
+                                # resource name should be plural (e.g apps/v1/deployments, v1/pods)
+      namespaces:               # List of namespaces, "all" will watch all the namespaces
         include:
           - all
         ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
-          -                     # example : include [all], ignore [x,y,z] 
+          -                     # example : include [all], ignore [x,y,z]
       events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
         - create
         - delete
         - error
-    - name: service
+    - name: v1/services
       namespaces:
         include:
           - all
@@ -53,7 +54,7 @@ config:
         - create
         - delete
         - error
-    - name: deployment
+    - name: apps/v1/deployments
       namespaces:
         include:
           - all
@@ -69,7 +70,7 @@ config:
         fields:
           - spec.template.spec.containers[*].image
           - status.availableReplicas
-    - name: statefulset
+    - name: apps/v1/statefulsets
       namespaces:
         include:
           - all
@@ -85,7 +86,7 @@ config:
         fields:
           - spec.template.spec.containers[*].image
           - status.readyReplicas
-    - name: ingress
+    - name: networking.k8s.io/v1beta1/ingresses
       namespaces:
         include:
           - all
@@ -95,7 +96,7 @@ config:
         - create
         - delete
         - error
-    - name: node
+    - name: v1/nodes
       namespaces:
         include:
           - all
@@ -105,7 +106,7 @@ config:
         - create
         - delete
         - error
-    - name: namespace
+    - name: v1/namespaces
       namespaces:
         include:
           - all
@@ -115,7 +116,7 @@ config:
         - create
         - delete
         - error
-    - name: persistentvolume
+    - name: v1/persistentvolumes
       namespaces:
         include:
           - all
@@ -125,7 +126,7 @@ config:
         - create
         - delete
         - error
-    - name: persistentvolumeclaim
+    - name: v1/persistentvolumeclaims
       namespaces:
         include:
           - all
@@ -135,7 +136,7 @@ config:
         - create
         - delete
         - error
-    - name: configmap
+    - name: v1/configmaps
       namespaces:
         include:
           - all
@@ -145,7 +146,7 @@ config:
         - create
         - delete
         - error
-    - name: daemonset
+    - name: apps/v1/daemonsets
       namespaces:
         include:
           - all
@@ -161,7 +162,7 @@ config:
         fields:
           - spec.template.spec.containers[*].image
           - status.numberReady
-    - name: job
+    - name: batch/v1/jobs
       namespaces:
         include:
           - all
@@ -177,7 +178,7 @@ config:
         fields:
           - spec.template.spec.containers[*].image
           - status.conditions[*].type
-    - name: role
+    - name: rbac.authorization.k8s.io/v1/roles
       namespaces:
         include:
           - all
@@ -187,7 +188,7 @@ config:
         - create
         - delete
         - error
-    - name: rolebinding
+    - name: rbac.authorization.k8s.io/v1/rolebindings
       namespaces:
         include:
           - all
@@ -197,7 +198,7 @@ config:
         - create
         - delete
         - error
-    - name: clusterrole
+    - name: rbac.authorization.k8s.io/v1/clusterrolebindings
       namespaces:
         include:
           - all
@@ -207,7 +208,7 @@ config:
         - create
         - delete
         - error
-    - name: clusterrolebinding
+    - name: rbac.authorization.k8s.io/v1/clusterroles
       namespaces:
         include:
           - all
@@ -217,6 +218,22 @@ config:
         - create
         - delete
         - error
+    # Custom resource example
+    #- name: velero.io/v1/backups
+    #  namespaces:
+    #    include:
+    #      - all
+    #    ignore:
+    #      -
+    #  events:
+    #    - create
+    #    - update
+    #    - delete
+    #    - error
+    #  updateSetting:
+    #    includeDiff: true
+    #    fields:
+    #      - status.phase
 
   # Check true if you want to receive recommendations
   # about the best practices for the created resource
@@ -267,6 +284,14 @@ communications:
     channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
     notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
+  # Settings for MS Teams
+  teams:
+    enabled: false
+    appID: 'APPLICATION_ID'
+    appPassword: 'APPLICATION_PASSWORD'
+    notiftype: short
+    port: 3978
+
   # Settings for ELS
   elasticsearch:
     enabled: false
@@ -293,6 +318,18 @@ service:
   name: metrics
   port: 2112
   targetPort: 2112  
+
+# Ingress settings to expose teams endpoint
+ingress:
+  create: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  host: 'HOST'
+  urlPath: "/"
+  tls:
+    enabled: false
+    secretName: ''
+
             
 serviceMonitor:
   ## If true, a ServiceMonitor CR is created for a botkube

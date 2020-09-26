@@ -40,6 +40,9 @@ func parseJsonpath(obj interface{}, jsonpathStr string) (string, error) {
 	}
 
 	values, err := j.FindResults(obj)
+	if err != nil {
+		return "", err
+	}
 
 	valueStrings := []string{}
 	if len(values) == 0 || len(values[0]) == 0 {

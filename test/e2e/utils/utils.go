@@ -23,9 +23,10 @@ import (
 	"testing"
 
 	"github.com/nlopes/slack"
-	v1 "k8s.io/api/core/v1"
-	networkV1beta1 "k8s.io/api/networking/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -47,6 +48,7 @@ type WebhookPayload struct {
 
 // CreateObjects stores specs for creating a k8s fake object and expected Slack response
 type CreateObjects struct {
+	GVR                    schema.GroupVersionResource
 	Kind                   string
 	Namespace              string
 	Specs                  runtime.Object
@@ -57,32 +59,17 @@ type CreateObjects struct {
 
 // CreateResource with fake client
 func CreateResource(t *testing.T, obj CreateObjects) {
-	switch obj.Kind {
-	case "pod":
-		s := obj.Specs.(*v1.Pod)
-		_, err := utils.KubeClient.CoreV1().Pods(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create pod: %v", err)
-		}
-	case "service":
-		s := obj.Specs.(*v1.Service)
-		_, err := utils.KubeClient.CoreV1().Services(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	case "ingress":
-		s := obj.Specs.(*networkV1beta1.Ingress)
-		_, err := utils.KubeClient.NetworkingV1beta1().Ingresses(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	case "namespace":
-		s := obj.Specs.(*v1.Namespace)
-		_, err := utils.KubeClient.CoreV1().Namespaces().Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	default:
-		t.Fatalf("CreateResource method is not defined for resource %s", obj.Kind)
+	// convert the runtime.Object to unstructured.Unstructured
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+	// Create resource
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
 }
