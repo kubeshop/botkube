@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infracloudio/botkube/test/e2e/notifier/update"
+
 	"github.com/nlopes/slack"
 
 	"github.com/infracloudio/botkube/pkg/bot"
@@ -84,6 +86,7 @@ func TestRun(t *testing.T) {
 		"notifier": create.E2ETests(testEnv),
 		"command":  command.E2ETests(testEnv),
 		"filters":  filters.E2ETests(testEnv),
+		"update":   update.E2ETests(testEnv),
 	}
 
 	// Run test suite
