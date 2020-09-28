@@ -30,6 +30,11 @@ resources:
       - create
       - delete
       - error
+      - update
+    updateSetting:
+      includeDiff: true
+      fields:
+        - spec.template.spec.containers[*].image
   - name: v1/services
     namespaces:
       include:
