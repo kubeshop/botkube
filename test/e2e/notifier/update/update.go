@@ -3,7 +3,6 @@ package update
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -24,7 +23,6 @@ type context struct {
 
 func (c *context) testUpdateResource(t *testing.T) {
 
-	log.Println("Testing update resource")
 	// Test cases
 	tests := map[string]testutils.UpdateObjects{
 		"create pod in configured namespace": {
@@ -62,7 +60,8 @@ func (c *context) testUpdateResource(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Inject an event into the fake client.
+
+			//checking if update operation is true
 			resource := fmt.Sprintf("%s/%s/%s", test.GVR.Group, test.GVR.Version, test.GVR.Resource)
 			if test.GVR.Group == "" {
 				resource = fmt.Sprintf("%s/%s", test.GVR.Version, test.GVR.Resource)
@@ -84,12 +83,10 @@ func (c *context) testUpdateResource(t *testing.T) {
 				// Check if specified namespace is allowed
 				updateSetting, exist = utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: test.Namespace}]
 			}
-			//delete the created resource
-			//log.Println(updateSetting)
+			//getting the diff
 			updateMsg := utils.Diff(oldObj.Object, newObj.Object, updateSetting)
-			//log.Printf("updated msg %s ", updateMsg)
 			assert.Equal(t, "spec.containers[*].image:\n\t-: tomcat:9.0.34\n\t+: tomcat:8.0\n", updateMsg)
-
+			// Inject an event into the fake client.
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Get last seen slack message
 				lastSeenMsg := c.GetLastSeenSlackMessage()
@@ -105,7 +102,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 				assert.Equal(t, test.ExpectedSlackMessage.Attachments, m.Attachments)
 			}
 
-			//log.Println("---------------------------webhook enabled")
 			if c.TestEnv.Config.Communications.Webhook.Enabled {
 				// Get last seen webhook payload
 
