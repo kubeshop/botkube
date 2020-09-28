@@ -75,9 +75,9 @@ func (c *context) testUpdateResource(t *testing.T) {
 					Namespace: test.Namespace,
 					EventType: config.UpdateEvent}]
 			assert.Equal(t, isAllowed, true)
-
+			// getting the updated and old object
 			oldObj, newObj := testutils.UpdateResource(t, test)
-
+			// update setting available
 			updateSetting, exist := utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: "all"}]
 			if !exist {
 				// Check if specified namespace is allowed
