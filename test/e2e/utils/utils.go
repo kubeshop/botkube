@@ -111,20 +111,3 @@ func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured
 	}
 	return oldObj, newObj
 }
-
-//DeleteResource deletes the resources created during update operation
-func DeleteResource(t *testing.T, obj UpdateObjects) {
-	s := unstructured.Unstructured{}
-	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-	if ok != nil {
-		t.Fatalf("Failed to convert pod object into unstructured")
-	}
-	s.Object = k
-	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
-
-	// Delete resource
-	err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(s.GetName(), &v1.DeleteOptions{})
-	if err != nil {
-		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
-	}
-}
