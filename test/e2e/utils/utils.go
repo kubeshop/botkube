@@ -67,6 +67,8 @@ type UpdateObjects struct {
 	Name                   string
 	Specs                  runtime.Object
 	Patch                  []byte
+	Diff                   string
+	UpdateSetting          config.UpdateSetting
 	NotifType              config.NotifType
 	ExpectedWebhookPayload WebhookPayload
 	ExpectedSlackMessage   SlackMessage
