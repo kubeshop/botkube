@@ -12,7 +12,7 @@ You can contribute to documentation by following [these instructions](https://gi
 
 ## Compile BotKube from source code
 
-Before you proceed, make sure you have installed BotKube Slack/Mattermost app and copied required token as per the steps documented [here](https://www.botkube.io/installation/)
+Before you proceed, make sure you have installed BotKube Slack/Mattermost/Teams app and copied required token as per the steps documented [here](https://www.botkube.io/installation/)
 
 ### Prerequisite
 
@@ -47,11 +47,11 @@ Now you can build and run BotKube by one of the following ways
    $ helm repo update
    $ kubectl create namespace botkube
    $ helm install --version v9.99.9-dev botkube --namespace botkube \
-     --set communicationConfig.communications.slack.enabled=true \
-     --set communicationConfig.communications.slack.channel=<SLACK_CHANNEL_NAME> \
-     --set communicationConfig.communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
-     --set resourceConfig.settings.clustername=<CLUSTER_NAME> \
-     --set resourceConfig.settings.allowkubectl=<ALLOW_KUBECTL> \
+     --set communications.slack.enabled=true \
+     --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
+     --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
+     --set settings.clustername=<CLUSTER_NAME> \
+     --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
      --set image.repository=<your_account>/botkube \
      --set image.tag=latest \
      infracloudio/botkube
@@ -68,7 +68,7 @@ Now you can build and run BotKube by one of the following ways
    b. Using kubectl
 
      1. Edit deploy-all-in-one.yaml and update the configuration.
-        Set SLACK_ENABLED, SLACK_CHANNEL, SLACK_API_TOKEN, clustername, allowkubectl and update the resource events configuration you want to receive notifications for in the configmap.
+        Set SLACK_ENABLED, SLACK_CHANNEL, SLACK_API_TOKEN, clustername, kubectl.enabled and update the resource events configuration you want to receive notifications for in the configmap.
      2. Create botkube namespace and deploy resources
      ```sh
      $ kubectl create ns botkube && kubectl create -f deploy-all-in-one.yaml -n botkube
