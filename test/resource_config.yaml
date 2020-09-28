@@ -34,7 +34,7 @@ resources:
     updateSetting:
       includeDiff: true
       fields:
-        - spec.template.spec.containers[*].image
+        - spec.containers[*].image
   - name: v1/services
     namespaces:
       include:

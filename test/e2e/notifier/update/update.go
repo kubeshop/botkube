@@ -25,7 +25,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 
 	// Test cases
 	tests := map[string]testutils.UpdateObjects{
-		"create pod in configured namespace": {
+		"create and update pod in configured namespace": {
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
 			Namespace: "test",
@@ -110,9 +110,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 				assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
 				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
 			}
-			//Deleting the resource created during update
-
-			testutils.DeleteResource(t, test)
 		})
 	}
 }
