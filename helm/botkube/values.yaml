@@ -218,6 +218,22 @@ config:
         - create
         - delete
         - error
+    # Custom resource example
+    #- name: velero.io/v1/backups
+    #  namespaces:
+    #    include:
+    #      - all
+    #    ignore:
+    #      -
+    #  events:
+    #    - create
+    #    - update
+    #    - delete
+    #    - error
+    #  updateSetting:
+    #    includeDiff: true
+    #    fields:
+    #      - status.phase
 
   # Check true if you want to receive recommendations
   # about the best practices for the created resource

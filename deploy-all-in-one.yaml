@@ -374,3 +374,41 @@ spec:
       securityContext:
         runAsUser: 101
         runAsGroup: 101
+---
+## Uncomment following resources for Teams support
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: botkube
+#  labels:
+#    app: botkube
+#spec:
+#  type: ClusterIP
+#  ports:
+#  - name: "teams"
+#    port: 3978
+#  selector:
+#    app: botkube
+#---
+## Source: botkube/templates/ingress.yaml
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: botkube
+#  labels:
+#    app: botkube
+#  annotations:
+#    kubernetes.io/ingress.class: nginx
+#spec:
+#  tls:
+#  - hosts:
+#    - HOST
+#    secretName: TLS_SECRET_NAME
+#  rules:
+#  - http:
+#      paths:
+#        - path: URLPATH
+#          backend:
+#            serviceName: botkube
+#            servicePort: 3978
+#    host: HOST
