@@ -24,8 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infracloudio/botkube/test/e2e/notifier/update"
-
 	"github.com/nlopes/slack"
 
 	"github.com/infracloudio/botkube/pkg/bot"
@@ -36,6 +34,7 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/infracloudio/botkube/test/e2e/filters"
 	"github.com/infracloudio/botkube/test/e2e/notifier/create"
+	"github.com/infracloudio/botkube/test/e2e/notifier/update"
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
 
