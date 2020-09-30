@@ -8,6 +8,8 @@ You can also ask BotKube to execute kubectl commands on k8s cluster which helps 
 
 ![](botkube-title.jpg)
 
+We are participating in Hacktoberfest 2020. Learn more https://www.infracloud.io/infracloud-joins-hacktoberfest-2020/
+
 ## Getting started
 Please follow [this](https://www.botkube.io/installation/) for complete BotKube installation guide.
 
