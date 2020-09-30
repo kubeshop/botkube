@@ -4,6 +4,10 @@ TAG=$(shell cut -d'=' -f2- .release)
 .DEFAULT_GOAL := build
 .PHONY: release git-tag check-git-status build container-image pre-build tag-image publish test system-check
 
+# Show this help.
+help:
+	@awk '/^#/{c=substr($$0,3);next}c&&/^[[:alpha:]][[:alnum:]_-]+:/{print substr($$1,1,index($$1,":")),c}1{c=0}' $(MAKEFILE_LIST) | column -s: -t
+
 #Docker Tasks
 #Make a release
 release: check-git-status test container-image tag-image publish git-tag
@@ -32,7 +36,7 @@ test: system-check
 
 #Build the binary
 build: pre-build
-	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube 
+	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
 	@echo "Build completed successfully"
 #Build the image
 container-image: pre-build
@@ -66,3 +70,18 @@ publish:
 	@docker login
 	@docker push $(IMAGE_REPO):$(TAG)
 	@docker push $(IMAGE_REPO):latest
+
+# Install KIND
+install-kind: system-check
+	@chmod +x hack/kind-cluster.sh
+	@source ./hack/kind-cluster.sh && install_kind
+
+# Create KIND cluster
+create-kind: system-check
+	@chmod +x hack/kind-cluster.sh
+	@source ./hack/kind-cluster.sh && create_kind_cluster
+
+# Destroy KIND cluster
+destroy-kind: system-check
+	@chmod +x hack/kind-cluster.sh
+	@source ./hack/kind-cluster.sh && destroy_kind_cluster
