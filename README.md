@@ -24,3 +24,4 @@ Please follow [this](https://www.botkube.io/installation/) for complete BotKube 
 - **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
 
 Visit www.botkube.io for Configuration, Usage and Examples.
+For Licensing information, please refer to [License](https://github.com/infracloudio/botkube/blob/develop/LICENSE)
