@@ -83,6 +83,10 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"  - statefulsets\n" +
 				"  - storageclasses\n",
 		},
+		"BotKube notifier showconfig": {
+			command:  "notifier showconfig",
+			expected: "<@U023BECGF> notifier showconfig",
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
