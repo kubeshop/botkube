@@ -16,7 +16,7 @@ Steps for adding Mattermost support:
 - Add Mattermost configurations in helm chart or config.yaml.
 - While starting controller, check in config if Mattermost support is enabled.
 - If support enabled, initialize Mattermost with values from config.
-- Start a go routinue for Mattermost.
+- Start a go routine for Mattermost.
 - In controller, add notifier for `SendEvent` and `SendMessage` for Mattermost.
 
 #### Adding package
