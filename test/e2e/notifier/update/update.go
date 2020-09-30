@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/env"
@@ -62,6 +61,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 			},
 		},
 		"create and update pod in configured namespace": {
+			// Diff message generated in Attachment
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
 			Namespace: "test",
@@ -117,8 +117,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 
 			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
 			// getting the updated and old object
-			log.Infof("Allowed Events - %+v", utils.AllowedEventKindsMap)
-			log.Infof("Allowed UpdateEvents - %+v", utils.AllowedUpdateEventsMap)
 			oldObj, newObj := testutils.UpdateResource(t, test)
 			updateMsg := utils.Diff(oldObj.Object, newObj.Object, test.UpdateSetting)
 			assert.Equal(t, test.Diff, updateMsg)
