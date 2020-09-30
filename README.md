@@ -20,7 +20,7 @@ Please follow [this](https://www.botkube.io/installation/) for complete BotKube 
 - **Event Manager:** Extracts required fields from k8s event object and creates a new BotKube event struct. It passes BotKube event struct to the Filter Engine.
 - **Filter Engine:** Takes the k8s object and BotKube event struct and runs Filters on them. Each filter runs some validations on the k8s object and modifies the messages in the BotKube event struct if required.
 - **Event Notifier:** Finally, notifier sends BotKube event over the configured communication channel.
-- **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost and reads/sends messages from/to the communication mediums. 
+- **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost and reads/sends messages from/to them. 
 - **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
 
 Visit www.botkube.io for Configuration, Usage and Examples.
