@@ -14,7 +14,7 @@
 - Aggregate pod status to reduce notification noise [\#212](https://github.com/infracloudio/botkube/issues/212)
 - Add support to monitor custom resources [\#200](https://github.com/infracloudio/botkube/issues/200)
 - Limit kubectl commands [\#183](https://github.com/infracloudio/botkube/issues/183)
-- Swich to github actions for CI builds [\#179](https://github.com/infracloudio/botkube/issues/179)
+- Switch to github actions for CI builds [\#179](https://github.com/infracloudio/botkube/issues/179)
 - Setting default namespace while executing kubectl commands [\#176](https://github.com/infracloudio/botkube/issues/176)
 - Add Microsoft Teams suppport [\#60](https://github.com/infracloudio/botkube/issues/60)
 
