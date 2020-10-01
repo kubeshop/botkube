@@ -72,10 +72,6 @@ publish:
 	@docker push $(IMAGE_REPO):$(TAG)
 	@docker push $(IMAGE_REPO):latest
 
-# Install KIND
-install-kind: system-check
-	@./hack/kind-cluster.sh install-kind
-
 # Create KIND cluster
 create-kind: system-check
 	@./hack/kind-cluster.sh create-kind
