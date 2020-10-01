@@ -11,7 +11,7 @@ You can also ask BotKube to execute kubectl commands on k8s cluster which helps 
 ## Hacktoberfest 2020
 BotKube is participating in Hacktoberfest 2020. We are giving some really cool swags to our contributors, learn more at - https://www.infracloud.io/blogs/infracloud-joins-hacktoberfest-2020/. 
 
-## Getting started
+## Getting started -
 Please follow [this](https://www.botkube.io/installation/) for complete BotKube installation guide.
 
 ## Architecture
