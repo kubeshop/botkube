@@ -110,7 +110,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 * Before making any significant changes, please [open an issue](https://github.com/infracloudio/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
 
-* Once we've discussed your changes and you've got your code ready, make sure that build steps mentioned above pass. Open your pull request against [`develop`](http://github.com/infracloudio/botkube/tree/develop) branch.
+* Once we've discussed your changes and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against [`develop`](http://github.com/infracloudio/botkube/tree/develop) branch.
 
 * To avoid build failures in CI, run
   ```sh
