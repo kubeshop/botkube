@@ -100,4 +100,3 @@ config:
     #    includeDiff: true
     #    fields:
     #      - status.phase
-

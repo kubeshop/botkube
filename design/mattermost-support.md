@@ -5,10 +5,10 @@
 - Mattermost server IP is reachable from the cluster.
 
 ### Summary
-`Mattermost` is an open source, self-hosted Slack-alternative and we want to add support for the same in Botkube.
+`Mattermost` is an open source, self-hosted Slack-alternative, and we want to add support for the same in Botkube.
 
 ### Motivation
-Currently Botkube is supporting Slack, and as a feature addition we want to include `Mattermost` support. Botkube will run on the clusters and send notifications and alerts to the configured Mattermost team. It will also be able to execute `@botkube` commands from `Mattermost`. 
+Currently, Botkube is supporting Slack, and as a feature addition we want to include `Mattermost` support. Botkube will run on the clusters and send notifications and alerts to the configured Mattermost team. It will also be able to execute `@botkube` commands from `Mattermost`. 
 
 ### Design
 Steps for adding Mattermost support:
@@ -16,7 +16,7 @@ Steps for adding Mattermost support:
 - Add Mattermost configurations in helm chart or config.yaml.
 - While starting controller, check in config if Mattermost support is enabled.
 - If support enabled, initialize Mattermost with values from config.
-- Start a go routinue for Mattermost.
+- Start a goroutine for Mattermost.
 - In controller, add notifier for `SendEvent` and `SendMessage` for Mattermost.
 
 #### Adding package
@@ -39,7 +39,7 @@ We need to add below values for Mattermost in Helm Chart or config.yaml.
 
 #### Controller Modifications
 - In `main.go`, check in config if Mattermost support is enabled.
-- If yes, then get config and add a go routine for Mattermost.
+- If yes, then get config and add a goroutine for Mattermost.
 - In `controller.go`, for event notifications and sending start/stop messages, add notifier for Mattermost.
 
 ### References

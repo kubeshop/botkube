@@ -2,7 +2,7 @@
 
 We'd love your help!
 
-BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines some of the conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
+BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines some  conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
 
 We gratefully welcome improvements to [documentation](https://www.botkube.io/ "Go to documentation site") as well as to code.
 
@@ -110,7 +110,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 * Before making any significant changes, please [open an issue](https://github.com/infracloudio/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
 
-* Once we've discussed your changes and you've got your code ready, make sure that build steps mentioned above pass. Open your pull request against [`develop`](http://github.com/infracloudio/botkube/tree/develop) branch.
+* Once we've discussed your changes, and you've got your code ready, make sure the build steps mentioned above pass. Open your pull request against [`develop`](http://github.com/infracloudio/botkube/tree/develop) branch.
 
 * To avoid build failures in CI, run
   ```sh

@@ -39,7 +39,7 @@ generate_changelog() {
     local version=$1
 
     # generate changelog from github
-    github_changelog_generator infracloudio/botkube -t ${GITHUB_TOKEN} --future-release ${version} -o CHANGELOG.md
+    github_changelog_generator infracloudio/botkube -t "${GITHUB_TOKEN}" --future-release "${version}" -o CHANGELOG.md
     sed -i '$d' CHANGELOG.md
 }
 
@@ -52,7 +52,7 @@ update_chart_yamls() {
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one.yaml
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one-tls.yaml
 
-    oldVersion=$(echo $(awk '/BOTKUBE_VERSION/ {getline; print}' deploy-all-in-one.yaml))
+    oldVersion=$(awk '/BOTKUBE_VERSION/ {getline; print}' deploy-all-in-one.yaml)
     sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one.yaml
     sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one-tls.yaml
 }
@@ -64,15 +64,15 @@ publish_release() {
     gothub release \
 	   --user infracloudio \
 	   --repo botkube \
-	   --tag $version \
+	   --tag "$version" \
 	   --name "$version" \
 	   --description "$version"
 }
 
-update_chart_yamls $version
-generate_changelog $version
+update_chart_yamls "$version"
+generate_changelog "$version"
 make release
-publish_release $version
+publish_release "$version"
 
 echo "=========================== Done ============================="
 echo "Congratulations!! Release ${version} published."

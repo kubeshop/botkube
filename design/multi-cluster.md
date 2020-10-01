@@ -11,7 +11,7 @@
 Add Multi-cluster support for Botkube, where a single bot can monitor multiple clusters and respond to `@botkube` commands with cluster specific results.
 
 ### Motivation
-Currently in multi-cluster scenario, a Slack bot authenticates all the clusters with a same authentication token. Thus running `@botkube` command returns response from all the configured clusters, irrespective of the slack channel or group. For `@botkube` command execution, we need a particular cluster specific output.
+Currently, in multi-cluster scenario, a Slack bot authenticates all the clusters with a same authentication token. Thus running `@botkube` command returns response from all the configured clusters, irrespective of the slack channel or group. For `@botkube` command execution, we need a particular cluster specific output.
 
 ### Design
 
@@ -48,4 +48,3 @@ The `--cluster-name` flag is mandated for kubectl and notifier commands resultin
 
 ### Alternatives
 We can add channel specific authentication token or completely dedicate a channel to a particular cluster which requires changes in the slack code.
-

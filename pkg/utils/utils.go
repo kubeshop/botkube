@@ -348,6 +348,14 @@ func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 	return gvr, nil
 }
 
+// GVRToString converts GVR formats to string
+func GVRToString(gvr schema.GroupVersionResource) string {
+	if gvr.Group == "" {
+		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
+	}
+	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
+}
+
 // TransformIntoTypedObject uses unstructured interface and creates a typed object
 func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
