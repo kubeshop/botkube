@@ -18,16 +18,15 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 set -o errexit
 set -o nounset
 set -o pipefail
 
 find_files() {
   find . -not \( \
-      \( \
-        -wholename '*/vendor/*' \
-      \) -prune \
+    \( \
+    -wholename '*/vendor/*' \
+    \) -prune \
     \) -name '*.go'
 }
 
