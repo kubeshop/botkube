@@ -58,7 +58,7 @@ type CreateObjects struct {
 	ExpectedSlackMessage   SlackMessage
 }
 
-//UpdateObjects stores specs and patch for updating a k8s fake object and expected Slack response
+// UpdateObjects stores specs and patch for updating a k8s fake object and expected Slack response
 type UpdateObjects struct {
 	GVR                    schema.GroupVersionResource
 	Kind                   string
@@ -71,6 +71,15 @@ type UpdateObjects struct {
 	NotifType              config.NotifType
 	ExpectedWebhookPayload WebhookPayload
 	ExpectedSlackMessage   SlackMessage
+}
+
+// DeleteObjects stores specs for deleting a k8s fake object
+type DeleteObjects struct {
+	GVR       schema.GroupVersionResource
+	Kind      string
+	Namespace string
+	Name      string
+	Specs     runtime.Object
 }
 
 // CreateResource with fake client
