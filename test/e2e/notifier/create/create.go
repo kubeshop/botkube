@@ -21,7 +21,6 @@ package create
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/nlopes/slack"
@@ -129,10 +128,7 @@ func (c *context) testCreateResource(t *testing.T) {
 				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)
 			}
 
-			resource := fmt.Sprintf("%s/%s/%s", test.GVR.Group, test.GVR.Version, test.GVR.Resource)
-			if test.GVR.Group == "" {
-				resource = fmt.Sprintf("%s/%s", test.GVR.Version, test.GVR.Resource)
-			}
+			resource := utils.GVRToString(test.GVR)
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
 				Resource:  resource,
 				Namespace: "all",
