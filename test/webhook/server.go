@@ -21,10 +21,10 @@ package webhook
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
@@ -43,6 +43,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// update message in mutex
 	s.receivedPayloads.Lock()
+	log.Debugf("Incomming Webhook Messages :%#v", t)
 	s.receivedPayloads.messages = append(s.receivedPayloads.messages, t)
 	s.receivedPayloads.Unlock()
 
@@ -63,7 +64,7 @@ func NewTestServer() *Server {
 
 // Start starts the test server
 func (s *Server) Start() {
-	log.Print("starting Mock Webhook server")
+	log.Info("starting Mock Webhook server")
 	s.server.Start()
 }
 
@@ -74,8 +75,8 @@ func (s *Server) GetAPIURL() string {
 
 // GetReceivedPayloads returns all messages received
 func (s *Server) GetReceivedPayloads() []utils.WebhookPayload {
-	s.receivedPayloads.RLock()
+	s.receivedPayloads.Lock()
 	m := s.receivedPayloads.messages
-	s.receivedPayloads.RUnlock()
+	s.receivedPayloads.Unlock()
 	return m
 }
