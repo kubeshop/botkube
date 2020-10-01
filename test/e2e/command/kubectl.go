@@ -54,6 +54,16 @@ func (c *context) testKubectlCommand(t *testing.T) {
 			expected: fmt.Sprintf("<@U023BECGF> get pods"),
 			channel:  "dummy",
 		},
+		"kubectl command on forbidden verb and resource": {
+			command:  "config set clusters.test-clustor-1.server https://1.2.3.4",
+			expected: "```Command not supported. Please run /botkubehelp to see supported commands.```",
+			channel:  c.Config.Communications.Slack.Channel,
+		},
+		"kubectl command on forbidden resource": {
+			command:  "get endpoints",
+			expected: "```Command not supported. Please run /botkubehelp to see supported commands.```",
+			channel:  c.Config.Communications.Slack.Channel,
+		},
 	}
 
 	for name, test := range tests {
