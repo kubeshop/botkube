@@ -349,7 +349,7 @@ func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 }
 
 // GvrToString converts GVR formats to string
-func GvrToString(gvr schema.GroupVersionResource) string {
+func GVRToString(gvr schema.GroupVersionResource) string {
 	if gvr.Group == "" {
 		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
 	}
