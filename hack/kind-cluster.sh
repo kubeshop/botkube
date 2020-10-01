@@ -26,6 +26,7 @@ install_kind() {
 }
 
 create_kind_cluster() {
+  install_kind
   echo "creating KIND cluster"
   kind create cluster
 }
@@ -44,9 +45,6 @@ help() {
 
 if [ $# -gt 1 ]; then help ;fi
 case "${1}" in
-        install-kind)
-            install_kind
-        ;;
         create-kind)
             create_kind_cluster
             ;;
