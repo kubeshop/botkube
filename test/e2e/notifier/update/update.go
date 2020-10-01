@@ -24,7 +24,7 @@ type context struct {
 func (c *context) testUpdateResource(t *testing.T) {
 	// Test cases
 	tests := map[string]testutils.UpdateObjects{
-		"update resource set diff false": {
+		"update resource when IncludeDiff is set to false": {
 			// Diff message should not be generated in Attachment if IncludeDiff field is false
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
