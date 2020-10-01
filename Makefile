@@ -74,14 +74,14 @@ publish:
 # Install KIND
 install-kind: system-check
 	@chmod +x hack/kind-cluster.sh
-	@source ./hack/kind-cluster.sh && install_kind
+	@./hack/kind-cluster.sh install-kind
 
 # Create KIND cluster
 create-kind: system-check
 	@chmod +x hack/kind-cluster.sh
-	@source ./hack/kind-cluster.sh && create_kind_cluster
+	@./hack/kind-cluster.sh create-kind
 
 # Destroy KIND cluster
 destroy-kind: system-check
 	@chmod +x hack/kind-cluster.sh
-	@source ./hack/kind-cluster.sh && destroy_kind_cluster
+	@./hack/kind-cluster.sh destroy-kind

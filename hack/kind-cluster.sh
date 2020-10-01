@@ -34,3 +34,26 @@ destroy_kind_cluster() {
   echo "destroying KIND cluster"
   kind delete clusters --all
 }
+
+help() {
+  usage="$(basename "$0") [option] -- Script to create or destroy KIND cluster.
+  Available option are install-kind, destroy-kind or create-kind"
+  echo $usage
+}
+
+
+if [ $# -gt 1 ]; then help ;fi
+case "${1}" in
+        install-kind)
+            install_kind
+        ;;
+        create-kind)
+            create_kind_cluster
+            ;;
+        destroy-kind)
+            destroy_kind_cluster
+        ;;
+        *)
+            help
+            exit 1
+esac
