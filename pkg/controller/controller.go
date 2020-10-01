@@ -106,10 +106,10 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			switch strings.ToLower(eventObj.Type) {
 			case config.WarningEvent.String():
 				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.ErrorEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GvrToString(gvr), config.ErrorEvent)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.InfoEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GvrToString(gvr), config.InfoEvent)
 			}
 		},
 	})
@@ -265,13 +265,6 @@ func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 	for _, n := range notifiers {
 		go n.SendMessage(msg)
 	}
-}
-
-func gvrToString(gvr schema.GroupVersionResource) string {
-	if gvr.Group == "" {
-		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
-	}
-	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
 }
 
 func configWatcher(c *config.Config, notifiers []notify.Notifier) {

@@ -2,7 +2,6 @@ package update
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/nlopes/slack"
@@ -23,11 +22,10 @@ type context struct {
 }
 
 func (c *context) testUpdateResource(t *testing.T) {
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = true
 	// Test cases
 	tests := map[string]testutils.UpdateObjects{
 		"update resource set diff false": {
-			//Diff message should not be generated in Attachment if IncludeDiff field is false
+			// Diff message should not be generated in Attachment if IncludeDiff field is false
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
 			Namespace: "test",
@@ -61,7 +59,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 			},
 		},
 		"create and update pod in configured namespace": {
-			// Diff message generated in Attachment
+			// Diff message generated in Attachment if IncludeDiff field is true
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
 			Namespace: "test",
@@ -98,12 +96,8 @@ func (c *context) testUpdateResource(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-
-			//checking if update operation is true
-			resource := fmt.Sprintf("%s/%s/%s", test.GVR.Group, test.GVR.Version, test.GVR.Resource)
-			if test.GVR.Group == "" {
-				resource = fmt.Sprintf("%s/%s", test.GVR.Version, test.GVR.Resource)
-			}
+			resource := utils.GvrToString(test.GVR)
+			// checking if update operation is true
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
 				Resource:  resource,
 				Namespace: "all",
@@ -114,7 +108,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 					EventType: config.UpdateEvent}]
 			assert.Equal(t, isAllowed, true)
 			// modifying the update setting value as per testcases
-
 			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
 			// getting the updated and old object
 			oldObj, newObj := testutils.UpdateResource(t, test)
@@ -144,9 +137,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 			}
 		})
 	}
-	//resetting update operation to false
-	utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = config.UpdateSetting{Fields: []string(nil), IncludeDiff: false}
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = false
 }
 
 // Run tests
@@ -163,10 +153,13 @@ func E2ETests(testEnv *env.TestEnv) env.E2ETest {
 }
 
 func (c *context) testSKipUpdateEvent(t *testing.T) {
-	//Modifying AllowedEventKindsMap configure dummy namespace for update event and ignore all
+	// Modifying AllowedEventKindsMap configure dummy namespace for update event and ignore all
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "update"}] = true
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = false
-	//test scenarios
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"})
+	// reset to original test config
+	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "update"})
+
+	// test scenarios
 	tests := map[string]testutils.UpdateObjects{
 		"skip update event for namespaces not configured": {
 			// update operation not allowed for Pod in test namespace so event should be skipped
@@ -184,11 +177,8 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			//checking if update operation is true
-			resource := fmt.Sprintf("%s/%s/%s", test.GVR.Group, test.GVR.Version, test.GVR.Resource)
-			if test.GVR.Group == "" {
-				resource = fmt.Sprintf("%s/%s", test.GVR.Version, test.GVR.Resource)
-			}
+			resource := utils.GvrToString(test.GVR)
+			// checking if update operation is true
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
 				Resource:  resource,
 				Namespace: "all",
@@ -200,8 +190,6 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 			assert.Equal(t, isAllowed, false)
 		})
 	}
-
-	//Resetting original configuration as per test_config
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "update"}] = false
+	// Resetting original configuration as per test_config
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = true
 }
