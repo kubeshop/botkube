@@ -16,7 +16,7 @@ Steps for adding Mattermost support:
 - Add Mattermost configurations in helm chart or config.yaml.
 - While starting controller, check in config if Mattermost support is enabled.
 - If support enabled, initialize Mattermost with values from config.
-- Start a go routine for Mattermost.
+- Start a goroutine for Mattermost.
 - In controller, add notifier for `SendEvent` and `SendMessage` for Mattermost.
 
 #### Adding package
@@ -39,7 +39,7 @@ We need to add below values for Mattermost in Helm Chart or config.yaml.
 
 #### Controller Modifications
 - In `main.go`, check in config if Mattermost support is enabled.
-- If yes, then get config and add a go routine for Mattermost.
+- If yes, then get config and add a goroutine for Mattermost.
 - In `controller.go`, for event notifications and sending start/stop messages, add notifier for Mattermost.
 
 ### References
