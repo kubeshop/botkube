@@ -83,6 +83,10 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"  - statefulsets\n" +
 				"  - storageclasses\n",
 		},
+		"BotKube notifier showconfig": {
+			command:  "notifier showconfig",
+			expected: "<@U023BECGF> notifier showconfig",
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -106,6 +110,9 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				case "commands list":
 					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
 					assert.Equal(t, cl, true)
+				case "notifier showconfig":
+					ns := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
+					assert.Equal(t, ns, true)
 				default:
 					assert.Equal(t, test.expected, m.Text)
 				}
