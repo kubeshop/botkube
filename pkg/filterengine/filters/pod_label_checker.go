@@ -37,7 +37,7 @@ type PodLabelChecker struct {
 // Register filter
 func init() {
 	filterengine.DefaultFilterEngine.Register(PodLabelChecker{
-		Description: "Checks and adds recommedations if labels are missing in the pod specs.",
+		Description: "Checks and adds recommendations if labels are missing in the pod specs.",
 	})
 }
 
