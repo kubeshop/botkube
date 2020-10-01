@@ -90,7 +90,7 @@ func CreateResource(t *testing.T, obj CreateObjects) {
 	}
 }
 
-//UpdateResource Create and update the obj and return old and new obj
+// UpdateResource Create and update the obj and return old and new obj
 func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured, *unstructured.Unstructured) {
 	s := unstructured.Unstructured{}
 	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
