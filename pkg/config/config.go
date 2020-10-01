@@ -228,10 +228,11 @@ func NewCommunicationsConfig() (*Communications, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
 	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+
 	if err != nil {
 		return c, err
 	}
+	defer communicationConfigFile.Close()
 
 	b, err := ioutil.ReadAll(communicationConfigFile)
 	if err != nil {
@@ -250,10 +251,11 @@ func New() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
 	resourceConfigFile, err := os.Open(resourceConfigFilePath)
-	defer resourceConfigFile.Close()
+
 	if err != nil {
 		return c, err
 	}
+	defer resourceConfigFile.Close()
 
 	b, err := ioutil.ReadAll(resourceConfigFile)
 	if err != nil {
