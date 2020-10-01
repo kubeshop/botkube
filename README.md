@@ -3,8 +3,8 @@
 
 For complete documentation visit www.botkube.io
 
-BotKube integration with Slack or Mattermost helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
-You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
+BotKube integration with Slack or Mattermost helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. 
+You can also ask BotKube to execute kubectl commands on k8s cluster, which helps to debug an application or a cluster.
 
 ![](botkube-title.jpg)
 
