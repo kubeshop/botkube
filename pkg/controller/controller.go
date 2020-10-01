@@ -106,10 +106,10 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			switch strings.ToLower(eventObj.Type) {
 			case config.WarningEvent.String():
 				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, notifiers, utils.GvrToString(gvr), config.ErrorEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.ErrorEvent)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, notifiers, utils.GvrToString(gvr), config.InfoEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.InfoEvent)
 			}
 		},
 	})

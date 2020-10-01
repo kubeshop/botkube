@@ -96,7 +96,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			resource := utils.GvrToString(test.GVR)
+			resource := utils.GVRToString(test.GVR)
 			// checking if update operation is true
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
 				Resource:  resource,
@@ -177,7 +177,7 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			resource := utils.GvrToString(test.GVR)
+			resource := utils.GVRToString(test.GVR)
 			// checking if update operation is true
 			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
 				Resource:  resource,
