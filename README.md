@@ -1,5 +1,5 @@
 # BotKube
-[![CI](https://github.com/infracloudio/botkube/workflows/CI/badge.svg?branch=develop)](https://github.com/infracloudio/botkube/actions?query=workflow%3ACI+branch%3Adevelop) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube) [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io) [![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube) [![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/infracloudio/botkube/releases/latest)
+[![CI](https://github.com/infracloudio/botkube/workflows/CI/badge.svg?branch=develop)](https://github.com/infracloudio/botkube/actions?query=workflow%3ACI+branch%3Adevelop) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube) [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io) [![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube) [![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/infracloudio/botkube/releases/latest) ![Twitter Follow](https://img.shields.io/twitter/follow/infracloudio?style=social)
 
 For complete documentation visit www.botkube.io
 
@@ -13,6 +13,23 @@ BotKube is participating in Hacktoberfest 2020. We are giving some really cool s
 
 ## Getting started
 Please follow [this](https://www.botkube.io/installation/) for complete BotKube installation guide.
+
+### Install BotKube to the Slack workspace
+
+Follow the steps below to install BotKube Slack app to your Slack workspace.
+
+Install BotKube Slack app to your Slack workspace
+Click the Add to Slack button provided to install BotKube Slack application to your workspace. Once you have authorized the application, you will be provided a BOT Access token. Kindly note down that token as it will be required while deploying BotKube backend to your Kubernetes cluster.
+
+[![slack_add](https://platform.slack-edge.com/img/add_to_slack.png)](https://slack.com/oauth/authorize?scope=commands,bot&client_id=12637824912.515475697794)
+
+Alternatively, you can install BotKube Slack app from [Slack app directory](https://slack.com/apps/AF5DZLHPC-botkube).
+
+### Add BotKube user to a Slack channel
+After installing BotKube app to your Slack workspace, you could see a new bot user with the name “BotKube” added in your workspace. Add that bot to a Slack channel you want to receive notification in.
+(You can add it by inviting @BotKube in a channel)
+
+
 
 ## Architecture
 ![](/botkube_arch.jpg)
