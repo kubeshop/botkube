@@ -54,7 +54,7 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 	var podObj coreV1.Pod
 	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &podObj)
 	if err != nil {
-		log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(podObj))
+		log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(podObj))
 	}
 
 	// Check image tag in initContainers

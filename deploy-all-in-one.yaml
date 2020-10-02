@@ -370,7 +370,7 @@ spec:
                 name: botkube-configmap
             - secret:
                 name: botkube-communication-secret
-      # run as non privilaged user
+      # run as non privileged user
       securityContext:
         runAsUser: 101
         runAsGroup: 101
