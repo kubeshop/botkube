@@ -86,7 +86,7 @@ func isNamespaceIgnored(resourceNamespaces config.Namespaces, eventNamespace str
 				if strings.Contains(ignoredNamespace, "*") {
 					ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
 					matched, err := regexp.MatchString(ns, eventNamespace)
-					if matched && err == nil {
+					if err == nil && matched {
 						return true
 					}
 				}
