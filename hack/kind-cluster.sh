@@ -26,33 +26,33 @@ install_kind() {
 }
 
 create_kind_cluster() {
-  install_kind
-  echo "creating KIND cluster"
-  kind create cluster
+    install_kind
+    echo "creating KIND cluster"
+    kind create cluster
 }
 
 destroy_kind_cluster() {
-  echo "destroying KIND cluster"
-  kind delete clusters --all
+    echo "destroying KIND cluster"
+    kind delete clusters --all
 }
 
 help() {
-  usage="$(basename "$0") [option] -- Script to create or destroy KIND cluster.
-  Available option are install-kind, destroy-kind or create-kind"
-  echo $usage
+    usage="$(basename "$0") [option] -- Script to create or destroy KIND cluster.
+    Available option are install-kind, destroy-kind or create-kind"
+    echo $usage
 }
 
 
 if [ $# -gt 1 ]; then help ;fi
 case "${1}" in
-        create-kind)
-            create_kind_cluster
-            ;;
-        destroy-kind)
-            destroy_kind_cluster
+    create-kind)
+        create_kind_cluster
         ;;
-        *)
-            help
-            exit 1
+    destroy-kind)
+        destroy_kind_cluster
+        ;;
+    *)
+        help
+        exit 1
 esac
 
