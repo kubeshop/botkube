@@ -41,6 +41,9 @@ var (
 	ValidNotifierCommand = map[string]bool{
 		"notifier": true,
 	}
+	validHelpCommand = map[string]bool{
+		"help": true,
+	}
 	validPingCommand = map[string]bool{
 		"ping": true,
 	}
@@ -69,8 +72,9 @@ var (
 )
 
 const (
+	botHelpCmdMsg      = "BotKube Help\n\nUsage:\n    @BotKube ping [--cluster-name <cluster-name>]\n    @BotKube commands list  (on BotKube v0.11.0+)\n    @BotKube <kubectl command without kubectl prefix> [--cluster-name <cluster_name>]\n    @BotKube notifier [stop|start|status|showconfig]\n    @BotKube filters [list|enable|disable] [filter-name]\n\nDescription:\n\nCluster Status:\n    - List all available Kubernetes Clusters and check connection health.\n    - If flag specified, gives response from the specified cluster.\n\n    Example:\n        @BotKube ping\n        @BotKube ping --cluster-name mycluster\n\nAllowed kubectl commands list:\n    - Show allowed kubectl commands as per the BotKube configuration\n\n    Example:\n        @BotKube commands list\n\nKubectl commands:\n    - Executes kubectl commands on k8s cluster and returns output.\n\n    Example:\n        @BotKube get pods\n        @BotKube logs podname -n namespace\n        @BotKube get deployment --cluster-name cluster_name\n\n    Allowed kubectl commands:\n        For BotKube v0.11.0+:\n            Check allowed commands with '@BotKube commands list'\n        For older versions:\n            Allowed commands are - get, top, cluster-info, describe, explain, logs, version, auth, api-resources, api-versions, diff\n\nNotifier commands:\n    - Commands to manage incoming notifications (Runs only on configured channel).\n\n    Example:\n        @BotKube notifier stop          Stop sending k8s event notifications to Slack\n        @BotKube notifier start         Start sending k8s event notifications to Slack\n        @BotKube notifier status        Show running status of event notifier\n        @BotKube notifier showconfig    Show BotKube configuration for event notifier\n\nFilters commands:\n    - Command to manage filters run on K8s events (Runs only on configured channel).\n\n    Example:\n        @BotKube filters list                     Show list of available filters\n        @BotKube filters disable ImageTagChecker  Disable filter\n        @BotKube filters enable ImageTagChecker   Enable filter\n\nOptions:\n    --cluster-name                  Get cluster specific response"
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
+	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp or @bokube help to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
@@ -79,11 +83,11 @@ const (
 	// NotifierStartMsg notifier enabled response message
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
 	// IncompleteCmdMsg incomplete command response message
-	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp or @bokube help to see command options."
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
-	teamsIncompleteCmdMsg  = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	teamsIncompleteCmdMsg  = "You missed to pass options for the command. Please run /botkubehelp or @bokube help to see command options."
 )
 
 // Executor is an interface for processes to execute commands
@@ -206,6 +210,13 @@ func (e *DefaultExecutor) Execute() string {
 	}
 	if ValidNotifierCommand[args[0]] {
 		return e.runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
+	}
+	if validHelpCommand[args[0]] {
+		res := botHelpCmdMsg
+		if len(res) == 0 {
+			return ""
+		}
+		return fmt.Sprint("a helping hand from botkube") + "\n\n" + res
 	}
 	if validPingCommand[args[0]] {
 		res := runVersionCommand(args, e.ClusterName)
