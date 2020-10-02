@@ -21,6 +21,7 @@ package filters
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -75,9 +76,20 @@ func (f NamespaceChecker) Describe() string {
 func isNamespaceIgnored(resourceNamespaces config.Namespaces, eventNamespace string) bool {
 	if len(resourceNamespaces.Include) == 1 && resourceNamespaces.Include[0] == "all" {
 		if len(resourceNamespaces.Ignore) > 0 {
-			ignoredNamespaces := fmt.Sprintf("%#v", resourceNamespaces.Ignore)
-			if strings.Contains(ignoredNamespaces, eventNamespace) {
-				return true
+			for _, ignoredNamespace := range resourceNamespaces.Ignore {
+				// exact match
+				if ignoredNamespace == eventNamespace {
+					return true
+				}
+
+				// regexp
+				if strings.Contains(ignoredNamespace, "*") {
+					ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
+					matched, err := regexp.MatchString(ns, eventNamespace)
+					if err == nil && matched {
+						return true
+					}
+				}
 			}
 		}
 	}

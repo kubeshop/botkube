@@ -121,7 +121,8 @@ type UpdateSetting struct {
 //  - "all" to watch all the namespaces
 // Ignore contains a list of namespaces to be ignored when all namespaces are included
 // It is an optional (omitempty) field which is tandem with Include [all]
-// example : include [all], ignore [x,y,z]
+// It can also contain a * that would expand to zero or more arbitrary characters
+// example : include [all], ignore [x,y,secret-ns-*]
 type Namespaces struct {
 	Include []string
 	Ignore  []string `yaml:",omitempty"`
