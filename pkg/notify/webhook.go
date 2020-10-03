@@ -127,7 +127,7 @@ func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error Posting Webhook: %s", string(resp.StatusCode))
+		return fmt.Errorf("Error Posting Webhook: %d", resp.StatusCode)
 	}
 
 	return nil
