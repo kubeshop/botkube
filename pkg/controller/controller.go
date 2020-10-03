@@ -89,7 +89,7 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			var eventObj coreV1.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
-				log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 			}
 			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
