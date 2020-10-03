@@ -54,7 +54,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	var ingressObj v1beta1.Ingress
 	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &ingressObj)
 	if err != nil {
-		log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(ingressObj))
+		log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(ingressObj))
 	}
 
 	ingNs := ingressObj.ObjectMeta.Namespace

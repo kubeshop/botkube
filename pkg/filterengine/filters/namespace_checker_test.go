@@ -31,9 +31,12 @@ func TestIsNamespaceIgnored(t *testing.T) {
 		eventNamespace string
 		expected       bool
 	}{
-		`include all and ignore few --> watch all except ignored`: {config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo", "abc"}}, "demo", true},
-		`include all and ignore is "" --> watch all`:              {config.Namespaces{Include: []string{"all"}, Ignore: []string{""}}, "demo", false},
-		`include all and ignore is [] --> watch all`:              {config.Namespaces{Include: []string{"all"}, Ignore: []string{}}, "demo", false},
+		`include all and ignore few --> watch all except ignored`:                      {config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo", "abc"}}, "demo", true},
+		`include all and ignore is "" --> watch all`:                                   {config.Namespaces{Include: []string{"all"}, Ignore: []string{""}}, "demo", false},
+		`include all and ignore is [] --> watch all`:                                   {config.Namespaces{Include: []string{"all"}, Ignore: []string{}}, "demo", false},
+		`include all and ignore with reqexp --> watch all except matched`:              {config.Namespaces{Include: []string{"all"}, Ignore: []string{"my-*"}}, "my-ns", true},
+		`include all and ignore few combined with regexp --> watch all except ignored`: {config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo", "ignored-*-ns"}}, "ignored-42-ns", true},
+		`include all and ignore with regexp that doesn't match anything --> watch all`: {config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo-*"}}, "demo", false},
 		// utils.AllowedEventKindsMap inherently handles remaining test case
 	}
 	for name, test := range tests {
