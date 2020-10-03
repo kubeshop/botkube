@@ -28,12 +28,12 @@ install_kind() {
 create_kind_cluster() {
   install_kind
   echo "creating KIND cluster"
-  kind create cluster
+  kind create cluster --name kind-cicd
 }
 
 destroy_kind_cluster() {
   echo "destroying KIND cluster"
-  kind delete clusters --all
+  kind delete cluster --name kind-cicd
 }
 
 help() {
