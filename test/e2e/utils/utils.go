@@ -75,11 +75,13 @@ type UpdateObjects struct {
 
 // DeleteObjects stores specs for deleting a k8s fake object
 type DeleteObjects struct {
-	GVR       schema.GroupVersionResource
-	Kind      string
-	Namespace string
-	Name      string
-	Specs     runtime.Object
+	GVR                    schema.GroupVersionResource
+	Kind                   string
+	Namespace              string
+	Name                   string
+	Specs                  runtime.Object
+	ExpectedWebhookPayload WebhookPayload
+	ExpectedSlackMessage   SlackMessage
 }
 
 // CreateResource with fake client
@@ -120,4 +122,26 @@ func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured
 		t.Fatalf("Failed to update %s: %v", obj.GVR.Resource, err)
 	}
 	return oldObj, newObj
+}
+
+// DeleteResource deletes the obj with fake client
+func DeleteResource(t *testing.T, obj DeleteObjects) {
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
+	}
+	// Delete resource
+	err = utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(s.GetName(), &v1.DeleteOptions{})
+
+	if err != nil {
+		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
+	}
 }
