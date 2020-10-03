@@ -38,7 +38,7 @@ destroy_kind_cluster() {
 
 help() {
   usage="$(basename "$0") [option] -- Script to create or destroy KIND cluster.
-  Available option are install-kind, destroy-kind or create-kind"
+  Available options are destroy-kind, create-kind or help"
   echo $usage
 }
 
