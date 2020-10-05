@@ -21,6 +21,7 @@ package utils
 
 import (
 	"testing"
+	"time"
 
 	"github.com/nlopes/slack"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,12 +116,15 @@ func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured
 	if err != nil {
 		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
+	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
+	time.Sleep(30 * time.Second)
 	// Applying patch
 	newObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Patch(s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
-
 	if err != nil {
 		t.Fatalf("Failed to update %s: %v", obj.GVR.Resource, err)
 	}
+	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
+	time.Sleep(30 * time.Second)
 	return oldObj, newObj
 }
 

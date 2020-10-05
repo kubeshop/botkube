@@ -38,7 +38,7 @@ func TestPostWebhook(t *testing.T) {
 			httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 			})),
-			fmt.Errorf("Error Posting Webhook: %s", string(http.StatusServiceUnavailable)),
+			fmt.Errorf("Error Posting Webhook: %s", fmt.Sprint(http.StatusServiceUnavailable)),
 		},
 		`Status Ok`: {
 			httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
