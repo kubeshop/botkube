@@ -361,7 +361,7 @@ func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interf
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
 }
 
-//GetStringInYamlFormat get the formated commands list
+//GetStringInYamlFormat get the formatted commands list
 func GetStringInYamlFormat(header string, commands map[string]bool) string {
 	var b bytes.Buffer
 	fmt.Fprintln(&b, header)
