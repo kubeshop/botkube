@@ -104,7 +104,7 @@ func (e *TestEnv) SetupFakeSlack() {
 // GetLastSeenSlackMessage return last message received by fake slack server
 func (e TestEnv) GetLastSeenSlackMessage() *string {
 
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.SlackServer.GetSeenOutboundMessages()
 	if len(allSeenMessages) != 0 {
@@ -124,7 +124,7 @@ func (e *TestEnv) SetupFakeWebhook() {
 // GetLastReceivedPayload return last message received by fake webhook server
 func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
 
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.WebhookServer.GetReceivedPayloads()
 	if len(allSeenMessages) != 0 {
