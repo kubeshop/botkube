@@ -63,7 +63,7 @@ func (c *context) testDeleteEvent(t *testing.T) {
 	}
 	// test scenarios
 	tests := map[string]testutils.DeleteObjects{
-		"perform delete operation with only delete event": {
+		"perform delete operation and configure BotKube to listen only delete events": {
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
 			Namespace: "test",
