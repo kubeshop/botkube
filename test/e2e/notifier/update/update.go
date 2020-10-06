@@ -144,6 +144,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 func (c *context) Run(t *testing.T) {
 	t.Run("update resource", c.testUpdateResource)
 	t.Run("skip update event", c.testSKipUpdateEvent)
+	t.Run("skip update event for wrong setting", c.testSkipWrongSetting)
 }
 
 // E2ETests runs create notification tests
@@ -173,7 +174,8 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 			// update operation not allowed for namespaces in test_config so event should be skipped
 			GVR:   schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
 			Kind:  "Namespace",
-			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "abc"}}},
+			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "abc"}},
+		},
 	}
 
 	for name, test := range tests {
@@ -189,8 +191,65 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 					Namespace: test.Namespace,
 					EventType: config.UpdateEvent}]
 			assert.Equal(t, isAllowed, false)
+
 		})
 	}
 	// Resetting original configuration as per test_config
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = true
+}
+
+func (c *context) testSkipWrongSetting(t *testing.T) {
+	// test scenarios
+	tests := map[string]testutils.UpdateObjects{
+		"skip update event for wrong updateSettings value": {
+			// update event given with wrong value of updateSettings which doesn't exist would be skipped
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+			Kind:      "Pod",
+			Namespace: "test",
+			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-update-skip"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
+			Patch: []byte(`{
+				"apiVersion": "v1",
+				"kind": "Pod",
+				"metadata": {
+				  "name": "test-pod-update-skip",
+				  "namespace": "test"
+				},
+				"spec": {
+				  "containers": [
+					{
+					  "name": "test-pod-container",
+					  "image": "tomcat:8.0"
+					}
+				  ]
+				}
+			  }
+			  `),
+			// adding wrong field
+			UpdateSetting: config.UpdateSetting{Fields: []string{"spec.invalid"}, IncludeDiff: true},
+			// diff calcuted should be empty because of error
+			Diff: "",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			resource := utils.GVRToString(test.GVR)
+			// checking if update operation is true
+			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
+				Resource:  resource,
+				Namespace: "all",
+				EventType: config.UpdateEvent}] ||
+				utils.AllowedEventKindsMap[utils.EventKind{
+					Resource:  resource,
+					Namespace: test.Namespace,
+					EventType: config.UpdateEvent}]
+			assert.Equal(t, isAllowed, true)
+			// modifying the update setting value as per testcases
+			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
+			// getting the updated and old object
+			oldObj, newObj := testutils.UpdateResource(t, test)
+			updateMsg := utils.Diff(oldObj.Object, newObj.Object, test.UpdateSetting)
+			assert.Equal(t, test.Diff, updateMsg)
+		})
+	}
 }
