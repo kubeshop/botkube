@@ -66,6 +66,8 @@ const (
 	MattermostBot BotPlatform = "mattermost"
 	// TeamsBot bot platform
 	TeamsBot BotPlatform = "teams"
+	// DiscordBot bot Platform
+	DiscordBot BotPlatform = "discord"
 )
 
 // EventType to watch
@@ -132,6 +134,7 @@ type Namespaces struct {
 type CommunicationsConfig struct {
 	Slack         Slack
 	Mattermost    Mattermost
+	Discord       Discord
 	Webhook       Webhook
 	Teams         Teams
 	ElasticSearch ElasticSearch
@@ -189,6 +192,15 @@ type Teams struct {
 	Port        string
 	MessagePath string
 	NotifType   NotifType `yaml:",omitempty"`
+}
+
+// Discord configuration for authentication and send notifications
+type Discord struct {
+	Enabled   bool
+	Token     string
+	BotID     string
+	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
 }
 
 // Webhook configuration to send notifications
