@@ -46,6 +46,9 @@ func ListNotifiers(conf config.CommunicationsConfig) []Notifier {
 			log.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
 		}
 	}
+	if conf.Discord.Enabled {
+		notifiers = append(notifiers, NewDiscord(conf.Discord))
+	}
 	if conf.ElasticSearch.Enabled {
 		if els, err := NewElasticSearch(conf.ElasticSearch); err == nil {
 			notifiers = append(notifiers, els)
