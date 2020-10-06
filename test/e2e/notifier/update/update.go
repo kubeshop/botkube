@@ -191,7 +191,6 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 					Namespace: test.Namespace,
 					EventType: config.UpdateEvent}]
 			assert.Equal(t, isAllowed, false)
-
 		})
 	}
 	// Resetting original configuration as per test_config
