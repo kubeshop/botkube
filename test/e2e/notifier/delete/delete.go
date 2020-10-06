@@ -26,6 +26,10 @@ func (c *context) testSKipDeleteEvent(t *testing.T) {
 	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"})
 	// Modifying AllowedEventKindsMap to add delete event for only dummy namespace and ignore everything
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"}] = true
+	// Modifying AllowedEventKindsMap to remove all event for service resource
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "delete"})
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "create"})
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "error"})
 	// test scenarios
 	tests := map[string]testutils.DeleteObjects{
 		"skip delete event for resources not configured": {
@@ -41,6 +45,13 @@ func (c *context) testSKipDeleteEvent(t *testing.T) {
 			Kind:      "Pod",
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-delete"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
+		},
+		"skip delete event for resources not added in test_config": {
+			// delete operation not allowed for Pod resources so event should be skipped
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
+			Kind:      "Service",
+			Namespace: "test",
+			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service-delete"}},
 		},
 	}
 
@@ -62,6 +73,10 @@ func (c *context) testSKipDeleteEvent(t *testing.T) {
 	// Resetting original configuration as per test_config
 	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"})
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"}] = true
+	// Resetting original configuration as per test_config adding service resource
+	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "delete"}] = true
+	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "error"}] = true
+	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "create"}] = true
 }
 
 func (c *context) testDeleteEvent(t *testing.T) {
