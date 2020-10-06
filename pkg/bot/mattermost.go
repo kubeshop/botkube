@@ -128,7 +128,7 @@ func (b *MMBot) Start() {
 	return
 }
 
-// Check incomming message and take action
+// Check incoming message and take action
 func (mm *mattermostMessage) handleMessage(b MMBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
@@ -157,13 +157,15 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 
 // Send messages to Mattermost
 func (mm mattermostMessage) sendMessage() {
+	log.Debugf("Mattermost incoming Request: %s", mm.Request)
+	log.Debugf("Mattermost Response: %s", mm.Response)
 	post := &model.Post{}
 	post.ChannelId = mm.Event.Broadcast.ChannelId
 	// Create file if message is too large
 	if len(mm.Response) >= 3990 {
 		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
 		if resp.Error != nil {
-			log.Error("Error occured while uploading file. Error: ", resp.Error)
+			log.Error("Error occurred while uploading file. Error: ", resp.Error)
 		}
 		post.FileIds = []string{string(res.FileInfos[0].Id)}
 	} else if len(mm.Response) == 0 {

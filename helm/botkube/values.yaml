@@ -38,8 +38,8 @@ config:
       namespaces:               # List of namespaces, "all" will watch all the namespaces
         include:
           - all
-        ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
-          -                     # example : include [all], ignore [x,y,z]
+        ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
+          -                     # example : include [all], ignore [x,y,secret-ns-*]
       events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
         - create
         - delete
@@ -292,6 +292,15 @@ communications:
     notiftype: short
     port: 3978
 
+  
+  # Settings for Discord
+  discord:
+    enabled: false
+    token: 'DISCORD_TOKEN'                      # BotKube Bot Token 
+    botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID 
+    channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts 
+    notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
+  
   # Settings for ELS
   elasticsearch:
     enabled: false

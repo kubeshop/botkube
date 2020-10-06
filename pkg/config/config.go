@@ -66,6 +66,8 @@ const (
 	MattermostBot BotPlatform = "mattermost"
 	// TeamsBot bot platform
 	TeamsBot BotPlatform = "teams"
+	// DiscordBot bot Platform
+	DiscordBot BotPlatform = "discord"
 )
 
 // EventType to watch
@@ -121,7 +123,8 @@ type UpdateSetting struct {
 //  - "all" to watch all the namespaces
 // Ignore contains a list of namespaces to be ignored when all namespaces are included
 // It is an optional (omitempty) field which is tandem with Include [all]
-// example : include [all], ignore [x,y,z]
+// It can also contain a * that would expand to zero or more arbitrary characters
+// example : include [all], ignore [x,y,secret-ns-*]
 type Namespaces struct {
 	Include []string
 	Ignore  []string `yaml:",omitempty"`
@@ -131,6 +134,7 @@ type Namespaces struct {
 type CommunicationsConfig struct {
 	Slack         Slack
 	Mattermost    Mattermost
+	Discord       Discord
 	Webhook       Webhook
 	Teams         Teams
 	ElasticSearch ElasticSearch
@@ -188,6 +192,15 @@ type Teams struct {
 	Port        string
 	MessagePath string
 	NotifType   NotifType `yaml:",omitempty"`
+}
+
+// Discord configuration for authentication and send notifications
+type Discord struct {
+	Enabled   bool
+	Token     string
+	BotID     string
+	Channel   string
+	NotifType NotifType `yaml:",omitempty"`
 }
 
 // Webhook configuration to send notifications

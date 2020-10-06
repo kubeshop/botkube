@@ -131,6 +131,7 @@ func (c *context) testUpdateResource(t *testing.T) {
 			if c.TestEnv.Config.Communications.Webhook.Enabled {
 				// Get last seen webhook payload
 				lastSeenPayload := c.GetLastReceivedPayload()
+				t.Logf("LastSeenPayload :%#v", lastSeenPayload)
 				assert.Equal(t, test.ExpectedWebhookPayload.EventMeta, lastSeenPayload.EventMeta)
 				assert.Equal(t, test.ExpectedWebhookPayload.EventStatus, lastSeenPayload.EventStatus)
 				assert.Equal(t, test.ExpectedWebhookPayload.Summary, lastSeenPayload.Summary)

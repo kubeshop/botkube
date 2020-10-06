@@ -24,8 +24,8 @@ resources:
     namespaces:               # List of namespaces, "all" will watch all the namespaces
       include:
         - all
-      ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
-        -                     # example : include [all], ignore [x,y,z] 
+      ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
+        -                     # example : include [all], ignore [x,y,secret-ns-*]
     events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
       - create
       - delete

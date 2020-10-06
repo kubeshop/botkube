@@ -23,8 +23,8 @@ FROM golang:1.13-alpine3.10 AS BUILD-ENV
 ARG GOOS_VAL 
 ARG GOARCH_VAL
 
-# Add git
-RUN apk update && apk add git curl
+# Add git curl and gcc
+RUN apk update && apk add git curl build-base 
 
 WORKDIR /app
 
@@ -46,11 +46,11 @@ RUN apk add --no-cache ca-certificates git \
 # Production image
 FROM alpine:3.10
 
-# Create Non Privilaged user
+# Create Non Privileged user
 RUN addgroup --gid 101 botkube && \
     adduser -S --uid 101 --ingroup botkube botkube
 
-# Run as Non Privilaged user
+# Run as Non Privileged user
 USER botkube
 
 COPY --from=BUILD-ENV /go/bin/botkube /go/bin/botkube
