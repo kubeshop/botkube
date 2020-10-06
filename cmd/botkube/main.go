@@ -77,6 +77,12 @@ func startController() error {
 		go tb.Start()
 	}
 
+	if conf.Communications.Discord.Enabled {
+		log.Info("Starting discord bot")
+		db := bot.NewDiscordBot(conf)
+		go db.Start()
+	}
+
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")
