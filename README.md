@@ -1,13 +1,16 @@
 # BotKube
+
 [![CI](https://github.com/infracloudio/botkube/workflows/CI/badge.svg?branch=develop)](https://github.com/infracloudio/botkube/actions?query=workflow%3ACI+branch%3Adevelop) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube)
 [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io)
 [![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube)
 [![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/infracloudio/botkube/releases/latest)
 [![License](https://img.shields.io/github/license/infracloudio/botkube?color=light%20green&logo=github)](https://github.com/infracloudio/botkube/blob/develop/LICENSE)
+[![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
+
 
 For complete documentation visit www.botkube.io
 
-BotKube integration with Slack, Mattermost or Microsoft Teams helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
+BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
 You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
 
 ![](botkube-title.jpg)

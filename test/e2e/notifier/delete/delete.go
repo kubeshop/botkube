@@ -24,9 +24,18 @@ type context struct {
 func (c *context) testSKipDeleteEvent(t *testing.T) {
 	// Modifying AllowedEventKindsMap to remove delete event for pod resource
 	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"})
+	// Modifying AllowedEventKindsMap to add delete event for only dummy namespace and ignore everything
+	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"}] = true
 	// test scenarios
 	tests := map[string]testutils.DeleteObjects{
 		"skip delete event for resources not configured": {
+			// delete operation not allowed for Pod resources so event should be skipped
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+			Kind:      "Pod",
+			Namespace: "test",
+			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-delete"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
+		},
+		"skip delete event for namespace not configured": {
 			// delete operation not allowed for Pod in test namespace so event should be skipped
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
 			Kind:      "Pod",
@@ -51,6 +60,7 @@ func (c *context) testSKipDeleteEvent(t *testing.T) {
 		})
 	}
 	// Resetting original configuration as per test_config
+	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"})
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"}] = true
 }
 

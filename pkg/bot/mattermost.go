@@ -157,6 +157,8 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 
 // Send messages to Mattermost
 func (mm mattermostMessage) sendMessage() {
+	log.Debugf("Mattermost incoming Request: %s", mm.Request)
+	log.Debugf("Mattermost Response: %s", mm.Response)
 	post := &model.Post{}
 	post.ChannelId = mm.Event.Broadcast.ChannelId
 	// Create file if message is too large
