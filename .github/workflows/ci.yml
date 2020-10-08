@@ -19,6 +19,8 @@ jobs:
     - name: Install golint
       run: |
         go get -u golang.org/x/lint/golint
+    - name: Codespell action
+      uses: sanketsudake/codespell-action@v1
     - name: Before build
       run: |
         echo Workflow trigger - ${{ github.event_name }}

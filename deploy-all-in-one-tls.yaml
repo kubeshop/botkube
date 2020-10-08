@@ -16,17 +16,18 @@ data:
   resource_config.yaml: |
     ## Resources you want to watch
     resources:
-      - name: pod                # Name of the resources e.g pod, deployment, ingress, etc. (Resource name must be in singular form)
-        namespaces:
+      - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
+                                  # resource name should be plural (e.g apps/v1/deployments, v1/pods)
+        namespaces:               # List of namespaces, "all" will watch all the namespaces
           include:
             - all
-          ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all
-            -                     # example : include [all], ignore [x,y,z]
+          ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
+            -                     # example : include [all], ignore [x,y,secret-ns-*]
         events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
           - create
           - delete
           - error
-      - name: service
+      - name: v1/services
         namespaces:
           include:
             - all
@@ -36,7 +37,7 @@ data:
           - create
           - delete
           - error
-      - name: deployment
+      - name: apps/v1/deployments
         namespaces:
           include:
             - all
@@ -52,7 +53,7 @@ data:
           fields:
             - spec.template.spec.containers[*].image
             - status.availableReplicas
-      - name: statefulset
+      - name: apps/v1/statefulsets
         namespaces:
           include:
             - all
@@ -68,7 +69,7 @@ data:
           fields:
             - spec.template.spec.containers[*].image
             - status.readyReplicas
-      - name: ingress
+      - name: networking.k8s.io/v1beta1/ingresses
         namespaces:
           include:
             - all
@@ -78,7 +79,7 @@ data:
           - create
           - delete
           - error
-      - name: node
+      - name: v1/nodes
         namespaces:
           include:
             - all
@@ -88,7 +89,7 @@ data:
           - create
           - delete
           - error
-      - name: namespace
+      - name: v1/namespaces
         namespaces:
           include:
             - all
@@ -98,7 +99,7 @@ data:
           - create
           - delete
           - error
-      - name: persistentvolume
+      - name: v1/persistentvolumes
         namespaces:
           include:
             - all
@@ -108,7 +109,7 @@ data:
           - create
           - delete
           - error
-      - name: persistentvolumeclaim
+      - name: v1/persistentvolumeclaims
         namespaces:
           include:
             - all
@@ -118,7 +119,7 @@ data:
           - create
           - delete
           - error
-      - name: configmap
+      - name: v1/configmaps
         namespaces:
           include:
             - all
@@ -128,7 +129,7 @@ data:
           - create
           - delete
           - error
-      - name: daemonset
+      - name: apps/v1/daemonsets
         namespaces:
           include:
             - all
@@ -144,7 +145,7 @@ data:
           fields:
             - spec.template.spec.containers[*].image
             - status.numberReady
-      - name: job
+      - name: batch/v1/jobs
         namespaces:
           include:
             - all
@@ -160,7 +161,7 @@ data:
           fields:
             - spec.template.spec.containers[*].image
             - status.conditions[*].type
-      - name: role
+      - name: rbac.authorization.k8s.io/v1/roles
         namespaces:
           include:
             - all
@@ -170,7 +171,7 @@ data:
           - create
           - delete
           - error
-      - name: rolebinding
+      - name: rbac.authorization.k8s.io/v1/rolebindings
         namespaces:
           include:
             - all
@@ -180,7 +181,7 @@ data:
           - create
           - delete
           - error
-      - name: clusterrole
+      - name: rbac.authorization.k8s.io/v1/clusterrolebindings
         namespaces:
           include:
             - all
@@ -190,7 +191,7 @@ data:
           - create
           - delete
           - error
-      - name: clusterrolebinding
+      - name: rbac.authorization.k8s.io/v1/clusterroles
         namespaces:
           include:
             - all
@@ -213,6 +214,11 @@ data:
       kubectl:
         # Set true to enable kubectl commands execution
         enabled: false
+        commands:
+          # method which are allowed
+          verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
+          # resource configuration which is allowed
+          resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
         # set Namespace to execute botkube kubectl commands by default
         defaultNamespace: default
         # Set true to enable commands execution from configured channel only
@@ -251,11 +257,23 @@ stringData:
         channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
+      # Settings for Discord
+      discord:
+        enabled: false
+        token: 'DISCORD_TOKEN'                      # BotKube Bot Token 
+        botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID 
+        channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts 
+        notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
+      
       # Settings for ELS
       elasticsearch:
-        enable: false
-        server: 'ELASTICSEARCH_ADDRESS'              # e.g https://example.com:9243
-        username: 'ELASTICSEARCH_USERNAME'
+        enabled: false
+        awsSigning:
+          enabled: false                            # enable awsSigning using IAM for Elastisearch hosted on AWS, if true make sure AWS environment variables are set. Refer https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+          awsRegion: 'us-east-1'                    # AWS region where Elasticsearch is deployed
+          roleArn: ''                               # AWS IAM Role arn to assume for credentials, use this only if you dont want to use the EC2 instance role or not running on AWS instance
+        server: 'ELASTICSEARCH_ADDRESS'             # e.g https://example.com:9243
+        username: 'ELASTICSEARCH_USERNAME'          # Basic Auth
         password: 'ELASTICSEARCH_PASSWORD'
         # ELS index settings
         index:
@@ -263,6 +281,14 @@ stringData:
           type: botkube-event
           shards: 1
           replicas: 0
+
+      # Settings for MS Teams
+      teams:
+        enabled: false
+        appID: 'APPLICATION_ID'
+        appPassword: 'APPLICATION_PASSWORD'
+        notiftype: short
+        port: 3978
 
       # Settings for Webhook
       webhook:
@@ -340,7 +366,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloudio/botkube:v0.10.0"
+          image: "infracloudio/botkube:v0.11.0"
           imagePullPolicy: Always
           volumeMounts:
             - name: config-volume
@@ -355,7 +381,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: v0.10.0
+              value: v0.11.0
       volumes:
         - name: config-volume
           projected:
@@ -367,7 +393,45 @@ spec:
         - name: certs
           secret:
             secretName: botkube-certificate-secret
-      # run as non privilaged user
+      # run as non privileged user
       securityContext:
         runAsUser: 101
         runAsGroup: 101
+---
+## Uncomment following resources for Teams support
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: botkube
+#  labels:
+#    app: botkube
+#spec:
+#  type: ClusterIP
+#  ports:
+#  - name: "teams"
+#    port: 3978
+#  selector:
+#    app: botkube
+#---
+## Source: botkube/templates/ingress.yaml
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: botkube
+#  labels:
+#    app: botkube
+#  annotations:
+#    kubernetes.io/ingress.class: nginx
+#spec:
+#  tls:
+#  - hosts:
+#    - HOST
+#    secretName: TLS_SECRET_NAME
+#  rules:
+#  - http:
+#      paths:
+#        - path: URLPATH
+#          backend:
+#            serviceName: botkube
+#            servicePort: 3978
+#    host: HOST

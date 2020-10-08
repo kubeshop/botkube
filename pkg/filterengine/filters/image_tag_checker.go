@@ -21,14 +21,17 @@ package filters
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
+	"github.com/infracloudio/botkube/pkg/utils"
 
 	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
@@ -45,12 +48,13 @@ func init() {
 
 // Run filers and modifies event struct
 func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
-	if event.Kind != "Pod" || event.Type != config.CreateEvent {
+	if event.Kind != "Pod" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(object).Kind == "Event" {
 		return
 	}
-	podObj, ok := object.(*coreV1.Pod)
-	if !ok {
-		return
+	var podObj coreV1.Pod
+	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &podObj)
+	if err != nil {
+		log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(podObj))
 	}
 
 	// Check image tag in initContainers

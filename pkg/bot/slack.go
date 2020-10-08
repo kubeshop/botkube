@@ -127,8 +127,6 @@ func (b *SlackBot) Start() {
 }
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) {
-	log.Debugf("Slack incoming message: %+v", sm.Event)
-
 	// Check if message posted in authenticated channel
 	info, err := sm.SlackClient.GetConversationInfo(sm.Event.Channel, true)
 	if err == nil {
@@ -155,12 +153,15 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, b.ChannelName, sm.IsAuthChannel)
+	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
+		b.ClusterName, config.SlackBot, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }
 
-func (sm slackMessage) Send() {
+func (sm *slackMessage) Send() {
+	log.Debugf("Slack incoming Request: %s", sm.Request)
+	log.Debugf("Slack Response: %s", sm.Response)
 	// Upload message as a file if too long
 	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{

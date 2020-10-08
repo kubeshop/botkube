@@ -21,14 +21,18 @@ package utils
 
 import (
 	"testing"
+	"time"
+
+	"github.com/nlopes/slack"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
-	"github.com/nlopes/slack"
-	v1 "k8s.io/api/core/v1"
-	networkV1beta1 "k8s.io/api/networking/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // SlackMessage structure
@@ -46,6 +50,7 @@ type WebhookPayload struct {
 
 // CreateObjects stores specs for creating a k8s fake object and expected Slack response
 type CreateObjects struct {
+	GVR                    schema.GroupVersionResource
 	Kind                   string
 	Namespace              string
 	Specs                  runtime.Object
@@ -54,34 +59,93 @@ type CreateObjects struct {
 	ExpectedSlackMessage   SlackMessage
 }
 
+// UpdateObjects stores specs and patch for updating a k8s fake object and expected Slack response
+type UpdateObjects struct {
+	GVR                    schema.GroupVersionResource
+	Kind                   string
+	Namespace              string
+	Name                   string
+	Specs                  runtime.Object
+	Patch                  []byte
+	Diff                   string
+	UpdateSetting          config.UpdateSetting
+	NotifType              config.NotifType
+	ExpectedWebhookPayload WebhookPayload
+	ExpectedSlackMessage   SlackMessage
+}
+
+// DeleteObjects stores specs for deleting a k8s fake object
+type DeleteObjects struct {
+	GVR                    schema.GroupVersionResource
+	Kind                   string
+	Namespace              string
+	Name                   string
+	Specs                  runtime.Object
+	ExpectedWebhookPayload WebhookPayload
+	ExpectedSlackMessage   SlackMessage
+}
+
 // CreateResource with fake client
 func CreateResource(t *testing.T, obj CreateObjects) {
-	switch obj.Kind {
-	case "pod":
-		s := obj.Specs.(*v1.Pod)
-		_, err := utils.KubeClient.CoreV1().Pods(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create pod: %v", err)
-		}
-	case "service":
-		s := obj.Specs.(*v1.Service)
-		_, err := utils.KubeClient.CoreV1().Services(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	case "ingress":
-		s := obj.Specs.(*networkV1beta1.Ingress)
-		_, err := utils.KubeClient.NetworkingV1beta1().Ingresses(obj.Namespace).Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	case "namespace":
-		s := obj.Specs.(*v1.Namespace)
-		_, err := utils.KubeClient.CoreV1().Namespaces().Create(s)
-		if err != nil {
-			t.Fatalf("Failed to create service: %v", err)
-		}
-	default:
-		t.Fatalf("CreateResource method is not defined for resource %s", obj.Kind)
+	// convert the runtime.Object to unstructured.Unstructured
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+	// Create resource
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
+	}
+}
+
+// UpdateResource Create and update the obj and return old and new obj
+func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured, *unstructured.Unstructured) {
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+	// Create resource and get the old object
+	oldObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
+	}
+	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
+	time.Sleep(30 * time.Second)
+	// Applying patch
+	newObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Patch(s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
+	if err != nil {
+		t.Fatalf("Failed to update %s: %v", obj.GVR.Resource, err)
+	}
+	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
+	time.Sleep(30 * time.Second)
+	return oldObj, newObj
+}
+
+// DeleteResource deletes the obj with fake client
+func DeleteResource(t *testing.T, obj DeleteObjects) {
+	s := unstructured.Unstructured{}
+	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	if ok != nil {
+		t.Fatalf("Failed to convert pod object into unstructured")
+	}
+	s.Object = k
+	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
+
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
+	}
+	// Delete resource
+	err = utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(s.GetName(), &v1.DeleteOptions{})
+
+	if err != nil {
+		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
 	}
 }

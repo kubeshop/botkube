@@ -35,7 +35,7 @@ type Object struct {
 	Other  Other  `json:"other"`
 }
 
-// Other mocks fileds like MetaData, Status etc in kubernetes objects
+// Other mocks fields like MetaData, Status etc in kubernetes objects
 type Other struct {
 	Foo string `json:"foo"`
 }

@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nlopes/slack"
+
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -32,6 +34,8 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/infracloudio/botkube/test/e2e/filters"
 	"github.com/infracloudio/botkube/test/e2e/notifier/create"
+	"github.com/infracloudio/botkube/test/e2e/notifier/delete"
+	"github.com/infracloudio/botkube/test/e2e/notifier/update"
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
 
@@ -45,10 +49,9 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		fakeSlackNotifier := &notify.Slack{
-			Token:     testEnv.Config.Communications.Slack.Token,
 			Channel:   testEnv.Config.Communications.Slack.Channel,
 			NotifType: testEnv.Config.Communications.Slack.NotifType,
-			SlackURL:  testEnv.SlackServer.GetAPIURL(),
+			Client:    slack.New(testEnv.Config.Communications.Slack.Token, slack.OptionAPIURL(testEnv.SlackServer.GetAPIURL())),
 		}
 
 		notifiers = append(notifiers, fakeSlackNotifier)
@@ -56,14 +59,16 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Webhook.Enabled {
 		fakeWebhookNotifier := &notify.Webhook{
-			URL:         testEnv.WebhookServer.GetAPIURL(),
-			ClusterName: testEnv.Config.Settings.ClusterName,
+			URL: testEnv.WebhookServer.GetAPIURL(),
 		}
 		notifiers = append(notifiers, fakeWebhookNotifier)
 	}
 
-	utils.KubeClient = testEnv.K8sClient
-	utils.InitInformerMap()
+	utils.DynamicKubeClient = testEnv.K8sClient
+	utils.DiscoveryClient = testEnv.DiscoFake
+	utils.Mapper = testEnv.Mapper
+	utils.InitInformerMap(testEnv.Config)
+	utils.InitResourceMap(testEnv.Config)
 
 	// Start controller with fake notifiers
 	go controller.RegisterInformers(testEnv.Config, notifiers)
@@ -81,6 +86,8 @@ func TestRun(t *testing.T) {
 		"notifier": create.E2ETests(testEnv),
 		"command":  command.E2ETests(testEnv),
 		"filters":  filters.E2ETests(testEnv),
+		"update":   update.E2ETests(testEnv),
+		"delete":   delete.E2ETests(testEnv),
 	}
 
 	// Run test suite

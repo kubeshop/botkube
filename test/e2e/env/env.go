@@ -26,13 +26,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nlopes/slack"
+	"github.com/nlopes/slack/slacktest"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/fake"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/restmapper"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/infracloudio/botkube/test/webhook"
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slacktest"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 // TestEnv to store objects required for e2e testing
@@ -41,11 +47,13 @@ import (
 // SlackMessages: Channel to store incoming Slack messages from BotKube
 // Config	: BotKube config provided with config.yaml
 type TestEnv struct {
-	K8sClient     kubernetes.Interface
+	DiscoFake     discovery.DiscoveryInterface
+	K8sClient     dynamic.Interface
 	SlackServer   *slacktest.Server
 	WebhookServer *webhook.Server
 	SlackMessages chan (*slack.MessageEvent)
 	Config        *config.Config
+	Mapper        *restmapper.DeferredDiscoveryRESTMapper
 }
 
 // E2ETest interface to run tests
@@ -67,7 +75,11 @@ func New() *TestEnv {
 	// Set fake BotKube version
 	os.Setenv("BOTKUBE_VERSION", "v9.99.9")
 
-	testEnv.K8sClient = fake.NewSimpleClientset()
+	s := runtime.NewScheme()
+	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
+	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
+	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
@@ -92,7 +104,7 @@ func (e *TestEnv) SetupFakeSlack() {
 // GetLastSeenSlackMessage return last message received by fake slack server
 func (e TestEnv) GetLastSeenSlackMessage() *string {
 
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.SlackServer.GetSeenOutboundMessages()
 	if len(allSeenMessages) != 0 {
@@ -112,7 +124,7 @@ func (e *TestEnv) SetupFakeWebhook() {
 // GetLastReceivedPayload return last message received by fake webhook server
 func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
 
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.WebhookServer.GetReceivedPayloads()
 	if len(allSeenMessages) != 0 {

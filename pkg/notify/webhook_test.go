@@ -38,7 +38,7 @@ func TestPostWebhook(t *testing.T) {
 			httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 			})),
-			fmt.Errorf("Error Posting Webhook: %s", string(http.StatusServiceUnavailable)),
+			fmt.Errorf("Error Posting Webhook: %s", fmt.Sprint(http.StatusServiceUnavailable)),
 		},
 		`Status Ok`: {
 			httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -54,8 +54,7 @@ func TestPostWebhook(t *testing.T) {
 			defer ts.Close()
 			// create a dummy webhook object to test
 			w := &Webhook{
-				URL:         ts.URL,
-				ClusterName: "test",
+				URL: ts.URL,
 			}
 
 			err := w.PostWebhook(&WebhookPayload{})

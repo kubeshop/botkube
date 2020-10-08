@@ -27,8 +27,8 @@ import (
 
 func TestIsObjectNotifDisabled(t *testing.T) {
 	tests := map[string]struct {
-		annotaion metaV1.ObjectMeta
-		expected  bool
+		annotation metaV1.ObjectMeta
+		expected   bool
 	}{
 		`Empty ObjectMeta`:                 {metaV1.ObjectMeta{}, false},
 		`ObjectMeta with some annotations`: {metaV1.ObjectMeta{Annotations: map[string]string{"foo": "bar"}}, false},
@@ -38,7 +38,7 @@ func TestIsObjectNotifDisabled(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			if actual := isObjectNotifDisabled(test.annotaion); actual != test.expected {
+			if actual := isObjectNotifDisabled(test.annotation); actual != test.expected {
 				t.Errorf("expected: %+v != actual: %+v\n", test.expected, actual)
 			}
 		})

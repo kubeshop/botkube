@@ -31,10 +31,9 @@ import (
 	"github.com/infracloudio/botkube/pkg/log"
 )
 
-// Webhook contains URL and ClusterName
+// Webhook contains URL
 type Webhook struct {
-	URL         string
-	ClusterName string
+	URL string
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -58,26 +57,21 @@ type EventMeta struct {
 // EventStatus contains the status about the event occurred
 type EventStatus struct {
 	Type     config.EventType `json:"type"`
-	Level    events.Level     `json:"level"`
+	Level    config.Level     `json:"level"`
 	Reason   string           `json:"reason,omitempty"`
 	Error    string           `json:"error,omitempty"`
 	Messages []string         `json:"messages,omitempty"`
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(c *config.Config) Notifier {
+func NewWebhook(c config.CommunicationsConfig) Notifier {
 	return &Webhook{
-		URL:         c.Communications.Webhook.URL,
-		ClusterName: c.Settings.ClusterName,
+		URL: c.Webhook.URL,
 	}
 }
 
 // SendEvent sends event notification to Webhook url
 func (w *Webhook) SendEvent(event events.Event) (err error) {
-
-	// set missing cluster name to event object
-	event.Cluster = w.ClusterName
-
 	jsonPayload := &WebhookPayload{
 		EventMeta: EventMeta{
 			Kind:      event.Kind,
@@ -92,7 +86,7 @@ func (w *Webhook) SendEvent(event events.Event) (err error) {
 			Error:    event.Error,
 			Messages: event.Messages,
 		},
-		EventSummary:    formatShortMessage(event),
+		EventSummary:    FormatShortMessage(event),
 		TimeStamp:       event.TimeStamp,
 		Recommendations: event.Recommendations,
 		Warnings:        event.Warnings,
@@ -133,7 +127,7 @@ func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error Posting Webhook: %s", string(resp.StatusCode))
+		return fmt.Errorf("Error Posting Webhook: %s", fmt.Sprint(resp.StatusCode))
 	}
 
 	return nil

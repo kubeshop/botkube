@@ -26,13 +26,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/execute"
+	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
 type botkubeCommand struct {
@@ -55,12 +57,33 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"NamespaceChecker        true    Checks if event belongs to blocklisted namespaces and filter them.\n" +
 				"NodeEventsChecker       true    Sends notifications on node level critical events.\n" +
 				"ObjectAnnotationChecker true    Checks if annotations botkube.io/* present in object specs and filters them.\n" +
-				"PodLabelChecker         true    Checks and adds recommedations if labels are missing in the pod specs.\n" +
+				"PodLabelChecker         true    Checks and adds recommendations if labels are missing in the pod specs.\n" +
 				"ImageTagChecker         true    Checks and adds recommendation if 'latest' image tag is used for container image.\n" +
 				"IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.\n",
 		},
+		"BotKube commands list": {
+			command: "commands list",
+			expected: "allowed verbs:\n" +
+				"  - api-resources\n" +
+				"  - describe\n" +
+				"  - diff\n" +
+				"  - explain\n" +
+				"  - get\n" +
+				"  - logs\n" +
+				"  - api-versions\n" +
+				"  - cluster-info\n" +
+				"  - top\n" +
+				"  - auth\n" +
+				"allowed resources:\n" +
+				"  - nodes\n" +
+				"  - deployments\n" +
+				"  - pods\n" +
+				"  - namespaces\n" +
+				"  - daemonsets\n" +
+				"  - statefulsets\n" +
+				"  - storageclasses\n",
+		},
 	}
-
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if c.TestEnv.Config.Communications.Slack.Enabled {
@@ -80,6 +103,9 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				case "filters list":
 					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
 					assert.Equal(t, fl, true)
+				case "commands list":
+					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
+					assert.Equal(t, cl, true)
 				default:
 					assert.Equal(t, test.expected, m.Text)
 				}
@@ -135,7 +161,8 @@ func (c *context) testNotifierCommand(t *testing.T) {
 
 	// Create pod and verify that BotKube is not sending notifications
 	pod := utils.CreateObjects{
-		Kind:      "pod",
+		GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+		Kind:      "Pod",
 		Namespace: "test",
 		Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-notifier"}},
 		ExpectedSlackMessage: utils.SlackMessage{
