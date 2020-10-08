@@ -162,5 +162,4 @@ func CheckOperationAllowed(eventMap map[utils.EventKind]bool, namespace string, 
 		return true
 	}
 	return false
-
 }
