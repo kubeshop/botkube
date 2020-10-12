@@ -372,3 +372,14 @@ func GetStringInYamlFormat(header string, commands map[string]bool) string {
 	}
 	return b.String()
 }
+
+// CheckOperationAllowed checks whether operation are allowed
+func CheckOperationAllowed(eventMap map[EventKind]bool, namespace string, resource string, eventType config.EventType) bool {
+	if eventMap[EventKind{
+		Resource:  resource,
+		Namespace: namespace,
+		EventType: eventType}] {
+		return true
+	}
+	return false
+}

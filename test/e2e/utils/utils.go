@@ -149,17 +149,3 @@ func DeleteResource(t *testing.T, obj DeleteObjects) {
 		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
 	}
 }
-
-// CheckOperationAllowed checks whether operation are allowed
-func CheckOperationAllowed(eventMap map[utils.EventKind]bool, namespace string, resource string, eventType config.EventType) bool {
-	if eventMap[utils.EventKind{
-		Resource:  resource,
-		Namespace: "all",
-		EventType: eventType}] || eventMap[utils.EventKind{
-		Resource:  resource,
-		Namespace: namespace,
-		EventType: eventType}] {
-		return true
-	}
-	return false
-}

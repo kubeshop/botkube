@@ -60,7 +60,7 @@ func (c *context) testSKipDeleteEvent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
 			// checking if delete operation is skipped
-			isAllowed := testutils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
+			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, "all", resource, config.DeleteEvent) || utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
 			assert.Equal(t, isAllowed, false)
 		})
 	}
@@ -101,7 +101,7 @@ func (c *context) testDeleteEvent(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
-			isAllowed := testutils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
+			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, "all", resource, config.DeleteEvent) || utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
 			assert.Equal(t, isAllowed, true)
 
 			testutils.DeleteResource(t, test)
