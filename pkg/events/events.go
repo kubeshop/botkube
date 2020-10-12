@@ -47,6 +47,7 @@ type Event struct {
 	Level              config.Level
 	Cluster            string
 	SlackChannels      []string
+	DiscordChannels    []string
 	MattermostChannels []string
 	TimeStamp          time.Time
 	Count              int32
