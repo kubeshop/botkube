@@ -163,7 +163,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	// Trim the @BotKube prefix if exists
 	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
 
-	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, accessBinding.ProfileValue, mm.IsAuthChannel, accessBinding.ChannelName)
+	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace, b.ClusterName, accessBinding.ProfileValue, config.MattermostBot, accessBinding.ChannelName, mm.IsAuthChannel)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }

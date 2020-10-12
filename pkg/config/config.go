@@ -161,7 +161,7 @@ type AccessBinding struct {
 	ProfileValue Profile
 }
 
-// Profile defines access limititation for a specific channel
+// Profile defines access limitation for a specific channel
 type Profile struct {
 	Name                      string
 	Namespaces                []string `yaml:"namespaces"`
@@ -240,11 +240,12 @@ type Teams struct {
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled   bool
-	Token     string
-	BotID     string
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
+	Enabled        bool
+	Token          string
+	BotID          string
+	Channel        string
+	NotifType      NotifType       `yaml:",omitempty"`
+	AccessBindings []AccessBinding `yaml:"accessBindings"`
 }
 
 // Webhook configuration to send notifications
@@ -279,7 +280,7 @@ func (eventType EventType) String() string {
 	return string(eventType)
 }
 
-// DefaultAccessBindings returns the default value of of single lenght AccessBindings by channel name
+// DefaultAccessBindings returns the default value of of single length AccessBindings by channel name
 func DefaultAccessBindings(channel string, kubectlValue Kubectl) *[]AccessBinding {
 	defaultValue := []AccessBinding{}
 	profileValue := *new(Profile)

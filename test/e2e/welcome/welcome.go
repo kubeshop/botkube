@@ -48,7 +48,7 @@ func (c *context) testWelcome(t *testing.T) {
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, expected, m.Text)
 			// since same message is sent to all the channels, we are comparing
-			// that the each new message recieved on slack must be configured under AccessBindings,
+			// that the each new message received on slack must be configured under AccessBindings,
 			// and also  all new messages must be same as expacted one\
 			validChannel := utils.Contains(utils.GetAllChannels(&c.TestEnv.Config.Communications.Slack.AccessBindings), m.Channel)
 			assert.Equal(t, validChannel, true)

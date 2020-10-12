@@ -294,7 +294,7 @@ func runKubectlCommand(args []string, Profile config.Profile, clusterName, defau
 		}
 
 		if arg == AbbrNameSpaceFlag.String() || strings.HasPrefix(arg, NameSpaceFlag.String()) {
-			// Check if next agrument or value of namespace is provided or not
+			// Check if next argument or value of namespace is provided or not
 			if index == len(args)-1 {
 				return ""
 			}

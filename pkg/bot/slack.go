@@ -153,7 +153,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		// 'sm.Event.Channel' contain slack channel name if go tests are running
 		// but when slackbot is running 'sm.Event.Channel' contain channel ID and info.name contain the channel name
 		// Since, always There Will be err in getting 'GetConversationInfo' when go tests are running
-		// therefor assigning the values accordingly
+		// therefore assigning the values accordingly
 		for _, accessBind := range b.AccessBindings {
 			if accessBind.ChannelName == sm.Event.Channel {
 				sm.IsAuthChannel = true
@@ -170,7 +170,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	}
 
 	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, accessBinding.ProfileValue, config.SlackBot, b.ChannelName, sm.IsAuthChannel)
+		b.ClusterName, accessBinding.ProfileValue, config.SlackBot, accessBinding.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()
 }
