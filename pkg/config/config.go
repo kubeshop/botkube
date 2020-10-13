@@ -79,10 +79,10 @@ type Level string
 // BotPlatform supported by BotKube
 type BotPlatform string
 
-// ResourceConfigFileName is a name of botkube resource configuration file
+// ResourceConfigFileName is a name of BotKube resource configuration file
 var ResourceConfigFileName = "resource_config.yaml"
 
-// CommunicationConfigFileName is a name of botkube communication configuration file
+// CommunicationConfigFileName is a name of BotKube communication configuration file
 var CommunicationConfigFileName = "comm_config.yaml"
 
 // Notify flag to toggle event notification
