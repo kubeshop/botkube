@@ -151,7 +151,7 @@ type Slack struct {
 	Channel        string
 	NotifType      NotifType       `yaml:",omitempty"`
 	Token          string          `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessBindings"`
+	AccessBindings []AccessBinding `yaml:"accessbindings"`
 }
 
 // AccessBinding maps channel to profile
@@ -224,7 +224,7 @@ type Mattermost struct {
 	Token          string
 	Team           string
 	NotifType      NotifType       `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessBindings"`
+	AccessBindings []AccessBinding `yaml:"accessbindings"`
 }
 
 // Teams creds for authentication with MS Teams
@@ -245,7 +245,7 @@ type Discord struct {
 	BotID          string
 	Channel        string
 	NotifType      NotifType       `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessBindings"`
+	AccessBindings []AccessBinding `yaml:"accessbindings"`
 }
 
 // Webhook configuration to send notifications
@@ -302,6 +302,7 @@ func NewCommunicationsConfig() (*Communications, error) {
 	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
 	communicationConfigFile, err := os.Open(communicationConfigFilePath)
 	defer communicationConfigFile.Close()
+
 	if err != nil {
 		return c, err
 	}
@@ -399,6 +400,15 @@ func New() (*Config, error) {
 	if c.Communications.Mattermost.Enabled {
 		for i, accessBind := range c.Communications.Mattermost.AccessBindings {
 			c.Communications.Mattermost.AccessBindings[i].ProfileValue, err = profiles.getProfile(accessBind.ProfileName)
+			if err != nil {
+				return c, err
+			}
+		}
+	}
+	// Map right profile's value with config: For discord
+	if c.Communications.Discord.Enabled {
+		for i, accessBind := range c.Communications.Discord.AccessBindings {
+			c.Communications.Discord.AccessBindings[i].ProfileValue, err = profiles.getProfile(accessBind.ProfileName)
 			if err != nil {
 				return c, err
 			}
