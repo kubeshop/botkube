@@ -160,14 +160,12 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	switch eventType {
 	case config.InfoEvent:
 		// Skip if ErrorEvent is not configured for the resource
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: config.ErrorEvent}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
+		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, config.ErrorEvent) {
 			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	default:
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: eventType}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: eventType}] {
+		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, eventType) {
 			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
