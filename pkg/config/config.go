@@ -151,7 +151,7 @@ type Slack struct {
 	Channel        string
 	NotifType      NotifType       `yaml:",omitempty"`
 	Token          string          `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessbindings"`
+	AccessBindings []AccessBinding `yaml:"accessBindings"`
 }
 
 // AccessBinding maps channel to profile
@@ -224,7 +224,7 @@ type Mattermost struct {
 	Token          string
 	Team           string
 	NotifType      NotifType       `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessbindings"`
+	AccessBindings []AccessBinding `yaml:"accessBindings"`
 }
 
 // Teams creds for authentication with MS Teams
@@ -245,7 +245,7 @@ type Discord struct {
 	BotID          string
 	Channel        string
 	NotifType      NotifType       `yaml:",omitempty"`
-	AccessBindings []AccessBinding `yaml:"accessbindings"`
+	AccessBindings []AccessBinding `yaml:"accessBindings"`
 }
 
 // Webhook configuration to send notifications
