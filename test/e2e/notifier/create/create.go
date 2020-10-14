@@ -129,7 +129,7 @@ func (c *context) testCreateResource(t *testing.T) {
 			}
 
 			resource := utils.GVRToString(test.GVR)
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.UpdateEvent)
+			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.CreateEvent)
 			assert.Equal(t, isAllowed, true)
 		})
 	}
