@@ -182,14 +182,7 @@ func (c *context) testSKipUpdateEvent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
 			// checking if update operation is true
-			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
-				Resource:  resource,
-				Namespace: "all",
-				EventType: config.UpdateEvent}] ||
-				utils.AllowedEventKindsMap[utils.EventKind{
-					Resource:  resource,
-					Namespace: test.Namespace,
-					EventType: config.UpdateEvent}]
+			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.UpdateEvent)
 			assert.Equal(t, isAllowed, false)
 		})
 	}
@@ -234,14 +227,7 @@ func (c *context) testSkipWrongSetting(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
 			// checking if update operation is true
-			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
-				Resource:  resource,
-				Namespace: "all",
-				EventType: config.UpdateEvent}] ||
-				utils.AllowedEventKindsMap[utils.EventKind{
-					Resource:  resource,
-					Namespace: test.Namespace,
-					EventType: config.UpdateEvent}]
+			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.UpdateEvent)
 			assert.Equal(t, isAllowed, true)
 			// modifying the update setting value as per testcases
 			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
