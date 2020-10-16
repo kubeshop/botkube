@@ -1,9 +1,9 @@
-# Default values for botkube.
+# Default values for BotKube.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
-# Extra annotations to pass to the botkube pod
+# Extra annotations to pass to the BotKube pod
 extraAnnotations: {}
 # Priority class name for the pod
 priorityClassName: ""
@@ -17,7 +17,7 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
-# Enable podSecurityPolicy to allow botkube to run in restricted clusters
+# Enable podSecurityPolicy to allow BotKube to run in restricted clusters
 podSecurityPolicy:
   enabled: false
 
@@ -257,7 +257,7 @@ config:
         verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
         # resource configuration which is allowed
         resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
-      # set Namespace to execute botkube kubectl commands by default
+      # set Namespace to execute BotKube kubectl commands by default
       defaultNamespace: default
       # Set true to enable commands execution from configured channel only
       restrictAccess: false
@@ -305,9 +305,9 @@ communications:
   elasticsearch:
     enabled: false
     awsSigning:
-      enabled: false                            # enable awsSigning using IAM for Elastisearch hosted on AWS, if true make sure AWS environment variables are set. Refer https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+      enabled: false                            # enable awsSigning using IAM for Elasticsearch hosted on AWS, if true make sure AWS environment variables are set. Refer https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
       awsRegion: "us-east-1"                    # AWS region where Elasticsearch is deployed
-      roleArn: ''                               # AWS IAM Role arn to assume for credentials, use this only if you dont want to use the EC2 instance role or not running on AWS instance
+      roleArn: ''                               # AWS IAM Role arn to assume for credentials, use this only if you don't want to use the EC2 instance role or not running on AWS instance
     server: 'ELASTICSEARCH_ADDRESS'             # e.g https://example.com:9243
     username: 'ELASTICSEARCH_USERNAME'          # Basic Auth
     password: 'ELASTICSEARCH_PASSWORD'
@@ -341,7 +341,7 @@ ingress:
 
             
 serviceMonitor:
-  ## If true, a ServiceMonitor CR is created for a botkube
+  ## If true, a ServiceMonitor CR is created for a BotKube
   ##  https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor
   ##
   enabled: false
@@ -362,7 +362,7 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
-extraEnv:   # Extra environment variables to pass to the botkube container, example HTTP_PROXY
+extraEnv:   # Extra environment variables to pass to the BotKube container, example HTTP_PROXY
   #HTTP_PROXY: <proxyURL>:<port>
   
 nodeSelector: {}
