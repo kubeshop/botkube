@@ -76,7 +76,7 @@ const (
 	notifierStopMsg   = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg = "Command not supported or you don't have access to run this command. Please run /botkubehelp to see supported commands."
 
-	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command"
+	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
@@ -204,7 +204,27 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 func (e *DefaultExecutor) Execute() string {
 	args := strings.Fields(e.Message)
 	// authorizeCommandByProfile check if the command is and authorized kubectl command
-	if authorizeCommandByProfile(e.Profile, args) {
+	if e.Profile.Name == "" {
+		if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
+			if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
+				utils.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
+				utils.AllowedKubectlResourceMap[utils.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
+				utils.AllowedKubectlResourceMap[utils.ShortnameResourceMap[strings.ToLower(args[1])]] { // Check if matches with short name
+				isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
+				if !e.AllowKubectl {
+					if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
+						return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
+					}
+					return ""
+				}
+
+				if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+					return ""
+				}
+				return runKubectlCommand(args, e.Profile, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+			}
+		}
+	} else if authorizeCommandByProfile(e.Profile, args) {
 		// Check if command should execute on not
 		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
 		if !e.AllowKubectl || !e.Profile.Kubectl.Enabled {
@@ -299,7 +319,7 @@ func runKubectlCommand(args []string, Profile config.Profile, clusterName, defau
 				return ""
 			}
 			// Check if the channel is authorized to run commands on the requested namsepaces
-			if !utils.Contains(Profile.Namespaces, trimQuotes(args[index+1])) {
+			if len(Profile.Namespaces) == 0 && !utils.Contains(Profile.Namespaces, trimQuotes(args[index+1])) {
 				return ""
 			}
 		}
