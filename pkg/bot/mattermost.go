@@ -41,7 +41,7 @@ const (
 )
 
 const (
-	// BotName stores Botkube details
+	// BotName stores BotKube details
 	BotName = "botkube"
 	// WebSocketProtocol stores protocol initials for web socket
 	WebSocketProtocol = "ws://"
@@ -113,7 +113,7 @@ func (b *MMBot) Start() {
 	}
 
 	go func() {
-		// It is obeserved that Mattermost server closes connections unexpectedly after some time.
+		// It is observed that Mattermost server closes connections unexpectedly after some time.
 		// For now, we are adding retry logic to reconnect to the server
 		// https://github.com/infracloudio/botkube/issues/201
 		log.Info("BotKube connected to Mattermost!")
