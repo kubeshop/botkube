@@ -242,6 +242,15 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 			}
 		}
 	}
+	if c.Communications.Discord.Enabled {
+		for _, accessBinding := range c.Communications.Discord.AccessBindings {
+			for _, namespace := range accessBinding.ProfileValue.Namespaces {
+				if event.Namespace == namespace {
+					event.DiscordChannels = append(event.DiscordChannels, accessBinding.ChannelName)
+				}
+			}
+		}
+	}
 
 	// Filter events
 	event = filterengine.DefaultFilterEngine.Run(obj, event)
