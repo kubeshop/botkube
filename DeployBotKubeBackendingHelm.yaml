@@ -1,0 +1,9 @@
+ $ helm install --version v0.11.0 botkube --namespace botkube \
+  --set communications.slack.enabled=true \
+  --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
+  --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
+  --set config.settings.clustername=<CLUSTER_NAME> \
+  --set config.settings.kubectl.enabled=<ALLOW_KUBECTL> \
+  --set image.repository=infracloudio/botkube \
+  --set image.tag=v0.11.0 \
+  infracloudio/botkube
