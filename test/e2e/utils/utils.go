@@ -85,6 +85,17 @@ type DeleteObjects struct {
 	ExpectedSlackMessage   SlackMessage
 }
 
+// ErrorEvent stores specs for throwing an error in case of anomalies
+type ErrorEvent struct {
+	GVR                    schema.GroupVersionResource
+	Kind                   string
+	Namespace              string
+	Name                   string
+	Specs                  runtime.Object
+	ExpectedWebhookPayload WebhookPayload
+	ExpectedSlackMessage   SlackMessage
+}
+
 // CreateResource with fake client
 func CreateResource(t *testing.T, obj CreateObjects) {
 	// convert the runtime.Object to unstructured.Unstructured
