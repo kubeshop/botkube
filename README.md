@@ -8,18 +8,18 @@
 [![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
 
 
-For complete documentation visit www.botkube.io
-
-BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
-You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
+For complete documentation visit www.botkube.io BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
 
 ![](botkube-title.jpg)
+
 
 ## Hacktoberfest 2020
 BotKube is participating in Hacktoberfest 2020. We are giving some really cool swags to our contributors, learn more at - https://www.infracloud.io/blogs/infracloud-joins-hacktoberfest-2020/. 
 
+
 ## Getting started
 Please follow [this](https://www.botkube.io/installation/) for a complete BotKube installation guide.
+
 
 ## Architecture
 ![](/botkube_arch.jpg)
@@ -30,7 +30,7 @@ Please follow [this](https://www.botkube.io/installation/) for a complete BotKub
 - **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost, Microsoft Teams and reads/sends messages from/to them. 
 - **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
 
-Visit www.botkube.io for Configuration, Usage and Examples.
+Visit www.botkube.io for Configuration,Usage and Examples.
 
 ## Licence
 
