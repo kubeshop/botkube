@@ -35,6 +35,7 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/filters"
 	"github.com/infracloudio/botkube/test/e2e/notifier/create"
 	"github.com/infracloudio/botkube/test/e2e/notifier/delete"
+	"github.com/infracloudio/botkube/test/e2e/notifier/error"
 	"github.com/infracloudio/botkube/test/e2e/notifier/update"
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
@@ -89,6 +90,7 @@ func TestRun(t *testing.T) {
 		"filters":  filters.E2ETests(testEnv),
 		"update":   update.E2ETests(testEnv),
 		"delete":   delete.E2ETests(testEnv),
+		"error":    error.E2ETests(testEnv),
 	}
 
 	// Run test suite
