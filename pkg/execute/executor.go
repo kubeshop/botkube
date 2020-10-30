@@ -318,8 +318,8 @@ func runKubectlCommand(args []string, Profile config.Profile, clusterName, defau
 			if index == len(args)-1 {
 				return ""
 			}
-			// Check if the channel is authorized to run commands on the requested namsepaces
-			if len(Profile.Namespaces) == 0 && !utils.Contains(Profile.Namespaces, trimQuotes(args[index+1])) {
+			// Check if the channel is authorized to run commands on the requested namsepaces and profile value is not nil
+			if len(Profile.Namespaces) == 0 && !utils.Contains(Profile.Namespaces, trimQuotes(args[index+1])) && Profile.Name != "" {
 				return ""
 			}
 		}
