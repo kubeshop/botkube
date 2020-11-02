@@ -20,7 +20,7 @@
 
 
 set -o errexit
-#set -o nounset
+
 set -o pipefail
 
 export CONFIG_PATH="$(pwd)/test"
