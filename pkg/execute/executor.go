@@ -229,9 +229,9 @@ func (e *DefaultExecutor) Execute() string {
 		isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
 		if !e.AllowKubectl || !e.Profile.Kubectl.Enabled {
 			if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
-				return fmt.Sprintf("%v in cluster: %v", kubectlDisabledMsg, e.ClusterName)
+				return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
 			}
-			return fmt.Sprintf("%v", kubectlDisabledMsg)
+			return ""
 		}
 		if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 			return ""
