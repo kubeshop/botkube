@@ -59,30 +59,30 @@ func NewElasticSearch(c *config.Config) (Notifier, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
-	if c.Communications.ElasticSearch.AWSSigning.Enabled {
+	if c.CommunicationsConfig.ElasticSearch.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		sess := session.Must(session.NewSession())
-		if c.Communications.ElasticSearch.AWSSigning.RoleArn != "" {
-			creds = stscreds.NewCredentials(sess, c.Communications.ElasticSearch.AWSSigning.RoleArn)
+		if c.CommunicationsConfig.ElasticSearch.AWSSigning.RoleArn != "" {
+			creds = stscreds.NewCredentials(sess, c.CommunicationsConfig.ElasticSearch.AWSSigning.RoleArn)
 		} else {
 			creds = ec2rolecreds.NewCredentials(sess)
 		}
 
 		signer := v4.NewSigner(creds)
-		awsClient, err := aws_signing_client.New(signer, nil, awsService, c.Communications.ElasticSearch.AWSSigning.AWSRegion)
+		awsClient, err := aws_signing_client.New(signer, nil, awsService, c.CommunicationsConfig.ElasticSearch.AWSSigning.AWSRegion)
 
 		if err != nil {
 			return nil, err
 		}
-		elsClient, err = elastic.NewClient(elastic.SetURL(c.Communications.ElasticSearch.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(false))
+		elsClient, err = elastic.NewClient(elastic.SetURL(c.CommunicationsConfig.ElasticSearch.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(false))
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		// create elasticsearch client
 		elsClient, err = elastic.NewClient(
-			elastic.SetURL(c.Communications.ElasticSearch.Server),
-			elastic.SetBasicAuth(c.Communications.ElasticSearch.Username, c.Communications.ElasticSearch.Password),
+			elastic.SetURL(c.CommunicationsConfig.ElasticSearch.Server),
+			elastic.SetBasicAuth(c.CommunicationsConfig.ElasticSearch.Username, c.CommunicationsConfig.ElasticSearch.Password),
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(true),
@@ -93,10 +93,10 @@ func NewElasticSearch(c *config.Config) (Notifier, error) {
 	}
 	return &ElasticSearch{
 		ELSClient:   elsClient,
-		Index:       c.Communications.ElasticSearch.Index.Name,
-		Type:        c.Communications.ElasticSearch.Index.Type,
-		Shards:      c.Communications.ElasticSearch.Index.Shards,
-		Replicas:    c.Communications.ElasticSearch.Index.Replicas,
+		Index:       c.CommunicationsConfig.ElasticSearch.Index.Name,
+		Type:        c.CommunicationsConfig.ElasticSearch.Index.Type,
+		Shards:      c.CommunicationsConfig.ElasticSearch.Index.Shards,
+		Replicas:    c.CommunicationsConfig.ElasticSearch.Index.Replicas,
 		ClusterName: c.Settings.ClusterName,
 	}, nil
 }
