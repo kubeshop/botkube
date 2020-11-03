@@ -19,11 +19,18 @@ type context struct {
 }
 
 func (c *context) testSKipErrorEvent(t *testing.T) {
-	// Modifying AllowedEventKindsMap to remove error event for pod resource
-	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "error"})
 
 	// Modifying AllowedEventKindsMap to add error event for only dummy namespace and ignore everything
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "error"}] = true
+
+	serviceEvent := utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "error"}]
+	podEvent := utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "error"}]
+
+	// Modifying AllowedEventKindsMap to remove error event for pod resource
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "error"})
+
+	// Modifying AllowedEventKindsMap to remove error event for service resource
+	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "error"})
 
 	tests := map[string]testutils.ErrorEvent{
 		"skip error event for resources not configured": {
@@ -40,6 +47,13 @@ func (c *context) testSKipErrorEvent(t *testing.T) {
 			Namespace: "test",
 			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
 		},
+		"skip error event for resources not added in test_config": {
+			// error event should not be allowed for service resource so event should be skipped
+			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
+			Kind:      "Service",
+			Namespace: "test",
+			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service-error"}},
+		},
 	}
 
 	for name, test := range tests {
@@ -51,8 +65,11 @@ func (c *context) testSKipErrorEvent(t *testing.T) {
 		})
 	}
 	// Resetting original configuration as per test_config
-	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "error"})
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "error"}] = true
+	defer func() {
+		utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: "error"}] = serviceEvent
+		utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "error"}] = podEvent
+		delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "error"})
+	}()
 }
 
 // Run tests
