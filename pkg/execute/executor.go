@@ -36,7 +36,17 @@ import (
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
+const (
+	defaultClusterCmd   = "cluster"
+	defaultNamespaceCmd = "namespace"
+)
+
 var (
+	//ValidKubectlConfigDefaultCommand set of commands used to define or query default values in a channel
+	ValidKubectlConfigDefaultCommand = map[string]bool{
+		defaultClusterCmd:   true,
+		defaultNamespaceCmd: true,
+	}
 	// ValidNotifierCommand is a map of valid notifier commands
 	ValidNotifierCommand = map[string]bool{
 		"notifier": true,
@@ -75,6 +85,8 @@ const (
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+	//DefaultClusterForKubectl sent when setting a new default cluster for kubectl
+	DefaultClusterForKubectl = "The default cluster for kubectl commands is : %s"
 
 	// NotifierStartMsg notifier enabled response message
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
@@ -98,7 +110,7 @@ type DefaultExecutor struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	ChannelName      string
+	ChannelID        string
 	IsAuthChannel    bool
 	DefaultNamespace string
 }
@@ -164,14 +176,14 @@ func (action FiltersAction) String() string {
 // NewDefaultExecutor returns new Executor object
 // msg should not contain the BotId
 func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace,
-	clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) Executor {
+	clusterName string, platform config.BotPlatform, channelID string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
 		Platform:         platform,
 		Message:          msg,
 		AllowKubectl:     allowkubectl,
 		RestrictAccess:   restrictAccess,
 		ClusterName:      clusterName,
-		ChannelName:      channelName,
+		ChannelID:        channelID,
 		IsAuthChannel:    isAuthChannel,
 		DefaultNamespace: defaultNamespace,
 	}
@@ -192,18 +204,22 @@ func (e *DefaultExecutor) Execute() string {
 			utils.AllowedKubectlResourceMap[utils.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
 			utils.AllowedKubectlResourceMap[utils.ShortnameResourceMap[strings.ToLower(args[1])]] { // Check if matches with short name
 			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-			if !e.AllowKubectl {
-				if isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
+			if !e.AllowKubectl { //kubectl not allowed so notify user
+				_, isLinkedChannel := config.KubeCtlLinkedChannels[e.ChannelID]
+				if (isClusterNamePresent && e.ClusterName == utils.GetClusterNameFromKubectlCmd(e.Message)) || isLinkedChannel {
 					return fmt.Sprintf(kubectlDisabledMsg, e.ClusterName)
 				}
 				return ""
 			}
 
-			if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+			if e.RestrictAccess && !e.IsAuthChannel {
 				return ""
 			}
-			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.ChannelID)
 		}
+	}
+	if ValidKubectlConfigDefaultCommand[args[0]] {
+		return e.runDefaultCommand(args, e.ClusterName, e.ChannelID, e.AllowKubectl)
 	}
 	if ValidNotifierCommand[args[0]] {
 		return e.runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
@@ -251,8 +267,11 @@ func trimQuotes(clusterValue string) string {
 	})
 }
 
-func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
-
+func runKubectlCommand(args []string, clusterName, defaultNamespace string, channelID string) string {
+	_, isLinkedChannel := config.KubeCtlLinkedChannels[channelID]
+	if isLinkedChannel { //use default channel set by user
+		defaultNamespace = config.KubeCtlLinkedChannels[channelID]
+	}
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
 	if len(defaultNamespace) != 0 {
 		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
@@ -263,6 +282,7 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 	// Remove unnecessary flags
 	finalArgs := []string{}
 	isClusterNameArg := false
+	isTargetingThisChannel := false
 	for index, arg := range args {
 		if isClusterNameArg {
 			isClusterNameArg = false
@@ -287,12 +307,12 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 					return ""
 				}
 			}
-			isAuthChannel = true
+			isTargetingThisChannel = true
 			continue
 		}
 		finalArgs = append(finalArgs, arg)
 	}
-	if isAuthChannel == false {
+	if isTargetingThisChannel == false && !isLinkedChannel {
 		return ""
 	}
 	// Get command runner
@@ -306,6 +326,60 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 }
 
 // TODO: Have a separate cli which runs bot commands
+
+//runDefaultCommand execute kubectl config default commands
+//if the command has not arguments then return the default value
+//if the command has arguments then use those to set the default value.
+func (e *DefaultExecutor) runDefaultCommand(args []string, clusterName string, channelID string, kubectlAllowed bool) string {
+	_, isManagedChannel := config.KubeCtlLinkedChannels[channelID]
+	//if one 1 arg then this queries the default cluster value
+	if len(args) == 1 {
+		switch args[0] {
+		case defaultClusterCmd:
+			if isManagedChannel {
+				return fmt.Sprintf(DefaultClusterForKubectl, clusterName)
+			} // else another cluster may be the default
+			return ""
+		case defaultNamespaceCmd:
+			if isManagedChannel {
+				return fmt.Sprintf("The default namespace for cluster %s is %s", clusterName, config.KubeCtlLinkedChannels[channelID])
+			} // else another cluster may be the default
+			return ""
+		default: //unhandled command
+			return ""
+		}
+	}
+	//if more that 1 arg then check if this bot cluster is the requested default, then record it
+	if len(args) > 1 {
+		switch args[0] {
+		case defaultClusterCmd:
+			if args[1] == clusterName { //default command is targetting this cluster :)
+				if kubectlAllowed {
+					//adding the channel to the channels linked to this cluster
+					namespace := config.KubeCtlLinkedChannels[channelID] //to avoid changing the namespace is it was previously set
+					if namespace == "" {
+						namespace = "default"
+					}
+					config.KubeCtlLinkedChannels[channelID] = namespace
+					return fmt.Sprintf("using cluster %s as default for kubectl commands", clusterName)
+				} //else kubectl not allowed on this channel so say it
+				return fmt.Sprintf(kubectlDisabledMsg, clusterName)
+			} //else removes this channel from the list of channel linked to this cluster for kubectl
+			//we don't care if it was already in the set or not
+			delete(config.KubeCtlLinkedChannels, channelID)
+		case defaultNamespaceCmd: //want to set default namespace so check if it is the right cluster
+			if isManagedChannel {
+				config.KubeCtlLinkedChannels[channelID] = args[1]
+				return fmt.Sprintf("Using default namespace %s for cluster %s", args[1], clusterName)
+			} // else another cluster may be the default
+			return ""
+		default: //unhandled command
+			return ""
+		}
+	}
+	return ""
+}
+
 func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if isAuthChannel == false {
 		return ""
