@@ -22,6 +22,7 @@ package notify
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
@@ -112,7 +113,7 @@ type index struct {
 
 func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
 	// Create index if not exists
-	exists, err := e.ELSClient.IndexExists(e.Index).Do(ctx)
+	exists, err := e.ELSClient.IndexExists(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
@@ -127,7 +128,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 				},
 			},
 		}
-		_, err := e.ELSClient.CreateIndex(e.Index).BodyJson(mapping).Do(ctx)
+		_, err := e.ELSClient.CreateIndex(e.Index + "-" + time.Now().Format(indexSuffixFormat)).BodyJson(mapping).Do(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
@@ -135,17 +136,17 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(e.Index).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
-	_, err = e.ELSClient.Flush().Index(e.Index).Do(ctx)
+	_, err = e.ELSClient.Flush().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index+"-"+time.Now().Format(indexSuffixFormat))
 	return nil
 }
 
@@ -158,7 +159,6 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	if err := e.flushIndex(ctx, event); err != nil {
 		return err
 	}
-
 	return nil
 }
 
