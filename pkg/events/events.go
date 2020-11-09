@@ -110,7 +110,7 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		var eventObj coreV1.Event
 		err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
-			log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
+			log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
 		}
 		event.Reason = eventObj.Reason
 		event.Messages = append(event.Messages, eventObj.Message)

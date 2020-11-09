@@ -215,7 +215,7 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 		var eventObj coreV1.Event
 		err := TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
-			log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+			log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 		}
 		if len(objectMeta.Annotations) == 0 {
 			objectMeta.Annotations = ExtractAnnotationsFromEvent(&eventObj)
@@ -348,12 +348,20 @@ func ParseResourceArg(arg string) (schema.GroupVersionResource, error) {
 	return gvr, nil
 }
 
+// GVRToString converts GVR formats to string
+func GVRToString(gvr schema.GroupVersionResource) string {
+	if gvr.Group == "" {
+		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
+	}
+	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
+}
+
 // TransformIntoTypedObject uses unstructured interface and creates a typed object
 func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
 }
 
-//GetStringInYamlFormat get the formated commands list
+//GetStringInYamlFormat get the formatted commands list
 func GetStringInYamlFormat(header string, commands map[string]bool) string {
 	var b bytes.Buffer
 	fmt.Fprintln(&b, header)
@@ -363,4 +371,19 @@ func GetStringInYamlFormat(header string, commands map[string]bool) string {
 		}
 	}
 	return b.String()
+}
+
+// CheckOperationAllowed checks whether operation are allowed
+func CheckOperationAllowed(eventMap map[EventKind]bool, namespace string, resource string, eventType config.EventType) bool {
+	if eventMap != nil && (eventMap[EventKind{
+		Resource:  resource,
+		Namespace: "all",
+		EventType: eventType}] ||
+		eventMap[EventKind{
+			Resource:  resource,
+			Namespace: namespace,
+			EventType: eventType}]) {
+		return true
+	}
+	return false
 }

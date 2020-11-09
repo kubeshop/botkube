@@ -89,7 +89,7 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			var eventObj coreV1.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
-				log.Errorf("Unable to tranform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 			}
 			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
@@ -106,10 +106,10 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 			switch strings.ToLower(eventObj.Type) {
 			case config.WarningEvent.String():
 				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.ErrorEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.ErrorEvent)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, notifiers, gvrToString(gvr), config.InfoEvent)
+				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.InfoEvent)
 			}
 		},
 	})
@@ -160,14 +160,12 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	switch eventType {
 	case config.InfoEvent:
 		// Skip if ErrorEvent is not configured for the resource
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: config.ErrorEvent}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: config.ErrorEvent}] {
+		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, config.ErrorEvent) {
 			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	default:
-		if !utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: "all", EventType: eventType}] &&
-			!utils.AllowedEventKindsMap[utils.EventKind{Resource: resource, Namespace: objectMeta.Namespace, EventType: eventType}] {
+		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, eventType) {
 			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
@@ -265,13 +263,6 @@ func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 	for _, n := range notifiers {
 		go n.SendMessage(msg)
 	}
-}
-
-func gvrToString(gvr schema.GroupVersionResource) string {
-	if gvr.Group == "" {
-		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
-	}
-	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
 }
 
 func configWatcher(c *config.Config, notifiers []notify.Notifier) {

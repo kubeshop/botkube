@@ -14,9 +14,9 @@
 - Aggregate pod status to reduce notification noise [\#212](https://github.com/infracloudio/botkube/issues/212)
 - Add support to monitor custom resources [\#200](https://github.com/infracloudio/botkube/issues/200)
 - Limit kubectl commands [\#183](https://github.com/infracloudio/botkube/issues/183)
-- Swich to github actions for CI builds [\#179](https://github.com/infracloudio/botkube/issues/179)
+- Switch to github actions for CI builds [\#179](https://github.com/infracloudio/botkube/issues/179)
 - Setting default namespace while executing kubectl commands [\#176](https://github.com/infracloudio/botkube/issues/176)
-- Add Microsoft Teams suppport [\#60](https://github.com/infracloudio/botkube/issues/60)
+- Add Microsoft Teams support [\#60](https://github.com/infracloudio/botkube/issues/60)
 
 **Fixed bugs:**
 
@@ -58,7 +58,7 @@
 - options to pass exta annotations for pod [\#304](https://github.com/infracloudio/botkube/pull/304) ([kartik-moolya](https://github.com/kartik-moolya))
 - Add aws config in helm values [\#303](https://github.com/infracloudio/botkube/pull/303) ([kartik-moolya](https://github.com/kartik-moolya))
 - adding feature to support AWS Signing and creating new index per day [\#302](https://github.com/infracloudio/botkube/pull/302) ([kartik-moolya](https://github.com/kartik-moolya))
-- Allow kubectl commands wihtout namespace and without cluster-name [\#301](https://github.com/infracloudio/botkube/pull/301) ([gmkumar2005](https://github.com/gmkumar2005))
+- Allow kubectl commands without namespace and without cluster-name [\#301](https://github.com/infracloudio/botkube/pull/301) ([gmkumar2005](https://github.com/gmkumar2005))
 - Mergify: configuration update [\#287](https://github.com/infracloudio/botkube/pull/287) ([PrasadG193](https://github.com/PrasadG193))
 - Refactor logging package \(\#262\) [\#285](https://github.com/infracloudio/botkube/pull/285) ([hmharsh](https://github.com/hmharsh))
 - Make allowed kubectl commands configurable [\#284](https://github.com/infracloudio/botkube/pull/284) ([girishg4t](https://github.com/girishg4t))

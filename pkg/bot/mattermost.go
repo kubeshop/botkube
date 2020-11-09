@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	// BotName stores Botkube details
+	// BotName stores BotKube details
 	BotName = "botkube"
 	// WebSocketProtocol stores protocol initials for web socket
 	WebSocketProtocol = "ws://"
@@ -111,7 +111,7 @@ func (b *MMBot) Start() {
 	}
 
 	go func() {
-		// It is obeserved that Mattermost server closes connections unexpectedly after some time.
+		// It is observed that Mattermost server closes connections unexpectedly after some time.
 		// For now, we are adding retry logic to reconnect to the server
 		// https://github.com/infracloudio/botkube/issues/201
 		log.Info("BotKube connected to Mattermost!")
@@ -128,7 +128,7 @@ func (b *MMBot) Start() {
 	return
 }
 
-// Check incomming message and take action
+// Check incoming message and take action
 func (mm *mattermostMessage) handleMessage(b MMBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
@@ -157,13 +157,15 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 
 // Send messages to Mattermost
 func (mm mattermostMessage) sendMessage() {
+	log.Debugf("Mattermost incoming Request: %s", mm.Request)
+	log.Debugf("Mattermost Response: %s", mm.Response)
 	post := &model.Post{}
 	post.ChannelId = mm.Event.Broadcast.ChannelId
 	// Create file if message is too large
 	if len(mm.Response) >= 3990 {
 		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
 		if resp.Error != nil {
-			log.Error("Error occured while uploading file. Error: ", resp.Error)
+			log.Error("Error occurred while uploading file. Error: ", resp.Error)
 		}
 		post.FileIds = []string{string(res.FileInfos[0].Id)}
 	} else if len(mm.Response) == 0 {
@@ -203,7 +205,7 @@ func (b MMBot) getTeam() *model.Team {
 	return botTeam
 }
 
-// Check if botkube user exists in Mattermost
+// Check if BotKube user exists in Mattermost
 func (b MMBot) getUser() *model.User {
 	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
 	if resp.Error != nil {
@@ -212,7 +214,7 @@ func (b MMBot) getUser() *model.User {
 	return users.Users[0]
 }
 
-// Create channel if not present and add botkube user in channel
+// Create channel if not present and add BotKube user in channel
 func (b MMBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
@@ -220,7 +222,7 @@ func (b MMBot) getChannel() *model.Channel {
 		log.Fatalf("There was a problem finding Mattermost channel %s. %s", b.ChannelName, resp.Error)
 	}
 
-	// Adding Botkube user to channel
+	// Adding BotKube user to channel
 	b.APIClient.AddChannelMember(botChannel.Id, b.getUser().Id)
 	return botChannel
 }

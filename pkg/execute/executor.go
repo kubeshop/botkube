@@ -305,7 +305,7 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
 }
 
-// TODO: Have a seperate cli which runs bot commands
+// TODO: Have a separate cli which runs bot commands
 func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if isAuthChannel == false {
 		return ""

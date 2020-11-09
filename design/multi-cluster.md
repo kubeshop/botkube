@@ -23,7 +23,7 @@ Botkube `ping` command with the `--cluster-name` flag returns `pong` response fr
 
 For `kubectl` commands in a dedicated channel to a cluster, if `--cluster-name` flag is used, it responds with the output for the cluster specified in flag, else it checks if the channel in the request matches the `config.Communications.Slack.Channel` and responds if true else ignores.
 
-For `kubectl` commands in a group, Direct message or channel not dedicated to any cluster, the `--cluster-name` flag is mandatory. The executor checks if the `--cluster-name` flag is present in the request. If yes, it gets the cluster's name from the flag and compares with `c.Settings.ClusterName` from the config file, if it matches then it responds with the required output to the slack bot and if it doesn't match, it ignores the request. And if the `--cluster-name` flag is absent for kubectl commands, it responds to the slack bot saying 'Please specify the cluster-name'. 
+For `kubectl` commands in a group, Direct message or channel not dedicated to any cluster, the `--cluster-name` flag is mandatory. The executor checks if the `--cluster-name` flag is present in the request. If yes, it gets the cluster's name from the flag and compares with `c.Settings.ClusterName` from the config file, if it matches then it responds with the required output to the slack bot and if it doesn't match, it ignores the request. And if the `--cluster-name` flag is absent for `kubectl` commands, it responds to the slack bot saying 'Please specify the cluster-name'. 
 
 For example -
 ```sh
