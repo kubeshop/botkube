@@ -38,7 +38,7 @@ import (
 
 const (
 	// indexSuffixFormat is the date format that would be appended to the index name
-	indexSuffixFormat = "02-01-2006"
+	indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
 	// awsService for the AWS client to authenticate against
 	awsService = "es"
 )
@@ -69,11 +69,17 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 
 		signer := v4.NewSigner(creds)
 		awsClient, err := aws_signing_client.New(signer, nil, awsService, c.AWSSigning.AWSRegion)
-
 		if err != nil {
 			return nil, err
 		}
-		elsClient, err = elastic.NewClient(elastic.SetURL(c.Server), elastic.SetScheme("https"), elastic.SetHttpClient(awsClient), elastic.SetSniff(false), elastic.SetHealthcheck(false), elastic.SetGzip(false))
+		elsClient, err = elastic.NewClient(
+			elastic.SetURL(c.Server),
+			elastic.SetScheme("https"),
+			elastic.SetHttpClient(awsClient),
+			elastic.SetSniff(false),
+			elastic.SetHealthcheck(false),
+			elastic.SetGzip(false),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -112,8 +118,10 @@ type index struct {
 }
 
 func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
+	// Construct elasticsearch Index with timestamp
+	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
-	exists, err := e.ELSClient.IndexExists(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
+	exists, err := e.ELSClient.IndexExists(indexName).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
@@ -128,7 +136,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 				},
 			},
 		}
-		_, err := e.ELSClient.CreateIndex(e.Index + "-" + time.Now().Format(indexSuffixFormat)).BodyJson(mapping).Do(ctx)
+		_, err := e.ELSClient.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
@@ -136,12 +144,12 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(indexName).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
-	_, err = e.ELSClient.Flush().Index(e.Index + "-" + time.Now().Format(indexSuffixFormat)).Do(ctx)
+	_, err = e.ELSClient.Flush().Index(indexName).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
