@@ -98,7 +98,7 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 	}
 	return &ElasticSearch{
 		ELSClient: elsClient,
-		Index:     c.Index.Name,
+		Index:     c.Index.Name + "-" + time.Now().Format(indexSuffixFormat),
 		Type:      c.Index.Type,
 		Shards:    c.Index.Shards,
 		Replicas:  c.Index.Replicas,
@@ -118,10 +118,8 @@ type index struct {
 }
 
 func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
-	// Construct elasticsearch Index with timestamp
-	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
-	exists, err := e.ELSClient.IndexExists(indexName).Do(ctx)
+	exists, err := e.ELSClient.IndexExists(e.Index).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
@@ -136,7 +134,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 				},
 			},
 		}
-		_, err := e.ELSClient.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
+		_, err := e.ELSClient.CreateIndex(e.Index).BodyJson(mapping).Do(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
@@ -144,17 +142,17 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(indexName).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(e.Index).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
-	_, err = e.ELSClient.Flush().Index(indexName).Do(ctx)
+	_, err = e.ELSClient.Flush().Index(e.Index).Do(ctx)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index+"-"+time.Now().Format(indexSuffixFormat))
+	log.Debugf("Event successfully sent to ElasticSearch index %s", e.Index)
 	return nil
 }
 
