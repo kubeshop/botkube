@@ -196,7 +196,14 @@ func (sm *slackMessage) Send() {
 		return
 	}
 
-	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, slack.MsgOptionText("```"+sm.Response+"```", false), slack.MsgOptionAsUser(true)); err != nil {
+	var options = []slack.MsgOption{slack.MsgOptionText("```"+sm.Response+"```", false), slack.MsgOptionAsUser(true)}
+
+	//if the message is from thread then add an option to return the response to the thread
+	if sm.Event.ThreadTimestamp != "" {
+		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimestamp))
+	}
+
+	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
 		log.Error("Error in sending message:", err)
 	}
 }
