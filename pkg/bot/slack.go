@@ -136,7 +136,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 		if info.IsChannel || info.IsPrivate {
 			// Message posted in a channel
 			// Serve only if starts with mention
-			if !strings.HasPrefix(sm.Event.Text, "<@"+sm.BotID+"> ") {
+			if !strings.HasPrefix(sm.Event.Text, "<@"+sm.BotID+">") {
 				return
 			}
 			// Serve only if current channel is in config
@@ -164,10 +164,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	}
 
 	// Trim the @BotKube prefix
-	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+"> ")
-	if len(sm.Request) == 0 {
-		return
-	}
+	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
 	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
 		b.ClusterName, accessBinding.ProfileValue, config.SlackBot, accessBinding.ChannelName, sm.IsAuthChannel)

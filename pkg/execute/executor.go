@@ -185,6 +185,7 @@ func (action FiltersAction) String() string {
 }
 
 // NewDefaultExecutor returns new Executor object
+// msg should not contain the BotId
 func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace,
 	clusterName string, Profile config.Profile, platform config.BotPlatform, channelName string, isAuthChannel bool) Executor {
 	return &DefaultExecutor{
@@ -202,7 +203,13 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	args := strings.Fields(e.Message)
+	args := strings.Fields(strings.TrimSpace(e.Message))
+	if len(args) == 0 {
+		if e.IsAuthChannel {
+			return printDefaultMsg(e.Platform)
+		}
+		return "" // this prevents all bots on all clusters to answer something
+	}
 	// authorizeCommandByProfile check if the command is and authorized kubectl command
 	if e.Profile.Name == "" {
 		if len(args) >= 1 && utils.AllowedKubectlVerbMap[args[0]] {
