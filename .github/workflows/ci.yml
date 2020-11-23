@@ -39,27 +39,27 @@ jobs:
       run: |
         docker login ghcr.io -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker push docker.pkg.github.com/vaibhavp/botkube/botkube:latest
-    - name: Install helm
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
-      run: |
-        curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
-        chmod +x get_helm.sh
-        ./get_helm.sh
-        helm lint helm/botkube
-    - name: Update and publish helm chart
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
-      run: |
-        cd ..
-        git config --global user.email "botkube-ci@infracloud.io"
-        git config --global user.name "BotKube CI"
-        git clone https://github.com/infracloudio/charts.git
-        cd charts
-        git fetch
-        git branch
-        git pull origin gh-pages
-        helm init --client-only
-        helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace }}/helm/botkube/
-        helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
-        git add .
-        git commit -m "Update BotKube latest helm chart"
-        git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git
+    #- name: Install helm
+    #  if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
+    #  run: |
+    #    curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
+    #    chmod +x get_helm.sh
+    #    ./get_helm.sh
+    #    helm lint helm/botkube
+    #- name: Update and publish helm chart
+    #  if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
+    #  run: |
+    #    cd ..
+    #    git config --global user.email "botkube-ci@infracloud.io"
+    #    git config --global user.name "BotKube CI"
+    #    git clone https://github.com/infracloudio/charts.git
+    #    cd charts
+    #    git fetch
+    #    git branch
+    #    git pull origin gh-pages
+    #    helm init --client-only
+    #    helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace }}/helm/botkube/
+    #    helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
+    #    git add .
+    #    git commit -m "Update BotKube latest helm chart"
+    #    git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git
