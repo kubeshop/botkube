@@ -37,7 +37,7 @@ jobs:
     - name: Push docker images
       if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
       run: |
-        docker login ghcr.io -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker login docker.pkg.github.com -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker push docker.pkg.github.com/vaibhavp/botkube/botkube:latest
     #- name: Install helm
     #  if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
