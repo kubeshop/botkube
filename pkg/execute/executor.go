@@ -80,6 +80,8 @@ const (
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
 	// IncompleteCmdMsg incomplete command response message
 	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	// WrongClusterCmdMsg incomplete command response message
+	WrongClusterCmdMsg = "Sorry, the admin hasn't configured me to do that for the cluster '%s'."
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
@@ -386,6 +388,11 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 	if len(args) < 2 && args[1] != string(infoList) {
 		return IncompleteCmdMsg
 	}
+
+	if len(args) > 3 && args[2] == ClusterFlag.String() && args[3] != e.ClusterName {
+		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
+	}
+
 	return makeCommandInfoList()
 }
 
