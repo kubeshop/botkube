@@ -29,7 +29,7 @@ import (
 )
 
 // customTimeFormat holds custom time format string
-const customTimeFormat = "2006-01-02 15:04:05"
+const customTimeFormat = "2006-01-02T15:04:05Z"
 
 var embedColor = map[config.Level]int{
 	config.Info:     8311585,  // green
@@ -110,7 +110,7 @@ func formatDiscordMessage(event events.Event, notifyType config.NotifType) disco
 	}
 
 	// Add timestamp
-	messageEmbed.Timestamp = event.TimeStamp.Format(customTimeFormat)
+	messageEmbed.Timestamp = event.TimeStamp.UTC().Format(customTimeFormat)
 
 	messageEmbed.Color = embedColor[event.Level]
 
