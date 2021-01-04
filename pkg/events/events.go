@@ -122,8 +122,7 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Count = eventObj.Count
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
-		tempResourceName, _ := utils.GetResourceFromKind(eventObj.InvolvedObject.GroupVersionKind())
-		event.Resource = utils.GVRToString(tempResourceName)
+		event.Resource = resource
 	}
 	return event
 }
