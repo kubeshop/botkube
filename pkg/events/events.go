@@ -51,6 +51,7 @@ type Event struct {
 	Count     int32
 	Action    string
 	Skip      bool `json:",omitempty"`
+	Resource  string
 
 	Recommendations []string
 	Warnings        []string
@@ -121,7 +122,8 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Count = eventObj.Count
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
-
+		tempResourceName, _ := utils.GetResourceFromKind(eventObj.InvolvedObject.GroupVersionKind())
+		event.Resource = utils.GVRToString(tempResourceName)
 	}
 	return event
 }

@@ -56,8 +56,7 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 	}
 	if botkubeConfig != nil {
 		for _, resource := range botkubeConfig.Resources {
-			resourceName := strings.Split(strings.ToLower(event.Title), " ")[0]
-			if resource.Name == resourceName {
+			if resource.Name == event.Resource {
 				// check if namespace to be ignored
 				if isNamespaceIgnored(resource.Namespaces, event.Namespace) {
 					event.Skip = true
