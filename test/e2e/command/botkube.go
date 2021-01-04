@@ -83,6 +83,32 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"  - statefulsets\n" +
 				"  - storageclasses\n",
 		},
+		"BotKube commands list with cluster name": {
+			command: "commands list --cluster-name test-cluster-1",
+			expected: "allowed verbs:\n" +
+				"  - api-resources\n" +
+				"  - describe\n" +
+				"  - diff\n" +
+				"  - explain\n" +
+				"  - get\n" +
+				"  - logs\n" +
+				"  - api-versions\n" +
+				"  - cluster-info\n" +
+				"  - top\n" +
+				"  - auth\n" +
+				"allowed resources:\n" +
+				"  - nodes\n" +
+				"  - deployments\n" +
+				"  - pods\n" +
+				"  - namespaces\n" +
+				"  - daemonsets\n" +
+				"  - statefulsets\n" +
+				"  - storageclasses\n",
+		},
+		"BotKube command list with wrong cluster name": {
+			command:  "commands list --cluster-name test-cluster-2",
+			expected: "Sorry, the admin hasn't configured me to do that for the cluster 'test-cluster-2'.",
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -103,6 +129,10 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				case "filters list":
 					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
 					assert.Equal(t, fl, true)
+				case "commands list --cluster-name test-cluster-2":
+					fallthrough
+				case "commands list --cluster-name test-cluster-1":
+					fallthrough
 				case "commands list":
 					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
 					assert.Equal(t, cl, true)
