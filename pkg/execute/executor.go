@@ -88,7 +88,7 @@ const (
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
 	//DefaultClusterForKubectl message sent when querying default cluster for kubectl
 	DefaultClusterForKubectl = "The default cluster for kubectl commands is : %s"
-	//DefaultClusterForKubectlAccepted messsage sent when cluster is accepted to be default 
+	//DefaultClusterForKubectlAccepted message sent when cluster is accepted to be default 
 	DefaultClusterForKubectlAccepted = "Using cluster %s as default for kubectl commands"
 
 	//DefaultNamespaceForKubectl message sent when querying for default namespace
@@ -362,7 +362,7 @@ func (e *DefaultExecutor) runDefaultCommand(args []string, clusterName string, c
 	if len(args) > 1 {
 		switch args[0] {
 		case defaultClusterCmd:
-			if args[1] == clusterName { //default command is targetting this cluster :)
+			if args[1] == clusterName { //default command is targeting this cluster :)
 				if kubectlAllowed {
 					//adding the channel to the channels linked to this cluster
 					namespace := config.KubeCtlLinkedChannels[channelID] //to avoid changing the namespace is it was previously set
