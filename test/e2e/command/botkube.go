@@ -210,20 +210,19 @@ func (c *context) testNotifierCommand(t *testing.T) {
 	})
 }
 
-
 // Test default cluster
 // - @BotKube cluster => should return <current cluster>
 // - @Botkube cluster foo => return "" (this should disable the default cluster)
 // - @Botkube cluster => return ""
-// - @Botkube cluster <current cluster> => return default <current cluster> is used 
+// - @Botkube cluster <current cluster> => return default <current cluster> is used
 func (c *context) testDefaultClusterCommand(t *testing.T) {
 	defer func() {
 		// set back the default cluster value
-		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel:c.Config.Settings.Kubectl.DefaultNamespace}
+		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel: c.Config.Settings.Kubectl.DefaultNamespace}
 	}()
 	t.Run("default cluster command", func(t *testing.T) {
 		if c.TestEnv.Config.Communications.Slack.Enabled {
-  		// Send "cluster" to a channel, response should be the <current cluster>
+			// Send "cluster" to a channel, response should be the <current cluster>
 			c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, "cluster")
 			m := c.GetLastMessageAndAssert(t)
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
@@ -242,7 +241,7 @@ func (c *context) testDefaultClusterCommand(t *testing.T) {
 			c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, fmt.Sprintf("cluster %s", c.Config.Settings.ClusterName))
 			m = c.GetLastMessageAndAssert(t)
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, "```" + fmt.Sprintf(execute.DefaultClusterForKubectlAccepted, c.Config.Settings.ClusterName)+"```", m.Text)
+			assert.Equal(t, "```"+fmt.Sprintf(execute.DefaultClusterForKubectlAccepted, c.Config.Settings.ClusterName)+"```", m.Text)
 		}
 	})
 }
@@ -254,7 +253,7 @@ func (c *context) testDefaultClusterCommand(t *testing.T) {
 func (c *context) testDefaultNamespaceCommand(t *testing.T) {
 	defer func() {
 		// set back the default cluster value
-		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel:c.Config.Settings.Kubectl.DefaultNamespace}
+		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel: c.Config.Settings.Kubectl.DefaultNamespace}
 	}()
 	t.Run("default namespace", func(t *testing.T) {
 		if c.TestEnv.Config.Communications.Slack.Enabled {
@@ -284,7 +283,7 @@ func (c *context) testDefaultNamespaceCommand(t *testing.T) {
 func (c *context) testDefaultNamespaceWithKubectlCommands(t *testing.T) {
 	defer func() {
 		// set back the default cluster value
-		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel:c.Config.Settings.Kubectl.DefaultNamespace}
+		config.KubeCtlLinkedChannels = map[string]string{c.Config.Communications.Slack.Channel: c.Config.Settings.Kubectl.DefaultNamespace}
 	}()
 	t.Run("default namespace", func(t *testing.T) {
 		if c.TestEnv.Config.Communications.Slack.Enabled {
@@ -295,13 +294,10 @@ func (c *context) testDefaultNamespaceWithKubectlCommands(t *testing.T) {
 			c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, "get pods")
 			m := c.GetLastMessageAndAssert(t)
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName,execute.KubectlResponse["-n foo get pods"]), m.Text)
+			assert.Equal(t, fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n foo get pods"]), m.Text)
 		}
 	})
 }
-
-
-
 
 func (c *context) GetLastMessageAndAssert(t *testing.T) slack.Message {
 	// Get last seen slack message
@@ -311,5 +307,5 @@ func (c *context) GetLastMessageAndAssert(t *testing.T) slack.Message {
 	m := slack.Message{}
 	err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 	assert.NoError(t, err, "message should decode properly")
-	return m	
+	return m
 }

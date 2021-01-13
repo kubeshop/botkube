@@ -218,7 +218,7 @@ type Kubectl struct {
 	Enabled          bool
 	Commands         Commands
 	DefaultNamespace string `yaml:"defaultNamespace"`
-	RestrictAccess   bool `yaml:"restrictAccess"`
+	RestrictAccess   bool   `yaml:"restrictAccess"`
 }
 
 // Commands allowed in bot

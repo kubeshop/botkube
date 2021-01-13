@@ -79,7 +79,7 @@ var (
 )
 
 const (
-	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
+	notifierStopMsg = "Sure! I won't send you notifications from cluster '%s' anymore."
 	//UnsupportedCmdMsg message displayed when the command is not supported
 	UnsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
@@ -88,14 +88,13 @@ const (
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
 	//DefaultClusterForKubectl message sent when querying default cluster for kubectl
 	DefaultClusterForKubectl = "The default cluster for kubectl commands is : %s"
-	//DefaultClusterForKubectlAccepted message sent when cluster is accepted to be default 
+	//DefaultClusterForKubectlAccepted message sent when cluster is accepted to be default
 	DefaultClusterForKubectlAccepted = "Using cluster %s as default for kubectl commands"
 
 	//DefaultNamespaceForKubectl message sent when querying for default namespace
 	DefaultNamespaceForKubectl = "The default namespace for cluster %s is %s"
 	//DefaultNamespaceForKubectlAccepted message sent when default namespace is set
 	DefaultNamespaceForKubectlAccepted = "Using default namespace %s for cluster %s"
-
 
 	// NotifierStartMsg notifier enabled response message
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."

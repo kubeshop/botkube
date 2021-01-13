@@ -37,7 +37,7 @@ import (
 
 //SlackEmptyResponsePrefix prefix user by the fake bot when no
 // response is sent back to identify the previous command
-const	SlackEmptyResponsePrefix = "<@U023BECGF>"
+const SlackEmptyResponsePrefix = "<@U023BECGF>"
 
 // SlackMessage structure
 type SlackMessage struct {
