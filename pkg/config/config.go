@@ -217,7 +217,7 @@ type Webhook struct {
 type Kubectl struct {
 	Enabled          bool
 	Commands         Commands
-	DefaultNamespace string
+	DefaultNamespace string `yaml:"defaultNamespace"`
 	RestrictAccess   bool `yaml:"restrictAccess"`
 }
 

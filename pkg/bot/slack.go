@@ -134,7 +134,8 @@ func setupDefaultChannelForKubeCtl(client slack.Client, channelName string, clus
 	msgOpt := slack.MsgOptionText(fmt.Sprintf(execute.DefaultClusterForKubectl, clusterName), false)
 	channelID, _, err := client.PostMessage(channelName, msgOpt, slack.MsgOptionAsUser(true))
 	if err != nil {
-		log.Errorf("Error in sending slack message %s", err.Error())
+		log.Errorf("Error in sending slack message to channel %s : %s", channelName, err.Error())
+		return
 	}
 	if namespace == "" {
 		namespace = "default"

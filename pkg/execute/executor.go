@@ -80,13 +80,22 @@ var (
 
 const (
 	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
-	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
+	//UnsupportedCmdMsg message displayed when the command is not supported
+	UnsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
-	//DefaultClusterForKubectl sent when setting a new default cluster for kubectl
+	//DefaultClusterForKubectl message sent when querying default cluster for kubectl
 	DefaultClusterForKubectl = "The default cluster for kubectl commands is : %s"
+	//DefaultClusterForKubectlAccepted messsage sent when cluster is accepted to be default 
+	DefaultClusterForKubectlAccepted = "Using cluster %s as default for kubectl commands"
+
+	//DefaultNamespaceForKubectl message sent when querying for default namespace
+	DefaultNamespaceForKubectl = "The default namespace for cluster %s is %s"
+	//DefaultNamespaceForKubectlAccepted message sent when default namespace is set
+	DefaultNamespaceForKubectlAccepted = "Using default namespace %s for cluster %s"
+
 
 	// NotifierStartMsg notifier enabled response message
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
@@ -254,7 +263,7 @@ func printDefaultMsg(p config.BotPlatform) string {
 	if p == config.TeamsBot {
 		return teamsUnsupportedCmdMsg
 	}
-	return unsupportedCmdMsg
+	return UnsupportedCmdMsg
 }
 
 // Trim single and double quotes from ends of string
@@ -342,7 +351,7 @@ func (e *DefaultExecutor) runDefaultCommand(args []string, clusterName string, c
 			return ""
 		case defaultNamespaceCmd:
 			if isManagedChannel {
-				return fmt.Sprintf("The default namespace for cluster %s is %s", clusterName, config.KubeCtlLinkedChannels[channelID])
+				return fmt.Sprintf(DefaultNamespaceForKubectl, clusterName, config.KubeCtlLinkedChannels[channelID])
 			} // else another cluster may be the default
 			return ""
 		default: //unhandled command
@@ -361,7 +370,7 @@ func (e *DefaultExecutor) runDefaultCommand(args []string, clusterName string, c
 						namespace = "default"
 					}
 					config.KubeCtlLinkedChannels[channelID] = namespace
-					return fmt.Sprintf("using cluster %s as default for kubectl commands", clusterName)
+					return fmt.Sprintf(DefaultClusterForKubectlAccepted, clusterName)
 				} //else kubectl not allowed on this channel so say it
 				return fmt.Sprintf(kubectlDisabledMsg, clusterName)
 			} //else removes this channel from the list of channel linked to this cluster for kubectl
@@ -370,7 +379,7 @@ func (e *DefaultExecutor) runDefaultCommand(args []string, clusterName string, c
 		case defaultNamespaceCmd: //want to set default namespace so check if it is the right cluster
 			if isManagedChannel {
 				config.KubeCtlLinkedChannels[channelID] = args[1]
-				return fmt.Sprintf("Using default namespace %s for cluster %s", args[1], clusterName)
+				return fmt.Sprintf(DefaultNamespaceForKubectlAccepted, args[1], clusterName)
 			} // else another cluster may be the default
 			return ""
 		default: //unhandled command
