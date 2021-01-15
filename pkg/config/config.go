@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"cloud.google.com/go/compute/metadata"
 	"gopkg.in/yaml.v2"
 )
 
@@ -275,6 +276,15 @@ func New() (*Config, error) {
 
 	if len(b) != 0 {
 		yaml.Unmarshal(b, c)
+	}
+
+	if c.Settings.ClusterName == "%google_metadata%" {
+		clusterName, err := metadata.InstanceAttributeValue("cluster-name")
+		if err != nil {
+			return nil, err
+		}
+
+		c.Settings.ClusterName = clusterName
 	}
 
 	comm, err := NewCommunicationsConfig()
