@@ -278,7 +278,7 @@ func New() (*Config, error) {
 		yaml.Unmarshal(b, c)
 	}
 
-	if c.Settings.ClusterName == "%google_metadata%" {
+	if c.Settings.ClusterName == "+google_metadata+" {
 		clusterName, err := metadata.InstanceAttributeValue("cluster-name")
 		if err != nil {
 			return nil, err
