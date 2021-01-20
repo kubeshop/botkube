@@ -20,7 +20,6 @@
 package filters
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -51,16 +50,19 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 	// load config.yaml
 	botkubeConfig, err := config.New()
 	if err != nil {
-		log.Errorf(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
-		log.Debug("Skipping ignore namespace filter.")
+		log.Errorf("Error in loading configuration. %s", err.Error())
+		return
 	}
-	if botkubeConfig != nil {
-		for _, resource := range botkubeConfig.Resources {
-			if resource.Name == event.Resource {
-				// check if namespace to be ignored
-				if isNamespaceIgnored(resource.Namespaces, event.Namespace) {
-					event.Skip = true
-				}
+	if botkubeConfig == nil {
+		log.Errorf("Error in loading configuration.")
+		return
+	}
+	for _, resource := range botkubeConfig.Resources {
+		if event.Resource == event.Resource {
+			// check if namespace to be ignored
+			if isNamespaceIgnored(resource.Namespaces, event.Namespace) {
+				event.Skip = true
+				break
 			}
 		}
 	}
