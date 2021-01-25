@@ -159,6 +159,10 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 func (sm *slackMessage) Send() {
 	log.Debugf("Slack incoming Request: %s", sm.Request)
 	log.Debugf("Slack Response: %s", sm.Response)
+	if len(sm.Response) == 0 {
+		log.Infof("Invalid request. Dumping the response. Request: %s", sm.Request)
+		return
+	}
 	// Upload message as a file if too long
 	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{
@@ -172,12 +176,9 @@ func (sm *slackMessage) Send() {
 			log.Error("Error in uploading file:", err)
 		}
 		return
-	} else if len(sm.Response) == 0 {
-		log.Info("Invalid request. Dumping the response")
-		return
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText("```"+sm.Response+"```", false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(formatCodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if sm.Event.ThreadTimestamp != "" {
