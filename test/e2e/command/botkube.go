@@ -49,7 +49,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 	tests := map[string]botkubeCommand{
 		"BotKube ping": {
 			command:  "ping",
-			expected: fmt.Sprintf("```pong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s```", c.Config.Settings.ClusterName, execute.K8sVersion, botkubeVersion),
+			expected: fmt.Sprintf("```\npong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s\n```", c.Config.Settings.ClusterName, execute.K8sVersion, botkubeVersion),
 		},
 		"BotKube filters list": {
 			command: "filters list",
@@ -59,7 +59,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"ObjectAnnotationChecker true    Checks if annotations botkube.io/* present in object specs and filters them.\n" +
 				"PodLabelChecker         true    Checks and adds recommendations if labels are missing in the pod specs.\n" +
 				"ImageTagChecker         true    Checks and adds recommendation if 'latest' image tag is used for container image.\n" +
-				"IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.\n",
+				"IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.",
 		},
 		"BotKube commands list": {
 			command: "commands list",
@@ -81,7 +81,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"  - namespaces\n" +
 				"  - daemonsets\n" +
 				"  - statefulsets\n" +
-				"  - storageclasses\n",
+				"  - storageclasses",
 		},
 		"BotKube commands list with cluster name": {
 			command: "commands list --cluster-name test-cluster-1",
@@ -103,7 +103,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				"  - namespaces\n" +
 				"  - daemonsets\n" +
 				"  - statefulsets\n" +
-				"  - storageclasses\n",
+				"  - storageclasses",
 		},
 		"BotKube command list with wrong cluster name": {
 			command:  "commands list --cluster-name test-cluster-2",
@@ -127,14 +127,14 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 				switch test.command {
 				case "filters list":
-					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
+					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "```")), "\n"))
 					assert.Equal(t, fl, true)
 				case "commands list --cluster-name test-cluster-2":
 					fallthrough
 				case "commands list --cluster-name test-cluster-1":
 					fallthrough
 				case "commands list":
-					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.Trim(m.Text, "```"), "\n"))
+					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "```")), "\n"))
 					assert.Equal(t, cl, true)
 				default:
 					assert.Equal(t, test.expected, m.Text)
@@ -184,7 +184,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, fmt.Sprintf("```Sure! I won't send you notifications from cluster '%s' anymore.```", c.Config.Settings.ClusterName), m.Text)
+			assert.Equal(t, fmt.Sprintf("```\nSure! I won't send you notifications from cluster '%s' anymore.\n```", c.Config.Settings.ClusterName), m.Text)
 			assert.Equal(t, config.Notify, false)
 		}
 	})
@@ -230,7 +230,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 			err := json.Unmarshal([]byte(*lastSeenMsg), &m)
 			assert.NoError(t, err, "message should decode properly")
 			assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
-			assert.Equal(t, fmt.Sprintf("```Brace yourselves, notifications are coming from cluster '%s'.```", c.Config.Settings.ClusterName), m.Text)
+			assert.Equal(t, fmt.Sprintf("```\nBrace yourselves, notifications are coming from cluster '%s'.\n```", c.Config.Settings.ClusterName), m.Text)
 			assert.Equal(t, config.Notify, true)
 		}
 	})
