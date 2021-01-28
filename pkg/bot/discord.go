@@ -96,7 +96,6 @@ func (b *DiscordBot) Start() {
 
 // HandleMessage handles the incoming messages
 func (dm *discordMessage) HandleMessage(b *DiscordBot) {
-
 	// Serve only if starts with mention
 	if !strings.HasPrefix(dm.Event.Content, "<@!"+dm.BotID+"> ") && !strings.HasPrefix(dm.Event.Content, "<@"+dm.BotID+"> ") {
 		return
@@ -129,6 +128,11 @@ func (dm discordMessage) Send() {
 	log.Debugf("Discord incoming Request: %s", dm.Request)
 	log.Debugf("Discord Response: %s", dm.Response)
 
+	if len(dm.Response) == 0 {
+		log.Infof("Invalid request. Dumping the response. Request: %s", dm.Request)
+		return
+	}
+
 	// Upload message as a file if too long
 	if len(dm.Response) >= 2000 {
 		params := &discordgo.MessageSend{
@@ -140,17 +144,13 @@ func (dm discordMessage) Send() {
 				},
 			},
 		}
-
 		if _, err := dm.Session.ChannelMessageSendComplex(dm.Event.ChannelID, params); err != nil {
 			log.Error("Error in uploading file:", err)
 		}
 		return
-	} else if len(dm.Response) == 0 {
-		log.Info("Invalid request. Dumping the response")
-		return
 	}
 
-	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, dm.Response); err != nil {
+	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, formatCodeBlock(dm.Response)); err != nil {
 		log.Error("Error in sending message:", err)
 	}
 }
