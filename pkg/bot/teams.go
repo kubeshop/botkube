@@ -259,7 +259,7 @@ func (t *Teams) processMessage(activity schema.Activity) string {
 	// Multicluster is not supported for Teams
 	e := execute.NewDefaultExecutor(msg, t.AllowKubectl, t.RestrictAccess, t.DefaultNamespace,
 		t.ClusterName, config.TeamsBot, "", true)
-	return fmt.Sprintf("```\n%s\n```", e.Execute())
+	return formatCodeBlock(e.Execute())
 }
 
 func (t *Teams) putRequest(u string, data []byte) error {

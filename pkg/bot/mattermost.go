@@ -161,6 +161,11 @@ func (mm mattermostMessage) sendMessage() {
 	log.Debugf("Mattermost Response: %s", mm.Response)
 	post := &model.Post{}
 	post.ChannelId = mm.Event.Broadcast.ChannelId
+
+	if len(mm.Response) == 0 {
+		log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
+		return
+	}
 	// Create file if message is too large
 	if len(mm.Response) >= 3990 {
 		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
@@ -168,11 +173,8 @@ func (mm mattermostMessage) sendMessage() {
 			log.Error("Error occurred while uploading file. Error: ", resp.Error)
 		}
 		post.FileIds = []string{string(res.FileInfos[0].Id)}
-	} else if len(mm.Response) == 0 {
-		log.Info("Invalid request. Dumping the response")
-		return
 	} else {
-		post.Message = "```\n" + mm.Response + "\n```"
+		post.Message = formatCodeBlock(mm.Response)
 	}
 
 	// Create a post in the Channel

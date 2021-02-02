@@ -46,7 +46,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 	tests := map[string]kubectlCommand{
 		"BotKube get pods from configured channel": {
 			command:  "get pods",
-			expected: fmt.Sprintf("```Cluster: %s\n%s```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n default get pods"]),
+			expected: fmt.Sprintf("```\nCluster: %s\n%s\n```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n default get pods"]),
 			channel:  c.Config.Communications.Slack.Channel,
 		},
 		"BotKube get pods out of configured channel": {
@@ -56,12 +56,12 @@ func (c *context) testKubectlCommand(t *testing.T) {
 		},
 		"kubectl command on forbidden verb and resource": {
 			command:  "config set clusters.test-clustor-1.server https://1.2.3.4",
-			expected: "```Command not supported. Please run /botkubehelp to see supported commands.```",
+			expected: "```\nCommand not supported. Please run /botkubehelp to see supported commands.\n```",
 			channel:  c.Config.Communications.Slack.Channel,
 		},
 		"kubectl command on forbidden resource": {
 			command:  "get endpoints",
-			expected: "```Command not supported. Please run /botkubehelp to see supported commands.```",
+			expected: "```\nCommand not supported. Please run /botkubehelp to see supported commands.\n```",
 			channel:  c.Config.Communications.Slack.Channel,
 		},
 		"kubectl command without a resource": {
