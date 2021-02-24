@@ -62,3 +62,24 @@ func TestGetStringInYamlFormat(t *testing.T) {
 		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 }
+
+func TestContains(t *testing.T) {
+	var containsValue = "default"
+	var notContainsValue = "demo"
+	var commands = []string{
+		"get",
+		"pods",
+		"-n",
+		"default",
+	}
+	expected := true
+	got := Contains(commands, containsValue)
+	if got != expected {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+	expected = false
+	got = Contains(commands, notContainsValue)
+	if got != expected {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}

@@ -387,3 +387,13 @@ func CheckOperationAllowed(eventMap map[EventKind]bool, namespace string, resour
 	}
 	return false
 }
+
+// Contains tells whether a contains x.
+func Contains(a []string, x string) bool {
+	for _, n := range a {
+		if strings.ToLower(x) == strings.ToLower(n) {
+			return true
+		}
+	}
+	return false
+}
