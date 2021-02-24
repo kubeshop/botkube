@@ -256,10 +256,8 @@ func trimQuotes(clusterValue string) string {
 func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
 
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
-	if len(defaultNamespace) != 0 {
+	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
 		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-	} else {
-		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
 	}
 
 	// Remove unnecessary flags
