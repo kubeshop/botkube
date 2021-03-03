@@ -278,6 +278,12 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
 			// Check if flag value in current or next argument and compare with config.settings.clustername
 			if arg == ClusterFlag.String() {
+				nextArgasClusterName := args[index+1]
+				//This will remove 'http://' from clustername if it is automatically added
+				if strings.Contains(nextArgasClusterName, "<http://") {
+					nerCommands := strings.Split(nextArgasClusterName, "|")
+					args[index+1] = strings.Replace(nerCommands[1], ">", "", 1)
+				}
 				if index == len(args)-1 || trimQuotes(args[index+1]) != clusterName {
 					return ""
 				}
