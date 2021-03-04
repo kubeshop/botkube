@@ -397,3 +397,18 @@ func Contains(a []string, x string) bool {
 	}
 	return false
 }
+
+//RemoveHyperlink removes the hyperlink text from url
+func RemoveHyperlink(hyperlink string) string {
+	var command = hyperlink
+	var hyperlinkRegex = regexp.MustCompile(`(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`)
+	matched := hyperlinkRegex.FindAllStringSubmatch(string(hyperlink), -1)
+	if len(matched) >= 1 {
+		for _, match := range matched {
+			if len(match) == 2 {
+				command = strings.ReplaceAll(command, match[0], match[1])
+			}
+		}
+	}
+	return command
+}
