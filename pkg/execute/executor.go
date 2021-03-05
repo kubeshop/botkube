@@ -181,7 +181,7 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	//Remove hyperlink if it got added automatically
+	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.Message)
 	args := strings.Fields(strings.TrimSpace(command))
 	if len(args) == 0 {

@@ -73,6 +73,8 @@ var (
 	DiscoveryClient discovery.DiscoveryInterface
 )
 
+const hyperlinkRegex = `(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`
+
 // InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
 func InitKubeClient() {
 	kubeConfig, err := rest.InClusterConfig()
@@ -398,11 +400,11 @@ func Contains(a []string, x string) bool {
 	return false
 }
 
-//RemoveHyperlink removes the hyperlink text from url
+// RemoveHyperlink removes the hyperlink text from url
 func RemoveHyperlink(hyperlink string) string {
-	var command = hyperlink
-	var hyperlinkRegex = regexp.MustCompile(`(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`)
-	matched := hyperlinkRegex.FindAllStringSubmatch(string(hyperlink), -1)
+	command := hyperlink
+	compiledRegex := regexp.MustCompile(hyperlinkRegex)
+	matched := compiledRegex.FindAllStringSubmatch(string(hyperlink), -1)
 	if len(matched) >= 1 {
 		for _, match := range matched {
 			if len(match) == 2 {
