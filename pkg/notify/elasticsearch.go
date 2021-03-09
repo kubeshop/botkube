@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
@@ -61,7 +62,13 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 	if c.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		sess := session.Must(session.NewSession())
-		if c.AWSSigning.RoleArn != "" {
+
+		// Use OIDC token to generate credentials if using IAM to Service Account
+		awsRoleARN := os.Getenv("AWS_ROLE_ARN")
+		awsWebIdentityTokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+		if awsRoleARN != "" && awsWebIdentityTokenFile != "" {
+			creds = stscreds.NewWebIdentityCredentials(sess, awsRoleARN, "", awsWebIdentityTokenFile)
+		} else if c.AWSSigning.RoleArn != "" {
 			creds = stscreds.NewCredentials(sess, c.AWSSigning.RoleArn)
 		} else {
 			creds = ec2rolecreds.NewCredentials(sess)
