@@ -42,6 +42,11 @@ const (
 	indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
 	// awsService for the AWS client to authenticate against
 	awsService = "es"
+	// AWS Role ARN from POD env variable while using IAM Role for service account
+	awsRoleARNEnvName = "AWS_ROLE_ARN"
+	// The token file mount path in POD env variable while using IAM Role for service account
+	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
+
 )
 
 // ElasticSearch contains auth cred and index setting
@@ -64,8 +69,8 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 		sess := session.Must(session.NewSession())
 
 		// Use OIDC token to generate credentials if using IAM to Service Account
-		awsRoleARN := os.Getenv("AWS_ROLE_ARN")
-		awsWebIdentityTokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+		awsRoleARN := os.Getenv(awsRoleARNEnvName)
+		awsWebIdentityTokenFile := os.Getenv(awsWebIDTokenFileEnvName)
 		if awsRoleARN != "" && awsWebIdentityTokenFile != "" {
 			creds = stscreds.NewWebIdentityCredentials(sess, awsRoleARN, "", awsWebIdentityTokenFile)
 		} else if c.AWSSigning.RoleArn != "" {
