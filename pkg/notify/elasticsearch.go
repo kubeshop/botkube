@@ -46,7 +46,6 @@ const (
 	awsRoleARNEnvName = "AWS_ROLE_ARN"
 	// The token file mount path in POD env variable while using IAM Role for service account
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
-
 )
 
 // ElasticSearch contains auth cred and index setting
