@@ -17,6 +17,18 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 * <https://github.com/infracloudio/botkube>
 
+### Now Supports AWS IRSA on EKS
+
+AWS has introduced IAM Role for Service Accounts in order to provide fine grained access. This is useful if you are looking to run BotKube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
+
+Annotate the BotKube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding BotKube role to get this working
+
+```
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: "<role_arn_to_assume>"
+```
+
 ## Values
 
 | Key | Type | Default | Description |
