@@ -21,7 +21,7 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 AWS has introduced IAM Role for Service Accounts in order to provide fine grained access. This is useful if you are looking to run botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
 
-Annotate the Botkube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding Botkube role to get this working
+Annotate the BotKube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding BotKube role to get this working
 
 ```
 serviceAccount:
