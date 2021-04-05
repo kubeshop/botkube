@@ -18,7 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Development image
-FROM golang:1.13-alpine3.10 AS BUILD-ENV
+FROM golang:1.13-alpine3.12 AS BUILD-ENV
 
 ARG GOOS_VAL 
 ARG GOARCH_VAL
@@ -44,7 +44,7 @@ RUN apk add --no-cache ca-certificates git \
     && chmod +x /usr/local/bin/kubectl
 
 # Production image
-FROM alpine:3.10
+FROM alpine:3.12
 
 # Create Non Privileged user
 RUN addgroup --gid 101 botkube && \
