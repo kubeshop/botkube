@@ -35,7 +35,7 @@ spec:
       {{- range .Values.image.pullSecrets }}
         - name: {{ . }}
       {{- end }}
-      {{- end }
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
