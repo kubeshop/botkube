@@ -77,6 +77,7 @@ serviceAccount:
 | extraEnv | string | `nil` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.pullSecrets | list | `[]` |  |
 | image.repository | string | `"infracloudio/botkube"` |  |
 | image.tag | string | `"latest"` |  |
 | ingress.annotations."kubernetes.io/ingress.class" | string | `"nginx"` |  |
