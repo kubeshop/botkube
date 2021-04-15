@@ -74,9 +74,7 @@ spec:
             secretName: {{ include "botkube.fullname" . }}-certificate-secret
       {{ end }}
       {{- if .Values.securityContext }}
-      securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+      {{- toYaml .Values.securityContext | nindent 12 }}
       {{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
