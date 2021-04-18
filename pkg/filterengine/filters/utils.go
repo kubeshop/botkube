@@ -20,6 +20,7 @@
 package filters
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -42,8 +43,8 @@ var (
 )
 
 // ValidService returns Service object is service given service exists in the given namespace
-func ValidService(name, namespace string) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
+func ValidService(ctx context.Context, name, namespace string) (*coreV1.Service, error) {
+	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +57,8 @@ func ValidService(name, namespace string) (*coreV1.Service, error) {
 }
 
 // ValidServicePort returns valid Service object if given service with the port exists in the given namespace
-func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
+func ValidServicePort(ctx context.Context, name, namespace string, port int32) (*coreV1.Service, error) {
+	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +76,8 @@ func ValidServicePort(name, namespace string, port int32) (*coreV1.Service, erro
 }
 
 // ValidSecret return Secret object if the secret is present in the specified object
-func ValidSecret(name, namespace string) (*coreV1.Secret, error) {
-	unstructuredSecret, err := utils.DynamicKubeClient.Resource(secretGVR).Namespace(namespace).Get(name, metaV1.GetOptions{})
+func ValidSecret(ctx context.Context, name, namespace string) (*coreV1.Secret, error) {
+	unstructuredSecret, err := utils.DynamicKubeClient.Resource(secretGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

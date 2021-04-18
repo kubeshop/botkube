@@ -20,6 +20,7 @@
 package filters
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -68,7 +69,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 			if ns == "default" {
 				ns = ingNs
 			}
-			_, err := ValidServicePort(serviceName, ns, int32(servicePort))
+			_, err := ValidServicePort(context.Background(), serviceName, ns, int32(servicePort))
 			if err != nil {
 				event.Warnings = append(event.Warnings, fmt.Sprintf("Service '%s' used in ingress '%s' config does not exist or port '%v' not exposed", serviceName, ingressObj.Name, servicePort))
 			}
@@ -77,7 +78,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 
 	// Check if tls secret exists
 	for _, tls := range ingressObj.Spec.TLS {
-		_, err := ValidSecret(tls.SecretName, ingNs)
+		_, err := ValidSecret(context.Background(), tls.SecretName, ingNs)
 		if err != nil {
 			event.Recommendations = append(event.Recommendations, fmt.Sprintf("TLS secret %s does not exist", tls.SecretName))
 		}
