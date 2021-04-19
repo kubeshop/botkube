@@ -34,6 +34,10 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+          {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{ end }}
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
@@ -74,7 +78,9 @@ spec:
             secretName: {{ include "botkube.fullname" . }}-certificate-secret
       {{ end }}
       {{- if .Values.securityContext }}
-      {{- toYaml .Values.securityContext | nindent 12 }}
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
       {{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

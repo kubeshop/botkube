@@ -26,6 +26,8 @@ podSecurityPolicy:
 securityContext:
   runAsUser: 101
   runAsGroup: 101
+
+containerSecurityContext:
   privileged: false
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
