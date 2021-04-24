@@ -26,10 +26,9 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	networkV1beta1 "k8s.io/api/networking/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/test/e2e/env"
@@ -75,12 +74,12 @@ func (c *context) testFilters(t *testing.T) {
 		},
 
 		"test IngressValidator filter": {
-			GVR:       schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1beta1", Resource: "ingresses"},
+			GVR:       schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
 			Kind:      "Ingress",
 			Namespace: "test",
-			Specs:     &networkV1beta1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: networkV1beta1.IngressSpec{Rules: []networkV1beta1.IngressRule{{IngressRuleValue: networkV1beta1.IngressRuleValue{HTTP: &networkV1beta1.HTTPIngressRuleValue{Paths: []networkV1beta1.HTTPIngressPath{{Path: "testpath", Backend: networkV1beta1.IngressBackend{ServiceName: "test-service", ServicePort: intstr.FromInt(80)}}}}}}}}},
+			Specs:     &networkingv1.Ingress{ObjectMeta: metav1.ObjectMeta{Name: "ingress-with-service"}, Spec: networkingv1.IngressSpec{Rules: []networkingv1.IngressRule{{IngressRuleValue: networkingv1.IngressRuleValue{HTTP: &networkingv1.HTTPIngressRuleValue{Paths: []networkingv1.HTTPIngressPath{{Path: "testpath", Backend: networkingv1.IngressBackend{Service: &networkingv1.IngressServiceBackend{Name: "test-service", Port: networkingv1.ServiceBackendPort{Number: int32(80)}}}}}}}}}}},
 			ExpectedSlackMessage: utils.SlackMessage{
-				Attachments: []slack.Attachment{{Color: "good", Title: "networking.k8s.io/v1beta1/ingresses created", Fields: []slack.AttachmentField{{Value: "Ingress *test/ingress-with-service* has been created in *test-cluster-1* cluster\n```\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
+				Attachments: []slack.Attachment{{Color: "good", Title: "networking.k8s.io/v1/ingresses created", Fields: []slack.AttachmentField{{Value: "Ingress *test/ingress-with-service* has been created in *test-cluster-1* cluster\n```\nWarnings:\n- Service 'test-service' used in ingress 'ingress-with-service' config does not exist or port '80' not exposed\n```", Short: false}}, Footer: "BotKube"}},
 			},
 			ExpectedWebhookPayload: utils.WebhookPayload{
 				EventMeta:   notify.EventMeta{Kind: "Ingress", Name: "ingress-with-service", Namespace: "test", Cluster: "test-cluster-1"},

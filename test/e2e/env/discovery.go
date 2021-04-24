@@ -46,7 +46,7 @@ func (c *fakeDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
 func FakeCachedDiscoveryInterface() discovery.CachedDiscoveryInterface {
 	podGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	serviceGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}
-	ingressGVR := schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1beta1", Resource: "ingresses"}
+	ingressGVR := schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"}
 	fooGVR := schema.GroupVersionResource{Group: "samplecontroller.k8s.io", Version: "v1alpha1", Resource: "foos"}
 	namespaceGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
 

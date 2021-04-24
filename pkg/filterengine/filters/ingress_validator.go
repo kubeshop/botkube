@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -52,7 +52,7 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	if event.Kind != "Ingress" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(object).Kind == "Event" {
 		return
 	}
-	var ingressObj v1beta1.Ingress
+	var ingressObj networkingv1.Ingress
 	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &ingressObj)
 	if err != nil {
 		log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(ingressObj))
@@ -63,8 +63,11 @@ func (iv IngressValidator) Run(object interface{}, event *events.Event) {
 	// Check if service names are valid in the configuration
 	for _, rule := range ingressObj.Spec.Rules {
 		for _, path := range rule.IngressRuleValue.HTTP.Paths {
-			serviceName := path.Backend.ServiceName
-			servicePort := path.Backend.ServicePort.IntValue()
+			if path.Backend.Service == nil {
+				return
+			}
+			serviceName := path.Backend.Service.Name
+			servicePort := path.Backend.Service.Port.Number
 			ns := FindNamespaceFromService(serviceName)
 			if ns == "default" {
 				ns = ingNs
