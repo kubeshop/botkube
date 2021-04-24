@@ -27,6 +27,11 @@ securityContext:
   runAsUser: 101
   runAsGroup: 101
 
+containerSecurityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
