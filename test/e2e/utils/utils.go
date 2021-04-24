@@ -20,6 +20,7 @@
 package utils
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -107,7 +108,7 @@ func CreateResource(t *testing.T, obj CreateObjects) {
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 	// Create resource
-	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
@@ -123,14 +124,14 @@ func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 	// Create resource and get the old object
-	oldObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	oldObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
 	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
 	time.Sleep(30 * time.Second)
 	// Applying patch
-	newObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Patch(s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
+	newObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Patch(context.TODO(), s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
 	if err != nil {
 		t.Fatalf("Failed to update %s: %v", obj.GVR.Resource, err)
 	}
@@ -149,12 +150,12 @@ func DeleteResource(t *testing.T, obj DeleteObjects) {
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 
-	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(&s, v1.CreateOptions{})
+	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
 	}
 	// Delete resource
-	err = utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(s.GetName(), &v1.DeleteOptions{})
+	err = utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(context.TODO(), s.GetName(), v1.DeleteOptions{})
 
 	if err != nil {
 		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
