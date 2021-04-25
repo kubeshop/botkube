@@ -366,7 +366,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloudio/botkube:v0.12.0"
+          image: "infracloudio/botkube:v0.12.1"
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: config-volume
@@ -381,7 +381,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: v0.12.0
+              value: v0.12.1
       volumes:
         - name: config-volume
           projected:
