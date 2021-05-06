@@ -273,6 +273,11 @@ config:
 
 # Communication settings
 communications:
+
+  # Communication secret already existing
+  existingSecret: false
+  existingSecretName: ""
+  
   # Settings for Slack
   slack:
     enabled: false
