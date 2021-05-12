@@ -28,6 +28,8 @@ import (
 
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
@@ -35,6 +37,7 @@ import (
 	"k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/restmapper"
+	samplev1alpha1 "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
@@ -76,6 +79,9 @@ func New() *TestEnv {
 	os.Setenv("BOTKUBE_VERSION", "v9.99.9")
 
 	s := runtime.NewScheme()
+	samplev1alpha1.AddToScheme(s)
+	corev1.AddToScheme(s)
+	networkingv1.AddToScheme(s)
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
 	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())

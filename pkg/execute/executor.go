@@ -181,7 +181,9 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	args := strings.Fields(strings.TrimSpace(e.Message))
+	// Remove hyperlink if it got added automatically
+	command := utils.RemoveHyperlink(e.Message)
+	args := strings.Fields(strings.TrimSpace(command))
 	if len(args) == 0 {
 		if e.IsAuthChannel {
 			return printDefaultMsg(e.Platform)
@@ -256,10 +258,8 @@ func trimQuotes(clusterValue string) string {
 func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
 
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
-	if len(defaultNamespace) != 0 {
+	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
 		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-	} else {
-		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
 	}
 
 	// Remove unnecessary flags
