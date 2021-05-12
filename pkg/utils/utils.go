@@ -21,6 +21,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -272,7 +273,7 @@ func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
 		log.Error(err)
 		return nil
 	}
-	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(context.Background(), obj.InvolvedObject.Name, metaV1.GetOptions{})
 	if err != nil {
 		log.Error(err)
 		return nil

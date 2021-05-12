@@ -72,7 +72,7 @@ resources:
       - update
       - delete
       - error
-  - name: networking.k8s.io/v1beta1/ingresses
+  - name: networking.k8s.io/v1/ingresses
     namespaces:
       include:
         - all
