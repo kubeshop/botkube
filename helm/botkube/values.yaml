@@ -274,7 +274,7 @@ config:
 # Communication settings
 communications:
 
-  # Communication secret already existing
+  # Using existing Communication secret
   existingSecret: false
   existingSecretName: ""
   
