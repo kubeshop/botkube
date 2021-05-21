@@ -176,6 +176,7 @@ type Index struct {
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
 	Enabled   bool
+	BotName   string `yaml:"botName"`
 	URL       string
 	Token     string
 	Team      string
