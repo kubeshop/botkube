@@ -273,6 +273,10 @@ config:
 
 # Communication settings
 communications:
+
+  # Using existing Communication secret
+  existingSecretName: ""
+  
   # Settings for Slack
   slack:
     enabled: false
