@@ -39,8 +39,6 @@ const (
 )
 
 const (
-	// BotName stores BotKube details
-	BotName = "botkube"
 	// WebSocketProtocol stores protocol initials for web socket
 	WebSocketProtocol = "ws://"
 	// WebSocketSecureProtocol stores protocol initials for web socket
@@ -50,6 +48,7 @@ const (
 // MMBot listens for user's message, execute commands and sends back the response
 type MMBot struct {
 	Token            string
+	BotName          string
 	TeamName         string
 	ChannelName      string
 	ClusterName      string
@@ -75,6 +74,7 @@ type mattermostMessage struct {
 func NewMattermostBot(c *config.Config) Bot {
 	return &MMBot{
 		ServerURL:        c.Communications.Mattermost.URL,
+		BotName:          c.Communications.Mattermost.BotName,
 		Token:            c.Communications.Mattermost.Token,
 		TeamName:         c.Communications.Mattermost.Team,
 		ChannelName:      c.Communications.Mattermost.Channel,
@@ -135,7 +135,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
 		// Message posted in a channel
 		// Serve only if starts with mention
-		if !strings.HasPrefix(post.Message, "@"+BotName+" ") {
+		if !strings.HasPrefix(post.Message, "@"+b.BotName+" ") {
 			return
 		}
 	}
@@ -147,7 +147,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	log.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
 	// Trim the @BotKube prefix if exists
-	mm.Request = strings.TrimPrefix(post.Message, "@"+BotName+" ")
+	mm.Request = strings.TrimPrefix(post.Message, "@"+b.BotName+" ")
 
 	e := execute.NewDefaultExecutor(mm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
 		b.ClusterName, config.MattermostBot, b.ChannelName, mm.IsAuthChannel)
@@ -209,9 +209,9 @@ func (b MMBot) getTeam() *model.Team {
 
 // Check if BotKube user exists in Mattermost
 func (b MMBot) getUser() *model.User {
-	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, BotName, 1, "")
+	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, b.BotName, 1, "")
 	if resp.Error != nil {
-		log.Fatalf("There was a problem finding Mattermost user %s. %s", BotName, resp.Error)
+		log.Fatalf("There was a problem finding Mattermost user %s. %s", b.BotName, resp.Error)
 	}
 	return users.Users[0]
 }
