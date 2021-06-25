@@ -1,4 +1,4 @@
-IMAGE_REPO=docker.pkg.github.com/vaibhavp/botkube/botkube
+IMAGE_REPO=ghcr.io/infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
