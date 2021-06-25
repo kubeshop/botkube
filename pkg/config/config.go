@@ -176,6 +176,7 @@ type Index struct {
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
 	Enabled   bool
+	BotName   string `yaml:"botName"`
 	URL       string
 	Token     string
 	Team      string
@@ -213,8 +214,8 @@ type Webhook struct {
 type Kubectl struct {
 	Enabled          bool
 	Commands         Commands
-	DefaultNamespace string
-	RestrictAccess   bool `yaml:"restrictAccess"`
+	DefaultNamespace string `yaml:"defaultNamespace"`
+	RestrictAccess   bool   `yaml:"restrictAccess"`
 }
 
 // Commands allowed in bot

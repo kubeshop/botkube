@@ -51,6 +51,7 @@ type Event struct {
 	Count     int32
 	Action    string
 	Skip      bool `json:",omitempty"`
+	Resource  string
 
 	Recommendations []string
 	Warnings        []string
@@ -80,6 +81,7 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		Level:     LevelMap[eventType],
 		Type:      eventType,
 		Cluster:   clusterName,
+		Resource:  resource,
 	}
 
 	// initialize event.TimeStamp with the time of event creation
@@ -121,7 +123,6 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Count = eventObj.Count
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
-
 	}
 	return event
 }

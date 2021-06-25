@@ -22,6 +22,7 @@ package notify
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -41,6 +42,10 @@ const (
 	indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
 	// awsService for the AWS client to authenticate against
 	awsService = "es"
+	// AWS Role ARN from POD env variable while using IAM Role for service account
+	awsRoleARNEnvName = "AWS_ROLE_ARN"
+	// The token file mount path in POD env variable while using IAM Role for service account
+	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
 // ElasticSearch contains auth cred and index setting
@@ -61,7 +66,13 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 	if c.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		sess := session.Must(session.NewSession())
-		if c.AWSSigning.RoleArn != "" {
+
+		// Use OIDC token to generate credentials if using IAM to Service Account
+		awsRoleARN := os.Getenv(awsRoleARNEnvName)
+		awsWebIdentityTokenFile := os.Getenv(awsWebIDTokenFileEnvName)
+		if awsRoleARN != "" && awsWebIdentityTokenFile != "" {
+			creds = stscreds.NewWebIdentityCredentials(sess, awsRoleARN, "", awsWebIdentityTokenFile)
+		} else if c.AWSSigning.RoleArn != "" {
 			creds = stscreds.NewCredentials(sess, c.AWSSigning.RoleArn)
 		} else {
 			creds = ec2rolecreds.NewCredentials(sess)

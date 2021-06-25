@@ -80,6 +80,8 @@ const (
 	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
 	// IncompleteCmdMsg incomplete command response message
 	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	// WrongClusterCmdMsg incomplete command response message
+	WrongClusterCmdMsg = "Sorry, the admin hasn't configured me to do that for the cluster '%s'."
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
@@ -179,7 +181,9 @@ func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNa
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	args := strings.Fields(strings.TrimSpace(e.Message))
+	// Remove hyperlink if it got added automatically
+	command := utils.RemoveHyperlink(e.Message)
+	args := strings.Fields(strings.TrimSpace(command))
 	if len(args) == 0 {
 		if e.IsAuthChannel {
 			return printDefaultMsg(e.Platform)
@@ -254,10 +258,8 @@ func trimQuotes(clusterValue string) string {
 func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
 
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
-	if len(defaultNamespace) != 0 {
+	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
 		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-	} else {
-		args = append([]string{"-n", "default"}, utils.DeleteDoubleWhiteSpace(args)...)
 	}
 
 	// Remove unnecessary flags
@@ -386,6 +388,11 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 	if len(args) < 2 && args[1] != string(infoList) {
 		return IncompleteCmdMsg
 	}
+
+	if len(args) > 3 && args[2] == ClusterFlag.String() && args[3] != e.ClusterName {
+		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
+	}
+
 	return makeCommandInfoList()
 }
 

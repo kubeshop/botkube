@@ -21,6 +21,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -72,6 +73,8 @@ var (
 	// DiscoveryClient implements
 	DiscoveryClient discovery.DiscoveryInterface
 )
+
+const hyperlinkRegex = `(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`
 
 // InitKubeClient creates K8s client from provided kubeconfig OR service account to interact with apiserver
 func InitKubeClient() {
@@ -270,7 +273,7 @@ func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
 		log.Error(err)
 		return nil
 	}
-	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(obj.InvolvedObject.Name, metaV1.GetOptions{})
+	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(context.Background(), obj.InvolvedObject.Name, metaV1.GetOptions{})
 	if err != nil {
 		log.Error(err)
 		return nil
@@ -386,4 +389,29 @@ func CheckOperationAllowed(eventMap map[EventKind]bool, namespace string, resour
 		return true
 	}
 	return false
+}
+
+// Contains tells whether a contains x.
+func Contains(a []string, x string) bool {
+	for _, n := range a {
+		if strings.ToLower(x) == strings.ToLower(n) {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveHyperlink removes the hyperlink text from url
+func RemoveHyperlink(hyperlink string) string {
+	command := hyperlink
+	compiledRegex := regexp.MustCompile(hyperlinkRegex)
+	matched := compiledRegex.FindAllStringSubmatch(string(hyperlink), -1)
+	if len(matched) >= 1 {
+		for _, match := range matched {
+			if len(match) == 2 {
+				command = strings.ReplaceAll(command, match[0], match[1])
+			}
+		}
+	}
+	return command
 }

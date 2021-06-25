@@ -356,8 +356,8 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "docker.pkg.github.com/vaibhavp/botkube/botkube:v0.11.0"
-          imagePullPolicy: Always
+          image: "ghcr.io/infracloudio/botkube:v0.12.1"
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
@@ -369,7 +369,7 @@ spec:
               value: "info"
             # set BotKube release version
             - name: BOTKUBE_VERSION
-              value: v0.11.0
+              value: v0.12.1
       volumes:
         - name: config-volume
           projected:
