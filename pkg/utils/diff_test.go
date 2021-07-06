@@ -37,7 +37,8 @@ type Object struct {
 
 // Other mocks fields like MetaData, Status etc in kubernetes objects
 type Other struct {
-	Foo string `json:"foo"`
+	Foo         string            `json:"foo"`
+	Annotations map[string]string `json:"annotations"`
 }
 
 // Spec mocks ObjectSpec field in kubernetes object
@@ -95,6 +96,16 @@ func TestDiff(t *testing.T) {
 			new:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
 			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expected: ExpectedDiff{},
+		},
+		`Annotations changed`: {
+			old:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "1"}}},
+			new:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "2"}}},
+			update: config.UpdateSetting{Fields: []string{`other.annotations.app\.kubernetes\.io\/version`}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: `other.annotations.app\.kubernetes\.io\/version`,
+				X:    "1",
+				Y:    "2",
+			},
 		},
 		`Status Diff`: {
 			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
