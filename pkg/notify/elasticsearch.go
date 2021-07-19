@@ -21,7 +21,9 @@ package notify
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -29,7 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
@@ -50,12 +52,13 @@ const (
 
 // ElasticSearch contains auth cred and index setting
 type ElasticSearch struct {
-	ELSClient *elastic.Client
-	Server    string
-	Index     string
-	Shards    int
-	Replicas  int
-	Type      string
+	ELSClient     *elastic.Client
+	Server        string
+	SkipTLSVerify bool
+	Index         string
+	Shards        int
+	Replicas      int
+	Type          string
 }
 
 // NewElasticSearch returns new ElasticSearch object
@@ -95,14 +98,23 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 			return nil, err
 		}
 	} else {
-		// create elasticsearch client
-		elsClient, err = elastic.NewClient(
+		elsClientParams := []elastic.ClientOptionFunc{
 			elastic.SetURL(c.Server),
 			elastic.SetBasicAuth(c.Username, c.Password),
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(true),
-		)
+		}
+
+		if c.SkipTLSVerify {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			httpClient := &http.Client{Transport: tr}
+			elsClientParams = append(elsClientParams, elastic.SetHttpClient(httpClient))
+		}
+		// create elasticsearch client
+		elsClient, err = elastic.NewClient(elsClientParams...)
 		if err != nil {
 			return nil, err
 		}
