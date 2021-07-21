@@ -8,6 +8,7 @@ extraAnnotations: {}
 # Priority class name for the pod
 priorityClassName: ""
 image:
+  registry: ghcr.io
   repository: infracloudio/botkube
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
