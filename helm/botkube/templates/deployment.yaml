@@ -38,7 +38,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.containerSecurityContext }}
           securityContext:
@@ -57,7 +57,7 @@ spec:
             - name: LOG_LEVEL
               value: {{ .Values.logLevel | quote }}
             - name: BOTKUBE_VERSION
-              value: {{ .Chart.Version }}
+              value: {{ .Values.image.tag }}
             - name: METRICS_PORT
               value: {{ .Values.service.targetPort | quote }}
         {{- if .Values.extraEnv }}
@@ -77,7 +77,7 @@ spec:
             - configMap:
                 name: {{ include "botkube.fullname" . }}-configmap
             - secret:
-                name: {{ include "botkube.fullname" . }}-communication-secret
+                name: {{ include "botkube.CommunicationsSecretName" . }}
       {{- if .Values.config.ssl.enabled }} 
         - name: certs
           secret:
