@@ -17,50 +17,23 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# Development image
-FROM golang:1.16-alpine3.12 AS BUILD-ENV
-
-ARG TARGETPLATFORM
-
-WORKDIR /app
-
-ENV GO111MODULE=on \
-    CGO_ENABLED=0
-
-# Add git curl and gcc
-RUN apk update && apk add git curl build-base 
-
-# Download dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy source
-COPY . .
-
-# Build binary
-RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
-    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
-    GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3 | cut -c2-) && \
-    go build -o /go/bin/botkube ./cmd/botkube
-
-# Install kubectl binary
-RUN export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
-    apk add --no-cache ca-certificates git \
-    && wget -q https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/${GOARCH}/kubectl -O /usr/local/bin/kubectl \
-    && chmod +x /usr/local/bin/kubectl
-
-# Production image
 FROM alpine:3.12
+ARG botkube_version="dev-test"
+LABEL name="botkube" \
+    version="${botkube_version}" \
+    release="${botkube_version}" \
+    summary="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
+    maintainer="Prasad Ghangal<prasad.ghangal@gmail.com>" \
+    description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters"
+
+COPY botkube /usr/local/bin/botkube
+COPY --from=bitnami/kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 
 # Create Non Privileged user
-RUN addgroup --gid 101 botkube && \
-    adduser -S --uid 101 --ingroup botkube botkube
+RUN addgroup --gid 1000 botkube && \
+    adduser -S --uid 1001 --ingroup botkube botkube
 
 # Run as Non Privileged user
 USER botkube
 
-COPY --from=build /go/bin/botkube /go/bin/botkube
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build /usr/local/bin/kubectl /usr/local/bin/kubectl
-
-ENTRYPOINT /go/bin/botkube
+ENTRYPOINT /usr/local/bin/botkube
