@@ -22,7 +22,6 @@ package execute
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"text/tabwriter"
@@ -34,6 +33,7 @@ import (
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
+	"github.com/infracloudio/botkube/pkg/version"
 )
 
 var (
@@ -427,7 +427,7 @@ func findBotKubeVersion() (versions string) {
 		k8sVersion = "Server Version: Unknown\n"
 	}
 
-	botkubeVersion := os.Getenv("BOTKUBE_VERSION")
+	botkubeVersion := version.Short()
 	if len(botkubeVersion) == 0 {
 		botkubeVersion = "Unknown"
 	}
