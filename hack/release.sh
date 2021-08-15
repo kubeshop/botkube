@@ -51,10 +51,6 @@ update_chart_yamls() {
     sed -i "s/\btag:.*/tag: ${version}/" helm/botkube/values.yaml
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one.yaml
     sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one-tls.yaml
-
-    oldVersion=$(echo $(awk '/BOTKUBE_VERSION/ {getline; print}' deploy-all-in-one.yaml))
-    sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one.yaml
-    sed -i "s/\b${oldVersion}\b/value: ${version}/g" deploy-all-in-one-tls.yaml
 }
 
 publish_release() {

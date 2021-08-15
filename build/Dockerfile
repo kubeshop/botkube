@@ -18,7 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 FROM alpine:3.12
-ARG botkube_version="dev-test"
+ARG botkube_version="dev"
 LABEL name="botkube" \
     version="${botkube_version}" \
     release="${botkube_version}" \

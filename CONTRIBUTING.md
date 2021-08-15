@@ -33,7 +33,7 @@ Now you can build and run BotKube by one of the following ways
    ```sh
    $ make build
    $ make container-image
-   $ docker tag infracloudio/botkube:latest <your_account>/botkube:latest
+   $ docker tag infracloudio/botkube:latest-amd64 <your_account>/botkube:latest
    $ docker push <your_account>/botkube:latest
    ```
    Where `<your_account>` is Docker hub account to which you can push the image

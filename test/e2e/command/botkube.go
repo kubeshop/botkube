@@ -22,7 +22,6 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -34,6 +33,7 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
+	"github.com/infracloudio/botkube/pkg/version"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
@@ -44,12 +44,11 @@ type botkubeCommand struct {
 
 // Send botkube command via Slack message and check if BotKube returns correct response
 func (c *context) testBotkubeCommand(t *testing.T) {
-	botkubeVersion := os.Getenv("BOTKUBE_VERSION")
 	// Test cases
 	tests := map[string]botkubeCommand{
 		"BotKube ping": {
 			command:  "ping",
-			expected: fmt.Sprintf("```\npong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s\n```", c.Config.Settings.ClusterName, execute.K8sVersion, botkubeVersion),
+			expected: fmt.Sprintf("```\npong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s\n```", c.Config.Settings.ClusterName, execute.K8sVersion, version.Short()),
 		},
 		"BotKube filters list": {
 			command: "filters list",

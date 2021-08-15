@@ -22,13 +22,13 @@ package controller
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/go-github/v27/github"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/infracloudio/botkube/pkg/version"
 )
 
 var (
@@ -43,12 +43,12 @@ func checkRelease(c *config.Config, notifiers []notify.Notifier) {
 	release, _, err := client.Repositories.GetLatestRelease(ctx, "infracloudio", "botkube")
 	if err == nil {
 		log.Debugf(fmt.Sprintf("Upgrade notifier:: latest release info=%+v", release))
-		if len(os.Getenv("BOTKUBE_VERSION")) == 0 || release.TagName == nil {
+		if release.TagName == nil {
 			return
 		}
 
 		// Send notification if newer version available
-		if len(os.Getenv("BOTKUBE_VERSION")) > 0 && os.Getenv("BOTKUBE_VERSION") != *release.TagName {
+		if version.Short() != *release.TagName {
 			sendMessage(c, notifiers, fmt.Sprintf(botkubeUpgradeMsg, *release.TagName))
 			notified = true
 		}
