@@ -30,7 +30,7 @@ COPY botkube /usr/local/bin/botkube
 COPY --from=bitnami/kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 
 # Create Non Privileged user
-RUN addgroup --gid 1000 botkube && \
+RUN addgroup --gid 1001 botkube && \
     adduser -S --uid 1001 --ingroup botkube botkube
 
 # Run as Non Privileged user
