@@ -275,6 +275,7 @@ stringData:
         server: 'ELASTICSEARCH_ADDRESS'             # e.g https://example.com:9243
         username: 'ELASTICSEARCH_USERNAME'          # Basic Auth
         password: 'ELASTICSEARCH_PASSWORD'
+        skipTLSVerify: false                      # toggle verification of TLS certificate of the Elastic nodes. Verification is skipped when option is true. Enable to connect to clusters with self-signed certs
         # ELS index settings
         index:
           name: botkube
@@ -356,7 +357,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "infracloudio/botkube:v0.12.1"
+          image: "ghcr.io/infracloudio/botkube:v0.12.1"
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: config-volume

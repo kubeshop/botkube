@@ -150,12 +150,13 @@ type Slack struct {
 
 // ElasticSearch config auth settings
 type ElasticSearch struct {
-	Enabled    bool
-	Username   string
-	Password   string `yaml:",omitempty"`
-	Server     string
-	AWSSigning AWSSigning `yaml:"awsSigning"`
-	Index      Index
+	Enabled       bool
+	Username      string
+	Password      string `yaml:",omitempty"`
+	Server        string
+	SkipTLSVerify bool       `yaml:"skipTLSVerify"`
+	AWSSigning    AWSSigning `yaml:"awsSigning"`
+	Index         Index
 }
 
 // AWSSigning contains AWS configurations

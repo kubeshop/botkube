@@ -45,6 +45,7 @@ serviceAccount:
 | communications.elasticsearch.password | string | `"ELASTICSEARCH_PASSWORD"` |  |
 | communications.elasticsearch.server | string | `"ELASTICSEARCH_ADDRESS"` |  |
 | communications.elasticsearch.username | string | `"ELASTICSEARCH_USERNAME"` |  |
+| communications.elasticsearch.skipTLSVerify | bool | `false` | Skip tls verification of elastic search node |
 | communications.mattermost.channel | string | `"MATTERMOST_CHANNEL"` |  |
 | communications.mattermost.enabled | bool | `false` |  |
 | communications.mattermost.notiftype | string | `"short"` |  |
