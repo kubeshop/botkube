@@ -40,7 +40,7 @@ release_snapshot() {
     --amend ghcr.io/infracloudio/botkube:latest-amd64 \
     --amend ghcr.io/infracloudio/botkube:latest-arm64 \
     --amend ghcr.io/infracloudio/botkube:latest-armv7
-  docker push ghcr.io/infracloudio/botkube:latest
+  docker manifest push ghcr.io/infracloudio/botkube:latest
 }
 
 build() {
