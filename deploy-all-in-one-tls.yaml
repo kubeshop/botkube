@@ -380,9 +380,6 @@ spec:
             # set one of the log levels- info, warn, debug, error, fatal, panic
             - name: LOG_LEVEL
               value: "info"
-            # set BotKube release version
-            - name: BOTKUBE_VERSION
-              value: v0.12.1
       volumes:
         - name: config-volume
           projected:

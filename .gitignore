@@ -15,3 +15,7 @@
 vendor/
 /.idea/
 /botkube
+/dist
+
+# Tags
+tags

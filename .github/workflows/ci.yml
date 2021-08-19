@@ -11,9 +11,9 @@ jobs:
       GOBIN: /home/runner/work/botkube/bin
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Setup Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: 1.16
     - name: Install golint
@@ -32,33 +32,10 @@ jobs:
       run: |
         make test
         make
-    - name: Build container image
-      run: make container-image
-    - name: Push docker images
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+      with:
+        version: v3.4.0
+    - name: Run helm lint
       run: |
-        docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-        docker push ghcr.io/infracloudio/botkube:latest
-    - name: Install helm
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
-      run: |
-        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
-        chmod +x get_helm.sh
-        ./get_helm.sh
         helm lint helm/botkube
-    - name: Update and publish helm chart
-      if: success() &&  github.event_name  == 'push'  && endsWith(github.ref ,'develop')
-      run: |
-        cd ..
-        git config --global user.email "botkube-ci@infracloud.io"
-        git config --global user.name "BotKube CI"
-        git clone https://github.com/infracloudio/charts.git
-        cd charts
-        git fetch
-        git branch
-        git pull origin gh-pages
-        helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace }}/helm/botkube/
-        helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
-        git add .
-        git commit -m "Update BotKube latest helm chart"
-        git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git
