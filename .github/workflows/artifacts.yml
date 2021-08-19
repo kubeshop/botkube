@@ -26,8 +26,11 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Run GoReleaser
+    - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+    - name: Run GoReleaser
       run: make release-snapshot
     - name: Install Helm
       uses: azure/setup-helm@v1
