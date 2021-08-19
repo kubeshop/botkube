@@ -1,4 +1,4 @@
-name: goreleaser
+name: build-artifacts
 on:
   push:
     branches:
