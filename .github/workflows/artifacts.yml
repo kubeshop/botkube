@@ -27,7 +27,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Run GoReleaser
-      run: make release_snapshot
+      run: make release-snapshot
     - name: Install Helm
       uses: azure/setup-helm@v1
       with:
