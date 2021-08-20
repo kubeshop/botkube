@@ -2,7 +2,7 @@ IMAGE_REPO=ghcr.io/infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status build container-image pre-build tag-image publish test system-check
+.PHONY: release git-tag check-git-status build pre-build publish test system-check
 
 # Show this help.
 help:
@@ -10,8 +10,8 @@ help:
 
 # Docker Tasks
 # Make a release
-release: check-git-status test container-image tag-image publish git-tag
-	@echo "Successfully releeased version $(TAG)"
+release: check-git-status test git-tag gorelease
+	@echo "Successfully released version $(TAG)"
 
 # Create a git tag
 git-tag:
@@ -42,8 +42,17 @@ build: pre-build
 # Build the image
 container-image: pre-build
 	@echo "Building docker image"
-	@docker build --build-arg GOOS_VAL=$(shell go env GOOS) --build-arg GOARCH_VAL=$(shell go env GOARCH) -t $(IMAGE_REPO) -f build/Dockerfile --no-cache .
+	@./hack/goreleaser.sh build
 	@echo "Docker image build successfully"
+
+# Publish release using goreleaser
+gorelease:
+	@echo "Publishing release with goreleaser"
+	@./hack/goreleaser.sh release
+
+# Build project and push dev images with latest tag
+release-snapshot:
+	@./hack/goreleaser.sh release_snapshot
 
 # system checks
 system-check:
@@ -59,18 +68,6 @@ system-check:
 
 # Pre-build checks
 pre-build: system-check
-
-# Tag images
-tag-image:
-	@echo 'Tagging image'
-	@docker tag $(IMAGE_REPO) $(IMAGE_REPO):$(TAG)
-
-# Docker push image
-publish:
-	@echo "Pushing docker image to repository"
-	@docker login
-	@docker push $(IMAGE_REPO):$(TAG)
-	@docker push $(IMAGE_REPO):latest
 
 # Create KIND cluster
 create-kind: system-check

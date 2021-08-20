@@ -1,0 +1,53 @@
+name: build-artifacts
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+      GOPATH: /home/runner/work/botkube
+      GOBIN: /home/runner/work/botkube/bin
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Docker Login
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+    - name: Run GoReleaser
+      run: make release-snapshot
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+      with:
+        version: v3.4.0
+    - name: Update and publish helm chart
+      run: |
+        cd ..
+        git config --global user.email "botkube-ci@infracloud.io"
+        git config --global user.name "BotKube CI"
+        git clone https://github.com/infracloudio/charts.git
+        cd charts
+        git fetch
+        git branch
+        git pull origin gh-pages
+        helm package --app-version v9.99.9-dev --version v9.99.9-dev ${{ github.workspace }}/helm/botkube/
+        helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
+        git add .
+        git commit -m "Update BotKube latest helm chart"
+        git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git

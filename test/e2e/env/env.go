@@ -22,7 +22,6 @@ package env
 import (
 	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -74,9 +73,6 @@ func New() *TestEnv {
 		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
 	}
 	testEnv.Config = conf
-
-	// Set fake BotKube version
-	os.Setenv("BOTKUBE_VERSION", "v9.99.9")
 
 	s := runtime.NewScheme()
 	samplev1alpha1.AddToScheme(s)

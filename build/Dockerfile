@@ -17,44 +17,23 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# Development image
-FROM golang:1.16-alpine3.12 AS BUILD-ENV
-
-ARG GOOS_VAL 
-ARG GOARCH_VAL
-
-# Add git curl and gcc
-RUN apk update && apk add git curl build-base 
-
-WORKDIR /app
-
-# Download dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy source
-COPY . .
-
-# Build binary
-RUN GOOS=${GOOS_VAL} GOARCH=${GOARCH_VAL} go build -o /go/bin/botkube ./cmd/botkube 
-
-# Install kubectl binary
-RUN apk add --no-cache ca-certificates git \
-    && wget -q https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl \
-    && chmod +x /usr/local/bin/kubectl
-
-# Production image
 FROM alpine:3.12
+ARG botkube_version="dev"
+LABEL name="botkube" \
+    version="${botkube_version}" \
+    release="${botkube_version}" \
+    summary="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
+    maintainer="Prasad Ghangal<prasad.ghangal@gmail.com>" \
+    description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters"
+
+COPY botkube /usr/local/bin/botkube
+COPY --from=bitnami/kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 
 # Create Non Privileged user
-RUN addgroup --gid 101 botkube && \
-    adduser -S --uid 101 --ingroup botkube botkube
+RUN addgroup --gid 1001 botkube && \
+    adduser -S --uid 1001 --ingroup botkube botkube
 
 # Run as Non Privileged user
 USER botkube
 
-COPY --from=BUILD-ENV /go/bin/botkube /go/bin/botkube
-COPY --from=BUILD-ENV /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=BUILD-ENV /usr/local/bin/kubectl /usr/local/bin/kubectl
-
-ENTRYPOINT /go/bin/botkube
+ENTRYPOINT /usr/local/bin/botkube
