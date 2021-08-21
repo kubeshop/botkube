@@ -13,7 +13,7 @@ image:
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  tag: v0.12.1
+  tag: v0.12.2
 
 nameOverride: ""
 fullnameOverride: ""
