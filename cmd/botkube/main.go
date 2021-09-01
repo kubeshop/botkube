@@ -26,6 +26,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
+	"github.com/infracloudio/botkube/pkg/filterengine/filters"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -93,6 +94,15 @@ func startController() error {
 	utils.InitKubeClient()
 	utils.InitInformerMap(conf)
 	utils.InitResourceMap(conf)
+
+	// Register WatchNamespace
+	err = filters.RegisterWatchNamespace()
+	if err != nil {
+		return fmt.Errorf("Error in registering watch namespace. Error:%s", err.Error())
+	}
+
+	// Start COntroller
 	controller.RegisterInformers(conf, notifiers)
+
 	return nil
 }
