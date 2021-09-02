@@ -20,10 +20,9 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
+	"github.com/infracloudio/botkube/pkg/utils/file"
 	"gopkg.in/yaml.v2"
 )
 
@@ -79,14 +78,16 @@ type Level string
 // BotPlatform supported by BotKube
 type BotPlatform string
 
-// ResourceConfigFileName is a name of BotKube resource configuration file
-var ResourceConfigFileName = "resource_config.yaml"
-
-// CommunicationConfigFileName is a name of BotKube communication configuration file
-var CommunicationConfigFileName = "comm_config.yaml"
-
-// Notify flag to toggle event notification
-var Notify = true
+var (
+	// ResourceConfigFileName is a name of BotKube resource configuration file
+	ResourceConfigFileName = "resource_config.yaml"
+	// CommunicationConfigFileName is a name of BotKube communication configuration file
+	CommunicationConfigFileName = "comm_config.yaml"
+	// Notify flag to toggle event notification
+	Notify = true
+	// ConfigPath path where configs are stored
+	ConfigPath = os.Getenv("CONFIG_PATH")
+)
 
 // NotifType to change notification type
 type NotifType string
@@ -240,21 +241,12 @@ func (eventType EventType) String() string {
 // NewCommunicationsConfig return new communication config object
 func NewCommunicationsConfig() (*Communications, error) {
 	c := &Communications{}
-	configPath := os.Getenv("CONFIG_PATH")
-	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+	bytes, err := file.ReadFile(ConfigPath, CommunicationConfigFileName)
 	if err != nil {
 		return c, err
 	}
-
-	b, err := ioutil.ReadAll(communicationConfigFile)
-	if err != nil {
-		return c, err
-	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+	if len(bytes) != 0 {
+		yaml.Unmarshal(bytes, c)
 	}
 	return c, nil
 }
@@ -262,28 +254,17 @@ func NewCommunicationsConfig() (*Communications, error) {
 // New returns new Config
 func New() (*Config, error) {
 	c := &Config{}
-	configPath := os.Getenv("CONFIG_PATH")
-	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
-	resourceConfigFile, err := os.Open(resourceConfigFilePath)
-	defer resourceConfigFile.Close()
+	bytes, err := file.ReadFile(ConfigPath, ResourceConfigFileName)
 	if err != nil {
 		return c, err
 	}
-
-	b, err := ioutil.ReadAll(resourceConfigFile)
-	if err != nil {
-		return c, err
+	if len(bytes) != 0 {
+		yaml.Unmarshal(bytes, c)
 	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
-	}
-
 	comm, err := NewCommunicationsConfig()
 	if err != nil {
 		return nil, err
 	}
 	c.Communications = comm.Communications
-
 	return c, nil
 }

@@ -84,29 +84,19 @@ func InitKubeClient() {
 		if kubeconfigPath == "" {
 			kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
 		}
-		botkubeConf, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Initiate discovery client for REST resource mapping
-		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(botkubeConf)
-		if err != nil {
-			log.Fatalf("Unable to create Discovery Client")
-		}
-		DynamicKubeClient, err = dynamic.NewForConfig(botkubeConf)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		// Initiate discovery client for REST resource mapping
-		DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
-		if err != nil {
-			log.Fatal(err)
-		}
-		DynamicKubeClient, err = dynamic.NewForConfig(kubeConfig)
-		if err != nil {
-			log.Fatal(err)
-		}
+	}
+	// Initiate discovery client for REST resource mapping
+	DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kubeConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	DynamicKubeClient, err = dynamic.NewForConfig(kubeConfig)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(DiscoveryClient)
