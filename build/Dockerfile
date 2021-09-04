@@ -30,6 +30,7 @@ COPY botkube /usr/local/bin/botkube
 # Download the latest kubectl in the appropriate architecture. Currently handles aarch64 (arm64) and x86_64 (amd64).
 RUN MACH=$(uname -m); if [[ ${MACH} == "aarch64" ]]; then ARCH=arm64; \
     elif [[ ${MACH} == "x86_64" ]]; then ARCH=amd64; \
+    elif [[ ${MACH} == "armv7l" ]]; then ARCH=arm; \
     else echo "Unsupported arch: ${MACH}"; ARCH=${MACH}; fi; \
     wget -O /usr/local/bin/kubectl "https://dl.k8s.io/release/$(wget -qO - https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" && \
     chmod +x /usr/local/bin/kubectl
