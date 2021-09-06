@@ -32,7 +32,7 @@
 - Allow skipping certs validation of Elastic [\#487](https://github.com/infracloudio/botkube/pull/487) ([zarelit](https://github.com/zarelit))
 - Fixed BOTKUBE\_VERSION [\#483](https://github.com/infracloudio/botkube/pull/483) ([pierluigilenoci](https://github.com/pierluigilenoci))
 - Passing communications config as a k8s secret using existingSecret [\#482](https://github.com/infracloudio/botkube/pull/482) ([ebrianne](https://github.com/ebrianne))
-- allow configration of Mattermost Username [\#455](https://github.com/infracloudio/botkube/pull/455) ([goir](https://github.com/goir))
+- allow configuration of Mattermost Username [\#455](https://github.com/infracloudio/botkube/pull/455) ([goir](https://github.com/goir))
 - Fix panic when running command without resource [\#447](https://github.com/infracloudio/botkube/pull/447) ([thijsdejong](https://github.com/thijsdejong))
 
 ## [v0.12.1](https://github.com/infracloudio/botkube/tree/v0.12.1) (2021-04-25)
