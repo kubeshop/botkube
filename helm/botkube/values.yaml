@@ -36,6 +36,9 @@ containerSecurityContext:
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
 
+# set to true to enable ANSI color in logging
+logForceColors: false
+
 config:
   ## Resources you want to watch
   resources:

@@ -21,6 +21,7 @@ package log
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +40,11 @@ func init() {
 		logLevel = logrus.InfoLevel
 	}
 	log.SetLevel(logLevel)
-	log.Formatter = &logrus.TextFormatter{ForceColors: true, FullTimestamp: true}
+	forceColors, err := strconv.ParseBool(os.Getenv("LOG_FORCE_COLORS"))
+	if err != nil {
+		forceColors = false
+	}
+	log.Formatter = &logrus.TextFormatter{ForceColors: forceColors, FullTimestamp: true}
 }
 
 // Info map logrus.Info func to log.Info

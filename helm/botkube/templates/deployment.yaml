@@ -56,6 +56,8 @@ spec:
               value: "/config/"
             - name: LOG_LEVEL
               value: {{ .Values.logLevel | quote }}
+            - name: LOG_FORCE_COLORS
+              value: {{ .Values.logForceColors | quote }}
             - name: METRICS_PORT
               value: {{ .Values.service.targetPort | quote }}
         {{- if .Values.extraEnv }}
