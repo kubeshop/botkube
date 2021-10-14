@@ -27,10 +27,18 @@ spec:
   rules:
   - http:
       paths:
-        - path: {{ .Values.ingress.urlPath }}
+        {{- if .Values.communications.teams.enabled }}
+        - path: {{ .Values.communications.teams.messagePath }}
           backend:
             serviceName: {{ include "botkube.fullname" . }}
             servicePort: {{ .Values.communications.teams.port }}
+        {{- end }}
+        {{- if .Values.communications.lark.enabled }}
+        - path: {{ .Values.communications.lark.messagePath }}
+          backend:
+            serviceName: {{ include "botkube.fullname" . }}
+            servicePort: {{ .Values.communications.lark.port }}
+        {{- end }}
     {{- if .Values.ingress.host }}
     host: {{ .Values.ingress.host }}
     {{- end }}

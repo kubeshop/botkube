@@ -68,6 +68,8 @@ const (
 	TeamsBot BotPlatform = "teams"
 	// DiscordBot bot Platform
 	DiscordBot BotPlatform = "discord"
+	// LarkBot bot platform
+	LarkBot BotPlatform = "lark"
 )
 
 // EventType to watch
@@ -138,6 +140,7 @@ type CommunicationsConfig struct {
 	Webhook       Webhook
 	Teams         Teams
 	ElasticSearch ElasticSearch
+	Lark          Lark
 }
 
 // Slack configuration to authentication and send notifications
@@ -146,6 +149,19 @@ type Slack struct {
 	Channel   string
 	NotifType NotifType `yaml:",omitempty"`
 	Token     string    `yaml:",omitempty"`
+}
+
+// Lark configuration to authentication and send notifications
+type Lark struct {
+	Enabled           bool
+	Endpoint          string `yaml:"endpoint,omitempty"`
+	AppID             string `yaml:"appID,omitempty"`
+	AppSecret         string `yaml:"appSecret,omitempty"`
+	EncryptKey        string `yaml:"encryptKey,omitempty"`
+	VerificationToken string `yaml:"verificationToken,omitempty"`
+	MessagePath       string `yaml:"messagePath,omitempty"`
+	Port              int
+	ChatGroup         string `yaml:"chatGroup,omitempty"`
 }
 
 // ElasticSearch config auth settings
@@ -192,7 +208,7 @@ type Teams struct {
 	AppPassword string `yaml:"appPassword,omitempty"`
 	Team        string
 	Port        string
-	MessagePath string
+	MessagePath string    `yaml:"messagePath,omitempty"`
 	NotifType   NotifType `yaml:",omitempty"`
 }
 

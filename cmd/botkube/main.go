@@ -83,6 +83,12 @@ func startController() error {
 		go db.Start()
 	}
 
+	if conf.Communications.Lark.Enabled {
+		log.Info("Starting lark bot")
+		db := bot.NewLarkBot(conf)
+		go db.Start()
+	}
+
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")

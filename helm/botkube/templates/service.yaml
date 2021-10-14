@@ -1,4 +1,4 @@
-{{- if or .Values.serviceMonitor.enabled .Values.communications.teams.enabled }}
+{{- if or .Values.serviceMonitor.enabled .Values.communications.teams.enabled .Values.communications.lark.enabled}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -20,6 +20,10 @@ spec:
   {{- if .Values.communications.teams.enabled }}
   - name: "teams"
     port: {{ .Values.communications.teams.port }}
+  {{- end }}
+  {{- if .Values.communications.lark.enabled }}
+  - name: "lark"
+    port: {{ .Values.communications.lark.port }}
   {{- end }}
   selector:
     app: botkube 

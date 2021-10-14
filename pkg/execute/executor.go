@@ -385,7 +385,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 	if isAuthChannel == false {
 		return ""
 	}
-	if len(args) < 2 && args[1] != string(infoList) {
+	if len(args) > 1 && args[1] != string(infoList) {
 		return IncompleteCmdMsg
 	}
 
