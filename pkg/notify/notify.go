@@ -59,5 +59,8 @@ func ListNotifiers(conf config.CommunicationsConfig) []Notifier {
 	if conf.Webhook.Enabled {
 		notifiers = append(notifiers, NewWebhook(conf))
 	}
+	if conf.Lark.Enabled {
+		notifiers = append(notifiers, NewLark(conf))
+	}
 	return notifiers
 }
