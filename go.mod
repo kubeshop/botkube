@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v27 v27.0.4
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/infracloudio/msbotbuilder-go v0.2.4
+	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattermost/gorp v2.0.0+incompatible // indirect
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
