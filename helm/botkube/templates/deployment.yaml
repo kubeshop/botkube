@@ -9,6 +9,10 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     component: controller
     app: botkube
+  annotations:
+    {{- if .Values.deployment.annotations }}
+{{ toYaml .Values.deployment.annotations | indent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
