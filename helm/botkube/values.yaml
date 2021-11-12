@@ -374,8 +374,10 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
-extraEnv:   # Extra environment variables to pass to the BotKube container, example HTTP_PROXY
-  #HTTP_PROXY: <proxyURL>:<port>
+extraEnv: []
+## Extra environment variables to pass to the BotKube container, example HTTP_PROXY
+## extraEnv:
+##   HTTP_PROXY: <proxyURL>:<port>
   
 nodeSelector: {}
 
