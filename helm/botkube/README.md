@@ -1,6 +1,6 @@
 # BotKube
 
-![Version: v0.12.2](https://img.shields.io/badge/Version-v0.12.2-informational?style=flat-square) ![AppVersion: v0.12.2](https://img.shields.io/badge/AppVersion-v0.12.2-informational?style=flat-square)
+![Version: v0.12.3](https://img.shields.io/badge/Version-v0.12.3-informational?style=flat-square) ![AppVersion: v0.12.3](https://img.shields.io/badge/AppVersion-v0.12.3-informational?style=flat-square)
 
 Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -90,7 +90,7 @@ serviceAccount:
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
 | image.repository | string | `"infracloudio/botkube"` |  |
-| image.tag | string | `"v0.12.2"` |  |
+| image.tag | string | `"v0.12.3"` |  |
 | ingress.annotations."kubernetes.io/ingress.class" | string | `"nginx"` |  |
 | ingress.create | bool | `false` |  |
 | ingress.host | string | `"HOST"` |  |
