@@ -25,11 +25,13 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.GH_TOKEN }}
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
         install-only: true
+        # Newer goreleaser version doesn't allow builds with "latest" tag
+        version: v0.179.0
     - name: Run GoReleaser
       run: make release-snapshot
     - name: Install Helm
