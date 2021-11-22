@@ -51,7 +51,7 @@ spec:
             - name: certs
               mountPath: "/etc/ssl/certs"
           {{ end }}
-          {{- if .Values.kubeconfig }}
+          {{- if .Values.kubeconfig.enabled }}
             - name: kubeconfig
               mountPath: "/.kube"
           {{ end }}
@@ -62,7 +62,7 @@ spec:
               value: {{ .Values.logLevel | quote }}
             - name: METRICS_PORT
               value: {{ .Values.service.targetPort | quote }}
-            {{- if .Values.kubeconfig }}
+            {{- if .Values.kubeconfig.enabled }}
             - name: KUBECONFIG
               value: "/.kube/config"
             {{- end }}
@@ -89,10 +89,14 @@ spec:
           secret:
             secretName: {{ include "botkube.fullname" . }}-certificate-secret
       {{ end }}
-      {{- if .Values.kubeconfig }}
+      {{- if .Values.kubeconfig.enabled }}
         - name: kubeconfig
           secret:
+            {{- if .Values.kubeconfig.base64Config }}
             secretName: {{ include "botkube.fullname" . }}-kubeconfig
+            {{- else }}
+            secretName: {{ .Values.kubeconfig.existingSecret }}
+            {{- end }}
       {{ end }}
       {{- if .Values.securityContext }}
       securityContext:
