@@ -1,0 +1,110 @@
+# Default values for botkube-router.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+cluster:
+  name: "cluster"
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: infracloudio/botkube
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v0.1.0"
+
+communications:
+  lark:
+    endpoint: "LARK_URL"
+    appID: "LARK_APP_ID"
+    appSecret: "LARK_APP_SECRET"
+    encryptKey: "LARK_ENCRYPT_KEY"
+    verificationToken: "LARK_VERIFICATION_TOKEN"
+    messagePath: "/bots/lark"
+    port: 8089
+
+config:
+  routers:
+    - key: "CLUSTER_NAME"
+      value: "BOTKUBE_URL"
+# Extra annotations to pass to the BotKube pod
+extraAnnotations: {}
+# Priority class name for the pod
+priorityClassName: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+autoscaling:
+  enabled: false
+
+# Enable podSecurityPolicy to allow BotKube to run in restricted clusters
+podSecurityPolicy:
+  enabled: false
+
+# Configure securityContext to manage user Privileges in pods
+# set to run as a Non-Privileged user by default
+securityContext:
+  runAsUser: 101
+  runAsGroup: 101
+
+containerSecurityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+# set one of the log levels- info, warn, debug, error, fatal, panic
+logLevel: info
+
+service:
+  name: lark
+  port: 8089
+  targetPort: 8089
+
+# Ingress settings to expose teams endpoint
+ingress:
+  create: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  host: 'HOST'
+  urlPath: "/"
+  tls:
+    enabled: false
+    secretName: ''
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+#  memory: 128Mi
+
+extraEnv:   # Extra environment variables to pass to the BotKube container, example HTTP_PROXY
+#HTTP_PROXY: <proxyURL>:<port>
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  #name:
+  # annotations for the service account
+  annotations: {}

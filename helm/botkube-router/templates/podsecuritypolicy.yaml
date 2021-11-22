@@ -1,0 +1,22 @@
+{{- if .Values.podSecurityPolicy.enabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ include "botkube-router.fullname" . }}-psp
+  labels:
+    app.kubernetes.io/name: {{ include "botkube-router.name" . }}
+    helm.sh/chart: {{ include "botkube-router.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  allowedUnsafeSysctls: ['*']
+  fsGroup:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes: ['*']
+  {{ end }}

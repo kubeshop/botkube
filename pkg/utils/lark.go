@@ -79,3 +79,19 @@ func (lark *LarkClient) SendTextMessage(receiveType, receiveID, msg string) erro
 	log.Debugf("Message successfully sent to channel: %s with message: %+v", receiveID, ret)
 	return nil
 }
+
+//MessageContent lark message body
+type MessageContent struct {
+	Text string `json:"text,omitempty" validate:"omitempty"`
+}
+
+//LarkMessage formatting lark message body
+func LarkMessage(message string) string {
+	content := &MessageContent{Text: message}
+	data, err := json.Marshal(content)
+	if err != nil {
+		log.Errorf("Error in marshal message: %s error: %+v", content, err)
+		return ""
+	}
+	return string(data)
+}
