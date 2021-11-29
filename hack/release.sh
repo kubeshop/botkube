@@ -27,13 +27,17 @@ if [[ -z ${version} ]]; then
     exit 1
 fi
 
-
 if [[ -z ${GITHUB_TOKEN} ]]; then
     echo "GITHUB_TOKEN not set. Usage: GITHUB_TOKEN=<TOKEN> ./hack/release.sh"
     exit 1
 fi
 
 echo "Publishing release ${version}"
+
+fetch_previous_version() {
+    git fetch origin --tags
+    previous_version=$(git tag --sort=-creatordate | head -1 | tr -d '\r')
+}
 
 generate_changelog() {
     local version=$1
@@ -45,12 +49,13 @@ generate_changelog() {
 
 update_chart_yamls() {
     local version=$1
-
-    sed -i "s/version.*/version: ${version}/" helm/botkube/Chart.yaml
-    sed -i "s/appVersion.*/appVersion: ${version}/" helm/botkube/Chart.yaml
-    sed -i "s/\btag:.*/tag: ${version}/" helm/botkube/values.yaml
-    sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one.yaml
-    sed -i "s/\bimage: \"infracloudio\/botkube.*\b/image: \"infracloudio\/botkube:${version}/g" deploy-all-in-one-tls.yaml
+    fetch_previous_version
+    echo "Updating release version $previous_version-> $version"
+    dir=(./helm ./deploy-all-in-one.yaml ./deploy-all-in-one-tls.yaml)
+    for d in ${dir[@]}
+    do
+        find $d -type f -exec sed -i "s/$previous_version/$version/g" {} \;
+    done
 }
 
 publish_release() {
