@@ -123,6 +123,10 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Count = eventObj.Count
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
+		t := time.Time{}
+		if eventObj.LastTimestamp.Time == t {
+			event.TimeStamp = eventObj.EventTime.Time
+		}
 	}
 	return event
 }
