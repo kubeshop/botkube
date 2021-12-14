@@ -357,7 +357,7 @@ spec:
       serviceAccountName: botkube-sa
       containers:
         - name: botkube
-          image: "ghcr.io/infracloudio/botkube:v0.12.3"
+          image: "ghcr.io/infracloudio/botkube:v0.12.4"
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: config-volume

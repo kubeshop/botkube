@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.12.4](https://github.com/infracloudio/botkube/tree/v0.12.4) (2021-12-13)
+
+[Full Changelog](https://github.com/infracloudio/botkube/compare/v0.12.3...v0.12.4)
+
+**Implemented enhancements:**
+
+- \[FR\] Allow to set deployment annotation in Helm Chart [\#536](https://github.com/infracloudio/botkube/issues/536)
+- Is it possible to run Botkube without ClusterRole and ClusterRoleBinding?  [\#530](https://github.com/infracloudio/botkube/issues/530)
+
+**Fixed bugs:**
+
+- Update base image to alpine 3.1.4.2 [\#523](https://github.com/infracloudio/botkube/issues/523)
+
+**Merged pull requests:**
+
+- Upgrade golang.org/x... pkg deps [\#552](https://github.com/infracloudio/botkube/pull/552) ([PrasadG193](https://github.com/PrasadG193))
+- Update base image to address busybox CVEs [\#551](https://github.com/infracloudio/botkube/pull/551) ([richgerrard](https://github.com/richgerrard))
+- Update release script to bump release tags [\#544](https://github.com/infracloudio/botkube/pull/544) ([PrasadG193](https://github.com/PrasadG193))
+- \[CI\] Fix github token secret name [\#543](https://github.com/infracloudio/botkube/pull/543) ([PrasadG193](https://github.com/PrasadG193))
+- feat\(helm\): allow to set deployment annotations [\#537](https://github.com/infracloudio/botkube/pull/537) ([lucagouty](https://github.com/lucagouty))
+- Bump msbotbuilder-go dep to v0.2.5 [\#533](https://github.com/infracloudio/botkube/pull/533) ([PrasadG193](https://github.com/PrasadG193))
+- \[CI\] Fix goreleaser build with latest tags [\#531](https://github.com/infracloudio/botkube/pull/531) ([PrasadG193](https://github.com/PrasadG193))
+- Remove hacktoberfest reference from the README [\#529](https://github.com/infracloudio/botkube/pull/529) ([nkatarmal](https://github.com/nkatarmal))
+- \[CI\] Fix go mod errors in golang.org/x pkg [\#528](https://github.com/infracloudio/botkube/pull/528) ([PrasadG193](https://github.com/PrasadG193))
+- Update Base Image to alpine 3.14.2 [\#524](https://github.com/infracloudio/botkube/pull/524) ([hveeran](https://github.com/hveeran))
+
 ## [v0.12.3](https://github.com/infracloudio/botkube/tree/v0.12.3) (2021-09-07)
 
 [Full Changelog](https://github.com/infracloudio/botkube/compare/v0.12.2...v0.12.3)
@@ -47,7 +73,6 @@
 - Allow skipping certs validation of Elastic [\#487](https://github.com/infracloudio/botkube/pull/487) ([zarelit](https://github.com/zarelit))
 - Fixed BOTKUBE\_VERSION [\#483](https://github.com/infracloudio/botkube/pull/483) ([pierluigilenoci](https://github.com/pierluigilenoci))
 - Passing communications config as a k8s secret using existingSecret [\#482](https://github.com/infracloudio/botkube/pull/482) ([ebrianne](https://github.com/ebrianne))
-- Adding privileged, allowPrivilegedEscalation and readOnlyRootFilesyst… [\#473](https://github.com/infracloudio/botkube/pull/473) ([phlukman](https://github.com/phlukman))
 - allow configuration of Mattermost Username [\#455](https://github.com/infracloudio/botkube/pull/455) ([goir](https://github.com/goir))
 - Fix panic when running command without resource [\#447](https://github.com/infracloudio/botkube/pull/447) ([thijsdejong](https://github.com/thijsdejong))
 
@@ -78,10 +103,10 @@
 
 - Make CI compatible with helm3 [\#476](https://github.com/infracloudio/botkube/pull/476) ([PrasadG193](https://github.com/PrasadG193))
 - Update Go and pkg deps [\#475](https://github.com/infracloudio/botkube/pull/475) ([PrasadG193](https://github.com/PrasadG193))
+- Adding privileged, allowPrivilegedEscalation and readOnlyRootFilesyst… [\#473](https://github.com/infracloudio/botkube/pull/473) ([phlukman](https://github.com/phlukman))
 - adding support for imagePullSecrets and pullpolicy to "IfNotPresent" [\#472](https://github.com/infracloudio/botkube/pull/472) ([kartik-moolya](https://github.com/kartik-moolya))
 - bumping alpine version, improving security [\#467](https://github.com/infracloudio/botkube/pull/467) ([Shahard2](https://github.com/Shahard2))
 - Add support to new ingress apiVersion version. [\#464](https://github.com/infracloudio/botkube/pull/464) ([rdgacarvalho](https://github.com/rdgacarvalho))
-- Generating credentials using WebhookIdentity on AWS [\#463](https://github.com/infracloudio/botkube/pull/463) ([kartik-moolya](https://github.com/kartik-moolya))
 - remove unwanted hyperlink text from command [\#461](https://github.com/infracloudio/botkube/pull/461) ([girishg4t](https://github.com/girishg4t))
 - corrected defaultNamespace population and avoid appending defaultnamespace if already passed  [\#459](https://github.com/infracloudio/botkube/pull/459) ([girishg4t](https://github.com/girishg4t))
 
@@ -119,6 +144,7 @@
 
 **Merged pull requests:**
 
+- Generating credentials using WebhookIdentity on AWS [\#463](https://github.com/infracloudio/botkube/pull/463) ([kartik-moolya](https://github.com/kartik-moolya))
 - Update github\_changelog\_generator to work with v1.15.2 [\#453](https://github.com/infracloudio/botkube/pull/453) ([PrasadG193](https://github.com/PrasadG193))
 - Remove whitespaces in the responses [\#452](https://github.com/infracloudio/botkube/pull/452) ([PrasadG193](https://github.com/PrasadG193))
 - Use uniform response format [\#451](https://github.com/infracloudio/botkube/pull/451) ([PrasadG193](https://github.com/PrasadG193))
@@ -226,8 +252,9 @@
 - Refactor notifier and bot to pass config [\#272](https://github.com/infracloudio/botkube/pull/272) ([PrasadG193](https://github.com/PrasadG193))
 - Enable auto merge using Mergify on approval [\#271](https://github.com/infracloudio/botkube/pull/271) ([PrasadG193](https://github.com/PrasadG193))
 - \(feat.\) creation of SharedInformer from Dynamic ClientSet [\#253](https://github.com/infracloudio/botkube/pull/253) ([rahulchheda](https://github.com/rahulchheda))
+- Fixes \#179: Migration of current travis ci to github-actions ci. [\#244](https://github.com/infracloudio/botkube/pull/244) ([ameydev](https://github.com/ameydev))
 - Add MS Teams support [\#242](https://github.com/infracloudio/botkube/pull/242) ([PrasadG193](https://github.com/PrasadG193))
-- update events configured to watch specific fields [\#228](https://github.com/infracloudio/botkube/pull/228) ([Surbhidongaonkar](https://github.com/Surbhidongaonkar))
+- Configure default namespace for kubectl cmds through config [\#188](https://github.com/infracloudio/botkube/pull/188) ([codenio](https://github.com/codenio))
 
 ## [v0.10.0](https://github.com/infracloudio/botkube/tree/v0.10.0) (2020-04-27)
 
@@ -265,12 +292,13 @@
 - helm fixes [\#259](https://github.com/infracloudio/botkube/pull/259) ([eddycharly](https://github.com/eddycharly))
 - Fix deploy manifest to work with latest BotKube [\#256](https://github.com/infracloudio/botkube/pull/256) ([PrasadG193](https://github.com/PrasadG193))
 - Adding ability to make rbac rules and service account configurable [\#255](https://github.com/infracloudio/botkube/pull/255) ([adusumillipraveen](https://github.com/adusumillipraveen))
-- Fixes \#179: Migration of current travis ci to github-actions ci. [\#244](https://github.com/infracloudio/botkube/pull/244) ([ameydev](https://github.com/ameydev))
 - Checked cluster name before executing kubectl command [\#243](https://github.com/infracloudio/botkube/pull/243) ([girishg4t](https://github.com/girishg4t))
 - Added restrictAccess flag to enable/disable behavior of botkube.  [\#238](https://github.com/infracloudio/botkube/pull/238) ([mahendrabagul](https://github.com/mahendrabagul))
 - Update README.md and CONTRIBUTING.md [\#237](https://github.com/infracloudio/botkube/pull/237) ([PrasadG193](https://github.com/PrasadG193))
 - Pass communication settings as a k8s secret [\#233](https://github.com/infracloudio/botkube/pull/233) ([slalwani97](https://github.com/slalwani97))
 - Revert "Pass communication settings as a k8s secret" [\#232](https://github.com/infracloudio/botkube/pull/232) ([PrasadG193](https://github.com/PrasadG193))
+- update events configured to watch specific fields [\#228](https://github.com/infracloudio/botkube/pull/228) ([Surbhidongaonkar](https://github.com/Surbhidongaonkar))
+- Pass communication settings as a k8s secret [\#226](https://github.com/infracloudio/botkube/pull/226) ([slalwani97](https://github.com/slalwani97))
 - Expose prometheus metrics for BotKube [\#219](https://github.com/infracloudio/botkube/pull/219) ([Surbhidongaonkar](https://github.com/Surbhidongaonkar))
 
 ## [v0.9.1](https://github.com/infracloudio/botkube/tree/v0.9.1) (2019-11-25)
@@ -289,7 +317,6 @@
 
 **Merged pull requests:**
 
-- Pass communication settings as a k8s secret [\#226](https://github.com/infracloudio/botkube/pull/226) ([slalwani97](https://github.com/slalwani97))
 - Add colors to Mattermost notification attachments [\#223](https://github.com/infracloudio/botkube/pull/223) ([PrasadG193](https://github.com/PrasadG193))
 - Add mattermost connection retry logic [\#222](https://github.com/infracloudio/botkube/pull/222) ([PrasadG193](https://github.com/PrasadG193))
 - Fix cluster scoped resource notification issue [\#221](https://github.com/infracloudio/botkube/pull/221) ([PrasadG193](https://github.com/PrasadG193))
@@ -343,7 +370,6 @@
 - Update K8s package deps to 1.16 [\#193](https://github.com/infracloudio/botkube/pull/193) ([PrasadG193](https://github.com/PrasadG193))
 - Update Deprecated API groups in K8s 1.16 [\#192](https://github.com/infracloudio/botkube/pull/192) ([PrasadG193](https://github.com/PrasadG193))
 - Add sample config referenced in the docs [\#190](https://github.com/infracloudio/botkube/pull/190) ([PrasadG193](https://github.com/PrasadG193))
-- Configure default namespace for kubectl cmds through config [\#188](https://github.com/infracloudio/botkube/pull/188) ([codenio](https://github.com/codenio))
 - Fix duplicate notification for Job update [\#187](https://github.com/infracloudio/botkube/pull/187) ([PrasadG193](https://github.com/PrasadG193))
 - Fix file upload for Slack [\#186](https://github.com/infracloudio/botkube/pull/186) ([PrasadG193](https://github.com/PrasadG193))
 - fix invalid memory address or nil pointer deference on mattermost [\#184](https://github.com/infracloudio/botkube/pull/184) ([gangseok514](https://github.com/gangseok514))
@@ -426,6 +452,7 @@
 - \[Travis CI\] don't push container image for PR builds [\#94](https://github.com/infracloudio/botkube/pull/94) ([bhavin192](https://github.com/bhavin192))
 - Build and push docker image from develop [\#93](https://github.com/infracloudio/botkube/pull/93) ([PrasadG193](https://github.com/PrasadG193))
 - \[helm chart\] make image tag configurable [\#89](https://github.com/infracloudio/botkube/pull/89) ([bhavin192](https://github.com/bhavin192))
+- Add support to manage filters with @BotKube command [\#84](https://github.com/infracloudio/botkube/pull/84) ([PrasadG193](https://github.com/PrasadG193))
 - SSL support for Mattermost in Botkube [\#83](https://github.com/infracloudio/botkube/pull/83) ([arush-sal](https://github.com/arush-sal))
 
 ## [v0.7.0](https://github.com/infracloudio/botkube/tree/v0.7.0) (2019-04-04)
@@ -476,8 +503,8 @@
 **Merged pull requests:**
 
 - Merge develop to master [\#49](https://github.com/infracloudio/botkube/pull/49) ([PrasadG193](https://github.com/PrasadG193))
+- Issue \#27: Added filter to add warning if pod created without label [\#48](https://github.com/infracloudio/botkube/pull/48) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Merge master into develop [\#47](https://github.com/infracloudio/botkube/pull/47) ([PrasadG193](https://github.com/PrasadG193))
-- Issue \#46: Removed @botkube help commands. Added Makefile to add support for git tags and docker build with versioning [\#45](https://github.com/infracloudio/botkube/pull/45) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Issue \#41: Updated Dockerfile for multi-stage build [\#44](https://github.com/infracloudio/botkube/pull/44) ([mugdha-adhav](https://github.com/mugdha-adhav))
 - Create CODE\_OF\_CONDUCT.md [\#43](https://github.com/infracloudio/botkube/pull/43) ([sanketsudake](https://github.com/sanketsudake))
 - Update issue templates [\#42](https://github.com/infracloudio/botkube/pull/42) ([sanketsudake](https://github.com/sanketsudake))
