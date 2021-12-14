@@ -9,6 +9,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-ldap/ldap v3.0.3+incompatible // indirect
 	github.com/go-redis/redis v6.15.2+incompatible // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-github/v27 v27.0.4
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
