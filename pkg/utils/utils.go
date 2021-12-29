@@ -34,6 +34,7 @@ import (
 	log "github.com/infracloudio/botkube/pkg/log"
 
 	coreV1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -275,6 +276,10 @@ func ExtractAnnotationsFromEvent(obj *coreV1.Event) map[string]string {
 	}
 	annotations, err := DynamicKubeClient.Resource(gvr).Namespace(obj.InvolvedObject.Namespace).Get(context.Background(), obj.InvolvedObject.Name, metaV1.GetOptions{})
 	if err != nil {
+		// IgnoreNotFound returns nil on NotFound errors.
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		log.Error(err)
 		return nil
 	}
