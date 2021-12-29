@@ -168,10 +168,11 @@ type AWSSigning struct {
 
 // Index settings for ELS
 type Index struct {
-	Name     string
-	Type     string
-	Shards   int
-	Replicas int
+	Name         string
+	Type         string
+	SuffixFormat string `yaml:"suffixFormat"`
+	Shards       int
+	Replicas     int
 }
 
 // Mattermost configuration to authentication and send notifications

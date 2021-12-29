@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -32,16 +33,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/olivere/elastic"
+	"github.com/sha1sum/aws_signing_client"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/olivere/elastic"
-	"github.com/sha1sum/aws_signing_client"
 )
 
+// indexSuffixFormat is the date format that would be appended to the index name
+var indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
+
 const (
-	// indexSuffixFormat is the date format that would be appended to the index name
-	indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
 	// awsService for the AWS client to authenticate against
 	awsService = "es"
 	// AWS Role ARN from POD env variable while using IAM Role for service account
@@ -56,6 +59,7 @@ type ElasticSearch struct {
 	Server        string
 	SkipTLSVerify bool
 	Index         string
+	SuffixFormat  string
 	Shards        int
 	Replicas      int
 	Type          string
@@ -120,11 +124,12 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 		}
 	}
 	return &ElasticSearch{
-		ELSClient: elsClient,
-		Index:     c.Index.Name,
-		Type:      c.Index.Type,
-		Shards:    c.Index.Shards,
-		Replicas:  c.Index.Replicas,
+		ELSClient:    elsClient,
+		Index:        c.Index.Name,
+		Type:         c.Index.Type,
+		SuffixFormat: c.Index.SuffixFormat,
+		Shards:       c.Index.Shards,
+		Replicas:     c.Index.Replicas,
 	}, nil
 }
 
@@ -142,6 +147,10 @@ type index struct {
 
 func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
 	// Construct the ELS Index Name with timestamp suffix
+	suffixFormat := ElsIndexFormat(e.SuffixFormat)
+	if len(suffixFormat) > 0 {
+		indexSuffixFormat = suffixFormat
+	}
 	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
 	exists, err := e.ELSClient.IndexExists(indexName).Do(ctx)
@@ -196,4 +205,17 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 // SendMessage sends message to slack channel
 func (e *ElasticSearch) SendMessage(msg string) error {
 	return nil
+}
+
+//ElsIndexFormat els index data format conversion
+func ElsIndexFormat(suffixFormat string) string {
+	suffixFormat = strings.Replace(suffixFormat, "yyyy", "2006", 1)
+	suffixFormat = strings.Replace(suffixFormat, "yy", "06", 1)
+	suffixFormat = strings.Replace(suffixFormat, "MM", "01", 1)
+	suffixFormat = strings.Replace(suffixFormat, "dd", "02", 1)
+	suffixFormat = strings.Replace(suffixFormat, "HH", "15", 1)
+	suffixFormat = strings.Replace(suffixFormat, "mm", "04", 1)
+	suffixFormat = strings.Replace(suffixFormat, "ss", "05", 1)
+	suffixFormat = strings.Replace(suffixFormat, "SSS", "000", -1)
+	return suffixFormat
 }

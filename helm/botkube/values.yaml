@@ -338,6 +338,7 @@ communications:
     index:
       name: botkube
       type: botkube-event
+      suffixFormat: yyyy-MM-dd                # suffixFormat is the date format that would be appended to the index name. default yyyy-MM-dd
       shards: 1
       replicas: 0
 
