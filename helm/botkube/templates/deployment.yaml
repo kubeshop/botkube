@@ -9,6 +9,10 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     component: controller
     app: botkube
+  annotations:
+    {{- if .Values.deployment.annotations }}
+{{ toYaml .Values.deployment.annotations | indent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -51,6 +55,10 @@ spec:
             - name: certs
               mountPath: "/etc/ssl/certs"
           {{ end }}
+          {{- if .Values.kubeconfig.enabled }}
+            - name: kubeconfig
+              mountPath: "/.kube"
+          {{ end }}
           env:
             - name: CONFIG_PATH
               value: "/config/"
@@ -58,6 +66,10 @@ spec:
               value: {{ .Values.logLevel | quote }}
             - name: METRICS_PORT
               value: {{ .Values.service.targetPort | quote }}
+            {{- if .Values.kubeconfig.enabled }}
+            - name: KUBECONFIG
+              value: "/.kube/config"
+            {{- end }}
         {{- if .Values.extraEnv }}
           {{- range $name, $value := .Values.extraEnv }}
             - name: {{ $name }}
@@ -76,10 +88,19 @@ spec:
                 name: {{ include "botkube.fullname" . }}-configmap
             - secret:
                 name: {{ include "botkube.CommunicationsSecretName" . }}
-      {{- if .Values.config.ssl.enabled }} 
+      {{- if .Values.config.ssl.enabled }}
         - name: certs
           secret:
             secretName: {{ include "botkube.fullname" . }}-certificate-secret
+      {{ end }}
+      {{- if .Values.kubeconfig.enabled }}
+        - name: kubeconfig
+          secret:
+            {{- if .Values.kubeconfig.base64Config }}
+            secretName: {{ include "botkube.fullname" . }}-kubeconfig
+            {{- else }}
+            secretName: {{ .Values.kubeconfig.existingSecret }}
+            {{- end }}
       {{ end }}
       {{- if .Values.securityContext }}
       securityContext:

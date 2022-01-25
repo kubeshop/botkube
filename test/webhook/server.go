@@ -43,7 +43,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// update message in mutex
 	s.receivedPayloads.Lock()
-	log.Debugf("Incoming Webhook Messages :%#v", t)
 	s.receivedPayloads.messages = append(s.receivedPayloads.messages, t)
 	s.receivedPayloads.Unlock()
 
