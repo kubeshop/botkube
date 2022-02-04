@@ -9,5 +9,6 @@ pull_request_rules:
     actions:
       merge:
         method: squash
-        commit_message: title+body
-        strict: smart
+        commit_message_template: |
+          {{ title }} #{{ number }}
+          {{ body }}
