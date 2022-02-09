@@ -68,6 +68,8 @@ const (
 	TeamsBot BotPlatform = "teams"
 	// DiscordBot bot Platform
 	DiscordBot BotPlatform = "discord"
+	// LarkBot bot platform
+	LarkBot BotPlatform = "lark"
 )
 
 // EventType to watch
@@ -85,6 +87,12 @@ var ResourceConfigFileName = "resource_config.yaml"
 // CommunicationConfigFileName is a name of BotKube communication configuration file
 var CommunicationConfigFileName = "comm_config.yaml"
 
+// CommunicationRouterConfigFileName is a name of BotKube Router communication configuration file
+var CommunicationRouterConfigFileName = "comm_router_config.yaml"
+
+// RouterConfigFileName is a name of BotKube Router cache configuration file
+var RouterConfigFileName = ".cache_router.yaml"
+
 // Notify flag to toggle event notification
 var Notify = true
 
@@ -97,6 +105,23 @@ type Config struct {
 	Recommendations bool
 	Communications  CommunicationsConfig
 	Settings        Settings
+}
+
+// RouterConfig structure of configuration yaml file
+type RouterConfig struct {
+	Communications CommunicationsRouterConfig
+	Routers        []Router
+}
+
+// Router contains the route address to be forwarded
+type Router struct {
+	Key   string
+	Value string
+}
+
+// CommunicationsRouterConfig contains communication config
+type CommunicationsRouterConfig struct {
+	Lark Lark
 }
 
 // Communications contains communication config
@@ -138,6 +163,7 @@ type CommunicationsConfig struct {
 	Webhook       Webhook
 	Teams         Teams
 	ElasticSearch ElasticSearch
+	Lark          Lark
 }
 
 // Slack configuration to authentication and send notifications
@@ -146,6 +172,19 @@ type Slack struct {
 	Channel   string
 	NotifType NotifType `yaml:",omitempty"`
 	Token     string    `yaml:",omitempty"`
+}
+
+// Lark configuration to authentication and send notifications
+type Lark struct {
+	Enabled           bool
+	Endpoint          string `yaml:"endpoint,omitempty"`
+	AppID             string `yaml:"appID,omitempty"`
+	AppSecret         string `yaml:"appSecret,omitempty"`
+	EncryptKey        string `yaml:"encryptKey,omitempty"`
+	VerificationToken string `yaml:"verificationToken,omitempty"`
+	MessagePath       string `yaml:"messagePath,omitempty"`
+	Port              int
+	ChatGroup         string `yaml:"chatGroup,omitempty"`
 }
 
 // ElasticSearch config auth settings
@@ -192,7 +231,7 @@ type Teams struct {
 	AppPassword string `yaml:"appPassword,omitempty"`
 	Team        string
 	Port        string
-	MessagePath string
+	MessagePath string    `yaml:"messagePath,omitempty"`
 	NotifType   NotifType `yaml:",omitempty"`
 }
 
@@ -286,4 +325,42 @@ func New() (*Config, error) {
 	c.Communications = comm.Communications
 
 	return c, nil
+}
+
+// NewRouters returns Router Config
+func NewRouters() (*RouterConfig, error) {
+	c := &RouterConfig{}
+	configPath := os.Getenv("CONFIG_PATH")
+	communicationRouterConfigFilePath := filepath.Join(configPath, CommunicationRouterConfigFileName)
+	communicationRouterConfigFile, err := os.Open(communicationRouterConfigFilePath)
+	defer communicationRouterConfigFile.Close()
+	if err != nil {
+		return c, err
+	}
+	b, err := ioutil.ReadAll(communicationRouterConfigFile)
+	if err != nil {
+		return c, err
+	}
+
+	if len(b) != 0 {
+		yaml.Unmarshal(b, c)
+	}
+
+	routerConfigFilePath := filepath.Join(configPath, RouterConfigFileName)
+	routerConfigFile, err := os.Open(routerConfigFilePath)
+	defer routerConfigFile.Close()
+	if err != nil {
+		return c, err
+	}
+
+	router, err := ioutil.ReadAll(routerConfigFile)
+	if err != nil {
+		return c, err
+	}
+
+	if len(router) != 0 {
+		yaml.Unmarshal(router, c)
+	}
+
+	return c, err
 }

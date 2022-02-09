@@ -1,0 +1,1 @@
+1. See botkube-router by URL: https://botkube-router.{{ .Values.cluster.name }}.cc.d.xiaomi.net/

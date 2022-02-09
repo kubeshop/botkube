@@ -7,13 +7,14 @@ require (
 	github.com/dyatlov/go-opengraph v0.0.0-20180429202543-816b6608b3c8 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/gin-gonic/gin v1.6.3
 	github.com/go-ldap/ldap v3.0.3+incompatible // indirect
 	github.com/go-redis/redis v6.15.2+incompatible // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-github/v27 v27.0.4
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/infracloudio/msbotbuilder-go v0.2.5
+	github.com/larksuite/oapi-sdk-go v1.1.40-rc9
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattermost/gorp v2.0.0+incompatible // indirect
 	github.com/mattermost/mattermost-server v5.11.1+incompatible
@@ -21,12 +22,11 @@ require (
 	github.com/nlopes/slack v0.6.1-0.20191106133607-d06c2a2b3249
 	github.com/olivere/elastic v6.2.21+incompatible
 	github.com/pborman/uuid v1.2.0 // indirect
-	github.com/pelletier/go-toml v1.5.0 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/sha1sum/aws_signing_client v0.0.0-20200229211254-f7815c59d5c1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
+	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
-	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
@@ -34,7 +34,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.20.5
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.5

@@ -1,0 +1,21 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "botkube-router.fullname" . }}-clusterrole
+  labels:
+    app.kubernetes.io/name: {{ include "botkube-router.name" . }}
+    helm.sh/chart: {{ include "botkube-router.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+  {{- with .Values.rbac.rules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if .Values.podSecurityPolicy.enabled }}
+- apiGroups: ["extensions"]
+  resourceNames: ["botkube-router-psp"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  {{ end }}
+  {{ end }}
