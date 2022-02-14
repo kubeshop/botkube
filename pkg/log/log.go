@@ -111,3 +111,8 @@ func Fatalf(format string, v ...interface{}) {
 func Panicf(format string, v ...interface{}) {
 	log.Panicf(format, v...)
 }
+
+//GetLevel logrus logLevel
+func GetLevel() logrus.Level {
+	return log.GetLevel()
+}
