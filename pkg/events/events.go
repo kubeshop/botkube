@@ -110,6 +110,7 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 
 	if objectTypeMeta.Kind == "Event" {
 		var eventObj coreV1.Event
+		var eventSeriesObj coreV1.EventSeries
 		err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
 			log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
@@ -124,9 +125,9 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
 		// Compatible with events.k8s.io/v1
-		if eventObj.LastTimestamp.IsZero() && !eventObj.Series.LastObservedTime.IsZero() {
-			event.TimeStamp = eventObj.Series.LastObservedTime.Time
-			event.Count = eventObj.Series.Count
+		if eventObj.LastTimestamp.IsZero() && !eventSeriesObj.LastObservedTime.IsZero() {
+			event.TimeStamp = eventSeriesObj.LastObservedTime.Time
+			event.Count = eventSeriesObj.Count
 		}
 	}
 	return event
