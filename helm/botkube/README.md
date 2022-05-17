@@ -118,3 +118,4 @@ serviceAccount:
 | serviceMonitor.path | string | `"/metrics"` |  |
 | serviceMonitor.port | string | `"metrics"` |  |
 | tolerations | list | `[]` |  |
+| extraObjects | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
