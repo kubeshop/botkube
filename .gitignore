@@ -19,3 +19,12 @@ vendor/
 
 # Tags
 tags
+
+# Temp files
+*.bak
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
