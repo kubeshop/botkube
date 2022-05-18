@@ -427,21 +427,25 @@ serviceAccount:
 
 # Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources.
 extraObjects: []
-# e.g to create a ClusterRoleBinding resource without creating a dedicated ClusterRole:
-# - apiVersion: rbac.authorization.k8s.io/v1
-#   kind: ClusterRoleBinding
-#   metadata:
-#     name: {{ include "botkube.fullname" . }}-clusterrolebinding
-#     labels:
-#       app.kubernetes.io/name: {{ include "botkube.name" . }}
-#       helm.sh/chart: {{ include "botkube.chart" . }}
-#       app.kubernetes.io/instance: {{ .Release.Name }}
-#       app.kubernetes.io/managed-by: {{ .Release.Service }}
-#   roleRef:
-#     apiGroup: rbac.authorization.k8s.io
-#     kind: ClusterRole
-#     name: {{ .Values.extraClusterRoleName }}
-#   subjects:
-#   - kind: ServiceAccount
-#     name: {{ include "botkube.serviceAccountName" . }}
-#     namespace: {{ .Release.Namespace }}
+# For example, to create a ClusterRoleBinding resource without creating a dedicated ClusterRole, uncomment the following snippet.
+# NOTE: While running Helm install/upgrade with this sample snippet uncommented, make sure to set the following values:
+#    1. `rbac.create: false`
+#    2.`extraClusterRoleName: {clusterRole}`, where {clusterRole} is a given ClusterRole name (e.g. `cluster-admin`).
+#
+#    - apiVersion: rbac.authorization.k8s.io/v1
+#      kind: ClusterRoleBinding
+#      metadata:
+#        name: "{{ include \"botkube.fullname\" . }}-clusterrolebinding"
+#        labels:
+#          app.kubernetes.io/name: "{{ include \"botkube.name\" . }}"
+#          helm.sh/chart: "{{ include \"botkube.chart\" . }}"
+#          app.kubernetes.io/instance: "{{ .Release.Name }}"
+#          app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+#      roleRef:
+#        apiGroup: rbac.authorization.k8s.io
+#        kind: ClusterRole
+#        name: "{{ .Values.extraClusterRoleName }}"
+#      subjects:
+#      - kind: ServiceAccount
+#        name: "{{ include \"botkube.serviceAccountName\" . }}"
+#        namespace: "{{ .Release.Namespace }}"
