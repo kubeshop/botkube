@@ -362,6 +362,8 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
+            - name: cache
+              mountPath: "/.kube/cache"                     
           env:
             - name: CONFIG_PATH
               value: "/config/"
@@ -376,6 +378,8 @@ spec:
                 name: botkube-configmap
             - secret:
                 name: botkube-communication-secret
+        - name: cache
+          emptyDir: {}                  
       # run as non privileged user
       securityContext:
         runAsUser: 101
