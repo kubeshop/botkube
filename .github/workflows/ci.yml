@@ -16,9 +16,6 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.18
-    - name: Install golint
-      run: |
-        go install golang.org/x/lint/golint@latest
     - name: Codespell action
       uses: sanketsudake/codespell-action@v1
     - name: Before build
@@ -26,7 +23,6 @@ jobs:
         echo Workflow trigger - ${{ github.event_name }}
         ./hack/verify-gofmt.sh
         ./hack/verify-govet.sh
-        ./hack/verify-golint.sh
         go mod verify
     - name: Build and test
       run: |
