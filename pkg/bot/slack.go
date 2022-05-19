@@ -112,7 +112,7 @@ func (b *SlackBot) Start() {
 			log.Errorf("Slack outgoing event error: %+v", ev.Error())
 
 		case *slack.UnmarshallingErrorEvent:
-			log.Errorf("Slack unmarshalling error: %+v", ev.Error())
+			log.Errorf("Slack unmarshalling error: %+v", b.stripUnmarshallingErrEventDetails(ev.Error()))
 
 		case *slack.RateLimitedError:
 			log.Errorf("Slack rate limiting error: %+v", ev.Error())
@@ -124,6 +124,27 @@ func (b *SlackBot) Start() {
 		default:
 		}
 	}
+}
+
+// Temporary workaround until the PR is merged: https://github.com/slack-go/slack/pull/1067
+// There are just two cases when the full event details are concatenated with the error message: https://github.com/slack-go/slack/blob/v0.10.3/websocket_managed_conn.go#L474-L492
+// Also, we need keep the JSON unmarshal error intact: https://github.com/slack-go/slack/blob/v0.10.3/websocket_managed_conn.go#L405
+func (b *SlackBot) stripUnmarshallingErrEventDetails(errMessage string) string {
+	const errMsgSeparator = ": "
+	const prefix = "RTM Error"
+
+	if !strings.HasPrefix(errMessage, prefix) {
+		return errMessage
+	}
+
+	// has prefix, so let's split the message into parts
+	msgParts := strings.Split(errMessage, errMsgSeparator)
+	if len(msgParts) < 3 {
+		// impossible with current version of the dependency
+		return errMessage
+	}
+
+	return strings.Join(msgParts[:2], errMsgSeparator)
 }
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) {
