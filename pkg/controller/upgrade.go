@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v27/github"
+	"github.com/google/go-github/v44/github"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"

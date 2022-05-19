@@ -27,7 +27,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var attachmentColor = map[config.Level]string{

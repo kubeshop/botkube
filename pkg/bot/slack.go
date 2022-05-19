@@ -25,7 +25,7 @@ import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // SlackBot listens for user's message, execute commands and sends back the response

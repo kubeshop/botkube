@@ -21,12 +21,12 @@ package env
 
 import (
 	"fmt"
+	"github.com/slack-go/slack/slacktest"
 	"log"
 	"testing"
 	"time"
 
-	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slacktest"
+	"github.com/slack-go/slack"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
