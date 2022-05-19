@@ -22,7 +22,7 @@ set -e
 
 install_kind() {
   echo "Installing KIND cluster"
-  GO111MODULE="on" go get sigs.k8s.io/kind@v0.9.0
+  go install sigs.k8s.io/kind@v0.13.0
 }
 
 create_kind_cluster() {

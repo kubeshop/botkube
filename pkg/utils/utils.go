@@ -212,7 +212,6 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 		Annotations:                unstructuredObject.GetAnnotations(),
 		OwnerReferences:            unstructuredObject.GetOwnerReferences(),
 		Finalizers:                 unstructuredObject.GetFinalizers(),
-		ClusterName:                unstructuredObject.GetClusterName(),
 		ManagedFields:              unstructuredObject.GetManagedFields(),
 	}
 	if GetObjectTypeMetaData(obj).Kind == "Event" {
@@ -303,7 +302,7 @@ func InitResourceMap(conf *config.Config) {
 		AllowedKubectlVerbMap[r] = true
 	}
 
-	resourceList, err := DiscoveryClient.ServerResources()
+	_, resourceList, err := DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		log.Errorf("Failed to get resource list in k8s cluster. %v", err)
 		return
