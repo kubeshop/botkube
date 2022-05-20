@@ -2,7 +2,7 @@ IMAGE_REPO=ghcr.io/infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status build pre-build publish test system-check
+.PHONY: release git-tag check-git-status build pre-build publish lint test system-check
 
 # Show this help.
 help:
@@ -28,6 +28,9 @@ check-git-status:
 	@if [ -n "$(shell git tag | grep $(TAG))" ] ; then echo 'ERROR: Tag already exists' && exit 1 ; fi
 	@if [ -z "$(shell git remote -v)" ] ; then echo 'ERROR: No remote to push tags to' && exit 1 ; fi
 	@if [ -z "$(shell git config user.email)" ] ; then echo 'ERROR: Unable to detect git credentials' && exit 1 ; fi
+
+lint:
+	@golangci-lint run "./..."
 
 # test
 test: system-check
