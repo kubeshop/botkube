@@ -374,6 +374,8 @@ spec:
               mountPath: "/config"
             - name: certs
               mountPath: "/etc/ssl/certs"
+            - name: cache
+              mountPath: "/.kube/cache"              
           env:
             - name: CONFIG_PATH
               value: "/config/"
@@ -391,6 +393,8 @@ spec:
         - name: certs
           secret:
             secretName: botkube-certificate-secret
+        - name: cache
+          emptyDir: {}  
       # run as non privileged user
       securityContext:
         runAsUser: 101
