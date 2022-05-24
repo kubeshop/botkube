@@ -124,7 +124,7 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 		event.Action = eventObj.Action
 		event.TimeStamp = eventObj.LastTimestamp.Time
 		// Compatible with events.k8s.io/v1
-		if eventObj.LastTimestamp.IsZero() {
+		if eventObj.LastTimestamp.IsZero() && eventObj.Series != nil {
 			event.TimeStamp = eventObj.Series.LastObservedTime.Time
 			event.Count = eventObj.Series.Count
 		}
