@@ -61,7 +61,7 @@ var startTime time.Time
 
 // RegisterInformers creates new informer controllers to watch k8s resources
 func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
-	sendMessage(c, notifiers, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
+	sendMessage(notifiers, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
 	startTime = time.Now()
 
 	// Start config file watcher if enabled
@@ -119,10 +119,10 @@ func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
 	utils.DynamicKubeInformerFactory.Start(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGSTOP)
+	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	<-sigterm
-	sendMessage(c, notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
+	sendMessage(notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
 	// Sleep for some time to send termination notification
 	time.Sleep(5 * time.Second)
 }
@@ -249,11 +249,16 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 
 	// Send event over notifiers
 	for _, n := range notifiers {
-		go n.SendEvent(event)
+		go func(n notify.Notifier) {
+			err := n.SendEvent(event)
+			if err != nil {
+				log.Errorf("while sending event: %s", err.Error())
+			}
+		}(n)
 	}
 }
 
-func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
+func sendMessage(notifiers []notify.Notifier, msg string) {
 	if len(msg) <= 0 {
 		log.Warn("sendMessage received string with length 0. Hence skipping.")
 		return
@@ -261,7 +266,12 @@ func sendMessage(c *config.Config, notifiers []notify.Notifier, msg string) {
 
 	// Send message over notifiers
 	for _, n := range notifiers {
-		go n.SendMessage(msg)
+		go func(n notify.Notifier) {
+			err := n.SendMessage(msg)
+			if err != nil {
+				log.Errorf("while sending event: %s", err.Error())
+			}
+		}(n)
 	}
 }
 
@@ -273,7 +283,12 @@ func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 	if err != nil {
 		log.Fatal("Failed to create file watcher ", err)
 	}
-	defer watcher.Close()
+	defer func(watcher *fsnotify.Watcher) {
+		err := watcher.Close()
+		if err != nil {
+			log.Errorf("while closing watcher: %s", err.Error())
+		}
+	}(watcher)
 
 	done := make(chan bool)
 	go func() {
@@ -302,7 +317,7 @@ func configWatcher(c *config.Config, notifiers []notify.Notifier) {
 		return
 	}
 	<-done
-	sendMessage(c, notifiers, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
+	sendMessage(notifiers, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
 	// Wait for Notifier to send message
 	time.Sleep(5 * time.Second)
 	os.Exit(0)

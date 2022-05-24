@@ -51,7 +51,6 @@ func (d diffReporter) exec(x, y interface{}) (string, bool) {
 
 // Diff provides differences between two objects spec
 func Diff(x, y interface{}, updatesetting config.UpdateSetting) string {
-
 	msg := ""
 	for _, val := range updatesetting.Fields {
 		var d diffReporter

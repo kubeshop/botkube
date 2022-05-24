@@ -36,6 +36,7 @@ var (
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event
 	Register(Filter)
+	RegisterMany([]Filter)
 	ShowFilters() map[Filter]bool
 	SetFilter(string, bool) error
 }
@@ -48,10 +49,6 @@ type defaultFilters struct {
 type Filter interface {
 	Run(interface{}, *events.Event)
 	Describe() string
-}
-
-func init() {
-	DefaultFilterEngine = NewDefaultFilter()
 }
 
 // NewDefaultFilter creates new DefaultFilter object
@@ -77,6 +74,13 @@ func (f *defaultFilters) Run(object interface{}, event events.Event) events.Even
 func (f *defaultFilters) Register(filter Filter) {
 	log.Info("Registering the filter ", reflect.TypeOf(filter).Name())
 	f.FiltersMap[filter] = true
+}
+
+// RegisterMany registers multiple filters
+func (f *defaultFilters) RegisterMany(filters []Filter) {
+	for _, filter := range filters {
+		f.Register(filter)
+	}
 }
 
 // ShowFilters return map of filter name and status

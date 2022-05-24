@@ -45,12 +45,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.receivedPayloads.Lock()
 	s.receivedPayloads.messages = append(s.receivedPayloads.messages, t)
 	s.receivedPayloads.Unlock()
-
 }
 
 // NewTestServer returns a slacktest.Server ready to be started
 func NewTestServer() *Server {
-
 	s := &Server{
 		receivedPayloads: &payloadCollection{},
 	}

@@ -20,6 +20,7 @@
 package bot
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
@@ -38,6 +39,8 @@ type SlackBot struct {
 	SlackURL         string
 	BotID            string
 	DefaultNamespace string
+
+	NewExecutorFn func(msg string, allowKubectl, restrictAccess bool, defaultNamespace, clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) execute.Executor
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -60,11 +63,12 @@ func NewSlackBot(c *config.Config) Bot {
 		ClusterName:      c.Settings.ClusterName,
 		ChannelName:      c.Communications.Slack.Channel,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		NewExecutorFn:    execute.NewDefaultExecutor,
 	}
 }
 
 // Start starts the slacknot RTM connection and listens for messages
-func (b *SlackBot) Start() {
+func (b *SlackBot) Start() error {
 	var botID string
 	api := slack.New(b.Token)
 	if len(b.SlackURL) != 0 {
@@ -119,11 +123,12 @@ func (b *SlackBot) Start() {
 
 		case *slack.InvalidAuthEvent:
 			log.Error("Invalid Credentials")
-			return
+			return fmt.Errorf("invalid credentials")
 
 		default:
 		}
 	}
+	return nil
 }
 
 // Temporary workaround until the PR is merged: https://github.com/slack-go/slack/pull/1067
@@ -171,7 +176,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
-	e := execute.NewDefaultExecutor(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
+	e := b.NewExecutorFn(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
 		b.ClusterName, config.SlackBot, b.ChannelName, sm.IsAuthChannel)
 	sm.Response = e.Execute()
 	sm.Send()

@@ -24,7 +24,6 @@ package filters
 import (
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
@@ -41,16 +40,8 @@ type NodeEventsChecker struct {
 	Description string
 }
 
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(NodeEventsChecker{
-		Description: "Sends notifications on node level critical events.",
-	})
-}
-
 // Run filers and modifies event struct
 func (f NodeEventsChecker) Run(object interface{}, event *events.Event) {
-
 	// Check for Event object
 	if utils.GetObjectTypeMetaData(object).Kind == "Event" {
 		return

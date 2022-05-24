@@ -1,7 +1,7 @@
 module github.com/infracloudio/botkube
 
 require (
-	github.com/aws/aws-sdk-go v1.44.17
+	github.com/aws/aws-sdk-go v1.44.20
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/google/go-github/v44 v44.1.0
@@ -14,6 +14,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slack-go/slack v0.10.3
 	github.com/stretchr/testify v1.7.1
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.24.0
 	k8s.io/apimachinery v0.24.0
@@ -137,4 +138,4 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-go 1.18
+go 1.17

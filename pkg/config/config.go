@@ -254,15 +254,17 @@ func (eventType EventType) String() string {
 }
 
 // NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (*Communications, error) {
-	c := &Communications{}
+func NewCommunicationsConfig() (c *Communications, err error) {
+	c = &Communications{}
 	configPath := os.Getenv("CONFIG_PATH")
 	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+	communicationConfigFile, err := os.Open(filepath.Clean(communicationConfigFilePath))
 	if err != nil {
 		return c, err
 	}
+	defer func() {
+		err = communicationConfigFile.Close()
+	}()
 
 	b, err := ioutil.ReadAll(communicationConfigFile)
 	if err != nil {
@@ -270,21 +272,26 @@ func NewCommunicationsConfig() (*Communications, error) {
 	}
 
 	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+		err := yaml.Unmarshal(b, c)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return c, nil
 }
 
 // New returns new Config
-func New() (*Config, error) {
-	c := &Config{}
+func New() (c *Config, err error) {
+	c = &Config{}
 	configPath := os.Getenv("CONFIG_PATH")
 	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
-	resourceConfigFile, err := os.Open(resourceConfigFilePath)
-	defer resourceConfigFile.Close()
+	resourceConfigFile, err := os.Open(filepath.Clean(resourceConfigFilePath))
 	if err != nil {
 		return c, err
 	}
+	defer func() {
+		err = resourceConfigFile.Close()
+	}()
 
 	b, err := ioutil.ReadAll(resourceConfigFile)
 	if err != nil {
@@ -292,7 +299,10 @@ func New() (*Config, error) {
 	}
 
 	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+		err := yaml.Unmarshal(b, c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	comm, err := NewCommunicationsConfig()

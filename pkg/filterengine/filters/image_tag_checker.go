@@ -26,7 +26,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 
@@ -37,13 +36,6 @@ import (
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
 type ImageTagChecker struct {
 	Description string
-}
-
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(ImageTagChecker{
-		Description: "Checks and adds recommendation if 'latest' image tag is used for container image.",
-	})
 }
 
 // Run filers and modifies event struct

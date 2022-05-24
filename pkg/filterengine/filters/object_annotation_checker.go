@@ -21,7 +21,6 @@ package filters
 
 import (
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,16 +38,8 @@ type ObjectAnnotationChecker struct {
 	Description string
 }
 
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(ObjectAnnotationChecker{
-		Description: "Checks if annotations botkube.io/* present in object specs and filters them.",
-	})
-}
-
 // Run filters and modifies event struct
 func (f ObjectAnnotationChecker) Run(object interface{}, event *events.Event) {
-
 	// get objects metadata
 	obj := utils.GetObjectMetaData(object)
 
@@ -74,7 +65,6 @@ func (f ObjectAnnotationChecker) Describe() string {
 // isObjectNotifDisabled checks annotation botkube.io/disable
 // annotation botkube.io/disable disables the event notifications from objects
 func isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
-
 	if obj.Annotations[DisableAnnotation] == "true" {
 		log.Debug("Skipping Disabled Event Notifications!")
 		return true

@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/v44/github"
-	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/version"
@@ -37,7 +36,7 @@ var (
 		"Visit botkube.io for more info."
 )
 
-func checkRelease(c *config.Config, notifiers []notify.Notifier) {
+func checkRelease(notifiers []notify.Notifier) {
 	ctx := context.Background()
 	client := github.NewClient(nil)
 	release, _, err := client.Repositories.GetLatestRelease(ctx, "infracloudio", "botkube")
@@ -49,27 +48,25 @@ func checkRelease(c *config.Config, notifiers []notify.Notifier) {
 
 		// Send notification if newer version available
 		if version.Short() != *release.TagName {
-			sendMessage(c, notifiers, fmt.Sprintf(botkubeUpgradeMsg, *release.TagName))
+			sendMessage(notifiers, fmt.Sprintf(botkubeUpgradeMsg, *release.TagName))
 			notified = true
 		}
 	}
 }
 
 // UpgradeNotifier checks if newer version for BotKube backend available and notifies user
-func UpgradeNotifier(c *config.Config, notifiers []notify.Notifier) {
+func UpgradeNotifier(notifiers []notify.Notifier) {
 	// Check at startup
-	checkRelease(c, notifiers)
+	checkRelease(notifiers)
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	for {
-		select {
-		case <-ticker.C:
-			if notified == true {
-				return
-			}
-			// Check periodically
-			checkRelease(c, notifiers)
+		<-ticker.C
+		if notified {
+			return
 		}
+		// Check periodically
+		checkRelease(notifiers)
 	}
 }

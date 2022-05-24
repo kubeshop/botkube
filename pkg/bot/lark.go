@@ -96,23 +96,23 @@ func NewLarkBot(c *config.Config) Bot {
 }
 
 // Execute commands sent by users
-func (l *LarkBot) Execute(e map[string]interface{}) {
+func (l *LarkBot) Execute(e map[string]interface{}) error {
 	event, err := accessAndTypeCastToMap(larkEvent, e)
 	if err != nil {
 		log.Errorf("Lark: AccessAndTypeCastToMap: %s", err.Error())
-		return
+		return err
 	}
 
 	chatType, err := accessAndTypeCastToString(larkChatType, event)
 	if err != nil {
 		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return
+		return err
 	}
 
 	text, err := accessAndTypeCastToString(larkText, event)
 	if err != nil {
 		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return
+		return err
 	}
 
 	executor := execute.NewDefaultExecutor(text, l.AllowKubectl, l.RestrictAccess, l.DefaultNamespace,
@@ -123,51 +123,56 @@ func (l *LarkBot) Execute(e map[string]interface{}) {
 		chatID, err := accessAndTypeCastToString(larkOpenChatID, event)
 		if err != nil {
 			log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-			return
+			return err
 		}
 
-		l.LarkClient.SendTextMessage(larkChatID, chatID, response)
-		return
+		err = l.LarkClient.SendTextMessage(larkChatID, chatID, response)
+		if err != nil {
+			log.Errorf("Lark: SendTextMessage: %s", err.Error())
+			return err
+		}
 	}
 	openID, err := accessAndTypeCastToString(larkOpenID, event)
 	if err != nil {
 		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return
+		return err
 	}
-	l.LarkClient.SendTextMessage(larkOpenID, openID, response)
+	err = l.LarkClient.SendTextMessage(larkOpenID, openID, response)
+	if err != nil {
+		log.Errorf("Lark: SendTextMessage: %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 // Start starts the lark server and listens for lark messages
-func (l *LarkBot) Start() {
+func (l *LarkBot) Start() error {
 	// See: https://open.larksuite.com/document/ukTMukTMukTM/ukjNxYjL5YTM24SO2EjN
 	// message
 	larkConf := l.LarkClient.Conf
 	event.SetTypeCallback(larkConf, larkMessage, func(ctx *core.Context, e map[string]interface{}) error {
-		go l.Execute(e)
-		return nil
+		return l.Execute(e)
 	})
 
 	// add_bot
 	event.SetTypeCallback(larkConf, larkAddBot, func(ctx *core.Context, e map[string]interface{}) error {
-		go l.SayHello(e)
-		return nil
+		return l.SayHello(e)
 	})
 
 	// p2p_chat_create
 	event.SetTypeCallback(larkConf, larkP2pChatCreate, func(ctx *core.Context, e map[string]interface{}) error {
-		go l.SayHello(e)
-		return nil
+		return l.SayHello(e)
 	})
 
 	// add_user_to_chat
 	event.SetTypeCallback(larkConf, larkAddUserToChat, func(ctx *core.Context, e map[string]interface{}) error {
-		go l.SayHello(e)
-		return nil
+		return l.SayHello(e)
 	})
 
 	eventhttpserver.Register(l.MessagePath, larkConf)
 	log.Infof("Started lark server on port %d", l.Port)
 	log.Errorf("Error in lark server. %v", http.ListenAndServe(fmt.Sprintf(":%d", l.Port), nil))
+	return nil
 }
 
 // SayHello send welcome message to new added users
@@ -183,10 +188,7 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	}
 	users, ok := larkUserList.([]interface{})
 	if !ok {
-		user, ok := event[larkUsers].(interface{})
-		if !ok {
-			return fmt.Errorf("Invalid user format. Failed to convert user into interface{}")
-		}
+		user := event[larkUsers]
 		users = append(users, user)
 	}
 

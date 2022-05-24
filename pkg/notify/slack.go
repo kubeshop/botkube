@@ -67,11 +67,19 @@ func (s *Slack) SendEvent(event events.Event) error {
 			// send error message to default channel
 			if err.Error() == "channel_not_found" {
 				msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, err.Error(), event.Channel)
-				go s.SendMessage(msg)
+				err := s.SendMessage(msg)
+				if err != nil {
+					// TODO: Append error and return them all at once
+					log.Errorf("while sending message to default channel: %s", err.Error())
+				}
 				// sending missed event to default channel
 				// reset event.Channel and send event
 				event.Channel = ""
-				go s.SendEvent(event)
+				err = s.SendEvent(event)
+				if err != nil {
+					// TODO: Append error and return them all at once
+					log.Errorf("while sending event to default channel: %s", err.Error())
+				}
 			}
 			return err
 		}

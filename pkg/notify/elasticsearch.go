@@ -27,6 +27,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/sts"
+
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -47,6 +49,7 @@ const (
 	// AWS Role ARN from POD env variable while using IAM Role for service account
 	awsRoleARNEnvName = "AWS_ROLE_ARN"
 	// The token file mount path in POD env variable while using IAM Role for service account
+	// #nosec G101
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
@@ -74,7 +77,9 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 		awsRoleARN := os.Getenv(awsRoleARNEnvName)
 		awsWebIdentityTokenFile := os.Getenv(awsWebIDTokenFileEnvName)
 		if awsRoleARN != "" && awsWebIdentityTokenFile != "" {
-			creds = stscreds.NewWebIdentityCredentials(sess, awsRoleARN, "", awsWebIdentityTokenFile)
+			svc := sts.New(sess)
+			p := stscreds.NewWebIdentityRoleProviderWithOptions(svc, awsRoleARN, "", stscreds.FetchTokenPath(awsWebIdentityTokenFile))
+			creds = credentials.NewCredentials(p)
 		} else if c.AWSSigning.RoleArn != "" {
 			creds = stscreds.NewCredentials(sess, c.AWSSigning.RoleArn)
 		} else {
@@ -108,6 +113,7 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 
 		if c.SkipTLSVerify {
 			tr := &http.Transport{
+				// #nosec G402
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			httpClient := &http.Client{Transport: tr}

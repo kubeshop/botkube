@@ -35,7 +35,7 @@ lint:
 # test
 test: system-check
 	@echo "Starting unit and integration tests"
-	@./hack/runtests.sh
+	go test ./... -race -v
 
 # Build the binary
 build: pre-build

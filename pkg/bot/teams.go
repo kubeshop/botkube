@@ -38,15 +38,13 @@ import (
 )
 
 const (
-	defaultPort       = "3978"
-	consentBufferSize = 100
-	longRespNotice    = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
-	convTypePersonal  = "personal"
-	channelSetCmd     = "set default channel"
-	maxMessageSize    = 15700
-	contentTypeCard   = "application/vnd.microsoft.card.adaptive"
-	contentTypeFile   = "application/vnd.microsoft.teams.card.file.consent"
-	responseFileName  = "response.txt"
+	defaultPort      = "3978"
+	longRespNotice   = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
+	convTypePersonal = "personal"
+	maxMessageSize   = 15700
+	contentTypeCard  = "application/vnd.microsoft.card.adaptive"
+	contentTypeFile  = "application/vnd.microsoft.teams.card.file.consent"
+	responseFileName = "response.txt"
 
 	activityFileUpload = "fileUpload"
 	activityAccept     = "accept"
@@ -101,7 +99,7 @@ func NewTeamsBot(c *config.Config) *Teams {
 }
 
 // Start MS Teams server to serve messages from Teams client
-func (t *Teams) Start() {
+func (t *Teams) Start() error {
 	var err error
 	setting := core.AdapterSetting{
 		AppID:       t.AppID,
@@ -109,13 +107,16 @@ func (t *Teams) Start() {
 	}
 	t.Adapter, err = core.NewBotAdapter(setting)
 	if err != nil {
-		log.Errorf("Failed Start teams bot. %+v", err)
-		return
+		return fmt.Errorf("while starting Teams bot: %w", err)
 	}
 	// Start consent cleanup
 	http.HandleFunc(t.MessagePath, t.processActivity)
 	log.Infof("Started MS Teams server on port %s", defaultPort)
-	log.Errorf("Error in MS Teams server. %v", http.ListenAndServe(fmt.Sprintf(":%s", t.Port), nil))
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", t.Port), nil); err != nil {
+		return fmt.Errorf("while running MS Teams server: %w", err)
+	}
+
+	return nil
 }
 
 func (t *Teams) deleteConsent(ID string, convRef schema.ConversationReference) {
@@ -262,7 +263,7 @@ func (t *Teams) processMessage(activity schema.Activity) string {
 	return formatCodeBlock(e.Execute())
 }
 
-func (t *Teams) putRequest(u string, data []byte) error {
+func (t *Teams) putRequest(u string, data []byte) (err error) {
 	client := &http.Client{}
 	dec, err := url.QueryUnescape(u)
 	if err != nil {
@@ -280,6 +281,9 @@ func (t *Teams) putRequest(u string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = resp.Body.Close()
+	}()
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
 		return fmt.Errorf("failed to upload file with status %d", resp.StatusCode)
 	}

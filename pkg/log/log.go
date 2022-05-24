@@ -28,7 +28,8 @@ import (
 // log object for logging across the pkg/
 var log = logrus.New()
 
-func init() {
+// SetupGlobal set ups a global logger
+func SetupGlobal() {
 	// Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)
 

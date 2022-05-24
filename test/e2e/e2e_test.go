@@ -24,6 +24,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/execute"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/slack-go/slack"
 
 	"github.com/infracloudio/botkube/pkg/bot"
@@ -35,7 +40,7 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/filters"
 	"github.com/infracloudio/botkube/test/e2e/notifier/create"
 	"github.com/infracloudio/botkube/test/e2e/notifier/delete"
-	"github.com/infracloudio/botkube/test/e2e/notifier/error"
+	notifierErr "github.com/infracloudio/botkube/test/e2e/notifier/error"
 	"github.com/infracloudio/botkube/test/e2e/notifier/update"
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
@@ -43,10 +48,11 @@ import (
 // TestRun run e2e integration tests
 func TestRun(t *testing.T) {
 	// New Environment to run integration tests
-	testEnv := env.New()
+	testEnv, err := env.New()
+	require.NoError(t, err)
 
 	// Fake notifiers
-	notifiers := []notify.Notifier{}
+	var notifiers []notify.Notifier
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		fakeSlackNotifier := &notify.Slack{
@@ -77,7 +83,11 @@ func TestRun(t *testing.T) {
 
 	if testEnv.Config.Communications.Slack.Enabled {
 		// Start fake Slack bot
-		StartFakeSlackBot(testEnv)
+		sb := NewFakeSlackBot(testEnv)
+		go func(t *testing.T) {
+			err := sb.Start()
+			require.NoError(t, err)
+		}(t)
 	}
 
 	time.Sleep(time.Second)
@@ -89,7 +99,7 @@ func TestRun(t *testing.T) {
 		"filters":  filters.E2ETests(testEnv),
 		"update":   update.E2ETests(testEnv),
 		"delete":   delete.E2ETests(testEnv),
-		"error":    error.E2ETests(testEnv),
+		"error":    notifierErr.E2ETests(testEnv),
 	}
 
 	// Run test suite
@@ -98,22 +108,21 @@ func TestRun(t *testing.T) {
 	}
 }
 
-// StartFakeSlackBot makes connection to mocked slack apiserver
-func StartFakeSlackBot(testenv *env.TestEnv) {
-	if testenv.Config.Communications.Slack.Enabled {
-		log.Println("Starting fake Slack bot")
+// NewFakeSlackBot creates new mocked Slack bot
+func NewFakeSlackBot(testenv *env.TestEnv) *bot.SlackBot {
+	log.Println("Starting fake Slack bot")
 
-		// Fake bot
-		sb := &bot.SlackBot{
-			Token:            testenv.Config.Communications.Slack.Token,
-			AllowKubectl:     testenv.Config.Settings.Kubectl.Enabled,
-			RestrictAccess:   testenv.Config.Settings.Kubectl.RestrictAccess,
-			ClusterName:      testenv.Config.Settings.ClusterName,
-			ChannelName:      testenv.Config.Communications.Slack.Channel,
-			SlackURL:         testenv.SlackServer.GetAPIURL(),
-			BotID:            testenv.SlackServer.BotID,
-			DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
-		}
-		go sb.Start()
+	return &bot.SlackBot{
+		Token:            testenv.Config.Communications.Slack.Token,
+		AllowKubectl:     testenv.Config.Settings.Kubectl.Enabled,
+		RestrictAccess:   testenv.Config.Settings.Kubectl.RestrictAccess,
+		ClusterName:      testenv.Config.Settings.ClusterName,
+		ChannelName:      testenv.Config.Communications.Slack.Channel,
+		SlackURL:         testenv.SlackServer.GetAPIURL(),
+		BotID:            testenv.SlackServer.BotID,
+		DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
+		NewExecutorFn: func(msg string, allowKubectl, restrictAccess bool, defaultNamespace, clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) execute.Executor {
+			return execute.NewExecutorWithCustomCommandRunner(msg, allowKubectl, restrictAccess, defaultNamespace, clusterName, platform, channelName, isAuthChannel, command.FakeCommandRunnerFunc)
+		},
 	}
 }

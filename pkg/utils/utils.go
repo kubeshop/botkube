@@ -113,7 +113,6 @@ func InitKubeClient() {
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(DiscoveryClient)
 	discoCacheClient.Invalidate()
 	Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-
 }
 
 // EventKind used in AllowedEventKindsMap to filter event kinds
@@ -234,7 +233,6 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 
 // GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
-
 	k, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		return metaV1.TypeMeta{}

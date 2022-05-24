@@ -58,15 +58,12 @@ type Event struct {
 }
 
 // LevelMap is a map of event type to Level
-var LevelMap map[config.EventType]config.Level
-
-func init() {
-	LevelMap = make(map[config.EventType]config.Level)
-	LevelMap[config.CreateEvent] = config.Info
-	LevelMap[config.UpdateEvent] = config.Warn
-	LevelMap[config.DeleteEvent] = config.Critical
-	LevelMap[config.ErrorEvent] = config.Error
-	LevelMap[config.WarningEvent] = config.Error
+var LevelMap = map[config.EventType]config.Level{
+	config.CreateEvent:  config.Info,
+	config.UpdateEvent:  config.Warn,
+	config.DeleteEvent:  config.Critical,
+	config.ErrorEvent:   config.Error,
+	config.WarningEvent: config.Error,
 }
 
 // New extract required details from k8s object and returns new Event object

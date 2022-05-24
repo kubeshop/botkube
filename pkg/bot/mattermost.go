@@ -20,6 +20,7 @@
 package bot
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -35,7 +36,6 @@ type mmChannelType string
 const (
 	mmChannelPrivate mmChannelType = "P"
 	mmChannelPublic  mmChannelType = "O"
-	mmChannelDM      mmChannelType = "D"
 )
 
 const (
@@ -86,15 +86,14 @@ func NewMattermostBot(c *config.Config) Bot {
 }
 
 // Start establishes mattermost connection and listens for messages
-func (b *MMBot) Start() {
+func (b *MMBot) Start() error {
 	b.APIClient = model.NewAPIv4Client(b.ServerURL)
 	b.APIClient.SetOAuthToken(b.Token)
 
 	// Check if Mattermost URL is valid
 	checkURL, err := url.Parse(b.ServerURL)
 	if err != nil {
-		log.Errorf("The Mattermost URL entered is incorrect. URL: %s. Error: %s", b.ServerURL, err.Error())
-		return
+		return fmt.Errorf("while parsing Mattermost URL %q: %w", b.ServerURL, err)
 	}
 
 	// Create WebSocketClient and handle messages
@@ -106,8 +105,7 @@ func (b *MMBot) Start() {
 	// Check connection to Mattermost server
 	err = b.checkServerConnection()
 	if err != nil {
-		log.Fatalf("There was a problem pinging the Mattermost server URL %s. %s", b.ServerURL, err.Error())
-		return
+		return fmt.Errorf("while pinging Mattermost server %q: %w", b.ServerURL, err)
 	}
 
 	go func() {
@@ -125,7 +123,7 @@ func (b *MMBot) Start() {
 			b.listen()
 		}
 	}()
-	return
+	return nil
 }
 
 // Check incoming message and take action

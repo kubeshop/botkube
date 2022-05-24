@@ -98,11 +98,19 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 			log.Error("Failed to send message. Error: ", resp.Error)
 			// send error message to default channel
 			msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, resp.Error, event.Channel)
-			go m.SendMessage(msg)
+			err := m.SendMessage(msg)
+			if err != nil {
+				// TODO: Append error and return them all at once
+				log.Errorf("while sending message to default channel: %s", err.Error())
+			}
 			// sending missed event to default channel
 			// reset event.Channel and send event
 			event.Channel = ""
-			go m.SendEvent(event)
+			err = m.SendEvent(event)
+			if err != nil {
+				// TODO: Append error and return them all at once
+				log.Errorf("while sending event to default channel: %s", err.Error())
+			}
 			return resp.Error
 		}
 		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
@@ -124,8 +132,9 @@ func (m *Mattermost) SendMessage(msg string) error {
 	post.ChannelId = m.Channel
 	post.Message = msg
 	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-		log.Error("Failed to send message. Error: ", resp.Error)
+		return fmt.Errorf("while creating a post: %w", resp.Error)
 	}
+
 	return nil
 }
 

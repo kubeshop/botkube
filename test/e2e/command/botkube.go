@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/version"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 )
@@ -48,7 +47,7 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 	tests := map[string]botkubeCommand{
 		"BotKube ping": {
 			command:  "ping",
-			expected: fmt.Sprintf("```\npong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s\n```", c.Config.Settings.ClusterName, execute.K8sVersion, version.Short()),
+			expected: fmt.Sprintf("```\npong from cluster '%s'\n\nK8s Server Version: %s\nBotKube version: %s\n```", c.Config.Settings.ClusterName, FakeK8sServerVersion, version.Short()),
 		},
 		"BotKube filters list": {
 			command: "filters list",
@@ -112,7 +111,6 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if c.TestEnv.Config.Communications.Slack.Enabled {
-
 				// Send message to a channel
 				c.SlackServer.SendMessageToBot(c.Config.Communications.Slack.Channel, test.command)
 
@@ -126,14 +124,14 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 				switch test.command {
 				case "filters list":
-					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "```")), "\n"))
+					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
 					assert.Equal(t, fl, true)
 				case "commands list --cluster-name test-cluster-2":
 					fallthrough
 				case "commands list --cluster-name test-cluster-1":
 					fallthrough
 				case "commands list":
-					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "```")), "\n"))
+					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
 					assert.Equal(t, cl, true)
 				default:
 					assert.Equal(t, test.expected, m.Text)

@@ -20,6 +20,7 @@
 package bot
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -64,11 +65,10 @@ func NewDiscordBot(c *config.Config) Bot {
 }
 
 // Start starts the DiscordBot websocket connection and listens for messages
-func (b *DiscordBot) Start() {
+func (b *DiscordBot) Start() error {
 	api, err := discordgo.New("Bot " + b.Token)
 	if err != nil {
-		log.Error("error creating Discord session,", err)
-		return
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
@@ -92,6 +92,7 @@ func (b *DiscordBot) Start() {
 	}()
 
 	log.Info("BotKube connected to Discord!")
+	return nil
 }
 
 // HandleMessage handles the incoming messages

@@ -37,7 +37,6 @@ func (c *context) testWelcome(t *testing.T) {
 	expected := "...and now my watch begins for cluster 'test-cluster-1'! :crossed_swords:"
 
 	if c.TestEnv.Config.Communications.Slack.Enabled {
-
 		// Get last seen slack message
 		lastSeenMsg := c.GetLastSeenSlackMessage()
 
