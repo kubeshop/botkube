@@ -27,11 +27,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/log"
 )
 
-var (
-	// DefaultFilterEngine contains default implementation for FilterEngine
-	DefaultFilterEngine FilterEngine
-)
-
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event

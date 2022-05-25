@@ -20,7 +20,7 @@
 package env
 
 import (
-	"log"
+	"fmt"
 	"testing"
 	"time"
 
@@ -53,7 +53,7 @@ type TestEnv struct {
 	K8sClient     dynamic.Interface
 	SlackServer   *slacktest.Server
 	WebhookServer *webhook.Server
-	SlackMessages chan (*slack.MessageEvent)
+	SlackMessages chan *slack.MessageEvent
 	Config        *config.Config
 	Mapper        *restmapper.DeferredDiscoveryRESTMapper
 }
@@ -67,10 +67,10 @@ type E2ETest interface {
 func New() (*TestEnv, error) {
 	testEnv := &TestEnv{}
 
-	// Loads `/test/config.yaml` for Integration Testing
+	// Loads test configuration for Integration Testing
 	conf, err := config.New()
 	if err != nil {
-		log.Fatalf("Error in loading configuration. Error:%s", err.Error())
+		return nil, fmt.Errorf("while loading configuration: %w", err)
 	}
 	testEnv.Config = conf
 

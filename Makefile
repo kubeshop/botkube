@@ -33,9 +33,10 @@ lint:
 	@golangci-lint run "./..."
 
 # test
+# TODO: Enable -race flag when https://github.com/infracloudio/botkube/issues/592 is resolved
 test: system-check
 	@echo "Starting unit and integration tests"
-	go test ./... -race -v
+	@go test -v ./...
 
 # Build the binary
 build: pre-build

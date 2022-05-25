@@ -29,6 +29,7 @@ import (
 var log = logrus.New()
 
 // SetupGlobal set ups a global logger
+// TODO: Convert it to local instance shared by all BotKube components
 func SetupGlobal() {
 	// Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)

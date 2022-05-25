@@ -45,7 +45,7 @@ func (c *context) testKubectlCommand(t *testing.T) {
 	tests := map[string]kubectlCommand{
 		"BotKube get pods from configured channel": {
 			command:  "get pods",
-			expected: fmt.Sprintf("```\nCluster: %s\n%s\n```", c.Config.Settings.ClusterName, FakeKubectlResponse["-n default get pods"]),
+			expected: fmt.Sprintf("```\nCluster: %s\n%s\n```", c.Config.Settings.ClusterName, FakeKubectlResponse["/usr/local/bin/kubectl -n default get pods"]),
 			channel:  c.Config.Communications.Slack.Channel,
 		},
 		"BotKube get pods out of configured channel": {

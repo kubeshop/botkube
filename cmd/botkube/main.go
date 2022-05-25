@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/filterengine/filters"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
@@ -40,8 +39,7 @@ const (
 	defaultMetricsPort = "2112"
 )
 
-// TODO: General refactoring
-// 	- Get rid of using global variables
+// TODO:
 // 	- Use context to make sure all goroutines shutdowns gracefully
 //  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity)
 
@@ -52,17 +50,9 @@ func main() {
 		metricsPort = defaultMetricsPort
 	}
 
+	// Set up global logger and filter engine
 	log.SetupGlobal()
-
-	filterengine.DefaultFilterEngine = filterengine.NewDefaultFilter()
-	filterengine.DefaultFilterEngine.RegisterMany([]filterengine.Filter{
-		filters.ImageTagChecker{Description: "Checks and adds recommendation if 'latest' image tag is used for container image."},
-		filters.IngressValidator{Description: "Checks if services and tls secrets used in ingress specs are available."},
-		filters.ObjectAnnotationChecker{Description: "Checks if annotations botkube.io/* present in object specs and filters them."},
-		filters.PodLabelChecker{Description: "Checks and adds recommendations if labels are missing in the pod specs."},
-		filters.NamespaceChecker{Description: "Checks if event belongs to blocklisted namespaces and filter them."},
-		filters.NodeEventsChecker{Description: "Sends notifications on node level critical events."},
-	})
+	filterengine.SetupGlobal()
 
 	errGroup := new(errgroup.Group)
 

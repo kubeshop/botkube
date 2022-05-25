@@ -49,6 +49,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// TODO: Do not use global variables and convert them to local ones passed via references into all BotKube components
 var (
 	// ResourceInformerMap is a map of resource name to resource Getter interface
 	ResourceInformerMap map[string]cache.SharedIndexInformer

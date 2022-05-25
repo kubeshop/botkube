@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - develop
+env:
+  GO_VERSION: 1.18
+  HELM_VERSION: v3.9.0
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,11 +16,11 @@ jobs:
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Setup Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.18
+        go-version: ${{ env.GO_VERSION }}
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
     - name: Docker Login
@@ -36,7 +39,7 @@ jobs:
     - name: Install Helm
       uses: azure/setup-helm@v1
       with:
-        version: v3.4.0
+        version: ${{ env.HELM_VERSION }}
     - name: Update and publish helm chart
       run: |
         cd ..

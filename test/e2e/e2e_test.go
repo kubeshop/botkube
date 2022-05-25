@@ -20,9 +20,11 @@
 package e2e
 
 import (
-	"log"
 	"testing"
 	"time"
+
+	"github.com/infracloudio/botkube/pkg/filterengine"
+	"github.com/infracloudio/botkube/pkg/log"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
@@ -50,6 +52,10 @@ func TestRun(t *testing.T) {
 	// New Environment to run integration tests
 	testEnv, err := env.New()
 	require.NoError(t, err)
+
+	// Set up global logger and filter engine
+	log.SetupGlobal()
+	filterengine.SetupGlobal()
 
 	// Fake notifiers
 	var notifiers []notify.Notifier
@@ -110,7 +116,7 @@ func TestRun(t *testing.T) {
 
 // NewFakeSlackBot creates new mocked Slack bot
 func NewFakeSlackBot(testenv *env.TestEnv) *bot.SlackBot {
-	log.Println("Starting fake Slack bot")
+	log.Info("Starting fake Slack bot")
 
 	return &bot.SlackBot{
 		Token:            testenv.Config.Communications.Slack.Token,

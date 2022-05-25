@@ -62,7 +62,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install Helm
-        uses: azure/setup-helm@v2
+        uses: azure/setup-helm@v1
         with:
           version: ${{ env.HELM_VERSION }}
       - name: Run helm lint
