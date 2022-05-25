@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/infracloudio/botkube/test/e2e/env"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 )
 

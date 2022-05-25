@@ -27,7 +27,7 @@ import (
 	"text/tabwriter"
 	"unicode"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	filterengine "github.com/infracloudio/botkube/pkg/filterengine"

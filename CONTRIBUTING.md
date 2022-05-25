@@ -16,7 +16,7 @@ Before you proceed, make sure you have installed BotKube Slack/Mattermost/Teams 
 
 ### Prerequisite
 
-* Make sure you have `go 1.11+` installed with go module activated. (You can set env var with `export GO111MODULE=on` to activate)
+* Make sure you have [`go 1.18`](https://go.dev) installed.
 
 * You will also need `make` and [`docker`](https://docs.docker.com/install/) installed on your
 machine.
