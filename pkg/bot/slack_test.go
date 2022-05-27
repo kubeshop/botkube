@@ -2,9 +2,10 @@ package bot_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSlackBot_StripUnmarshallingErrEventDetails(t *testing.T) {

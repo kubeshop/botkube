@@ -269,7 +269,7 @@ func sendMessage(notifiers []notify.Notifier, msg string) {
 		go func(n notify.Notifier) {
 			err := n.SendMessage(msg)
 			if err != nil {
-				log.Errorf("while sending event: %s", err.Error())
+				log.Errorf("while sending message: %s", err.Error())
 			}
 		}(n)
 	}

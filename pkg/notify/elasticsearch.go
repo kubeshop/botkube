@@ -34,11 +34,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/olivere/elastic"
+	"github.com/sha1sum/aws_signing_client"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/olivere/elastic"
-	"github.com/sha1sum/aws_signing_client"
 )
 
 const (

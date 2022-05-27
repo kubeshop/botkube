@@ -50,6 +50,7 @@ import (
 )
 
 // TODO: Do not use global variables and convert them to local ones passed via references into all BotKube components
+// 	See https://github.com/infracloudio/botkube/issues/589
 var (
 	// ResourceInformerMap is a map of resource name to resource Getter interface
 	ResourceInformerMap map[string]cache.SharedIndexInformer

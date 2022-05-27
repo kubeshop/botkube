@@ -28,13 +28,14 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/infracloudio/msbotbuilder-go/core"
+	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
+	"github.com/infracloudio/msbotbuilder-go/schema"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/infracloudio/msbotbuilder-go/core"
-	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
-	"github.com/infracloudio/msbotbuilder-go/schema"
 )
 
 const (

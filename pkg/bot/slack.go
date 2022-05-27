@@ -23,10 +23,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/slack-go/slack"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/slack-go/slack"
 )
 
 // SlackBot listens for user's message, execute commands and sends back the response
@@ -122,7 +123,6 @@ func (b *SlackBot) Start() error {
 			log.Errorf("Slack rate limiting error: %+v", ev.Error())
 
 		case *slack.InvalidAuthEvent:
-			log.Error("Invalid Credentials")
 			return fmt.Errorf("invalid credentials")
 
 		default:

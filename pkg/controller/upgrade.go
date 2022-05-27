@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v44/github"
+
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/version"

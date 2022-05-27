@@ -30,8 +30,7 @@ import (
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event
-	Register(Filter)
-	RegisterMany([]Filter)
+	Register(...Filter)
 	ShowFilters() map[Filter]bool
 	SetFilter(string, bool) error
 }
@@ -65,16 +64,11 @@ func (f *defaultFilters) Run(object interface{}, event events.Event) events.Even
 	return event
 }
 
-// Register filter to engine
-func (f *defaultFilters) Register(filter Filter) {
-	log.Info("Registering the filter ", reflect.TypeOf(filter).Name())
-	f.FiltersMap[filter] = true
-}
-
-// RegisterMany registers multiple filters
-func (f *defaultFilters) RegisterMany(filters []Filter) {
+// Register filter(s) to engine
+func (f *defaultFilters) Register(filters ...Filter) {
 	for _, filter := range filters {
-		f.Register(filter)
+		log.Infof("Registering filter %q", reflect.TypeOf(filter).Name())
+		f.FiltersMap[filter] = true
 	}
 }
 

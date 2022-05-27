@@ -24,10 +24,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/mattermost/mattermost-server/v5/model"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/mattermost/mattermost-server/v5/model"
 )
 
 // mmChannelType to find Mattermost channel type

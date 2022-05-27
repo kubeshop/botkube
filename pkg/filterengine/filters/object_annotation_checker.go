@@ -20,10 +20,11 @@
 package filters
 
 import (
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (

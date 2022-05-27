@@ -23,9 +23,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/infracloudio/botkube/test/e2e/env"
 )
 
 type context struct {

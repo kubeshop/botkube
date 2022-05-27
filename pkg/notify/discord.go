@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"

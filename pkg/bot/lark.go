@@ -99,20 +99,17 @@ func NewLarkBot(c *config.Config) Bot {
 func (l *LarkBot) Execute(e map[string]interface{}) error {
 	event, err := accessAndTypeCastToMap(larkEvent, e)
 	if err != nil {
-		log.Errorf("Lark: AccessAndTypeCastToMap: %s", err.Error())
-		return err
+		return fmt.Errorf("while getting event: %w", err)
 	}
 
 	chatType, err := accessAndTypeCastToString(larkChatType, event)
 	if err != nil {
-		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return err
+		return fmt.Errorf("while getting chat type: %w", err)
 	}
 
 	text, err := accessAndTypeCastToString(larkText, event)
 	if err != nil {
-		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return err
+		return fmt.Errorf("while getting text: %w", err)
 	}
 
 	executor := execute.NewDefaultExecutor(text, l.AllowKubectl, l.RestrictAccess, l.DefaultNamespace,
@@ -122,56 +119,68 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 	if chatType == larkGroup {
 		chatID, err := accessAndTypeCastToString(larkOpenChatID, event)
 		if err != nil {
-			log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-			return err
+			return fmt.Errorf("while getting open chat ID: %w", err)
 		}
 
 		err = l.LarkClient.SendTextMessage(larkChatID, chatID, response)
 		if err != nil {
-			log.Errorf("Lark: SendTextMessage: %s", err.Error())
-			return err
+			return fmt.Errorf("while sending text message: %w", err)
 		}
 	}
+
 	openID, err := accessAndTypeCastToString(larkOpenID, event)
 	if err != nil {
-		log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
-		return err
+		return fmt.Errorf("while getting open ID: %w", err)
 	}
 	err = l.LarkClient.SendTextMessage(larkOpenID, openID, response)
 	if err != nil {
-		log.Errorf("Lark: SendTextMessage: %s", err.Error())
-		return err
+		return fmt.Errorf("while sending text message: %w", err)
 	}
+
 	return nil
 }
 
 // Start starts the lark server and listens for lark messages
 func (l *LarkBot) Start() error {
 	// See: https://open.larksuite.com/document/ukTMukTMukTM/ukjNxYjL5YTM24SO2EjN
-	// message
 	larkConf := l.LarkClient.Conf
+	helloCallbackFn := func(ctx *core.Context, e map[string]interface{}) error {
+		err := l.SayHello(e)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		return nil
+	}
+
+	// message
 	event.SetTypeCallback(larkConf, larkMessage, func(ctx *core.Context, e map[string]interface{}) error {
-		return l.Execute(e)
+		err := l.Execute(e)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		return nil
 	})
 
 	// add_bot
-	event.SetTypeCallback(larkConf, larkAddBot, func(ctx *core.Context, e map[string]interface{}) error {
-		return l.SayHello(e)
-	})
+	event.SetTypeCallback(larkConf, larkAddBot, helloCallbackFn)
 
 	// p2p_chat_create
-	event.SetTypeCallback(larkConf, larkP2pChatCreate, func(ctx *core.Context, e map[string]interface{}) error {
-		return l.SayHello(e)
-	})
+	event.SetTypeCallback(larkConf, larkP2pChatCreate, helloCallbackFn)
 
 	// add_user_to_chat
-	event.SetTypeCallback(larkConf, larkAddUserToChat, func(ctx *core.Context, e map[string]interface{}) error {
-		return l.SayHello(e)
-	})
+	event.SetTypeCallback(larkConf, larkAddUserToChat, helloCallbackFn)
 
 	eventhttpserver.Register(l.MessagePath, larkConf)
-	log.Infof("Started lark server on port %d", l.Port)
-	log.Errorf("Error in lark server. %v", http.ListenAndServe(fmt.Sprintf(":%d", l.Port), nil))
+
+	log.Infof("Starting Lark server on port %d", l.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", l.Port), nil); err != nil {
+		return fmt.Errorf("while listening on port %d: %w", l.Port, err)
+	}
+
 	return nil
 }
 
@@ -179,7 +188,7 @@ func (l *LarkBot) Start() error {
 func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	event, err := accessAndTypeCastToMap(larkEvent, e)
 	if err != nil {
-		return err
+		return fmt.Errorf("while getting event: %w", err)
 	}
 
 	larkUserList, ok := event[larkUsers]
@@ -199,17 +208,17 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	for _, user := range users {
 		userMap, ok := user.(map[string]interface{})
 		if !ok {
-			log.Error("Invalid user format. Failed to convert into user into map[string]interface{}")
+			log.Errorf("while asserting type of user: Failed to convert %T into map[string]interface{}", user)
 			continue
 		}
 		openID, err := accessAndTypeCastToString(larkOpenID, userMap)
 		if err != nil {
-			log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
+			log.Errorf("while getting open ID: %s", err.Error())
 			continue
 		}
 		username, err := accessAndTypeCastToString(larkUserID, userMap)
 		if err != nil {
-			log.Errorf("Lark: AccessAndTypeCastToString: %s", err.Error())
+			log.Errorf("while getting user ID: %s", err.Error())
 			continue
 		}
 
@@ -220,7 +229,12 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 
 	chatID, err := accessAndTypeCastToString(larkChatID, event)
 	if err != nil {
-		return err
+		return fmt.Errorf("while getting chat ID: %w", err)
 	}
-	return l.LarkClient.SendTextMessage(larkChatID, chatID, strings.Join(messages, " "))
+	err = l.LarkClient.SendTextMessage(larkChatID, chatID, strings.Join(messages, " "))
+	if err != nil {
+		return fmt.Errorf("while sending text message: %w", err)
+	}
+
+	return nil
 }

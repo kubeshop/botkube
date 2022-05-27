@@ -24,13 +24,14 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/filterengine"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/infracloudio/botkube/pkg/metrics"
 )
@@ -40,8 +41,8 @@ const (
 )
 
 // TODO:
-// 	- Use context to make sure all goroutines shutdowns gracefully
-//  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity)
+// 	- Use context to make sure all goroutines shutdowns gracefully: https://github.com/infracloudio/botkube/issues/220
+//  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity): https://github.com/infracloudio/botkube/issues/589
 
 func main() {
 	// Prometheus metrics

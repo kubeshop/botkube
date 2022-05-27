@@ -83,13 +83,10 @@ func (b *DiscordBot) Start() error {
 	})
 
 	// Open a websocket connection to Discord and begin listening.
-	go func() {
-		err := api.Open()
-		if err != nil {
-			log.Error("error opening connection,", err)
-			return
-		}
-	}()
+	err = api.Open()
+	if err != nil {
+		return fmt.Errorf("while opening connection: %w", err)
+	}
 
 	log.Info("BotKube connected to Discord!")
 	return nil
@@ -130,7 +127,7 @@ func (dm discordMessage) Send() {
 	log.Debugf("Discord Response: %s", dm.Response)
 
 	if len(dm.Response) == 0 {
-		log.Infof("Invalid request. Dumping the response. Request: %s", dm.Request)
+		log.Errorf("Invalid request. Dumping the response. Request: %s", dm.Request)
 		return
 	}
 
