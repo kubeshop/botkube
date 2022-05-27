@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/infracloudio/botkube/pkg/controller"
+
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -21,65 +23,16 @@ type context struct {
 	*env.TestEnv
 }
 
-func (c *context) testSKipDeleteEvent(t *testing.T) {
-	// Modifying AllowedEventKindsMap to remove delete event for pod resource
-	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"})
-	// Modifying AllowedEventKindsMap to add delete event for only dummy namespace and ignore everything
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"}] = true
-	// Modifying AllowedEventKindsMap to remove all event for service resource
-	events := []config.EventType{"delete", "error", "create"}
-	for _, event := range events {
-		delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: event})
-	}
-	// test scenarios
-	tests := map[string]testutils.DeleteObjects{
-		"skip delete event for resources not configured": {
-			// delete operation not allowed for Pod resources so event should be skipped
-			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
-			Kind:      "Pod",
-			Namespace: "test",
-			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-delete"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
-		},
-		"skip delete event for namespace not configured": {
-			// delete operation not allowed for Pod in test namespace so event should be skipped
-			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
-			Kind:      "Pod",
-			Namespace: "test",
-			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-delete"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
-		},
-		"skip delete event for resources not added in test_config": {
-			// delete operation not allowed for Pod resources so event should be skipped
-			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
-			Kind:      "Service",
-			Namespace: "test",
-			Specs:     &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test-service-delete"}},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			resource := utils.GVRToString(test.GVR)
-			// checking if delete operation is skipped
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
-			assert.Equal(t, isAllowed, false)
-		})
-	}
-	// Resetting original configuration as per test_config
-	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "delete"})
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "delete"}] = true
-	// Resetting original configuration as per test_config adding service resource
-	for _, event := range events {
-		utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/services", Namespace: "all", EventType: event}] = true
-	}
-}
-
 func (c *context) testDeleteEvent(t *testing.T) {
 	events := []config.EventType{"update", "error", "create"}
 
 	// Modifying AllowedEventKindsMap to remove events other than delete for pod resource
+	observedEventKindsMap := c.Ctrl.ObservedEventKindsMap()
 	for _, event := range events {
-		delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: event})
+		delete(observedEventKindsMap, controller.EventKind{Resource: "v1/pods", Namespace: "all", EventType: event})
 	}
+	c.Ctrl.SetObservedEventKindsMap(observedEventKindsMap)
+
 	// test scenarios
 	tests := map[string]testutils.DeleteObjects{
 		"perform delete operation and configure BotKube to listen only delete events": {
@@ -101,10 +54,10 @@ func (c *context) testDeleteEvent(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.DeleteEvent)
+			isAllowed := c.Ctrl.ShouldSendEvent(test.Namespace, resource, config.DeleteEvent)
 			assert.Equal(t, isAllowed, true)
 
-			testutils.DeleteResource(t, test)
+			testutils.DeleteResource(t, c.DynamicCli, test)
 
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Get last seen slack message
@@ -131,14 +84,15 @@ func (c *context) testDeleteEvent(t *testing.T) {
 		})
 	}
 	// Resetting original configuration as per test_config
+	observedEventKindsMap = c.Ctrl.ObservedEventKindsMap()
 	for _, event := range events {
-		utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: event}] = true
+		observedEventKindsMap[controller.EventKind{Resource: "v1/pods", Namespace: "all", EventType: event}] = true
 	}
+	c.Ctrl.SetObservedEventKindsMap(observedEventKindsMap)
 }
 
 // Run tests
 func (c *context) Run(t *testing.T) {
-	t.Run("skip delete event", c.testSKipDeleteEvent)
 	t.Run("delete resource", c.testDeleteEvent)
 }
 

@@ -20,14 +20,17 @@
 package controller
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"path/filepath"
 	"reflect"
 	"strings"
-	"syscall"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
@@ -35,11 +38,10 @@ import (
 
 	// Register filters
 	_ "github.com/infracloudio/botkube/pkg/filterengine/filters"
-	"github.com/infracloudio/botkube/pkg/log"
+
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 
-	"github.com/fsnotify/fsnotify"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,141 +52,216 @@ const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
 	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
+
+	finalMessageTimeout = 20 * time.Second
 )
 
-var eventGVR = schema.GroupVersionResource{
-	Version:  "v1",
-	Resource: "events",
+// EventKind defines a map key used for event filtering.
+// TODO: Do not export it when E2E tests are refactored (https://github.com/infracloudio/botkube/issues/589)
+type EventKind struct {
+	Resource  string
+	Namespace string
+	EventType config.EventType
 }
 
-var startTime time.Time
+// KindNS defines a map key used for update event filtering.
+// TODO: Do not export it when E2E tests are refactored (https://github.com/infracloudio/botkube/issues/589)
+type KindNS struct {
+	Resource  string
+	Namespace string
+}
 
-// RegisterInformers creates new informer controllers to watch k8s resources
-func RegisterInformers(c *config.Config, notifiers []notify.Notifier) {
-	sendMessage(notifiers, fmt.Sprintf(controllerStartMsg, c.Settings.ClusterName))
-	startTime = time.Now()
+// Controller watches Kubernetes resources and send events to notifiers.
+type Controller struct {
+	log                   logrus.FieldLogger
+	startTime             time.Time
+	conf                  *config.Config
+	notifiers             []notify.Notifier
+	filterEngine          filterengine.FilterEngine
+	configPath            string
+	informersResyncPeriod time.Duration
 
-	// Start config file watcher if enabled
-	if c.Settings.ConfigWatcher {
-		go configWatcher(c, notifiers)
+	dynamicCli dynamic.Interface
+	mapper     meta.RESTMapper
+
+	dynamicKubeInformerFactory dynamicinformer.DynamicSharedInformerFactory
+	resourceInformerMap        map[string]cache.SharedIndexInformer
+	observedEventKindsMap      map[EventKind]bool
+	observedUpdateEventsMap    map[KindNS]config.UpdateSetting
+}
+
+// New create a new Controller instance.
+func New(log logrus.FieldLogger,
+	conf *config.Config,
+	notifiers []notify.Notifier,
+	filterEngine filterengine.FilterEngine,
+	configPath string,
+	dynamicCli dynamic.Interface,
+	mapper meta.RESTMapper,
+	informersResyncPeriod time.Duration,
+) *Controller {
+	return &Controller{
+		log:                   log,
+		conf:                  conf,
+		notifiers:             notifiers,
+		filterEngine:          filterEngine,
+		configPath:            configPath,
+		dynamicCli:            dynamicCli,
+		mapper:                mapper,
+		informersResyncPeriod: informersResyncPeriod,
+	}
+}
+
+// Start creates new informer controllers to watch k8s resources
+func (c *Controller) Start(ctx context.Context) error {
+	err := c.initInformerMap()
+	if err != nil {
+		return fmt.Errorf("while initializing informer map: %w", err)
 	}
 
+	c.log.Info("Starting controller")
+	err = sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	if err != nil {
+		return fmt.Errorf("while sending first message: %w", err)
+	}
+
+	c.startTime = time.Now()
+
 	// Register informers for resource lifecycle events
-	if len(c.Resources) > 0 {
-		log.Info("Registering resource lifecycle informer")
-		for _, r := range c.Resources {
-			if _, ok := utils.ResourceInformerMap[r.Name]; !ok {
+	if len(c.conf.Resources) > 0 {
+		c.log.Info("Registering resource lifecycle informer")
+		for _, r := range c.conf.Resources {
+			if _, ok := c.resourceInformerMap[r.Name]; !ok {
 				continue
 			}
-			log.Infof("Adding informer for resource:%s", r.Name)
-			utils.ResourceInformerMap[r.Name].AddEventHandler(registerEventHandlers(c, notifiers, r.Name, r.Events))
+			c.log.Infof("Adding informer for resource %q", r.Name)
+			c.resourceInformerMap[r.Name].AddEventHandler(c.registerEventHandlers(ctx, r.Name, r.Events))
 		}
 	}
 
 	// Register informers for k8s events
-	log.Infof("Registering kubernetes events informer for types: %+v", config.WarningEvent.String())
-	log.Infof("Registering kubernetes events informer for types: %+v", config.NormalEvent.String())
-	utils.DynamicKubeInformerFactory.ForResource(eventGVR).Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			var eventObj coreV1.Event
-			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
-			if err != nil {
-				log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
-			}
-			_, err = cache.MetaNamespaceKeyFunc(obj)
-			if err != nil {
-				log.Errorf("Failed to get MetaNamespaceKey from event resource")
-				return
-			}
+	c.log.Infof("Registering Kubernetes events informer for types %q and %q", config.WarningEvent.String(), config.NormalEvent.String())
+	c.dynamicKubeInformerFactory.
+		ForResource(schema.GroupVersionResource{Version: "v1", Resource: "events"}).
+		Informer().
+		AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				var eventObj coreV1.Event
+				err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+				if err != nil {
+					c.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				}
+				_, err = cache.MetaNamespaceKeyFunc(obj)
+				if err != nil {
+					c.log.Errorf("Failed to get MetaNamespaceKey from event resource")
+					return
+				}
 
-			// Find involved object type
-			gvr, err := utils.GetResourceFromKind(eventObj.InvolvedObject.GroupVersionKind())
-			if err != nil {
-				log.Errorf("Failed to get involved object: %v", err)
-				return
-			}
-			switch strings.ToLower(eventObj.Type) {
-			case config.WarningEvent.String():
-				// Send WarningEvent as ErrorEvents
-				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.ErrorEvent)
-			case config.NormalEvent.String():
-				// Send NormalEvent as Insignificant InfoEvent
-				sendEvent(obj, nil, c, notifiers, utils.GVRToString(gvr), config.InfoEvent)
-			}
-		},
-	})
-	stopCh := make(chan struct{})
-	defer close(stopCh)
+				// Find involved object type
+				gvr, err := utils.GetResourceFromKind(c.mapper, eventObj.InvolvedObject.GroupVersionKind())
+				if err != nil {
+					c.log.Errorf("Failed to get involved object: %v", err)
+					return
+				}
+				switch strings.ToLower(eventObj.Type) {
+				case config.WarningEvent.String():
+					// Send WarningEvent as ErrorEvents
+					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.ErrorEvent)
+				case config.NormalEvent.String():
+					// Send NormalEvent as Insignificant InfoEvent
+					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.InfoEvent)
+				}
+			},
+		})
 
-	utils.DynamicKubeInformerFactory.Start(stopCh)
+	stopCh := ctx.Done()
 
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	c.dynamicKubeInformerFactory.Start(stopCh)
+	<-stopCh
 
-	<-sigterm
-	sendMessage(notifiers, fmt.Sprintf(controllerStopMsg, c.Settings.ClusterName))
-	// Sleep for some time to send termination notification
-	time.Sleep(5 * time.Second)
+	c.log.Info("Context canceled. Sending final message...")
+	finalMsgCtx, cancelFn := context.WithTimeout(context.Background(), finalMessageTimeout)
+	defer cancelFn()
+	err = sendMessageToNotifiers(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
+	if err != nil {
+		return fmt.Errorf("while sending final message: %w", err)
+	}
+
+	return nil
 }
 
-func registerEventHandlers(c *config.Config, notifiers []notify.Notifier, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
+func (c *Controller) registerEventHandlers(ctx context.Context, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
 	for _, event := range events {
 		if event == config.AllEvent || event == config.CreateEvent {
 			handlerFns.AddFunc = func(obj interface{}) {
-				log.Debugf("Processing add to %v", resourceType)
-				sendEvent(obj, nil, c, notifiers, resourceType, config.CreateEvent)
+				c.log.Debugf("Processing add to %q", resourceType)
+				c.sendEvent(ctx, obj, nil, resourceType, config.CreateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
-				log.Debugf("Processing update to %v\n Object: %+v\n", resourceType, new)
-				sendEvent(new, old, c, notifiers, resourceType, config.UpdateEvent)
+				c.log.Debugf("Processing update to %q\n Object: %+v\n", resourceType, new)
+				c.sendEvent(ctx, new, old, resourceType, config.UpdateEvent)
 			}
 		}
 
 		if event == config.AllEvent || event == config.DeleteEvent {
 			handlerFns.DeleteFunc = func(obj interface{}) {
-				log.Debugf("Processing delete to %v", resourceType)
-				sendEvent(obj, nil, c, notifiers, resourceType, config.DeleteEvent)
+				c.log.Debugf("Processing delete to %q", resourceType)
+				c.sendEvent(ctx, obj, nil, resourceType, config.DeleteEvent)
 			}
 		}
 	}
 	return handlerFns
 }
 
-func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Notifier, resource string, eventType config.EventType) {
+func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType) {
 	// Filter namespaces
-	objectMeta := utils.GetObjectMetaData(obj)
+	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
+	if err != nil {
+		c.log.Errorf("while getting object metadata: %w", err)
+		return
+	}
 
 	switch eventType {
 	case config.InfoEvent:
 		// Skip if ErrorEvent is not configured for the resource
-		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, config.ErrorEvent) {
-			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
+		if !c.shouldSendEvent(objectMeta.Namespace, resource, config.ErrorEvent) {
+			c.log.Debugf("Ignoring %q to %s/%v in %q namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	default:
-		if !utils.CheckOperationAllowed(utils.AllowedEventKindsMap, objectMeta.Namespace, resource, eventType) {
-			log.Debugf("Ignoring %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
+		if !c.shouldSendEvent(objectMeta.Namespace, resource, eventType) {
+			c.log.Debugf("Ignoring %q to %s/%v in %q namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 			return
 		}
 	}
 
-	log.Debugf("Processing %s to %s/%v in %s namespaces", eventType, resource, objectMeta.Name, objectMeta.Namespace)
+	c.log.Debugf("Processing %s to %s/%v in %s namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 
 	// Check if Notify disabled
 	if !config.Notify {
-		log.Debug("Skipping notification")
+		c.log.Debug("Skipping notification")
 		return
 	}
 
 	// Create new event object
-	event := events.New(obj, eventType, resource, c.Settings.ClusterName)
+	objectMeta, err = utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
+	if err != nil {
+		c.log.Errorf("while getting object metadata: %w", err)
+		return
+	}
+	event, err := events.New(objectMeta, obj, eventType, resource, c.conf.Settings.ClusterName)
+	if err != nil {
+		c.log.Errorf("while creating new event: %w", err)
+		return
+	}
+
 	// Skip older events
 	if !event.TimeStamp.IsZero() {
-		if event.TimeStamp.Before(startTime) {
-			log.Debug("Skipping older events")
+		if event.TimeStamp.Before(c.startTime) {
+			c.log.Debug("Skipping older events")
 			return
 		}
 	}
@@ -193,22 +270,25 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 	if eventType == config.UpdateEvent {
 		var updateMsg string
 		// Check if all namespaces allowed
-		updateSetting, exist := utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: "all"}]
+		updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: "all"}]
 		if !exist {
 			// Check if specified namespace is allowed
-			updateSetting, exist = utils.AllowedUpdateEventsMap[utils.KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
+			updateSetting, exist = c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
 		}
 		if exist {
 			// Calculate object diff as per the updateSettings
 			var oldUnstruct, newUnstruct *unstructured.Unstructured
 			var ok bool
 			if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
+				c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
 			if newUnstruct, ok = obj.(*unstructured.Unstructured); !ok {
-				log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
+				c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
 			}
-			updateMsg = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
+			updateMsg, err = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
+			if err != nil {
+				c.log.Errorf("while getting diff: %w", err)
+			}
 		}
 
 		// Send update notification only if fields in updateSetting are changed
@@ -218,107 +298,161 @@ func sendEvent(obj, oldObj interface{}, c *config.Config, notifiers []notify.Not
 			}
 		} else {
 			// skipping least significant update
-			log.Debug("skipping least significant Update event")
+			c.log.Debug("skipping least significant Update event")
 			event.Skip = true
 		}
 	}
 
 	// Filter events
-	event = filterengine.DefaultFilterEngine.Run(obj, event)
+	event = c.filterEngine.Run(ctx, obj, event)
 	if event.Skip {
-		log.Debugf("Skipping event: %#v", event)
+		c.log.Debugf("Skipping event: %#v", event)
 		return
 	}
 
 	// Skip unpromoted insignificant InfoEvents
 	if event.Type == config.InfoEvent {
-		log.Debugf("Skipping Insignificant InfoEvent: %#v", event)
+		c.log.Debugf("Skipping Insignificant InfoEvent: %#v", event)
 		return
 	}
 
 	if len(event.Kind) <= 0 {
-		log.Warn("sendEvent received event with Kind nil. Hence skipping.")
+		c.log.Warn("sendEvent received event with Kind nil. Hence skipping.")
 		return
 	}
 
 	// check if Recommendations are disabled
-	if !c.Recommendations {
+	if !c.conf.Recommendations {
 		event.Recommendations = nil
-		log.Debug("Skipping Recommendations in Event Notifications")
+		c.log.Debug("Skipping Recommendations in Event Notifications")
 	}
 
 	// Send event over notifiers
-	for _, n := range notifiers {
+	for _, n := range c.notifiers {
 		go func(n notify.Notifier) {
-			err := n.SendEvent(event)
+			err := n.SendEvent(ctx, event)
 			if err != nil {
-				log.Errorf("while sending event: %s", err.Error())
+				c.log.Errorf("while sending event: %s", err.Error())
 			}
 		}(n)
 	}
 }
 
-func sendMessage(notifiers []notify.Notifier, msg string) {
-	if len(msg) <= 0 {
-		log.Warn("sendMessage received string with length 0. Hence skipping.")
-		return
-	}
+func (c *Controller) initInformerMap() error {
+	// Create dynamic shared informer factory
+	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
-	// Send message over notifiers
-	for _, n := range notifiers {
-		go func(n notify.Notifier) {
-			err := n.SendMessage(msg)
-			if err != nil {
-				log.Errorf("while sending message: %s", err.Error())
-			}
-		}(n)
-	}
-}
+	// Init maps
+	c.resourceInformerMap = make(map[string]cache.SharedIndexInformer)
+	c.observedEventKindsMap = make(map[EventKind]bool)
+	c.observedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
-func configWatcher(c *config.Config, notifiers []notify.Notifier) {
-	configPath := os.Getenv("CONFIG_PATH")
-	configFile := filepath.Join(configPath, config.ResourceConfigFileName)
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal("Failed to create file watcher ", err)
-	}
-	defer func(watcher *fsnotify.Watcher) {
-		err := watcher.Close()
+	for _, v := range c.conf.Resources {
+		gvr, err := c.parseResourceArg(v.Name)
 		if err != nil {
-			log.Errorf("while closing watcher: %s", err.Error())
+			c.log.Infof("Unable to parse resource: %v\n", v.Name)
+			continue
 		}
-	}(watcher)
 
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case _, ok := <-watcher.Events:
-				if !ok {
-					log.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
-					return
-				}
-				log.Infof("Config file %s is updated. Hence restarting the Pod", configFile)
-				done <- true
-
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					log.Errorf("Error in getting events for config file:%s. Error: %s", configFile, err.Error())
-					return
+		c.resourceInformerMap[v.Name] = c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
+	}
+	// Allowed event kinds map and Allowed Update Events Map
+	for _, r := range c.conf.Resources {
+		allEvents := false
+		for _, e := range r.Events {
+			if e == config.AllEvent {
+				allEvents = true
+				break
+			}
+			for _, ns := range r.Namespaces.Include {
+				c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
+			}
+			// AllowedUpdateEventsMap entry is created only for UpdateEvent
+			if e == config.UpdateEvent {
+				for _, ns := range r.Namespaces.Include {
+					c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
 				}
 			}
 		}
-	}()
-	log.Infof("Registering watcher on configfile %s", configFile)
-	err = watcher.Add(configFile)
-	if err != nil {
-		log.Errorf("Unable to register watch on config file:%s. Error: %s", configFile, err.Error())
-		return
+
+		// For AllEvent type, add all events to map
+		if allEvents {
+			events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
+			for _, ev := range events {
+				for _, ns := range r.Namespaces.Include {
+					c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
+					c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
+				}
+			}
+		}
 	}
-	<-done
-	sendMessage(notifiers, fmt.Sprintf(configUpdateMsg, c.Settings.ClusterName))
-	// Wait for Notifier to send message
-	time.Sleep(5 * time.Second)
-	os.Exit(0)
+	c.log.Infof("Allowed Events: %+v", c.observedEventKindsMap)
+	c.log.Infof("Allowed UpdateEvents: %+v", c.observedUpdateEventsMap)
+	return nil
+}
+
+func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, error) {
+	var gvr schema.GroupVersionResource
+	if strings.Count(arg, "/") >= 2 {
+		s := strings.SplitN(arg, "/", 3)
+		gvr = schema.GroupVersionResource{Group: s[0], Version: s[1], Resource: s[2]}
+	} else if strings.Count(arg, "/") == 1 {
+		s := strings.SplitN(arg, "/", 2)
+		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
+	}
+
+	// Validate the GVR provided
+	if _, err := c.mapper.ResourcesFor(gvr); err != nil {
+		return schema.GroupVersionResource{}, err
+	}
+	return gvr, nil
+}
+
+func (c *Controller) shouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
+	eventMap := c.observedEventKindsMap
+	if eventMap == nil {
+		return false
+	}
+
+	if eventMap[EventKind{Resource: resource, Namespace: "all", EventType: eventType}] {
+		return true
+	}
+
+	if eventMap[EventKind{Resource: resource, Namespace: namespace, EventType: eventType}] {
+		return true
+	}
+
+	return false
+}
+
+// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/infracloudio/botkube/issues/589
+
+// ShouldSendEvent exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) ShouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
+	return c.shouldSendEvent(namespace, resource, eventType)
+}
+
+// ObservedEventKindsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) ObservedEventKindsMap() map[EventKind]bool {
+	return c.observedEventKindsMap
+}
+
+// SetObservedEventKindsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) SetObservedEventKindsMap(observedEventKindsMap map[EventKind]bool) {
+	c.observedEventKindsMap = observedEventKindsMap
+}
+
+// ObservedUpdateEventsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) ObservedUpdateEventsMap() map[KindNS]config.UpdateSetting {
+	return c.observedUpdateEventsMap
+}
+
+// SetObservedUpdateEventsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) SetObservedUpdateEventsMap(observedUpdateEventsMap map[KindNS]config.UpdateSetting) {
+	c.observedUpdateEventsMap = observedUpdateEventsMap
 }

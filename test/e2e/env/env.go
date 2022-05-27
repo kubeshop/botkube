@@ -20,6 +20,7 @@
 package env
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -37,19 +38,22 @@ import (
 	"k8s.io/client-go/restmapper"
 	samplev1alpha1 "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
 
+	"github.com/infracloudio/botkube/pkg/controller"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/infracloudio/botkube/test/webhook"
 )
 
 // TestEnv to store objects required for e2e testing
-// K8sClient    : Fake K8s client to mock resource creation
+// DynamicCli    : Fake K8s client to mock resource creation
 // SlackServer  : Fake Slack server
 // SlackMessages: Channel to store incoming Slack messages from BotKube
 // Config	: BotKube config provided with config.yaml
 type TestEnv struct {
-	DiscoFake     discovery.DiscoveryInterface
-	K8sClient     dynamic.Interface
+	Ctrl          *controller.Controller
+	DiscoveryCli  discovery.DiscoveryInterface
+	DynamicCli    dynamic.Interface
 	SlackServer   *slacktest.Server
 	WebhookServer *webhook.Server
 	SlackMessages chan *slack.MessageEvent
@@ -63,15 +67,16 @@ type E2ETest interface {
 }
 
 // New creates TestEnv and populate required objects
-func New() (*TestEnv, error) {
-	testEnv := &TestEnv{}
-
+func New(configPath string) (*TestEnv, error) {
 	// Loads test configuration for Integration Testing
-	conf, err := config.New()
+	conf, err := config.Load(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("while loading configuration: %w", err)
 	}
-	testEnv.Config = conf
+
+	if conf == nil {
+		return nil, errors.New("while loading configuration: config cannot be nil")
+	}
 
 	s := runtime.NewScheme()
 
@@ -88,24 +93,20 @@ func New() (*TestEnv, error) {
 		return nil, err
 	}
 
-	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
-	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
-	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
-	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-
-	if testEnv.Config.Communications.Slack.Enabled {
-		testEnv.SlackMessages = make(chan *slack.MessageEvent, 1)
-		testEnv.SetupFakeSlack()
-	}
-	if testEnv.Config.Communications.Webhook.Enabled {
-		testEnv.SetupFakeWebhook()
-	}
-
-	return testEnv, nil
+	return &TestEnv{
+		Config:       conf,
+		DynamicCli:   fake.NewSimpleDynamicClient(s),
+		DiscoveryCli: kubeFake.NewSimpleClientset().Discovery(),
+		Mapper: restmapper.NewDeferredDiscoveryRESTMapper(
+			cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface()),
+		),
+	}, nil
 }
 
 // SetupFakeSlack create fake Slack server to mock Slack
 func (e *TestEnv) SetupFakeSlack() {
+	e.SlackMessages = make(chan *slack.MessageEvent, 1)
+
 	s := slacktest.NewTestServer()
 	s.SetBotName("BotKube")
 	go s.Start()

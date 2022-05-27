@@ -23,41 +23,44 @@ import (
 	"fmt"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 type diffReporter struct {
 	field string
 }
 
-func (d diffReporter) exec(x, y interface{}) (string, bool) {
+func (d diffReporter) exec(x, y interface{}) (string, error) {
 	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
 		// Happens when the fields were not set by the time event was issued, do not return in that case
-		log.Debugf("Failed to find value from jsonpath: %s, object: %+v. Error: %v", d.field, x, err)
+		return "", fmt.Errorf("while finding value from jsonpath: %q, object: %+v: %w", d.field, x, err)
 	}
 
 	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
-		log.Debugf("Failed to find value from jsonpath: %s, object: %+v, Error: %v", d.field, y, err)
+		return "", fmt.Errorf("while finding value from jsonpath: %q, object: %+v: %w", d.field, y, err)
 	}
 
 	// treat <none> and false as same fields
 	if vx == vy || (vx == "<none>" && vy == "false") {
-		return "", false
+		return "", nil
 	}
-	return fmt.Sprintf("%s:\n\t-: %+v\n\t+: %+v\n", d.field, vx, vy), true
+	return fmt.Sprintf("%s:\n\t-: %+v\n\t+: %+v\n", d.field, vx, vy), nil
 }
 
 // Diff provides differences between two objects spec
-func Diff(x, y interface{}, updatesetting config.UpdateSetting) string {
+func Diff(x, y interface{}, updateSetting config.UpdateSetting) (string, error) {
 	msg := ""
-	for _, val := range updatesetting.Fields {
+	for _, val := range updateSetting.Fields {
 		var d diffReporter
 		d.field = val
-		if diff, ok := d.exec(x, y); ok {
-			msg = msg + diff
+		diff, err := d.exec(x, y)
+		if err != nil {
+			return "", err
 		}
+
+		msg = msg + diff
 	}
-	return msg
+
+	return msg, nil
 }

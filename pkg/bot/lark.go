@@ -20,17 +20,20 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/infracloudio/botkube/pkg/httpsrv"
+
 	"github.com/larksuite/oapi-sdk-go/core"
 	"github.com/larksuite/oapi-sdk-go/event"
-	eventhttpserver "github.com/larksuite/oapi-sdk-go/event/http/native"
+	eventhttpserver "github.com/larksuite/oapi-sdk-go/event/http"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -69,6 +72,9 @@ const (
 
 // LarkBot listens for user's message, execute commands and sends back the response
 type LarkBot struct {
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
@@ -79,24 +85,26 @@ type LarkBot struct {
 }
 
 // NewLarkBot returns new Bot object
-func NewLarkBot(c *config.Config) Bot {
+func NewLarkBot(log logrus.FieldLogger, loggerLevel logrus.Level, c *config.Config, executorFactory ExecutorFactory) *LarkBot {
 	larkConf := c.Communications.Lark
 	appSettings := core.NewInternalAppSettings(core.SetAppCredentials(larkConf.AppID, larkConf.AppSecret),
 		core.SetAppEventKey(larkConf.VerificationToken, larkConf.EncryptKey))
-	conf := core.NewConfig(core.Domain(larkConf.Endpoint), appSettings, core.SetLoggerLevel(utils.GetLoggerLevel()))
+	conf := core.NewConfig(core.Domain(larkConf.Endpoint), appSettings, core.SetLoggerLevel(utils.GetLoggerLevel(loggerLevel)))
 	return &LarkBot{
+		log:              log,
+		executorFactory:  executorFactory,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
 		Port:             c.Communications.Lark.Port,
 		MessagePath:      c.Communications.Lark.MessagePath,
-		LarkClient:       utils.NewLarkClient(conf),
+		LarkClient:       utils.NewLarkClient(log, conf),
 	}
 }
 
 // Execute commands sent by users
-func (l *LarkBot) Execute(e map[string]interface{}) error {
+func (l *LarkBot) Execute(ctx context.Context, e map[string]interface{}) error {
 	event, err := accessAndTypeCastToMap(larkEvent, e)
 	if err != nil {
 		return fmt.Errorf("while getting event: %w", err)
@@ -112,8 +120,7 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 		return fmt.Errorf("while getting text: %w", err)
 	}
 
-	executor := execute.NewDefaultExecutor(text, l.AllowKubectl, l.RestrictAccess, l.DefaultNamespace,
-		l.ClusterName, config.LarkBot, "", true)
+	executor := l.executorFactory.NewDefault(config.LarkBot, true, text)
 	response := executor.Execute()
 
 	if chatType == larkGroup {
@@ -122,7 +129,7 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 			return fmt.Errorf("while getting open chat ID: %w", err)
 		}
 
-		err = l.LarkClient.SendTextMessage(larkChatID, chatID, response)
+		err = l.LarkClient.SendTextMessage(ctx, larkChatID, chatID, response)
 		if err != nil {
 			return fmt.Errorf("while sending group chat message: %w", err)
 		}
@@ -132,7 +139,7 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 	if err != nil {
 		return fmt.Errorf("while getting open ID: %w", err)
 	}
-	err = l.LarkClient.SendTextMessage(larkOpenID, openID, response)
+	err = l.LarkClient.SendTextMessage(ctx, larkOpenID, openID, response)
 	if err != nil {
 		return fmt.Errorf("while sending private chat message: %w", err)
 	}
@@ -141,13 +148,13 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 }
 
 // Start starts the lark server and listens for lark messages
-func (l *LarkBot) Start() error {
+func (l *LarkBot) Start(ctx context.Context) error {
 	// See: https://open.larksuite.com/document/ukTMukTMukTM/ukjNxYjL5YTM24SO2EjN
 	larkConf := l.LarkClient.Conf
 	helloCallbackFn := func(ctx *core.Context, e map[string]interface{}) error {
-		err := l.SayHello(e)
+		err := l.SayHello(ctx, e)
 		if err != nil {
-			log.Error(err)
+			l.log.Error(err)
 			return err
 		}
 
@@ -156,9 +163,9 @@ func (l *LarkBot) Start() error {
 
 	// message
 	event.SetTypeCallback(larkConf, larkMessage, func(ctx *core.Context, e map[string]interface{}) error {
-		err := l.Execute(e)
+		err := l.Execute(ctx, e)
 		if err != nil {
-			log.Error(err)
+			l.log.Error(err)
 			return err
 		}
 
@@ -174,18 +181,23 @@ func (l *LarkBot) Start() error {
 	// add_user_to_chat
 	event.SetTypeCallback(larkConf, larkAddUserToChat, helloCallbackFn)
 
-	eventhttpserver.Register(l.MessagePath, larkConf)
+	addr := fmt.Sprintf(":%d", l.Port)
+	mux := http.NewServeMux()
+	mux.HandleFunc(l.MessagePath, func(responseWriter http.ResponseWriter, request *http.Request) {
+		eventhttpserver.Handle(larkConf, request, responseWriter)
+	})
 
-	log.Infof("Starting Lark server on port %d", l.Port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", l.Port), nil); err != nil {
-		return fmt.Errorf("while listening on port %d: %w", l.Port, err)
+	srv := httpsrv.New(l.log, addr, mux)
+	err := srv.Serve(ctx)
+	if err != nil {
+		return fmt.Errorf("while running Lark server: %w", err)
 	}
 
 	return nil
 }
 
 // SayHello send welcome message to new added users
-func (l *LarkBot) SayHello(e map[string]interface{}) error {
+func (l *LarkBot) SayHello(ctx context.Context, e map[string]interface{}) error {
 	event, err := accessAndTypeCastToMap(larkEvent, e)
 	if err != nil {
 		return fmt.Errorf("while getting event: %w", err)
@@ -211,17 +223,17 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	for _, user := range users {
 		userMap, ok := user.(map[string]interface{})
 		if !ok {
-			log.Errorf("while asserting type of user: Failed to convert %T into map[string]interface{}", user)
+			l.log.Errorf("while asserting type of user: Failed to convert %T into map[string]interface{}", user)
 			continue
 		}
 		openID, err := accessAndTypeCastToString(larkOpenID, userMap)
 		if err != nil {
-			log.Errorf("while getting open ID: %s", err.Error())
+			l.log.Errorf("while getting open ID: %s", err.Error())
 			continue
 		}
 		username, err := accessAndTypeCastToString(larkUserID, userMap)
 		if err != nil {
-			log.Errorf("while getting user ID: %s", err.Error())
+			l.log.Errorf("while getting user ID: %s", err.Error())
 			continue
 		}
 
@@ -234,7 +246,7 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	if err != nil {
 		return fmt.Errorf("while getting chat ID: %w", err)
 	}
-	err = l.LarkClient.SendTextMessage(larkChatID, chatID, strings.Join(messages, " "))
+	err = l.LarkClient.SendTextMessage(ctx, larkChatID, chatID, strings.Join(messages, " "))
 	if err != nil {
 		return fmt.Errorf("while sending text message: %w", err)
 	}

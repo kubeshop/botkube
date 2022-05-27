@@ -20,18 +20,22 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/slack-go/slack"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // SlackBot listens for user's message, execute commands and sends back the response
 type SlackBot struct {
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+
 	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -40,12 +44,13 @@ type SlackBot struct {
 	SlackURL         string
 	BotID            string
 	DefaultNamespace string
-
-	NewExecutorFn func(msg string, allowKubectl, restrictAccess bool, defaultNamespace, clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) execute.Executor
 }
 
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+
 	Event         *slack.MessageEvent
 	BotID         string
 	Request       string
@@ -56,20 +61,22 @@ type slackMessage struct {
 }
 
 // NewSlackBot returns new Bot object
-func NewSlackBot(c *config.Config) Bot {
+func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *SlackBot {
 	return &SlackBot{
+		log:              log,
+		executorFactory:  executorFactory,
 		Token:            c.Communications.Slack.Token,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
 		ChannelName:      c.Communications.Slack.Channel,
 		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
-		NewExecutorFn:    execute.NewDefaultExecutor,
 	}
 }
 
 // Start starts the slacknot RTM connection and listens for messages
-func (b *SlackBot) Start() error {
+func (b *SlackBot) Start(ctx context.Context) error {
+	b.log.Info("Starting bot")
 	var botID string
 	api := slack.New(b.Token)
 	if len(b.SlackURL) != 0 {
@@ -78,57 +85,67 @@ func (b *SlackBot) Start() error {
 	} else {
 		authResp, err := api.AuthTest()
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("while testing the ability to do auth request: %w", err)
 		}
 		botID = authResp.UserID
 	}
 
-	RTM := api.NewRTM()
-	go RTM.ManageConnection()
+	rtm := api.NewRTM()
+	go rtm.ManageConnection()
 
-	for msg := range RTM.IncomingEvents {
-		switch ev := msg.Data.(type) {
-		case *slack.ConnectedEvent:
-			log.Info("BotKube connected to Slack!")
-
-		case *slack.MessageEvent:
-			// Skip if message posted by BotKube
-			if ev.User == botID {
-				continue
+	for {
+		select {
+		case <-ctx.Done():
+			b.log.Info("Context canceled. Finishing...")
+			return rtm.Disconnect()
+		case msg, ok := <-rtm.IncomingEvents:
+			if !ok {
+				b.log.Info("Incoming events channel closed. Finishing...")
+				return nil
 			}
-			sm := slackMessage{
-				Event:       ev,
-				BotID:       botID,
-				RTM:         RTM,
-				SlackClient: api,
+
+			switch ev := msg.Data.(type) {
+			case *slack.ConnectedEvent:
+				b.log.Info("BotKube connected to Slack!")
+
+			case *slack.MessageEvent:
+				// Skip if message posted by BotKube
+				if ev.User == botID {
+					continue
+				}
+				sm := slackMessage{
+					log:             b.log,
+					executorFactory: b.executorFactory,
+					Event:           ev,
+					BotID:           botID,
+					RTM:             rtm,
+					SlackClient:     api,
+				}
+				sm.HandleMessage(b)
+
+			case *slack.RTMError:
+				b.log.Errorf("Slack RMT error: %+v", ev.Error())
+
+			case *slack.ConnectionErrorEvent:
+				b.log.Errorf("Slack connection error: %+v", ev.Error())
+
+			case *slack.IncomingEventError:
+				b.log.Errorf("Slack incoming event error: %+v", ev.Error())
+
+			case *slack.OutgoingErrorEvent:
+				b.log.Errorf("Slack outgoing event error: %+v", ev.Error())
+
+			case *slack.UnmarshallingErrorEvent:
+				b.log.Errorf("Slack unmarshalling error: %+v", b.stripUnmarshallingErrEventDetails(ev.Error()))
+
+			case *slack.RateLimitedError:
+				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
+
+			case *slack.InvalidAuthEvent:
+				return fmt.Errorf("invalid credentials")
 			}
-			sm.HandleMessage(b)
-
-		case *slack.RTMError:
-			log.Errorf("Slack RMT error: %+v", ev.Error())
-
-		case *slack.ConnectionErrorEvent:
-			log.Errorf("Slack connection error: %+v", ev.Error())
-
-		case *slack.IncomingEventError:
-			log.Errorf("Slack incoming event error: %+v", ev.Error())
-
-		case *slack.OutgoingErrorEvent:
-			log.Errorf("Slack outgoing event error: %+v", ev.Error())
-
-		case *slack.UnmarshallingErrorEvent:
-			log.Errorf("Slack unmarshalling error: %+v", b.stripUnmarshallingErrEventDetails(ev.Error()))
-
-		case *slack.RateLimitedError:
-			log.Errorf("Slack rate limiting error: %+v", ev.Error())
-
-		case *slack.InvalidAuthEvent:
-			return fmt.Errorf("invalid credentials")
-
-		default:
 		}
 	}
-	return nil
 }
 
 // Temporary workaround until the PR is merged: https://github.com/slack-go/slack/pull/1067
@@ -151,6 +168,8 @@ func (b *SlackBot) stripUnmarshallingErrEventDetails(errMessage string) string {
 
 	return strings.Join(msgParts[:2], errMsgSeparator)
 }
+
+// TODO: refactor - handle and send methods should be defined on Bot level
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	// Check if message posted in authenticated channel
@@ -176,17 +195,16 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
-	e := b.NewExecutorFn(sm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, config.SlackBot, b.ChannelName, sm.IsAuthChannel)
+	e := sm.executorFactory.NewDefault(config.SlackBot, sm.IsAuthChannel, sm.Request)
 	sm.Response = e.Execute()
 	sm.Send()
 }
 
 func (sm *slackMessage) Send() {
-	log.Debugf("Slack incoming Request: %s", sm.Request)
-	log.Debugf("Slack Response: %s", sm.Response)
+	sm.log.Debugf("Slack incoming Request: %s", sm.Request)
+	sm.log.Debugf("Slack Response: %s", sm.Response)
 	if len(sm.Response) == 0 {
-		log.Infof("Invalid request. Dumping the response. Request: %s", sm.Request)
+		sm.log.Infof("Invalid request. Dumping the response. Request: %s", sm.Request)
 		return
 	}
 	// Upload message as a file if too long
@@ -199,7 +217,7 @@ func (sm *slackMessage) Send() {
 		}
 		_, err := sm.RTM.UploadFile(params)
 		if err != nil {
-			log.Error("Error in uploading file:", err)
+			sm.log.Error("Error in uploading file:", err)
 		}
 		return
 	}
@@ -212,6 +230,6 @@ func (sm *slackMessage) Send() {
 	}
 
 	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
-		log.Error("Error in sending message:", err)
+		sm.log.Error("Error in sending message:", err)
 	}
 }

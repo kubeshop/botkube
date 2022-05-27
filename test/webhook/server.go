@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 )
 
@@ -61,7 +60,6 @@ func NewTestServer() *Server {
 
 // Start starts the test server
 func (s *Server) Start() {
-	log.Info("starting Mock Webhook server")
 	s.server.Start()
 }
 

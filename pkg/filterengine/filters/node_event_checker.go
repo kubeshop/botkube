@@ -22,9 +22,13 @@
 package filters
 
 import (
+	"context"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
+
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -37,19 +41,24 @@ const (
 
 // NodeEventsChecker checks job status and adds message in the events structure
 type NodeEventsChecker struct {
-	Description string
+	log logrus.FieldLogger
+}
+
+// NewNodeEventsChecker creates a new NodeEventsChecker instance
+func NewNodeEventsChecker(log logrus.FieldLogger) *NodeEventsChecker {
+	return &NodeEventsChecker{log: log}
 }
 
 // Run filers and modifies event struct
-func (f NodeEventsChecker) Run(object interface{}, event *events.Event) {
+func (f *NodeEventsChecker) Run(_ context.Context, object interface{}, event *events.Event) error {
 	// Check for Event object
 	if utils.GetObjectTypeMetaData(object).Kind == "Event" {
-		return
+		return nil
 	}
 
 	// Run filter only on Node events
 	if event.Kind != "Node" {
-		return
+		return nil
 	}
 
 	// Update event details
@@ -66,10 +75,16 @@ func (f NodeEventsChecker) Run(object interface{}, event *events.Event) {
 		event.Skip = true
 	}
 
-	log.Debug("Node Critical Event filter successful!")
+	f.log.Debug("Node Critical Event filter successful!")
+	return nil
 }
 
-// Describe filter
-func (f NodeEventsChecker) Describe() string {
-	return f.Description
+// Name returns the filter's name
+func (f *NodeEventsChecker) Name() string {
+	return "NodeEventsChecker"
+}
+
+// Describe describes the filter
+func (f *NodeEventsChecker) Describe() string {
+	return "Sends notifications on node level critical events."
 }

@@ -20,13 +20,15 @@
 package filters
 
 import (
+	"context"
 	"fmt"
-	"reflect"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
+
 	"github.com/infracloudio/botkube/pkg/utils"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -35,18 +37,23 @@ import (
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers
 type ImageTagChecker struct {
-	Description string
+	log logrus.FieldLogger
+}
+
+// NewImageTagChecker creates a new ImageTagChecker instance
+func NewImageTagChecker(log logrus.FieldLogger) *ImageTagChecker {
+	return &ImageTagChecker{log: log}
 }
 
 // Run filers and modifies event struct
-func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
+func (f *ImageTagChecker) Run(_ context.Context, object interface{}, event *events.Event) error {
 	if event.Kind != "Pod" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(object).Kind == "Event" {
-		return
+		return nil
 	}
 	var podObj coreV1.Pod
 	err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &podObj)
 	if err != nil {
-		log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(podObj))
+		return fmt.Errorf("while transforming object type %T into type: %T: %w", object, podObj, err)
 	}
 
 	// Check image tag in initContainers
@@ -64,10 +71,16 @@ func (f ImageTagChecker) Run(object interface{}, event *events.Event) {
 			event.Recommendations = append(event.Recommendations, fmt.Sprintf(":latest tag used in image '%s' of Container '%s' should be avoided.", c.Image, c.Name))
 		}
 	}
-	log.Debug("Image tag filter successful!")
+	f.log.Debug("Image tag filter successful!")
+	return nil
 }
 
-// Describe filter
-func (f ImageTagChecker) Describe() string {
-	return f.Description
+// Name returns the filter's name
+func (f *ImageTagChecker) Name() string {
+	return "ImageTagChecker"
+}
+
+// Describe describes the filter
+func (f *ImageTagChecker) Describe() string {
+	return "Checks and adds recommendation if 'latest' image tag is used for container image."
 }

@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/client-go/dynamic"
+
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,23 +44,9 @@ var (
 	}
 )
 
-// ValidService returns Service object is service given service exists in the given namespace
-func ValidService(ctx context.Context, name, namespace string) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	var serviceObject coreV1.Service
-	err = utils.TransformIntoTypedObject(unstructuredService, &serviceObject)
-	if err != nil {
-		return nil, err
-	}
-	return &serviceObject, nil
-}
-
 // ValidServicePort returns valid Service object if given service with the port exists in the given namespace
-func ValidServicePort(ctx context.Context, name, namespace string, port int32) (*coreV1.Service, error) {
-	unstructuredService, err := utils.DynamicKubeClient.Resource(serviceGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
+func ValidServicePort(ctx context.Context, dynamicCli dynamic.Interface, name, namespace string, port int32) (*coreV1.Service, error) {
+	unstructuredService, err := dynamicCli.Resource(serviceGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +64,8 @@ func ValidServicePort(ctx context.Context, name, namespace string, port int32) (
 }
 
 // ValidSecret return Secret object if the secret is present in the specified object
-func ValidSecret(ctx context.Context, name, namespace string) (*coreV1.Secret, error) {
-	unstructuredSecret, err := utils.DynamicKubeClient.Resource(secretGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
+func ValidSecret(ctx context.Context, dynamicCli dynamic.Interface, name, namespace string) (*coreV1.Secret, error) {
+	unstructuredSecret, err := dynamicCli.Resource(secretGVR).Namespace(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

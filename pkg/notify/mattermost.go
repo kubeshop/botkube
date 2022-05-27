@@ -20,27 +20,30 @@
 package notify
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattermost/mattermost-server/v5/model"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // Mattermost contains server URL and token
 type Mattermost struct {
+	log       logrus.FieldLogger
 	Client    *model.Client4
 	Channel   string
 	NotifType config.NotifType
 }
 
 // NewMattermost returns new Mattermost object
-func NewMattermost(c config.Mattermost) (Notifier, error) {
+func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, error) {
 	// Set configurations for Mattermost server
 	client := model.NewAPIv4Client(c.URL)
 	client.SetOAuthToken(c.Token)
@@ -54,6 +57,7 @@ func NewMattermost(c config.Mattermost) (Notifier, error) {
 	}
 
 	return &Mattermost{
+		log:       log,
 		Client:    client,
 		Channel:   botChannel.Id,
 		NotifType: c.NotifType,
@@ -61,8 +65,8 @@ func NewMattermost(c config.Mattermost) (Notifier, error) {
 }
 
 // SendEvent sends event notification to Mattermost
-func (m *Mattermost) SendEvent(event events.Event) error {
-	log.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
+func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
+	m.log.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
 
 	var fields []*model.SlackAttachmentField
 
@@ -113,7 +117,7 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 
 		// send error message to default channel
 		msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
-		sendMessageErr := m.SendMessage(msg)
+		sendMessageErr := m.SendMessage(ctx, msg)
 		if sendMessageErr != nil {
 			return multierror.Append(createPostWrappedErr, sendMessageErr)
 		}
@@ -121,7 +125,7 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		// sending missed event to default channel
 		// reset event.Channel and send event
 		event.Channel = ""
-		sendEventErr := m.SendEvent(event)
+		sendEventErr := m.SendEvent(ctx, event)
 		if sendEventErr != nil {
 			return multierror.Append(createPostWrappedErr, sendEventErr)
 		}
@@ -129,15 +133,16 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		return createPostWrappedErr
 	}
 
-	log.Debugf("Event successfully sent to channel %q", post.ChannelId)
+	m.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
 	return nil
 }
 
 // SendMessage sends message to Mattermost channel
-func (m *Mattermost) SendMessage(msg string) error {
-	post := &model.Post{}
-	post.ChannelId = m.Channel
-	post.Message = msg
+func (m *Mattermost) SendMessage(_ context.Context, msg string) error {
+	post := &model.Post{
+		ChannelId: m.Channel,
+		Message:   msg,
+	}
 	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
 		return fmt.Errorf("while creating a post: %w", resp.Error)
 	}

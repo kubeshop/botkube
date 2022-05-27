@@ -35,10 +35,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/olivere/elastic"
 	"github.com/sha1sum/aws_signing_client"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 const (
@@ -55,6 +55,7 @@ const (
 
 // ElasticSearch contains auth cred and index setting
 type ElasticSearch struct {
+	log           logrus.FieldLogger
 	ELSClient     *elastic.Client
 	Server        string
 	SkipTLSVerify bool
@@ -65,7 +66,7 @@ type ElasticSearch struct {
 }
 
 // NewElasticSearch returns new ElasticSearch object
-func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
+func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch) (*ElasticSearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
@@ -126,6 +127,7 @@ func NewElasticSearch(c config.ElasticSearch) (Notifier, error) {
 		}
 	}
 	return &ElasticSearch{
+		log:       log,
 		ELSClient: elsClient,
 		Index:     c.Index.Name,
 		Type:      c.Index.Type,
@@ -152,7 +154,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	// Create index if not exists
 	exists, err := e.ELSClient.IndexExists(indexName).Do(ctx)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
+		e.log.Error(fmt.Sprintf("Failed to get index. Error:%s", err.Error()))
 		return err
 	}
 	if !exists {
@@ -167,7 +169,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 		}
 		_, err := e.ELSClient.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
 		if err != nil {
-			log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
+			e.log.Error(fmt.Sprintf("Failed to create index. Error:%s", err.Error()))
 			return err
 		}
 	}
@@ -175,22 +177,21 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	// Send event to els
 	_, err = e.ELSClient.Index().Index(indexName).Type(e.Type).BodyJson(event).Do(ctx)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
+		e.log.Error(fmt.Sprintf("Failed to post data to els. Error:%s", err.Error()))
 		return err
 	}
 	_, err = e.ELSClient.Flush().Index(indexName).Do(ctx)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
+		e.log.Error(fmt.Sprintf("Failed to flush data to els. Error:%s", err.Error()))
 		return err
 	}
-	log.Debugf("Event successfully sent to ElasticSearch index %s", indexName)
+	e.log.Debugf("Event successfully sent to ElasticSearch index %s", indexName)
 	return nil
 }
 
-// SendEvent sends event notification to slack
-func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
-	log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
-	ctx := context.Background()
+// SendEvent sends event notification to ElasticSearch
+func (e *ElasticSearch) SendEvent(ctx context.Context, event events.Event) (err error) {
+	e.log.Debug(fmt.Sprintf(">> Sending to ElasticSearch: %+v", event))
 
 	// Create index if not exists
 	if err := e.flushIndex(ctx, event); err != nil {
@@ -199,7 +200,7 @@ func (e *ElasticSearch) SendEvent(event events.Event) (err error) {
 	return nil
 }
 
-// SendMessage sends message to slack channel
-func (e *ElasticSearch) SendMessage(msg string) error {
+// SendMessage is no-op
+func (e *ElasticSearch) SendMessage(_ context.Context, _ string) error {
 	return nil
 }

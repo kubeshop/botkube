@@ -20,18 +20,21 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // DiscordBot listens for user's message, execute commands and sends back the response
 type DiscordBot struct {
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
 	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -43,17 +46,21 @@ type DiscordBot struct {
 
 // discordMessage contains message details to execute command and send back the result
 type discordMessage struct {
-	Event         *discordgo.MessageCreate
-	BotID         string
-	Request       string
-	Response      string
-	IsAuthChannel bool
-	Session       *discordgo.Session
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+	Event           *discordgo.MessageCreate
+	BotID           string
+	Request         string
+	Response        string
+	IsAuthChannel   bool
+	Session         *discordgo.Session
 }
 
 // NewDiscordBot returns new Bot object
-func NewDiscordBot(c *config.Config) Bot {
+func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *DiscordBot {
 	return &DiscordBot{
+		log:              log,
+		executorFactory:  executorFactory,
 		Token:            c.Communications.Discord.Token,
 		BotID:            c.Communications.Discord.BotID,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
@@ -65,7 +72,8 @@ func NewDiscordBot(c *config.Config) Bot {
 }
 
 // Start starts the DiscordBot websocket connection and listens for messages
-func (b *DiscordBot) Start() error {
+func (b *DiscordBot) Start(ctx context.Context) error {
+	b.log.Info("Starting bot")
 	api, err := discordgo.New("Bot " + b.Token)
 	if err != nil {
 		return fmt.Errorf("while creating Discord session: %w", err)
@@ -74,9 +82,11 @@ func (b *DiscordBot) Start() error {
 	// Register the messageCreate func as a callback for MessageCreate events.
 	api.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		dm := discordMessage{
-			Event:   m,
-			BotID:   b.BotID,
-			Session: s,
+			log:             b.log,
+			executorFactory: b.executorFactory,
+			Event:           m,
+			BotID:           b.BotID,
+			Session:         s,
 		}
 
 		dm.HandleMessage(b)
@@ -88,9 +98,19 @@ func (b *DiscordBot) Start() error {
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
-	log.Info("BotKube connected to Discord!")
+	b.log.Info("BotKube connected to Discord!")
+
+	<-ctx.Done()
+	b.log.Info("Context canceled. Finishing...")
+	err = api.Close()
+	if err != nil {
+		return fmt.Errorf("while closing connection: %w", err)
+	}
+
 	return nil
 }
+
+// TODO: refactor - handle and send methods should be defined on Bot level
 
 // HandleMessage handles the incoming messages
 func (dm *discordMessage) HandleMessage(b *DiscordBot) {
@@ -115,19 +135,18 @@ func (dm *discordMessage) HandleMessage(b *DiscordBot) {
 		return
 	}
 
-	e := execute.NewDefaultExecutor(dm.Request, b.AllowKubectl, b.RestrictAccess, b.DefaultNamespace,
-		b.ClusterName, config.DiscordBot, b.ChannelID, dm.IsAuthChannel)
+	e := dm.executorFactory.NewDefault(config.DiscordBot, dm.IsAuthChannel, dm.Request)
 
 	dm.Response = e.Execute()
 	dm.Send()
 }
 
 func (dm discordMessage) Send() {
-	log.Debugf("Discord incoming Request: %s", dm.Request)
-	log.Debugf("Discord Response: %s", dm.Response)
+	dm.log.Debugf("Discord incoming Request: %s", dm.Request)
+	dm.log.Debugf("Discord Response: %s", dm.Response)
 
 	if len(dm.Response) == 0 {
-		log.Errorf("Invalid request. Dumping the response. Request: %s", dm.Request)
+		dm.log.Errorf("Invalid request. Dumping the response. Request: %s", dm.Request)
 		return
 	}
 
@@ -143,12 +162,12 @@ func (dm discordMessage) Send() {
 			},
 		}
 		if _, err := dm.Session.ChannelMessageSendComplex(dm.Event.ChannelID, params); err != nil {
-			log.Error("Error in uploading file:", err)
+			dm.log.Error("Error in uploading file:", err)
 		}
 		return
 	}
 
 	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, formatCodeBlock(dm.Response)); err != nil {
-		log.Error("Error in sending message:", err)
+		dm.log.Error("Error in sending message:", err)
 	}
 }

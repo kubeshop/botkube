@@ -21,20 +21,24 @@ package notify
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
+
+const defaultHTTPCliTimeout = 30 * time.Second
 
 // Webhook contains URL
 type Webhook struct {
+	log logrus.FieldLogger
 	URL string
 }
 
@@ -66,14 +70,15 @@ type EventStatus struct {
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(c config.CommunicationsConfig) Notifier {
+func NewWebhook(log logrus.FieldLogger, c config.CommunicationsConfig) *Webhook {
 	return &Webhook{
+		log: log,
 		URL: c.Webhook.URL,
 	}
 }
 
 // SendEvent sends event notification to Webhook url
-func (w *Webhook) SendEvent(event events.Event) (err error) {
+func (w *Webhook) SendEvent(ctx context.Context, event events.Event) (err error) {
 	jsonPayload := &WebhookPayload{
 		EventMeta: EventMeta{
 			Kind:      event.Kind,
@@ -94,35 +99,34 @@ func (w *Webhook) SendEvent(event events.Event) (err error) {
 		Warnings:        event.Warnings,
 	}
 
-	err = w.PostWebhook(jsonPayload)
+	err = w.PostWebhook(ctx, jsonPayload)
 	if err != nil {
-		log.Error(err.Error())
-		log.Debugf("Event Not Sent to Webhook %v", event)
+		return fmt.Errorf("while sending event to webhook: %w", err)
 	}
 
-	log.Debugf("Event successfully sent to Webhook %v", event)
+	w.log.Debugf("Event successfully sent to Webhook: %+v", event)
 	return nil
 }
 
-// SendMessage sends message to Webhook url
-func (w *Webhook) SendMessage(msg string) error {
+// SendMessage is no-op
+func (w *Webhook) SendMessage(_ context.Context, _ string) error {
 	return nil
 }
 
 // PostWebhook posts webhook to listener
-func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) (err error) {
+func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) (err error) {
 	message, err := json.Marshal(jsonPayload)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", w.URL, bytes.NewBuffer(message))
+	req, err := http.NewRequestWithContext(ctx, "POST", w.URL, bytes.NewBuffer(message))
 	if err != nil {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: defaultHTTPCliTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

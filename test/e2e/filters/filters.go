@@ -92,7 +92,7 @@ func (c *context) testFilters(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Inject an event into the fake client.
-			utils.CreateResource(t, test)
+			utils.CreateResource(t, c.DynamicCli, test)
 
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Get last seen slack message

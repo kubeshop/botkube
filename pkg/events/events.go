@@ -21,12 +21,12 @@ package events
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/infracloudio/botkube/pkg/config"
-	log "github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -67,10 +67,8 @@ var LevelMap = map[config.EventType]config.Level{
 }
 
 // New extract required details from k8s object and returns new Event object
-func New(object interface{}, eventType config.EventType, resource, clusterName string) Event {
+func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource, clusterName string) (Event, error) {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
-	objectMeta := utils.GetObjectMetaData(object)
-
 	event := Event{
 		Name:      objectMeta.Name,
 		Namespace: objectMeta.Namespace,
@@ -107,10 +105,17 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 
 	if objectTypeMeta.Kind == "Event" {
 		var eventObj coreV1.Event
-		err := utils.TransformIntoTypedObject(object.(*unstructured.Unstructured), &eventObj)
-		if err != nil {
-			log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(object), reflect.TypeOf(eventObj))
+
+		unstrObj, ok := object.(*unstructured.Unstructured)
+		if !ok {
+			return Event{}, fmt.Errorf("cannot convert type %T into *unstructured.Unstructured", object)
 		}
+
+		err := utils.TransformIntoTypedObject(unstrObj, &eventObj)
+		if err != nil {
+			return Event{}, fmt.Errorf("while transforming object type %T into type: %T: %w", object, eventObj, err)
+		}
+
 		event.Reason = eventObj.Reason
 		event.Messages = append(event.Messages, eventObj.Message)
 		event.Kind = eventObj.InvolvedObject.Kind
@@ -126,5 +131,6 @@ func New(object interface{}, eventType config.EventType, resource, clusterName s
 			event.Count = eventObj.Series.Count
 		}
 	}
-	return event
+
+	return event, nil
 }
