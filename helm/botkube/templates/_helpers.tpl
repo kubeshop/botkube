@@ -45,3 +45,7 @@ Create the name of the service account to use
 {{- define "botkube.CommunicationsSecretName" -}}
 {{- .Values.communications.existingSecretName | default (printf "%s-communication-secret" (include "botkube.fullname" .)) -}}
 {{- end -}}
+
+{{- define "botkube.SSLCertSecretName" -}}
+{{- .Values.config.ssl.existingSecretName | default (printf "%s-certificate-secret" (include "botkube.fullname" .)) -}}
+{{- end -}}
