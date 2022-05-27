@@ -20,7 +20,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -254,62 +253,40 @@ func (eventType EventType) String() string {
 }
 
 // NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (c *Communications, err error) {
-	c = &Communications{}
+func NewCommunicationsConfig() (*Communications, error) {
 	configPath := os.Getenv("CONFIG_PATH")
-	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(filepath.Clean(communicationConfigFilePath))
+	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+	rawCfg, err := os.ReadFile(filepath.Clean(commCfgFilePath))
 	if err != nil {
-		return c, err
-	}
-	defer func() {
-		err = communicationConfigFile.Close()
-	}()
-
-	b, err := ioutil.ReadAll(communicationConfigFile)
-	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	if len(b) != 0 {
-		err := yaml.Unmarshal(b, c)
-		if err != nil {
-			return nil, err
-		}
+	commCfg := &Communications{}
+	if err := yaml.Unmarshal(rawCfg, commCfg); err != nil {
+		return nil, err
 	}
-	return c, nil
+	return commCfg, nil
 }
 
 // New returns new Config
-func New() (c *Config, err error) {
-	c = &Config{}
+func New() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
-	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
-	resourceConfigFile, err := os.Open(filepath.Clean(resourceConfigFilePath))
+	resCfgFilePath := filepath.Join(configPath, ResourceConfigFileName)
+	rawCfg, err := os.ReadFile(filepath.Clean(resCfgFilePath))
 	if err != nil {
-		return c, err
-	}
-	defer func() {
-		err = resourceConfigFile.Close()
-	}()
-
-	b, err := ioutil.ReadAll(resourceConfigFile)
-	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	if len(b) != 0 {
-		err := yaml.Unmarshal(b, c)
-		if err != nil {
-			return nil, err
-		}
+	cfg := &Config{}
+	if err := yaml.Unmarshal(rawCfg, cfg); err != nil {
+		return nil, err
 	}
 
 	comm, err := NewCommunicationsConfig()
 	if err != nil {
 		return nil, err
 	}
-	c.Communications = comm.Communications
+	cfg.Communications = comm.Communications
 
-	return c, nil
+	return cfg, nil
 }

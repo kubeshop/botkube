@@ -53,7 +53,6 @@ func (f NamespaceChecker) Run(_ interface{}, event *events.Event) {
 		if event.Resource != resource.Name {
 			continue
 		}
-		// check if namespace to be ignored
 		shouldSkipEvent := isNamespaceIgnored(resource.Namespaces, event.Namespace)
 		event.Skip = shouldSkipEvent
 		break

@@ -28,6 +28,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
@@ -283,7 +285,10 @@ func (t *Teams) putRequest(u string, data []byte) (err error) {
 		return err
 	}
 	defer func() {
-		err = resp.Body.Close()
+		deferredErr := resp.Body.Close()
+		if deferredErr != nil {
+			err = multierror.Append(err, deferredErr)
+		}
 	}()
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
 		return fmt.Errorf("failed to upload file with status %d", resp.StatusCode)

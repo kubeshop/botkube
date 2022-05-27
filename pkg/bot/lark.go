@@ -124,7 +124,7 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 
 		err = l.LarkClient.SendTextMessage(larkChatID, chatID, response)
 		if err != nil {
-			return fmt.Errorf("while sending text message: %w", err)
+			return fmt.Errorf("while sending group chat message: %w", err)
 		}
 	}
 
@@ -134,7 +134,7 @@ func (l *LarkBot) Execute(e map[string]interface{}) error {
 	}
 	err = l.LarkClient.SendTextMessage(larkOpenID, openID, response)
 	if err != nil {
-		return fmt.Errorf("while sending text message: %w", err)
+		return fmt.Errorf("while sending private chat message: %w", err)
 	}
 
 	return nil
