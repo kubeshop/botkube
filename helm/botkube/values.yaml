@@ -34,14 +34,18 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
 
 kubeconfig:
-  # If true, enables overriding the kubernetes auth
+  # If true, enables overriding the kubernetes auth.
+  # NOTE: Remember to set automountServiceAccountToken to false.
   enabled: false
   # A base64 encoded kubeconfig that will be stored in a secret, mounted to the pod, and specified in the KUBECONFIG environment variable.
   base64Config: ""
   # A secret containing a kubeconfig to use.
+  # Secret format:
+  #  data:
+  #    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
-# Use this to override the default behavior of the service account. May be necessary to set this to false when using kubeconfig.enabled
+# Use this to override the default behavior of the service account. It MUST be disabled when using kubeconfig.enabled.
 automountServiceAccountToken: true
 
 # set one of the log levels- info, warn, debug, error, fatal, panic
@@ -256,9 +260,18 @@ config:
   # about the best practices for the created resource
   recommendations: true
 
-  ssl:                                           # For using custom SSL certificates
-    enabled: false                               # Set to true and specify cert path in the next line after uncommenting
-    #cert:                                       # SSL Certificate file e.g certs/my-cert.crt
+  # For using custom SSL certificates
+  ssl:
+    # Set to true and specify cert path in the next line after uncommenting
+    enabled: false
+    # Using existing SSL secret. It MUST be in botkube Namespace.
+    # Secret format:
+    #  data:
+    #    ca-certificates.crt: {base64_encoded_ssl_cert}
+    #existingSecretName: ""
+
+    # SSL Certificate file e.g certs/my-cert.crt
+    #cert:
 
   # Setting to support multiple clusters
   settings:
@@ -286,15 +299,21 @@ config:
 # Communication settings
 communications:
 
-  # Using existing Communication secret
+  # Using existing Communication secret. It MUST be in botkube Namespace.
+  # Secret format:
+  #  stringData:
+  #    comm_config.yaml: |
+  #      communications:
+  #        # Here specify settings for each app, like Slack, Mattermost etc.
+  #        # NOTE: Use setting format visible below.
   existingSecretName: ""
-  
+
   # Settings for Slack
   slack:
     enabled: false
     channel: 'SLACK_CHANNEL'                   # Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in
     token: 'SLACK_API_TOKEN'
-    notiftype: short                           # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified) 
+    notiftype: short                           # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
   # Settings for Mattermost
   mattermost:
@@ -315,15 +334,14 @@ communications:
     notiftype: short
     port: 3978
 
-  
   # Settings for Discord
   discord:
     enabled: false
-    token: 'DISCORD_TOKEN'                      # BotKube Bot Token 
-    botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID 
-    channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts 
+    token: 'DISCORD_TOKEN'                      # BotKube Bot Token
+    botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID
+    channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts
     notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
-  
+
   # Settings for ELS
   elasticsearch:
     enabled: false
@@ -362,7 +380,7 @@ communications:
 service:
   name: metrics
   port: 2112
-  targetPort: 2112  
+  targetPort: 2112
 
 # Ingress settings to expose teams and lark endpoints
 ingress:
@@ -382,7 +400,7 @@ serviceMonitor:
   interval: 10s
   path: /metrics
   port: metrics
-  labels: {} 
+  labels: {}
 
 deployment:
   annotations: {}
@@ -403,7 +421,7 @@ extraEnv: []
 ## Extra environment variables to pass to the BotKube container, example HTTP_PROXY
 ## extraEnv:
 ##   HTTP_PROXY: <proxyURL>:<port>
-  
+
 nodeSelector: {}
 
 tolerations: []

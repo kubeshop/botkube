@@ -94,7 +94,7 @@ spec:
       {{- if .Values.config.ssl.enabled }}
         - name: certs
           secret:
-            secretName: {{ include "botkube.fullname" . }}-certificate-secret
+            secretName: {{ include "botkube.SSLCertSecretName" . }}
       {{ end }}
       {{- if .Values.kubeconfig.enabled }}
         - name: kubeconfig
@@ -106,7 +106,7 @@ spec:
             {{- end }}
       {{ end }}
         - name: cache
-          emptyDir: {}    
+          emptyDir: {}
       {{- if .Values.securityContext }}
       securityContext:
         runAsUser: {{ .Values.securityContext.runAsUser }}

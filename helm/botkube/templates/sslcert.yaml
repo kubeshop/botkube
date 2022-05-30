@@ -1,9 +1,8 @@
-{{- if .Values.config.ssl.enabled }}
-
+{{- if and .Values.config.ssl.enabled .Values.config.ssl.cert }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "botkube.fullname" . }}-certificate-secret
+  name: {{ include "botkube.SSLCertSecretName" . }}
   labels:
     app.kubernetes.io/name: {{ include "botkube.name" . }}
     helm.sh/chart: {{ include "botkube.chart" . }}
@@ -11,5 +10,4 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   ca-certificates.crt: {{ .Files.Get (printf "%s" .Values.config.ssl.cert) | b64enc }}
-
 {{ end }}
