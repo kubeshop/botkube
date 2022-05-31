@@ -39,7 +39,7 @@ const (
 )
 
 // TODO:
-// 	- Use context to make sure all goroutines shutdowns gracefully: https://github.com/infracloudio/botkube/issues/220
+//  - Use context to make sure all goroutines shutdowns gracefully: https://github.com/infracloudio/botkube/issues/220
 //  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity): https://github.com/infracloudio/botkube/issues/589
 
 func main() {
