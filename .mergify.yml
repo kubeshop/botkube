@@ -5,7 +5,8 @@ pull_request_rules:
       - "#approved-reviews-by>=1"
       - label=ready-to-merge
       - label!=hold-off-merging
-      - status-success=build
+      - check-success=Build app
+      - check-success=Lint Helm chart
     actions:
       merge:
         method: squash
