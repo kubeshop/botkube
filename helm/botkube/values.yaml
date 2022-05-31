@@ -107,7 +107,7 @@ config:
         fields:
           - spec.template.spec.containers[*].image
           - status.readyReplicas
-    - name: networking.k8s.io/v1beta1/ingresses
+    - name: networking.k8s.io/v1/ingresses
       namespaces:
         include:
           - all
@@ -438,8 +438,8 @@ serviceAccount:
   # Specifies whether a service account should be created
   create: true
   # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  #name:
+  # If not set, a name is generated using the fullname template
+  name: ""
   # annotations for the service account
   annotations: {}
 

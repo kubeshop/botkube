@@ -35,10 +35,10 @@ Create chart name and version as used by the chart label.
 Create the name of the service account to use
 */}}
 {{- define "botkube.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-    {{ include "botkube.fullname" . }}-sa
+{{- if .Values.serviceAccount.name -}}
+    {{ .Values.serviceAccount.name }}
 {{- else -}}
-    {{ default "default" .Values.serviceAccount.name }}
+    {{ include "botkube.fullname" . }}-sa
 {{- end -}}
 {{- end -}}
 
