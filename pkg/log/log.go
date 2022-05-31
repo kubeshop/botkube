@@ -28,7 +28,10 @@ import (
 // log object for logging across the pkg/
 var log = logrus.New()
 
-func init() {
+// SetupGlobal set ups a global logger
+// TODO: Convert it to local instance shared by all BotKube components
+// 	See: https://github.com/infracloudio/botkube/issues/589
+func SetupGlobal() {
 	// Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)
 

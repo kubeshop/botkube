@@ -27,15 +27,10 @@ import (
 	"github.com/infracloudio/botkube/pkg/log"
 )
 
-var (
-	// DefaultFilterEngine contains default implementation for FilterEngine
-	DefaultFilterEngine FilterEngine
-)
-
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
 	Run(interface{}, events.Event) events.Event
-	Register(Filter)
+	Register(...Filter)
 	ShowFilters() map[Filter]bool
 	SetFilter(string, bool) error
 }
@@ -48,10 +43,6 @@ type defaultFilters struct {
 type Filter interface {
 	Run(interface{}, *events.Event)
 	Describe() string
-}
-
-func init() {
-	DefaultFilterEngine = NewDefaultFilter()
 }
 
 // NewDefaultFilter creates new DefaultFilter object
@@ -73,10 +64,12 @@ func (f *defaultFilters) Run(object interface{}, event events.Event) events.Even
 	return event
 }
 
-// Register filter to engine
-func (f *defaultFilters) Register(filter Filter) {
-	log.Info("Registering the filter ", reflect.TypeOf(filter).Name())
-	f.FiltersMap[filter] = true
+// Register filter(s) to engine
+func (f *defaultFilters) Register(filters ...Filter) {
+	for _, filter := range filters {
+		log.Infof("Registering filter %q", reflect.TypeOf(filter).Name())
+		f.FiltersMap[filter] = true
+	}
 }
 
 // ShowFilters return map of filter name and status

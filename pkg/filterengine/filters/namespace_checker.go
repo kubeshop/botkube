@@ -25,7 +25,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 )
 
@@ -34,15 +33,8 @@ type NamespaceChecker struct {
 	Description string
 }
 
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(NamespaceChecker{
-		Description: "Checks if event belongs to blocklisted namespaces and filter them.",
-	})
-}
-
 // Run filters and modifies event struct
-func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
+func (f NamespaceChecker) Run(_ interface{}, event *events.Event) {
 	// Skip filter for cluster scoped resource
 	if len(event.Namespace) == 0 {
 		return
@@ -58,13 +50,12 @@ func (f NamespaceChecker) Run(object interface{}, event *events.Event) {
 		return
 	}
 	for _, resource := range botkubeConfig.Resources {
-		if event.Resource == event.Resource {
-			// check if namespace to be ignored
-			if isNamespaceIgnored(resource.Namespaces, event.Namespace) {
-				event.Skip = true
-				break
-			}
+		if event.Resource != resource.Name {
+			continue
 		}
+		shouldSkipEvent := isNamespaceIgnored(resource.Namespaces, event.Namespace)
+		event.Skip = shouldSkipEvent
+		break
 	}
 	log.Debug("Ignore Namespaces filter successful!")
 }

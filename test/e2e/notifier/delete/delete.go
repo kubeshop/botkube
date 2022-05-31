@@ -107,7 +107,6 @@ func (c *context) testDeleteEvent(t *testing.T) {
 			testutils.DeleteResource(t, test)
 
 			if c.TestEnv.Config.Communications.Slack.Enabled {
-
 				// Get last seen slack message
 				lastSeenMsg := c.GetLastSeenSlackMessage()
 

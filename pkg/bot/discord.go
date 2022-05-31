@@ -20,6 +20,7 @@
 package bot
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -64,11 +65,10 @@ func NewDiscordBot(c *config.Config) Bot {
 }
 
 // Start starts the DiscordBot websocket connection and listens for messages
-func (b *DiscordBot) Start() {
+func (b *DiscordBot) Start() error {
 	api, err := discordgo.New("Bot " + b.Token)
 	if err != nil {
-		log.Error("error creating Discord session,", err)
-		return
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
@@ -83,15 +83,13 @@ func (b *DiscordBot) Start() {
 	})
 
 	// Open a websocket connection to Discord and begin listening.
-	go func() {
-		err := api.Open()
-		if err != nil {
-			log.Error("error opening connection,", err)
-			return
-		}
-	}()
+	err = api.Open()
+	if err != nil {
+		return fmt.Errorf("while opening connection: %w", err)
+	}
 
 	log.Info("BotKube connected to Discord!")
+	return nil
 }
 
 // HandleMessage handles the incoming messages
@@ -129,7 +127,7 @@ func (dm discordMessage) Send() {
 	log.Debugf("Discord Response: %s", dm.Response)
 
 	if len(dm.Response) == 0 {
-		log.Infof("Invalid request. Dumping the response. Request: %s", dm.Request)
+		log.Errorf("Invalid request. Dumping the response. Request: %s", dm.Request)
 		return
 	}
 

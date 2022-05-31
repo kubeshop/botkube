@@ -20,7 +20,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -255,51 +254,39 @@ func (eventType EventType) String() string {
 
 // NewCommunicationsConfig return new communication config object
 func NewCommunicationsConfig() (*Communications, error) {
-	c := &Communications{}
 	configPath := os.Getenv("CONFIG_PATH")
-	communicationConfigFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	communicationConfigFile, err := os.Open(communicationConfigFilePath)
-	defer communicationConfigFile.Close()
+	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+	rawCfg, err := os.ReadFile(filepath.Clean(commCfgFilePath))
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(communicationConfigFile)
-	if err != nil {
-		return c, err
+	commCfg := &Communications{}
+	if err := yaml.Unmarshal(rawCfg, commCfg); err != nil {
+		return nil, err
 	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
-	}
-	return c, nil
+	return commCfg, nil
 }
 
 // New returns new Config
 func New() (*Config, error) {
-	c := &Config{}
 	configPath := os.Getenv("CONFIG_PATH")
-	resourceConfigFilePath := filepath.Join(configPath, ResourceConfigFileName)
-	resourceConfigFile, err := os.Open(resourceConfigFilePath)
-	defer resourceConfigFile.Close()
+	resCfgFilePath := filepath.Join(configPath, ResourceConfigFileName)
+	rawCfg, err := os.ReadFile(filepath.Clean(resCfgFilePath))
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(resourceConfigFile)
-	if err != nil {
-		return c, err
-	}
-
-	if len(b) != 0 {
-		yaml.Unmarshal(b, c)
+	cfg := &Config{}
+	if err := yaml.Unmarshal(rawCfg, cfg); err != nil {
+		return nil, err
 	}
 
 	comm, err := NewCommunicationsConfig()
 	if err != nil {
 		return nil, err
 	}
-	c.Communications = comm.Communications
+	cfg.Communications = comm.Communications
 
-	return c, nil
+	return cfg, nil
 }

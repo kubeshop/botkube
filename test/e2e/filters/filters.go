@@ -95,7 +95,6 @@ func (c *context) testFilters(t *testing.T) {
 			utils.CreateResource(t, test)
 
 			if c.TestEnv.Config.Communications.Slack.Enabled {
-
 				// Get last seen slack message
 				lastSeenMsg := c.GetLastSeenSlackMessage()
 

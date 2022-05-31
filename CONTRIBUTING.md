@@ -112,12 +112,12 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 * Once we've discussed your changes and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against [`develop`](http://github.com/infracloudio/botkube/tree/develop) branch.
 
-* To avoid build failures in CI, run
+* To avoid build failures in CI, install [`golangci-lint` v1.46](https://golangci-lint.run/usage/install/) and run:
   ```sh
   # From project root directory
-  $ ./hack/verify-*.sh
+  $ make lint
   ```
-  This will check if the code is properly formatted, linted & vendor directory is present.
+  This will run the `golangci-lint` tool to lint the Go code.
 
 * Run e2e tests
   ```sh

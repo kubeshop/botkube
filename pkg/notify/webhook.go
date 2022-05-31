@@ -26,6 +26,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
@@ -108,8 +110,7 @@ func (w *Webhook) SendMessage(msg string) error {
 }
 
 // PostWebhook posts webhook to listener
-func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) error {
-
+func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) (err error) {
 	message, err := json.Marshal(jsonPayload)
 	if err != nil {
 		return err
@@ -126,6 +127,13 @@ func (w *Webhook) PostWebhook(jsonPayload *WebhookPayload) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		deferredErr := resp.Body.Close()
+		if deferredErr != nil {
+			err = multierror.Append(err, deferredErr)
+		}
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error Posting Webhook: %s", fmt.Sprint(resp.StatusCode))
 	}

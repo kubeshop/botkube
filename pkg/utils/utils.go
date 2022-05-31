@@ -49,6 +49,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// TODO: Do not use global variables and convert them to local ones passed via references into all BotKube components
+// 	See https://github.com/infracloudio/botkube/issues/589
 var (
 	// ResourceInformerMap is a map of resource name to resource Getter interface
 	ResourceInformerMap map[string]cache.SharedIndexInformer
@@ -113,7 +115,6 @@ func InitKubeClient() {
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(DiscoveryClient)
 	discoCacheClient.Invalidate()
 	Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-
 }
 
 // EventKind used in AllowedEventKindsMap to filter event kinds
@@ -234,7 +235,6 @@ func GetObjectMetaData(obj interface{}) metaV1.ObjectMeta {
 
 // GetObjectTypeMetaData returns typemetadata of the given object
 func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
-
 	k, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		return metaV1.TypeMeta{}

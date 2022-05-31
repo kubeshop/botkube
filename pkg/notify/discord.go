@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
@@ -92,7 +93,6 @@ func (d *Discord) SendMessage(msg string) error {
 }
 
 func formatDiscordMessage(event events.Event, notifyType config.NotifType) discordgo.MessageSend {
-
 	var messageEmbed discordgo.MessageEmbed
 
 	switch notifyType {
@@ -117,7 +117,6 @@ func formatDiscordMessage(event events.Event, notifyType config.NotifType) disco
 	return discordgo.MessageSend{
 		Embed: &messageEmbed,
 	}
-
 }
 
 func discordLongNotification(event events.Event) discordgo.MessageEmbed {

@@ -87,7 +87,6 @@ func ValidSecret(ctx context.Context, name, namespace string) (*coreV1.Secret, e
 		return nil, err
 	}
 	return &secretObject, nil
-
 }
 
 // FindNamespaceFromService returns namespace from fully qualified domain name

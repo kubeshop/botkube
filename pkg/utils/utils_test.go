@@ -25,7 +25,6 @@ import (
 )
 
 func TestGetClusterNameFromKubectlCmd(t *testing.T) {
-
 	type test struct {
 		input    string
 		expected string
@@ -85,7 +84,6 @@ func TestContains(t *testing.T) {
 }
 
 func TestRemoveHypelink(t *testing.T) {
-
 	type test struct {
 		input    string
 		expected string

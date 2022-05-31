@@ -23,9 +23,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/infracloudio/botkube/test/e2e/env"
 )
 
 type context struct {
@@ -37,7 +38,6 @@ func (c *context) testWelcome(t *testing.T) {
 	expected := "...and now my watch begins for cluster 'test-cluster-1'! :crossed_swords:"
 
 	if c.TestEnv.Config.Communications.Slack.Enabled {
-
 		// Get last seen slack message
 		lastSeenMsg := c.GetLastSeenSlackMessage()
 

@@ -85,7 +85,6 @@ const (
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
-	teamsIncompleteCmdMsg  = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 )
 
 // Executor is an interface for processes to execute commands
@@ -103,12 +102,11 @@ type DefaultExecutor struct {
 	ChannelName      string
 	IsAuthChannel    bool
 	DefaultNamespace string
+	runCmdFn         CommandRunnerFunc
 }
 
-// CommandRunner is an interface to run bash commands
-type CommandRunner interface {
-	Run() (string, error)
-}
+// CommandRunnerFunc is a function which runs arbitrary commands
+type CommandRunnerFunc func(command string, args []string) (string, error)
 
 // NotifierAction creates custom type for notifier actions
 type NotifierAction string
@@ -163,19 +161,28 @@ func (action FiltersAction) String() string {
 	return string(action)
 }
 
+// TODO: Refactor constructors
+
 // NewDefaultExecutor returns new Executor object
-// msg should not contain the BotId
-func NewDefaultExecutor(msg string, allowkubectl, restrictAccess bool, defaultNamespace,
+func NewDefaultExecutor(msg string, allowKubectl, restrictAccess bool, defaultNamespace,
 	clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) Executor {
+	return NewExecutorWithCustomCommandRunner(msg, allowKubectl, restrictAccess, defaultNamespace, clusterName, platform, channelName, isAuthChannel, DefaultCommandRunnerFunc)
+}
+
+// NewExecutorWithCustomCommandRunner returns new Executor object
+// msg should not contain the BotId
+func NewExecutorWithCustomCommandRunner(msg string, allowKubectl, restrictAccess bool, defaultNamespace,
+	clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool, runCmdFn CommandRunnerFunc) Executor {
 	return &DefaultExecutor{
 		Platform:         platform,
 		Message:          msg,
-		AllowKubectl:     allowkubectl,
+		AllowKubectl:     allowKubectl,
 		RestrictAccess:   restrictAccess,
 		ClusterName:      clusterName,
 		ChannelName:      channelName,
 		IsAuthChannel:    isAuthChannel,
 		DefaultNamespace: defaultNamespace,
+		runCmdFn:         runCmdFn,
 	}
 }
 
@@ -206,21 +213,21 @@ func (e *DefaultExecutor) Execute() string {
 			if e.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 				return ""
 			}
-			return runKubectlCommand(args, e.ClusterName, e.DefaultNamespace, e.IsAuthChannel)
+			return e.runKubectlCommand(args)
 		}
 	}
 	if ValidNotifierCommand[args[0]] {
 		return e.runNotifierCommand(args, e.ClusterName, e.IsAuthChannel)
 	}
 	if validPingCommand[args[0]] {
-		res := runVersionCommand(args, e.ClusterName)
+		res := e.runVersionCommand(args, e.ClusterName)
 		if len(res) == 0 {
 			return ""
 		}
 		return fmt.Sprintf("pong from cluster '%s'", e.ClusterName) + "\n\n" + res
 	}
 	if validVersionCommand[args[0]] {
-		return runVersionCommand(args, e.ClusterName)
+		return e.runVersionCommand(args, e.ClusterName)
 	}
 	// Check if filter command
 	if validFilterCommand[args[0]] {
@@ -255,8 +262,10 @@ func trimQuotes(clusterValue string) string {
 	})
 }
 
-func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAuthChannel bool) string {
-
+func (e *DefaultExecutor) runKubectlCommand(args []string) string {
+	clusterName := e.ClusterName
+	defaultNamespace := e.DefaultNamespace
+	isAuthChannel := e.IsAuthChannel
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
 	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
 		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
@@ -294,12 +303,11 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 		}
 		finalArgs = append(finalArgs, arg)
 	}
-	if isAuthChannel == false {
+	if !isAuthChannel {
 		return ""
 	}
 	// Get command runner
-	runner := NewCommandRunner(kubectlBinary, finalArgs)
-	out, err := runner.Run()
+	out, err := e.runCmdFn(kubectlBinary, finalArgs)
 	if err != nil {
 		log.Error("Error in executing kubectl command: ", err)
 		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
@@ -309,7 +317,7 @@ func runKubectlCommand(args []string, clusterName, defaultNamespace string, isAu
 
 // TODO: Have a separate cli which runs bot commands
 func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
-	if isAuthChannel == false {
+	if !isAuthChannel {
 		return ""
 	}
 	if len(args) < 2 {
@@ -326,7 +334,7 @@ func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, 
 		log.Info("Notifier disabled")
 		return fmt.Sprintf(notifierStopMsg, clusterName)
 	case Status.String():
-		if config.Notify == false {
+		if !config.Notify {
 			return fmt.Sprintf("Notifications are off for cluster '%s'", clusterName)
 		}
 		return fmt.Sprintf("Notifications are on for cluster '%s'", clusterName)
@@ -343,7 +351,7 @@ func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, 
 
 // runFilterCommand to list, enable or disable filters
 func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
-	if isAuthChannel == false {
+	if !isAuthChannel {
 		return ""
 	}
 	if len(args) < 2 {
@@ -382,7 +390,7 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 
 //runInfoCommand to list allowed commands
 func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) string {
-	if isAuthChannel == false {
+	if !isAuthChannel {
 		return ""
 	}
 	if len(args) > 1 && args[1] != string(infoList) {
@@ -417,11 +425,10 @@ func makeFiltersList() string {
 	return buf.String()
 }
 
-func findBotKubeVersion() (versions string) {
+func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
 	args := []string{"-c", fmt.Sprintf("%s version --short=true | grep Server", kubectlBinary)}
-	runner := NewCommandRunner("sh", args)
 	// Returns "Server Version: xxxx"
-	k8sVersion, err := runner.Run()
+	k8sVersion, err := e.runCmdFn("sh", args)
 	if err != nil {
 		log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
 		k8sVersion = "Server Version: Unknown\n"
@@ -434,7 +441,7 @@ func findBotKubeVersion() (versions string) {
 	return fmt.Sprintf("K8s %sBotKube version: %s", k8sVersion, botkubeVersion)
 }
 
-func runVersionCommand(args []string, clusterName string) string {
+func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) string {
 	checkFlag := false
 	for _, arg := range args {
 		if checkFlag {
@@ -453,7 +460,7 @@ func runVersionCommand(args []string, clusterName string) string {
 			continue
 		}
 	}
-	return findBotKubeVersion()
+	return e.findBotKubeVersion()
 }
 
 func showControllerConfig() (configYaml string, err error) {

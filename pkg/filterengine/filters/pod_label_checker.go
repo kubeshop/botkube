@@ -24,7 +24,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
@@ -32,13 +31,6 @@ import (
 // PodLabelChecker add recommendations to the event object if pod created without any labels
 type PodLabelChecker struct {
 	Description string
-}
-
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(PodLabelChecker{
-		Description: "Checks and adds recommendations if labels are missing in the pod specs.",
-	})
 }
 
 // Run filters and modifies event struct

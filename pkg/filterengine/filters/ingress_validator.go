@@ -29,7 +29,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
@@ -38,13 +37,6 @@ import (
 // and adds recommendations to event struct accordingly
 type IngressValidator struct {
 	Description string
-}
-
-// Register filter
-func init() {
-	filterengine.DefaultFilterEngine.Register(IngressValidator{
-		Description: "Checks if services and tls secrets used in ingress specs are available.",
-	})
 }
 
 // Run filers and modifies event struct

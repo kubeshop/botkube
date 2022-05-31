@@ -21,12 +21,11 @@ package env
 
 import (
 	"fmt"
-	"github.com/slack-go/slack/slacktest"
-	"log"
 	"testing"
 	"time"
 
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slacktest"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,7 +52,7 @@ type TestEnv struct {
 	K8sClient     dynamic.Interface
 	SlackServer   *slacktest.Server
 	WebhookServer *webhook.Server
-	SlackMessages chan (*slack.MessageEvent)
+	SlackMessages chan *slack.MessageEvent
 	Config        *config.Config
 	Mapper        *restmapper.DeferredDiscoveryRESTMapper
 }
@@ -64,34 +63,45 @@ type E2ETest interface {
 }
 
 // New creates TestEnv and populate required objects
-func New() *TestEnv {
+func New() (*TestEnv, error) {
 	testEnv := &TestEnv{}
 
-	// Loads `/test/config.yaml` for Integration Testing
+	// Loads test configuration for Integration Testing
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error in loading configuration. Error:%s", err.Error()))
+		return nil, fmt.Errorf("while loading configuration: %w", err)
 	}
 	testEnv.Config = conf
 
 	s := runtime.NewScheme()
-	samplev1alpha1.AddToScheme(s)
-	corev1.AddToScheme(s)
-	networkingv1.AddToScheme(s)
+
+	err = samplev1alpha1.AddToScheme(s)
+	if err != nil {
+		return nil, err
+	}
+	err = corev1.AddToScheme(s)
+	if err != nil {
+		return nil, err
+	}
+	err = networkingv1.AddToScheme(s)
+	if err != nil {
+		return nil, err
+	}
+
 	testEnv.K8sClient = fake.NewSimpleDynamicClient(s)
 	testEnv.DiscoFake = kubeFake.NewSimpleClientset().Discovery()
 	discoCacheClient := cacheddiscovery.NewMemCacheClient(FakeCachedDiscoveryInterface())
 	testEnv.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
 
 	if testEnv.Config.Communications.Slack.Enabled {
-		testEnv.SlackMessages = make(chan (*slack.MessageEvent), 1)
+		testEnv.SlackMessages = make(chan *slack.MessageEvent, 1)
 		testEnv.SetupFakeSlack()
 	}
 	if testEnv.Config.Communications.Webhook.Enabled {
 		testEnv.SetupFakeWebhook()
 	}
 
-	return testEnv
+	return testEnv, nil
 }
 
 // SetupFakeSlack create fake Slack server to mock Slack
@@ -105,7 +115,6 @@ func (e *TestEnv) SetupFakeSlack() {
 
 // GetLastSeenSlackMessage return last message received by fake slack server
 func (e TestEnv) GetLastSeenSlackMessage() *string {
-
 	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.SlackServer.GetSeenOutboundMessages()
@@ -125,7 +134,6 @@ func (e *TestEnv) SetupFakeWebhook() {
 
 // GetLastReceivedPayload return last message received by fake webhook server
 func (e TestEnv) GetLastReceivedPayload() *utils.WebhookPayload {
-
 	time.Sleep(5 * time.Second)
 
 	allSeenMessages := e.WebhookServer.GetReceivedPayloads()

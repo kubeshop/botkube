@@ -8,12 +8,6 @@ import (
 	"github.com/infracloudio/botkube/pkg/notify"
 )
 
-const (
-	// Constants for sending  messageCards
-	messageType   = "MessageCard"
-	schemaContext = "http://schema.org/extensions"
-)
-
 var themeColor = map[config.Level]string{
 	config.Info:     "good",
 	config.Warn:     "warning",

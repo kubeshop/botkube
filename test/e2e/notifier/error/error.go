@@ -19,7 +19,6 @@ type context struct {
 }
 
 func (c *context) testSKipErrorEvent(t *testing.T) {
-
 	// Modifying AllowedEventKindsMap to add error event for only dummy namespace and ignore everything
 	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "error"}] = true
 

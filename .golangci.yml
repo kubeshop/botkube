@@ -1,0 +1,44 @@
+issues:
+  exclude-use-default: false
+  exclude:
+    # Read more: https://github.com/kyoh86/scopelint/issues/4
+    - Using the variable on range scope `tc` in function literal
+    # EXC0001 errcheck: source: https://github.com/kubernetes-sigs/controller-runtime/blob/master/.golangci.yml#L94
+    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+    # EXC0008 gosec: Duplicated errcheck checks
+    - (G104|G307)
+run:
+  tests: true
+  skip-files:
+    - ".*\\.generated\\.go$"
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - revive
+    - gofmt
+    - misspell
+    - gochecknoinits
+    - unparam
+    - exportloopref
+    - gosec
+    - goimports
+    - whitespace
+    - bodyclose
+    - gocyclo
+
+  fast: false
+linters-settings:
+  goimports:
+  # put imports beginning with prefix after 3rd-party packages;
+  # it's a comma-separated list of prefixes
+  local-prefixes: github.com/infracloudio/botkube

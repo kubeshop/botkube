@@ -20,12 +20,14 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
+	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
@@ -36,24 +38,31 @@ const (
 	defaultMetricsPort = "2112"
 )
 
+// TODO:
+//  - Use context to make sure all goroutines shutdowns gracefully: https://github.com/infracloudio/botkube/issues/220
+//  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity): https://github.com/infracloudio/botkube/issues/589
+
 func main() {
 	// Prometheus metrics
 	metricsPort, exists := os.LookupEnv("METRICS_PORT")
 	if !exists {
 		metricsPort = defaultMetricsPort
 	}
-	go metrics.ServeMetrics(metricsPort)
-	if err := startController(); err != nil {
-		log.Fatal(err)
-	}
-}
 
-func startController() error {
+	// Set up global logger and filter engine
+	log.SetupGlobal()
+	filterengine.SetupGlobal()
+
+	errGroup := new(errgroup.Group)
+
+	errGroup.Go(func() error {
+		return metrics.ServeMetrics(metricsPort)
+	})
+
 	log.Info("Starting controller")
+
 	conf, err := config.New()
-	if err != nil {
-		return fmt.Errorf("Error in loading configuration. Error:%s", err.Error())
-	}
+	exitOnError(err, "while loading configuration")
 
 	// List notifiers
 	notifiers := notify.ListNotifiers(conf.Communications)
@@ -61,38 +70,51 @@ func startController() error {
 	if conf.Communications.Slack.Enabled {
 		log.Info("Starting slack bot")
 		sb := bot.NewSlackBot(conf)
-		go sb.Start()
+		errGroup.Go(func() error {
+			return sb.Start()
+		})
 	}
 
 	if conf.Communications.Mattermost.Enabled {
 		log.Info("Starting mattermost bot")
 		mb := bot.NewMattermostBot(conf)
-		go mb.Start()
+		errGroup.Go(func() error {
+			return mb.Start()
+		})
 	}
 
 	if conf.Communications.Teams.Enabled {
 		log.Info("Starting MS Teams bot")
 		tb := bot.NewTeamsBot(conf)
 		notifiers = append(notifiers, tb)
-		go tb.Start()
+		errGroup.Go(func() error {
+			return tb.Start()
+		})
 	}
 
 	if conf.Communications.Discord.Enabled {
 		log.Info("Starting discord bot")
 		db := bot.NewDiscordBot(conf)
-		go db.Start()
+		errGroup.Go(func() error {
+			return db.Start()
+		})
 	}
 
 	if conf.Communications.Lark.Enabled {
 		log.Info("Starting lark bot")
-		db := bot.NewLarkBot(conf)
-		go db.Start()
+		lb := bot.NewLarkBot(conf)
+		errGroup.Go(func() error {
+			return lb.Start()
+		})
 	}
 
 	// Start upgrade notifier
 	if conf.Settings.UpgradeNotifier {
 		log.Info("Starting upgrade notifier")
-		go controller.UpgradeNotifier(conf, notifiers)
+		errGroup.Go(func() error {
+			controller.UpgradeNotifier(notifiers)
+			return nil
+		})
 	}
 
 	// Init KubeClient, InformerMap and start controller
@@ -100,5 +122,13 @@ func startController() error {
 	utils.InitInformerMap(conf)
 	utils.InitResourceMap(conf)
 	controller.RegisterInformers(conf, notifiers)
-	return nil
+
+	err = errGroup.Wait()
+	exitOnError(err, "while waiting for goroutines to finish gracefully")
+}
+
+func exitOnError(err error, context string) {
+	if err != nil {
+		log.Fatalf("%s: %v", context, err)
+	}
 }

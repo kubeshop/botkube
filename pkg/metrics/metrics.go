@@ -20,12 +20,14 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // ServeMetrics exposes metrics in Prometheus format
-func ServeMetrics(metricsPort string) {
+// TODO: Make sure server gracefully shut downs on signal
+func ServeMetrics(metricsPort string) error {
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":"+metricsPort, nil)
+	return http.ListenAndServe(":"+metricsPort, nil)
 }

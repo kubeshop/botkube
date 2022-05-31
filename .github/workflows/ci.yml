@@ -2,54 +2,87 @@ name: CI
 on:
   push:
   pull_request:
+env:
+  GO_VERSION: 1.18
+  HELM_VERSION: v3.9.0
+  GOLANGCI_LINT_VERSION: v1.46.2
+  GOLANGCI_LINT_TIMEOUT: 5m
 jobs:
+  lint-go:
+    runs-on: ubuntu-latest
+    name: Lint Go code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=${{ env.GOLANGCI_LINT_TIMEOUT }}
+      - name: Verify Go modules
+        run: go mod verify
+
+  test:
+    runs-on: ubuntu-latest
+    name: Run tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Run tests
+        run: make test
+
   build:
     runs-on: ubuntu-latest
-    env:
-      GO111MODULE: on
-      GOPATH: /home/runner/work/botkube
-      GOBIN: /home/runner/work/botkube/bin
+    needs:
+      - lint-go
+      - test
+    name: Build app
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Setup Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.18
-    - name: Install golint
-      run: |
-        go install golang.org/x/lint/golint@latest
-    - name: Codespell action
-      uses: sanketsudake/codespell-action@v1
-    - name: Before build
-      run: |
-        echo Workflow trigger - ${{ github.event_name }}
-        ./hack/verify-gofmt.sh
-        ./hack/verify-govet.sh
-        ./hack/verify-golint.sh
-        go mod verify
-    - name: Build and test
-      run: |
-        make test
-        make
-    - name: Run Trivy vulnerability scanner in repo mode
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        ignore-unfixed: true
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        severity: 'CRITICAL'
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Build
+        run: make
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v1
-      with:
-        sarif_file: 'trivy-results.sarif'
+  lint-helm:
+    runs-on: ubuntu-latest
+    name: Lint Helm chart
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: Run helm lint
+        run: helm lint helm/botkube
 
-    - name: Install Helm
-      uses: azure/setup-helm@v1
-      with:
-        version: v3.4.0
-    - name: Run helm lint
-      run: |
-        helm lint helm/botkube
+  scan-repo:
+    runs-on: ubuntu-latest
+    name: Scan repository for vulnerabilities
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: 'trivy-results.sarif'

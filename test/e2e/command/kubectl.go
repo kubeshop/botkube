@@ -24,10 +24,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/infracloudio/botkube/test/e2e/env"
 )
 
 type kubectlCommand struct {
@@ -46,12 +46,12 @@ func (c *context) testKubectlCommand(t *testing.T) {
 	tests := map[string]kubectlCommand{
 		"BotKube get pods from configured channel": {
 			command:  "get pods",
-			expected: fmt.Sprintf("```\nCluster: %s\n%s\n```", c.Config.Settings.ClusterName, execute.KubectlResponse["-n default get pods"]),
+			expected: fmt.Sprintf("```\nCluster: %s\n%s\n```", c.Config.Settings.ClusterName, FakeKubectlResponse["/usr/local/bin/kubectl -n default get pods"]),
 			channel:  c.Config.Communications.Slack.Channel,
 		},
 		"BotKube get pods out of configured channel": {
 			command:  "get pods",
-			expected: fmt.Sprintf("<@U023BECGF> get pods"),
+			expected: "<@U023BECGF> get pods",
 			channel:  "dummy",
 		},
 		"kubectl command on forbidden verb and resource": {

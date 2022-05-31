@@ -24,11 +24,17 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/slack-go/slack"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/slack-go/slack"
 )
+
+const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
+const channelNotFoundCode = "channel_not_found"
 
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
@@ -59,32 +65,41 @@ func (s *Slack) SendEvent(event events.Event) error {
 	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
 	attachment := formatSlackMessage(event, s.NotifType)
 
-	// non empty value in event.channel demands redirection of events to a different channel
-	if event.Channel != "" {
-		channelID, timestamp, err := s.Client.PostMessage(event.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
-		if err != nil {
-			log.Errorf("Error in sending slack message %s", err.Error())
-			// send error message to default channel
-			if err.Error() == "channel_not_found" {
-				msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, err.Error(), event.Channel)
-				go s.SendMessage(msg)
-				// sending missed event to default channel
-				// reset event.Channel and send event
-				event.Channel = ""
-				go s.SendEvent(event)
-			}
-			return err
-		}
-		log.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
-	} else {
+	targetChannel := event.Channel
+	if targetChannel == "" {
 		// empty value in event.channel sends notifications to default channel.
-		channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
-		if err != nil {
-			log.Errorf("Error in sending slack message %s", err.Error())
-			return err
-		}
-		log.Debugf("Event successfully sent to channel %s at %s", channelID, timestamp)
+		targetChannel = s.Channel
 	}
+	isDefaultChannel := targetChannel == s.Channel
+
+	channelID, timestamp, err := s.Client.PostMessage(targetChannel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+	if err != nil {
+		postMessageWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, err)
+
+		if isDefaultChannel || err.Error() != channelNotFoundCode {
+			return postMessageWrappedErr
+		}
+
+		// channel not found, fallback to default channel
+
+		// send error message to default channel
+		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
+		sendMessageErr := s.SendMessage(msg)
+		if sendMessageErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendMessageErr)
+		}
+
+		// sending missed event to default channel
+		// reset event.Channel and send event
+		event.Channel = ""
+		sendEventErr := s.SendEvent(event)
+		if sendEventErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendEventErr)
+		}
+
+		return postMessageWrappedErr
+	}
+	log.Debugf("Event successfully sent to channel %q at %s", channelID, timestamp)
 	return nil
 }
 
@@ -93,8 +108,7 @@ func (s *Slack) SendMessage(msg string) error {
 	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
 	channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
-		log.Errorf("Error in sending slack message %s", err.Error())
-		return err
+		return fmt.Errorf("while sending Slack message to channel %q: %w", s.Channel, err)
 	}
 
 	log.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)

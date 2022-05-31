@@ -24,10 +24,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/mattermost/mattermost-server/v5/model"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
 	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/mattermost/mattermost-server/v5/model"
 )
 
 // Mattermost contains server URL and token
@@ -85,36 +87,49 @@ func (m *Mattermost) SendEvent(event events.Event) error {
 		},
 	}
 
-	post := &model.Post{}
-	post.Props = map[string]interface{}{
-		"attachments": attachment,
-	}
-
-	// non empty value in event.channel demands redirection of events to a different channel
-	if event.Channel != "" {
-		post.ChannelId = event.Channel
-
-		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Error("Failed to send message. Error: ", resp.Error)
-			// send error message to default channel
-			msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", event.Channel, resp.Error, event.Channel)
-			go m.SendMessage(msg)
-			// sending missed event to default channel
-			// reset event.Channel and send event
-			event.Channel = ""
-			go m.SendEvent(event)
-			return resp.Error
-		}
-		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
-	} else {
-		post.ChannelId = m.Channel
+	targetChannel := event.Channel
+	if targetChannel == "" {
 		// empty value in event.channel sends notifications to default channel.
-		if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-			log.Error("Failed to send message. Error: ", resp.Error)
-			return resp.Error
-		}
-		log.Debugf("Event successfully sent to channel %s", post.ChannelId)
+		targetChannel = m.Channel
 	}
+	isDefaultChannel := targetChannel == m.Channel
+
+	post := &model.Post{
+		Props: map[string]interface{}{
+			"attachments": attachment,
+		},
+		ChannelId: targetChannel,
+	}
+
+	_, resp := m.Client.CreatePost(post)
+	if resp.Error != nil {
+		createPostWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, resp.Error)
+
+		if isDefaultChannel {
+			return createPostWrappedErr
+		}
+
+		// fallback to default channel
+
+		// send error message to default channel
+		msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
+		sendMessageErr := m.SendMessage(msg)
+		if sendMessageErr != nil {
+			return multierror.Append(createPostWrappedErr, sendMessageErr)
+		}
+
+		// sending missed event to default channel
+		// reset event.Channel and send event
+		event.Channel = ""
+		sendEventErr := m.SendEvent(event)
+		if sendEventErr != nil {
+			return multierror.Append(createPostWrappedErr, sendEventErr)
+		}
+
+		return createPostWrappedErr
+	}
+
+	log.Debugf("Event successfully sent to channel %q", post.ChannelId)
 	return nil
 }
 
@@ -124,8 +139,9 @@ func (m *Mattermost) SendMessage(msg string) error {
 	post.ChannelId = m.Channel
 	post.Message = msg
 	if _, resp := m.Client.CreatePost(post); resp.Error != nil {
-		log.Error("Failed to send message. Error: ", resp.Error)
+		return fmt.Errorf("while creating a post: %w", resp.Error)
 	}
+
 	return nil
 }
 
