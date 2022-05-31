@@ -413,10 +413,47 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
+# Extra environment variables to pass to the BotKube container.
 extraEnv: []
-## Extra environment variables to pass to the BotKube container, example HTTP_PROXY
-## extraEnv:
-##   HTTP_PROXY: <proxyURL>:<port>
+#  - name: <key>
+#    valueFrom:
+#      configMapKeyRef:
+#        name: configmap-name
+#        key: value_key
+#  - name: <key>
+#    value: value
+
+
+# Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts.
+extraVolumes: []
+# - name: extra-volume-0
+#   secret:
+#     secretName: <secret-name>
+#
+# for CSI e.g. Vault:
+# - name: secrets-store-inline
+#   csi:
+#     driver: secrets-store.csi.k8s.io
+#     readOnly: true
+#     volumeAttributes:
+#       secretProviderClass: "vault-database"
+
+# Extra volume mounts to pass to the BotKube container.
+extraVolumeMounts: []
+# - name: extra-volume-0
+#   mountPath: /mnt/volume0
+#   readOnly: true
+# - name: extra-volume-1
+#   mountPath: /mnt/volume1
+#   readOnly: true
+# - name: secret-files
+#   mountPath: /etc/secrets
+#   subPath: ""
+#
+# for CSI e.g. Vault:
+# - name: secrets-store-inline
+#   mountPath: "/mnt/secrets-store"
+#   readOnly: true
 
 nodeSelector: {}
 
