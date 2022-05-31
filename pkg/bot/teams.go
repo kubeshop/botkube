@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"

@@ -27,13 +27,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/sts"
-
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/olivere/elastic"
 	"github.com/sha1sum/aws_signing_client"
 

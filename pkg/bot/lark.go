@@ -197,7 +197,10 @@ func (l *LarkBot) SayHello(e map[string]interface{}) error {
 	}
 	users, ok := larkUserList.([]interface{})
 	if !ok {
-		user := event[larkUsers]
+		user, ok := event[larkUsers]
+		if !ok {
+			return fmt.Errorf("Invalid user format. Failed to convert user into interface{}")
+		}
 		users = append(users, user)
 	}
 

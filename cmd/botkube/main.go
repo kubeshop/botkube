@@ -22,18 +22,16 @@ package main
 import (
 	"os"
 
-	"github.com/infracloudio/botkube/pkg/filterengine"
-
 	"golang.org/x/sync/errgroup"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
+	"github.com/infracloudio/botkube/pkg/filterengine"
 	"github.com/infracloudio/botkube/pkg/log"
+	"github.com/infracloudio/botkube/pkg/metrics"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
-
-	"github.com/infracloudio/botkube/pkg/metrics"
 )
 
 const (

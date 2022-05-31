@@ -33,6 +33,9 @@ import (
 	"github.com/infracloudio/botkube/pkg/log"
 )
 
+const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
+const channelNotFoundCode = "channel_not_found"
+
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
 	config.Warn:     "warning",
@@ -73,14 +76,14 @@ func (s *Slack) SendEvent(event events.Event) error {
 	if err != nil {
 		postMessageWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, err)
 
-		if isDefaultChannel || err.Error() != "channel_not_found" {
+		if isDefaultChannel || err.Error() != channelNotFoundCode {
 			return postMessageWrappedErr
 		}
 
 		// channel not found, fallback to default channel
 
 		// send error message to default channel
-		msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", targetChannel, err.Error(), targetChannel)
+		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
 		sendMessageErr := s.SendMessage(msg)
 		if sendMessageErr != nil {
 			return multierror.Append(postMessageWrappedErr, sendMessageErr)

@@ -23,18 +23,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/log"
-
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/execute"
-
+	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/require"
 
-	"github.com/slack-go/slack"
-
 	"github.com/infracloudio/botkube/pkg/bot"
+	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
+	"github.com/infracloudio/botkube/pkg/execute"
+	"github.com/infracloudio/botkube/pkg/filterengine"
+	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/command"

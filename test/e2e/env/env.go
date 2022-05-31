@@ -24,9 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slack-go/slack/slacktest"
-
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slacktest"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
