@@ -1,0 +1,72 @@
+name: Publish BotKube image
+
+on:
+  pull_request_target:
+    types: [ opened, synchronize, reopened, labeled ]
+    branches:
+      - "develop"
+
+env:
+  GO_VERSION: 1.18
+
+jobs:
+  publish:
+    name: Build and push
+    runs-on: ubuntu-latest
+
+    # Since external users do not have the permission to assign labels,
+    # this effectively requires repository owners to manually review the changes first.
+    if: contains(github.event.pull_request.labels.*.name, 'build-pr-image')
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+
+      - name: Run GoReleaser
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          make release_pr_snapshot
+
+      - name: Summary
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          cat > $GITHUB_STEP_SUMMARY << ENDOFFILE
+          ### BotKube image published successfully! :rocket:
+
+          To test BotKube with PR changes, run:
+
+              gh pr checkout ${PR_NUMBER}
+
+              helm install botkube -n botkube --create-namespace \\
+              --set image.repository=infracloudio/pr/botkube \\
+              --set image.tag=v${PR_NUMBER} \\
+              ./helm/botkube
+
+          ENDOFFILE

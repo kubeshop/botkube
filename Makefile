@@ -61,6 +61,10 @@ gorelease:
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
+# Build project and push PR images with PR_NUMBER tag
+release_pr_snapshot:
+	@./hack/goreleaser.sh release_pr_snapshot
+
 # system checks
 system-check:
 	@echo "Checking system information"
