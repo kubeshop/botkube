@@ -1,0 +1,106 @@
+name: Publish BotKube image
+
+on:
+  pull_request_target:
+    types: [ opened, synchronize, reopened ]
+    branches:
+      - "develop"
+
+env:
+  GO_VERSION: 1.18
+
+jobs:
+
+  save-image:
+    name: Build and save BotKube image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+
+      - name: Save
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          make save-pr-image
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.APP }}-${{github.sha}}
+          path: /tmp/
+          retention-days: 1
+
+  push-image:
+    name: Push BotKube image
+    runs-on: ubuntu-latest
+    needs: [save-image]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.APP }}-${{github.sha}}
+          path: /tmp
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: make push-pr-image
+
+      - name: Delete Docker image artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: ${{ matrix.APP }}-${{github.sha}}
+
+      - name: Summary
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          cat > $GITHUB_STEP_SUMMARY << ENDOFFILE
+
+          ### BotKube image published successfully! :rocket:
+          To test BotKube with PR changes, run:
+
+              gh pr checkout ${PR_NUMBER}
+              helm install botkube -n botkube --create-namespace \\
+              --set image.repository=infracloudio/pr/botkube \\
+              --set image.tag=v${PR_NUMBER} \\
+              ./helm/botkube
+
+          ENDOFFILE
