@@ -77,14 +77,14 @@ push_pr_image() {
   export GORELEASER_CURRENT_TAG=v${PR_NUMBER}
 
   # Load images
-
-  docker images
-
   docker load --input /tmp/botkube-amd64.tar
   docker load --input /tmp/botkube-arm64.tar
   docker load --input /tmp/botkube-armv7.tar
 
-  docker images
+	# Push images
+	docker push ghcr.io/mszostok/pr/botkube:${GORELEASER_CURRENT_TAG}-amd64
+	docker push ghcr.io/mszostok/pr/botkube:${GORELEASER_CURRENT_TAG}-arm64
+	docker push ghcr.io/mszostok/pr/botkube:${GORELEASER_CURRENT_TAG}-armv7
 
   # Create manifest
   docker manifest create ghcr.io/mszostok/pr/botkube:${GORELEASER_CURRENT_TAG} \
