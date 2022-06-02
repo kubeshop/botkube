@@ -15,9 +15,9 @@ type Server struct {
 }
 
 // New creates a new HTTP server.
-func New(log logrus.FieldLogger, addr string, mux *http.ServeMux) *Server {
+func New(log logrus.FieldLogger, addr string, handler http.Handler) *Server {
 	return &Server{
-		srv: &http.Server{Addr: addr, Handler: mux},
+		srv: &http.Server{Addr: addr, Handler: handler},
 		log: log,
 	}
 }

@@ -27,6 +27,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	"github.com/google/go-github/v44/github"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -214,10 +216,9 @@ func newLogger(logLevelStr string) *logrus.Logger {
 
 func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {
 	addr := fmt.Sprintf(":%s", metricsPort)
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-
-	return httpsrv.New(log, addr, mux)
+	router := mux.NewRouter()
+	router.Handle("/metrics", promhttp.Handler())
+	return httpsrv.New(log, addr, router)
 }
 
 func exitOnError(err error, context string) {

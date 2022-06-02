@@ -28,6 +28,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/gorilla/mux"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
@@ -120,10 +122,11 @@ func (b *Teams) Start(ctx context.Context) error {
 	}
 
 	addr := fmt.Sprintf(":%s", b.Port)
-	mux := http.NewServeMux()
-	mux.HandleFunc(b.MessagePath, b.processActivity)
 
-	srv := httpsrv.New(b.log, addr, mux)
+	router := mux.NewRouter()
+	router.PathPrefix(b.MessagePath).HandlerFunc(b.processActivity)
+
+	srv := httpsrv.New(b.log, addr, router)
 	err = srv.Serve(ctx)
 	if err != nil {
 		return fmt.Errorf("while running MS Teams server: %w", err)

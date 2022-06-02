@@ -5,6 +5,7 @@ require (
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/google/go-github/v44 v44.1.0
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/larksuite/oapi-sdk-go v1.1.44
