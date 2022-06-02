@@ -47,8 +47,11 @@ func NewLark(log logrus.FieldLogger, loggerLevel logrus.Level, c config.Communic
 	appSettings := core.NewInternalAppSettings(core.SetAppCredentials(c.Lark.AppID, c.Lark.AppSecret),
 		core.SetAppEventKey(c.Lark.VerificationToken, c.Lark.EncryptKey))
 	conf := core.NewConfig(core.Domain(c.Lark.Endpoint), appSettings, core.SetLoggerLevel(utils.GetLoggerLevel(loggerLevel)))
-	return &Lark{LarkClient: utils.NewLarkClient(log, conf),
-		ReceiverGroup: c.Lark.ChatGroup}
+	return &Lark{
+		log:           log,
+		LarkClient:    utils.NewLarkClient(log, conf),
+		ReceiverGroup: c.Lark.ChatGroup,
+	}
 }
 
 // SendEvent sends event notification to lark chart group
