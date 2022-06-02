@@ -5,6 +5,25 @@ on:
     types: [ opened, synchronize, reopened ]
     branches:
       - "develop"
+    paths-ignore:
+      - 'branding/**'
+      - 'design/**'
+      - 'helm/**'
+      - '.codespell-whitelist'
+      - '.gitignore'
+      - '.golangci.yml'
+      - '.mergify.yml'
+      - 'botkube-title.jpg'
+      - 'botkube_arch.jpg'
+      - 'CHANGELOG.md'
+      - 'CODE_OF_CONDUCT.md'
+      - 'comm_config.yaml'
+      - 'CONTRIBUTING.md'
+      - 'deploy-all-in-one.yaml'
+      - 'deploy-all-in-one-tls.yaml'
+      - 'LICENSE'
+      - 'README.md'
+      - 'resource_config.yaml'
 
 env:
   GO_VERSION: 1.18
@@ -47,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.APP }}-${{github.sha}}
-          path: /tmp/
+          path: /tmp/*.tar
           retention-days: 1
 
   push-image:
