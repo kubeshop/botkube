@@ -104,6 +104,7 @@ jobs:
 
       - name: Delete Docker image artifact
         uses: geekyeggo/delete-artifact@v1
+        if: always()
         with:
           name: ${{ matrix.APP }}-${{github.sha}}
 
