@@ -96,7 +96,7 @@ func (b *SlackBot) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			b.log.Info("Context canceled. Finishing...")
+			b.log.Info("Shutdown requested. Finishing...")
 			return rtm.Disconnect()
 		case msg, ok := <-rtm.IncomingEvents:
 			if !ok {
@@ -121,7 +121,11 @@ func (b *SlackBot) Start(ctx context.Context) error {
 					RTM:             rtm,
 					SlackClient:     api,
 				}
-				sm.HandleMessage(b)
+				err := sm.HandleMessage(b)
+				if err != nil {
+					wrappedErr := fmt.Errorf("while handling message: %w", err)
+					b.log.Errorf(wrappedErr.Error())
+				}
 
 			case *slack.RTMError:
 				b.log.Errorf("Slack RMT error: %+v", ev.Error())
@@ -171,7 +175,7 @@ func (b *SlackBot) stripUnmarshallingErrEventDetails(errMessage string) string {
 
 // TODO: refactor - handle and send methods should be defined on Bot level
 
-func (sm *slackMessage) HandleMessage(b *SlackBot) {
+func (sm *slackMessage) HandleMessage(b *SlackBot) error {
 	// Check if message posted in authenticated channel
 	info, err := sm.SlackClient.GetConversationInfo(sm.Event.Channel, true)
 	if err == nil {
@@ -179,7 +183,8 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 			// Message posted in a channel
 			// Serve only if starts with mention
 			if !strings.HasPrefix(sm.Event.Text, "<@"+sm.BotID+">") {
-				return
+				sm.log.Debugf("Ignoring message as it doesn't contain %q prefix", sm.BotID)
+				return nil
 			}
 			// Serve only if current channel is in config
 			if b.ChannelName == info.Name {
@@ -197,15 +202,19 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) {
 
 	e := sm.executorFactory.NewDefault(config.SlackBot, sm.IsAuthChannel, sm.Request)
 	sm.Response = e.Execute()
-	sm.Send()
+	err = sm.Send()
+	if err != nil {
+		return fmt.Errorf("while sending message: %w", err)
+	}
+
+	return nil
 }
 
-func (sm *slackMessage) Send() {
+func (sm *slackMessage) Send() error {
 	sm.log.Debugf("Slack incoming Request: %s", sm.Request)
 	sm.log.Debugf("Slack Response: %s", sm.Response)
 	if len(sm.Response) == 0 {
-		sm.log.Infof("Invalid request. Dumping the response. Request: %s", sm.Request)
-		return
+		return fmt.Errorf("while reading Slack response: empty response for request %q", sm.Request)
 	}
 	// Upload message as a file if too long
 	if len(sm.Response) >= 3990 {
@@ -217,9 +226,9 @@ func (sm *slackMessage) Send() {
 		}
 		_, err := sm.RTM.UploadFile(params)
 		if err != nil {
-			sm.log.Error("Error in uploading file:", err)
+			return fmt.Errorf("while uploading file: %w", err)
 		}
-		return
+		return nil
 	}
 
 	var options = []slack.MsgOption{slack.MsgOptionText(formatCodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
@@ -230,6 +239,8 @@ func (sm *slackMessage) Send() {
 	}
 
 	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
-		sm.log.Error("Error in sending message:", err)
+		return fmt.Errorf("while posting Slack message: %w", err)
 	}
+
+	return nil
 }

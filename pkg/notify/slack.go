@@ -64,7 +64,7 @@ func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 
 // SendEvent sends event notification to slack
 func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
-	s.log.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
+	s.log.Debugf(">> Sending to slack: %+v", event)
 	attachment := formatSlackMessage(event, s.NotifType)
 
 	targetChannel := event.Channel
@@ -107,7 +107,7 @@ func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
 
 // SendMessage sends message to slack channel
 func (s *Slack) SendMessage(ctx context.Context, msg string) error {
-	s.log.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
+	s.log.Debugf(">> Sending to slack: %+v", msg)
 	channelID, timestamp, err := s.Client.PostMessageContext(ctx, s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
 		return fmt.Errorf("while sending Slack message to channel %q: %w", s.Channel, err)

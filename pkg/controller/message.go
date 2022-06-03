@@ -8,7 +8,7 @@ import (
 )
 
 func sendMessageToNotifiers(ctx context.Context, notifiers []notify.Notifier, msg string) error {
-	if len(msg) <= 0 {
+	if msg == "" {
 		return fmt.Errorf("message cannot be empty")
 	}
 
@@ -16,7 +16,7 @@ func sendMessageToNotifiers(ctx context.Context, notifiers []notify.Notifier, ms
 	for _, n := range notifiers {
 		err := n.SendMessage(ctx, msg)
 		if err != nil {
-			return fmt.Errorf("while sending message: %s", err.Error())
+			return fmt.Errorf("while sending message: %w", err)
 		}
 	}
 

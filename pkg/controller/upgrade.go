@@ -76,13 +76,14 @@ func (c *UpgradeChecker) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			c.log.Info("Context canceled. Finishing...")
-			return errors.New("test")
+			c.log.Info("Shutdown requested. Finishing...")
+			return nil
 		case <-ticker.C:
 			// Check periodically
 			notified, err := c.notifyAboutUpgradeIfShould(ctx)
 			if err != nil {
-				return fmt.Errorf("while notifying about upgrade if should: %w", err)
+				wrappedErr := fmt.Errorf("while notifying about upgrade if should: %w", err)
+				c.log.Error(wrappedErr.Error())
 			}
 
 			if notified {

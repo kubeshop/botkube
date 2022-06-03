@@ -101,7 +101,7 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 	b.log.Info("BotKube connected to Discord!")
 
 	<-ctx.Done()
-	b.log.Info("Context canceled. Finishing...")
+	b.log.Info("Shutdown requested. Finishing...")
 	err = api.Close()
 	if err != nil {
 		return fmt.Errorf("while closing connection: %w", err)

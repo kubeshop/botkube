@@ -44,12 +44,15 @@ func (w *ConfigWatcher) Do(ctx context.Context, cancelFunc context.CancelFunc) (
 		}
 	}()
 
-	errGroup := new(errgroup.Group)
+	ctx, cancelFn := context.WithCancel(ctx)
+	defer cancelFn()
+
+	errGroup, _ := errgroup.WithContext(ctx)
 	errGroup.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
-				w.log.Info("Context canceled. Finishing...")
+				w.log.Info("Shutdown requested. Finishing...")
 				return nil
 			case _, ok := <-watcher.Events:
 				if !ok {

@@ -130,7 +130,7 @@ func (b *MMBot) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			b.log.Info("Context canceled. Finishing...")
+			b.log.Info("Shutdown requested. Finishing...")
 			return nil
 		default:
 			var appErr *model.AppError
@@ -251,7 +251,7 @@ func (b MMBot) listen(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			b.log.Info("Context canceled. Closing WebSocket connection")
+			b.log.Info("Shutdown requested. Finishing...")
 			return
 		case event, ok := <-b.WSClient.EventChannel:
 			if !ok {
@@ -268,12 +268,12 @@ func (b MMBot) listen(ctx context.Context) {
 				continue
 			}
 
-			if event.Event != model.WEBSOCKET_EVENT_POSTED {
+			if event.EventType() != model.WEBSOCKET_EVENT_POSTED {
 				// ignore
 				continue
 			}
 
-			post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
+			post := model.PostFromJson(strings.NewReader(event.GetData()["post"].(string)))
 
 			// Skip if message posted by BotKube or doesn't start with mention
 			if post.UserId == b.getUser().Id {

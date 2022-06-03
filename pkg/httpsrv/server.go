@@ -26,7 +26,7 @@ func New(log logrus.FieldLogger, addr string, mux *http.ServeMux) *Server {
 func (s *Server) Serve(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
-		s.log.Info("Context canceled. Finishing...")
+		s.log.Info("Shutdown requested. Finishing...")
 		if err := s.srv.Shutdown(context.Background()); err != nil {
 			s.log.Error("while shutting down server: %w", err)
 		}

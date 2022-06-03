@@ -64,18 +64,16 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) *Discord {
 // SendEvent sends event notification to Discord Channel
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
-	d.log.Debug(fmt.Sprintf(">> Sending to discord: %+v", event))
+	d.log.Debugf(">> Sending to discord: %+v", event)
 
 	api, err := discordgo.New("Bot " + d.Token)
 	if err != nil {
-		d.log.Error("error creating Discord session,", err)
-		return err
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 	messageSend := formatDiscordMessage(event, d.NotifType)
 
 	if _, err := api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
-		d.log.Errorf("Error in sending message: %+v", err)
-		return err
+		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
 	d.log.Debugf("Event successfully sent to channel %s", d.ChannelID)
 	return nil
@@ -84,16 +82,14 @@ func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 // SendMessage sends message to Discord Channel
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (d *Discord) SendMessage(_ context.Context, msg string) error {
-	d.log.Debug(fmt.Sprintf(">> Sending to discord: %+v", msg))
+	d.log.Debugf(">> Sending to discord: %+v", msg)
 	api, err := discordgo.New("Bot " + d.Token)
 	if err != nil {
-		d.log.Error("error creating Discord session,", err)
-		return err
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 
 	if _, err := api.ChannelMessageSend(d.ChannelID, msg); err != nil {
-		d.log.Error("Error in sending message:", err)
-		return err
+		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
 	d.log.Debugf("Event successfully sent to Discord %v", msg)
 	return nil

@@ -66,7 +66,7 @@ func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, er
 
 // SendEvent sends event notification to Mattermost
 func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
-	m.log.Info(fmt.Sprintf(">> Sending to Mattermost: %+v", event))
+	m.log.Debugf(">> Sending to Mattermost: %+v", event)
 
 	var fields []*model.SlackAttachmentField
 

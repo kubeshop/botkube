@@ -101,7 +101,8 @@ type ErrorEvent struct {
 
 // CreateResource with fake client
 func CreateResource(t *testing.T, dynamicCli dynamic.Interface, obj CreateObjects) {
-	// convert the runtime.Object to unstructured.Unstructured
+	t.Helper()
+
 	s := unstructured.Unstructured{}
 	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
 	require.NoError(t, err, "while converting pod object into unstructured")
@@ -115,6 +116,8 @@ func CreateResource(t *testing.T, dynamicCli dynamic.Interface, obj CreateObject
 
 // UpdateResource Create and update the obj and return old and new obj
 func UpdateResource(t *testing.T, dynamicCli dynamic.Interface, obj UpdateObjects) (*unstructured.Unstructured, *unstructured.Unstructured) {
+	t.Helper()
+
 	s := unstructured.Unstructured{}
 	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
 	require.NoError(t, err, "while converting pod object into unstructured")
@@ -138,6 +141,8 @@ func UpdateResource(t *testing.T, dynamicCli dynamic.Interface, obj UpdateObject
 
 // DeleteResource deletes the obj with fake client
 func DeleteResource(t *testing.T, dynamicCli dynamic.Interface, obj DeleteObjects) {
+	t.Helper()
+
 	s := unstructured.Unstructured{}
 	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
 	require.NoError(t, err, "while converting pod object into unstructured")

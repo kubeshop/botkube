@@ -9,8 +9,10 @@ import (
 	"github.com/infracloudio/botkube/pkg/filterengine/filters"
 )
 
-const filterLogFieldKey = "filter"
-const componentLogFieldKey = "component"
+const (
+	filterLogFieldKey    = "filter"
+	componentLogFieldKey = "component"
+)
 
 // WithAllFilters returns new DefaultFilterEngine instance with all filters registered.
 func WithAllFilters(logger *logrus.Logger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, conf *config.Config) *DefaultFilterEngine {

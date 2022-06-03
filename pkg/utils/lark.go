@@ -63,7 +63,7 @@ func (lark *LarkClient) marshalTextMessage(message string) (string, error) {
 func (lark *LarkClient) SendTextMessage(ctx context.Context, receiveType, receiveID, msg string) error {
 	content, err := lark.marshalTextMessage(msg)
 	if err != nil {
-		return fmt.Errorf("Error in sending marshal text message: %s error: %s", msg, err.Error())
+		return fmt.Errorf("while sending text message %q: %w", msg, err)
 	}
 	coreCtx := core.WrapContext(ctx)
 	reqCall := lark.Service.Messages.Create(coreCtx, &im.MessageCreateReqBody{

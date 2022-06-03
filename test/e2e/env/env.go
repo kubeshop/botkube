@@ -25,6 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slacktest"
 	corev1 "k8s.io/api/core/v1"
@@ -46,19 +48,31 @@ import (
 )
 
 // TestEnv to store objects required for e2e testing
-// DynamicCli    : Fake K8s client to mock resource creation
-// SlackServer  : Fake Slack server
-// SlackMessages: Channel to store incoming Slack messages from BotKube
-// Config	: BotKube config provided with config.yaml
 type TestEnv struct {
-	Ctrl          *controller.Controller
-	DiscoveryCli  discovery.DiscoveryInterface
-	DynamicCli    dynamic.Interface
-	SlackServer   *slacktest.Server
-	WebhookServer *webhook.Server
+
+	// Ctrl is a pointer to the BotKube controller
+	Ctrl *controller.Controller
+
+	// DiscoveryCli is a fake Discovery client
+	DiscoveryCli discovery.DiscoveryInterface
+
+	// DynamicCli is a fake K8s client to mock resource creation
+	DynamicCli dynamic.Interface
+
+	// Config is provided with config.yaml
+	Config *config.Config
+
+	// SlackServer is a fake Slack server
+	SlackServer *slacktest.Server
+
+	// SlackMessages is a channel to store incoming Slack messages from BotKube
 	SlackMessages chan *slack.MessageEvent
-	Config        *config.Config
-	Mapper        *restmapper.DeferredDiscoveryRESTMapper
+
+	// WebhookServer is a fake Webhook server
+	WebhookServer *webhook.Server
+
+	// Mapper is a K8s resources mapper that uses DiscoveryCli
+	Mapper meta.RESTMapper
 }
 
 // E2ETest interface to run tests

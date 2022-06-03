@@ -53,8 +53,10 @@ type Config struct {
 	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
 }
 
-const componentLogFieldKey = "component"
-const botLogFieldKey = "bot"
+const (
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+)
 
 func main() {
 	var appCfg Config
@@ -66,7 +68,7 @@ func main() {
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
 
-	errGroup := new(errgroup.Group)
+	errGroup, ctx := errgroup.WithContext(ctx)
 
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), appCfg.MetricsPort)

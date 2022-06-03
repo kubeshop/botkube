@@ -46,8 +46,10 @@ import (
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
 
-const componentLogFieldKey = "component"
-const botLogFieldKey = "bot"
+const (
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+)
 
 // Config contains the test configuration parameters.
 type Config struct {
@@ -63,7 +65,7 @@ func TestRun(t *testing.T) {
 	require.NoError(t, err, "while loading app configuration")
 
 	// New Environment to run integration tests
-	testEnv, err := env.New(appCfg.KubeconfigPath)
+	testEnv, err := env.New(appCfg.ConfigPath)
 	require.NoError(t, err)
 
 	ctx, cancelCtxFn := context.WithCancel(context.Background())

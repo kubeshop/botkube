@@ -61,8 +61,7 @@ func New(log logrus.FieldLogger) *DefaultFilterEngine {
 
 // Run runs the registered filters
 func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event events.Event) events.Event {
-	f.log.Debug("Running all filters")
-	// Run registered filters
+	f.log.Debug("Running registered filters")
 	for filter, enabled := range f.FiltersMap {
 		if !enabled {
 			continue

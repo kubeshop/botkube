@@ -196,7 +196,7 @@ func (e *DefaultExecutor) Execute() string {
 		if len(res) == 0 {
 			return ""
 		}
-		return fmt.Sprintf("pong from cluster '%s'", clusterName) + "\n\n" + res
+		return fmt.Sprintf("pong from cluster '%s'\n\n%s", clusterName, res)
 	}
 	if validVersionCommand[args[0]] {
 		return e.runVersionCommand(args, clusterName)

@@ -21,6 +21,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/infracloudio/botkube/pkg/config"
 )
@@ -50,7 +51,7 @@ func (d diffReporter) exec(x, y interface{}) (string, error) {
 
 // Diff provides differences between two objects spec
 func Diff(x, y interface{}, updateSetting config.UpdateSetting) (string, error) {
-	msg := ""
+	strBldr := new(strings.Builder)
 	for _, val := range updateSetting.Fields {
 		var d diffReporter
 		d.field = val
@@ -59,8 +60,8 @@ func Diff(x, y interface{}, updateSetting config.UpdateSetting) (string, error) 
 			return "", err
 		}
 
-		msg = msg + diff
+		strBldr.WriteString(diff)
 	}
 
-	return msg, nil
+	return strBldr.String(), nil
 }

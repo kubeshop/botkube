@@ -179,7 +179,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.dynamicKubeInformerFactory.Start(stopCh)
 	<-stopCh
 
-	c.log.Info("Context canceled. Sending final message...")
+	c.log.Info("Shutdown requested. Sending final message...")
 	finalMsgCtx, cancelFn := context.WithTimeout(context.Background(), finalMessageTimeout)
 	defer cancelFn()
 	err = sendMessageToNotifiers(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
@@ -220,7 +220,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
-		c.log.Errorf("while getting object metadata: %w", err)
+		c.log.Errorf("while getting object metadata: %s", err.Error())
 		return
 	}
 
@@ -247,11 +247,6 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Create new event object
-	objectMeta, err = utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
-	if err != nil {
-		c.log.Errorf("while getting object metadata: %w", err)
-		return
-	}
 	event, err := events.New(objectMeta, obj, eventType, resource, c.conf.Settings.ClusterName)
 	if err != nil {
 		c.log.Errorf("while creating new event: %w", err)
@@ -392,13 +387,9 @@ func (c *Controller) initInformerMap() error {
 }
 
 func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, error) {
-	var gvr schema.GroupVersionResource
-	if strings.Count(arg, "/") >= 2 {
-		s := strings.SplitN(arg, "/", 3)
-		gvr = schema.GroupVersionResource{Group: s[0], Version: s[1], Resource: s[2]}
-	} else if strings.Count(arg, "/") == 1 {
-		s := strings.SplitN(arg, "/", 2)
-		gvr = schema.GroupVersionResource{Group: "", Version: s[0], Resource: s[1]}
+	gvr, err := c.strToGVR(arg)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("while converting string to GroupVersionReference: %w", err)
 	}
 
 	// Validate the GVR provided
@@ -406,6 +397,19 @@ func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, 
 		return schema.GroupVersionResource{}, err
 	}
 	return gvr, nil
+}
+
+func (c *Controller) strToGVR(arg string) (schema.GroupVersionResource, error) {
+	const separator = "/"
+	gvrStrParts := strings.Split(arg, separator)
+	switch len(gvrStrParts) {
+	case 2:
+		return schema.GroupVersionResource{Group: "", Version: gvrStrParts[0], Resource: gvrStrParts[1]}, nil
+	case 3:
+		return schema.GroupVersionResource{Group: gvrStrParts[0], Version: gvrStrParts[1], Resource: gvrStrParts[2]}, nil
+	default:
+		return schema.GroupVersionResource{}, fmt.Errorf("invalid string: expected 2 or 3 parts when split by %q", separator)
+	}
 }
 
 func (c *Controller) shouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
