@@ -51,8 +51,8 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
-          {{- if ne (len .Values.extraVolumeMounts) 0 }}
-            {{ toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- with .Values.extraVolumeMounts }}
+            {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- if .Values.config.ssl.enabled }}
             - name: certs
@@ -76,8 +76,8 @@ spec:
             - name: KUBECONFIG
               value: "/.kube/config"
             {{- end }}
-          {{- if .Values.extraEnv }}
-            {{ tpl (toYaml .Values.extraEnv) . | nindent 12 }}
+          {{- with .Values.extraEnv }}
+            {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- if .Values.resources }}
           resources:
@@ -91,8 +91,8 @@ spec:
                 name: {{ include "botkube.fullname" . }}-configmap
             - secret:
                 name: {{ include "botkube.CommunicationsSecretName" . }}
-      {{- if ne (len .Values.extraVolumes) 0 }}
-        {{ toYaml .Values.extraVolumes | nindent 8 }}
+      {{- with .Values.extraVolumes }}
+        {{ toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.config.ssl.enabled }}
         - name: certs

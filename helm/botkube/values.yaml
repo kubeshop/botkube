@@ -378,7 +378,7 @@ service:
   port: 2112
   targetPort: 2112
 
-# Ingress settings to expose teams and lark endpoints
+## Ingress settings to expose teams and lark endpoints
 ingress:
   create: false
   annotations:
@@ -413,7 +413,8 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
-# Extra environment variables to pass to the BotKube container.
+## Extra environment variables to pass to the BotKube container.
+## ref: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables
 extraEnv: []
 #  - name: <key>
 #    valueFrom:
@@ -424,13 +425,14 @@ extraEnv: []
 #    value: value
 
 
-# Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts.
+## Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts.
+## ref: https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume
 extraVolumes: []
 # - name: extra-volume-0
 #   secret:
 #     secretName: <secret-name>
 #
-# for CSI e.g. Vault:
+## For CSI e.g. Vault:
 # - name: secrets-store-inline
 #   csi:
 #     driver: secrets-store.csi.k8s.io
@@ -438,7 +440,8 @@ extraVolumes: []
 #     volumeAttributes:
 #       secretProviderClass: "vault-database"
 
-# Extra volume mounts to pass to the BotKube container.
+## Extra volume mounts to pass to the BotKube container.
+## ref: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1
 extraVolumeMounts: []
 # - name: extra-volume-0
 #   mountPath: /mnt/volume0
@@ -450,7 +453,7 @@ extraVolumeMounts: []
 #   mountPath: /etc/secrets
 #   subPath: ""
 #
-# for CSI e.g. Vault:
+## For CSI e.g. Vault:
 # - name: secrets-store-inline
 #   mountPath: "/mnt/secrets-store"
 #   readOnly: true
@@ -476,12 +479,12 @@ serviceAccount:
   # annotations for the service account
   annotations: {}
 
-# Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources.
+## Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources.
 extraObjects: []
-# For example, to create a ClusterRoleBinding resource without creating a dedicated ClusterRole, uncomment the following snippet.
-# NOTE: While running Helm install/upgrade with this sample snippet uncommented, make sure to set the following values:
-#    1. `rbac.create: false`
-#    2.`extraClusterRoleName: {clusterRole}`, where {clusterRole} is a given ClusterRole name (e.g. `cluster-admin`).
+## For example, to create a ClusterRoleBinding resource without creating a dedicated ClusterRole, uncomment the following snippet.
+## NOTE: While running Helm install/upgrade with this sample snippet uncommented, make sure to set the following values:
+##    1. `rbac.create: false`
+##    2.`extraClusterRoleName: {clusterRole}`, where {clusterRole} is a given ClusterRole name (e.g. `cluster-admin`).
 #
 #    - apiVersion: rbac.authorization.k8s.io/v1
 #      kind: ClusterRoleBinding

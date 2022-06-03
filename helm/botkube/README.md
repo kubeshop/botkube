@@ -85,7 +85,6 @@ serviceAccount:
 | containerSecurityContext.privileged | bool | `false` |  |
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
 | extraAnnotations | object | `{}` |  |
-| extraEnv | string | `nil` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
@@ -119,3 +118,6 @@ serviceAccount:
 | serviceMonitor.port | string | `"metrics"` |  |
 | tolerations | list | `[]` |  |
 | extraObjects | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
+| extraEnv          | list | `[]`    | Extra environment variables to pass to the BotKube container. For the syntax, see the [environment variable API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables) document.              |
+| extraVolumeMounts | list | `[]`    | Extra volume mounts to pass to the BotKube container. For the syntax, see the [Volumes API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1) document.                                               |
+| extraVolumes      | list | `[]`    | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. For the syntax, see the [mount Volumes API](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume) document. |
