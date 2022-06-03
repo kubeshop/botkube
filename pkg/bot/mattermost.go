@@ -25,9 +25,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 )

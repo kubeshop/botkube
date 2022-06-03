@@ -23,9 +23,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"

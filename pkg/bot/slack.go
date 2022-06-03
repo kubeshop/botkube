@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/slack-go/slack"
 
 	"github.com/infracloudio/botkube/pkg/config"

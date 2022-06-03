@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	logtest "github.com/sirupsen/logrus/hooks/test"
-
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

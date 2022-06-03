@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/controller"
-
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -13,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/env"

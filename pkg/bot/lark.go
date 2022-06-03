@@ -25,13 +25,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/infracloudio/botkube/pkg/httpsrv"
-
 	"github.com/larksuite/oapi-sdk-go/core"
 	"github.com/larksuite/oapi-sdk-go/event"
 	eventhttpserver "github.com/larksuite/oapi-sdk-go/event/http"
+	"github.com/sirupsen/logrus"
+
+	"github.com/infracloudio/botkube/pkg/httpsrv"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/utils"

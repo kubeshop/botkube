@@ -24,9 +24,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 )

@@ -23,16 +23,13 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/client-go/dynamic"
-
 	"github.com/sirupsen/logrus"
-
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 

@@ -25,14 +25,12 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-
 	"github.com/infracloudio/botkube/pkg/utils"
-
-	coreV1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers

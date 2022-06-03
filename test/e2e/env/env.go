@@ -25,12 +25,11 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slacktest"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
@@ -40,9 +39,8 @@ import (
 	"k8s.io/client-go/restmapper"
 	samplev1alpha1 "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
 
-	"github.com/infracloudio/botkube/pkg/controller"
-
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/test/e2e/utils"
 	"github.com/infracloudio/botkube/test/webhook"
 )

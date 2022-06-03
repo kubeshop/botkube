@@ -26,15 +26,14 @@ import (
 	"regexp"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/dynamic"
-
 	coreV1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const hyperlinkRegex = `(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`

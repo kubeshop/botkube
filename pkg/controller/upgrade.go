@@ -25,9 +25,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/google/go-github/v44/github"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/version"

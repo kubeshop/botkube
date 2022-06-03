@@ -28,7 +28,6 @@ import (
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 

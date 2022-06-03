@@ -24,11 +24,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/larksuite/oapi-sdk-go/core"
 	larkconfig "github.com/larksuite/oapi-sdk-go/core/config"
 	im "github.com/larksuite/oapi-sdk-go/service/im/v1"
+	"github.com/sirupsen/logrus"
 )
 
 // LarkClient the client to communication with lark open platform

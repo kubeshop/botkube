@@ -25,10 +25,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
