@@ -27,6 +27,7 @@ on:
 
 env:
   GO_VERSION: 1.18
+  PR_NUMBER: ${{ github.event.pull_request.number }}
 
 jobs:
 
@@ -57,15 +58,13 @@ jobs:
           version: latest
 
       - name: Save
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           make save-pr-image
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.APP }}-${{github.sha}}
+          name: botkube-${{github.sha}}
           path: /tmp/*.tar
           retention-days: 1
 
@@ -80,14 +79,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
 
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: ${{ matrix.APP }}-${{github.sha}}
+          name: botkube-${{github.sha}}
           path: /tmp
 
       - name: Login to GitHub Container Registry
@@ -98,19 +97,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: make push-pr-image
 
       - name: Delete Docker image artifact
         uses: geekyeggo/delete-artifact@v1
         if: always()
         with:
-          name: ${{ matrix.APP }}-${{github.sha}}
+          name: botkube-${{github.sha}}
 
       - name: Summary
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           cat > $GITHUB_STEP_SUMMARY << ENDOFFILE
 

@@ -22,6 +22,9 @@
 set -o errexit
 set -o pipefail
 
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/infracloudio}"
+IMAGE_NAME="${IMAGE_NAME:-botkube}"
+
 prepare() {
   export DOCKER_CLI_EXPERIMENTAL="enabled"
   docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -32,15 +35,15 @@ release_snapshot() {
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
   goreleaser release --rm-dist --snapshot --skip-publish
   # Push images
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
   # Create manifest
-  docker manifest create ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG} \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}
+  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
 }
 
 save_pr_image() {
@@ -52,18 +55,18 @@ save_pr_image() {
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=v${PR_NUMBER}
+  export GORELEASER_CURRENT_TAG=PR-v${PR_NUMBER}
   goreleaser release --rm-dist --snapshot --skip-publish
 
   # Re-tag with 'pr' prefix
-  docker tag ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-amd64 ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-amd64
-  docker tag ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-arm64 ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-arm64
-  docker tag ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-armv7 ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-armv7
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
 
   # Push images
-  docker save ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-amd64 > /tmp/botkube-amd64.tar
-  docker save ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-arm64 > /tmp/botkube-arm64.tar
-  docker save ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-armv7 > /tmp/botkube-armv7.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 > /tmp/${IMAGE_NAME}-amd64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 > /tmp/${IMAGE_NAME}-arm64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 > /tmp/${IMAGE_NAME}-armv7.tar
 }
 
 push_pr_image() {
@@ -74,24 +77,24 @@ push_pr_image() {
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=v${PR_NUMBER}
+  export GORELEASER_CURRENT_TAG=PR-v${PR_NUMBER}
 
   # Load images
-  docker load --input /tmp/botkube-amd64.tar
-  docker load --input /tmp/botkube-arm64.tar
-  docker load --input /tmp/botkube-armv7.tar
+  docker load --input /tmp/${IMAGE_NAME}-amd64.tar
+  docker load --input /tmp/${IMAGE_NAME}-arm64.tar
+  docker load --input /tmp/${IMAGE_NAME}-armv7.tar
 
 	# Push images
-	docker push ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-amd64
-	docker push ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-arm64
-	docker push ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-armv7
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
 
   # Create manifest
-  docker manifest create ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG} \
-    --amend ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ghcr.io/infracloudio/pr/botkube:${GORELEASER_CURRENT_TAG}
+  docker manifest create ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
 }
 
 build() {
