@@ -20,47 +20,59 @@
 package notify
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
+
+const notifierLogFieldKey = "notifier"
 
 // Notifier to send event notification on the communication channels
 type Notifier interface {
-	SendEvent(events.Event) error
-	SendMessage(string) error
+	SendEvent(context.Context, events.Event) error
+	SendMessage(context.Context, string) error
 }
 
-// ListNotifiers returns list of configured notifiers
-func ListNotifiers(conf config.CommunicationsConfig) []Notifier {
+// LoadNotifiers returns list of configured notifiers
+func LoadNotifiers(log *logrus.Logger, conf config.CommunicationsConfig) ([]Notifier, error) {
 	var notifiers []Notifier
 	if conf.Slack.Enabled {
-		notifiers = append(notifiers, NewSlack(conf.Slack))
+		notifiers = append(notifiers, NewSlack(log.WithField(notifierLogFieldKey, "Slack"), conf.Slack))
 	}
+
 	if conf.Mattermost.Enabled {
-		if notifier, err := NewMattermost(conf.Mattermost); err == nil {
-			notifiers = append(notifiers, notifier)
-		} else {
-			log.Error(fmt.Sprintf("Failed to create Mattermost client. Error: %v", err))
+		mmNotifier, err := NewMattermost(log.WithField(notifierLogFieldKey, "Mattermost"), conf.Mattermost)
+		if err != nil {
+			return nil, fmt.Errorf("while creating Mattermost client: %w", err)
 		}
+
+		notifiers = append(notifiers, mmNotifier)
 	}
+
 	if conf.Discord.Enabled {
-		notifiers = append(notifiers, NewDiscord(conf.Discord))
+		notifiers = append(notifiers, NewDiscord(log.WithField(notifierLogFieldKey, "Discord"), conf.Discord))
 	}
+
 	if conf.ElasticSearch.Enabled {
-		if els, err := NewElasticSearch(conf.ElasticSearch); err == nil {
-			notifiers = append(notifiers, els)
-		} else {
-			log.Error(fmt.Sprintf("Failed to create els client. Error: %v", err))
+		esNotifier, err := NewElasticSearch(log.WithField(notifierLogFieldKey, "ElasticSearch"), conf.ElasticSearch)
+		if err != nil {
+			return nil, fmt.Errorf("while creating ElasticSearch client: %w", err)
 		}
+
+		notifiers = append(notifiers, esNotifier)
 	}
+
 	if conf.Webhook.Enabled {
-		notifiers = append(notifiers, NewWebhook(conf))
+		notifiers = append(notifiers, NewWebhook(log.WithField(notifierLogFieldKey, "Webhook"), conf))
 	}
+
 	if conf.Lark.Enabled {
-		notifiers = append(notifiers, NewLark(conf))
+		notifiers = append(notifiers, NewLark(log.WithField(notifierLogFieldKey, "Lark"), log.GetLevel(), conf))
 	}
-	return notifiers
+
+	return notifiers, nil
 }

@@ -20,17 +20,17 @@
 package notify
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
-
+	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
@@ -46,14 +46,16 @@ var attachmentColor = map[config.Level]string{
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
+	log       logrus.FieldLogger
 	Channel   string
 	NotifType config.NotifType
 	Client    *slack.Client
 }
 
 // NewSlack returns new Slack object
-func NewSlack(c config.Slack) Notifier {
+func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
+		log:       log,
 		Channel:   c.Channel,
 		NotifType: c.NotifType,
 		Client:    slack.New(c.Token),
@@ -61,8 +63,8 @@ func NewSlack(c config.Slack) Notifier {
 }
 
 // SendEvent sends event notification to slack
-func (s *Slack) SendEvent(event events.Event) error {
-	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", event))
+func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
+	s.log.Debugf(">> Sending to slack: %+v", event)
 	attachment := formatSlackMessage(event, s.NotifType)
 
 	targetChannel := event.Channel
@@ -84,7 +86,7 @@ func (s *Slack) SendEvent(event events.Event) error {
 
 		// send error message to default channel
 		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
-		sendMessageErr := s.SendMessage(msg)
+		sendMessageErr := s.SendMessage(ctx, msg)
 		if sendMessageErr != nil {
 			return multierror.Append(postMessageWrappedErr, sendMessageErr)
 		}
@@ -92,26 +94,26 @@ func (s *Slack) SendEvent(event events.Event) error {
 		// sending missed event to default channel
 		// reset event.Channel and send event
 		event.Channel = ""
-		sendEventErr := s.SendEvent(event)
+		sendEventErr := s.SendEvent(ctx, event)
 		if sendEventErr != nil {
 			return multierror.Append(postMessageWrappedErr, sendEventErr)
 		}
 
 		return postMessageWrappedErr
 	}
-	log.Debugf("Event successfully sent to channel %q at %s", channelID, timestamp)
+	s.log.Debugf("Event successfully sent to channel %q at %s", channelID, timestamp)
 	return nil
 }
 
 // SendMessage sends message to slack channel
-func (s *Slack) SendMessage(msg string) error {
-	log.Debug(fmt.Sprintf(">> Sending to slack: %+v", msg))
-	channelID, timestamp, err := s.Client.PostMessage(s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
+func (s *Slack) SendMessage(ctx context.Context, msg string) error {
+	s.log.Debugf(">> Sending to slack: %+v", msg)
+	channelID, timestamp, err := s.Client.PostMessageContext(ctx, s.Channel, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 	if err != nil {
 		return fmt.Errorf("while sending Slack message to channel %q: %w", s.Channel, err)
 	}
 
-	log.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)
+	s.log.Debugf("Message successfully sent to channel %s at %s", channelID, timestamp)
 	return nil
 }
 

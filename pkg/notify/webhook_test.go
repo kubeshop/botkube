@@ -20,6 +20,7 @@
 package notify
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -57,7 +58,7 @@ func TestPostWebhook(t *testing.T) {
 				URL: ts.URL,
 			}
 
-			err := w.PostWebhook(&WebhookPayload{})
+			err := w.PostWebhook(context.Background(), &WebhookPayload{})
 			assert.Equal(t, test.expected, err)
 		})
 	}

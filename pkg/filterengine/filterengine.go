@@ -20,71 +20,83 @@
 package filterengine
 
 import (
+	"context"
 	"fmt"
-	"reflect"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
+
+// DefaultFilterEngine is a default implementation of the Filter Engine
+type DefaultFilterEngine struct {
+	log logrus.FieldLogger
+
+	// TODO: Change map key to filter name to be able to SetFilter without iterating through the whole map
+	FiltersMap map[Filter]bool
+}
 
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
-	Run(interface{}, events.Event) events.Event
+	Run(context.Context, interface{}, events.Event) events.Event
 	Register(...Filter)
 	ShowFilters() map[Filter]bool
 	SetFilter(string, bool) error
 }
 
-type defaultFilters struct {
-	FiltersMap map[Filter]bool
-}
-
 // Filter has method to run filter
 type Filter interface {
-	Run(interface{}, *events.Event)
+	Run(context.Context, interface{}, *events.Event) error
+	Name() string
 	Describe() string
 }
 
-// NewDefaultFilter creates new DefaultFilter object
-func NewDefaultFilter() FilterEngine {
-	var df defaultFilters
-	df.FiltersMap = make(map[Filter]bool)
-	return &df
+// New creates new DefaultFilterEngine object
+func New(log logrus.FieldLogger) *DefaultFilterEngine {
+	return &DefaultFilterEngine{
+		log:        log,
+		FiltersMap: make(map[Filter]bool),
+	}
 }
 
-// Run run the filters
-func (f *defaultFilters) Run(object interface{}, event events.Event) events.Event {
-	log.Debug("Filterengine running filters")
-	// Run registered filters
-	for k, v := range f.FiltersMap {
-		if v {
-			k.Run(object, &event)
+// Run runs the registered filters
+func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event events.Event) events.Event {
+	f.log.Debug("Running registered filters")
+	for filter, enabled := range f.FiltersMap {
+		if !enabled {
+			continue
+		}
+
+		err := filter.Run(ctx, object, &event)
+		if err != nil {
+			f.log.Errorf("while running filter %q: %w", filter.Name(), err)
 		}
 	}
 	return event
 }
 
 // Register filter(s) to engine
-func (f *defaultFilters) Register(filters ...Filter) {
+func (f *DefaultFilterEngine) Register(filters ...Filter) {
 	for _, filter := range filters {
-		log.Infof("Registering filter %q", reflect.TypeOf(filter).Name())
+		f.log.Infof("Registering filter %q", filter.Name())
 		f.FiltersMap[filter] = true
 	}
 }
 
 // ShowFilters return map of filter name and status
-func (f defaultFilters) ShowFilters() map[Filter]bool {
+// TODO: This method is used for printing filters, but the order of the list is not preserved. Fix it.
+func (f DefaultFilterEngine) ShowFilters() map[Filter]bool {
 	return f.FiltersMap
 }
 
 // SetFilter sets filter value in FilterMap to enable or disable filter
-func (f *defaultFilters) SetFilter(name string, flag bool) error {
+func (f *DefaultFilterEngine) SetFilter(name string, flag bool) error {
 	// Find filter struct name
 	for k := range f.FiltersMap {
-		if reflect.TypeOf(k).Name() == name {
+		if k.Name() == name {
 			f.FiltersMap[k] = flag
 			return nil
 		}
 	}
-	return fmt.Errorf("Invalid filter name %s", name)
+	return fmt.Errorf("couldn't find filter with name %q", name)
 }

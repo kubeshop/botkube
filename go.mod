@@ -5,6 +5,7 @@ require (
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/google/go-github/v44 v44.1.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/larksuite/oapi-sdk-go v1.1.44
 	github.com/mattermost/mattermost-server/v5 v5.39.3
@@ -14,6 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slack-go/slack v0.10.3
 	github.com/stretchr/testify v1.7.1
+	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.24.0
@@ -21,6 +23,7 @@ require (
 	k8s.io/client-go v0.24.0
 	k8s.io/kubectl v0.24.0
 	k8s.io/sample-controller v0.24.0
+	sigs.k8s.io/controller-runtime v0.12.1
 )
 
 require (
@@ -61,7 +64,6 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -112,7 +114,7 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.19.0 // indirect
+	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/net v0.0.0-20220403103023-749bd193bc2b // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
@@ -135,7 +137,7 @@ require (
 	sigs.k8s.io/kustomize/api v0.11.4 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 go 1.18

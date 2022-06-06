@@ -124,42 +124,19 @@ func (c *context) testBotkubeCommand(t *testing.T) {
 				assert.Equal(t, c.Config.Communications.Slack.Channel, m.Channel)
 				switch test.command {
 				case "filters list":
-					fl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
-					assert.Equal(t, fl, true)
+					assert.ElementsMatch(t, strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
 				case "commands list --cluster-name test-cluster-2":
 					fallthrough
 				case "commands list --cluster-name test-cluster-1":
 					fallthrough
 				case "commands list":
-					cl := compareFilters(strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
-					assert.Equal(t, cl, true)
+					assert.ElementsMatch(t, strings.Split(test.expected, "\n"), strings.Split(strings.TrimSpace(strings.Trim(m.Text, "`")), "\n"))
 				default:
 					assert.Equal(t, test.expected, m.Text)
 				}
 			}
 		})
 	}
-}
-
-func compareFilters(expected, actual []string) bool {
-	if len(expected) != len(actual) {
-		return false
-	}
-
-	// Compare slices
-	for _, a := range actual {
-		found := false
-		for _, e := range expected {
-			if a == e {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // Test disable notification with BotKube notifier command
@@ -198,7 +175,7 @@ func (c *context) testNotifierCommand(t *testing.T) {
 	}
 	t.Run("create resource", func(t *testing.T) {
 		// Inject an event into the fake client.
-		utils.CreateResource(t, pod)
+		utils.CreateResource(t, c.DynamicCli, pod)
 
 		if c.TestEnv.Config.Communications.Slack.Enabled {
 			// Get last seen slack message

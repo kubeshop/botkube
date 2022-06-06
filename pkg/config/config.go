@@ -253,7 +253,7 @@ func (eventType EventType) String() string {
 }
 
 // NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (*Communications, error) {
+func NewCommunicationsConfig() (c *Communications, err error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
 	rawCfg, err := os.ReadFile(filepath.Clean(commCfgFilePath))
@@ -268,10 +268,9 @@ func NewCommunicationsConfig() (*Communications, error) {
 	return commCfg, nil
 }
 
-// New returns new Config
-func New() (*Config, error) {
-	configPath := os.Getenv("CONFIG_PATH")
-	resCfgFilePath := filepath.Join(configPath, ResourceConfigFileName)
+// Load loads new configuration from file.
+func Load(dir string) (*Config, error) {
+	resCfgFilePath := filepath.Join(dir, ResourceConfigFileName)
 	rawCfg, err := os.ReadFile(filepath.Clean(resCfgFilePath))
 	if err != nil {
 		return nil, err

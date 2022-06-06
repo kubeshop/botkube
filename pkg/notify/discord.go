@@ -20,13 +20,14 @@
 package notify
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // customTimeFormat holds custom time format string
@@ -42,14 +43,17 @@ var embedColor = map[config.Level]int{
 
 // Discord contains URL and ClusterName
 type Discord struct {
+	log logrus.FieldLogger
+
 	Token     string
 	ChannelID string
 	NotifType config.NotifType
 }
 
 // NewDiscord returns new Discord object
-func NewDiscord(c config.Discord) Notifier {
+func NewDiscord(log logrus.FieldLogger, c config.Discord) *Discord {
 	return &Discord{
+		log:       log,
 		Token:     c.Token,
 		ChannelID: c.Channel,
 		NotifType: c.NotifType,
@@ -57,38 +61,36 @@ func NewDiscord(c config.Discord) Notifier {
 }
 
 // SendEvent sends event notification to Discord Channel
-func (d *Discord) SendEvent(event events.Event) (err error) {
-	log.Debug(fmt.Sprintf(">> Sending to discord: %+v", event))
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
+	d.log.Debugf(">> Sending to discord: %+v", event)
 
 	api, err := discordgo.New("Bot " + d.Token)
 	if err != nil {
-		log.Error("error creating Discord session,", err)
-		return err
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 	messageSend := formatDiscordMessage(event, d.NotifType)
 
 	if _, err := api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
-		log.Errorf("Error in sending message: %+v", err)
-		return err
+		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
-	log.Debugf("Event successfully sent to channel %s", d.ChannelID)
+	d.log.Debugf("Event successfully sent to channel %s", d.ChannelID)
 	return nil
 }
 
 // SendMessage sends message to Discord Channel
-func (d *Discord) SendMessage(msg string) error {
-	log.Debug(fmt.Sprintf(">> Sending to discord: %+v", msg))
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+func (d *Discord) SendMessage(_ context.Context, msg string) error {
+	d.log.Debugf(">> Sending to discord: %+v", msg)
 	api, err := discordgo.New("Bot " + d.Token)
 	if err != nil {
-		log.Error("error creating Discord session,", err)
-		return err
+		return fmt.Errorf("while creating Discord session: %w", err)
 	}
 
 	if _, err := api.ChannelMessageSend(d.ChannelID, msg); err != nil {
-		log.Error("Error in sending message:", err)
-		return err
+		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
-	log.Debugf("Event successfully sent to Discord %v", msg)
+	d.log.Debugf("Event successfully sent to Discord %v", msg)
 	return nil
 }
 

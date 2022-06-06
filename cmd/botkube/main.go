@@ -20,111 +20,204 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
 	"os"
+	"time"
 
+	"github.com/google/go-github/v44/github"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
+	"github.com/vrischmann/envconfig"
 	"golang.org/x/sync/errgroup"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
+	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/log"
-	"github.com/infracloudio/botkube/pkg/metrics"
+	"github.com/infracloudio/botkube/pkg/httpsrv"
+	"github.com/infracloudio/botkube/pkg/kube"
 	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/pkg/utils"
 )
+
+// Config contains the app configuration parameters.
+type Config struct {
+	MetricsPort           string        `envconfig:"default=2112"`
+	LogLevel              string        `envconfig:"default=error"`
+	ConfigPath            string        `envconfig:"optional"`
+	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
+	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
+}
 
 const (
-	defaultMetricsPort = "2112"
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
 )
 
-// TODO:
-//  - Use context to make sure all goroutines shutdowns gracefully: https://github.com/infracloudio/botkube/issues/220
-//  - Make the code testable (shorten methods and functions, and reduce level of cyclomatic complexity): https://github.com/infracloudio/botkube/issues/589
-
 func main() {
+	var appCfg Config
+	err := envconfig.Init(&appCfg)
+	exitOnError(err, "while loading app configuration")
+
+	logger := newLogger(appCfg.LogLevel)
+	ctx := signals.SetupSignalHandler()
+	ctx, cancelCtxFn := context.WithCancel(ctx)
+	defer cancelCtxFn()
+
+	errGroup, ctx := errgroup.WithContext(ctx)
+
 	// Prometheus metrics
-	metricsPort, exists := os.LookupEnv("METRICS_PORT")
-	if !exists {
-		metricsPort = defaultMetricsPort
-	}
-
-	// Set up global logger and filter engine
-	log.SetupGlobal()
-	filterengine.SetupGlobal()
-
-	errGroup := new(errgroup.Group)
-
+	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), appCfg.MetricsPort)
 	errGroup.Go(func() error {
-		return metrics.ServeMetrics(metricsPort)
+		return metricsSrv.Serve(ctx)
 	})
 
-	log.Info("Starting controller")
-
-	conf, err := config.New()
+	conf, err := config.Load(appCfg.ConfigPath)
 	exitOnError(err, "while loading configuration")
+	if conf == nil {
+		log.Fatal("while loading configuration: config cannot be nil")
+	}
+
+	// Prepare K8s clients and mapper
+	dynamicCli, discoveryCli, mapper, err := kube.SetupK8sClients(appCfg.KubeconfigPath)
+	exitOnError(err, "while initializing K8s clients")
+
+	// Set up the filter engine
+	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
 	// List notifiers
-	notifiers := notify.ListNotifiers(conf.Communications)
+	notifiers, err := notify.LoadNotifiers(logger, conf.Communications)
+	exitOnError(err, "while loading notifiers")
 
+	// Create Executor Factory
+	resMapping, err := execute.LoadResourceMappingIfShould(
+		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
+		conf,
+		discoveryCli,
+	)
+	exitOnError(err, "while loading resource mapping")
+
+	executorFactory := execute.NewExecutorFactory(
+		logger.WithField(componentLogFieldKey, "Executor"),
+		execute.DefaultCommandRunnerFunc,
+		*conf,
+		filterEngine,
+		resMapping,
+	)
+
+	// Run bots
 	if conf.Communications.Slack.Enabled {
-		log.Info("Starting slack bot")
-		sb := bot.NewSlackBot(conf)
+		sb := bot.NewSlackBot(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory)
 		errGroup.Go(func() error {
-			return sb.Start()
+			return sb.Start(ctx)
 		})
 	}
 
 	if conf.Communications.Mattermost.Enabled {
-		log.Info("Starting mattermost bot")
-		mb := bot.NewMattermostBot(conf)
+		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory)
 		errGroup.Go(func() error {
-			return mb.Start()
+			return mb.Start(ctx)
 		})
 	}
 
 	if conf.Communications.Teams.Enabled {
-		log.Info("Starting MS Teams bot")
-		tb := bot.NewTeamsBot(conf)
+		tb := bot.NewTeamsBot(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory)
+		// TODO: Unify that with other notifiers: Split this into two structs or merge other bots and notifiers into single structs
 		notifiers = append(notifiers, tb)
 		errGroup.Go(func() error {
-			return tb.Start()
+			return tb.Start(ctx)
 		})
 	}
 
 	if conf.Communications.Discord.Enabled {
-		log.Info("Starting discord bot")
-		db := bot.NewDiscordBot(conf)
+		db := bot.NewDiscordBot(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory)
 		errGroup.Go(func() error {
-			return db.Start()
+			return db.Start(ctx)
 		})
 	}
 
 	if conf.Communications.Lark.Enabled {
-		log.Info("Starting lark bot")
-		lb := bot.NewLarkBot(conf)
+		lb := bot.NewLarkBot(logger.WithField(botLogFieldKey, "Lark"), logger.GetLevel(), conf, executorFactory)
 		errGroup.Go(func() error {
-			return lb.Start()
+			return lb.Start(ctx)
 		})
 	}
 
-	// Start upgrade notifier
+	// Start upgrade checker
+	ghCli := github.NewClient(&http.Client{
+		Timeout: 1 * time.Minute,
+	})
 	if conf.Settings.UpgradeNotifier {
-		log.Info("Starting upgrade notifier")
+		upgradeChecker := controller.NewUpgradeChecker(
+			logger.WithField(componentLogFieldKey, "Upgrade Checker"),
+			notifiers,
+			ghCli.Repositories,
+		)
 		errGroup.Go(func() error {
-			controller.UpgradeNotifier(notifiers)
-			return nil
+			return upgradeChecker.Run(ctx)
 		})
 	}
 
-	// Init KubeClient, InformerMap and start controller
-	utils.InitKubeClient()
-	utils.InitInformerMap(conf)
-	utils.InitResourceMap(conf)
-	controller.RegisterInformers(conf, notifiers)
+	// Start Config Watcher
+	if conf.Settings.ConfigWatcher {
+		cfgWatcher := controller.NewConfigWatcher(
+			logger.WithField(componentLogFieldKey, "Config Watcher"),
+			appCfg.ConfigPath,
+			conf.Settings.ClusterName,
+			notifiers,
+		)
+		errGroup.Go(func() error {
+			return cfgWatcher.Do(ctx, cancelCtxFn)
+		})
+	}
+
+	// Start controller
+
+	ctrl := controller.New(
+		logger.WithField(componentLogFieldKey, "Controller"),
+		conf,
+		notifiers,
+		filterEngine,
+		appCfg.ConfigPath,
+		dynamicCli,
+		mapper,
+		appCfg.InformersResyncPeriod,
+	)
+
+	err = ctrl.Start(ctx)
+	exitOnError(err, "while starting controller")
 
 	err = errGroup.Wait()
 	exitOnError(err, "while waiting for goroutines to finish gracefully")
+}
+
+func newLogger(logLevelStr string) *logrus.Logger {
+	logger := logrus.New()
+	// Output to stdout instead of the default stderr
+	logger.SetOutput(os.Stdout)
+
+	// Only logger the warning severity or above.
+	logLevel, err := logrus.ParseLevel(logLevelStr)
+	if err != nil {
+		// Set Info level as a default
+		logLevel = logrus.InfoLevel
+	}
+	logger.SetLevel(logLevel)
+	logger.Formatter = &logrus.TextFormatter{ForceColors: true, FullTimestamp: true}
+
+	return logger
+}
+
+func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {
+	addr := fmt.Sprintf(":%s", metricsPort)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	return httpsrv.New(log, addr, mux)
 }
 
 func exitOnError(err error, context string) {

@@ -20,36 +20,35 @@
 package filters
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 )
 
 // NamespaceChecker ignore events from blocklisted namespaces
 type NamespaceChecker struct {
-	Description string
+	log                 logrus.FieldLogger
+	configuredResources []config.Resource
+}
+
+// NewNamespaceChecker creates a new NamespaceChecker instance
+func NewNamespaceChecker(log logrus.FieldLogger, configuredResources []config.Resource) *NamespaceChecker {
+	return &NamespaceChecker{log: log, configuredResources: configuredResources}
 }
 
 // Run filters and modifies event struct
-func (f NamespaceChecker) Run(_ interface{}, event *events.Event) {
+func (f *NamespaceChecker) Run(_ context.Context, _ interface{}, event *events.Event) error {
 	// Skip filter for cluster scoped resource
 	if len(event.Namespace) == 0 {
-		return
+		return nil
 	}
-	// load config.yaml
-	botkubeConfig, err := config.New()
-	if err != nil {
-		log.Errorf("Error in loading configuration. %s", err.Error())
-		return
-	}
-	if botkubeConfig == nil {
-		log.Errorf("Error in loading configuration.")
-		return
-	}
-	for _, resource := range botkubeConfig.Resources {
+
+	for _, resource := range f.configuredResources {
 		if event.Resource != resource.Name {
 			continue
 		}
@@ -57,15 +56,21 @@ func (f NamespaceChecker) Run(_ interface{}, event *events.Event) {
 		event.Skip = shouldSkipEvent
 		break
 	}
-	log.Debug("Ignore Namespaces filter successful!")
+	f.log.Debug("Ignore Namespaces filter successful!")
+	return nil
 }
 
-// Describe filter
-func (f NamespaceChecker) Describe() string {
-	return f.Description
+// Name returns the filter's name
+func (f *NamespaceChecker) Name() string {
+	return "NamespaceChecker"
 }
 
-// isNamespaceIgnored checks if a event to be ignored from user config
+// Describe describes the filter
+func (f *NamespaceChecker) Describe() string {
+	return "Checks if event belongs to blocklisted namespaces and filter them."
+}
+
+// isNamespaceIgnored checks if an event to be ignored from user config
 func isNamespaceIgnored(resourceNamespaces config.Namespaces, eventNamespace string) bool {
 	if len(resourceNamespaces.Include) == 1 && resourceNamespaces.Include[0] == "all" {
 		if len(resourceNamespaces.Ignore) > 0 {

@@ -6,11 +6,13 @@ import (
 
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/notify"
 	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/env"
@@ -98,20 +100,24 @@ func (c *context) testUpdateResource(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			resource := utils.GVRToString(test.GVR)
 			// checking if update operation is true
-			isAllowed := utils.AllowedEventKindsMap[utils.EventKind{
+			observedEventKindsMap := c.Ctrl.ObservedEventKindsMap()
+			isAllowed := observedEventKindsMap[controller.EventKind{
 				Resource:  resource,
 				Namespace: "all",
 				EventType: config.UpdateEvent}] ||
-				utils.AllowedEventKindsMap[utils.EventKind{
+				observedEventKindsMap[controller.EventKind{
 					Resource:  resource,
 					Namespace: test.Namespace,
 					EventType: config.UpdateEvent}]
 			assert.Equal(t, isAllowed, true)
 			// modifying the update setting value as per testcases
-			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
+			observedUpdateEventKindsMap := c.Ctrl.ObservedUpdateEventsMap()
+			observedUpdateEventKindsMap[controller.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
+			c.Ctrl.SetObservedUpdateEventsMap(observedUpdateEventKindsMap)
 			// getting the updated and old object
-			oldObj, newObj := testutils.UpdateResource(t, test)
-			updateMsg := utils.Diff(oldObj.Object, newObj.Object, test.UpdateSetting)
+			oldObj, newObj := testutils.UpdateResource(t, c.DynamicCli, test)
+			updateMsg, err := utils.Diff(oldObj.Object, newObj.Object, test.UpdateSetting)
+			require.NoError(t, err)
 			assert.Equal(t, test.Diff, updateMsg)
 			// Inject an event into the fake client.
 			if c.TestEnv.Config.Communications.Slack.Enabled {
@@ -143,7 +149,6 @@ func (c *context) testUpdateResource(t *testing.T) {
 // Run tests
 func (c *context) Run(t *testing.T) {
 	t.Run("update resource", c.testUpdateResource)
-	t.Run("skip update event", c.testSKipUpdateEvent)
 	t.Run("skip update event for wrong setting", c.testSkipWrongSetting)
 }
 
@@ -154,52 +159,20 @@ func E2ETests(testEnv *env.TestEnv) env.E2ETest {
 	}
 }
 
-func (c *context) testSKipUpdateEvent(t *testing.T) {
-	// Modifying AllowedEventKindsMap configure dummy namespace for update event and ignore all
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "update"}] = true
-	delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"})
-	// reset to original test config
-	defer delete(utils.AllowedEventKindsMap, utils.EventKind{Resource: "v1/pods", Namespace: "dummy", EventType: "update"})
-
-	// test scenarios
-	tests := map[string]testutils.UpdateObjects{
-		"skip update event for namespaces not configured": {
-			// update operation not allowed for Pod in test namespace so event should be skipped
-			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
-			Kind:      "Pod",
-			Namespace: "test",
-			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-update"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
-		},
-		"skip update event for resources not added": {
-			// update operation not allowed for namespaces in test_config so event should be skipped
-			GVR:   schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
-			Kind:  "Namespace",
-			Specs: &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "abc"}},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			resource := utils.GVRToString(test.GVR)
-			// checking if update operation is true
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.UpdateEvent)
-			assert.Equal(t, isAllowed, false)
-		})
-	}
-	// Resetting original configuration as per test_config
-	utils.AllowedEventKindsMap[utils.EventKind{Resource: "v1/pods", Namespace: "all", EventType: "update"}] = true
-}
-
 func (c *context) testSkipWrongSetting(t *testing.T) {
 	// test scenarios
-	tests := map[string]testutils.UpdateObjects{
+	tests := map[string]struct {
+		updateObj          testutils.UpdateObjects
+		expectedErrMessage string
+	}{
 		"skip update event for wrong updateSettings value": {
-			// update event given with wrong value of updateSettings which doesn't exist would be skipped
-			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
-			Kind:      "Pod",
-			Namespace: "test",
-			Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-update-skip"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
-			Patch: []byte(`{
+			updateObj: testutils.UpdateObjects{
+				// update event given with wrong value of updateSettings which doesn't exist would be skipped
+				GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
+				Kind:      "Pod",
+				Namespace: "test",
+				Specs:     &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-update-skip"}, Spec: v1.PodSpec{Containers: []v1.Container{{Name: "test-pod-container", Image: "tomcat:9.0.34"}}}},
+				Patch: []byte(`{
 				"apiVersion": "v1",
 				"kind": "Pod",
 				"metadata": {
@@ -216,25 +189,35 @@ func (c *context) testSkipWrongSetting(t *testing.T) {
 				}
 			  }
 			  `),
-			// adding wrong field
-			UpdateSetting: config.UpdateSetting{Fields: []string{"spec.invalid"}, IncludeDiff: true},
-			// diff calcuted should be empty because of error
-			Diff: "",
+				// adding wrong field
+				UpdateSetting: config.UpdateSetting{Fields: []string{"spec.invalid"}, IncludeDiff: true},
+				// diff calcuted should be empty because of error
+				Diff: "",
+			},
+			expectedErrMessage: "while finding value from jsonpath: \"spec.invalid\", object: map[apiVersion:v1 kind:Pod metadata:map[creationTimestamp:<nil> name:test-pod-update-skip namespace:test] spec:map[containers:[map[image:tomcat:9.0.34 name:test-pod-container resources:map[]]]] status:map[]]: invalid is not found",
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			resource := utils.GVRToString(test.GVR)
+			resource := utils.GVRToString(test.updateObj.GVR)
 			// checking if update operation is true
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.UpdateEvent)
+			isAllowed := c.Ctrl.ShouldSendEvent(test.updateObj.Namespace, resource, config.UpdateEvent)
 			assert.Equal(t, isAllowed, true)
 			// modifying the update setting value as per testcases
-			utils.AllowedUpdateEventsMap[utils.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.UpdateSetting
+
+			observedUpdateEventKindsMap := c.Ctrl.ObservedUpdateEventsMap()
+			observedUpdateEventKindsMap[controller.KindNS{Resource: "v1/pods", Namespace: "all"}] = test.updateObj.UpdateSetting
+			c.Ctrl.SetObservedUpdateEventsMap(observedUpdateEventKindsMap)
+
 			// getting the updated and old object
-			oldObj, newObj := testutils.UpdateResource(t, test)
-			updateMsg := utils.Diff(oldObj.Object, newObj.Object, test.UpdateSetting)
-			assert.Equal(t, test.Diff, updateMsg)
+			oldObj, newObj := testutils.UpdateResource(t, c.DynamicCli, test.updateObj)
+			updateMsg, err := utils.Diff(oldObj.Object, newObj.Object, test.updateObj.UpdateSetting)
+			if test.expectedErrMessage != "" {
+				require.EqualError(t, err, test.expectedErrMessage)
+			}
+
+			assert.Equal(t, test.updateObj.Diff, updateMsg)
 		})
 	}
 }

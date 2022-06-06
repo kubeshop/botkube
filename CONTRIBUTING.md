@@ -92,7 +92,13 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    # From project root directory
    $ export CONFIG_PATH=$(pwd)
    ```
-4. Make sure that correct context is set and you are able to access your Kubernetes cluster
+4. Export the path to Kubeconfig:
+    
+   ```sh
+   export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
+   ```
+
+5. Make sure that correct context is set and you are able to access your Kubernetes cluster
    ```console
    $ kubectl config current-context
    minikube
@@ -100,8 +106,8 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    Kubernetes master is running at https://192.168.39.233:8443
    CoreDNS is running at https://192.168.39.233:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
    ...
-	```
-5. Run BotKube binary
+   ```
+6. Run BotKube binary
    ```sh
    $ ./botkube
    ```

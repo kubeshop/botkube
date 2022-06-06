@@ -20,78 +20,134 @@
 package e2e
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/require"
+	"github.com/vrischmann/envconfig"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/infracloudio/botkube/pkg/bot"
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/controller"
 	"github.com/infracloudio/botkube/pkg/execute"
 	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/pkg/utils"
 	"github.com/infracloudio/botkube/test/e2e/command"
 	"github.com/infracloudio/botkube/test/e2e/env"
 	"github.com/infracloudio/botkube/test/e2e/filters"
 	"github.com/infracloudio/botkube/test/e2e/notifier/create"
 	"github.com/infracloudio/botkube/test/e2e/notifier/delete"
-	notifierErr "github.com/infracloudio/botkube/test/e2e/notifier/error"
 	"github.com/infracloudio/botkube/test/e2e/notifier/update"
 	"github.com/infracloudio/botkube/test/e2e/welcome"
 )
 
+const (
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+)
+
+// Config contains the test configuration parameters.
+type Config struct {
+	ConfigPath            string        `envconfig:"optional"`
+	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
+	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
+}
+
 // TestRun run e2e integration tests
 func TestRun(t *testing.T) {
+	var appCfg Config
+	err := envconfig.Init(&appCfg)
+	require.NoError(t, err, "while loading app configuration")
+
 	// New Environment to run integration tests
-	testEnv, err := env.New()
+	testEnv, err := env.New(appCfg.ConfigPath)
 	require.NoError(t, err)
 
-	// Set up global logger and filter engine
-	log.SetupGlobal()
-	filterengine.SetupGlobal()
+	ctx, cancelCtxFn := context.WithCancel(context.Background())
+	defer cancelCtxFn()
+
+	logger, _ := logtest.NewNullLogger()
+	errGroup := new(errgroup.Group)
+
+	// Filter engine
+	filterEngine := filterengine.WithAllFilters(logger, testEnv.DynamicCli, testEnv.Mapper, testEnv.Config)
 
 	// Fake notifiers
 	var notifiers []notify.Notifier
 
 	if testEnv.Config.Communications.Slack.Enabled {
-		fakeSlackNotifier := &notify.Slack{
-			Channel:   testEnv.Config.Communications.Slack.Channel,
-			NotifType: testEnv.Config.Communications.Slack.NotifType,
-			Client:    slack.New(testEnv.Config.Communications.Slack.Token, slack.OptionAPIURL(testEnv.SlackServer.GetAPIURL())),
-		}
+		t.Log("Starting test Slack server")
+		testEnv.SetupFakeSlack()
 
+		fakeSlackNotifier := notify.NewSlack(logger, testEnv.Config.Communications.Slack)
+		fakeSlackNotifier.Client = slack.New(testEnv.Config.Communications.Slack.Token, slack.OptionAPIURL(testEnv.SlackServer.GetAPIURL()))
 		notifiers = append(notifiers, fakeSlackNotifier)
 	}
 
 	if testEnv.Config.Communications.Webhook.Enabled {
-		fakeWebhookNotifier := &notify.Webhook{
-			URL: testEnv.WebhookServer.GetAPIURL(),
-		}
+		t.Log("Starting fake webhook server")
+		testEnv.SetupFakeWebhook()
+
+		fakeWebhookNotifier := notify.NewWebhook(logger, config.CommunicationsConfig{
+			Webhook: config.Webhook{
+				URL: testEnv.WebhookServer.GetAPIURL(),
+			},
+		})
 		notifiers = append(notifiers, fakeWebhookNotifier)
 	}
 
-	utils.DynamicKubeClient = testEnv.K8sClient
-	utils.DiscoveryClient = testEnv.DiscoFake
-	utils.Mapper = testEnv.Mapper
-	utils.InitInformerMap(testEnv.Config)
-	utils.InitResourceMap(testEnv.Config)
+	resMapping, err := execute.LoadResourceMappingIfShould(
+		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
+		testEnv.Config,
+		testEnv.DiscoveryCli,
+	)
+	require.NoError(t, err)
 
-	// Start controller with fake notifiers
-	go controller.RegisterInformers(testEnv.Config, notifiers)
-	t.Run("Welcome", welcome.E2ETests(testEnv))
+	executorFactory := execute.NewExecutorFactory(
+		logger.WithField(componentLogFieldKey, "Executor"),
+		command.FakeCommandRunnerFunc,
+		*testEnv.Config,
+		filterEngine,
+		resMapping,
+	)
+
+	// Controller
+
+	ctrl := controller.New(
+		logger.WithField(componentLogFieldKey, "Controller"),
+		testEnv.Config,
+		notifiers,
+		filterEngine,
+		appCfg.ConfigPath,
+		testEnv.DynamicCli,
+		testEnv.Mapper,
+		appCfg.InformersResyncPeriod,
+	)
+
+	testEnv.Ctrl = ctrl
+
+	// Start test components
+
+	errGroup.Go(func() error {
+		t.Log("Starting controller")
+		return ctrl.Start(ctx)
+	})
 
 	if testEnv.Config.Communications.Slack.Enabled {
-		// Start fake Slack bot
-		sb := NewFakeSlackBot(testEnv)
-		go func(t *testing.T) {
-			err := sb.Start()
-			require.NoError(t, err)
-		}(t)
+		t.Log("Starting fake Slack bot")
+		sb := NewFakeSlackBot(logger.WithField(botLogFieldKey, "Slack"), executorFactory, testEnv)
+		errGroup.Go(func() error {
+			return sb.Start(ctx)
+		})
 	}
+
+	// Start controller with fake notifiers
+	t.Run("Welcome", welcome.E2ETests(testEnv))
 
 	time.Sleep(time.Second)
 
@@ -102,30 +158,24 @@ func TestRun(t *testing.T) {
 		"filters":  filters.E2ETests(testEnv),
 		"update":   update.E2ETests(testEnv),
 		"delete":   delete.E2ETests(testEnv),
-		"error":    notifierErr.E2ETests(testEnv),
 	}
 
 	// Run test suite
 	for name, test := range suite {
 		t.Run(name, test.Run)
 	}
+
+	t.Log("Cancelling context")
+	cancelCtxFn()
+	err = errGroup.Wait()
+	require.NoError(t, err)
 }
 
 // NewFakeSlackBot creates new mocked Slack bot
-func NewFakeSlackBot(testenv *env.TestEnv) *bot.SlackBot {
-	log.Info("Starting fake Slack bot")
+func NewFakeSlackBot(log logrus.FieldLogger, executorFactory bot.ExecutorFactory, testenv *env.TestEnv) *bot.SlackBot {
+	slackBot := bot.NewSlackBot(log, testenv.Config, executorFactory)
+	slackBot.SlackURL = testenv.SlackServer.GetAPIURL()
+	slackBot.BotID = testenv.SlackServer.BotID
 
-	return &bot.SlackBot{
-		Token:            testenv.Config.Communications.Slack.Token,
-		AllowKubectl:     testenv.Config.Settings.Kubectl.Enabled,
-		RestrictAccess:   testenv.Config.Settings.Kubectl.RestrictAccess,
-		ClusterName:      testenv.Config.Settings.ClusterName,
-		ChannelName:      testenv.Config.Communications.Slack.Channel,
-		SlackURL:         testenv.SlackServer.GetAPIURL(),
-		BotID:            testenv.SlackServer.BotID,
-		DefaultNamespace: testenv.Config.Settings.Kubectl.DefaultNamespace,
-		NewExecutorFn: func(msg string, allowKubectl, restrictAccess bool, defaultNamespace, clusterName string, platform config.BotPlatform, channelName string, isAuthChannel bool) execute.Executor {
-			return execute.NewExecutorWithCustomCommandRunner(msg, allowKubectl, restrictAccess, defaultNamespace, clusterName, platform, channelName, isAuthChannel, command.FakeCommandRunnerFunc)
-		},
-	}
+	return slackBot
 }

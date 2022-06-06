@@ -105,7 +105,7 @@ func (c *context) testCreateResource(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Inject an event into the fake client.
-			testutils.CreateResource(t, test)
+			testutils.CreateResource(t, c.DynamicCli, test)
 
 			if c.TestEnv.Config.Communications.Slack.Enabled {
 				// Get last seen slack message
@@ -128,7 +128,7 @@ func (c *context) testCreateResource(t *testing.T) {
 			}
 
 			resource := utils.GVRToString(test.GVR)
-			isAllowed := utils.CheckOperationAllowed(utils.AllowedEventKindsMap, test.Namespace, resource, config.CreateEvent)
+			isAllowed := c.Ctrl.ShouldSendEvent(test.Namespace, resource, config.CreateEvent)
 			assert.Equal(t, isAllowed, true)
 		})
 	}

@@ -20,10 +20,15 @@
 package filters
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/log"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -36,38 +41,54 @@ const (
 
 // ObjectAnnotationChecker add recommendations to the event object if pod created without any labels
 type ObjectAnnotationChecker struct {
-	Description string
+	log        logrus.FieldLogger
+	dynamicCli dynamic.Interface
+	mapper     meta.RESTMapper
+}
+
+// NewObjectAnnotationChecker creates a new ObjectAnnotationChecker instance
+func NewObjectAnnotationChecker(log logrus.FieldLogger, dynamicCli dynamic.Interface, mapper meta.RESTMapper) *ObjectAnnotationChecker {
+	return &ObjectAnnotationChecker{log: log, dynamicCli: dynamicCli, mapper: mapper}
 }
 
 // Run filters and modifies event struct
-func (f ObjectAnnotationChecker) Run(object interface{}, event *events.Event) {
+func (f *ObjectAnnotationChecker) Run(ctx context.Context, object interface{}, event *events.Event) error {
 	// get objects metadata
-	obj := utils.GetObjectMetaData(object)
+	obj, err := utils.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, object)
+	if err != nil {
+		return fmt.Errorf("while getting object metadata: %w", err)
+	}
 
 	// Check annotations in object
-	if isObjectNotifDisabled(obj) {
+	if f.isObjectNotifDisabled(obj) {
 		event.Skip = true
-		log.Debug("Object Notification Disable through annotations")
+		f.log.Debug("Object Notification Disable through annotations")
 	}
 
-	if channel, ok := reconfigureChannel(obj); ok {
+	if channel, ok := f.reconfigureChannel(obj); ok {
 		event.Channel = channel
-		log.Debugf("Redirecting Event Notifications to channel: %s", channel)
+		f.log.Debugf("Redirecting Event Notifications to channel: %s", channel)
 	}
 
-	log.Debug("Object annotations filter successful!")
+	f.log.Debug("Object annotations filter successful!")
+	return nil
 }
 
-// Describe filter
-func (f ObjectAnnotationChecker) Describe() string {
-	return f.Description
+// Name returns the filter's name
+func (f *ObjectAnnotationChecker) Name() string {
+	return "ObjectAnnotationChecker"
+}
+
+// Describe describes the filter
+func (f *ObjectAnnotationChecker) Describe() string {
+	return "Checks if annotations botkube.io/* present in object specs and filters them."
 }
 
 // isObjectNotifDisabled checks annotation botkube.io/disable
 // annotation botkube.io/disable disables the event notifications from objects
-func isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
+func (f *ObjectAnnotationChecker) isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
 	if obj.Annotations[DisableAnnotation] == "true" {
-		log.Debug("Skipping Disabled Event Notifications!")
+		f.log.Debug("Skipping Disabled Event Notifications!")
 		return true
 	}
 	return false
@@ -77,7 +98,7 @@ func isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
 // annotation botkube.io/channel directs event notifications to channels
 // based on the channel names present in them
 // Note: Add botkube app into the desired channel to receive notifications
-func reconfigureChannel(obj metaV1.ObjectMeta) (string, bool) {
+func (f *ObjectAnnotationChecker) reconfigureChannel(obj metaV1.ObjectMeta) (string, bool) {
 	// redirect messages to channels based on annotations
 	if channel, ok := obj.Annotations[ChannelAnnotation]; ok {
 		return channel, true

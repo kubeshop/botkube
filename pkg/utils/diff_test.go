@@ -23,6 +23,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/infracloudio/botkube/pkg/config"
 )
 
@@ -76,10 +79,11 @@ type ExpectedDiff struct {
 
 func TestDiff(t *testing.T) {
 	tests := map[string]struct {
-		old      Object
-		new      Object
-		update   config.UpdateSetting
-		expected ExpectedDiff
+		old                Object
+		new                Object
+		update             config.UpdateSetting
+		expected           ExpectedDiff
+		expectedErrMessage string
 	}{
 		`Spec Diff`: {
 			old:    Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
@@ -92,10 +96,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Spec Diff`: {
-			old:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
-			new:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expected: ExpectedDiff{},
+			old:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
+			new:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
+			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[{Image:nginx:1.14}]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Annotations changed`: {
 			old:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "1"}}},
@@ -118,10 +122,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Status Diff`: {
-			old:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
-			new:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
-			expected: ExpectedDiff{},
+			old:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
+			new:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
+			update:             config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.labels\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:1} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Data Diff`: {
 			old:    Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
@@ -134,10 +138,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Data Diff`: {
-			old:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
-			new:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expected: ExpectedDiff{},
+			old:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
+			new:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
+			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:color: blue} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
@@ -150,18 +154,25 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Rules Diff`: {
-			old:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
-			new:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
-			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expected: ExpectedDiff{},
+			old:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
+			new:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
+			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:list} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 	}
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			if actual := Diff(test.old, test.new, test.update); actual != test.expected.MockDiff() {
-				t.Errorf("expected: %+v != actual: %+v\n", test.expected.MockDiff(), actual)
+			actual, err := Diff(test.old, test.new, test.update)
+
+			if test.expectedErrMessage != "" {
+				require.Error(t, err)
+				assert.Equal(t, test.expectedErrMessage, err.Error())
+				return
 			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.expected.MockDiff(), actual)
 		})
 	}
 }

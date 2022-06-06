@@ -25,15 +25,16 @@ import (
 	"time"
 
 	"github.com/slack-go/slack"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/pkg/utils"
 )
 
 // SlackMessage structure
@@ -98,66 +99,60 @@ type ErrorEvent struct {
 }
 
 // CreateResource with fake client
-func CreateResource(t *testing.T, obj CreateObjects) {
-	// convert the runtime.Object to unstructured.Unstructured
+func CreateResource(t *testing.T, dynamicCli dynamic.Interface, obj CreateObjects) {
+	t.Helper()
+
 	s := unstructured.Unstructured{}
-	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-	if ok != nil {
-		t.Fatalf("Failed to convert pod object into unstructured")
-	}
+	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	require.NoError(t, err, "while converting pod object into unstructured")
+
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 	// Create resource
-	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
-	}
+	_, err = dynamicCli.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
+	require.NoError(t, err, "while creating %q", obj.GVR.Resource)
 }
 
 // UpdateResource Create and update the obj and return old and new obj
-func UpdateResource(t *testing.T, obj UpdateObjects) (*unstructured.Unstructured, *unstructured.Unstructured) {
+func UpdateResource(t *testing.T, dynamicCli dynamic.Interface, obj UpdateObjects) (*unstructured.Unstructured, *unstructured.Unstructured) {
+	t.Helper()
+
 	s := unstructured.Unstructured{}
-	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-	if ok != nil {
-		t.Fatalf("Failed to convert pod object into unstructured")
-	}
+	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	require.NoError(t, err, "while converting pod object into unstructured")
+
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 	// Create resource and get the old object
-	oldObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
-	}
+	oldObj, err := dynamicCli.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
+	require.NoError(t, err, "while creating %q", obj.GVR.Resource)
+
 	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second) // TODO: Is that really needed? Improve it in https://github.com/infracloudio/botkube/issues/589
 	// Applying patch
-	newObj, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Patch(context.TODO(), s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
-	if err != nil {
-		t.Fatalf("Failed to update %s: %v", obj.GVR.Resource, err)
-	}
+	newObj, err := dynamicCli.Resource(obj.GVR).Namespace(obj.Namespace).Patch(context.TODO(), s.GetName(), types.MergePatchType, obj.Patch, v1.PatchOptions{})
+	require.NoError(t, err, "while updating %q", obj.GVR.Resource)
+
 	// Mock the time delay involved in listening, filtering, and notifying events to all notifiers
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second) // TODO: Is that really needed? Improve it in https://github.com/infracloudio/botkube/issues/589
 	return oldObj, newObj
 }
 
 // DeleteResource deletes the obj with fake client
-func DeleteResource(t *testing.T, obj DeleteObjects) {
+func DeleteResource(t *testing.T, dynamicCli dynamic.Interface, obj DeleteObjects) {
+	t.Helper()
+
 	s := unstructured.Unstructured{}
-	k, ok := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
-	if ok != nil {
-		t.Fatalf("Failed to convert pod object into unstructured")
-	}
+	k, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.Specs)
+	require.NoError(t, err, "while converting pod object into unstructured")
+
 	s.Object = k
 	s.SetGroupVersionKind(obj.GVR.GroupVersion().WithKind(obj.Kind))
 
-	_, err := utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Failed to create %s: %v", obj.GVR.Resource, err)
-	}
-	// Delete resource
-	err = utils.DynamicKubeClient.Resource(obj.GVR).Namespace(obj.Namespace).Delete(context.TODO(), s.GetName(), v1.DeleteOptions{})
+	_, err = dynamicCli.Resource(obj.GVR).Namespace(obj.Namespace).Create(context.TODO(), &s, v1.CreateOptions{})
+	require.NoError(t, err, "while creating %q", obj.GVR.Resource)
 
-	if err != nil {
-		t.Fatalf("Failed to delete %s: %v", obj.GVR.Resource, err)
-	}
+	// Delete resource
+	err = dynamicCli.Resource(obj.GVR).Namespace(obj.Namespace).Delete(context.TODO(), s.GetName(), v1.DeleteOptions{})
+	require.NoError(t, err, "while deleting %q", obj.GVR.Resource)
 }

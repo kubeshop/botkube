@@ -44,7 +44,7 @@ func parseJsonpath(obj interface{}, jsonpathStr string) (string, error) {
 		return "", err
 	}
 
-	valueStrings := []string{}
+	var valueStrings []string
 	if len(values) == 0 || len(values[0]) == 0 {
 		valueStrings = append(valueStrings, "<none>")
 	}
