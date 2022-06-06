@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"

@@ -27,9 +27,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/google/go-github/v44/github"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
