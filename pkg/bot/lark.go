@@ -25,14 +25,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/larksuite/oapi-sdk-go/core"
 	"github.com/larksuite/oapi-sdk-go/event"
 	eventhttpserver "github.com/larksuite/oapi-sdk-go/event/http"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/httpsrv"
-
 	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/infracloudio/botkube/pkg/httpsrv"
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
@@ -181,12 +181,11 @@ func (l *LarkBot) Start(ctx context.Context) error {
 	event.SetTypeCallback(larkConf, larkAddUserToChat, helloCallbackFn)
 
 	addr := fmt.Sprintf(":%d", l.Port)
-	mux := http.NewServeMux()
-	mux.HandleFunc(l.MessagePath, func(responseWriter http.ResponseWriter, request *http.Request) {
+	router := mux.NewRouter()
+	router.PathPrefix(l.MessagePath).HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		eventhttpserver.Handle(larkConf, request, responseWriter)
 	})
-
-	srv := httpsrv.New(l.log, addr, mux)
+	srv := httpsrv.New(l.log, addr, router)
 	err := srv.Serve(ctx)
 	if err != nil {
 		return fmt.Errorf("while running Lark server: %w", err)
