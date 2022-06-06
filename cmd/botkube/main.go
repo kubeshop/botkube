@@ -25,7 +25,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/google/go-github/v44/github"
@@ -53,7 +52,7 @@ type Config struct {
 	ConfigPath            string        `envconfig:"optional"`
 	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
 	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
-	LogForceColors        string        `envconfig:"optional,LOG_FORCE_COLORS"`
+	LogForceColors        bool          `envconfig:"optional"`
 }
 
 const (
@@ -198,7 +197,7 @@ func main() {
 	exitOnError(err, "while waiting for goroutines to finish gracefully")
 }
 
-func newLogger(logLevelStr, logForceColors string) *logrus.Logger {
+func newLogger(logLevelStr string, logForceColors bool) *logrus.Logger {
 	logger := logrus.New()
 	// Output to stdout instead of the default stderr
 	logger.SetOutput(os.Stdout)
@@ -210,11 +209,7 @@ func newLogger(logLevelStr, logForceColors string) *logrus.Logger {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	forceColors, err := strconv.ParseBool(logForceColors)
-	if err != nil {
-		forceColors = false
-	}
-	logger.Formatter = &logrus.TextFormatter{ForceColors: forceColors, FullTimestamp: true}
+	logger.Formatter = &logrus.TextFormatter{ForceColors: logForceColors, FullTimestamp: true}
 
 	return logger
 }
