@@ -256,13 +256,13 @@ stringData:
         team: 'MATTERMOST_TEAM'                     # Mattermost Team to configure with BotKube
         channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
-      
+
       # Settings for Discord
       discord:
         enabled: false
-        token: 'DISCORD_TOKEN'                      # BotKube Bot Token 
-        botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID 
-        channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts 
+        token: 'DISCORD_TOKEN'                      # BotKube Bot Token
+        botid: 'DISCORD_BOT_ID'                     # BotKube Application Client ID
+        channel: 'DISCORD_CHANNEL_ID'               # Discord Channel id for receiving BotKube alerts
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
 
       # Settings for ELS
@@ -363,13 +363,15 @@ spec:
             - name: config-volume
               mountPath: "/config"
             - name: cache
-              mountPath: "/.kube/cache"                     
+              mountPath: "/.kube/cache"
           env:
             - name: CONFIG_PATH
               value: "/config/"
             # set one of the log levels- info, warn, debug, error, fatal, panic
             - name: LOG_LEVEL
               value: "info"
+            - name: LOG_FORCE_COLORS
+              value: "false"
       volumes:
         - name: config-volume
           projected:
@@ -379,7 +381,7 @@ spec:
             - secret:
                 name: botkube-communication-secret
         - name: cache
-          emptyDir: {}                  
+          emptyDir: {}
       # run as non privileged user
       securityContext:
         runAsUser: 101
