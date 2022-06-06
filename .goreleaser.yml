@@ -27,14 +27,14 @@ changelog:
   skip: true
 dockers:
   - image_templates:
-      - "ghcr.io/mszostok/botkube:{{ .Tag }}-amd64"
+      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-amd64"
     use: buildx
     dockerfile: "build/Dockerfile"
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--build-arg=botkube_version={{ .Tag }}"
   - image_templates:
-      - "ghcr.io/mszostok/botkube:{{ .Tag }}-arm64"
+      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-arm64"
     use: buildx
     goarch: arm64
     dockerfile: "build/Dockerfile"
@@ -42,7 +42,7 @@ dockers:
       - "--platform=linux/arm64"
       - "--build-arg=botkube_version={{ .Tag }}"
   - image_templates:
-      - "ghcr.io/mszostok/botkube:{{ .Tag }}-armv7"
+      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-armv7"
     use: buildx
     goarch: arm
     goarm: 7
@@ -52,8 +52,8 @@ dockers:
       - "--build-arg=botkube_version={{ .Tag }}"
 
 docker_manifests:
-  - name_template: ghcr.io/mszostok/botkube:{{ .Tag }}
+  - name_template: ghcr.io/infracloudio/botkube:{{ .Tag }}
     image_templates:
-      - ghcr.io/mszostok/botkube:{{ .Tag }}-amd64
-      - ghcr.io/mszostok/botkube:{{ .Tag }}-arm64
-      - ghcr.io/mszostok/botkube:{{ .Tag }}-armv7
+      - ghcr.io/infracloudio/botkube:{{ .Tag }}-amd64
+      - ghcr.io/infracloudio/botkube:{{ .Tag }}-arm64
+      - ghcr.io/infracloudio/botkube:{{ .Tag }}-armv7
