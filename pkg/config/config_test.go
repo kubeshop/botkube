@@ -36,7 +36,7 @@ func TestCommunicationConfigSuccess(t *testing.T) {
 		t.Setenv("CONFIG_PATH", "testdata")
 
 		fixToken := fmt.Sprintf("TOKEN_FROM_ENV_%d", time.Now().Unix())
-		t.Setenv("COMMUNICATION_SLACK_TOKEN", fixToken)
+		t.Setenv("COMMUNICATIONS_SLACK_TOKEN", fixToken)
 		var expConfig Communications
 		loadYAMLFile(t, sampleCommunicationConfig, &expConfig)
 		expConfig.Communications.Slack.Token = fixToken

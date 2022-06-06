@@ -75,7 +75,7 @@ const (
 	// LarkBot bot platform
 	LarkBot BotPlatform = "lark"
 
-	communicationEnvVariablePrefix = "COMMUNICATION_"
+	communicationEnvVariablePrefix = "COMMUNICATIONS_"
 	communicationConfigDelimiter   = "."
 )
 
@@ -292,7 +292,6 @@ func NewCommunicationsConfig() (c *Communications, err error) {
 }
 
 func normalizeCommunicationConfigEnvName(name string) string {
-	name = strings.ReplaceAll(name, communicationEnvVariablePrefix, "COMMUNICATIONS_") // append 's' to fulfil the Communications field name.
 	name = strings.ToLower(name)
 	return strings.ReplaceAll(name, "_", ".")
 }
