@@ -370,7 +370,7 @@ spec:
             # set one of the log levels- info, warn, debug, error, fatal, panic
             - name: LOG_LEVEL
               value: "info"
-            - name: LOG_FORCE_COLORS
+            - name: LOG_DISABLE_COLORS
               value: "false"
       volumes:
         - name: config-volume
