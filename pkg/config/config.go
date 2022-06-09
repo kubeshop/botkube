@@ -261,7 +261,7 @@ func (eventType EventType) String() string {
 }
 
 // NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (c *Communications, err error) {
+func NewCommunicationsConfig() (*Communications, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
 
