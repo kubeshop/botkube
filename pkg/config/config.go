@@ -22,7 +22,12 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/knadh/koanf"
+	koanfyaml "github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
 	"gopkg.in/yaml.v3"
 )
 
@@ -69,6 +74,9 @@ const (
 	DiscordBot BotPlatform = "discord"
 	// LarkBot bot platform
 	LarkBot BotPlatform = "lark"
+
+	communicationEnvVariablePrefix = "COMMUNICATIONS_"
+	communicationConfigDelimiter   = "."
 )
 
 // EventType to watch
@@ -253,19 +261,39 @@ func (eventType EventType) String() string {
 }
 
 // NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (c *Communications, err error) {
+func NewCommunicationsConfig() (*Communications, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
-	rawCfg, err := os.ReadFile(filepath.Clean(commCfgFilePath))
+
+	k := koanf.New(communicationConfigDelimiter)
+
+	// Load base YAML config.
+	if err := k.Load(file.Provider(filepath.Clean(commCfgFilePath)), koanfyaml.Parser()); err != nil {
+		return nil, err
+	}
+
+	// Load environment variables and merge into the loaded config.
+	err := k.Load(env.Provider(
+		communicationEnvVariablePrefix,
+		communicationConfigDelimiter,
+		normalizeCommunicationConfigEnvName,
+	), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	commCfg := &Communications{}
-	if err := yaml.Unmarshal(rawCfg, commCfg); err != nil {
+	var cfg Communications
+	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "yaml"})
+	if err != nil {
 		return nil, err
 	}
-	return commCfg, nil
+
+	return &cfg, nil
+}
+
+func normalizeCommunicationConfigEnvName(name string) string {
+	name = strings.ToLower(name)
+	return strings.ReplaceAll(name, "_", ".")
 }
 
 // Load loads new configuration from file.
