@@ -52,6 +52,7 @@ type Config struct {
 	ConfigPath            string        `envconfig:"optional"`
 	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
 	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
+	LogDisableColors      bool          `envconfig:"optional"`
 }
 
 const (
@@ -64,7 +65,7 @@ func main() {
 	err := envconfig.Init(&appCfg)
 	exitOnError(err, "while loading app configuration")
 
-	logger := newLogger(appCfg.LogLevel)
+	logger := newLogger(appCfg.LogLevel, appCfg.LogDisableColors)
 	ctx := signals.SetupSignalHandler()
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
@@ -196,7 +197,7 @@ func main() {
 	exitOnError(err, "while waiting for goroutines to finish gracefully")
 }
 
-func newLogger(logLevelStr string) *logrus.Logger {
+func newLogger(logLevelStr string, logDisableColors bool) *logrus.Logger {
 	logger := logrus.New()
 	// Output to stdout instead of the default stderr
 	logger.SetOutput(os.Stdout)
@@ -208,7 +209,7 @@ func newLogger(logLevelStr string) *logrus.Logger {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	logger.Formatter = &logrus.TextFormatter{ForceColors: true, FullTimestamp: true}
+	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: logDisableColors}
 
 	return logger
 }

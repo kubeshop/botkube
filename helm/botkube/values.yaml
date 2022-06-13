@@ -46,6 +46,8 @@ kubeconfig:
 
 # set one of the log levels- info, warn, debug, error, fatal, panic
 logLevel: info
+# if true, disable ANSI colors in logging
+logDisableColors: false
 
 config:
   ## Resources you want to watch
