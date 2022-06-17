@@ -1,0 +1,707 @@
+# Polices
+
+Created on 2022-06-14 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
+
+## Motivation
+
+There is a demand in community to make the configuration more flexible in regards which notification should be collected and where to send.
+
+### Goal
+
+1. Route BotKube notifications to individual channels without needing to run multiple deployments.
+   For example, I want to create a channel for network errors and another channel for node problems.
+   Related issues:
+     - [Support communications per resource group](https://github.com/infracloudio/botkube/issues/508)
+     - [Support using multiple Slack channels with different configuration](https://github.com/infracloudio/botkube/issues/444)
+2. Send notifications to multiple sinks. Additionally, send the same notification to multiple channels within the same sink.
+   For example send Pod's error events to Slack, and at the same time notify Elasticsearch of all events.
+   Related issues:
+     - [Provide multiple channels](https://github.com/infracloudio/botkube/issues/542)
+3. Route notifications to a given channel based on the Kubernetes Namespace.
+   Related issues:
+     - [Define the channel at the namespace level](https://github.com/infracloudio/botkube/issues/486)
+4. Allow running executor for a given cluster only from a dedicated channel/user without needing to run multiple deployments.
+   Currently, it's possible only if you will deploy multiple BotKube instances with different configuration.
+   Related issues:
+     - [Multiple Slack Channels](https://github.com/infracloudio/botkube/issues/250)
+
+The proposed solution should be backward compatible?
+
+Phases:
+1. introduce new options
+2. deprecated old one
+3. Remove the old API, provide migrator
+
+Have:
+- platform settings (who to access sink/communicator)
+- bindings between them..
+- executor/notifier settings
+
+This will also enable predefined some catalog of policies:
+
+### Non-goal
+
+Executors:
+- MS Team is different, it would be good to do a separate investigation or appendix to this one
+- Elasticsearch .. only with
+- [Notify groups](https://github.com/infracloudio/botkube/issues/323)
+- [Group error messages to thread](https://github.com/infracloudio/botkube/issues/545)
+- [Customizable Messages](https://github.com/infracloudio/botkube/issues/434)
+- [Support for default cluster and namespace on any Slack channels](https://github.com/infracloudio/botkube/issues/421)
+
+## Proposal
+
+### Route BotKube notifications to individual channels
+
+```yaml
+communications:
+  slack:
+    enabled: true
+    token: 'SLACK_API_TOKEN'
+    # customized notifications
+    policyBinding: # overrides the default configuration
+      - channel: nodes
+        policies: nodes-errors
+      - channel: network
+        policies: network-errors
+```
+
+`core.` are built-in, it can be later extracted...
+
+```yaml
+apiVersion: "communicators.core.botkube.io/v1"
+kind: Slack
+metadata:
+  name: slack-instance
+spec:
+  notiftype: short
+  token:
+    valueFrom:
+      secretKeyRef:
+        name: communication-slack
+        key: token
+	channels:
+		- name: nodes # it's better with string as YAML doens't support #, or @ chars
+			bindings:
+			  notifications:
+		      - nodes-errors
+        executors:
+					- kubectl
+    - name: team-a # it's better with string as YAML doens't support #, or @ chars
+      bindings:
+        notifications:
+          - nodes-errors
+        executors:
+          - kubectl
+	binding:
+    - channel: network
+      notifications:
+        - nodes-errors
+      executors:
+        - kubectl
+```
+
+```yaml
+apiVersion: "sink.core.botkube.io/v1"
+kind: Elasticsearch
+metadata:
+  name: elastic-instance
+spec:
+  notiftype: short
+  token:
+    valueFrom:
+      secretKeyRef:
+        name: communication-slack
+        key: token
+  index:
+		- name: network-errors
+      type: botkube-event
+      shards: 1
+      replicas: 0
+			bindings:
+			  notifications:
+		      - nodes-errors
+	binding:
+    - channel: network
+      notifications:
+        - nodes-errors
+      executors:
+        - kubectl
+```
+
+```yaml
+apiVersion: "notifications.core.botkube.io/v1"
+kind: Kubernetes
+metadata:
+  name: kubernetes-events
+spec:
+  resources:
+    - name: v1/pods
+      namespaces:
+        include:
+          - istio-system
+      events:
+        - error
+    - name: v1/services
+      namespaces:
+        include:
+          - all
+      events:
+        - error
+    - name: networking.istio.io/v1alpha3/DestinationRules
+      namespaces:
+        include:
+          - all
+      events:
+        - error
+    - name: networking.istio.io/v1alpha3/VirtualServices
+        namespaces:
+          include:
+            - all
+        events:
+          - error
+```
+
+
+```yaml
+apiVersion: "executors.core.botkube.io/v1"
+kind: Kubectl
+metadata:
+  name: kubectl-events
+spec:
+  commands:
+    # method which are allowed
+    verbs: ["get", "logs"]
+    # resource configuration which is allowed
+    resources: ["Deployments", "Pods", "Services"]
+```
+
+```yaml
+policies:
+  - name: nodes-errors
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/nodes
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+  - name: network-errors
+    recommendations:
+      enabled: true
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/pods
+          namespaces:
+            include:
+              - istio-system
+          events:
+            - error
+        - name: v1/services
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+        - name: networking.istio.io/v1alpha3/DestinationRules
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+        - name: networking.istio.io/v1alpha3/VirtualServices
+            namespaces:
+              include:
+                - all
+            events:
+              - error
+```
+
+### Send notifications to multiple sinks
+
+- Send to Slack
+  - nodes events to nodes channel
+  - network + nodes errors to all channel (showcase multiple polices)
+- at the same time send to ES  (showcase mirroring to multiple sinks)
+
+```yaml
+communications:
+  slack:
+    enabled: true
+    token: 'SLACK_API_TOKEN'
+    policyBinding: # overrides the default configuration
+      - channel: nodes
+        policies: [nodes-errors, kubectl-full-access] # policies are merged together
+      - channel: all
+        policies: # policies are merged together TODO: describe merging...
+          - network-errors
+          - nodes-errors
+          - kubectl-full-access
+  elasticsearch:
+    enabled: true
+    server: 'ELASTICSEARCH_ADDRESS'
+    username: 'ELASTICSEARCH_USERNAME'
+    password: 'ELASTICSEARCH_PASSWORD'
+    policyBinding: # overrides the default configuration
+      - index:
+          name: network-errors
+          type: botkube-event
+          shards: 1
+          replicas: 0
+        policies: network-errors # the kubectl property is ignored for elasticsearch
+```
+
+```yaml
+policies:
+  - name: nodes-errors
+    recommendations:
+      enabled: false
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/nodes
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+  - name: network-errors
+    recommendations:
+      enabled: false
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/services
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+        - name: networking.k8s.io/v1/ingresses
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+  - name: kubectl-full-access
+    kubectl:
+      enabled: true
+      namespaces:
+        - all
+      commands:
+        verbs: ["get", "logs"]
+        resources: ["Deployments", "Pods", "Services"]
+```
+
+### Route notifications to a given channel based on the Kubernetes Namespace
+
+Currently, you can send notification to non-default channel using [annotation](https://www.botkube.io/usage/#send-notification-to-non-default-channel).
+However, you need to apply `botkube.io/channel: <channel_name>` to each K8s object (Pods, Services, etc.) which is cumbersome.
+
+```yaml
+communications:
+  slack:
+    enabled: true
+    token: 'SLACK_API_TOKEN'
+    policyBinding: # overrides the default configuration
+      - channel: dev-team-a
+        # all profiles listed under access_conf.yml to limit access
+        policies: team-a
+      - channel: dev-team-b
+        # allows configuring multiple policies for the same channel,
+        # so you can reuse some of them
+        policies:
+          - team-b
+      - channel: admin
+        policies: admin
+```
+```yaml
+policies:
+  - name: team-a
+    kubectl:
+      enabled: true
+      namespaces:
+        - team-a
+      commands:
+        # method which are allowed
+        verbs: ["get", "logs"]
+        # resource configuration which is allowed
+        resources: ["Deployments", "Pods", "Services"]
+        # enable notification about specific resources
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/pods
+          namespaces:
+            include:
+              - team-a
+          events:
+            - create
+            - delete
+            - error
+
+  - name: team-b
+    kubectl:
+      enabled: true
+      namespaces: # TODO: this can lead to problems, should it be extracted to top level?
+        - team-b
+      commands:
+        # method which are allowed
+        verbs: ["get", "logs"]
+        # resource configuration which is allowed
+        resources: ["Deployments", "Pods", "Services"]
+        # enable notification about specific resources
+    notifications:
+      enabled: true
+      resources:
+        - name: v1/pods
+          namespaces:
+            include:
+              - team-b
+          events:
+            - create
+            - delete
+            - error
+```
+
+### Running executor only from a dedicated channel
+
+
+```yaml
+communications:
+  slack:
+    enabled: true
+    token: 'SLACK_API_TOKEN'
+    policyBinding: # overrides the default configuration
+      - channel: dev
+        # all profiles listed under access_conf.yml to limit access
+        policies: kubectl-full-access
+      - channel: team-a
+        # allows configuring multiple policies for the same channel,
+        # so you can reuse some of them
+        policies: kubectl-team-a-ns-access
+```
+
+```yaml
+policies:
+  - name: kubectl-full-access
+    kubectl:
+      enabled: true
+      namespaces:
+        - all
+      commands:
+        verbs: ["get", "logs"]
+        resources: ["Deployments", "Pods", "Services"]
+  - name: kubectl-team-a-ns-access
+    kubectl:
+      enabled: true
+      namespaces:
+        - team-a
+      commands:
+        verbs: ["get", "logs"]
+        resources: ["Deployments", "Pods", "Services"]
+```
+
+### 5
+
+If you use the `botkube.io/channel: <channel_name>` annotation, notifications are sent to a given channel even if not authorized. IMO, it's a bug.
+We can now check if there is a matching communications.{name}.policyBinding.{channel} and if policy allows to send such events based on `policies.[.name == foo].notifications`.
+
+### Overview
+
+```yaml
+# Channels configuration
+communications:
+  # Settings for Slack
+  slack:
+    enabled: false
+    token: 'SLACK_API_TOKEN'
+    notiftype: short
+    channel: 'DEFAULT_CHANNEL' # backward compatible, if specified it's a default channel where default policy will be attached.
+    # customized notifications
+    policyBinding: # overrides the default configuration
+      - channel: dev
+        # all profiles listed under access_conf.yml to limit access
+        policies: development
+      - channel: prod
+        # allows configuring multiple policies for the same channel,
+        # so you can reuse some of them
+        policies:
+          - production
+          - admin
+      - channel: admin
+        policies: admin
+```
+```yaml
+policies:
+  # based on use-case like profile for development environment
+  - name: development
+    executors:
+      kubectl:
+        enabled: true
+        namespaces:
+        - ns1
+        - ns2
+        commands:
+          # method which are allowed
+          verbs: ["get", "logs"]
+          # resource configuration which is allowed
+          resources: ["Deployments", "Pods", "Services"]
+          # enable notification about specific resources
+    notifications:
+      resources:
+        - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
+          # resource name should be plural (e.g apps/v1/deployments, v1/pods)
+          namespaces:               # List of namespaces, "all" will watch all the namespaces
+            include:
+              - all
+            ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
+              -                     # example : include [all], ignore [x,y,secret-ns-*]
+          events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
+            - create
+            - delete
+            - error
+```
+
+#### Alternatives
+
+Other approaches that I consider with explanation why I ruled them out.
+
+### Route notifications to a given channel based on the Kubernetes Namespace
+
+#### Annotate Namespace
+
+Allow to set the `botkube.io/channel: <channel_name>` on the Kubernetes Namespace object. As a result, all object's notification from annotated Namespace will be sent to a given channel. Such approach solves the problem partially. You don't need to annotate each object manually in a given Namespace. However, it's still not a part of the BotKube installation. You need to do that manually, or automate that in some way. Additionally, it's decoupled from the BotKube configuration causing that there are multiple source of true which you need to analyze to understand to which Namespace the notification will be sent.
+
+#### Top level Namespace property
+
+In the proposed solution, the **namespace** property is defined separately for **executors.kubectl** and **notifications.resources**. In the future it can be added to other executors, e.g. **executors.helm**. This approach provides fine-grained configuration. You can specify allowed namespace independently, so you can watch for events in all Namespaces but allow `kubectl` usage only in `dev` Namespace.
+
+Unfortunately it doesn't come without any cost. If you want to have a strict policy that Team A can access only the `team-a` Namespace, you need to configure that for each executor and notificator. It may be error-prone.
+
+To solve that we can extract the **namespace** property to top level. In this case it will be common for all executors and notificators:
+
+merge on **namespace** to ensure that it will be easier, if merged then more complicated..
+
+```yaml
+policies:
+  # based on use-case like profile for development environment
+  - name: development
+    executors:
+      kubectl:
+        enabled: true
+        commands:
+          verbs: ["get", "logs"]
+          resources: ["Deployments", "Pods", "Services"]
+    notifications:
+      resources:
+        - name: v1/pods
+          events:
+            - create
+            - delete
+            - error
+```
+
+But if it will be removed from nested levels, we lose fine-grained configuration. On the other hand, if we will support **namespace** on top level and for nested levels, it may be too complicated to understand.
+
+
+The other option is to extract it even higher. In that way the policies will become a generic description that can be attached to a given platform **channel** with a given **Namespace**:
+
+```yaml
+communications:
+  slack:
+    enabled: true
+    token: 'SLACK_API_TOKEN'
+    policyBinding:
+      - channel: team-b
+        policies: kc-full-team-a-access, helm-access, all-events
+        namespaces:
+          include:
+            - team-b
+            - kube-system
+      - channel: team-a
+        policies: kc-full-team-b-access, helm-access, all-events
+        namespaces:
+          include:
+            - team-a
+            - kube-system
+      - channel: prod
+        namespaces:
+          ignore:
+            - dev
+        policies:
+          - production
+          - admin
+```
+```yaml
+policies:
+  - name: development
+    executors:
+      kubectl:
+        enabled: true
+        commands:
+          verbs: ["get", "logs"]
+          resources: ["Deployments", "Pods", "Services"]
+    notifications:
+      resources:
+        - name: v1/pods
+          events:
+            - create
+            - delete
+            - error
+      - name: production
+        executors:
+          kubectl:
+            enabled: true
+            commands:
+              verbs: ["get", "logs"]
+              resources: ["Deployments", "Pods", "Services"]
+          notifications:
+            resources:
+              - name: v1/pods
+                events:
+                  - create
+                  - delete
+                  - error
+```
+## Consequences
+
+1. Documentation
+2. Support @botkube profile (list, enable, update) that work only from any channel under botkube_admin profile (??)
+3. OPTIONAL: Add CLI support (?)
+4. OPTIONAL: Add UI support (?)
+
+## Changes
+
+1. Recommendations:
+```yaml
+recommendations: true
+```
+```yaml
+recommendations:
+  enabled: true
+```
+
+2. Notifications:
+```yaml
+resources:
+  - name: v1/pods
+    namespaces:
+      include:
+        - all
+    events:
+      - error
+```
+```yaml
+notifications:
+  enabled: true # TODO: what to do with MS Teams, which doesn't support that?
+  resources:
+    - name: v1/pods
+      namespaces:
+        include:
+          - all
+      events:
+        - error
+```
+
+3. Kubectl executor:
+```yaml
+    kubectl:
+      enabled: true
+      commands:
+        verbs: ["get", "logs"]
+```
+```yaml
+    kubectl:
+      enabled: true
+      namespaces: # NEW: namespace which can be targeted
+      - ns1
+      - ns2
+      commands:
+        verbs: ["get", "logs"]
+```
+4. I don't like the `all` name, IMO it should be replaced with e.g. `@all`
+
+### CRD...
+
+
+But it is CRD.. so CR is plain text, how to do e.g.
+
+```yaml
+communications:
+	slack:
+		token: "xb-token"
+```
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: slacks.communicator.botkube.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: communicator.botkube.io
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+					type: object
+					properties:
+						slack:
+							type: object
+							properties:
+								enabled:
+									type: boolean
+								channel:
+									type: string
+								token:
+									type: string
+								notiftype:
+									type: string
+							required:
+								- enabled
+								- channel
+								- token
+								- notiftype
+					required:
+						- slack
+
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: crontabs
+    # singular name to be used as an alias on the CLI and for display
+    singular: crontab
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CronTab
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ct
+```
+
+GraphQL service that shows the catalog of possible "sinks", "communicators", "executors"
+
+- Install of it results in a CR creation and also registering a dedicated CRD
+-
+
+Plus of it:
+- new automation that watches for updates on the new object
+- `.status` - if it's up and running, and errors. Now only in logs.
+- easily enable per Namespace.
+
+### Resources
+
+- old proposal and implementation: ... by @foo
+  - notification support
+  - multiple profiles (policies) per single "channel"
+  - namespace per `executor` and `notification`
