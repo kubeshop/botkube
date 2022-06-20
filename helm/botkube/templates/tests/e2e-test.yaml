@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "botkube.fullname" . }}-e2e-test"
+  labels:
+    app.kubernetes.io/name: {{ include "botkube.name" . }}
+    helm.sh/chart: {{ include "botkube.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    component: e2e-test
+    app: botkube
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  serviceAccountName: "{{ include "botkube.fullname" . }}-e2e-test"
+  containers:
+    - name: tests-runner
+      image: "{{ .Values.e2eTest.image.registry }}/{{ .Values.e2eTest.image.repository }}:{{ default .Chart.AppVersion .Values.e2eTest.image.tag }}"
+      imagePullPolicy: {{ .Values.e2eTest.image.pullPolicy }}
+      env:
+        - name: CONFIG_PATH
+          value: "/config/"
+        - name: ADDITIONAL_CONTEXT_MESSAGE
+          value: "{{ .Values.e2eTest.additionalContextMessage }}"
+        - name: DEPLOYMENT_NAME
+          value: "{{ include "botkube.fullname" . }}"
+        - name: DEPLOYMENT_NAMESPACE
+          value: "{{ .Release.Namespace }}"
+        - name: DEPLOYMENT_CONTAINER_NAME
+          value: "{{ .Chart.Name }}"
+        - name: DEPLOYMENT_WAIT_TIMEOUT
+          value: "{{ .Values.e2eTest.deployment.waitTimeout }}"
+        - name: DEPLOYMENT_ENVS_SLACK_ENABLED_NAME
+          value: "COMMUNICATIONS_SLACK_ENABLED"
+        - name: DEPLOYMENT_ENVS_SLACK_CHANNEL_ID_NAME
+          value: "COMMUNICATIONS_SLACK_CHANNEL"
+        - name: CLUSTER_NAME
+          value: "{{ .Values.config.settings.clustername }}"
+        - name: SLACK_BOT_NAME
+          value: "{{ .Values.e2eTest.slack.botName }}"
+        - name: SLACK_ADDITIONAL_CONTEXT_MESSAGE
+          value: "{{ .Values.e2eTest.slack.additionalContextMessage }}"
+        - name: SLACK_TESTER_APP_TOKEN
+          value: "{{ .Values.e2eTest.slack.testerAppToken }}"
+        - name: SLACK_MESSAGE_WAIT_TIMEOUT
+          value: "{{ .Values.e2eTest.slack.messageWaitTimeout }}"
+  restartPolicy: Never

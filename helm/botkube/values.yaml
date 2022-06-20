@@ -505,3 +505,18 @@ extraObjects: []
 #      - kind: ServiceAccount
 #        name: "{{ include \"botkube.serviceAccountName\" . }}"
 #        namespace: "{{ .Release.Namespace }}"
+
+## Parameters for the test container with E2E tests.
+e2eTest:
+  image:
+    registry: docker.io
+    repository: pkosiec/botkube-test # TODO: Replace with image built on `develop`
+    tag: latest
+    pullPolicy: IfNotPresent
+  deployment:
+    waitTimeout: 3m
+  slack:
+    botName: "botkube"
+    testerAppToken: "" # Provide valid token
+    additionalContextMessage: "" # You can pass e.g. pull request number or source link where these tests are run from
+    messageWaitTimeout: 10s

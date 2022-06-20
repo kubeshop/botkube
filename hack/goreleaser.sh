@@ -22,8 +22,10 @@
 set -o errexit
 set -o pipefail
 
-IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/infracloudio}"
-IMAGE_NAME="${IMAGE_NAME:-botkube}"
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
+IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-infracloudio/botkube}"
+TEST_IMAGE_REPOSITORY="${TEST_IMAGE_REPOSITORY:-infracloudio/botkube-test}"
+IMAGE_SAVE_LOAD_DIR="${IMAGE_SAVE_LOAD_DIR:-/tmp/botkube-images}"
 
 prepare() {
   export DOCKER_CLI_EXPERIMENTAL="enabled"
@@ -35,66 +37,73 @@ release_snapshot() {
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
   goreleaser release --rm-dist --snapshot --skip-publish
   # Push images
-  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
   # Create manifest
-  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
+  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
-save_pr_image() {
+save_images() {
   prepare
 
-  if [ -z "${PR_NUMBER}" ]
+  if [ -z "${IMAGE_TAG}" ]
   then
-    echo "Missing PR_NUMBER."
+    echo "Missing IMAGE_TAG."
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
+  export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
   goreleaser release --rm-dist --snapshot --skip-publish
 
-  # Re-tag with 'pr' prefix
-  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
-  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
-  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  mkdir -p "${IMAGE_SAVE_LOAD_DIR}"
 
-  # Push images
-  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 > /tmp/${IMAGE_NAME}-amd64.tar
-  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 > /tmp/${IMAGE_NAME}-arm64.tar
-  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 > /tmp/${IMAGE_NAME}-armv7.tar
+  # Save images
+  IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+
+  TEST_FILE_NAME=$(echo "${TEST_IMAGE_REPOSITORY}" | tr "/" "-")
+  docker save ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} > ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME}.tar
 }
 
-push_pr_image() {
+load_and_push_images() {
   prepare
-  if [ -z "${PR_NUMBER}" ]
+  if [ -z "${IMAGE_TAG}" ]
   then
-    echo "Missing PR_NUMBER."
+    echo "Missing IMAGE_TAG."
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
+  export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
 
   # Load images
-  docker load --input /tmp/${IMAGE_NAME}-amd64.tar
-  docker load --input /tmp/${IMAGE_NAME}-arm64.tar
-  docker load --input /tmp/${IMAGE_NAME}-armv7.tar
+  IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
+  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
+  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
+  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+
+  TEST_FILE_NAME=$(echo "${TEST_IMAGE_REPOSITORY}" | tr "/" "-")
+  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME}.tar
 
 	# Push images
-	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
-	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
-	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+	docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
+	docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
+	docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+	docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 
   # Create manifest
-  docker manifest create ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
+  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
 build() {
@@ -140,10 +149,10 @@ case "${1}" in
   release_snapshot)
     release_snapshot
     ;;
-  save_pr_image)
-    save_pr_image
+  save_images)
+    save_images
     ;;
-  push_pr_image)
-    push_pr_image
+  load_and_push_images)
+    load_and_push_images
     ;;
 esac

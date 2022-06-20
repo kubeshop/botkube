@@ -1,4 +1,8 @@
 project_name: botkube
+env:
+  - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
+  - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}infracloudio/botkube{{ end }}
+  - TEST_IMAGE_REPOSITORY={{ if index .Env "TEST_IMAGE_REPOSITORY"  }}{{ .Env.TEST_IMAGE_REPOSITORY }}{{ else }}infracloudio/botkube-test{{ end }}
 before:
   hooks:
     - go mod download
@@ -21,20 +25,42 @@ builds:
       - arm64
     goarm:
       - 7
+  - id: botkube-test
+    command: test
+    binary: botkube-e2e.test
+    main: ./tests/e2e/
+    no_main_check: true
+    tags:
+      - integration
+    flags:
+      - -c
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+archives:
+  - id: my-archive
+    builds:
+      - botkube
 snapshot:
   name_template: "{{ .Tag }}"
+release:
+  ids:
+    - botkube
 changelog:
   skip: true
 dockers:
   - image_templates:
-      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-amd64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-amd64"
     use: buildx
     dockerfile: "build/Dockerfile"
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--build-arg=botkube_version={{ .Tag }}"
   - image_templates:
-      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-arm64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-arm64"
     use: buildx
     goarch: arm64
     dockerfile: "build/Dockerfile"
@@ -42,7 +68,7 @@ dockers:
       - "--platform=linux/arm64"
       - "--build-arg=botkube_version={{ .Tag }}"
   - image_templates:
-      - "ghcr.io/infracloudio/botkube:{{ .Tag }}-armv7"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-armv7"
     use: buildx
     goarch: arm
     goarm: 7
@@ -50,10 +76,18 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm"
       - "--build-arg=botkube_version={{ .Tag }}"
-
+  - image_templates:
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Tag }}"
+    use: buildx
+    ids:
+      - botkube-test
+    dockerfile: "build/test.Dockerfile"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=TEST_NAME=botkube-e2e.test"
 docker_manifests:
-  - name_template: ghcr.io/infracloudio/botkube:{{ .Tag }}
+  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}"
     image_templates:
-      - ghcr.io/infracloudio/botkube:{{ .Tag }}-amd64
-      - ghcr.io/infracloudio/botkube:{{ .Tag }}-arm64
-      - ghcr.io/infracloudio/botkube:{{ .Tag }}-armv7
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-amd64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-arm64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Tag }}-armv7"
