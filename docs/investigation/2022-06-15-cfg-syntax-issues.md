@@ -310,7 +310,7 @@ communications: # having multiple slacks? or ES?
               - "helm-full-access"
 ```
 
-Other option is to introduce "profiles/policies" that can gather the given configuration together.
+Other option is to introduce "profiles/policies" that can gather the given configuration together. See the [Polices](../proposal/2022-06-14-policies.md) proposal.
 
 ## Filters
 
