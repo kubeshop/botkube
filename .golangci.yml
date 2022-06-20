@@ -9,6 +9,8 @@ issues:
     - (G104|G307)
 run:
   tests: true
+  build-tags:
+    - integration
   skip-files:
     - ".*\\.generated\\.go$"
 linters:

@@ -284,7 +284,7 @@ config:
         # method which are allowed
         verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
         # resource configuration which is allowed
-        resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
+        resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps"]
       # set Namespace to execute BotKube kubectl commands by default
       defaultNamespace: default
       # Set true to enable commands execution from configured channel only
