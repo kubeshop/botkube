@@ -292,6 +292,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
 
 ## Mapping with communicators
 
+Extend each "communication" platform with dedicated bindings:
 ```yaml
 communications: # having multiple slacks? or ES?
   - name: tenant-b-workspace
@@ -308,6 +309,8 @@ communications: # having multiple slacks? or ES?
               - "kubectl-read-only"
               - "helm-full-access"
 ```
+
+Other option is to introduce "profiles/policies" that can gather the given configuration together.
 
 ## Filters
 
@@ -342,3 +345,25 @@ communications: # having multiple slacks? or ES?
 
 1. Unify naming between notifications vs executors. Maybe go with `notificator` and `executor`?
 2. Get rid of the `all` name usage. Currently, user cannot have `all` as Namespace name however it can have `all` as a channel name. It's misleading in which scope it's a reserved name and in which not. It can be replaced with e.g. `@all`.
+
+Changes that were proposed still don't handle:
+- Showing status of a given extension - if it's up and running or there were some errors.
+  - Now we can check that only in BotKube logs.
+- Providing metadata information about given extension (icon, display name, docs url etc.). Will be useful for discoverability.
+  - Currently, not available.
+- Out-of-the-box validation via Open API schema.
+  - Currently, not available.
+- Easy extensibility - add a new executor/notificator.
+
+## Changes
+
+1. Recommendations are merged under notifications.
+2. The `resources` notifications are moved under `notifications[].kubernetes[].resources`.
+3. Kubectl executor moved under `executors[].kubectl`.
+4. Filters are removed and existing one are moved under `notifications[].recommandtions[]`.
+5. The `namespaces.include` and `namespaces.exclude` properties are added to `kubectl` executor.
+6. The `resource_config.yaml` and `comm_config.yaml` are merged into one but you can provide config multiple times. In the same way, as Helm takes the `values.yaml` file. It's up to the user how it will be split.
+7. Update documentation about configuration.
+8. Update `@BotKube` commands to reflect new configuration.
+9. **Optional**: Add CLI to simplify creating/updating configuration.
+

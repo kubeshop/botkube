@@ -12,11 +12,11 @@ This document is based on the outcome from [Configuration API syntax issues](202
 
 Defining configuration via CRD allows:
 
-- Easy extensibility - new automation that watches for updates on the new object.
+- Easy extensibility - new executor/notificator can be dynamically created, and it will be automatically picked by controller.
   - Currently, two big YAML file, requires BotKube restart, extensions need to be built-in.
 - Showing status of a given extension - if it's up and running or there were some errors.
   - Now we can check that only in BotKube logs.
-- Providing metadata information about given extension. Will be useful for discoverability.
+- Providing metadata information about given extension (icon, display name, docs url etc.). Will be useful for discoverability.
   - Currently, not available.
 - Configuration that will be cluster-wide and namespace-scoped.
   - Currently, it's possible but not in a native K8s way.
@@ -45,8 +45,8 @@ Domains:
     1. (Cluster)NotificationTemplate
     2. (Cluster)Notification
 4. Mutators (filters)
-	1. (Cluster)MutatorTemplate
-	2. (Cluster)Mutator
+  1. (Cluster)MutatorTemplate
+  2. (Cluster)Mutator
 
    Currently, I don't see any candidate for this.
 
