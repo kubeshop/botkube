@@ -31,7 +31,7 @@ However, switching from config files to CRDs also adds some limitations:
 
   > **REMEDIATION:** To simplify transition, we can start with the cluster-wide CR, that will define globally settings - same as current YAML files. Later we can introduce namespaced version to allow fine-grained configuration.
 
-### Design
+## Design
 
 Domains:
 
@@ -45,26 +45,27 @@ Domains:
     1. (Cluster)NotificationTemplate
     2. (Cluster)Notification
 4. Mutators (filters)
-  1. (Cluster)MutatorTemplate
-  2. (Cluster)Mutator
+    1. (Cluster)MutatorTemplate
+    2. (Cluster)Mutator
 
-   Currently, I don't see any candidate for this.
+    Currently, I don't see any candidate for this.
 
-   | Filter Name             | DESCRIPTION                                                                       | Note                                    |
-   |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
-   | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                   |
-   | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                    |
-   | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
-   | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                    |
-   | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
-   | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                    |
-
+    | Filter Name             | Description                                                                       | Note                                    |
+    |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
+    | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as recommendation notificator.     |
+    | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as recommendation notificator.     |
+    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
+    | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as recommendation notificator.     |
+    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
+    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
 
 Initially, all executors and notificators can be marked as built-in. The `spec.plugin.built-in: true` marks that a given functionality is built-in. We can later extract it into separate plugin (probably Docker image).
 
-#### Communicator
+### Communicator
 
-Communicators integration in BotKube is quite narrow in comparison to executors or notificators, and it's not the main extension part. We can even decide to represent as fixed CRDs, see [Communicators CRDs](#communicator-crds). In the first implementation also the Namespace-scoped CRD doesn't make sens.
+Communicators integration in BotKube is quite narrow in comparison to executors or notificators, and it's not the main extension part. We can even decide to represent is as fixed set of CRDs, see [Communicators CRDs](#communicator-crds). In the first implementation also the Namespace-scoped CRD doesn't make sens.
+
+#### Template
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -89,7 +90,11 @@ spec:
 status:
   phase: Registered/Failed
   message: "CRD 'clusterslack.communicators.core.botkube.io/v1' not registered in cluster."
----
+```
+
+#### Instance
+
+```yaml
 apiVersion: "core.botkube.io/v1"
 kind: ClusterCommunicator
 metadata:
@@ -121,11 +126,13 @@ status:
   #lastTransitionTime:
 ```
 
-#### Notifications
+### Notifications
+
+#### Template
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
-kind: ClusterNotificationTemplate
+kind: (Cluster)NotificationTemplate
 metadata:
   name: Kubernetes
 spec:
@@ -156,7 +163,11 @@ spec:
         url: https://examples.com/foo/bar
 status:
   phase: Registered/Failed
----
+```
+
+#### Instance
+
+```yaml
 apiVersion: "core.botkube.io/v1"
 kind: ClusterNotification
 metadata:
@@ -167,22 +178,22 @@ spec:
     namespaces:  # global, can be OVERRIDDEN per resource
       include:
         - all
-      resources:
-        - name: v1/pods
-          namespaces: # it overrides the top one!
-            include:
-              - istio-system
-          events:
-            - error
-        - name: v1/services
-          events:
-            - error
-        - name: networking.istio.io/v1alpha3/DestinationRules
-          events:
-            - error
-        - name: networking.istio.io/v1alpha3/VirtualServices
-          events:
-            - error
+    resources:
+      - name: v1/pods
+        namespaces: # it overrides the top one!
+          include:
+            - istio-system
+        events:
+          - error
+      - name: v1/services
+        events:
+          - error
+      - name: networking.istio.io/v1alpha3/DestinationRules
+        events:
+          - error
+      - name: networking.istio.io/v1alpha3/VirtualServices
+        events:
+          - error
 status:
   phase: Initializing/Serving/Failed
 ---
@@ -209,7 +220,9 @@ spec:
           - error
 ```
 
-#### Executors
+### Executors
+
+#### Template
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -241,7 +254,11 @@ spec:
 
 status:
   phase: Registered/Failed
----
+```
+
+#### Instance
+
+```yaml
 apiVersion: "core.botkube.io/v1"
 kind: ClusterExecutor
 metadata:
