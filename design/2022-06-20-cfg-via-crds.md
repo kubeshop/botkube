@@ -46,14 +46,14 @@ Domains:
 
     Currently, I don't see any candidate for this.
 
-    | Filter Name             | DESCRIPTION                                                                       | Note                                 |
-    |-------------------------|-----------------------------------------------------------------------------------|--------------------------------------|
-    | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                |
-    | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                 |
-    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Move as notificator.                 |
-    | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                 |
-    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove. It will be per resource now. |
-    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                 |
+    | Filter Name             | DESCRIPTION                                                                       | Note                                    |
+    |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
+    | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                   |
+    | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                    |
+    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
+    | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                    |
+    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
+    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                    |
 
 3. Executors
     1. (Cluster)ExecutorTemplate
