@@ -58,11 +58,37 @@ The resource configuration file contains:
 1. Extract `settings.kubectl` to `executors[].kubectl`. In the future we will add more executors there, e.g. `helm`, `istioctl` etc.
 2. Nest `resources` under `notifications[].kubernetes.events`. In the future we will add more platforms that will send events, e.g. Sysdig, KubePug, etc.
 
-Examples:
+#### Extracted configuration
 
 1. Notifications
+    <table>
+    <tr>
+    <td> Before </td> <td> After </td>
+    </tr>
+    <tr>
+    <td>
+
+    ```yaml
+    # Notify about K8s events
+    resources:
+      - name: v1/nodes
+      namespaces:
+        include:
+          - all
+      events:
+        - error
+
+    # Recommendations about the
+    # best practices for the created resource
+    recommendations: true
+    ```
+
+    </td>
+    <td>
+
     ```yaml
     notifications:
+      # Notify about K8s events
       kubernetes:
         resources:
           - name: v1/nodes
@@ -72,40 +98,69 @@ Examples:
           events:
             - error
       sysdig:
-        # some settings..
+        # ..
       kubePug:
         # ...
 
-      # Recommendations about the best practices for the created resource
+      # Recommendations about the
+      # best practices for the created resource
       recommendations:
         - image    # "Checks and adds recommendation if 'latest' image tag is used for container image."
         - pod      # "Checks and adds recommendations if labels are missing in the pod specs."
         - ingress  # "Checks if services and tls secrets used in ingress specs are available."
     ```
 
-3. Executors
+    </td>
+    </tr>
+    </table>
+
+
+2. Executors
+    <table>
+    <tr>
+    <td> Before </td> <td> After </td>
+    </tr>
+    <tr>
+    <td>
+
+    ```yaml
+    settings:
+      # Cluster name to differentiate incoming messages
+      clustername: not-configured
+      # Kubectl executor configs
+      kubectl:
+        enabled: false
+        commands:
+          verbs: ["api-resources", "...", "auth"]
+          resources: ["deployments", "...", "nodes"]
+    ```
+
+    </td>
+    <td>
+
 
     ```yaml
     executors:
       kubectl:
-        # Set true to enable kubectl commands execution
         enabled: false
-        # List of allowed commands
         commands:
-          # method which are allowed
-          verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
-          # resource configuration which is allowed
-          resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
-        # set Namespace to execute botkube kubectl commands by default
-        defaultNamespace: default
-        # Set true to enable commands execution from configured channel only
-        restrictAccess: false
+          verbs: ["api-resources", "...", "auth"]
+          resources: ["deployments", "...", "nodes"]
+      helm:
+        # ...
+      istioctl:
+        # ...
     ```
 
-4. BotKube settings:
+    </td>
+    </tr>
+    </table>
+
+3. BotKube settings:
+
+    Stay as they are right now.
 
     ```yaml
-    # Setting to support multiple clusters
     settings:
       # Cluster name to differentiate incoming messages
       clustername: not-configured
@@ -115,14 +170,42 @@ Examples:
       upgradeNotifier: true
     ```
 
-It's cleaner, but we still need to be able to configure a given "notificator/executor" multiple times. Let's introduce named configuration.
+The API is cleaner, but we still need to be able to configure a given "notificator/executor" multiple times. Let's introduce [named configuration](#named-configurations).
 
 #### Named configurations
 
 1. Notifications
+
+    <table>
+    <tr>
+    <td> Before </td> <td> After </td>
+    </tr>
+    <tr>
+    <td>
+
     ```yaml
     notifications:
-      - name: foo-name # name used for bindings
+      # Notify about K8s events
+      kubernetes:
+        resources:
+          - name: v1/nodes
+          namespaces:
+            include:
+              - all
+          events:
+            - error
+      sysdig:
+        # ..
+      kubePug:
+        # ...
+    ```
+
+    </td>
+    <td>
+
+    ```yaml
+    notifications:
+      - name: nodes-errors # name used for bindings
         kubernetes:
           resources:
             - name: v1/nodes
@@ -131,7 +214,15 @@ It's cleaner, but we still need to be able to configure a given "notificator/exe
                   - all
               events:
                 - error
+        sysdig:
+          # ..
+        kubePug:
+          # ...
     ```
+
+    </td>
+    </tr>
+    </table>
 
     <details>
       <summary>Discarded alternative</summary>
@@ -151,37 +242,59 @@ It's cleaner, but we still need to be able to configure a given "notificator/exe
 
     </details>
 
-2. Executors
+3. Executors
+
+    <table>
+    <tr>
+    <td> Before </td> <td> After </td>
+    </tr>
+    <tr>
+    <td>
 
     ```yaml
+    executors:
+      kubectl:
+        enabled: false
+        commands:
+            verbs: ["api-resources", "...", "auth"]
+            resources: ["deployments", "..", "nodes"]
+      helm:
+        # ...
+      istioctl
+        # ...
+    ```
+
+    </td>
+    <td>
+
+     ```yaml
     executors:
       - name: kubectl-read-only # name used for bindings
         kubectl:
           namespaces:
             include:
               - team-a
-          # List of allowed commands
           commands:
-            # method which are allowed
-            verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
-            # resource configuration which is allowed
-            resources: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
+            verbs: ["api-resources", "...", "auth"]
+            resources: ["deployments", "..", "nodes"]
       - name: helm-full-access # name used for bindings
         helm:
           namespaces:
             include:
               - team-a
           commands:
-            # method which are allowed
             verbs: ["list", "delete", "install"]
     ```
 
+    </td>
+    </tr>
+    </table>
 
 ## Mapping with communicators
 
 ```yaml
 communications: # having multiple slacks? or ES?
-  - name: default
+  - name: tenant-b-workspace
     slack:
       token: 'SLACK_API_TOKEN'
       # customized notifications
@@ -200,11 +313,14 @@ communications: # having multiple slacks? or ES?
 
 ### Issues
 
-- You are not able to "disable/enable" them via config. It needs to be done via `@Botkube filters list/disable/enable` command.
-- The filter package holds not only functionality to "filter" object but also to mutate or validate them. For example:
-  - mutator: **Object Annotation Checker** - Checks if object has `"botkube.io/channel"` and if yes, change the default channel where notification will be sent.
-  - validator: **IngressValidator** - "Checks if services and tls secrets used in ingress specs are available."
-  - filter: **NamespaceChecker** - "Checks if event belongs to blocklisted namespaces and filter them."
+- You are not able to "disable/enable" them via config. It needs to be done via [`@Botkube filters list/disable/enable`](https://www.botkube.io/usage/#manage-filters) command.
+- The filter package holds not only functionality to "filter" objects but also to mutate or validate them. For example:
+
+    | Name                          | Type      | Description                                                                                                         |
+    |-------------------------------|-----------|---------------------------------------------------------------------------------------------------------------------|
+    | **Object Annotation Checker** | mutator   | Checks if object has `"botkube.io/channel"` and if yes, change the default channel where notification will be sent. |
+    | **IngressValidator**          | validator | "Checks if services and tls secrets used in ingress specs are available."                                           |
+    | **NamespaceChecker**          | filter    | "Checks if event belongs to blocklisted namespaces and filter them."                                                |
 
 ### Ideas
 
@@ -213,14 +329,14 @@ communications: # having multiple slacks? or ES?
 
    However, I don't see any candidate for `Mutators` right now.
 
-   | Filter Name             | DESCRIPTION                                                                       | Note                                    |
+   | Filter Name             | Description                                                                       | Note                                    |
    |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
-   | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                   |
-   | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                    |
+   | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as recommendation notificator.     |
+   | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as recommendation notificator.     |
    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
-   | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                    |
+   | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as recommendation notificator.     |
    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
-   | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                    |
+   | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
 
 ## Others
 

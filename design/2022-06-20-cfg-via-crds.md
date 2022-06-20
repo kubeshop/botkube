@@ -4,7 +4,7 @@ Created on 2022-06-14 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 
 ## Motivation
 
-See [2022-06-15-api-problems.md](2022-06-15-api-problems.md).
+This document is based on the outcome from [Configuration API syntax issues](2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files.
 
 ## Overview
 
@@ -13,7 +13,7 @@ See [2022-06-15-api-problems.md](2022-06-15-api-problems.md).
 Defining configuration via CRD allows:
 
 - Easy extensibility - new automation that watches for updates on the new object.
-  - Currently, one big YAML file, requires BotKube restart, extensions need to be built-in.
+  - Currently, two big YAML file, requires BotKube restart, extensions need to be built-in.
 - Showing status of a given extension - if it's up and running or there were some errors.
   - Now we can check that only in BotKube logs.
 - Providing metadata information about given extension. Will be useful for discoverability.
@@ -25,11 +25,9 @@ Defining configuration via CRD allows:
 
 However, switching from config files to CRDs also adds some limitations:
 
-- Limit 1MB per configuration definition.
+- 1MB size limit per configuration definition.
 - Configuration is purly K8s based, so it means no option to run on bare-metal/docker/etc.
-- Currently, we have two config YAMLs that can be configured. Namespace-scoped CR will make it harder. For example, you
-  need to ensure that Secret with a communicator token is in all NS where communication CR was created. It has pros and
-  cons. A pros are definitely a better security model and fine-grained approach.
+- Currently, we have two config YAMLs that can be configured. Namespace-scoped CR will make it harder. For example, you need to ensure that Secret with a communicator token is in all Namespaces where communication CR was created. It has pros and cons. A pros are definitely a better security model and fine-grained approach.
 
   > **REMEDIATION:** To simplify transition, we can start with the cluster-wide CR, that will define globally settings - same as current YAML files. Later we can introduce namespaced version to allow fine-grained configuration.
 
@@ -40,27 +38,27 @@ Domains:
 1. Communicators
     1. (Cluster)CommunicatorTemplate
     2. (Cluster)Slack/(Cluster)Discord/(Cluster)MSTeams/etc.
-2. Mutators (filters)
-    1. (Cluster)MutatorTemplate
-    2. (Cluster)Mutator
-
-    Currently, I don't see any candidate for this.
-
-    | Filter Name             | DESCRIPTION                                                                       | Note                                    |
-    |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
-    | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                   |
-    | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                    |
-    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
-    | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                    |
-    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
-    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                    |
-
-3. Executors
+2. Executors
     1. (Cluster)ExecutorTemplate
     2. (Cluster)Executor
-4. Notificators (including validators)
+3. Notificators (including validators)
     1. (Cluster)NotificationTemplate
     2. (Cluster)Notification
+4. Mutators (filters)
+	1. (Cluster)MutatorTemplate
+	2. (Cluster)Mutator
+
+   Currently, I don't see any candidate for this.
+
+   | Filter Name             | DESCRIPTION                                                                       | Note                                    |
+   |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
+   | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as  notificator.                   |
+   | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as notificator.                    |
+   | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
+   | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as notificator.                    |
+   | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
+   | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as notificator.                    |
+
 
 Initially, all executors and notificators can be marked as built-in. The `spec.plugin.built-in: true` marks that a given functionality is built-in. We can later extract it into separate plugin (probably Docker image).
 
