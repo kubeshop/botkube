@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
@@ -115,7 +115,7 @@ jobs:
               gh pr checkout ${PR_NUMBER}
               helm install botkube -n botkube --create-namespace \\
               --set image.repository=infracloudio/pr/botkube \\
-              --set image.tag=v${PR_NUMBER} \\
+              --set image.tag=PR-${PR_NUMBER} \\
               ./helm/botkube
 
           ENDOFFILE
