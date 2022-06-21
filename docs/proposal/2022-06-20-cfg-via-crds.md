@@ -239,25 +239,31 @@ spec:
     # Schema for the `parameters` field
     openAPIV3Schema:
       type: object
+      title: "Parameters for kubectl executor"
+      required: [ "enabled", "commands" ]
       properties:
-        required: [ "enabled", "commands"]
+        enabled:
+          title: "Set true to enable kubectl commands execution"
+          default: true
+          type: boolean
+        commands:
+          type: object
+          required: [ "verbs", "resources" ]
           properties:
-            enabled:
-              type: boolean
-            commands:
-              type: object
-              required: [ "verbs", "resources" ]
-              properties:
-                verbs:
-                  type: array
-                  items:
-                    type: string
-                    enum: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
-                resources:
-                  type: array
-                  items:
-                    type: string
-                    enum: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
+            verbs:
+              title: "Methods which are allowed"
+              default: [ "api-resources", "api-versions" ]
+              type: array
+              items:
+                type: string
+                enum: [ "api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth" ]
+            resources:
+              title: "Resource configuration which is allowed"
+              type: array
+              default: [ "deployments","pods" ]
+              items:
+                type: string
+                enum: [ "deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
   plugin:
     built-in: kubectl # built-in name, so we know which one to pick. we can also use 'metadata.name'.
   metadata:
