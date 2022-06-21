@@ -356,7 +356,7 @@ Issues that are still not addressed:
 - Out-of-the-box validation via Open API schema.
   - Currently, not available.
 - Easy extensibility - add a new executor/notificator.
-	- Currently, via built-in filters.
+  - Currently, via built-in filters.
 
 ## Consequences
 

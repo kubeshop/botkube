@@ -333,13 +333,13 @@ This section described necessary changes if proposal will be accepted.
 ### Follow-up changes
 
 1. Create Namespace-scoped controllers for:
-	1. Communicators - built-in
+  1. Communicators - built-in
     - CommunicatorTemplate
     - Slack/Discord/MSTeams/etc.
-	2. Executors - built-in
+  2. Executors - built-in
     - ExecutorTemplate
     - Executor
-	3. Notificators - built-in
+  3. Notificators - built-in
     - NotificationTemplate
     - Notification
 
@@ -370,7 +370,7 @@ Other approaches that I consider with explanation why I ruled them out.
 
 
 <details>
-	<summary>Discarded alternative</summary>
+  <summary>Discarded alternative</summary>
 
 
 
