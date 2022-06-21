@@ -115,7 +115,7 @@ jobs:
               gh pr checkout ${PR_NUMBER}
               helm install botkube -n botkube --create-namespace \\
               --set image.repository=infracloudio/pr/botkube \\
-              --set image.tag=PR-${PR_NUMBER} \\
+              --set image.tag=v${PR_NUMBER}-PR \\
               ./helm/botkube
 
           ENDOFFILE
