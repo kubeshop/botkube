@@ -38,6 +38,7 @@ type DefaultFilterEngine struct {
 
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
+	// TODO: Why `Run` method takes object as input argument, if event already contains it as well? Refactor it if possible
 	Run(context.Context, interface{}, events.Event) events.Event
 	Register(...Filter)
 	RegisteredFilters() []RegisteredFilter

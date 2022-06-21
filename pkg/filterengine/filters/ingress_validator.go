@@ -82,7 +82,7 @@ func (f *IngressValidator) Run(ctx context.Context, object interface{}, event *e
 	for _, tls := range ingressObj.Spec.TLS {
 		_, err := ValidSecret(ctx, f.dynamicCli, tls.SecretName, ingNs)
 		if err != nil {
-			event.Recommendations = append(event.Recommendations, fmt.Sprintf("TLS secret %s does not exist", tls.SecretName))
+			event.Warnings = append(event.Warnings, fmt.Sprintf("TLS secret '%s' does not exist", tls.SecretName))
 		}
 	}
 	f.log.Debug("Ingress Validator filter successful!")
