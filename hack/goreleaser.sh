@@ -22,6 +22,9 @@
 set -o errexit
 set -o pipefail
 
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/infracloudio}"
+IMAGE_NAME="${IMAGE_NAME:-botkube}"
+
 prepare() {
   export DOCKER_CLI_EXPERIMENTAL="enabled"
   docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -32,15 +35,66 @@ release_snapshot() {
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
   goreleaser release --rm-dist --snapshot --skip-publish
   # Push images
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
   # Create manifest
-  docker manifest create ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG} \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ghcr.io/infracloudio/botkube:${GORELEASER_CURRENT_TAG}
+  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
+}
+
+save_pr_image() {
+  prepare
+
+  if [ -z "${PR_NUMBER}" ]
+  then
+    echo "Missing PR_NUMBER."
+    exit 1
+  fi
+
+  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
+  goreleaser release --rm-dist --snapshot --skip-publish
+
+  # Re-tag with 'pr' prefix
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+
+  # Push images
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 > /tmp/${IMAGE_NAME}-amd64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 > /tmp/${IMAGE_NAME}-arm64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 > /tmp/${IMAGE_NAME}-armv7.tar
+}
+
+push_pr_image() {
+  prepare
+  if [ -z "${PR_NUMBER}" ]
+  then
+    echo "Missing PR_NUMBER."
+    exit 1
+  fi
+
+  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
+
+  # Load images
+  docker load --input /tmp/${IMAGE_NAME}-amd64.tar
+  docker load --input /tmp/${IMAGE_NAME}-arm64.tar
+  docker load --input /tmp/${IMAGE_NAME}-armv7.tar
+
+	# Push images
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+	docker push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+
+  # Create manifest
+  docker manifest create ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}
 }
 
 build() {
@@ -85,5 +139,11 @@ case "${1}" in
     ;;
   release_snapshot)
     release_snapshot
+    ;;
+  save_pr_image)
+    save_pr_image
+    ;;
+  push_pr_image)
+    push_pr_image
     ;;
 esac
