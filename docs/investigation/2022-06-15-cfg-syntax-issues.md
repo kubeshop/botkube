@@ -6,7 +6,8 @@ This document describes found issue with the current syntax for BotKube configur
 
 The communications settings are stored in the `comm_config.yaml` file.
 
-Issues:
+### Issues
+
 1. All communicator settings are in one YAML.
 2. It contains communicators but also "sinks" like Elasticsearch.
    1. They are a bit different. The communicators are bidirectional while ES is only able to receive events.
@@ -32,8 +33,9 @@ Issues:
          replicas: 0
    ```
 
-Ideas:
-1. Split into messaging programs and "sinks"? Personally, I would do it later.
+### Ideas
+
+1. Split into messaging programs and "sinks".
 
 ## Resource configuration
 
@@ -47,20 +49,21 @@ The resource configuration file contains:
 
 
 ### Issues
-- One huge YAML that you need to scroll.
-- It holds too much different configuration.
-- You are not able to enable/disable a given recommendation. There is only the `recommendations: true` property.
-- The `kubectl` executor settings are under `settings`. It's not consistent with `resources` and `communications`.
-- No option to define multiple notification settings. Currently, you need to deploy BotKube twice if you want to have two different notification strategies.
+
+1. One huge YAML that you need to scroll.
+2. It holds too much different configuration.
+3. You are not able to enable/disable a given recommendation. There is only the `recommendations: true` property.
+4. The `kubectl` executor settings are under `settings`. It's not consistent with `resources` and `communications`.
+5. No option to define multiple notification settings. Currently, you need to deploy BotKube twice if you want to have two different notification strategies.
 
 ### Ideas
 
 1. Extract `settings.kubectl` to `executors[].kubectl`. In the future we will add more executors there, e.g. `helm`, `istioctl` etc.
-2. Nest `resources` under `notifications[].kubernetes.events`. In the future we will add more platforms that will send events, e.g. Sysdig, KubePug, etc.
+2. Nest `resources` under `notifiers[].kubernetes.events`. In the future we will add more platforms that will send events, e.g. Sysdig, KubePug, etc.
 
 #### Extracted configuration
 
-1. Notifications
+1. Notifiers
     <table>
     <tr>
     <td> Before </td> <td> After </td>
@@ -87,7 +90,7 @@ The resource configuration file contains:
     <td>
 
     ```yaml
-    notifications:
+    notifiers:
       # Notify about K8s events
       kubernetes:
         resources:
@@ -174,7 +177,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
 
 #### Named configurations
 
-1. Notifications
+1. Notifiers
 
     <table>
     <tr>
@@ -184,7 +187,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
     <td>
 
     ```yaml
-    notifications:
+    notifiers:
       # Notify about K8s events
       kubernetes:
         resources:
@@ -204,7 +207,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
     <td>
 
     ```yaml
-    notifications:
+    notifiers:
       - name: nodes-errors # name used for bindings
         kubernetes:
           resources:
@@ -228,7 +231,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
       <summary>Discarded alternative</summary>
 
     ```yaml
-    notifications:
+    notifiers:
       kubernetes:
         - name: nodes-errors # name used for bindings
           resources:
@@ -292,25 +295,44 @@ The API is cleaner, but we still need to be able to configure a given "notificat
 
 ## Mapping with communicators
 
-Extend each "communication" platform with dedicated bindings:
-```yaml
-communications: # having multiple slacks? or ES?
-  - name: tenant-b-workspace
-    slack:
-      token: 'SLACK_API_TOKEN'
-      # customized notifications
-      channels:
-        - name: "#nodes"
-          bindings:
-            notifications:
-              - "nodes-errors"
-              - "depreacted-api"
-            executors:
-              - "kubectl-read-only"
-              - "helm-full-access"
-```
+1. Extend each "communication" platform with dedicated bindings:
 
-Other option is to introduce "profiles/policies/presets" that can gather the given configuration together. See the [Polices](../proposal/2022-06-14-policies.md) proposal.
+    ```yaml
+    communications: # having multiple slacks? or ES?
+      - name: tenant-b-workspace
+        slack:
+          token: 'SLACK_API_TOKEN'
+          # customized notifications
+          channels:
+            - name: "#nodes"
+              bindings:
+                notifiers:
+                  - "nodes-errors"
+                  - "depreacted-api"
+                executors:
+                  - "kubectl-read-only"
+                  - "helm-full-access"
+    ```
+   See the [Bindings](../proposal/2022-06-14-bindings.md) proposal.
+
+2. Introduce "profiles/policies/presets" that can gather the given configuration together.
+
+    ```yaml
+    communications:
+      slack:
+        token: 'SLACK_API_TOKEN'
+        notiftype: short
+        policyBinding:
+          - channel: dev
+            policies: development
+          - channel: prod
+            policies:
+              - production
+              - admin
+          - channel: admin
+            policies: admin
+    ```
+    See the [Polices](../proposal/2022-06-14-policies.md) proposal.
 
 ## Filters
 
@@ -341,11 +363,6 @@ Other option is to introduce "profiles/policies/presets" that can gather the giv
    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
 
-## Others
-
-1. Unify naming between notifications vs executors. Maybe go with `notificator` and `executor`?
-2. Get rid of the `all` name usage. Currently, user cannot have `all` as Namespace name however it can have `all` as a channel name. It's misleading in which scope it's a reserved name and in which not. It can be replaced with e.g. `@all`.
-
 ## Other issues
 
 Issues that are still not addressed:
@@ -358,24 +375,24 @@ Issues that are still not addressed:
 - Easy extensibility - add a new executor/notificator.
   - Currently, via built-in filters.
 
+Those issues can be address with dedicated BotKube configuration CRDs. See [Configure BotKube via CRs](../proposal/2022-06-20-cfg-via-crds.md) proposal.
+
 ## Consequences
 
 This section described necessary changes if proposal will be accepted.
 
 ### Minimum changes
 
-1. The `resources` notifications are moved under `notifications[].kubernetes[].resources`.
+1. The `resources` notifications are moved under `notifiers[].kubernetes[].resources`.
 2. Kubectl executor moved under `executors[].kubectl`.
-3. The `namespaces.include` and `namespaces.exclude` properties are added to the `kubectl` executor.
-3. The `namespaces.include` and `namespaces.exclude` properties are added to `notifications[].kubernetes[]`.
-4. The `resource_config.yaml` and `comm_config.yaml` are merged into one, but you can provide config multiple times. In the same way, as Helm takes the `values.yaml` file. It's up to the user how it will be split.
-5. Update documentation about configuration.
+3. The `resource_config.yaml` and `comm_config.yaml` are merged into one, but you can provide config multiple times. In the same way, as Helm takes the `values.yaml` file. It's up to the user how it will be split.
+4. Update documentation about configuration.
 
 ### Follow-up changes
 
 1. Recommendations are merged under notifications.
-2. Filters are removed and existing one are moved under `notifications[].recommandtions[]`.
+2. Filters are removed and existing one are moved under `notifications[].recommendations[]`.
 3. Update `@BotKube` commands to reflect new configuration.
 4. **Optional**: Add CLI to simplify creating/updating configuration.
-
+4. **Optional**: Split communications into messaging programs and "sinks".
 

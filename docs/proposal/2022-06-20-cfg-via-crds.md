@@ -1,10 +1,14 @@
 # Configure BotKube via CRs
 
-Created on 2022-06-14 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
+Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
+
+| Status      |
+|-------------|
+| `Postponed` |
 
 ## Motivation
 
-This document is based on the outcome from [Configuration API syntax issues](../investigation/2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files.
+This document is based on the outcome from [Configuration API syntax issues](go/src/github.com/infracloudio/botkube/docs/investigation/2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files.
 
 ## Overview
 
@@ -41,9 +45,9 @@ Domains:
 2. Executors
     1. (Cluster)ExecutorTemplate
     2. (Cluster)Executor
-3. Notificators (including validators)
-    1. (Cluster)NotificationTemplate
-    2. (Cluster)Notification
+3. Notifiers (including validators)
+    1. (Cluster)NotifierTemplate
+    2. (Cluster)Notifier
 4. Mutators (filters)
     1. (Cluster)MutatorTemplate
     2. (Cluster)Mutator
@@ -113,7 +117,7 @@ spec:
     channels:
       - name: nodes # it's better with string as YAML doesn't support #, or @ chars
         bindings:
-          notifications:
+          notifier:
             - name: nodes-errors
           executors:
             - name: nodes-readonly
@@ -126,13 +130,13 @@ status:
   #lastTransitionTime:
 ```
 
-### Notifications
+### Notifiers
 
 #### Template
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
-kind: (Cluster)NotificationTemplate
+kind: (Cluster)NotifierTemplate
 metadata:
   name: Kubernetes
 spec:
@@ -167,12 +171,12 @@ status:
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
-kind: ClusterNotification
+kind: ClusterNotifier
 metadata:
   name: k8s-network-errors
 spec:
-  template: Kubernetes # name of ClusterNotificationTemplate
-  parameters: # Core webhook for ClusterNotification, validates it against 'ClusterNotificationTemplate[Kubernetes].validation.openAPIV3Schema'
+  template: Kubernetes # name of ClusterNotifierTemplate
+  parameters: # Core webhook for ClusterNotifier, validates it against 'ClusterNotifierTemplate[Kubernetes].validation.openAPIV3Schema'
     namespaces:  # global, can be OVERRIDDEN per resource
       include:
         - all
@@ -196,12 +200,12 @@ status:
   phase: Initializing/Serving/Failed
 ---
 apiVersion: "core.botkube.io/v1"
-kind: Notification
+kind: Notifier
 metadata:
   name: k8s-network-errors
   namespace: team-a # only here Namespace is allowed. All events are scoped to this one.
 spec:
-  template: Kubernetes # refers Notification not ClusterNotification
+  template: Kubernetes # refers Notifier not ClusterNotifier
   parameters:
     resources:
       - name: v1/pods
@@ -222,7 +226,7 @@ spec:
 
 #### Template
 
-![](assets/crds-executor-meta.png)
+![](go/src/github.com/infracloudio/botkube/docs/proposal/assets/github.com/infracloudio/botkube/docs/investigation/assets/crds-executor-meta.png)
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -274,7 +278,7 @@ status:
 
 #### Instance
 
-![](assets/crds-executor-validation.png)
+![](go/src/github.com/infracloudio/botkube/docs/proposal/assets/github.com/infracloudio/botkube/docs/investigation/assets/crds-executor-validation.png)
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -323,9 +327,9 @@ This section described necessary changes if proposal will be accepted.
     2. Executors
         - ClusterExecutorTemplate
         - ClusterExecutor
-    3. Notificators
-        - ClusterNotificationTemplate
-        - ClusterNotification
+    3. Notifiers
+        - ClusterNotifierTemplate
+        - ClusterNotifier
 3. All communicators, executors, notificators are still built-in.
 4. Update documentation about configuration.
 5. Deprecate usage of the `resource_config.yaml` and `comm_config.yaml` config files.
@@ -339,12 +343,12 @@ This section described necessary changes if proposal will be accepted.
   2. Executors - built-in
     - ExecutorTemplate
     - Executor
-  3. Notificators - built-in
-    - NotificationTemplate
-    - Notification
+  3. Notifiers - built-in
+    - NotifierTemplate
+    - Notifier
 
-2. Recommendations are merged under notifications.
-3. Filters are removed and existing one are moved under notifications.
+2. Recommendations are merged under notifier.
+3. Filters are removed and existing one are moved under notifier.
 4. Update `@BotKube` commands to reflect new configuration.
    1. Option to manage those settings via communicator
 5. GraphQL gateway service.
@@ -358,7 +362,7 @@ For example, I didn't check whether it will be easily to add support to assign p
 
 Because it is a huge change and the implementation phase will be time-consuming, I propose to postpone it until we will known answer for questions like:
 - what is the desired way of extending BotKube?
-- what is the main extensions part? Notificators, Communicators, Executors or something else?
+- what is the main extensions part? Notifiers, Communicators, Executors or something else?
 - what are the requirements regarding BotKube dashboard?
 - what features we want to support? assign predefined action buttons? customizable message format? interactive recommendations?
 
@@ -430,7 +434,7 @@ spec:
   channels:
     - name: nodes # it's better with string as YAML doesn't support #, or @ chars
       bindings:
-        notifications:
+        notifier:
           - kind: ClusterKubernetes
             name: nodes-errors
         executors:
@@ -479,8 +483,8 @@ spec:
 #### K8s notification CRD
 
 ```yaml
-apiVersion: "notifications.core.botkube.io/v1"
-kind: Notifications
+apiVersion: "notifier.core.botkube.io/v1"
+kind: Kubernetes
 metadata:
   name: network-errors
 spec:
@@ -505,7 +509,7 @@ spec:
       events:
         - error
 ---
-apiVersion: "notifications.core.botkube.io/v1"
+apiVersion: "notifier.core.botkube.io/v1"
 kind: Kubernetes
 metadata:
   name: network-errors
