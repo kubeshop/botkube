@@ -136,15 +136,13 @@ kind: (Cluster)NotificationTemplate
 metadata:
   name: Kubernetes
 spec:
-  # instead of CRD, define schema, we can even skip when 'plugin.built-in: {name}`
+  # define schema, we can even skip when 'plugin.built-in: {name}`
   validation:
     # Schema for the `parameters` field
     openAPIV3Schema:
       properties:
-        labels:
-          type: array
-          items: string
-
+        type: object
+        # ...
   plugin:
     built-in: k8s # needed for the first phase, when we don't want to extract all logic into separate plugins/Docker images.
     # later:
@@ -224,6 +222,8 @@ spec:
 
 #### Template
 
+![](assets/crds-executor-meta.png)
+
 ```yaml
 apiVersion: "core.botkube.io/v1"
 kind: ClusterExecutorTemplate
@@ -234,10 +234,26 @@ spec:
   validation:
     # Schema for the `parameters` field
     openAPIV3Schema:
+      type: object
       properties:
-        labels:
-          type: array
-          items: string
+        required: [ "enabled", "commands"]
+          properties:
+            enabled:
+              type: boolean
+            commands:
+              type: object
+              required: [ "verbs", "resources" ]
+              properties:
+                verbs:
+                  type: array
+                  items:
+                    type: string
+                    enum: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
+                resources:
+                  type: array
+                  items:
+                    type: string
+                    enum: ["deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes"]
   plugin:
     built-in: kubectl # built-in name, so we know which one to pick. we can also use 'metadata.name'.
   metadata:
@@ -257,6 +273,8 @@ status:
 ```
 
 #### Instance
+
+![](assets/crds-executor-validation.png)
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -290,40 +308,77 @@ spec:
       resources: ["Deployments", "Pods", "Services"]
 ```
 
-### TODO
 
-Show the target design and phases:
-1. Add new "API"
-   1. Stay with two files and later map it to CRDs?
-   2. or go with CRDs on a feature flag
-2. Only represent Built-in and allow configuration
-3. Extract them as plugins (docker images)
-   1. As a BotKube we don't care?
-4. Then GraphQL etc.
-   1. GraphQL service that shows the catalog of possible "sinks", "communicators", "executors"
-  This will also enable predefined some catalog of policies:
+## Consequences
+
+This section described necessary changes if proposal will be accepted.
+
+### Minimum changes
+
+1. Add new CRDs with a new configuration syntax.
+2. Create cluster-wide controllers for:
+    1. Communicators
+        - ClusterCommunicatorTemplate
+        - ClusterCommunicator
+    2. Executors
+        - ClusterExecutorTemplate
+        - ClusterExecutor
+    3. Notificators
+        - ClusterNotificationTemplate
+        - ClusterNotification
+3. All communicators, executors, notificators are still built-in.
+4. Update documentation about configuration.
+5. Deprecate usage of the `resource_config.yaml` and `comm_config.yaml` config files.
+
+### Follow-up changes
+
+1. Create Namespace-scoped controllers for:
+	1. Communicators - built-in
+    - CommunicatorTemplate
+    - Slack/Discord/MSTeams/etc.
+	2. Executors - built-in
+    - ExecutorTemplate
+    - Executor
+	3. Notificators - built-in
+    - NotificationTemplate
+    - Notification
+
+2. Recommendations are merged under notifications.
+3. Filters are removed and existing one are moved under notifications.
+4. Update `@BotKube` commands to reflect new configuration.
+   1. Option to manage those settings via communicator
+5. GraphQL gateway service.
+6. **Optional**: Add CLI to simplify creating/updating configuration.
+7. Add Mutators CRD
+
+## Summary
+
+The CRD seems to be the most flexible and Kubernetes native approach for handling BotKube configuration. It enables a lot of new features. However, we still don't know the future of the BotKube and how it will be used.
+For example, I didn't check whether it will be easily to add support to assign predefined action buttons to a given notification type. It may, turns out that the proposed syntax is not flexible enough. As a result, we will need introduce yet another breaking change.
+
+Because it is a huge change and the implementation phase will be time-consuming, I propose to postpone it until we will known answer for questions like:
+- what is the desired way of extending BotKube?
+- what is the main extensions part? Notificators, Communicators, Executors or something else?
+- what are the requirements regarding BotKube dashboard?
+- what features we want to support? assign predefined action buttons? customizable message format? interactive recommendations?
 
 
-# Archive
 
-## Ideas
+## Alternatives
 
-Install of it results in a CR creation and also registering a dedicated CRD
+Other approaches that I consider with explanation why I ruled them out.
 
-## Domains
 
-1. Communicators
-2. Filters
-3. Mutators
-4. Validators
-5. Executors
-6. Notificators
+<details>
+	<summary>Discarded alternative</summary>
 
-## Individual CRD approach
+
+
+### Individual CRD approach
 
 Each communicator, executor, and notificator is represented by own CRD.
 
-### Communicator CRDs
+#### Communicator CRDs
 
 Communicators integration in BotKube is quite narrow in comparison to executors or notificators, and it's not the main extension part.
 To simplify the BotKube implementation we can still have them as built-in. To still be K8s native, we can define them as CRDs. For example:
@@ -391,7 +446,7 @@ status:
 ```
 
 
-### Kubectl Executor CRD
+#### Kubectl Executor CRD
 
 ```yaml
 apiVersion: "executors.core.botkube.io/v1"
@@ -421,7 +476,7 @@ spec:
     resources: ["Deployments", "Pods", "Services"]
 ```
 
-### K8s notification CRD
+#### K8s notification CRD
 
 ```yaml
 apiVersion: "notifications.core.botkube.io/v1"
@@ -471,4 +526,4 @@ spec:
         - error
 ```
 
-
+</details>
