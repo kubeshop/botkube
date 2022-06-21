@@ -8,7 +8,7 @@ Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 
 ## Motivation
 
-This document is based on the outcome from [Configuration API syntax issues](go/src/github.com/infracloudio/botkube/docs/investigation/2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files.
+This document is based on the outcome from [Configuration API syntax issues](../investigation/2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files.
 
 ## Overview
 
@@ -226,7 +226,7 @@ spec:
 
 #### Template
 
-![](go/src/github.com/infracloudio/botkube/docs/proposal/assets/github.com/infracloudio/botkube/docs/investigation/assets/crds-executor-meta.png)
+![](./assets/crds-executor-meta.png)
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
@@ -284,7 +284,7 @@ status:
 
 #### Instance
 
-![](go/src/github.com/infracloudio/botkube/docs/proposal/assets/github.com/infracloudio/botkube/docs/investigation/assets/crds-executor-validation.png)
+![](./assets/crds-executor-validation.png)
 
 ```yaml
 apiVersion: "core.botkube.io/v1"
