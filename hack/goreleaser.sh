@@ -55,7 +55,7 @@ save_pr_image() {
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=v${PR_NUMBER}-PR
+  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
   goreleaser release --rm-dist --snapshot --skip-publish
 
   # Re-tag with 'pr' prefix
@@ -77,7 +77,7 @@ push_pr_image() {
     exit 1
   fi
 
-  export GORELEASER_CURRENT_TAG=v${PR_NUMBER}-PR
+  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
 
   # Load images
   docker load --input /tmp/${IMAGE_NAME}-amd64.tar
