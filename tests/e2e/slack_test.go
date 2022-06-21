@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
+
+	"github.com/infracloudio/botkube/pkg/filterengine/filters"
+
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,8 +22,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/infracloudio/botkube/pkg/filterengine/filters"
 )
 
 type Config struct {
@@ -329,6 +330,49 @@ func TestSlack(t *testing.T) {
 		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
 		require.NoError(t, err)
 	})
+
+	t.Run("Recommendations", func(t *testing.T) {
+		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
+
+		t.Log("Creating Pod...")
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      channel.Name,
+				Namespace: appCfg.Deployment.Namespace,
+			},
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
+					{Name: "nginx", Image: "nginx:latest"},
+				},
+			},
+		}
+		pod, err = podCli.Create(context.Background(), pod, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		defer cleanupCreatedPod(t, podCli, pod.Name)
+
+		t.Log("Expecting bot message...")
+		assertionFn := func(msg slack.Message) bool {
+			if len(msg.Attachments) != 1 {
+				return false
+			}
+
+			attachment := msg.Attachments[0]
+			title := attachment.Title
+
+			if len(attachment.Fields) != 1 {
+				return false
+			}
+
+			fieldMessage := attachment.Fields[0].Value
+			return title == "v1/pods created" &&
+				strings.Contains(fieldMessage, "Recommendations:") &&
+				strings.Contains(fieldMessage, "- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.") &&
+				strings.Contains(fieldMessage, fmt.Sprintf("- pod '%s' creation without labels should be avoided.", pod.Name))
+		}
+		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		require.NoError(t, err)
+	})
 }
 
 func codeBlock(in string) string {
@@ -362,5 +406,11 @@ func cleanupCreatedCfgMapIfShould(t *testing.T, cfgMapCli corev1.ConfigMapInterf
 
 	t.Log("Cleaning up created ConfigMap...")
 	err := cfgMapCli.Delete(context.Background(), name, metav1.DeleteOptions{})
+	assert.NoError(t, err)
+}
+
+func cleanupCreatedPod(t *testing.T, podCli corev1.PodInterface, name string) {
+	t.Log("Cleaning up created Pod...")
+	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }

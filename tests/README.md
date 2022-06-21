@@ -63,12 +63,20 @@ To run the tests manually against the latest development version, follow these s
             - create
             - update
             - delete
-      settings:
+        - name: v1/pods
+          namespaces:
+            include:
+              - botkube
+          events:
+            - create
+      settings: 
         clustername: sample
         kubectl:
           enabled: true
         upgradeNotifier: false
       enabled: true
+    extraAnnotations:
+      botkube.io/disable: "true"
     image:
       registry: docker.io
       repository: pkosiec/botkube 
