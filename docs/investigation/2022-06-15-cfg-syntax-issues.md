@@ -44,7 +44,7 @@ The resource settings are stored in the `resource_config.yaml` file.
 The resource configuration file contains:
 - Notification settings about K8s events
 - Kubectl command executor settings
-- global settings like cluster name, upgrade notifications settings, etc.
+- Global settings like cluster name, upgrade notifications settings, etc.
 - Information if recommendations should be enabled
 
 
@@ -53,8 +53,9 @@ The resource configuration file contains:
 1. One huge YAML that you need to scroll.
 2. It holds too much different configuration.
 3. You are not able to enable/disable a given recommendation. There is only the `recommendations: true` property.
-4. The `kubectl` executor settings are under `settings`. It's not consistent with `resources` and `communications`.
-5. No option to define multiple notification settings. Currently, you need to deploy BotKube twice if you want to have two different notification strategies.
+4. You are not able to manage filters settings. There are no property for that.
+5. The `kubectl` executor settings are under `settings`.
+6. No option to define multiple notification settings. Currently, you need to deploy BotKube twice if you want to have two different notification strategies.
 
 ### Ideas
 
@@ -108,9 +109,12 @@ The resource configuration file contains:
       # Recommendations about the
       # best practices for the created resource
       recommendations:
-        - image    # "Checks and adds recommendation if 'latest' image tag is used for container image."
-        - pod      # "Checks and adds recommendations if labels are missing in the pod specs."
-        - ingress  # "Checks if services and tls secrets used in ingress specs are available."
+        image:     # "Checks and adds recommendation if 'latest' image tag is used for container image."
+          enabled: true
+        pod:       # "Checks and adds recommendations if labels are missing in the pod specs."
+          enabled: true
+        ingress:   # "Checks if services and tls secrets used in ingress specs are available."
+          enabled: true
     ```
 
     </td>
@@ -173,7 +177,7 @@ The resource configuration file contains:
       upgradeNotifier: true
     ```
 
-The API is cleaner, but we still need to be able to configure a given "notificator/executor" multiple times. Let's introduce [named configuration](#named-configurations).
+The API is cleaner, but we still need to be able to configure a given "notifier/executor" multiple times. Let's introduce [named configuration](#named-configurations).
 
 #### Named configurations
 
@@ -304,7 +308,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
           token: 'SLACK_API_TOKEN'
           # customized notifications
           channels:
-            - name: "#nodes"
+            - name: "#team-a"
               bindings:
                 notifiers:
                   - "nodes-errors"
@@ -323,13 +327,13 @@ The API is cleaner, but we still need to be able to configure a given "notificat
         token: 'SLACK_API_TOKEN'
         notiftype: short
         policyBinding:
-          - channel: dev
+          - channel: "#dev"
             policies: development
-          - channel: prod
+          - channel: "#prod"
             policies:
               - production
               - admin
-          - channel: admin
+          - channel: "#admin"
             policies: admin
     ```
     See the [Polices](../proposal/2022-06-14-policies.md) proposal.
@@ -350,7 +354,7 @@ The API is cleaner, but we still need to be able to configure a given "notificat
 ### Ideas
 
 1. Separate them into `Filters`, `Mutators`, `Validators` - this can be too complex for now.
-2. or rename `Filters` to `Mutators` and extract `Validators` under `Notificators`. Because `Validators` are mostly about recommendation, so belongs to `notificators`. Filters are almost the same as `Mutators`, so merge them under `Mutators` name.
+2. or rename `Filters` to `Mutators` and leave there only this functionality that mutates state. Rest is mostly about recommendation, so belongs to `notifiers`.
 
    However, I don't see any candidate for `Mutators` right now.
 
@@ -363,11 +367,13 @@ The API is cleaner, but we still need to be able to configure a given "notificat
    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
 
+   As a result, we only need to move all functionality under `notifier` property.
+
 ## Other issues
 
 Issues that are still not addressed:
 - Showing status of a given extension - if it's up and running.
-  - Now we can check that only in BotKube logs.
+  - Currently, there is no feedback channel. We can check that only in BotKube logs.
 - Providing metadata information about given extension (icon, display name, docs url etc.). Will be useful for discoverability.
   - Currently, not available.
 - Out-of-the-box validation via Open API schema.
@@ -377,22 +383,8 @@ Issues that are still not addressed:
 
 Those issues can be address with dedicated BotKube configuration CRDs. See [Configure BotKube via CRs](../proposal/2022-06-20-cfg-via-crds.md) proposal.
 
-## Consequences
+## Summary
 
-This section described necessary changes if proposal will be accepted.
+Even though the option to [configure BotKube via CRs](../proposal/2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the BotKube.
 
-### Minimum changes
-
-1. The `resources` notifications are moved under `notifiers[].kubernetes[].resources`.
-2. Kubectl executor moved under `executors[].kubectl`.
-3. The `resource_config.yaml` and `comm_config.yaml` are merged into one, but you can provide config multiple times. In the same way, as Helm takes the `values.yaml` file. It's up to the user how it will be split.
-4. Update documentation about configuration.
-
-### Follow-up changes
-
-1. Recommendations are merged under notifications.
-2. Filters are removed and existing one are moved under `notifications[].recommendations[]`.
-3. Update `@BotKube` commands to reflect new configuration.
-4. **Optional**: Add CLI to simplify creating/updating configuration.
-4. **Optional**: Split communications into messaging programs and "sinks".
-
+I propose to solve the syntax issues and multichannel feature as described in the [Bindings](../proposal/2022-06-14-bindings.md) proposal.
