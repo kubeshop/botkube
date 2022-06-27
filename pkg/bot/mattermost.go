@@ -164,7 +164,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	mm.log.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
 	// remove @BotKube prefix if exists
-	r := regexp.MustCompile(`(?i)@BotKube`)
+	r := regexp.MustCompile(`^(?i)@BotKube `)
 	mm.Request = r.ReplaceAllString(post.Message, ``)
 
 	e := mm.executorFactory.NewDefault(config.MattermostBot, mm.IsAuthChannel, mm.Request)
