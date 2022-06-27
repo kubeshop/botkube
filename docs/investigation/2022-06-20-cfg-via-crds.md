@@ -6,9 +6,36 @@ Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 |-------------|
 | `POSTPONED` |
 
+<!-- toc -->
+
+- [Motivation](#motivation)
+- [Overview](#overview)
+- [Design](#design)
+  * [Executors](#executors)
+    + [Template](#template)
+    + [Instance](#instance)
+  * [Notifiers](#notifiers)
+    + [Template](#template-1)
+    + [Instance](#instance-1)
+  * [Communicator](#communicator)
+    + [Template](#template-2)
+    + [Instance](#instance-2)
+- [Consequences](#consequences)
+  * [Minimum changes](#minimum-changes)
+  * [Follow-up changes](#follow-up-changes)
+- [Summary](#summary)
+- [Alternatives](#alternatives)
+  * [Individual CRD approach](#individual-crd-approach)
+    + [Communicator CRDs](#communicator-crds)
+    + [Kubectl Executor CRD](#kubectl-executor-crd)
+    + [K8s notification CRD](#k8s-notification-crd)
+- [Resources](#resources)
+
+<!-- tocstop -->
+
 ## Motivation
 
-This document is based on the outcome from [Configuration API syntax issues](../investigation/2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files. It also addresses the multichannel support.
+This document is based on the outcome from [Configuration API syntax issues](2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files. It also addresses the multichannel support.
 
 ## Overview
 

@@ -60,7 +60,7 @@ The resource configuration file contains:
 ### Ideas
 
 1. Extract `settings.kubectl` to `executors[].kubectl`. In the future we will add more executors there, e.g. `helm`, `istioctl` etc.
-2. Nest `resources` under `notifiers[].kubernetes.events`. In the future we will add more platforms that will send events, e.g. Sysdig, KubePug, etc.
+2. Nest `resources` under `notifiers[].kubernetes.resources`. In the future we will add more platforms that will send events, e.g. Sysdig, KubePug, etc.
 
 #### Extracted configuration
 
@@ -336,7 +336,7 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
           - channel: "#admin"
             policies: admin
     ```
-    See the [Polices](../proposal/2022-06-14-policies.md) proposal.
+    See the [Polices](2022-06-14-policies.md) investigation.
 
 ## Filters
 
@@ -381,10 +381,10 @@ Issues that are still not addressed:
 - Easy extensibility - add a new executor/notificator.
   - Currently, via built-in filters.
 
-Those issues can be address with dedicated BotKube configuration CRDs. See [Configure BotKube via CRs](../proposal/2022-06-20-cfg-via-crds.md) proposal.
+Those issues can be address with dedicated BotKube configuration CRDs. See [Configure BotKube via CRs](2022-06-20-cfg-via-crds.md) investigation.
 
 ## Summary
 
-Even though the option to [configure BotKube via CRs](../proposal/2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the BotKube.
+Even though the option to [configure BotKube via CRs](2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the BotKube.
 
 I propose to solve the syntax issues and multichannel feature as described in the [Bindings](../proposal/2022-06-14-bindings.md) proposal.
