@@ -374,8 +374,8 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
 	}
 
-	allowedVerbs := e.getSortedCommandsStr("allowed verbs:", e.resMapping.AllowedKubectlVerbMap)
-	allowedResources := e.getSortedCommandsStr("allowed resources:", e.resMapping.AllowedKubectlResourceMap)
+	allowedVerbs := e.getSortedEnabledCommands("allowed verbs", e.resMapping.AllowedKubectlVerbMap)
+	allowedResources := e.getSortedEnabledCommands("allowed resources", e.resMapping.AllowedKubectlResourceMap)
 	return fmt.Sprintf("%s%s", allowedVerbs, allowedResources)
 }
 
@@ -455,22 +455,22 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 	return string(b), nil
 }
 
-func (e *DefaultExecutor) getSortedCommandsStr(header string, commands map[string]bool) string {
-	strBldr := new(strings.Builder)
-	strBldr.WriteString(fmt.Sprintf("%s\n", header))
-
+func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[string]bool) string {
 	var keys []string
 	for key := range commands {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
 		if !commands[key] {
 			continue
 		}
 
-		strBldr.WriteString(fmt.Sprintf("  - %s\n", key))
+		keys = append(keys, key)
 	}
-	return strBldr.String()
+	sort.Strings(keys)
+
+	if len(keys) == 0 {
+		return fmt.Sprintf("%s: []", header)
+	}
+
+	const itemSeparator = "\n  - "
+	items := strings.Join(keys, itemSeparator)
+	return fmt.Sprintf("%s:%s%s\n", header, itemSeparator, items)
 }

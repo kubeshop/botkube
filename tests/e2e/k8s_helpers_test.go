@@ -34,15 +34,8 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 
 	envs := deployment.Spec.Template.Spec.Containers[containerIdx].Env
 
-	var originalEnvs []v1.EnvVar
-	channelIDEnv, exists := findEnv(envs, slackChannelIDEnvName)
-	if exists {
-		originalEnvs = append(originalEnvs, channelIDEnv)
-	}
-	enabledEnv, exists := findEnv(envs, slackEnabledEnvName)
-	if exists {
-		originalEnvs = append(originalEnvs, enabledEnv)
-	}
+	originalEnvs := make([]v1.EnvVar, len(envs))
+	copy(originalEnvs, envs)
 
 	restoreDeployEnvsFn := func(t *testing.T) {
 		t.Helper()
@@ -54,14 +47,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		containerIdx, exists := findContainerIdxByName(deployment, appCfg.Deployment.ContainerName)
 		require.True(t, exists)
 
-		deployment.Spec.Template.Spec.Containers[containerIdx].Env = updateEnv(envs,
-			nil,
-			[]string{slackEnabledEnvName, slackChannelIDEnvName},
-		)
-
-		if len(originalEnvs) > 0 {
-			deployment.Spec.Template.Spec.Containers[containerIdx].Env = updateEnv(envs, originalEnvs, nil)
-		}
+		deployment.Spec.Template.Spec.Containers[containerIdx].Env = originalEnvs
 		_, err = deployNsCli.Update(context.Background(), deployment, metav1.UpdateOptions{})
 		require.NoError(t, err)
 	}
@@ -82,7 +68,6 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 }
 
 func waitForDeploymentReady(deployNsCli appsv1cli.DeploymentInterface, deploymentName string, waitTimeout time.Duration) error {
-	// Wait for deployment ready
 	var lastErr error
 	err := wait.Poll(pollInterval, waitTimeout, func() (done bool, err error) {
 		deployment, err := deployNsCli.Get(context.Background(), deploymentName, metav1.GetOptions{})
@@ -110,10 +95,12 @@ func waitForDeploymentReady(deployNsCli appsv1cli.DeploymentInterface, deploymen
 }
 
 func findContainerIdxByName(deployment *appsv1.Deployment, containerName string) (int, bool) {
-	containerIdx := -1
+	notFoundResultFn := func() (int, bool) {
+		return -1, false
+	}
 
 	if deployment == nil {
-		return containerIdx, false
+		return notFoundResultFn()
 	}
 
 	containers := deployment.Spec.Template.Spec.Containers
@@ -122,10 +109,10 @@ func findContainerIdxByName(deployment *appsv1.Deployment, containerName string)
 			continue
 		}
 
-		containerIdx = i
+		return i, true
 	}
 
-	return containerIdx, containerIdx != -1
+	return notFoundResultFn()
 }
 
 // Original source: https://github.com/kubernetes/kubectl/blob/release-1.22/pkg/cmd/set/helper.go#L125-L157

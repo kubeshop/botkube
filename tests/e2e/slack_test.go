@@ -71,7 +71,8 @@ func TestSlack(t *testing.T) {
 
 	t.Log("Setting up test Slack setup...")
 	channel, cleanupChannelFn := slackTester.CreateChannel(t)
-	defer cleanupChannelFn(t)
+	t.Cleanup(func() { cleanupChannelFn(t) })
+
 	slackTester.PostInitialMessage(t, channel.Name)
 	botUserID := slackTester.FindUserIDForBot(t)
 	slackTester.InviteBotToChannel(t, botUserID, channel.ID)
@@ -79,7 +80,7 @@ func TestSlack(t *testing.T) {
 	t.Log("Patching Deployment with test env variables...")
 	deployNsCli := k8sCli.AppsV1().Deployments(appCfg.Deployment.Namespace)
 	revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, channel.Name)
-	defer revertDeployFn(t)
+	t.Cleanup(func() { revertDeployFn(t) })
 
 	t.Log("Waiting for Deployment")
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
@@ -232,7 +233,7 @@ func TestSlack(t *testing.T) {
 		cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})
 		require.NoError(t, err)
 
-		defer cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted)
+		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message...")
 		assertionFn := func(msg slack.Message) bool {
@@ -349,7 +350,7 @@ func TestSlack(t *testing.T) {
 		pod, err = podCli.Create(context.Background(), pod, metav1.CreateOptions{})
 		require.NoError(t, err)
 
-		defer cleanupCreatedPod(t, podCli, pod.Name)
+		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot message...")
 		assertionFn := func(msg slack.Message) bool {

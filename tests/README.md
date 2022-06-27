@@ -10,6 +10,8 @@ This directory contains E2E tests which are run against BotKube installed on Kub
 
 ### Configure Tester Slack application
 
+> **NOTE:** This is something you need to do only once. Once the tester app is configured, you can use its token for running integration tests as many times as you want.
+
 1. Create new Slack Application on [this page](https://api.slack.com/apps)
 2. Use "From an app manifest" option
 3. Copy and paste this manifest:
@@ -38,6 +40,12 @@ This directory contains E2E tests which are run against BotKube installed on Kub
 4. Install this app into your workspace
 5. Navigate to the **OAuth & Permissions** section
 6. Copy the **Bot User OAuth Token** and save it for later.
+
+  You can already export it as environment variable for [running the tests locally](#run-tests-locally):
+
+  ```bash
+  export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}
+  ```
 
 ## Run tests locally
 
@@ -78,19 +86,17 @@ To run the tests manually against the latest development version, follow these s
     extraAnnotations:
       botkube.io/disable: "true"
     image:
-      registry: docker.io
-      repository: pkosiec/botkube 
-      tag: e2e-tests
+      tag: v9.99.9-dev
     ENDOFFILE
     
     helm install botkube --namespace botkube ./helm/botkube -f /tmp/values.yaml --wait
     ```
 
 
-1. Export required environment variables
+1. Export required environment variables:
 
     ```bash
-    export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}" # WARNING: This is a token for Tester, not the BotKube Slack bot!
+    export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}" # WARNING: This is a token for Tester, not the BotKube Slack bot.
     export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
     ```
 
