@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -151,8 +152,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
 		// Message posted in a channel
 		// Serve only if starts with mention
-		if !strings.HasPrefix(post.Message, fmt.Sprintf("@%s ", b.BotName)) &&
-			!strings.HasPrefix(post.Message, fmt.Sprintf("@%s ", strings.ToLower(b.BotName))) {
+		if !strings.HasPrefix(strings.ToLower(post.Message), fmt.Sprintf("@%s ", strings.ToLower(b.BotName))) {
 			return
 		}
 	}
@@ -163,11 +163,9 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	}
 	mm.log.Debugf("Received mattermost event: %+v", mm.Event.Data)
 
-	// Trim the @BotKube prefix if exists
-	mm.Request = strings.TrimPrefix(post.Message, fmt.Sprintf("@%s ", b.BotName))
-
-	// Trim the @botkube prefix if still exists in request
-	mm.Request = strings.TrimPrefix(mm.Request, fmt.Sprintf("@%s ", strings.ToLower(b.BotName)))
+	// remove @BotKube prefix if exists
+	r := regexp.MustCompile(`(?i)@BotKube`)
+	mm.Request = r.ReplaceAllString(post.Message, ``)
 
 	e := mm.executorFactory.NewDefault(config.MattermostBot, mm.IsAuthChannel, mm.Request)
 	mm.Response = e.Execute()
