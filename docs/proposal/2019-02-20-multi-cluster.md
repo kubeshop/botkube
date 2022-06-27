@@ -1,5 +1,9 @@
 # Multi-cluster Support
 
+| Status        |
+|---------------|
+| `IMPLEMENTED` |
+
 #### Assumptions
 `@botkube` commands refer to all the commands in the slack bot which currently supports:
 - kubectl
