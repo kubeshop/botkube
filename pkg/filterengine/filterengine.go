@@ -22,6 +22,7 @@ package filterengine
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/sirupsen/logrus"
 
@@ -32,16 +33,22 @@ import (
 type DefaultFilterEngine struct {
 	log logrus.FieldLogger
 
-	// TODO: Change map key to filter name to be able to SetFilter without iterating through the whole map
-	FiltersMap map[Filter]bool
+	filters map[string]RegisteredFilter
 }
 
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
+	// TODO: Why `Run` method takes object as input argument, if event already contains it as well? Refactor it if possible
 	Run(context.Context, interface{}, events.Event) events.Event
 	Register(...Filter)
-	ShowFilters() map[Filter]bool
+	RegisteredFilters() []RegisteredFilter
 	SetFilter(string, bool) error
+}
+
+// RegisteredFilter contains details about registered filter
+type RegisteredFilter struct {
+	Enabled bool
+	Filter
 }
 
 // Filter has method to run filter
@@ -54,16 +61,17 @@ type Filter interface {
 // New creates new DefaultFilterEngine object
 func New(log logrus.FieldLogger) *DefaultFilterEngine {
 	return &DefaultFilterEngine{
-		log:        log,
-		FiltersMap: make(map[Filter]bool),
+		log:     log,
+		filters: make(map[string]RegisteredFilter),
 	}
 }
 
-// Run runs the registered filters
+// Run runs the registered filters always iterating over a slice of filters with sorted keys
 func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event events.Event) events.Event {
 	f.log.Debug("Running registered filters")
-	for filter, enabled := range f.FiltersMap {
-		if !enabled {
+	filters := f.RegisteredFilters()
+	for _, filter := range filters {
+		if !filter.Enabled {
 			continue
 		}
 
@@ -79,24 +87,38 @@ func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event
 func (f *DefaultFilterEngine) Register(filters ...Filter) {
 	for _, filter := range filters {
 		f.log.Infof("Registering filter %q", filter.Name())
-		f.FiltersMap[filter] = true
+		f.filters[filter.Name()] = RegisteredFilter{
+			Filter:  filter,
+			Enabled: true,
+		}
 	}
 }
 
-// ShowFilters return map of filter name and status
-// TODO: This method is used for printing filters, but the order of the list is not preserved. Fix it.
-func (f DefaultFilterEngine) ShowFilters() map[Filter]bool {
-	return f.FiltersMap
+// RegisteredFilters returns sorted slice of registered filters
+func (f DefaultFilterEngine) RegisteredFilters() []RegisteredFilter {
+	var keys []string
+	for key := range f.filters {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	var registeredFilters []RegisteredFilter
+	for _, key := range keys {
+		registeredFilters = append(registeredFilters, f.filters[key])
+	}
+
+	return registeredFilters
 }
 
 // SetFilter sets filter value in FilterMap to enable or disable filter
 func (f *DefaultFilterEngine) SetFilter(name string, flag bool) error {
 	// Find filter struct name
-	for k := range f.FiltersMap {
-		if k.Name() == name {
-			f.FiltersMap[k] = flag
-			return nil
-		}
+	filter, ok := f.filters[name]
+	if !ok {
+		return fmt.Errorf("couldn't find filter with name %q", name)
 	}
-	return fmt.Errorf("couldn't find filter with name %q", name)
+
+	filter.Enabled = flag
+	f.filters[name] = filter
+	return nil
 }

@@ -2,7 +2,7 @@ IMAGE_REPO=ghcr.io/infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status build pre-build publish lint lint-fix test system-check
+.PHONY: release git-tag check-git-status container-image container-image-e2e-test test test-integration build pre-build publish lint lint-fix system-check
 
 # Show this help.
 help:
@@ -41,6 +41,9 @@ test: system-check
 	@echo "Starting unit and integration tests"
 	@go test -v ./...
 
+test-integration: system-check
+	@go test -v -tags=integration -race -count=1 ./tests/...
+
 # Build the binary
 build: pre-build
 	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
@@ -51,6 +54,13 @@ container-image: pre-build
 	@echo "Building docker image"
 	@./hack/goreleaser.sh build
 	@echo "Docker image build successfully"
+
+# Build image for E2E tests
+container-image-e2e-test:
+	$(eval TEST_NAME := "e2e")
+	$(eval IMAGE_SUFFIX := "$(TEST_NAME)-test")
+	$(eval DOCKER_TAG := "latest")
+	docker build -f ./test.Dockerfile --build-arg TEST_NAME=$(TEST_NAME) -t $(IMAGE_REPO)-$(IMAGE_SUFFIX):$(DOCKER_TAG) .
 
 # Publish release using goreleaser
 gorelease:

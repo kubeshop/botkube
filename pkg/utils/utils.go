@@ -20,7 +20,6 @@
 package utils
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -156,18 +155,6 @@ func GVRToString(gvr schema.GroupVersionResource) string {
 // TransformIntoTypedObject uses unstructured interface and creates a typed object
 func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
-}
-
-//GetStringInYamlFormat get the formatted commands list
-func GetStringInYamlFormat(header string, commands map[string]bool) string {
-	var b bytes.Buffer
-	fmt.Fprintln(&b, header)
-	for k, v := range commands {
-		if v {
-			fmt.Fprintf(&b, "  - %s\n", k)
-		}
-	}
-	return b.String()
 }
 
 // Contains tells whether a contains x.

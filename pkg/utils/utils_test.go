@@ -20,7 +20,6 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -47,18 +46,6 @@ func TestGetClusterNameFromKubectlCmd(t *testing.T) {
 		if got != ts.expected {
 			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}
-	}
-}
-
-func TestGetStringInYamlFormat(t *testing.T) {
-	var header = "allowed verbs"
-	var commands = map[string]bool{
-		"api-versions": true,
-	}
-	expected := fmt.Sprintf(header + "\n  - api-versions\n")
-	got := GetStringInYamlFormat(header, commands)
-	if got != expected {
-		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 }
 

@@ -22,6 +22,7 @@ package execute
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"unicode"
@@ -373,9 +374,9 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
 	}
 
-	allowedVerbs := utils.GetStringInYamlFormat("allowed verbs:", e.resMapping.AllowedKubectlVerbMap)
-	allowedResources := utils.GetStringInYamlFormat("allowed resources:", e.resMapping.AllowedKubectlResourceMap)
-	return allowedVerbs + allowedResources
+	allowedVerbs := e.getSortedEnabledCommands("allowed verbs", e.resMapping.AllowedKubectlVerbMap)
+	allowedResources := e.getSortedEnabledCommands("allowed resources", e.resMapping.AllowedKubectlResourceMap)
+	return fmt.Sprintf("%s%s", allowedVerbs, allowedResources)
 }
 
 // Use tabwriter to display string in tabular form
@@ -385,8 +386,8 @@ func (e *DefaultExecutor) makeFiltersList() string {
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
 
 	fmt.Fprintln(w, "FILTER\tENABLED\tDESCRIPTION")
-	for k, v := range e.filterEngine.ShowFilters() {
-		fmt.Fprintf(w, "%s\t%v\t%s\n", k.Name(), v, k.Describe())
+	for _, filter := range e.filterEngine.RegisteredFilters() {
+		fmt.Fprintf(w, "%s\t%v\t%s\n", filter.Name(), filter.Enabled, filter.Describe())
 	}
 
 	w.Flush()
@@ -452,4 +453,24 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[string]bool) string {
+	var keys []string
+	for key := range commands {
+		if !commands[key] {
+			continue
+		}
+
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	if len(keys) == 0 {
+		return fmt.Sprintf("%s: []", header)
+	}
+
+	const itemSeparator = "\n  - "
+	items := strings.Join(keys, itemSeparator)
+	return fmt.Sprintf("%s:%s%s\n", header, itemSeparator, items)
 }
