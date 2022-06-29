@@ -256,7 +256,8 @@ stringData:
         team: 'MATTERMOST_TEAM'                     # Mattermost Team to configure with BotKube
         channel: 'MATTERMOST_CHANNEL'               # Mattermost Channel for receiving BotKube alerts
         notiftype: short                            # Change notification type short/long you want to receive. notiftype is optional and Default notification type is short (if not specified)
-
+        botName: 'BotKube'                          # Change it to Mattermost Bot name. 
+        
       # Settings for Discord
       discord:
         enabled: false
