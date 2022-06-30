@@ -63,13 +63,20 @@ gorelease:
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
-# Build project and save images with DOCKER_IMAGE_TAG tag
+# Build project and save images with IMAGE_TAG tag
 save-images:
 	@./hack/goreleaser.sh save_images
 
-# Load project and push images with DOCKER_IMAGE_TAG tag
+# Load project and push images with IMAGE_TAG tag
 load-and-push-images:
 	@./hack/goreleaser.sh load_and_push_images
+
+# TODO(https://github.com/infracloudio/botkube/pull/627): Backward compatibility; Remove these targets after merge to `develop`
+save-pr-image:
+	@IMAGE_TAG="${PR_NUMBER}-PR" ./hack/goreleaser.sh save_images
+
+push-pr-image:
+	@IMAGE_TAG="${PR_NUMBER}-PR" ./hack/goreleaser.sh load_and_push_images
 
 # system checks
 system-check:
@@ -93,4 +100,3 @@ create-kind: system-check
 # Destroy KIND cluster
 destroy-kind: system-check
 	@./hack/kind-cluster.sh destroy-kind
-

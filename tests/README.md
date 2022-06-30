@@ -61,9 +61,9 @@ This directory contains E2E tests which are run against BotKube installed on Kub
     # The following environmental variables are required only when running integration tests via Helm:
     #
     export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}" # WARNING: This is a token for Tester, not the BotKube Slack bot!
-    export TEST_IMAGE_REGISTRY="docker.io" # TODO: Replace with image built on `develop`
-    export TEST_IMAGE_REPOSITORY="pkosiec/botkube-test" # TODO: Replace with image built on `develop`
-    export TEST_IMAGE_TAG="latest" # TODO: Replace with image built on `develop`
+    export TEST_IMAGE_REGISTRY="ghcr.io"
+    export TEST_IMAGE_REPOSITORY="infracloudio/botkube-test"
+    export TEST_IMAGE_TAG="v9.99.9-dev"
     ```
 
 1. Install BotKube using Helm chart:

@@ -13,7 +13,7 @@ image:
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  tag: v0.12.4
+  tag: v9.99.9-dev
 
 nameOverride: ""
 fullnameOverride: ""
@@ -509,9 +509,9 @@ extraObjects: []
 ## Parameters for the test container with E2E tests.
 e2eTest:
   image:
-    registry: docker.io
-    repository: pkosiec/botkube-test # TODO: Replace with image built on `develop`
-    tag: latest
+    registry: ghcr.io
+    repository: infracloudio/botkube-test
+    tag: v9.99.9-dev
     pullPolicy: IfNotPresent
   deployment:
     waitTimeout: 3m

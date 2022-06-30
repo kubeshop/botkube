@@ -1,5 +1,3 @@
-# syntax = docker/dockerfile:1-experimental
-
 FROM alpine:3.15 as builder
 
 FROM scratch as generic

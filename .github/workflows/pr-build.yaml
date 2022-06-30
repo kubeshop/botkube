@@ -4,7 +4,7 @@ on:
   pull_request_target:
     types: [ opened, synchronize, reopened ]
     branches:
-      - "main"
+      - "develop"
     paths-ignore:
       - 'branding/**'
       - 'design/**'
