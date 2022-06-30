@@ -61,8 +61,8 @@ update_chart_yamls() {
 fetch_previous_version
 update_chart_yamls $previous_version $version
 update_chart_yamls "v9.99.9-dev" $version
-#generate_changelog $version
-#make release
+generate_changelog $version
+make release
 
 echo "=========================== Done ============================="
 echo "Congratulations!! Release ${version} published."

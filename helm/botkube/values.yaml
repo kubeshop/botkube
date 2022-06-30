@@ -519,4 +519,4 @@ e2eTest:
     botName: "botkube"
     testerAppToken: "" # Provide valid token
     additionalContextMessage: "" # You can pass e.g. pull request number or source link where these tests are run from
-    messageWaitTimeout: 10s
+    messageWaitTimeout: 1m
