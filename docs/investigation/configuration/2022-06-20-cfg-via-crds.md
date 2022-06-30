@@ -2,9 +2,9 @@
 
 Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
 
-| Status      |
-|-------------|
-| `POSTPONED` |
+> **Note**
+>
+> It was superseded by the [Bindings](https://github.com/infracloudio/botkube/pull/626) proposal. See the [**Summary**](#summary) section to learn more.
 
 <!-- toc -->
 
@@ -20,6 +20,7 @@ Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
   * [Communicator](#communicator)
     + [Template](#template-2)
     + [Instance](#instance-2)
+  * [Mutators](#mutators)
 - [Consequences](#consequences)
   * [Minimum changes](#minimum-changes)
   * [Follow-up changes](#follow-up-changes)
@@ -84,17 +85,6 @@ Domains:
 4. Mutators (filters)
     1. (Cluster)MutatorTemplate
     2. (Cluster)Mutator
-
-    Currently, I don't see any candidate for this.
-
-    | Filter Name             | Description                                                                       | Note                                    |
-    |-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
-    | ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as recommendation notificator.     |
-    | IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as recommendation notificator.     |
-    | ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
-    | PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as recommendation notificator.     |
-    | NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
-    | NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
 
 Initially, all executors and notifiers can be marked as built-in. The `spec.plugin.built-in: {name}` marks that a given functionality is built-in. We can later extract it into separate plugin (probably Docker image).
 
@@ -362,9 +352,22 @@ status:
   #lastTransitionTime:
 ```
 
+### Mutators
+
+Currently, I don't see any sensible candidates for this kind. The **ObjectAnnotationChecker** and **NamespaceChecker** are redundant if new syntax will be implemented. In my opinion, it's better to remove them to simplify the configuration settings. However, to do it right, first we should add a new metric to check how many users are using it.
+
+| Filter Name             | Description                                                                       | Note                                    |
+|-------------------------|-----------------------------------------------------------------------------------|-----------------------------------------|
+| ImageTagChecker         | Checks and adds recommendation if 'latest' image tag is used for container image. | Move as recommendation notificator.     |
+| IngressValidator        | Checks if services and tls secrets used in ingress specs are available.           | Move as recommendation notificator.     |
+| ObjectAnnotationChecker | Checks if annotations botkube.io/* present in object specs and filters them.      | Remove it.                              |
+| PodLabelChecker         | Checks and adds recommendations if labels are missing in the pod specs.           | Move as recommendation notificator.     |
+| NamespaceChecker        | Checks if event belongs to blocklisted namespaces and filter them.                | Remove it. It will be per resource now. |
+| NodeEventsChecker       | Sends notifications on node level critical events.                                | Move as K8s events notificator.         |
+
 ## Consequences
 
-This section described necessary changes if proposal will be accepted.
+This section described necessary changes if the implementation idea will be accepted and planned in the roadmap.
 
 ### Minimum changes
 

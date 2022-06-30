@@ -1,5 +1,7 @@
 # Configuration API syntax issues
 
+Created on 2022-06-15 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
+
 This document describes found issue with the current syntax for BotKube configuration.
 
 ## Communications
