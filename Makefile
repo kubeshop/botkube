@@ -73,10 +73,7 @@ load-and-push-images:
 
 # TODO(https://github.com/infracloudio/botkube/pull/627): Backward compatibility; Remove these targets after merge to `develop`
 save-pr-image:
-	@IMAGE_TAG="${PR_NUMBER}-PR" ./hack/goreleaser.sh save_images
-
-push-pr-image:
-	@IMAGE_TAG="${PR_NUMBER}-PR" ./hack/goreleaser.sh load_and_push_images
+	@./hack/goreleaser.sh save_pr_image
 
 # system checks
 system-check:

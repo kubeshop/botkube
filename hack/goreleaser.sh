@@ -49,6 +49,33 @@ release_snapshot() {
   docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
+# TODO(https://github.com/infracloudio/botkube/pull/627): Backward compatibility; Remove these targets after merge to `develop`
+save_pr_image() {
+  IMAGE_REGISTRY="ghcr.io/infracloudio"
+  IMAGE_NAME="botkube"
+
+  prepare
+
+  if [ -z "${PR_NUMBER}" ]
+  then
+    echo "Missing PR_NUMBER."
+    exit 1
+  fi
+
+  export GORELEASER_CURRENT_TAG=${PR_NUMBER}-PR
+  goreleaser release --rm-dist --snapshot --skip-publish
+
+  # Re-tag with 'pr' prefix
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64
+  docker tag ${IMAGE_REGISTRY}/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7
+
+  # Push images
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-amd64 > /tmp/${IMAGE_NAME}-amd64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-arm64 > /tmp/${IMAGE_NAME}-arm64.tar
+  docker save ${IMAGE_REGISTRY}/pr/${IMAGE_NAME}:${GORELEASER_CURRENT_TAG}-armv7 > /tmp/${IMAGE_NAME}-armv7.tar
+}
+
 save_images() {
   prepare
 
@@ -151,6 +178,9 @@ case "${1}" in
     ;;
   save_images)
     save_images
+    ;;
+  save_pr_image)
+    save_pr_image
     ;;
   load_and_push_images)
     load_and_push_images
