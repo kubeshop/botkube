@@ -634,11 +634,12 @@ This section described necessary changes if proposal will be accepted.
 3. Recommendations are merged under notifications.
 4. Update `@BotKube` commands to reflect new configuration.
 5. **Optional**: [Filters](https://www.botkube.io/filters/) are renamed to `sources` and configuration is added under `sources[].{name}`.
-    > **Note**
-	  >
-	  > In the future, [Filters](https://www.botkube.io/filters/) should be completely removed from the BotKube and replaced with the plugin system.
-7. **Optional**: Add CLI to simplify creating/updating configuration.
 
+    > **Note**
+    >
+    > In the future, [Filters](https://www.botkube.io/filters/) should be completely removed from the BotKube and replaced with the plugin system.
+
+7. **Optional**: Add CLI to simplify creating/updating configuration.
 
 ## Resources
 
