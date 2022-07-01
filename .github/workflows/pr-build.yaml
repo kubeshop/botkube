@@ -1,4 +1,4 @@
-name: Publish BotKube image
+name: Pull request Build
 
 on:
   pull_request_target:
@@ -8,7 +8,6 @@ on:
     paths-ignore:
       - 'branding/**'
       - 'design/**'
-      - 'helm/**'
       - '.codespell-whitelist'
       - '.gitignore'
       - '.golangci.yml'
@@ -27,7 +26,15 @@ on:
 
 env:
   GO_VERSION: 1.18
+  HELM_VERSION: v3.9.0
+  K3D_VERSION: v5.4.3
   PR_NUMBER: ${{ github.event.pull_request.number }}
+  INTEGRATION_TESTS_TIMEOUT: 10m
+  IMAGE_REGISTRY: "ghcr.io"
+  IMAGE_REPOSITORY: "infracloudio/pr/botkube"
+  TEST_IMAGE_REPOSITORY: "infracloudio/pr/botkube-test"
+  IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
+  IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
 
 jobs:
 
@@ -59,13 +66,13 @@ jobs:
 
       - name: Save
         run: |
-          make save-pr-image
+          make save-images
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: botkube-${{github.sha}}
-          path: /tmp/*.tar
+          path: ${{ env.IMAGE_SAVE_LOAD_DIR }}
           retention-days: 1
 
   push-image:
@@ -87,7 +94,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: botkube-${{github.sha}}
-          path: /tmp
+          path: ${{ env.IMAGE_SAVE_LOAD_DIR }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -97,7 +104,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push
-        run: make push-pr-image
+        run: make load-and-push-images
 
       - name: Delete Docker image artifact
         uses: geekyeggo/delete-artifact@v1
@@ -114,8 +121,57 @@ jobs:
 
               gh pr checkout ${PR_NUMBER}
               helm install botkube -n botkube --create-namespace \\
-              --set image.repository=infracloudio/pr/botkube \\
-              --set image.tag=${PR_NUMBER}-PR \\
+              --set image.repository=${IMAGE_REPOSITORY} \\
+              --set image.tag=${IMAGE_TAG} \\
+              --set e2eTest.image.repository=${TEST_IMAGE_REPOSITORY} \\
+              --set e2eTest.image.tag=${IMAGE_TAG} \\
               ./helm/botkube
 
           ENDOFFILE
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: [ push-image ]
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+
+      - name: Create cluster
+        run: "k3d cluster create botkube --wait --timeout=5m"
+
+      - name: Install BotKube
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}      
+        run: |
+          helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
+            -f ./helm/botkube/e2e-test-values.yaml \
+            --set communications.slack.token="${SLACK_BOT_TOKEN}" \
+            --set image.registry="${IMAGE_REGISTRY}" \
+            --set image.repository="${IMAGE_REPOSITORY}" \
+            --set image.tag="${IMAGE_TAG}" \
+            --set e2eTest.image.registry="${IMAGE_REGISTRY}" \
+            --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
+            --set e2eTest.image.tag="${IMAGE_TAG}" \
+            --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
+            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/infracloudio/botkube/pull/${PR_NUMBER}"
+
+      - name: Run tests
+        run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"

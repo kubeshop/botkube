@@ -13,7 +13,7 @@ image:
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
-  tag: v0.12.4
+  tag: v9.99.9-dev
 
 nameOverride: ""
 fullnameOverride: ""
@@ -505,3 +505,18 @@ extraObjects: []
 #      - kind: ServiceAccount
 #        name: "{{ include \"botkube.serviceAccountName\" . }}"
 #        namespace: "{{ .Release.Namespace }}"
+
+## Parameters for the test container with E2E tests.
+e2eTest:
+  image:
+    registry: ghcr.io
+    repository: infracloudio/botkube-test
+    tag: v9.99.9-dev
+    pullPolicy: IfNotPresent
+  deployment:
+    waitTimeout: 3m
+  slack:
+    botName: "botkube"
+    testerAppToken: "" # Provide valid token
+    additionalContextMessage: "" # You can pass e.g. pull request number or source link where these tests are run from
+    messageWaitTimeout: 1m

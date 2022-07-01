@@ -1,0 +1,116 @@
+name: Branch build
+
+on:
+  push:
+    branches:
+      - develop
+
+env:
+  GO_VERSION: 1.18
+  HELM_VERSION: v3.9.0
+  K3D_VERSION: v5.4.3
+  INTEGRATION_TESTS_TIMEOUT: 10m
+  IMAGE_REGISTRY: "ghcr.io"
+  IMAGE_REPOSITORY: "infracloudio/botkube"
+  TEST_IMAGE_REPOSITORY: "infracloudio/botkube-test"
+  IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+  HELM_CHART_VERSION: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+      GOPATH: /home/runner/work/botkube
+      GOBIN: /home/runner/work/botkube/bin
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Docker Login
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GH_TOKEN }}
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+        version: latest
+    - name: Run GoReleaser
+      run: make release-snapshot
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+      with:
+        version: ${{ env.HELM_VERSION }}
+    - name: Update and publish helm chart
+      run: |
+        cd ..
+        git config --global user.email "botkube-ci@infracloud.io"
+        git config --global user.name "BotKube CI"
+        git clone https://github.com/infracloudio/charts.git
+        cd charts
+        git fetch
+        git branch
+        git pull origin gh-pages
+        helm package --app-version ${HELM_CHART_VERSION} --version ${HELM_CHART_VERSION} ${{ github.workspace }}/helm/botkube/
+        helm repo index --url https://infracloudio.github.io/charts --merge index.yaml .
+        git add .
+        git commit -m "Update BotKube latest helm chart"
+        git push https://${{ secrets.GH_TOKEN }}@github.com/infracloudio/charts.git
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: [ build ]
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+
+      - name: Create cluster
+        run: "k3d cluster create botkube --wait --timeout=5m"
+
+      - name: Install BotKube
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+        run: |
+          helm repo add infracloudio https://infracloudio.github.io/charts
+          helm repo update
+          helm install botkube --namespace botkube infracloudio/botkube --version ${HELM_CHART_VERSION} --wait --create-namespace \
+            -f ./helm/botkube/e2e-test-values.yaml \
+            --set communications.slack.token="${SLACK_BOT_TOKEN}" \
+            --set image.registry="${IMAGE_REGISTRY}" \
+            --set image.repository="${IMAGE_REPOSITORY}" \
+            --set image.tag="${IMAGE_TAG}" \
+            --set e2eTest.image.registry="${IMAGE_REGISTRY}" \
+            --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
+            --set e2eTest.image.tag="${IMAGE_TAG}" \
+            --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
+            --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/infracloudio/botkube/commit/${GITHUB_SHA}"
+
+      - name: Run tests
+        run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"

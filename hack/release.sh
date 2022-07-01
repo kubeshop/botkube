@@ -48,17 +48,19 @@ generate_changelog() {
 }
 
 update_chart_yamls() {
-    local version=$1
-    fetch_previous_version
-    echo "Updating release version $previous_version-> $version"
+    local version_to_replace=$1
+    local version=$2
+    echo "Updating release version $version_to_replace-> $version"
     dir=(./helm ./deploy-all-in-one.yaml ./deploy-all-in-one-tls.yaml)
     for d in ${dir[@]}
     do
-        find $d -type f -name "*.yaml" -exec sed -i.bak "s/$previous_version/$version/g" {} \;
+        find $d -type f -name "*.yaml" -exec sed -i.bak "s/$version_to_replace/$version/g" {} \;
     done
 }
 
-update_chart_yamls $version
+fetch_previous_version
+update_chart_yamls $previous_version $version
+update_chart_yamls "v9.99.9-dev" $version
 generate_changelog $version
 make release
 

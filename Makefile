@@ -1,8 +1,7 @@
-IMAGE_REPO=ghcr.io/infracloudio/botkube
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status container-image container-image-e2e-test test test-integration build pre-build publish lint lint-fix system-check
+.PHONY: release git-tag check-git-status container-image test test-integration build pre-build publish lint lint-fix system-check save-images load-and-push-images
 
 # Show this help.
 help:
@@ -55,13 +54,6 @@ container-image: pre-build
 	@./hack/goreleaser.sh build
 	@echo "Docker image build successfully"
 
-# Build image for E2E tests
-container-image-e2e-test:
-	$(eval TEST_NAME := "e2e")
-	$(eval IMAGE_SUFFIX := "$(TEST_NAME)-test")
-	$(eval DOCKER_TAG := "latest")
-	docker build -f ./test.Dockerfile --build-arg TEST_NAME=$(TEST_NAME) -t $(IMAGE_REPO)-$(IMAGE_SUFFIX):$(DOCKER_TAG) .
-
 # Publish release using goreleaser
 gorelease:
 	@echo "Publishing release with goreleaser"
@@ -71,13 +63,17 @@ gorelease:
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
-# Build project and save PR images with PR_NUMBER tag
+# Build project and save images with IMAGE_TAG tag
+save-images:
+	@./hack/goreleaser.sh save_images
+
+# Load project and push images with IMAGE_TAG tag
+load-and-push-images:
+	@./hack/goreleaser.sh load_and_push_images
+
+# TODO(https://github.com/infracloudio/botkube/pull/627): Backward compatibility; Remove these targets after merge to `develop`
 save-pr-image:
 	@./hack/goreleaser.sh save_pr_image
-
-# Load project and push PR images with PR_NUMBER tag
-push-pr-image:
-	@./hack/goreleaser.sh push_pr_image
 
 # system checks
 system-check:
@@ -101,4 +97,3 @@ create-kind: system-check
 # Destroy KIND cluster
 destroy-kind: system-check
 	@./hack/kind-cluster.sh destroy-kind
-

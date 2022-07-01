@@ -1,0 +1,33 @@
+communications:
+  slack:
+    enabled: false # Tests will override this temporarily
+    token: "" # Provide a valid token for BotKube app
+    channel: "" # Tests will override this temporarily
+config:
+  resources:
+    - name: v1/configmaps
+      namespaces:
+        include:
+          - botkube
+      events:
+        - create
+        - update
+        - delete
+    - name: v1/pods
+      namespaces:
+        include:
+          - botkube
+      events:
+        - create
+  settings:
+    clustername: sample
+    kubectl:
+      enabled: true
+    upgradeNotifier: false
+  enabled: true
+extraAnnotations:
+  botkube.io/disable: "true"
+e2eTest:
+  slack:
+    testerAppToken: "" # Provide a valid token for BotKube tester app
+    additionalContextMessage: "" # Optional additional context
