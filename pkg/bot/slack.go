@@ -73,7 +73,7 @@ func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 	}
 }
 
-// Start starts the slacknot RTM connection and listens for messages
+// Start starts the Slack RTM connection and listens for messages
 func (b *SlackBot) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 	var botID string
@@ -139,7 +139,7 @@ func (b *SlackBot) Start(ctx context.Context) error {
 				b.log.Errorf("Slack outgoing event error: %+v", ev.Error())
 
 			case *slack.UnmarshallingErrorEvent:
-				b.log.Errorf("Slack unmarshalling error: %+v", ev.Error())
+				b.log.Warningf("Slack unmarshalling error: %+v", ev.Error())
 
 			case *slack.RateLimitedError:
 				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
