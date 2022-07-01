@@ -1,5 +1,9 @@
 # Mattermost Support
 
+| Status        |
+|---------------|
+| `IMPLEMENTED` |
+
 #### Assumptions
 - Mattermost is already installed.
 - Mattermost server IP is reachable from the cluster.
@@ -8,7 +12,7 @@
 `Mattermost` is an open source, self-hosted Slack-alternative and we want to add support for the same in Botkube.
 
 ### Motivation
-Currently Botkube is supporting Slack, and as a feature addition we want to include `Mattermost` support. Botkube will run on the clusters and send notifications and alerts to the configured Mattermost team. It will also be able to execute `@botkube` commands from `Mattermost`. 
+Currently Botkube is supporting Slack, and as a feature addition we want to include `Mattermost` support. Botkube will run on the clusters and send notifications and alerts to the configured Mattermost team. It will also be able to execute `@botkube` commands from `Mattermost`.
 
 ### Design
 Steps for adding Mattermost support:
