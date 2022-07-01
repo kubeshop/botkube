@@ -4,7 +4,7 @@ Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 
 > **Note**
 >
-> It was superseded by the [Bindings](https://github.com/infracloudio/botkube/pull/626) proposal. See the [**Summary**](#summary) section to learn more.
+> It was replaced by the [Bindings](https://github.com/infracloudio/botkube/pull/626) proposal. See the [**Summary**](#summary) section to learn more.
 
 <!-- toc -->
 
