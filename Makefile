@@ -35,13 +35,11 @@ lint-fix:
 	@golangci-lint run --fix "./..."
 
 # test
-# TODO: Enable -race flag when https://github.com/infracloudio/botkube/issues/592 is resolved
 test: system-check
-	@echo "Starting unit and integration tests"
-	@go test -v ./...
+	@go test -v  -race ./...
 
 test-integration: system-check
-	@go test -v -tags=integration -race -count=1 ./tests/...
+	@go test -v -tags=integration -race -count=1 ./test/...
 
 # Build the binary
 build: pre-build
@@ -70,10 +68,6 @@ save-images:
 # Load project and push images with IMAGE_TAG tag
 load-and-push-images:
 	@./hack/goreleaser.sh load_and_push_images
-
-# TODO(https://github.com/infracloudio/botkube/pull/627): Backward compatibility; Remove these targets after merge to `develop`
-save-pr-image:
-	@./hack/goreleaser.sh save_pr_image
 
 # system checks
 system-check:

@@ -28,7 +28,7 @@ builds:
   - id: botkube-test
     command: test
     binary: botkube-e2e.test
-    main: ./tests/e2e/
+    main: ./test/e2e/
     no_main_check: true
     tags:
       - integration

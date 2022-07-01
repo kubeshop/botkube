@@ -7,22 +7,54 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/infracloudio/botkube/pkg/config"
 	"github.com/infracloudio/botkube/pkg/utils"
-	testutils "github.com/infracloudio/botkube/test/e2e/utils"
 )
 
-// TODO: Tests moved out straight from E2E test package with minimal changes.
-// 	Refactor them as a part of https://github.com/infracloudio/botkube/issues/589
+// TODO: Refactor these tests as a part of https://github.com/infracloudio/botkube/issues/589
+//  These tests were moved from old E2E package with fake K8s and Slack API
+//  (deleted in https://github.com/infracloudio/botkube/pull/627) and adjusted to become unit tests.
+
+// ErrorEvent stores specs for throwing an error in case of anomalies
+type ErrorEvent struct {
+	GVR       schema.GroupVersionResource
+	Kind      string
+	Namespace string
+	Name      string
+	Specs     runtime.Object
+}
+
+// UpdateObjects stores specs and patch for updating a k8s fake object and expected Slack response
+type UpdateObjects struct {
+	GVR           schema.GroupVersionResource
+	Kind          string
+	Namespace     string
+	Name          string
+	Specs         runtime.Object
+	Patch         []byte
+	Diff          string
+	UpdateSetting config.UpdateSetting
+	NotifType     config.NotifType
+}
+
+// DeleteObjects stores specs for deleting a k8s fake object
+type DeleteObjects struct {
+	GVR       schema.GroupVersionResource
+	Kind      string
+	Namespace string
+	Name      string
+	Specs     runtime.Object
+}
 
 func TestController_ShouldSendEvent_SkipError(t *testing.T) {
 	observedEventKindsMap := map[EventKind]bool{
 		{Resource: "v1/pods", Namespace: "dummy", EventType: "error"}: true,
 	}
 
-	tests := map[string]testutils.ErrorEvent{
+	tests := map[string]ErrorEvent{
 		"skip error event for resources not configured": {
 			// error event not allowed for Pod resources so event should be skipped
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
@@ -66,7 +98,7 @@ func TestController_ShouldSendEvent_SkipUpdate(t *testing.T) {
 	}
 
 	// test scenarios
-	tests := map[string]testutils.UpdateObjects{
+	tests := map[string]UpdateObjects{
 		"skip update event for namespaces not configured": {
 			// update operation not allowed for Pod in test namespace so event should be skipped
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
@@ -102,7 +134,7 @@ func TestController_ShouldSendEvent_SkipDelete(t *testing.T) {
 	}
 
 	// test scenarios
-	tests := map[string]testutils.DeleteObjects{
+	tests := map[string]DeleteObjects{
 		"skip delete event for resources not configured": {
 			// delete operation not allowed for Pod resources so event should be skipped
 			GVR:       schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"},
