@@ -98,9 +98,7 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
         run: |
-          helm repo add infracloudio https://infracloudio.github.io/charts
-          helm repo update
-          helm install botkube --namespace botkube infracloudio/botkube --version ${HELM_CHART_VERSION} --wait --create-namespace \
+          helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
             --set communications.slack.token="${SLACK_BOT_TOKEN}" \
             --set image.registry="${IMAGE_REGISTRY}" \
