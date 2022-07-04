@@ -15,6 +15,7 @@ builds:
         -X github.com/kubeshop/botkube/pkg/version.Version={{ .Tag }}
         -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
         -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
+        -X github.com/kubeshop/botkube/pkg/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
     env:
       - CGO_ENABLED=0
     goos:

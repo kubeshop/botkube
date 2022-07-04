@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/infracloudio/botkube/internal/analytics"
 	"log"
 	"net/http"
 	"os"
@@ -28,12 +29,17 @@ import (
 
 // Config contains the app configuration parameters.
 type Config struct {
-	MetricsPort           string        `envconfig:"default=2112"`
-	LogLevel              string        `envconfig:"default=error"`
+	MetricsPort string `envconfig:"default=2112"`
+	Log         struct {
+		Level         string `envconfig:"default=error"`
+		DisableColors bool   `envconfig:"optional"`
+	}
 	ConfigPath            string        `envconfig:"optional"`
 	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
 	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
-	LogDisableColors      bool          `envconfig:"optional"`
+	Analytics             struct {
+		Disable bool `envconfig:"default=false"`
+	}
 }
 
 const (
@@ -46,10 +52,15 @@ func main() {
 	err := envconfig.Init(&appCfg)
 	exitOnError(err, "while loading app configuration")
 
-	logger := newLogger(appCfg.LogLevel, appCfg.LogDisableColors)
+	logger := newLogger(appCfg.Log.Level, appCfg.Log.DisableColors)
+
 	ctx := signals.SetupSignalHandler()
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
+
+	analyticsReporter, cleanupFn, err := newAnalyticsReporter(appCfg.Analytics.Disable, logger)
+	exitOnError(err, "while creating analytics reporter")
+	defer cleanupFn()
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
@@ -193,6 +204,32 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
 	return httpsrv.New(log, addr, router)
+}
+
+func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, func(), error) {
+	if disableAnalytics {
+		return analytics.NewNoopReporter(), func() {}, nil
+	}
+
+	if analytics.APIKey == "" {
+		logger.Info("Analytics disabled as the API key is missing.")
+		return analytics.NewNoopReporter(), func() {}, nil
+	}
+
+	wrappedLogger := logger.WithField(componentLogFieldKey, "Analytics reporter")
+	analyticsReporter, cleanupFn, err := analytics.NewDefaultReporter(wrappedLogger)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return analyticsReporter,
+		func() {
+			err := cleanupFn()
+			if err != nil {
+				wrappedLogger.Errorf("while cleaning up: %s", err.Error())
+			}
+		},
+		nil
 }
 
 func exitOnError(err error, context string) {

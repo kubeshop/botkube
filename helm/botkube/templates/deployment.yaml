@@ -72,6 +72,8 @@ spec:
               value: {{ .Values.logLevel | quote }}
             - name: LOG_DISABLE_COLORS
               value: {{ .Values.logDisableColors | quote }}
+            - name: ANALYTICS_DISABLE
+              value: { { .Values.disableAnalytics | quote } }
             - name: METRICS_PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
