@@ -16,7 +16,7 @@ import (
 const (
 	defaultDuration = 24 * time.Hour
 	upgradeMsgFmt   = "Newer version (%s) of BotKube is available :tada:. Please upgrade BotKube backend.\nVisit botkube.io for more info."
-	repoOwner       = "infracloudio"
+	repoOwner       = "kubeshop"
 	repoName        = "botkube"
 )
 

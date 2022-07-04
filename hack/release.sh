@@ -24,7 +24,7 @@ generate_changelog() {
     local version=$1
 
     # generate changelog from github
-    github_changelog_generator --user infracloudio --project botkube -t ${GITHUB_TOKEN} --future-release ${version} -o CHANGELOG.md
+    github_changelog_generator --user kubeshop --project botkube -t ${GITHUB_TOKEN} --future-release ${version} -o CHANGELOG.md
     sed -i.bak '$d' CHANGELOG.md
 }
 
