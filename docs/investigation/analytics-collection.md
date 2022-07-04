@@ -88,21 +88,21 @@ Once agreed, the following to do list will be pasted into the [epic issue (#506)
   - Ensure proper access rights
 
 - [ ] Implement collecting analytics in BotKube
-  - Collect analytics listed in [Initial data to collect](#initial-data-to-collect) section
+  - Collect analytics listed in [Data collection](#data-collection) section
   - Use [Segment Go Library](https://segment.com/docs/connections/sources/catalog/libraries/server/go/)
   - Enabled by default
   - Make sure users can opt out:
     - a dedicated env variable supported by app
     - a dedicated Helm chart property
   - Document changes on botkube.io:
-    - Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/master/content/privacy.md) and describe data we collect
+    - Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/main/content/privacy.md) and describe data we collect
     - Describe configuration - how to opt-out
       - Consider describing it also for each installation document
 
 - [ ] Implement analytics on the website
   - Use Google Analytics 4
   - If needed: Add cookie banner (some reports say Google Analytics 4 are cookieless, but I also read on official website that `gtag.js` library uses first-party cookies, so a user consent might be also needed)
-  - Document changes: Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/master/content/privacy.md) and describe data we collect
+  - Document changes: Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/main/content/privacy.md) and describe data we collect
 
 - [ ] Communicate changes
   - Write announcement on Slack to gather feedback before/during implementation (before 0.13 release)
