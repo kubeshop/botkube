@@ -41,7 +41,7 @@ Now you can build and run BotKube by one of the following ways
    a. Using helm (v3)
 
    ```sh
-   helm repo add infracloudio https://infracloudio.github.io/charts
+   helm repo add botkube https://infracloudio.github.io/charts
    helm repo update
    kubectl create namespace botkube
    helm install --version v9.99.9-dev botkube --namespace botkube \
@@ -52,7 +52,7 @@ Now you can build and run BotKube by one of the following ways
    --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
-   infracloudio/botkube
+   botkube/botkube
    ```
 
    Check [values.yaml](https://github.com/kubeshop/botkube/blob/main/helm/botkube/values.yaml) for default options.
@@ -61,7 +61,7 @@ Now you can build and run BotKube by one of the following ways
    >
    > If you are using helm version < 3.0.0, use following command
    >
-   > helm install --version v9.99.9-dev --name botkube --namespace botkube --set \<options\> infracloudio/botkube
+   > helm install --version v9.99.9-dev --name botkube --namespace botkube --set \<options\> botkube/botkube
 
    b. Using `kubectl`
 
