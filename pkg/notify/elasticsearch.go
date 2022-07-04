@@ -18,8 +18,8 @@ import (
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
 )
 
 const (

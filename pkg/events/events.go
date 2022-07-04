@@ -9,8 +9,8 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // Event to store required information from k8s objects

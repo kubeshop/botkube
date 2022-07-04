@@ -91,9 +91,9 @@ load_and_push_images() {
 build() {
   prepare
   docker run --rm --privileged \
-    -v $PWD:/go/src/github.com/infracloudio/botkube \
+    -v $PWD:/go/src/github.com/kubeshop/botkube \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -w /go/src/github.com/infracloudio/botkube \
+    -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }

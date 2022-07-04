@@ -3,7 +3,7 @@ package filters
 import (
 	"testing"
 
-	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestIsNamespaceIgnored(t *testing.T) {

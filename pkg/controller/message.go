@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notify"
 )
 
 func sendMessageToNotifiers(ctx context.Context, notifiers []notify.Notifier, msg string) error {

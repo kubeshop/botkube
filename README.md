@@ -1,9 +1,9 @@
 # BotKube
 
 [![CI](https://github.com/kubeshop/botkube/workflows/CI/badge.svg?branch=main)](https://github.com/kubeshop/botkube/actions?query=workflow%3ACI+branch%3Amain)
-[![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubeshop/botkube)](https://goreportcard.com/report/github.com/kubeshop/botkube)
 [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io)
-[![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube)
+[![GoDoc](https://godoc.org/github.com/kubeshop/botkube?status.svg)](https://godoc.org/github.com/kubeshop/botkube)
 [![Release Version](https://img.shields.io/github/v/release/kubeshop/botkube?label=Botkube)](https://github.com/kubeshop/botkube/releases/latest)
 [![License](https://img.shields.io/github/license/kubeshop/botkube?color=light%20green&logo=github)](https://github.com/kubeshop/botkube/blob/main/LICENSE)
 [![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)

@@ -11,10 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/utils"
-	"github.com/infracloudio/botkube/pkg/version"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/filterengine"
+	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 var (

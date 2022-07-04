@@ -10,7 +10,7 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // mmChannelType to find Mattermost channel type

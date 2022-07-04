@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // PodLabelChecker add recommendations to the event object if pod created without any labels

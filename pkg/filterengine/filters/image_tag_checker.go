@@ -9,9 +9,9 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // ImageTagChecker add recommendations to the event object if latest image tag is used in pod containers

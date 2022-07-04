@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // DiscordBot listens for user's message, execute commands and sends back the response

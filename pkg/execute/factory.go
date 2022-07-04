@@ -3,8 +3,8 @@ package execute
 import (
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/filterengine"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/filterengine"
 )
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.

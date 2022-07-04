@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/events"
 )
 
 // DefaultFilterEngine is a default implementation of the Filter Engine

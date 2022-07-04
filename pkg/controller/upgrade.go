@@ -9,8 +9,8 @@ import (
 	"github.com/google/go-github/v44/github"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/notify"
-	"github.com/infracloudio/botkube/pkg/version"
+	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 const (
