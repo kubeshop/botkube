@@ -82,7 +82,7 @@ After doing a little research, we could use the following solutions:
 
 ## Consequences
 
-Once agreed, the following to do list will be pasted into the [epic issue (#506)](https://github.com/infracloudio/botkube/issues/506):
+Once agreed, the following to do list will be pasted into the [epic issue (#506)](https://github.com/kubeshop/botkube/issues/506):
 
 - [ ] Set up Google Analytics and Twilio Segment accounts
   - Ensure proper access rights
@@ -95,18 +95,18 @@ Once agreed, the following to do list will be pasted into the [epic issue (#506)
     - a dedicated env variable supported by app
     - a dedicated Helm chart property
   - Document changes on botkube.io:
-    - Update [privacy policy](https://github.com/infracloudio/botkube-docs/blob/master/content/privacy.md) and describe data we collect
+    - Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/master/content/privacy.md) and describe data we collect
     - Describe configuration - how to opt-out
       - Consider describing it also for each installation document
 
 - [ ] Implement analytics on the website
   - Use Google Analytics 4
   - If needed: Add cookie banner (some reports say Google Analytics 4 are cookieless, but I also read on official website that `gtag.js` library uses first-party cookies, so a user consent might be also needed)
-  - Document changes: Update [privacy policy](https://github.com/infracloudio/botkube-docs/blob/master/content/privacy.md) and describe data we collect 
+  - Document changes: Update [privacy policy](https://github.com/kubeshop/botkube-docs/blob/master/content/privacy.md) and describe data we collect
 
 - [ ] Communicate changes
   - Write announcement on Slack to gather feedback before/during implementation (before 0.13 release)
     - Explain the reason of introducing the analytics
-    - Point to the [epic issue](https://github.com/infracloudio/botkube/issues/506) for further discussion
+    - Point to the [epic issue](https://github.com/kubeshop/botkube/issues/506) for further discussion
     - If necessary, schedule a public meeting to discuss the changes
   - Mention analytics in BotKube 0.13 GitHub release description

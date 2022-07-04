@@ -7,7 +7,7 @@ icon: https://www.botkube.io/images/botkube.ico
 description: Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster,
  debug deployments and run specific checks on resources in the cluster.
 sources:
-  - https://github.com/infracloudio/botkube
+  - https://github.com/kubeshop/botkube
 keywords:
   - botkube
   - kubernetes

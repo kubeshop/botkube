@@ -15,7 +15,7 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 ## Source Code
 
-* <https://github.com/infracloudio/botkube>
+* <https://github.com/kubeshop/botkube>
 
 ### Now Supports AWS IRSA on EKS
 

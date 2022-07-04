@@ -14,9 +14,9 @@ import (
 	"github.com/infracloudio/botkube/pkg/utils"
 )
 
-// TODO: Refactor these tests as a part of https://github.com/infracloudio/botkube/issues/589
+// TODO: Refactor these tests as a part of https://github.com/kubeshop/botkube/issues/589
 //  These tests were moved from old E2E package with fake K8s and Slack API
-//  (deleted in https://github.com/infracloudio/botkube/pull/627) and adjusted to become unit tests.
+//  (deleted in https://github.com/kubeshop/botkube/pull/627) and adjusted to become unit tests.
 
 // ErrorEvent stores specs for throwing an error in case of anomalies
 type ErrorEvent struct {

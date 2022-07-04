@@ -319,7 +319,7 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
                   - "kubectl-read-only"
                   - "helm-full-access"
     ```
-   See the [Bindings](https://github.com/infracloudio/botkube/pull/626) proposal.
+   See the [Bindings](https://github.com/kubeshop/botkube/pull/626) proposal.
 
 2. Introduce "profiles/policies/presets" that can gather the given configuration together.
 
@@ -389,4 +389,4 @@ Those issues can be address with dedicated BotKube configuration CRDs. See [Conf
 
 Even though the option to [configure BotKube via CRs](2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the BotKube.
 
-I propose to solve the syntax issues and multichannel feature as described in the [Bindings](https://github.com/infracloudio/botkube/pull/626) proposal.
+I propose to solve the syntax issues and multichannel feature as described in the [Bindings](https://github.com/kubeshop/botkube/pull/626) proposal.

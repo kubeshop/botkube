@@ -18,7 +18,7 @@ git-tag:
 	@git add .release helm/botkube deploy-all-in-one.yaml deploy-all-in-one-tls.yaml CHANGELOG.md
 	@git commit -m "Release $(TAG)" ;
 	@git tag $(TAG) ;
-	@git push --tags origin develop;
+	@git push --tags origin main;
 	@echo 'Git tag pushed successfully' ;
 
 # Check git status

@@ -1,10 +1,10 @@
 # BotKube
 
-[![CI](https://github.com/infracloudio/botkube/workflows/CI/badge.svg?branch=develop)](https://github.com/infracloudio/botkube/actions?query=workflow%3ACI+branch%3Adevelop) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube)
+[![CI](https://github.com/kubeshop/botkube/workflows/CI/badge.svg?branch=main)](https://github.com/kubeshop/botkube/actions?query=workflow%3ACI+branch%3Amain) [![Go Report Card](https://goreportcard.com/badge/github.com/infracloudio/botkube)](https://goreportcard.com/report/github.com/infracloudio/botkube)
 [![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io)
 [![GoDoc](https://godoc.org/github.com/infracloudio/botkube?status.svg)](https://godoc.org/github.com/infracloudio/botkube)
-[![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/infracloudio/botkube/releases/latest)
-[![License](https://img.shields.io/github/license/infracloudio/botkube?color=light%20green&logo=github)](https://github.com/infracloudio/botkube/blob/develop/LICENSE)
+[![Release Version](https://img.shields.io/github/v/release/infracloudio/botkube?label=Botkube)](https://github.com/kubeshop/botkube/releases/latest)
+[![License](https://img.shields.io/github/license/infracloudio/botkube?color=light%20green&logo=github)](https://github.com/kubeshop/botkube/blob/main/LICENSE)
 [![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
 
 
@@ -24,11 +24,11 @@ Please follow [this](https://www.botkube.io/installation/) for a complete BotKub
 - **Event Manager:** Extracts required fields from k8s event object and creates a new BotKube event struct. It passes BotKube event struct to the Filter Engine.
 - **Filter Engine:** Takes the k8s object and BotKube event struct and runs Filters on them. Each filter runs some validations on the k8s object and modifies the messages in the BotKube event struct if required.
 - **Event Notifier:** Finally, notifier sends BotKube event over the configured communication channel.
-- **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost, Microsoft Teams and reads/sends messages from/to them. 
+- **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost, Microsoft Teams and reads/sends messages from/to them.
 - **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
 
 Visit www.botkube.io for Configuration, Usage and Examples.
 
 ## Licence
 
-This project is currently licensed under the [MIT License](https://github.com/infracloudio/botkube/blob/develop/LICENSE).
+This project is currently licensed under the [MIT License](https://github.com/kubeshop/botkube/blob/main/LICENSE).
