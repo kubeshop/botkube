@@ -27,11 +27,11 @@ Now you can build and run BotKube by one of the following ways
 
 ### Build the container image
 
-1. This will build BotKube and create a new container image tagged as `ghcr.io/infracloudio/botkube:v9.99.9-dev`
+1. This will build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`
    ```sh
    make build
    make container-image
-   docker tag ghcr.io/infracloudio/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
+   docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
    docker push <your_account>/botkube:v9.99.9-dev
    ```
    Where `<your_account>` is Docker hub account to which you can push the image
@@ -114,7 +114,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 * Before making any significant changes, please [open an issue](https://github.com/kubeshop/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
 
-* Once we've discussed your changes and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against [`main`](http://github.com/infracloudio/botkube/tree/main) branch.
+* Once we've discussed your changes and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against [`main`](http://github.com/kubeshop/botkube/tree/main) branch.
 
 * To avoid build failures in CI, install [`golangci-lint` v1.46](https://golangci-lint.run/usage/install/) and run:
   ```sh

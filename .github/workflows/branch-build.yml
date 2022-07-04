@@ -11,8 +11,8 @@ env:
   K3D_VERSION: v5.4.3
   INTEGRATION_TESTS_TIMEOUT: 10m
   IMAGE_REGISTRY: "ghcr.io"
-  IMAGE_REPOSITORY: "infracloudio/botkube"
-  TEST_IMAGE_REPOSITORY: "infracloudio/botkube-test"
+  IMAGE_REPOSITORY: "kubeshop/botkube"
+  TEST_IMAGE_REPOSITORY: "kubeshop/botkube-test"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
   HELM_CHART_VERSION: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
@@ -39,7 +39,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GH_TOKEN }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:

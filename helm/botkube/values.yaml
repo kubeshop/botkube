@@ -9,7 +9,7 @@ extraAnnotations: {}
 priorityClassName: ""
 image:
   registry: ghcr.io
-  repository: infracloudio/botkube
+  repository: kubeshop/botkube
   pullPolicy: IfNotPresent
   ## default tag is appVersion from Chart.yaml. If you want to use
   ## some other tag then it can be specified here
@@ -510,7 +510,7 @@ extraObjects: []
 e2eTest:
   image:
     registry: ghcr.io
-    repository: infracloudio/botkube-test
+    repository: kubeshop/botkube-test
     tag: v9.99.9-dev
     pullPolicy: IfNotPresent
   deployment:

@@ -42,7 +42,7 @@ This directory contains E2E tests which are run against BotKube installed on Kub
 6. Copy the **Bot User OAuth Token** and save it for later.
 
    You can already export it as environment variable for [BotKube installation](#install-botkube) or [running the tests locally](#run-tests-locally):
-   
+
    ```bash
    export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}
    ```
@@ -54,7 +54,7 @@ This directory contains E2E tests which are run against BotKube installed on Kub
     ```bash
     export SLACK_BOT_TOKEN="{token for your configured BotKube app}" # WARNING: It is token for BotKube Slack bot, not the Tester!
     export IMAGE_REGISTRY="ghcr.io"
-    export IMAGE_REPOSITORY="infracloudio/botkube"
+    export IMAGE_REPOSITORY="kubeshop/botkube"
     export IMAGE_TAG="v9.99.9-dev"
 
     #
@@ -62,12 +62,12 @@ This directory contains E2E tests which are run against BotKube installed on Kub
     #
     export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}" # WARNING: This is a token for Tester, not the BotKube Slack bot!
     export TEST_IMAGE_REGISTRY="ghcr.io"
-    export TEST_IMAGE_REPOSITORY="infracloudio/botkube-test"
+    export TEST_IMAGE_REPOSITORY="kubeshop/botkube-test"
     export TEST_IMAGE_TAG="v9.99.9-dev"
     ```
 
 1. Install BotKube using Helm chart:
-        
+
     ```bash
     helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
       -f ./helm/botkube/e2e-test-values.yaml \

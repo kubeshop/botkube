@@ -88,7 +88,7 @@ serviceAccount:
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
-| image.repository | string | `"infracloudio/botkube"` |  |
+| image.repository | string | `"kubeshop/botkube"` |  |
 | image.tag | string | `"v0.12.4"` |  |
 | ingress.annotations."kubernetes.io/ingress.class" | string | `"nginx"` |  |
 | ingress.create | bool | `false` |  |
