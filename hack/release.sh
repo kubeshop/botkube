@@ -32,7 +32,7 @@ update_chart_yamls() {
     local version_to_replace=$1
     local version=$2
     echo "Updating release version $version_to_replace-> $version"
-    dir=(./helm ./deploy-all-in-one.yaml ./deploy-all-in-one-tls.yaml)
+    dir=(./helm)
     for d in ${dir[@]}
     do
         find $d -type f -name "*.yaml" -exec sed -i.bak "s/$version_to_replace/$version/g" {} \;

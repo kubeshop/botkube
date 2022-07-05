@@ -17,8 +17,6 @@ on:
       - 'CODE_OF_CONDUCT.md'
       - 'comm_config.yaml'
       - 'CONTRIBUTING.md'
-      - 'deploy-all-in-one.yaml'
-      - 'deploy-all-in-one-tls.yaml'
       - 'LICENSE'
       - 'README.md'
       - 'resource_config.yaml'

@@ -38,11 +38,9 @@ Now you can build and run BotKube by one of the following ways
 
 2. Deploy newly created image in your cluster.
 
-   a. Using helm (v3)
+   a. Using Helm v3
 
    ```sh
-   helm repo add botkube https://infracloudio.github.io/charts
-   helm repo update
    kubectl create namespace botkube
    helm install --version v9.99.9-dev botkube --namespace botkube \
    --set communications.slack.enabled=true \
@@ -52,25 +50,16 @@ Now you can build and run BotKube by one of the following ways
    --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
-   botkube/botkube
+   ./helm/botkube
    ```
 
    Check [values.yaml](https://github.com/kubeshop/botkube/blob/main/helm/botkube/values.yaml) for default options.
 
-   > **Note**
-   >
-   > If you are using helm version < 3.0.0, use following command
-   >
-   > helm install --version v9.99.9-dev --name botkube --namespace botkube --set \<options\> botkube/botkube
+   b. Using Helm v2
 
-   b. Using `kubectl`
-
-     1. Edit `deploy-all-in-one.yaml` and update the configuration.
-        Set SLACK_ENABLED, SLACK_CHANNEL, SLACK_API_TOKEN, clustername, kubectl.enabled and update the resource events configuration you want to receive notifications for in the configmap.
-     2. Create `botkube` namespace and deploy resources
-     ```sh
-     kubectl create ns botkube && kubectl create -f deploy-all-in-one.yaml -n botkube
-     ```
+   ```sh
+   helm install --version v9.99.9-dev --name botkube --namespace botkube --set \<options\> ./helm/botkube
+   ```
 
 ### Build and run BotKube locally
 

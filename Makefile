@@ -15,7 +15,7 @@ release: check-git-status test git-tag gorelease
 # Create a git tag
 git-tag:
 	@echo "Creating a git tag"
-	@git add .release helm/botkube deploy-all-in-one.yaml deploy-all-in-one-tls.yaml CHANGELOG.md
+	@git add .release helm/botkube CHANGELOG.md
 	@git commit -m "Release $(TAG)" ;
 	@git tag $(TAG) ;
 	@git push --tags origin main;
