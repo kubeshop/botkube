@@ -6,6 +6,12 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 **Homepage:** <https://www.botkube.io>
 
+## Maintainers
+
+| Name             | Email                |
+|------------------|----------------------|
+| BotKube Dev Team | dev-team@botkube.io  |
+
 ## Source Code
 
 * <https://github.com/kubeshop/botkube>

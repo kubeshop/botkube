@@ -51,6 +51,7 @@ jobs:
       uses: azure/setup-helm@v1
       with:
         version: ${{ env.HELM_VERSION }}
+    # TODO: https://github.com/kubeshop/botkube/issues/634
     - name: Update and publish helm chart
       run: |
         cd ..
