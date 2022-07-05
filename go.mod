@@ -1,4 +1,4 @@
-module github.com/infracloudio/botkube
+module github.com/kubeshop/botkube
 
 require (
 	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd

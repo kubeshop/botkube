@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type diffReporter struct {

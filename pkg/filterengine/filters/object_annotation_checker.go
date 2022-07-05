@@ -9,8 +9,8 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const (

@@ -16,14 +16,14 @@ import (
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"github.com/infracloudio/botkube/pkg/bot"
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/controller"
-	"github.com/infracloudio/botkube/pkg/execute"
-	"github.com/infracloudio/botkube/pkg/filterengine"
-	"github.com/infracloudio/botkube/pkg/httpsrv"
-	"github.com/infracloudio/botkube/pkg/kube"
-	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/bot"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/controller"
+	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/filterengine"
+	"github.com/kubeshop/botkube/pkg/httpsrv"
+	"github.com/kubeshop/botkube/pkg/kube"
+	"github.com/kubeshop/botkube/pkg/notify"
 )
 
 // Config contains the app configuration parameters.

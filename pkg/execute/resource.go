@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/discovery"
 
-	"github.com/infracloudio/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // ResourceMapping contains helper maps for kubectl execution.

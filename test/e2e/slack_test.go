@@ -11,7 +11,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
-	"github.com/infracloudio/botkube/pkg/filterengine/filters"
+	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"

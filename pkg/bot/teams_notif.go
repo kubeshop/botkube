@@ -3,9 +3,9 @@ package bot
 import (
 	"strings"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/events"
-	"github.com/infracloudio/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/notify"
 )
 
 var themeColor = map[config.Level]string{

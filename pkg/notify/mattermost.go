@@ -10,8 +10,8 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/sirupsen/logrus"
 
-	"github.com/infracloudio/botkube/pkg/config"
-	"github.com/infracloudio/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
 )
 
 // Mattermost contains server URL and token
