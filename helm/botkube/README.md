@@ -8,14 +8,13 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 ## Maintainers
 
-| Name | Email | Url |
-| ---- | ------ | --- |
-| PrasadG193 | prasad.ghangal@gmail.com |  |
-| ssudake21 | sanket@infracloud.io |  |
+| Name             | Email                |
+|------------------|----------------------|
+| BotKube Dev Team | dev-team@botkube.io  |
 
 ## Source Code
 
-* <https://github.com/infracloudio/botkube>
+* <https://github.com/kubeshop/botkube>
 
 ### Now Supports AWS IRSA on EKS
 
@@ -88,7 +87,7 @@ serviceAccount:
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
-| image.repository | string | `"infracloudio/botkube"` |  |
+| image.repository | string | `"kubeshop/botkube"` |  |
 | image.tag | string | `"v0.12.4"` |  |
 | ingress.annotations."kubernetes.io/ingress.class" | string | `"nginx"` |  |
 | ingress.create | bool | `false` |  |

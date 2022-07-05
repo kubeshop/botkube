@@ -4,22 +4,19 @@ on:
   pull_request_target:
     types: [ opened, synchronize, reopened ]
     branches:
-      - "develop"
+      - "main"
     paths-ignore:
       - 'branding/**'
       - 'design/**'
       - '.codespell-whitelist'
       - '.gitignore'
       - '.golangci.yml'
-      - '.mergify.yml'
       - 'botkube-title.jpg'
       - 'botkube_arch.jpg'
       - 'CHANGELOG.md'
       - 'CODE_OF_CONDUCT.md'
       - 'comm_config.yaml'
       - 'CONTRIBUTING.md'
-      - 'deploy-all-in-one.yaml'
-      - 'deploy-all-in-one-tls.yaml'
       - 'LICENSE'
       - 'README.md'
       - 'resource_config.yaml'
@@ -31,8 +28,8 @@ env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
   INTEGRATION_TESTS_TIMEOUT: 10m
   IMAGE_REGISTRY: "ghcr.io"
-  IMAGE_REPOSITORY: "infracloudio/pr/botkube"
-  TEST_IMAGE_REPOSITORY: "infracloudio/pr/botkube-test"
+  IMAGE_REPOSITORY: "kubeshop/pr/botkube"
+  TEST_IMAGE_REPOSITORY: "kubeshop/pr/botkube-test"
   IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
 
@@ -159,7 +156,7 @@ jobs:
       - name: Install BotKube
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}      
+          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
@@ -171,7 +168,7 @@ jobs:
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/infracloudio/botkube/pull/${PR_NUMBER}"
+            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"

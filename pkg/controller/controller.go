@@ -1,22 +1,3 @@
-// Copyright (c) 2019 InfraCloud Technologies
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 package controller
 
 import (
@@ -51,7 +32,7 @@ const (
 )
 
 // EventKind defines a map key used for event filtering.
-// TODO: Do not export it when E2E tests are refactored (https://github.com/infracloudio/botkube/issues/589)
+// TODO: Do not export it when E2E tests are refactored (https://github.com/kubeshop/botkube/issues/589)
 type EventKind struct {
 	Resource  string
 	Namespace string
@@ -59,7 +40,7 @@ type EventKind struct {
 }
 
 // KindNS defines a map key used for update event filtering.
-// TODO: Do not export it when E2E tests are refactored (https://github.com/infracloudio/botkube/issues/589)
+// TODO: Do not export it when E2E tests are refactored (https://github.com/kubeshop/botkube/issues/589)
 type KindNS struct {
 	Resource  string
 	Namespace string
@@ -423,7 +404,7 @@ func (c *Controller) shouldSendEvent(namespace string, resource string, eventTyp
 	return false
 }
 
-// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/infracloudio/botkube/issues/589
+// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/kubeshop/botkube/issues/589
 
 // ShouldSendEvent exports Controller functionality for test purposes.
 // Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.

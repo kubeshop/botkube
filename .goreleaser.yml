@@ -1,8 +1,8 @@
 project_name: botkube
 env:
   - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
-  - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}infracloudio/botkube{{ end }}
-  - TEST_IMAGE_REPOSITORY={{ if index .Env "TEST_IMAGE_REPOSITORY"  }}{{ .Env.TEST_IMAGE_REPOSITORY }}{{ else }}infracloudio/botkube-test{{ end }}
+  - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube{{ end }}
+  - TEST_IMAGE_REPOSITORY={{ if index .Env "TEST_IMAGE_REPOSITORY"  }}{{ .Env.TEST_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-test{{ end }}
 before:
   hooks:
     - go mod download

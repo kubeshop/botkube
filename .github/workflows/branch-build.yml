@@ -3,7 +3,7 @@ name: Branch build
 on:
   push:
     branches:
-      - develop
+      - main
 
 env:
   GO_VERSION: 1.18
@@ -11,8 +11,8 @@ env:
   K3D_VERSION: v5.4.3
   INTEGRATION_TESTS_TIMEOUT: 10m
   IMAGE_REGISTRY: "ghcr.io"
-  IMAGE_REPOSITORY: "infracloudio/botkube"
-  TEST_IMAGE_REPOSITORY: "infracloudio/botkube-test"
+  IMAGE_REPOSITORY: "kubeshop/botkube"
+  TEST_IMAGE_REPOSITORY: "kubeshop/botkube-test"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
   HELM_CHART_VERSION: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
@@ -39,7 +39,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GH_TOKEN }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
@@ -51,6 +51,7 @@ jobs:
       uses: azure/setup-helm@v1
       with:
         version: ${{ env.HELM_VERSION }}
+    # TODO: https://github.com/kubeshop/botkube/issues/634
     - name: Update and publish helm chart
       run: |
         cd ..
@@ -108,7 +109,7 @@ jobs:
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/infracloudio/botkube/commit/${GITHUB_SHA}"
+            --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
