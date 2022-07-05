@@ -51,9 +51,5 @@ func LoadNotifiers(log *logrus.Logger, conf config.CommunicationsConfig) ([]Noti
 		notifiers = append(notifiers, NewWebhook(log.WithField(notifierLogFieldKey, "Webhook"), conf))
 	}
 
-	if conf.Lark.Enabled {
-		notifiers = append(notifiers, NewLark(log.WithField(notifierLogFieldKey, "Lark"), log.GetLevel(), conf))
-	}
-
 	return notifiers, nil
 }

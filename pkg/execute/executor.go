@@ -425,8 +425,6 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 	cfg.Communications.ElasticSearch.Password = redactedSecretStr
 	cfg.Communications.Discord.Token = redactedSecretStr
 	cfg.Communications.Mattermost.Token = redactedSecretStr
-	cfg.Communications.Lark.AppSecret = redactedSecretStr
-	cfg.Communications.Lark.EncryptKey = redactedSecretStr
 
 	b, err := yaml.Marshal(cfg)
 	if err != nil {

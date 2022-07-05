@@ -123,13 +123,6 @@ func main() {
 		})
 	}
 
-	if conf.Communications.Lark.Enabled {
-		lb := bot.NewLarkBot(logger.WithField(botLogFieldKey, "Lark"), logger.GetLevel(), conf, executorFactory)
-		errGroup.Go(func() error {
-			return lb.Start(ctx)
-		})
-	}
-
 	// Start upgrade checker
 	ghCli := github.NewClient(&http.Client{
 		Timeout: 1 * time.Minute,

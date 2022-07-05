@@ -11,7 +11,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/knadh/koanf v1.4.1
-	github.com/larksuite/oapi-sdk-go v1.1.44
 	github.com/mattermost/mattermost-server/v5 v5.39.3
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/prometheus/client_golang v1.12.2
@@ -26,7 +25,6 @@ require (
 	k8s.io/apimachinery v0.24.0
 	k8s.io/client-go v0.24.0
 	k8s.io/kubectl v0.24.0
-	k8s.io/sample-controller v0.24.0
 	sigs.k8s.io/controller-runtime v0.12.1
 )
 
