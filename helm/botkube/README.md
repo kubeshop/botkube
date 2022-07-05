@@ -6,13 +6,6 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 
 **Homepage:** <https://www.botkube.io>
 
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| PrasadG193 | prasad.ghangal@gmail.com |  |
-| ssudake21 | sanket@infracloud.io |  |
-
 ## Source Code
 
 * <https://github.com/kubeshop/botkube>
