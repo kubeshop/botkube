@@ -1,5 +1,7 @@
 # BotKube Helm Charts
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/BotKube)](https://artifacthub.io/packages/search?org=botkube)
+
 BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com) or [Mattermost](https://mattermost.com).
 
 You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
