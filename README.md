@@ -1,9 +1,10 @@
 # BotKube Helm Charts
 
-For complete documentation visit [https://botkube.io](https://botkube.io)
+BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com) or [Mattermost](https://mattermost.com).
 
-BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
-You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
+You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
+
+For complete documentation visit [https://botkube.io](https://botkube.io).
 
 ## Usage
 
@@ -19,7 +20,7 @@ You can then run `helm search repo botkube` to see the charts.
 
 ## Contributing
 
-The source code of all [BotKube](https://botkube.io) Helm charts can be found in [github.com/kubeshop/botkube/helm/botkube](https://github.com/kubeshop/botkube/tree/main/helm/botkube).
+The source code of the [BotKube](https://botkube.io) Helm charts can be found under the [`helm/botkube`](https://github.com/kubeshop/botkube/tree/main/helm/botkube) directory in the BotKube repository.
 
 We'd love to have you contribute! Please refer to our [contribution guidelines](https://botkube.io/contribute/) for details.
 
