@@ -8,11 +8,11 @@
 [![License](https://img.shields.io/github/license/kubeshop/botkube?color=light%20green&logo=github)](https://github.com/kubeshop/botkube/blob/main/LICENSE)
 [![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
 
+BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com) or [Mattermost](https://mattermost.com).
+
+You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
 
 For complete documentation visit [https://botkube.io](https://botkube.io).
-
-BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
-You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
 
 ![](botkube-title.jpg)
 
