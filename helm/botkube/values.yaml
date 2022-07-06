@@ -363,24 +363,12 @@ communications:
     enabled: false
     url: 'WEBHOOK_URL'                          # e.g https://example.com:80
 
-  # Settings for lark
-  lark:
-    enabled: false
-    endpoint: "LARK_URL"
-    appID: "LARK_APP_ID"
-    appSecret: "LARK_APP_SECRET"
-    encryptKey: "LARK_ENCRYPT_KEY"
-    verificationToken: "LARK_VERIFICATION_TOKEN"
-    messagePath: "/bots/lark"
-    chatGroup: "LARK_CHAT_GROUP_ID"
-    port: 9999
-
 service:
   name: metrics
   port: 2112
   targetPort: 2112
 
-## Ingress settings to expose teams and lark endpoints
+## Ingress settings to expose teams endpoint
 ingress:
   create: false
   annotations:
