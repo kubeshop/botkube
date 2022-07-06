@@ -9,7 +9,7 @@
 [![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
 
 
-For complete documentation visit www.botkube.io
+For complete documentation visit [https://botkube.io](https://botkube.io).
 
 BotKube integration with [Slack](https://slack.com), [Mattermost](https://mattermost.com) or [Microsoft Teams](https://www.microsoft.com/microsoft-365/microsoft-teams/group-chat-software) helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources.
 You can also ask BotKube to execute kubectl commands on k8s cluster which helps debugging an application or cluster.
@@ -17,7 +17,8 @@ You can also ask BotKube to execute kubectl commands on k8s cluster which helps 
 ![](botkube-title.jpg)
 
 ## Getting started
-Please follow [this](https://www.botkube.io/installation/) for a complete BotKube installation guide.
+
+Please follow [this](https://botkube.io/installation/) for a complete BotKube installation guide.
 
 ## Architecture
 ![](/botkube_arch.jpg)
@@ -28,7 +29,7 @@ Please follow [this](https://www.botkube.io/installation/) for a complete BotKub
 - **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost, Microsoft Teams and reads/sends messages from/to them.
 - **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
 
-Visit www.botkube.io for Configuration, Usage and Examples.
+Visit [https://botkube.io](https://botkube.io) for Configuration, Usage and Examples.
 
 ## Licence
 
