@@ -1,0 +1,10 @@
+# Artifact Hub repository metadata file
+#
+# Reference:  https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+repositoryID: b5349342-b6df-48fa-8ec2-d397dc78ec7e
+owners: # (optional, used to claim repository ownership)
+  - name: BotKube Dev Team
+    email: dev-team@botkube.io
+ignore: # (optional, packages that should not be indexed by Artifact Hub)
+  - name: botkube
+    version: v9.99.9-dev
