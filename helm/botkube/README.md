@@ -4,7 +4,7 @@
 
 Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
-**Homepage:** <https://www.botkube.io>
+**Homepage:** <https://botkube.io>
 
 ## Maintainers
 

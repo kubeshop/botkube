@@ -4,7 +4,7 @@ We'd love your help!
 
 BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines some of the conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
 
-We gratefully welcome improvements to [documentation](https://www.botkube.io/ "Go to documentation site") as well as to code.
+We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to documentation site") as well as to code.
 
 ## Contributing to documentation
 
@@ -12,7 +12,7 @@ You can contribute to documentation by following [these instructions](https://gi
 
 ## Compile BotKube from source code
 
-Before you proceed, make sure you have installed BotKube Slack/Mattermost/Teams app and copied the required token as per the steps documented [here](https://www.botkube.io/installation/)
+Before you proceed, make sure you have installed BotKube Slack/Mattermost/Teams app and copied the required token as per the steps documented [here](https://botkube.io/installation/)
 
 ### Prerequisite
 
@@ -39,8 +39,7 @@ Now you can build and run BotKube by one of the following ways
 2. Deploy newly created image in your cluster.
 
    ```sh
-   kubectl create namespace botkube
-   helm install --version v9.99.9-dev botkube --namespace botkube \
+   helm install botkube --namespace botkube --create-namespace \
    --set communications.slack.enabled=true \
    --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
    --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \

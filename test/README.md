@@ -5,7 +5,7 @@ This directory contains E2E tests which are run against BotKube installed on Kub
 ## Prerequisites
 
 - Kubernetes cluster (e.g. local one created with `k3d`)
-- BotKube bot app configured for a given Slack workspace according to the [instruction](https://www.botkube.io/installation/slack/)
+- BotKube bot app configured for a given Slack workspace according to the [instruction](https://botkube.io/installation/slack/)
 - BotKube tester app configured according to the [instruction](#configure-tester-slack-application)
 
 ### Configure Tester Slack application
