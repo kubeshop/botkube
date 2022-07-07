@@ -28,23 +28,25 @@
   </a>
 </p>
 
-
 ## Overview
 
 BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com), [Discord](https://discord.com/), or [Mattermost](https://mattermost.com).
 
 You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
 
-For complete documentation visit [https://botkube.io](https://botkube.io).
-
-
 ## Getting started
 
 Please follow [this](https://botkube.io/installation/) for a complete BotKube installation guide.
 
+## Documentation
+
+For complete documentation visit [botkube.io](https://botkube.io).
+
+The documentation sources reside on the [botkube-docs](https://github.com/kubeshop/botkube-docs) repository under **content** directory.
+
 ## Features
 
-<img src="./docs/assets/icons/terminal-box-line.svg" width="13%" align="right"/>
+<img src="./docs/assets/icons/terminal-box-line.svg" width="12%" align="right"/>
 
 ### Execute `kubectl` commands
 
@@ -64,7 +66,7 @@ BotKube integrates with Slack, Discord, Mattermost, Microsoft Teams, ElasticSear
 
 ### Supports Custom Resources
 
-BotKube can monitor literally any Kubernetes resource including Custom Resource. This enables you to configure alerts on some interesting events like - certificate issue/expiry if you use [cert-manager](https://cert-manager.io/) or backup failure in case you use backup tools like Velero or Kanister.
+BotKube can monitor literally any Kubernetes resource including Custom Resource. This enables you to configure alerts on events like - certificate issue if you use [cert-manager](https://cert-manager.io/) or backup failure in case you use backup tools like Velero or Kanister.
 
 <br /><br />
 
@@ -72,11 +74,11 @@ BotKube can monitor literally any Kubernetes resource including Custom Resource.
 
 ### Debug Anywhere, Anytime
 
-With `@BotKube` you can monitor and debug Kubernetes deployments from anywhere. Even while you are camping without a laptop, you can use Slack, Mattermost or MS Teams mobile app and get crucial information. The entire team can see what steps have already been taken and avoid duplicated work.
+With `@BotKube` you can monitor and debug Kubernetes deployments from anywhere. You can use e.g. Slack mobile app and get crucial information. The entire team can see what steps have already been taken and avoid duplicated work.
 
 <br /><br />
 
-<img src="./docs/assets/icons/cloud-line.svg" width="13%" align="right"/>
+<img src="./docs/assets/icons/cloud-line.svg" width="12%" align="right"/>
 
 ### Deploy on any Kubernetes cluster
 
