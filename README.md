@@ -1,35 +1,86 @@
-# BotKube
+<p align="center">
+  <img src="./docs/assets/botkube-title.jpg" alt="BotKube Logo Light" width="90%" />
+</p>
 
-[![CI](https://github.com/kubeshop/botkube/workflows/CI/badge.svg?branch=main)](https://github.com/kubeshop/botkube/actions?query=workflow%3ACI+branch%3Amain)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubeshop/botkube)](https://goreportcard.com/report/github.com/kubeshop/botkube)
-[![BotKube website](https://img.shields.io/badge/docs-botkube.io-blue.svg)](https://botkube.io)
-[![GoDoc](https://godoc.org/github.com/kubeshop/botkube?status.svg)](https://godoc.org/github.com/kubeshop/botkube)
-[![Release Version](https://img.shields.io/github/v/release/kubeshop/botkube?label=Botkube)](https://github.com/kubeshop/botkube/releases/latest)
-[![License](https://img.shields.io/github/license/kubeshop/botkube?color=light%20green&logo=github)](https://github.com/kubeshop/botkube/blob/main/LICENSE)
-[![Slack](https://badgen.net/badge/slack/BotKube?icon=slack)](http://join.botkube.io/)
+<p align="center">
+  BotKube is a messaging bot for monitoring and debugging Kubernetes clusters.
+</p>
 
-BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com) or [Mattermost](https://mattermost.com).
+
+<p align="center">
+  <a href="https://github.com/kubeshop/botkube/releases/latest">
+    <img src="https://img.shields.io/github/v/release/kubeshop/botkube" alt="Latest Release" />
+  </a>
+  <a href="https://github.com/kubeshop/botkube/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kubeshop/botkube" alt="License"/>
+  </a>
+  <a href="http://join.botkube.io/">
+    <img src="https://badgen.net/badge/slack/BotKube?icon=slack" alt="Slack" />
+  </a>
+  <a href="https://github.com/kubeshop/botkube/actions?query=workflow%3ACI+branch%3Amain">
+    <img src="https://github.com/kubeshop/botkube/workflows/CI/badge.svg?branch=main" alt="CI Build" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/kubeshop/botkube">
+    <img src="https://goreportcard.com/badge/github.com/kubeshop/botkube" alt="Go Report" />
+  </a>
+  <a href="https://godoc.org/github.com/kubeshop/botkube">
+    <img src="https://godoc.org/github.com/kubeshop/botkube?status.svg" alt="Go Docs" />
+  </a>
+</p>
+
+
+## Overview
+
+BotKube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com), [Discord](https://discord.com/), or [Mattermost](https://mattermost.com).
 
 You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
 
 For complete documentation visit [https://botkube.io](https://botkube.io).
 
-![](./docs/assets/botkube-title.jpg)
 
 ## Getting started
 
 Please follow [this](https://botkube.io/installation/) for a complete BotKube installation guide.
 
-## Architecture
-![](./docs/assets/botkube_arch.jpg)
-- **Informer Controller:** Registers informers to kube-apiserver to watch events on the configured k8s resources. It forwards the incoming k8s event to the Event Manager.
-- **Event Manager:** Extracts required fields from k8s event object and creates a new BotKube event struct. It passes BotKube event struct to the Filter Engine.
-- **Filter Engine:** Takes the k8s object and BotKube event struct and runs Filters on them. Each filter runs some validations on the k8s object and modifies the messages in the BotKube event struct if required.
-- **Event Notifier:** Finally, notifier sends BotKube event over the configured communication channel.
-- **Bot Interface:** Bot interface takes care of authenticating and managing connections with communication mediums like Slack, Mattermost, Microsoft Teams and reads/sends messages from/to them.
-- **Executor:** Executes BotKube or kubectl command and sends back the result to the Bot interface.
+## Features
 
-Visit [https://botkube.io](https://botkube.io) for Configuration, Usage and Examples.
+<img src="./docs/assets/icons/terminal-box-line.svg" width="13%" align="right"/>
+
+### Execute `kubectl` commands
+
+Same old Kubectl syntax - just a new interface. You do not have to learn anything new! Plus you can configure which `kubectl` commands BotKube can execute. See [configuration](https://botkube.io/configuration/resource/) for details.
+
+<br /><br />
+
+<img src="./docs/assets/icons/question-answer-line.svg" width="10%" align="left"/>
+
+### Support multiple communicator
+
+BotKube integrates with Slack, Discord, Mattermost, Microsoft Teams, ElasticSearch and outgoing webhook. See [configuration](https://botkube.io/configuration/communication/) syntax for details.
+
+<br /><br />
+
+<img src="./docs/assets/icons/stack-line.svg" width="13%" align="right"/>
+
+### Supports Custom Resources
+
+BotKube can monitor literally any Kubernetes resource including Custom Resource. This enables you to configure alerts on some interesting events like - certificate issue/expiry if you use [cert-manager](https://cert-manager.io/) or backup failure in case you use backup tools like Velero or Kanister.
+
+<br /><br />
+
+<img src="./docs/assets/icons/bug-line.svg" width="12%" align="left"/>
+
+### Debug Anywhere, Anytime
+
+With `@BotKube` you can monitor and debug Kubernetes deployments from anywhere. Even while you are camping without a laptop, you can use Slack, Mattermost or MS Teams mobile app and get crucial information. The entire team can see what steps have already been taken and avoid duplicated work.
+
+<br /><br />
+
+<img src="./docs/assets/icons/cloud-line.svg" width="13%" align="right"/>
+
+### Deploy on any Kubernetes cluster
+
+You can deploy BotKube backend on any Kubernetes cluster, whether it is [K3d](https://k3d.io/v5.4.3/) or cloud managed Kubernetes or anything in between.
 
 ## Licence
 
