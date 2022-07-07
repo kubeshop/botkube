@@ -14,14 +14,14 @@ You can also execute `kubectl` commands on K8s cluster via BotKube which helps d
 
 For complete documentation visit [https://botkube.io](https://botkube.io).
 
-![](botkube-title.jpg)
+![](./docs/assets/botkube-title.jpg)
 
 ## Getting started
 
 Please follow [this](https://botkube.io/installation/) for a complete BotKube installation guide.
 
 ## Architecture
-![](/botkube_arch.jpg)
+![](./docs/assets/botkube_arch.jpg)
 - **Informer Controller:** Registers informers to kube-apiserver to watch events on the configured k8s resources. It forwards the incoming k8s event to the Event Manager.
 - **Event Manager:** Extracts required fields from k8s event object and creates a new BotKube event struct. It passes BotKube event struct to the Filter Engine.
 - **Filter Engine:** Takes the k8s object and BotKube event struct and runs Filters on them. Each filter runs some validations on the k8s object and modifies the messages in the BotKube event struct if required.
