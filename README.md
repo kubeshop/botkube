@@ -34,6 +34,10 @@ BotKube helps you monitor your Kubernetes cluster, debug critical deployments an
 
 You can also execute `kubectl` commands on K8s cluster via BotKube which helps debugging an application or cluster.
 
+<p align="center">
+<img src="./docs/assets/main-demo.gif" />
+</p>
+
 ## Getting started
 
 Please follow [this](https://botkube.io/installation/) for a complete BotKube installation guide.
