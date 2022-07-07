@@ -2,8 +2,14 @@ package analytics
 
 import (
 	"fmt"
+
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	// APIKey contains the API key for external analytics service. It is set during application build.
+	APIKey string
 )
 
 var _ Reporter = &DefaultReporter{}
@@ -14,6 +20,8 @@ type DefaultReporter struct {
 
 	identity *Identity
 }
+
+type CleanupFn func() error
 
 func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, error) {
 	cli, err := segment.NewWithConfig(APIKey, segment.Config{

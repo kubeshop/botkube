@@ -3,11 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/infracloudio/botkube/internal/analytics"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/kubeshop/botkube/internal/analytics"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/google/go-github/v44/github"
 	"github.com/gorilla/mux"
@@ -23,7 +32,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
-	"github.com/kubeshop/botkube/pkg/kube"
 	"github.com/kubeshop/botkube/pkg/notify"
 )
 
@@ -58,10 +66,6 @@ func main() {
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
 
-	analyticsReporter, cleanupFn, err := newAnalyticsReporter(appCfg.Analytics.Disable, logger)
-	exitOnError(err, "while creating analytics reporter")
-	defer cleanupFn()
-
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	// Prometheus metrics
@@ -77,8 +81,24 @@ func main() {
 	}
 
 	// Prepare K8s clients and mapper
-	dynamicCli, discoveryCli, mapper, err := kube.SetupK8sClients(appCfg.KubeconfigPath)
-	exitOnError(err, "while initializing K8s clients")
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", appCfg.KubeconfigPath)
+	exitOnError(err, "while loading K8s config")
+
+	dynamicCli, discoveryCli, mapper, err := getK8sClients(kubeConfig)
+	exitOnError(err, "while getting K8s clients")
+
+	// Set up analytics reporter
+	analyticsReporter, cleanupFn, err := newAnalyticsReporter(appCfg.Analytics.Disable, logger)
+	exitOnError(err, "while creating analytics reporter")
+	defer cleanupFn()
+
+	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
+	exitOnError(err, "while creating K8s clientset")
+	identity, err := analytics.CurrentIdentity(ctx, k8sCli, appCfg.ConfigPath)
+	exitOnError(err, "while getting current identity")
+
+	err = analyticsReporter.RegisterIdentity(identity)
+	exitOnError(err, "while registering identity")
 
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
@@ -236,4 +256,20 @@ func exitOnError(err error, context string) {
 	if err != nil {
 		log.Fatalf("%s: %v", context, err)
 	}
+}
+
+func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, meta.RESTMapper, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("while creating discovery client: %w", err)
+	}
+
+	dynamicK8sCli, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("while creating dynamic K8s client: %w", err)
+	}
+
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(discoveryClient)
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
+	return dynamicK8sCli, discoveryClient, mapper, nil
 }

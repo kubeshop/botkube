@@ -12,3 +12,6 @@ data:
   {{- with .Values.config }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if not .Values.disableAnalytics }}
+  analytics.yaml: ""
+  {{ end }}
