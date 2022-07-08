@@ -9,18 +9,13 @@ labels: enhancement
 2. Read the contributing guidelines (CONTRIBUTING.md file on root of the repository).
 -->
 
-## Description
+## Overview
 
-<!-- Provide a clear and concise description of the feature. -->
+<!-- Provide a clear and concise overview of the feature. -->
 
 ## Reason
 
 <!-- Explain why we should add this feature. -->
-
-## Use cases
-
-<!-- Explain users use-cases and value that this task brings. -->
-
 
 ## Acceptance Criteria
 
