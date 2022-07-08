@@ -20,10 +20,11 @@ This section describes how to build and run the BotKube from the source code.
 - `make`
 - [Docker](https://docs.docker.com/install/)
 - Kubernetes cluster, at least 1.21
-- Clone the source code
+- Cloned BotKube repository
+
+   Use the following command to clone it:
    ```sh
    git clone https://github.com/kubeshop/botkube.git
-   ```
 
 ### Build and install on Kubernetes
 
