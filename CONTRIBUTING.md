@@ -67,7 +67,14 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    go build ./cmd/botkube/
    ```
 
-2. Edit `./resource_config.yaml` and `./comm_config.yaml` to configure resource and set communication credentials.
+2. Use templates to create configuration files:
+
+   ```sh
+   cp resource_config.yaml.tpl resource_config.yaml
+   cp comm_config.yaml.tpl comm_config.yaml
+   ``` 
+
+   Edit the newly created `resource_config.yaml` and `comm_config.yaml` files to configure resource and set communication credentials.
 
 3. Export the path to directory of `config.yaml`
 

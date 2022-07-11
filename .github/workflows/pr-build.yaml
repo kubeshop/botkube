@@ -15,11 +15,11 @@ on:
       - 'botkube_arch.jpg'
       - 'CHANGELOG.md'
       - 'CODE_OF_CONDUCT.md'
-      - 'comm_config.yaml'
+      - 'comm_config.yaml.tpl'
       - 'CONTRIBUTING.md'
       - 'LICENSE'
       - 'README.md'
-      - 'resource_config.yaml'
+      - 'resource_config.yaml.tpl'
 
 env:
   GO_VERSION: 1.18
