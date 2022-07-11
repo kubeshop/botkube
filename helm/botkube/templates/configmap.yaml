@@ -1,7 +1,8 @@
+{{- $cfgMapName := printf "%s-%s" (include "botkube.fullname" .) "configmap" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "botkube.fullname" . }}-configmap
+  name: {{ $cfgMapName }}
   labels:
     app.kubernetes.io/name: {{ include "botkube.name" . }}
     helm.sh/chart: {{ include "botkube.chart" . }}
@@ -13,5 +14,12 @@ data:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- if not .Values.disableAnalytics }}
-  analytics.yaml: ""
+  {{- $previous := lookup "v1" "ConfigMap" .Release.Namespace $cfgMapName }}
+  {{- if $previous }}
+  analytics.yaml: |
+    {{ index $previous.data "analytics.yaml" }}
+  {{- else }}
+  analytics.yaml: |
+    installationID: "{{- uuidv4 -}}"
+  {{- end }}
   {{ end }}

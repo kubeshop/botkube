@@ -2,22 +2,25 @@ package analytics
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/version"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
+
+	"github.com/kubeshop/botkube/pkg/version"
+	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/strings"
 
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	kubeSystemNSName  = "kube-system"
-	analyticsFileName = "analytics.yaml"
+	kubeSystemNSName     = "kube-system"
+	analyticsFileName    = "analytics.yaml"
+	printAPIKeyCharCount = 3
 )
 
 var (
@@ -37,16 +40,17 @@ type DefaultReporter struct {
 type CleanupFn func() error
 
 func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, error) {
+	log.Infof("Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
 	cli, err := segment.NewWithConfig(APIKey, segment.Config{
 		Logger:  newLoggerAdapter(log),
-		Verbose: true,
+		Verbose: false,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating new Analytics Client: %w", err)
 	}
 
 	cleanupFn := func() error {
-		log.Info("Closing...") // TODO: Should we use Debug?
+		log.Info("Closing...")
 		return cli.Close()
 	}
 
@@ -140,6 +144,7 @@ func (r *DefaultReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 func (r *DefaultReporter) getInstallationID(cfgDir string) (string, error) {
 	analyticsCfgFilePath := filepath.Join(cfgDir, analyticsFileName)
 	if _, err := os.Stat(analyticsCfgFilePath); os.IsNotExist(err) {
+		r.log.Info("Analytics configuration file is not found. Creating and saving one...")
 		analyticsCfg := NewConfig()
 		err = r.saveAnalyticsCfg(analyticsCfgFilePath, analyticsCfg)
 		if err != nil {
@@ -155,12 +160,13 @@ func (r *DefaultReporter) getInstallationID(cfgDir string) (string, error) {
 	}
 
 	var analyticsCfg Config
-	err = json.Unmarshal(analyticsCfgBytes, &analyticsCfg)
+	err = yaml.Unmarshal(analyticsCfgBytes, &analyticsCfg)
 	if err != nil {
 		return "", fmt.Errorf("while unmarshalling analytics config file: %w", err)
 	}
 
 	if analyticsCfg.InstallationID == "" {
+		r.log.Info("Installation ID is empty. Generating one and saving...")
 		analyticsCfg := NewConfig()
 		err = r.saveAnalyticsCfg(analyticsCfgFilePath, analyticsCfg)
 		if err != nil {
@@ -173,7 +179,7 @@ func (r *DefaultReporter) getInstallationID(cfgDir string) (string, error) {
 }
 
 func (r *DefaultReporter) saveAnalyticsCfg(path string, cfg Config) error {
-	bytes, err := json.Marshal(cfg)
+	bytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("while marshalling analytics config file: %w", err)
 	}

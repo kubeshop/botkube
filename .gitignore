@@ -28,3 +28,6 @@ tags
 .AppleDouble
 .LSOverride
 ._*
+
+# App-specific files
+analytics.yaml
