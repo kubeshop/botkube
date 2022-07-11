@@ -11,9 +11,9 @@ func newLoggerAdapter(log logrus.FieldLogger) *loggerAdapter {
 }
 
 func (l *loggerAdapter) Logf(format string, args ...interface{}) {
-	l.log.Infof(format, args) // TODO: Should we use Debug?
+	l.log.Infof(format, args...)
 }
 
 func (l *loggerAdapter) Errorf(format string, args ...interface{}) {
-	l.log.Errorf(format, args)
+	l.log.Errorf(format, args...)
 }
