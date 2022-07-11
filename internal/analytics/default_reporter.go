@@ -30,6 +30,7 @@ var (
 
 var _ Reporter = &DefaultReporter{}
 
+// DefaultReporter is a default Reporter implementation.
 type DefaultReporter struct {
 	log logrus.FieldLogger
 	cli segment.Client
@@ -37,8 +38,10 @@ type DefaultReporter struct {
 	identity *Identity
 }
 
+// CleanupFn defines a function which should be called to clean up DefaultReporter resources.
 type CleanupFn func() error
 
+// NewDefaultReporter creates a new DefaultReporter instance.
 func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, error) {
 	log.Infof("Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
 	cli, err := segment.NewWithConfig(APIKey, segment.Config{
@@ -62,6 +65,7 @@ func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, er
 		nil
 }
 
+// RegisterCurrentIdentity loads the current anonymous identity and registers it.
 func (r *DefaultReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) error {
 	currentIdentity, err := r.load(ctx, k8sCli, cfgDir)
 	if err != nil {
