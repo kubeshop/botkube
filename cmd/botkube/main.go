@@ -94,11 +94,8 @@ func main() {
 
 	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
 	exitOnError(err, "while creating K8s clientset")
-	identity, err := analytics.CurrentIdentity(ctx, k8sCli, appCfg.ConfigPath)
-	exitOnError(err, "while getting current identity")
-
-	err = analyticsReporter.RegisterIdentity(identity)
-	exitOnError(err, "while registering identity")
+	err = analyticsReporter.RegisterCurrentIdentity(ctx, k8sCli, appCfg.ConfigPath)
+	exitOnError(err, "while registering current identity")
 
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
@@ -228,11 +225,12 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, func(), error) {
 	if disableAnalytics {
+		logger.Info("Analytics disabled. Using noop reporter...")
 		return analytics.NewNoopReporter(), func() {}, nil
 	}
 
 	if analytics.APIKey == "" {
-		logger.Info("Analytics disabled as the API key is missing.")
+		logger.Info("Analytics disabled as the API key is missing. Using noop reporter...")
 		return analytics.NewNoopReporter(), func() {}, nil
 	}
 
