@@ -13,10 +13,10 @@ labels: enhancement
 
 <!-- Provide a clear and concise overview of the feature. -->
 
-## Reason
-
-<!-- Explain why we should add this feature. -->
-
 ## Acceptance Criteria
 
 <!-- Provide a list of conditions that must be satisfied to close this issue. -->
+
+## Reason
+
+<!-- Explain why we should add this feature. -->
