@@ -1,27 +1,28 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: "[BUG]"
+name: Bug
+about: Report a bug in the project
 labels: bug
-assignees: ''
-
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+<!-- Thank you for your contribution. Before you submit the issue:
+1. Search open and closed issues for duplicates.
+2. Read the contributing guidelines (CONTRIBUTING.md file on root of the repository).
+-->
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## Description
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+<!-- Provide a clear and concise description of the problem.
+Describe where it appears, when it occurred, and what it affects.
+Provide all relevant technical details such as the BotKube version. -->
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Expected behavior
 
-**Additional context**
-Add any other context about the problem here.
+<!-- Describe what you expect to happen. -->
+
+## Actual behavior
+
+<!-- Describe what happens instead. -->
+
+## Steps to reproduce
+
+<!-- Steps to reproduce the issue. Attach all resources that can help us understand the bug, such as screenshots, links or files. -->

@@ -2,7 +2,7 @@
 
 We'd love your help!
 
-BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines some of the conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
+BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
 
 We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to documentation site") as well as to code.
 
@@ -10,33 +10,35 @@ We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to
 
 You can contribute to documentation by following [these instructions](https://github.com/kubeshop/botkube-docs#contributing "Contributing to BotKube Docs")
 
-## Compile BotKube from source code
+## Build and run BotKube from source code
 
-Before you proceed, make sure you have installed BotKube Slack/Mattermost/Teams app and copied the required token as per the steps documented [here](https://botkube.io/installation/)
+This section describes how to build and run the BotKube from the source code.
 
 ### Prerequisite
 
-* Make sure you have [`go 1.18`](https://go.dev) installed.
-* You will also need `make` and [`docker`](https://docs.docker.com/install/) installed on your machine.
-* Clone the source code
+- [Go](https://go.dev), at least 1.18
+- `make`
+- [Docker](https://docs.docker.com/install/)
+- Kubernetes cluster, at least 1.21
+- Cloned BotKube repository
+
+   Use the following command to clone it:
    ```sh
    git clone https://github.com/kubeshop/botkube.git
-   ```
 
-Now you can build and run BotKube by one of the following ways
+### Build and install on Kubernetes
 
-### Build the container image
+1. Build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`:
 
-1. This will build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`
    ```sh
    make build
    make container-image
    docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
    docker push <your_account>/botkube:v9.99.9-dev
    ```
-   Where `<your_account>` is Docker hub account to which you can push the image
+   Where `<your_account>` is Docker hub account to which you can push the image.
 
-2. Deploy newly created image in your cluster.
+2. Deploy newly created image in your cluster:
 
    ```sh
    helm install botkube --namespace botkube --create-namespace \
@@ -50,68 +52,86 @@ Now you can build and run BotKube by one of the following ways
    ./helm/botkube
    ```
 
-   Check [values.yaml](https://github.com/kubeshop/botkube/blob/main/helm/botkube/values.yaml) for default options.
+   Check [values.yaml](./helm/botkube/values.yaml) for default options.
 
-### Build and run BotKube locally
+### Build and run locally
 
 For faster development, you can also build and run BotKube outside K8s cluster.
 
-1. Build BotKube binary if you don't want to build the container image, you can build the binary like this,
+1. Build BotKube local binary:
+
    ```sh
    # Fetch the dependencies
    go mod download
    # Build the binary
    go build ./cmd/botkube/
    ```
+
 2. Edit `./resource_config.yaml` and `./comm_config.yaml` to configure resource and set communication credentials.
 
 3. Export the path to directory of `config.yaml`
+
    ```sh
    # From project root directory
    export CONFIG_PATH=$(pwd)
    ```
+
 4. Export the path to Kubeconfig:
 
    ```sh
    export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
    ```
 
-5. Make sure that correct context is set and you are able to access your Kubernetes cluster
-   ```console
-   $ kubectl config current-context
-   minikube
-   $ kubectl cluster-info
+5. Make sure you are able to access your Kubernetes cluster:
+
+   ```sh
+   kubectl cluster-info
+   ```
+   ```sh
    Kubernetes master is running at https://192.168.39.233:8443
    CoreDNS is running at https://192.168.39.233:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
    ...
    ```
-6. Run BotKube binary
+
+6. Run BotKube binary:
+
    ```sh
    ./botkube
    ```
 
 ## Making A Change
 
-* Before making any significant changes, please [open an issue](https://github.com/kubeshop/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
+- Before making any significant changes, please [open an issue](https://github.com/kubeshop/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
 
-* Once we've discussed your changes and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against [`main`](http://github.com/kubeshop/botkube/tree/main) branch.
+- Once we've discussed your changes, and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against the [`main`](http://github.com/kubeshop/botkube/tree/main) branch.
 
-* To avoid build failures in CI, install [`golangci-lint` v1.46](https://golangci-lint.run/usage/install/) and run:
+  To learn how to do it, follow the **Contribute** section in the [Git workflow guide](./git-workflow.md).
+
+- To avoid build failures in CI, install [`golangci-lint`](https://golangci-lint.run/usage/install/) and run:
+
   ```sh
   # From project root directory
   make lint
   ```
   This will run the `golangci-lint` tool to lint the Go code.
 
-* [Run e2e tests](./test/README.md)
+- [Run e2e tests](./test/README.md)
 
-* Make sure your pull request has [good commit messages](https://chris.beams.io/posts/git-commit/):
-  * Separate subject from body with a blank line
-  * Limit the subject line to 50 characters
-  * Capitalize the subject line
-  * Do not end the subject line with a period
-  * Use the imperative mood in the subject line
-  * Wrap the body at 72 characters
-  * Use the body to explain _what_ and _why_ instead of _how_
+- Make sure your pull request has [good commit messages](https://chris.beams.io/posts/git-commit/):
+  - Separate subject from body with a blank line
+  - Limit the subject line to 50 characters
+  - Capitalize the subject line
+  - Do not end the subject line with a period
+  - Use the imperative mood in the subject line
+  - Wrap the body at 72 characters
+  - Use the body to explain _what_ and _why_ instead of _how_
 
-* Try to squash unimportant commits and rebase your changes on to the `main` branch, this will make sure we have clean log of changes.
+- Try to squash unimportant commits and rebase your changes on to the `main` branch, this will make sure we have clean log of changes.
+
+## Support Channels
+
+Join the BotKube-related discussion on Slack!
+
+Create your Slack account on [BotKube](https://join.botkube.io) workspace.
+
+To report bug or feature, use [GitHub issues](https://github.com/kubeshop/botkube/issues/new/choose).
