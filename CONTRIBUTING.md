@@ -8,7 +8,7 @@ We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to
 
 ## Contributing to documentation
 
-Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-docs/blob/main/CONTRIBUTING.md) to learn how to contribute to documentation.
+Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-docs/blob/main/CONTRIBUTING.md) file to learn how to contribute to documentation.
 
 ## Build and run BotKube from source code
 
@@ -104,7 +104,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 - Before making any significant changes, please [open an issue](https://github.com/kubeshop/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.
 
-- Once we've discussed your changes, and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against the [`main`](http://github.com/kubeshop/botkube/tree/main) branch.
+- Once we've discussed your changes, and you've got your code ready, make sure that the build steps mentioned above pass. Open your pull request against the [`main`](https://github.com/kubeshop/botkube/tree/main) branch.
 
   To learn how to do it, follow the **Contribute** section in the [Git workflow guide](./git-workflow.md).
 
