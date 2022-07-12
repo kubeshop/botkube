@@ -9,9 +9,6 @@ image:
   # -- BotKube container image tag. Default tag is `appVersion` from Chart.yaml.
   tag: v9.99.9-dev
 
-missing:
-  property: true
-
 # -- Enable Pod Security Policy to allow BotKube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
 podSecurityPolicy:
