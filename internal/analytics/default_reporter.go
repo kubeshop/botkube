@@ -28,21 +28,21 @@ var (
 	APIKey string
 )
 
-var _ Reporter = &DefaultReporter{}
+var _ Reporter = &SegmentReporter{}
 
-// DefaultReporter is a default Reporter implementation.
-type DefaultReporter struct {
+// SegmentReporter is a default Reporter implementation that uses Twilio Segment.
+type SegmentReporter struct {
 	log logrus.FieldLogger
 	cli segment.Client
 
 	identity *Identity
 }
 
-// CleanupFn defines a function which should be called to clean up DefaultReporter resources.
+// CleanupFn defines a function which should be called to clean up SegmentReporter resources.
 type CleanupFn func() error
 
-// NewDefaultReporter creates a new DefaultReporter instance.
-func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, error) {
+// NewSegmentReporter creates a new SegmentReporter instance.
+func NewSegmentReporter(log logrus.FieldLogger) (*SegmentReporter, CleanupFn, error) {
 	log.Infof("Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
 	cli, err := segment.NewWithConfig(APIKey, segment.Config{
 		Logger:  newLoggerAdapter(log),
@@ -57,7 +57,7 @@ func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, er
 		return cli.Close()
 	}
 
-	return &DefaultReporter{
+	return &SegmentReporter{
 			log: log,
 			cli: cli,
 		},
@@ -66,7 +66,7 @@ func NewDefaultReporter(log logrus.FieldLogger) (*DefaultReporter, CleanupFn, er
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
-func (r *DefaultReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) error {
+func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) error {
 	currentIdentity, err := r.load(ctx, k8sCli, cfgDir)
 	if err != nil {
 		return fmt.Errorf("while loading current identity: %w", err)
@@ -80,13 +80,13 @@ func (r *DefaultReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 	return nil
 }
 
-func (r *DefaultReporter) registerIdentity(identity Identity) error {
+func (r *SegmentReporter) registerIdentity(identity Identity) error {
 	err := r.cli.Enqueue(segment.Identify{
 		AnonymousId: identity.Installation.ID,
 		Traits:      identity.Installation.TraitsMap(),
 	})
 	if err != nil {
-		return fmt.Errorf("while enqueuing itentify message: %w", err)
+		return fmt.Errorf("while enqueuing identify message: %w", err)
 	}
 
 	err = r.cli.Enqueue(segment.Group{
@@ -102,7 +102,7 @@ func (r *DefaultReporter) registerIdentity(identity Identity) error {
 	return nil
 }
 
-func (r *DefaultReporter) load(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) (Identity, error) {
+func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) (Identity, error) {
 	k8sServerVersion, err := k8sCli.Discovery().ServerVersion()
 	if err != nil {
 		return Identity{}, fmt.Errorf("while getting K8s server version: %w", err)
@@ -133,7 +133,7 @@ func (r *DefaultReporter) load(ctx context.Context, k8sCli kubernetes.Interface,
 	}, nil
 }
 
-func (r *DefaultReporter) getClusterID(ctx context.Context, k8sCli kubernetes.Interface) (string, error) {
+func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.Interface) (string, error) {
 	kubeSystemNS, err := k8sCli.CoreV1().Namespaces().Get(ctx, kubeSystemNSName, metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("while getting %q Namespace: %w", kubeSystemNS, err)
@@ -145,7 +145,7 @@ func (r *DefaultReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 	return string(kubeSystemNS.GetUID()), nil
 }
 
-func (r *DefaultReporter) getInstallationID(cfgDir string) (string, error) {
+func (r *SegmentReporter) getInstallationID(cfgDir string) (string, error) {
 	analyticsCfgFilePath := filepath.Join(cfgDir, analyticsFileName)
 	if _, err := os.Stat(analyticsCfgFilePath); os.IsNotExist(err) {
 		r.log.Info("Analytics configuration file is not found. Creating and saving one...")
@@ -182,7 +182,7 @@ func (r *DefaultReporter) getInstallationID(cfgDir string) (string, error) {
 	return analyticsCfg.InstallationID, nil
 }
 
-func (r *DefaultReporter) saveAnalyticsCfg(path string, cfg Config) error {
+func (r *SegmentReporter) saveAnalyticsCfg(path string, cfg Config) error {
 	bytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("while marshalling analytics config file: %w", err)

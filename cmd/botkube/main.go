@@ -225,17 +225,17 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, func(), error) {
 	if disableAnalytics {
-		logger.Info("Analytics disabled. Using noop reporter...")
+		logger.Info("Analytics disabled via configuration settings.")
 		return analytics.NewNoopReporter(), func() {}, nil
 	}
 
 	if analytics.APIKey == "" {
-		logger.Info("Analytics disabled as the API key is missing. Using noop reporter...")
+		logger.Info("Analytics disabled as the API key is missing.")
 		return analytics.NewNoopReporter(), func() {}, nil
 	}
 
 	wrappedLogger := logger.WithField(componentLogFieldKey, "Analytics reporter")
-	analyticsReporter, cleanupFn, err := analytics.NewDefaultReporter(wrappedLogger)
+	analyticsReporter, cleanupFn, err := analytics.NewSegmentReporter(wrappedLogger)
 	if err != nil {
 		return nil, nil, err
 	}

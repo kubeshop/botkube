@@ -13,13 +13,3 @@ data:
   {{- with .Values.config }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- if not .Values.disableAnalytics }}
-  {{- $previous := lookup "v1" "ConfigMap" .Release.Namespace $cfgMapName }}
-  {{- if $previous }}
-  analytics.yaml: |
-    {{ index $previous.data "analytics.yaml" }}
-  {{- else }}
-  analytics.yaml: |
-    installationID: "{{- uuidv4 -}}"
-  {{- end }}
-  {{ end }}
