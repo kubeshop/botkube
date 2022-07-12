@@ -1,7 +1,5 @@
 package version
 
-import "fmt"
-
 // Version The below variables are overridden using the build process
 // name of the release
 var Version = "dev"
@@ -12,14 +10,23 @@ var GitCommitID = "none"
 // BuildDate date for the release
 var BuildDate = "unknown"
 
-const versionLongFmt = `{"Version": "%s", "GitCommit": "%s", "BuildDate": "%s"}`
-
-// Long long version of the release
-func Long() string {
-	return fmt.Sprintf(versionLongFmt, Version, GitCommitID, BuildDate)
-}
-
-// Short short version of the release
+// Short returns short version of the release
 func Short() string {
 	return Version
+}
+
+// Details struct contains data about a given version.
+type Details struct {
+	Version     string `json:"version"`
+	GitCommitID string `json:"gitCommit"`
+	BuildDate   string `json:"buildDate"`
+}
+
+// Info returns Details struct with version info.
+func Info() Details {
+	return Details{
+		Version:     Version,
+		GitCommitID: GitCommitID,
+		BuildDate:   BuildDate,
+	}
 }
