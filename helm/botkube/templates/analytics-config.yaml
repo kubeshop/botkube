@@ -13,10 +13,10 @@ data:
   {{- $previous := lookup "v1" "ConfigMap" .Release.Namespace $cfgMapName }}
   {{- if $previous }}
   analytics.yaml: |
-    {{ index $previous.data "analytics.yaml" }}
+    {{- index $previous.data "analytics.yaml" | nindent 4 }}
   {{- else }}
   analytics.yaml: |
     # anonymous unique UUID generated during chart installation
     installationID: "{{- uuidv4 -}}"
-  {{- end }}
+  {{ end }}
 {{ end }}

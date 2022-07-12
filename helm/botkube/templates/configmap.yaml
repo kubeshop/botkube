@@ -1,8 +1,7 @@
-{{- $cfgMapName := printf "%s-%s" (include "botkube.fullname" .) "configmap" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $cfgMapName }}
+  name: {{ include "botkube.fullname" . }}-configmap
   labels:
     app.kubernetes.io/name: {{ include "botkube.name" . }}
     helm.sh/chart: {{ include "botkube.chart" . }}
