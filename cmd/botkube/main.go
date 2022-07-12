@@ -8,6 +8,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/kubeshop/botkube/internal/analytics"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/google/go-github/v44/github"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,18 +32,22 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
-	"github.com/kubeshop/botkube/pkg/kube"
 	"github.com/kubeshop/botkube/pkg/notify"
 )
 
 // Config contains the app configuration parameters.
 type Config struct {
-	MetricsPort           string        `envconfig:"default=2112"`
-	LogLevel              string        `envconfig:"default=error"`
+	MetricsPort string `envconfig:"default=2112"`
+	Log         struct {
+		Level         string `envconfig:"default=error"`
+		DisableColors bool   `envconfig:"optional"`
+	}
 	ConfigPath            string        `envconfig:"optional"`
 	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
 	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
-	LogDisableColors      bool          `envconfig:"optional"`
+	Analytics             struct {
+		Disable bool `envconfig:"default=false"`
+	}
 }
 
 const (
@@ -46,7 +60,8 @@ func main() {
 	err := envconfig.Init(&appCfg)
 	exitOnError(err, "while loading app configuration")
 
-	logger := newLogger(appCfg.LogLevel, appCfg.LogDisableColors)
+	logger := newLogger(appCfg.Log.Level, appCfg.Log.DisableColors)
+
 	ctx := signals.SetupSignalHandler()
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
@@ -66,8 +81,21 @@ func main() {
 	}
 
 	// Prepare K8s clients and mapper
-	dynamicCli, discoveryCli, mapper, err := kube.SetupK8sClients(appCfg.KubeconfigPath)
-	exitOnError(err, "while initializing K8s clients")
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", appCfg.KubeconfigPath)
+	exitOnError(err, "while loading K8s config")
+
+	dynamicCli, discoveryCli, mapper, err := getK8sClients(kubeConfig)
+	exitOnError(err, "while getting K8s clients")
+
+	// Set up analytics reporter
+	analyticsReporter, cleanupFn, err := newAnalyticsReporter(appCfg.Analytics.Disable, logger)
+	exitOnError(err, "while creating analytics reporter")
+	defer cleanupFn()
+
+	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
+	exitOnError(err, "while creating K8s clientset")
+	err = analyticsReporter.RegisterCurrentIdentity(ctx, k8sCli, appCfg.ConfigPath)
+	exitOnError(err, "while registering current identity")
 
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
@@ -195,8 +223,51 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 	return httpsrv.New(log, addr, router)
 }
 
+func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, func(), error) {
+	if disableAnalytics {
+		logger.Info("Analytics disabled via configuration settings.")
+		return analytics.NewNoopReporter(), func() {}, nil
+	}
+
+	if analytics.APIKey == "" {
+		logger.Info("Analytics disabled as the API key is missing.")
+		return analytics.NewNoopReporter(), func() {}, nil
+	}
+
+	wrappedLogger := logger.WithField(componentLogFieldKey, "Analytics reporter")
+	analyticsReporter, cleanupFn, err := analytics.NewSegmentReporter(wrappedLogger)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return analyticsReporter,
+		func() {
+			err := cleanupFn()
+			if err != nil {
+				wrappedLogger.Errorf("while cleaning up: %s", err.Error())
+			}
+		},
+		nil
+}
+
 func exitOnError(err error, context string) {
 	if err != nil {
 		log.Fatalf("%s: %v", context, err)
 	}
+}
+
+func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, meta.RESTMapper, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("while creating discovery client: %w", err)
+	}
+
+	dynamicK8sCli, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("while creating dynamic K8s client: %w", err)
+	}
+
+	discoCacheClient := cacheddiscovery.NewMemCacheClient(discoveryClient)
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
+	return dynamicK8sCli, discoveryClient, mapper, nil
 }

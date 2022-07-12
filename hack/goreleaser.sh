@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 set -o errexit
 set -o pipefail
 
@@ -95,6 +94,7 @@ build() {
     -v /var/run/docker.sock:/var/run/docker.sock \
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
+    -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }
 

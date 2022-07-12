@@ -494,6 +494,11 @@ extraObjects: []
 #        name: "{{ include \"botkube.serviceAccountName\" . }}"
 #        namespace: "{{ .Release.Namespace }}"
 
+## Parameters for anonymous analytics collection.
+analytics:
+  # If true, sending anonymous analytics is disabled.
+  disable: false
+
 ## Parameters for the test container with E2E tests.
 e2eTest:
   image:
