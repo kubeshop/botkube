@@ -8,7 +8,7 @@ We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to
 
 ## Contributing to documentation
 
-You can contribute to documentation by following [these instructions](https://github.com/kubeshop/botkube-docs#contributing "Contributing to BotKube Docs")
+Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-docs/blob/main/CONTRIBUTING.md) to learn how to contribute to documentation.
 
 ## Build and run BotKube from source code
 
@@ -25,6 +25,7 @@ This section describes how to build and run the BotKube from the source code.
    Use the following command to clone it:
    ```sh
    git clone https://github.com/kubeshop/botkube.git
+   ```
 
 ### Build and install on Kubernetes
 
