@@ -22,7 +22,7 @@ jobs:
       - name: Detect git changes
         run: |
           if [[ $(git diff --stat) != '' ]]; then
-            echo -e '❌ \033[0;31mHelm documentation outdated!\033[0m'
+            echo -e '❌ \033[0;31mHelm documentation outdated. Run 'make process-chart'.\033[0m'
             git diff --color
             exit 1
           else

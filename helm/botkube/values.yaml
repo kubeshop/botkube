@@ -1,4 +1,14 @@
-# Hold BotKube image configuration.
+#  Formatting rules:
+#
+#  | Sign | Description                                                              |
+#  |------|--------------------------------------------------------------------------|
+#  | # -- | Comment is rendered into README.md.                                      |
+#  | #    | Only if defined after '# --' signifies the continuation of the sentence. |
+#  | ##   | Comment is ignored during README.md rendering.                           |
+#
+#  Read more at https://github.com/norwoodj/helm-docs
+
+## BotKube image configuration.
 image:
   # -- BotKube container image registry.
   registry: ghcr.io
@@ -9,48 +19,48 @@ image:
   # -- BotKube container image tag. Default tag is `appVersion` from Chart.yaml.
   tag: v9.99.9-dev
 
-# -- Enable Pod Security Policy to allow BotKube to run in restricted clusters.
+# -- Configures Pod Security Policy to allow BotKube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
 podSecurityPolicy:
   enabled: false
 
-# -- Configure securityContext to manage user Privileges in Pod.
+# -- Configures security context to manage user Privileges in Pod.
 # [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).
-# @default -- Set to run as a Non-Privileged user.
+# @default -- Runs as a Non-Privileged user.
 securityContext:
   runAsUser: 101
   runAsGroup: 101
 
-# -- Configure Container Security Context.
-# [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).
+# -- Configures container security context.
+# [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container).
 containerSecurityContext:
   privileged: false
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
-# Holds Kube config settings used by BotKube.
+## Kubeconfig settings used by BotKube.
 kubeconfig:
   # -- If true, enables overriding the Kubernetes auth.
   enabled: false
   # -- A base64 encoded kubeconfig that will be stored in a Secret, mounted to the Pod, and specified in the KUBECONFIG environment variable.
   base64Config: ""
-  # -- A secret containing a kubeconfig to use.
+  # -- A Secret containing a kubeconfig to use.
   ## Secret format:
   ##  data:
   ##    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
-# Holds BotKube logging settings.
+## BotKube logging settings.
 log:
-  # -- Set one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
+  # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
   level: info
   # -- If true, disable ANSI colors in logging.
   disableColors: false
 
-# Holds BotKube runtime configuration.
+## BotKube runtime configuration.
 config:
-  # -- Describe the Kubernetes resources you want to watch.
-  # @default -- "Watch all built-in K8s kinds"
+  # -- Describes the Kubernetes resources you want to watch.
+  # @default -- Watch all built-in K8s kinds.
   resources:
     - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                                 # resource name should be plural (e.g apps/v1/deployments, v1/pods)
@@ -257,12 +267,12 @@ config:
   # -- If true, BotKube sends recommendations about the best practices for the created resource.
   recommendations: true
 
-  # For using custom SSL certificates.
+  ## For using custom SSL certificates.
   ssl:
     # -- If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`.
     enabled: false
 
-    # -- Using existing SSL secret. It MUST be in `botkube` Namespace.
+    # -- Using existing SSL Secret. It MUST be in `botkube` Namespace.
     ## Secret format:
     ##  data:
     ##    config: {base64_encoded_kubeconfig}
@@ -271,33 +281,33 @@ config:
     # -- SSL Certificate file e.g certs/my-cert.crt.
     cert: ""
 
-  # Holds global BotKube configuration.
+  ## Global BotKube configuration.
   settings:
     # -- Cluster name to differentiate incoming messages.
     clustername: not-configured
-    # Kubectl executor configuration.
+    ## Kubectl executor configuration.
     kubectl:
       # -- If true, enables `kubectl` commands execution.
       enabled: false
-      # List of allowed `kubectl` commands.
+      ## List of allowed `kubectl` commands.
       commands:
-        # -- Defines which `kubectl` methods are allowed.
+        # -- Configures which `kubectl` methods are allowed.
         verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
-        # -- Defines which K8s resource are allowed.
+        # -- Configures which K8s resource are allowed.
         resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps"]
-      # -- Defines the default Namespace for executing BotKube `kubectl` commands.
+      # -- Configures the default Namespace for executing BotKube `kubectl` commands.
       defaultNamespace: default
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
-    # -- If true, restart the BotKube Pod on config changes.
+    # -- If true, restarts the BotKube Pod on config changes.
     configwatcher: true
-    # -- If true, notify about new BotKube releases.
+    # -- If true, notifies about new BotKube releases.
     upgradeNotifier: true
 
-# Communication settings
+## Communication settings
 communications:
 
-  # -- Define existing Secret with communication settings. It MUST be in the `botkube` Namespace.
+  # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
   ## Secret format:
   ##  stringData:
   ##    comm_config.yaml: |
@@ -306,20 +316,20 @@ communications:
   ##        # NOTE: Use setting format visible below.
   existingSecretName: ""
 
-  # Settings for Slack.
+  ## Settings for Slack.
   slack:
-    # -- If yes, Slack bot is enabled.
+    # -- If true, enables Slack bot.
     enabled: false
     # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
     channel: 'SLACK_CHANNEL'
     # -- Slack token.
     token: 'SLACK_API_TOKEN'
-    # -- Define notification type that are sent. Possible values: `short`, `long`.
+    # -- Configures notification type that are sent. Possible values: `short`, `long`.
     notiftype: short
 
-  # Settings for Mattermost.
+  ## Settings for Mattermost.
   mattermost:
-    # -- If yes, Mattermost bot is enabled.
+    # -- If true, enables Mattermost bot.
     enabled: false
     # -- User in Mattermost which belongs the specified Personal Access token.
     botName: 'BotKube'
@@ -332,12 +342,12 @@ communications:
     # -- The Mattermost channel name for receiving BotKube alerts.
     # The BotKube user needs to be added to it.
     channel: 'MATTERMOST_CHANNEL'
-    # -- Define notification type that are sent. Possible values: `short`, `long`.
+    # -- Configures notification type that are sent. Possible values: `short`, `long`.
     notiftype: short
 
-  # Settings for MS Teams.
+  ## Settings for MS Teams.
   teams:
-    # -- If yes, MS Teams bot is enabled.
+    # -- If true, enables MS Teams bot.
     enabled: false
     # -- The BotKube application ID generated while registering Bot to MS Teams.
     appID: 'APPLICATION_ID'
@@ -345,14 +355,14 @@ communications:
     appPassword: 'APPLICATION_PASSWORD'
     # -- The path in endpoint URL provided while registering BotKube to MS Teams.
     messagePath: "/bots/teams"
-    # -- Define notification type that are sent. Possible values: `short`, `long`.
+    # -- Configures notification type that are sent. Possible values: `short`, `long`.
     notiftype: short
     # -- The Service port for bot endpoint on BotKube container.
     port: 3978
 
-  # Settings for Discord.
+  ## Settings for Discord.
   discord:
-    # -- If yes, Discord bot is enabled.
+    # -- If true, enables Discord bot.
     enabled: false
     # -- BotKube Bot Token.
     token: 'DISCORD_TOKEN'
@@ -361,12 +371,12 @@ communications:
     # -- Discord channel ID for receiving BotKube alerts.
     # The BotKube user needs to be added to it.
     channel: 'DISCORD_CHANNEL_ID'
-    # -- Define notification type that are sent. Possible values: `short`, `long`.
+    # -- Configures notification type that are sent. Possible values: `short`, `long`.
     notiftype: short
 
-  # Settings for Elasticsearch.
+  ## Settings for Elasticsearch.
   elasticsearch:
-    # -- If yes, Elasticsearch is enabled.
+    # -- If true, enables Elasticsearch.
     enabled: false
     awsSigning:
       # -- If true, enables awsSigning using IAM for Elasticsearch hosted on AWS. Make sure AWS environment variables are set.
@@ -385,27 +395,28 @@ communications:
     # -- If true, skips the verification of TLS certificate of the Elastic nodes.
     # It's useful for clusters with self-signed certificates.
     skipTLSVerify: false
-    # -- Elasticsearch index settings.
+    # -- Configures Elasticsearch index settings.
     index:
       name: botkube
       type: botkube-event
       shards: 1
       replicas: 0
 
-  # Settings for Webhook.
+  ## Settings for Webhook.
   webhook:
-    # -- If yes, Elasticsearch is enabled.
+    # -- If true, enables Webhook.
     enabled: false
     # -- The Webhook URL, e.g.: https://example.com:80
     url: 'WEBHOOK_URL'
 
-# -- Service Settings for ServiceMonitor CR.
+# -- Configures Service settings for ServiceMonitor CR.
 service:
   name: metrics
   port: 2112
   targetPort: 2112
 
-# -- Ingress settings to expose MS Teams endpoint.
+# -- Configures Ingress settings that exposes MS Teams endpoint.
+# [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource).
 ingress:
   create: false
   annotations:
@@ -415,7 +426,7 @@ ingress:
     enabled: false
     secretName: ''
 
-# -- ServiceMonitor settings.
+# -- Configures ServiceMonitor settings.
 # [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor).
 serviceMonitor:
   enabled: false
@@ -424,7 +435,7 @@ serviceMonitor:
   port: metrics
   labels: {}
 
-
+## BotKube Deployment.
 deployment:
   # -- Extra annotations to pass to the BotKube Deployment.
   annotations: {}
@@ -440,7 +451,7 @@ priorityClassName: ""
 
 # -- Fully override "botkube.name" template.
 nameOverride: ""
-# -- fully override "botkube.fullname" template.
+# -- Fully override "botkube.fullname" template.
 fullnameOverride: ""
 
 # -- The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious
@@ -557,12 +568,12 @@ extraObjects: []
 #        name: "{{ include \"botkube.serviceAccountName\" . }}"
 #        namespace: "{{ .Release.Namespace }}"
 
-# Parameters for anonymous analytics collection.
+## Parameters for anonymous analytics collection.
 analytics:
   # -- If true, sending anonymous analytics is disabled.
   disable: false
 
-# Parameters for the test container with E2E tests.
+## Parameters for the test container with E2E tests.
 e2eTest:
   image:
     # -- Test runner image registry.
@@ -573,10 +584,10 @@ e2eTest:
     pullPolicy: IfNotPresent
     # -- Test runner image tag. Default tag is `appVersion` from Chart.yaml.
     tag: v9.99.9-dev
-  # -- Defines BotKube Deployment related data.
+  # -- Configures BotKube Deployment related data.
   deployment:
     waitTimeout: 3m
-  # Defines Slack workspace settings used for e2e testing.
+  ## Configures Slack workspace settings used for e2e testing.
   slack:
     # -- Name of the BotKube bot to interact with during the e2e tests.
     botName: "botkube"
