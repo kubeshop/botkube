@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 var _ Reporter = &NoopReporter{}
@@ -18,5 +20,40 @@ func NewNoopReporter() *NoopReporter {
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
 func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.Interface, _ string) error {
+	return nil
+}
+
+// ReportCommand reports a new executed command. The command should be anonymized before using this method.
+func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
+	return nil
+}
+
+// ReportBotEnabled reports an enabled bot.
+func (n NoopReporter) ReportBotEnabled(_ config.CommPlatformIntegration) error {
+	return nil
+}
+
+// ReportSinkEnabled reports an enabled sink.
+func (n NoopReporter) ReportSinkEnabled(_ config.CommPlatformIntegration) error {
+	return nil
+}
+
+// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
+func (n NoopReporter) ReportHandledEventSuccess(_ config.IntegrationType, _ config.CommPlatformIntegration, _ EventDetails) error {
+	return nil
+}
+
+// ReportHandledEventError reports a failure while handling event using a given communication platform.
+func (n NoopReporter) ReportHandledEventError(_ config.IntegrationType, _ config.CommPlatformIntegration, _ EventDetails, _ error) error {
+	return nil
+}
+
+// ReportFatalError reports a fatal app error.
+func (n NoopReporter) ReportFatalError(_ error) error {
+	return nil
+}
+
+// Close cleans up the reporter resources.
+func (n NoopReporter) Close() error {
 	return nil
 }

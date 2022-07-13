@@ -15,9 +15,10 @@ import (
 
 // Event to store required information from k8s objects
 type Event struct {
+	metaV1.TypeMeta
+
 	Code      string
 	Title     string
-	Kind      string
 	Name      string
 	Namespace string
 	Messages  []string
@@ -50,9 +51,9 @@ var LevelMap = map[config.EventType]config.Level{
 func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource, clusterName string) (Event, error) {
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	event := Event{
+		TypeMeta:  objectTypeMeta,
 		Name:      objectMeta.Name,
 		Namespace: objectMeta.Namespace,
-		Kind:      objectTypeMeta.Kind,
 		Level:     LevelMap[eventType],
 		Type:      eventType,
 		Cluster:   clusterName,
@@ -98,7 +99,10 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 
 		event.Reason = eventObj.Reason
 		event.Messages = append(event.Messages, eventObj.Message)
-		event.Kind = eventObj.InvolvedObject.Kind
+		event.TypeMeta = metaV1.TypeMeta{
+			Kind:       eventObj.InvolvedObject.Kind,
+			APIVersion: eventObj.InvolvedObject.APIVersion,
+		}
 		event.Name = eventObj.InvolvedObject.Name
 		event.Namespace = eventObj.InvolvedObject.Namespace
 		event.Level = LevelMap[config.EventType(strings.ToLower(eventObj.Type))]

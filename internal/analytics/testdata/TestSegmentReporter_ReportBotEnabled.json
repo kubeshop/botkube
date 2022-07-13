@@ -1,0 +1,35 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "installation-id",
+		"event": "Integration enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"platform": "slack",
+			"type": "bot"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "1",
+		"anonymousId": "installation-id",
+		"event": "Integration enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"platform": "discord",
+			"type": "bot"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "2",
+		"anonymousId": "installation-id",
+		"event": "Integration enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"platform": "teams",
+			"type": "bot"
+		}
+	}
+]

@@ -69,9 +69,9 @@ spec:
             - name: CONFIG_PATH
               value: "/config/"
             - name: LOG_LEVEL
-              value: {{ .Values.logLevel | quote }}
+              value: {{ .Values.log.level | quote }}
             - name: LOG_DISABLE_COLORS
-              value: {{ .Values.logDisableColors | quote }}
+              value: {{ .Values.log.disableColors | quote }}
             - name: ANALYTICS_DISABLE
               value: {{ .Values.analytics.disable | quote }}
             - name: METRICS_PORT

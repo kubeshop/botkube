@@ -36,18 +36,20 @@ const (
 
 // ElasticSearch contains auth cred and index setting
 type ElasticSearch struct {
-	log           logrus.FieldLogger
+	log      logrus.FieldLogger
+	reporter SinkAnalyticsReporter
+
 	ELSClient     *elastic.Client
 	Server        string
 	SkipTLSVerify bool
 	Index         string
 	Shards        int
 	Replicas      int
-	Type          string
+	IndexType     string
 }
 
 // NewElasticSearch returns new ElasticSearch object
-func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch) (*ElasticSearch, error) {
+func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch, reporter SinkAnalyticsReporter) (*ElasticSearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
@@ -107,14 +109,23 @@ func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch) (*ElasticS
 			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
 		}
 	}
-	return &ElasticSearch{
+
+	esNotifier := &ElasticSearch{
 		log:       log,
+		reporter:  reporter,
 		ELSClient: elsClient,
 		Index:     c.Index.Name,
-		Type:      c.Index.Type,
+		IndexType: c.Index.Type,
 		Shards:    c.Index.Shards,
 		Replicas:  c.Index.Replicas,
-	}, nil
+	}
+
+	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
+	if err != nil {
+		return nil, fmt.Errorf("while reporting analytics: %w", err)
+	}
+
+	return esNotifier, nil
 }
 
 type mapping struct {
@@ -154,7 +165,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(indexName).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(indexName).Type(e.IndexType).BodyJson(event).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while posting data to ELS: %w", err)
 	}
@@ -172,12 +183,23 @@ func (e *ElasticSearch) SendEvent(ctx context.Context, event events.Event) (err 
 
 	// Create index if not exists
 	if err := e.flushIndex(ctx, event); err != nil {
-		return err
+		return fmt.Errorf("while sending event to Elasticsearch: %w", err)
 	}
+
 	return nil
 }
 
 // SendMessage is no-op
 func (e *ElasticSearch) SendMessage(_ context.Context, _ string) error {
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (e *ElasticSearch) IntegrationName() config.CommPlatformIntegration {
+	return config.ElasticsearchCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (e *ElasticSearch) Type() config.IntegrationType {
+	return config.SinkIntegrationType
 }

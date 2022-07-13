@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -46,9 +48,25 @@ type KindNS struct {
 	Namespace string
 }
 
+// AnalyticsReporter defines a reporter that collects analytics data.
+type AnalyticsReporter interface {
+	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
+	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails) error
+
+	// ReportHandledEventError reports a failure while handling event using a given communication platform.
+	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails, err error) error
+
+	// ReportFatalError reports a fatal app error.
+	ReportFatalError(err error) error
+
+	// Close cleans up the reporter resources.
+	Close() error
+}
+
 // Controller watches Kubernetes resources and send events to notifiers.
 type Controller struct {
 	log                   logrus.FieldLogger
+	reporter              AnalyticsReporter
 	startTime             time.Time
 	conf                  *config.Config
 	notifiers             []notify.Notifier
@@ -74,6 +92,7 @@ func New(log logrus.FieldLogger,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
+	reporter AnalyticsReporter,
 ) *Controller {
 	return &Controller{
 		log:                   log,
@@ -84,6 +103,7 @@ func New(log logrus.FieldLogger,
 		dynamicCli:            dynamicCli,
 		mapper:                mapper,
 		informersResyncPeriod: informersResyncPeriod,
+		reporter:              reporter,
 	}
 }
 
@@ -298,11 +318,24 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Send event over notifiers
+	anonymousEvent := analytics.AnonymizedEventDetailsFrom(event)
 	for _, n := range c.notifiers {
 		go func(n notify.Notifier) {
+			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
+
 			err := n.SendEvent(ctx, event)
 			if err != nil {
+				reportErr := c.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), anonymousEvent, err)
+				if reportErr != nil {
+					err = multierror.Append(err, fmt.Errorf("while reporting analytics: %w", reportErr))
+				}
+
 				c.log.Errorf("while sending event: %s", err.Error())
+			}
+
+			reportErr := c.reporter.ReportHandledEventSuccess(n.Type(), n.IntegrationName(), anonymousEvent)
+			if reportErr != nil {
+				c.log.Errorf("while reporting analytics: %w", err)
 			}
 		}(n)
 	}

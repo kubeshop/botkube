@@ -66,6 +66,8 @@ const (
 
 	// Custom messages for teams platform
 	teamsUnsupportedCmdMsg = "Command not supported. Please visit botkube.io/usage to see supported commands."
+
+	anonymizedInvalidVerb = "{invalid verb}"
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -78,7 +80,9 @@ type DefaultExecutor struct {
 
 	Message       string
 	IsAuthChannel bool
-	Platform      config.BotPlatform
+	Platform      config.CommPlatformIntegration
+
+	analyticsReporter AnalyticsReporter
 }
 
 // CommandRunnerFunc is a function which runs arbitrary commands
@@ -149,6 +153,7 @@ func (e *DefaultExecutor) Execute() string {
 		}
 		return "" // this prevents all bots on all clusters to answer something
 	}
+
 	if len(args) >= 1 && e.resMapping.AllowedKubectlVerbMap[args[0]] {
 		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
 			(len(args) >= 2 && (e.resMapping.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
@@ -198,8 +203,8 @@ func (e *DefaultExecutor) Execute() string {
 	return ""
 }
 
-func (e *DefaultExecutor) printDefaultMsg(p config.BotPlatform) string {
-	if p == config.TeamsBot {
+func (e *DefaultExecutor) printDefaultMsg(p config.CommPlatformIntegration) string {
+	if p == config.TeamsCommPlatformIntegration {
 		return teamsUnsupportedCmdMsg
 	}
 	return unsupportedCmdMsg
@@ -216,6 +221,16 @@ func (e *DefaultExecutor) trimQuotes(clusterValue string) string {
 }
 
 func (e *DefaultExecutor) runKubectlCommand(args []string) string {
+	// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
+	// The length of the slice was already checked before
+	// See the DefaultExecutor.Execute() logic.
+	verb := args[0]
+	err := e.analyticsReporter.ReportCommand(e.Platform, verb)
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while reporting executed command: %s", err.Error())
+	}
+
 	clusterName := e.cfg.Settings.ClusterName
 	defaultNamespace := e.cfg.Settings.Kubectl.DefaultNamespace
 	isAuthChannel := e.IsAuthChannel
@@ -277,6 +292,16 @@ func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, 
 		return IncompleteCmdMsg
 	}
 
+	var cmdVerb = args[1]
+	defer func() {
+		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
+		err := e.analyticsReporter.ReportCommand(e.Platform, cmdToReport)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while reporting notifier command: %s", err.Error())
+		}
+	}()
+
 	switch args[1] {
 	case Start.String():
 		config.Notify = true
@@ -299,6 +324,8 @@ func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, 
 		}
 		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
 	}
+
+	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
 	return e.printDefaultMsg(e.Platform)
 }
 
@@ -310,6 +337,16 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 	if len(args) < 2 {
 		return IncompleteCmdMsg
 	}
+
+	var cmdVerb = args[1]
+	defer func() {
+		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
+		err := e.analyticsReporter.ReportCommand(e.Platform, cmdToReport)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while reporting filter command: %s", err.Error())
+		}
+	}()
 
 	switch args[1] {
 	case FilterList.String():
@@ -338,6 +375,8 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 		}
 		return fmt.Sprintf(filterDisabled, args[2], clusterName)
 	}
+
+	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
 	return e.printDefaultMsg(e.Platform)
 }
 
@@ -348,6 +387,12 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 	}
 	if len(args) > 1 && args[1] != string(infoList) {
 		return IncompleteCmdMsg
+	}
+
+	err := e.analyticsReporter.ReportCommand(e.Platform, strings.Join(args, " "))
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while reporting info command: %s", err.Error())
 	}
 
 	clusterName := e.cfg.Settings.ClusterName
@@ -392,6 +437,12 @@ func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) string {
+	err := e.analyticsReporter.ReportCommand(e.Platform, args[0])
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while reporting version command: %s", err.Error())
+	}
+
 	checkFlag := false
 	for _, arg := range args {
 		if checkFlag {

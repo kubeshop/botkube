@@ -12,15 +12,15 @@ import (
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/strings"
 
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
 const (
-	kubeSystemNSName     = "kube-system"
-	analyticsFileName    = "analytics.yaml"
-	printAPIKeyCharCount = 3
+	kubeSystemNSName  = "kube-system"
+	analyticsFileName = "analytics.yaml"
+	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
 )
 
 var (
@@ -38,31 +38,12 @@ type SegmentReporter struct {
 	identity *Identity
 }
 
-// CleanupFn defines a function which should be called to clean up SegmentReporter resources.
-type CleanupFn func() error
-
 // NewSegmentReporter creates a new SegmentReporter instance.
-func NewSegmentReporter(log logrus.FieldLogger) (*SegmentReporter, CleanupFn, error) {
-	log.Infof("Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
-	cli, err := segment.NewWithConfig(APIKey, segment.Config{
-		Logger:  newLoggerAdapter(log),
-		Verbose: false,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("while creating new Analytics Client: %w", err)
-	}
-
-	cleanupFn := func() error {
-		log.Info("Closing...")
-		return cli.Close()
-	}
-
+func NewSegmentReporter(log logrus.FieldLogger, cli segment.Client) *SegmentReporter {
 	return &SegmentReporter{
-			log: log,
-			cli: cli,
-		},
-		cleanupFn,
-		nil
+		log: log,
+		cli: cli,
+	}
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
@@ -75,6 +56,106 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 	err = r.registerIdentity(currentIdentity)
 	if err != nil {
 		return fmt.Errorf("while registering identity: %w", err)
+	}
+
+	return nil
+}
+
+// ReportCommand reports a new executed command. The command should be anonymized before using this method.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string) error {
+	return r.reportEvent("Command executed", map[string]interface{}{
+		"platform": platform,
+		"command":  command,
+	})
+}
+
+// ReportBotEnabled reports an enabled bot.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegration) error {
+	return r.reportEvent("Integration enabled", map[string]interface{}{
+		"platform": platform,
+		"type":     config.BotIntegrationType,
+	})
+}
+
+// ReportSinkEnabled reports an enabled sink.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportSinkEnabled(platform config.CommPlatformIntegration) error {
+	return r.reportEvent("Integration enabled", map[string]interface{}{
+		"platform": platform,
+		"type":     config.SinkIntegrationType,
+	})
+}
+
+// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails EventDetails) error {
+	return r.reportEvent("Event handled", map[string]interface{}{
+		"platform": platform,
+		"type":     integrationType,
+		"event":    eventDetails,
+		"success":  true,
+	})
+}
+
+// ReportHandledEventError reports a failure while handling event using a given communication platform.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails EventDetails, err error) error {
+	return r.reportEvent("Event handled", map[string]interface{}{
+		"platform": platform,
+		"type":     integrationType,
+		"event":    eventDetails,
+		"error":    err.Error(),
+	})
+}
+
+// ReportFatalError reports a fatal app error.
+// It doesn't need a registered identity.
+func (r *SegmentReporter) ReportFatalError(err error) error {
+	properties := map[string]interface{}{
+		"error": err.Error(),
+	}
+
+	var anonymousID string
+	if r.identity != nil {
+		anonymousID = r.identity.Installation.ID
+	} else {
+		anonymousID = unknownIdentityID
+		properties["unknownIdentity"] = true
+	}
+
+	eventName := "Fatal error"
+	err = r.cli.Enqueue(segment.Track{
+		AnonymousId: anonymousID,
+		Event:       eventName,
+		Properties:  properties,
+	})
+	if err != nil {
+		return fmt.Errorf("while enqueuing report of event %q: %w", eventName, err)
+	}
+
+	return nil
+}
+
+// Close cleans up the reporter resources.
+func (r *SegmentReporter) Close() error {
+	r.log.Info("Closing...")
+	return r.cli.Close()
+}
+
+func (r *SegmentReporter) reportEvent(event string, properties map[string]interface{}) error {
+	if r.identity == nil {
+		return errors.New("identity needs to be registered first")
+	}
+
+	err := r.cli.Enqueue(segment.Track{
+		AnonymousId: r.identity.Installation.ID,
+		Event:       event,
+		Properties:  properties,
+	})
+	if err != nil {
+		return fmt.Errorf("while enqueuing report of event %q: %w", event, err)
 	}
 
 	return nil
@@ -136,7 +217,7 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface,
 func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.Interface) (string, error) {
 	kubeSystemNS, err := k8sCli.CoreV1().Namespaces().Get(ctx, kubeSystemNSName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("while getting %q Namespace: %w", kubeSystemNS, err)
+		return "", fmt.Errorf("while getting %q Namespace: %w", kubeSystemNSName, err)
 	}
 	if kubeSystemNS == nil {
 		return "", errors.New("namespace object cannot be nil")

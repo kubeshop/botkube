@@ -1,0 +1,35 @@
+[
+	{
+		"type": "identify",
+		"messageId": "0",
+		"anonymousId": "loaded-from-file",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"traits": {
+			"botkubeVersion": {
+				"version": "dev",
+				"gitCommit": "none",
+				"buildDate": "unknown"
+			}
+		}
+	},
+	{
+		"type": "group",
+		"messageId": "1",
+		"anonymousId": "loaded-from-file",
+		"groupId": "ff68560b-44e8-4b0d-880b-e114f5d15933",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"traits": {
+			"k8sVersion": {
+				"major": "k8s-major",
+				"minor": "k8s-minor",
+				"gitVersion": "k8s-git-version",
+				"gitCommit": "k8s-git-commit",
+				"gitTreeState": "k8s-git-tree-state",
+				"buildDate": "k8s-build-date",
+				"goVersion": "k8s-go-version",
+				"compiler": "k8s-compiler",
+				"platform": "k8s-platform"
+			}
+		}
+	}
+]

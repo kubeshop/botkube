@@ -1,0 +1,35 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "installation-id",
+		"event": "Command executed",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"command": "notifier stop",
+			"platform": "discord"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "1",
+		"anonymousId": "installation-id",
+		"event": "Command executed",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"command": "get",
+			"platform": "slack"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "2",
+		"anonymousId": "installation-id",
+		"event": "Command executed",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"command": "notifier start",
+			"platform": "teams"
+		}
+	}
+]

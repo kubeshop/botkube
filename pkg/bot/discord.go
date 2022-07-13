@@ -13,8 +13,10 @@ import (
 
 // DiscordBot listens for user's message, execute commands and sends back the response
 type DiscordBot struct {
-	log              logrus.FieldLogger
-	executorFactory  ExecutorFactory
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+	reporter        AnalyticsReporter
+
 	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -37,9 +39,10 @@ type discordMessage struct {
 }
 
 // NewDiscordBot returns new Bot object
-func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *DiscordBot {
+func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *DiscordBot {
 	return &DiscordBot{
 		log:              log,
+		reporter:         reporter,
 		executorFactory:  executorFactory,
 		Token:            c.Communications.Discord.Token,
 		BotID:            c.Communications.Discord.BotID,
@@ -78,6 +81,11 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
+	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	if err != nil {
+		return fmt.Errorf("while reporting analytics: %w", err)
+	}
+
 	b.log.Info("BotKube connected to Discord!")
 
 	<-ctx.Done()
@@ -88,6 +96,11 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (b *DiscordBot) IntegrationName() config.CommPlatformIntegration {
+	return config.DiscordCommPlatformIntegration
 }
 
 // TODO: refactor - handle and send methods should be defined on Bot level
@@ -115,7 +128,7 @@ func (dm *discordMessage) HandleMessage(b *DiscordBot) {
 		return
 	}
 
-	e := dm.executorFactory.NewDefault(config.DiscordBot, dm.IsAuthChannel, dm.Request)
+	e := dm.executorFactory.NewDefault(b.IntegrationName(), dm.IsAuthChannel, dm.Request)
 
 	dm.Response = e.Execute()
 	dm.Send()

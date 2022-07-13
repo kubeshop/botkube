@@ -1,0 +1,12 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "installation-id",
+		"event": "Fatal error",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"error": "fatal error"
+		}
+	}
+]
