@@ -28,11 +28,11 @@ check-git-status:
 	@if [ -z "$(shell git remote -v)" ] ; then echo 'ERROR: No remote to push tags to' && exit 1 ; fi
 	@if [ -z "$(shell git config user.email)" ] ; then echo 'ERROR: Unable to detect git credentials' && exit 1 ; fi
 
-lint:
-	@golangci-lint run "./..."
-
 lint-fix:
 	@golangci-lint run --fix "./..."
+
+go-import-fmt:
+	@./hack/fmt-imports.sh
 
 # test
 test: system-check

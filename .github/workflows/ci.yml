@@ -26,6 +26,17 @@ jobs:
           args: --timeout=${{ env.GOLANGCI_LINT_TIMEOUT }}
       - name: Verify Go modules
         run: go mod verify
+      - name: Run Go import formatting
+        run: make go-import-fmt
+      - name: Detect git changes
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo -e '❌ \033[0;31m. Run 'make go-import-fmt'.\033[0m'
+            git diff --color
+            exit 1
+          else
+            echo '✔ No issues detected. Have a nice day :-)'
+          fi
 
   test:
     runs-on: ubuntu-latest
