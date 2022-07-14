@@ -7,14 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubeshop/botkube/pkg/version"
+	segment "github.com/segmentio/analytics-go"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/strings"
 
-	segment "github.com/segmentio/analytics-go"
-	"github.com/sirupsen/logrus"
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 const (
