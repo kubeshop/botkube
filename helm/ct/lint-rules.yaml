@@ -1,4 +1,6 @@
----
+# Chart testing (https://github.com/helm/chart-testing#configuration) uses
+# yamllint (https://github.com/adrienverge/yamllint) for validation
+# Ref: https://yamllint.readthedocs.io/en/stable/configuration.html
 rules:
   braces:
     min-spaces-inside: 0

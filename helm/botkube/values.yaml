@@ -570,7 +570,8 @@ extraObjects: []
 
 ## Parameters for anonymous analytics collection.
 analytics:
-  # -- If true, sending anonymous analytics is disabled.
+  # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
+  # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
   disable: false
 
 ## Parameters for the test container with E2E tests.
