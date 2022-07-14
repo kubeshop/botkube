@@ -84,10 +84,6 @@ system-check:
 # Pre-build checks
 pre-build: system-check
 
-# Create KIND cluster
-create-kind: system-check
-	@./hack/kind-cluster.sh create-kind
-
-# Destroy KIND cluster
-destroy-kind: system-check
-	@./hack/kind-cluster.sh destroy-kind
+# Run chart lint & helm-docs
+process-chart:
+	@./hack/process-chart.sh

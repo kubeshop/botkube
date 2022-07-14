@@ -58,19 +58,6 @@ jobs:
       - name: Build
         run: make
 
-  lint-helm:
-    runs-on: ubuntu-latest
-    name: Lint Helm chart
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Install Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: ${{ env.HELM_VERSION }}
-      - name: Run helm lint
-        run: helm lint helm/botkube
-
   scan-repo:
     runs-on: ubuntu-latest
     name: Scan repository for vulnerabilities
