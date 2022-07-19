@@ -71,7 +71,6 @@ type Controller struct {
 	conf                  *config.Config
 	notifiers             []notify.Notifier
 	filterEngine          filterengine.FilterEngine
-	configPath            string
 	informersResyncPeriod time.Duration
 
 	dynamicCli dynamic.Interface
@@ -88,7 +87,6 @@ func New(log logrus.FieldLogger,
 	conf *config.Config,
 	notifiers []notify.Notifier,
 	filterEngine filterengine.FilterEngine,
-	configPath string,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
@@ -99,7 +97,6 @@ func New(log logrus.FieldLogger,
 		conf:                  conf,
 		notifiers:             notifiers,
 		filterEngine:          filterEngine,
-		configPath:            configPath,
 		dynamicCli:            dynamicCli,
 		mapper:                mapper,
 		informersResyncPeriod: informersResyncPeriod,

@@ -34,8 +34,8 @@ const (
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
-// ElasticSearch contains auth cred and index setting
-type ElasticSearch struct {
+// Elasticsearch contains auth cred and index setting
+type Elasticsearch struct {
 	log      logrus.FieldLogger
 	reporter SinkAnalyticsReporter
 
@@ -48,8 +48,8 @@ type ElasticSearch struct {
 	IndexType     string
 }
 
-// NewElasticSearch returns new ElasticSearch object
-func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch, reporter SinkAnalyticsReporter) (*ElasticSearch, error) {
+// NewElasticSearch returns new Elasticsearch object
+func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter SinkAnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
@@ -110,7 +110,7 @@ func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch, reporter S
 		}
 	}
 
-	esNotifier := &ElasticSearch{
+	esNotifier := &Elasticsearch{
 		log:       log,
 		reporter:  reporter,
 		ELSClient: elsClient,
@@ -140,7 +140,7 @@ type index struct {
 	Replicas int `json:"number_of_replicas"`
 }
 
-func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
+func (e *Elasticsearch) flushIndex(ctx context.Context, event interface{}) error {
 	// Construct the ELS Index Name with timestamp suffix
 	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
@@ -173,13 +173,13 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	if err != nil {
 		return fmt.Errorf("while flushing data in ELS: %w", err)
 	}
-	e.log.Debugf("Event successfully sent to ElasticSearch index %s", indexName)
+	e.log.Debugf("Event successfully sent to Elasticsearch index %s", indexName)
 	return nil
 }
 
-// SendEvent sends event notification to ElasticSearch
-func (e *ElasticSearch) SendEvent(ctx context.Context, event events.Event) (err error) {
-	e.log.Debugf(">> Sending to ElasticSearch: %+v", event)
+// SendEvent sends event notification to Elasticsearch
+func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err error) {
+	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	// Create index if not exists
 	if err := e.flushIndex(ctx, event); err != nil {
@@ -190,16 +190,16 @@ func (e *ElasticSearch) SendEvent(ctx context.Context, event events.Event) (err 
 }
 
 // SendMessage is no-op
-func (e *ElasticSearch) SendMessage(_ context.Context, _ string) error {
+func (e *Elasticsearch) SendMessage(_ context.Context, _ string) error {
 	return nil
 }
 
 // IntegrationName describes the notifier integration name.
-func (e *ElasticSearch) IntegrationName() config.CommPlatformIntegration {
+func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
 	return config.ElasticsearchCommPlatformIntegration
 }
 
 // Type describes the notifier type.
-func (e *ElasticSearch) Type() config.IntegrationType {
+func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }

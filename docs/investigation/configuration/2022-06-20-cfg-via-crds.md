@@ -328,7 +328,7 @@ metadata:
 spec:
   template: Slack
   parameters:
-    notiftype: short
+    notifyType: short
     token:
       # value: <plain_data>
       valueFrom:
@@ -468,7 +468,7 @@ kind: ClusterSlack
 metadata:
   name: slack-instance
 spec:
-  notiftype: short
+  notifyType: short
   token:
     # value: <plain_data>
     valueFrom:

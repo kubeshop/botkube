@@ -2,7 +2,7 @@
 	{
 		"type": "identify",
 		"messageId": "0",
-		"anonymousId": "loaded-from-file",
+		"anonymousId": "ff68560b-44e8-4b0d-880b-aaaaaaaaaaaa",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"traits": {
 			"botkubeVersion": {
@@ -15,7 +15,7 @@
 	{
 		"type": "group",
 		"messageId": "1",
-		"anonymousId": "loaded-from-file",
+		"anonymousId": "ff68560b-44e8-4b0d-880b-aaaaaaaaaaaa",
 		"groupId": "ff68560b-44e8-4b0d-880b-e114f5d15933",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"traits": {

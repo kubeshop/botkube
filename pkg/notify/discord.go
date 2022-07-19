@@ -27,9 +27,9 @@ type Discord struct {
 	log logrus.FieldLogger
 	api *discordgo.Session
 
-	Token     string
-	ChannelID string
-	NotifType config.NotifType
+	Token      string
+	ChannelID  string
+	NotifyType config.NotifyType
 }
 
 // NewDiscord returns new Discord object
@@ -40,10 +40,10 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 	}
 
 	return &Discord{
-		log:       log,
-		api:       api,
-		ChannelID: c.Channel,
-		NotifType: c.NotifType,
+		log:        log,
+		api:        api,
+		ChannelID:  c.Channel,
+		NotifyType: c.NotifyType,
 	}, nil
 }
 
@@ -52,7 +52,7 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	d.log.Debugf(">> Sending to discord: %+v", event)
 
-	messageSend := formatDiscordMessage(event, d.NotifType)
+	messageSend := formatDiscordMessage(event, d.NotifyType)
 
 	if _, err := d.api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
 		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
@@ -83,7 +83,7 @@ func (d *Discord) IntegrationName() config.CommPlatformIntegration {
 func (d *Discord) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
-func formatDiscordMessage(event events.Event, notifyType config.NotifType) discordgo.MessageSend {
+func formatDiscordMessage(event events.Event, notifyType config.NotifyType) discordgo.MessageSend {
 	var messageEmbed discordgo.MessageEmbed
 
 	switch notifyType {

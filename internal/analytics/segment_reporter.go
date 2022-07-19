@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -19,7 +16,6 @@ import (
 
 const (
 	kubeSystemNSName  = "kube-system"
-	analyticsFileName = "analytics.yaml"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
 )
 
@@ -47,8 +43,8 @@ func NewSegmentReporter(log logrus.FieldLogger, cli segment.Client) *SegmentRepo
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
-func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) error {
-	currentIdentity, err := r.load(ctx, k8sCli, cfgDir)
+func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, installationID string) error {
+	currentIdentity, err := r.load(ctx, k8sCli, installationID)
 	if err != nil {
 		return fmt.Errorf("while loading current identity: %w", err)
 	}
@@ -183,7 +179,7 @@ func (r *SegmentReporter) registerIdentity(identity Identity) error {
 	return nil
 }
 
-func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) (Identity, error) {
+func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface, installationID string) (Identity, error) {
 	k8sServerVersion, err := k8sCli.Discovery().ServerVersion()
 	if err != nil {
 		return Identity{}, fmt.Errorf("while getting K8s server version: %w", err)
@@ -195,11 +191,6 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface,
 	clusterID, err := r.getClusterID(ctx, k8sCli)
 	if err != nil {
 		return Identity{}, fmt.Errorf("while getting cluster ID: %w", err)
-	}
-
-	installationID, err := r.getInstallationID(cfgDir)
-	if err != nil {
-		return Identity{}, fmt.Errorf("while getting installation ID: %w", err)
 	}
 
 	return Identity{
@@ -224,55 +215,4 @@ func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 	}
 
 	return string(kubeSystemNS.GetUID()), nil
-}
-
-func (r *SegmentReporter) getInstallationID(cfgDir string) (string, error) {
-	analyticsCfgFilePath := filepath.Join(cfgDir, analyticsFileName)
-	if _, err := os.Stat(analyticsCfgFilePath); os.IsNotExist(err) {
-		r.log.Info("Analytics configuration file is not found. Creating and saving one...")
-		analyticsCfg := NewConfig()
-		err = r.saveAnalyticsCfg(analyticsCfgFilePath, analyticsCfg)
-		if err != nil {
-			return "", err
-		}
-
-		return analyticsCfg.InstallationID, nil
-	}
-
-	analyticsCfgBytes, err := os.ReadFile(filepath.Clean(analyticsCfgFilePath))
-	if err != nil {
-		return "", fmt.Errorf("while reading analytics config file: %w", err)
-	}
-
-	var analyticsCfg Config
-	err = yaml.Unmarshal(analyticsCfgBytes, &analyticsCfg)
-	if err != nil {
-		return "", fmt.Errorf("while unmarshalling analytics config file: %w", err)
-	}
-
-	if analyticsCfg.InstallationID == "" {
-		r.log.Info("Installation ID is empty. Generating one and saving...")
-		analyticsCfg := NewConfig()
-		err = r.saveAnalyticsCfg(analyticsCfgFilePath, analyticsCfg)
-		if err != nil {
-			return "", err
-		}
-		return analyticsCfg.InstallationID, nil
-	}
-
-	return analyticsCfg.InstallationID, nil
-}
-
-func (r *SegmentReporter) saveAnalyticsCfg(path string, cfg Config) error {
-	bytes, err := yaml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("while marshalling analytics config file: %w", err)
-	}
-
-	err = os.WriteFile(path, bytes, 0600)
-	if err != nil {
-		return fmt.Errorf("while saving analytics config file to %q: %w", path, err)
-	}
-
-	return nil
 }

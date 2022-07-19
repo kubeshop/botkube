@@ -31,6 +31,7 @@ import (
 
 func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 	// given
+	const installationID = "ff68560b-44e8-4b0d-880b-aaaaaaaaaaaa"
 	kubeSystemNs := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kube-system",
@@ -45,16 +46,15 @@ func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 
 	fakeDisco.FakedServerVersion = &fakeIdentity.Cluster.KubernetesVersion
 
-	cfgDir := "testdata/"
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(nil)
 
 	// when
-	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli, cfgDir)
+	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli, installationID)
 	require.NoError(t, err)
 
 	// then
 	identity := segmentReporter.Identity()
-	assert.Equal(t, "loaded-from-file", identity.Installation.ID)
+	assert.Equal(t, installationID, identity.Installation.ID)
 	assert.Equal(t, string(kubeSystemNs.UID), identity.Cluster.ID)
 
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)

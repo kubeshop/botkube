@@ -37,7 +37,7 @@ type UpdateObjects struct {
 	Patch         []byte
 	Diff          string
 	UpdateSetting config.UpdateSetting
-	NotifType     config.NotifType
+	NotifType     config.NotifyType
 }
 
 // DeleteObjects stores specs for deleting a k8s fake object

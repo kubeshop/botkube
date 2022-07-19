@@ -20,7 +20,7 @@ config:
       events:
         - create
   settings:
-    clustername: sample
+    clusterName: sample
     kubectl:
       enabled: true
     upgradeNotifier: false

@@ -20,7 +20,7 @@ type Mattermost struct {
 
 	Client    *model.Client4
 	Channel   string
-	NotifType config.NotifType
+	NotifType config.NotifyType
 }
 
 // NewMattermost returns new Mattermost object
@@ -41,7 +41,7 @@ func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, er
 		log:       log,
 		Client:    client,
 		Channel:   botChannel.Id,
-		NotifType: c.NotifType,
+		NotifType: c.NotifyType,
 	}, nil
 }
 
@@ -212,7 +212,7 @@ func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
 		})
 	}
 
-	// Add clustername in the message
+	// Add clusterName in the message
 	fields = append(fields, &model.SlackAttachmentField{
 		Title: "Cluster",
 		Value: event.Cluster,

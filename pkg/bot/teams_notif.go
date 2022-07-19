@@ -18,7 +18,7 @@ var themeColor = map[config.Level]string{
 
 type fact map[string]interface{}
 
-func formatTeamsMessage(event events.Event, notifType config.NotifType) map[string]interface{} {
+func formatTeamsMessage(event events.Event, notifType config.NotifyType) map[string]interface{} {
 	switch notifType {
 	case config.LongNotify:
 		return teamsLongNotification(event)

@@ -255,7 +255,7 @@ func (e *DefaultExecutor) runKubectlCommand(args []string) string {
 		}
 		// Check --cluster-name flag
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
-			// Check if flag value in current or next argument and compare with config.settings.clustername
+			// Check if flag value in current or next argument and compare with config.settings.clusterName
 			if arg == ClusterFlag.String() {
 				if index == len(args)-1 || e.trimQuotes(args[index+1]) != clusterName {
 					return ""
@@ -473,7 +473,7 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 	// TODO: Refactor - split config into two files and avoid printing sensitive data
 	// 	without need to resetting them manually (which is an error-prone approach)
 	cfg.Communications.Slack.Token = redactedSecretStr
-	cfg.Communications.ElasticSearch.Password = redactedSecretStr
+	cfg.Communications.Elasticsearch.Password = redactedSecretStr
 	cfg.Communications.Discord.Token = redactedSecretStr
 	cfg.Communications.Mattermost.Token = redactedSecretStr
 

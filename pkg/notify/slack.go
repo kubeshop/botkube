@@ -30,7 +30,7 @@ type Slack struct {
 	log logrus.FieldLogger
 
 	Channel   string
-	NotifType config.NotifType
+	NotifType config.NotifyType
 	Client    *slack.Client
 }
 
@@ -39,7 +39,7 @@ func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
 		log:       log,
 		Channel:   c.Channel,
-		NotifType: c.NotifType,
+		NotifType: c.NotifyType,
 		Client:    slack.New(c.Token),
 	}
 }
@@ -100,7 +100,7 @@ func (s *Slack) SendMessage(ctx context.Context, msg string) error {
 	return nil
 }
 
-func formatSlackMessage(event events.Event, notifyType config.NotifType) (attachment slack.Attachment) {
+func formatSlackMessage(event events.Event, notifyType config.NotifyType) (attachment slack.Attachment) {
 	switch notifyType {
 	case config.LongNotify:
 		attachment = slackLongNotification(event)
@@ -196,7 +196,7 @@ func slackLongNotification(event events.Event) slack.Attachment {
 		})
 	}
 
-	// Add clustername in the message
+	// Add clusterName in the message
 	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
 		Title: "Cluster",
 		Value: event.Cluster,

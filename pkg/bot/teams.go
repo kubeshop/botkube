@@ -51,7 +51,7 @@ type Teams struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	NotifType        config.NotifType
+	NotifType        config.NotifyType
 	Adapter          core.Adapter
 	DefaultNamespace string
 
@@ -80,7 +80,7 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		reporter:         reporter,
 		AppID:            c.Communications.Teams.AppID,
 		AppPassword:      c.Communications.Teams.AppPassword,
-		NotifType:        c.Communications.Teams.NotifType,
+		NotifType:        c.Communications.Teams.NotifyType,
 		MessagePath:      msgPath,
 		Port:             port,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,

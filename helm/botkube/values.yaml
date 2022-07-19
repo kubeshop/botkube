@@ -50,13 +50,6 @@ kubeconfig:
   ##    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
-## BotKube logging settings.
-log:
-  # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
-  level: info
-  # -- If true, disable ANSI colors in logging.
-  disableColors: false
-
 ## BotKube runtime configuration.
 config:
   # -- Describes the Kubernetes resources you want to watch.
@@ -284,7 +277,7 @@ config:
   ## Global BotKube configuration.
   settings:
     # -- Cluster name to differentiate incoming messages.
-    clustername: not-configured
+    clusterName: not-configured
     ## Kubectl executor configuration.
     kubectl:
       # -- If true, enables `kubectl` commands execution.
@@ -300,9 +293,15 @@ config:
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
     # -- If true, restarts the BotKube Pod on config changes.
-    configwatcher: true
+    configWatcher: true
     # -- If true, notifies about new BotKube releases.
     upgradeNotifier: true
+    ## BotKube logging settings.
+    log:
+      # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
+      level: info
+      # -- If true, disable ANSI colors in logging.
+      disableColors: false
 
 ## Communication settings
 communications:
@@ -325,7 +324,7 @@ communications:
     # -- Slack token.
     token: 'SLACK_API_TOKEN'
     # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notiftype: short
+    notifyType: short
 
   ## Settings for Mattermost.
   mattermost:
@@ -343,7 +342,7 @@ communications:
     # The BotKube user needs to be added to it.
     channel: 'MATTERMOST_CHANNEL'
     # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notiftype: short
+    notifyType: short
 
   ## Settings for MS Teams.
   teams:
@@ -356,7 +355,7 @@ communications:
     # -- The path in endpoint URL provided while registering BotKube to MS Teams.
     messagePath: "/bots/teams"
     # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notiftype: short
+    notifyType: short
     # -- The Service port for bot endpoint on BotKube container.
     port: 3978
 
@@ -367,12 +366,12 @@ communications:
     # -- BotKube Bot Token.
     token: 'DISCORD_TOKEN'
     # -- BotKube Application Client ID.
-    botid: 'DISCORD_BOT_ID'
+    botID: 'DISCORD_BOT_ID'
     # -- Discord channel ID for receiving BotKube alerts.
     # The BotKube user needs to be added to it.
     channel: 'DISCORD_CHANNEL_ID'
     # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notiftype: short
+    notifyType: short
 
   ## Settings for Elasticsearch.
   elasticsearch:

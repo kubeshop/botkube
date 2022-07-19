@@ -1,4 +1,3 @@
-{{- if not .Values.analytics.disable }}
 {{- $cfgMapName := printf "%s-%s" (include "botkube.fullname" .) "analytics-config" -}}
 apiVersion: v1
 kind: ConfigMap
@@ -16,7 +15,8 @@ data:
     {{- index $previous.data "analytics.yaml" | nindent 4 }}
   {{- else }}
   analytics.yaml: |
-    # anonymous unique UUID generated during chart installation
-    installationID: "{{- uuidv4 -}}"
+    analytics:
+      # anonymous unique UUID generated during chart installation
+      installationID: "{{- uuidv4 -}}"
+      disable: {{ .Values.analytics.disable }}
   {{ end }}
-{{ end }}
