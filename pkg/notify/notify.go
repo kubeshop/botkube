@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 )
@@ -16,10 +17,18 @@ const notifierLogFieldKey = "notifier"
 type Notifier interface {
 	SendEvent(context.Context, events.Event) error
 	SendMessage(context.Context, string) error
+	IntegrationName() config.CommPlatformIntegration
+	Type() config.IntegrationType
+}
+
+// SinkAnalyticsReporter defines a reporter that collects analytics data.
+type SinkAnalyticsReporter interface {
+	// ReportSinkEnabled reports an enabled sink.
+	ReportSinkEnabled(platform config.CommPlatformIntegration) error
 }
 
 // LoadNotifiers returns list of configured notifiers
-func LoadNotifiers(log *logrus.Logger, conf config.CommunicationsConfig) ([]Notifier, error) {
+func LoadNotifiers(log logrus.FieldLogger, conf config.CommunicationsConfig, reporter analytics.Reporter) ([]Notifier, error) {
 	var notifiers []Notifier
 	if conf.Slack.Enabled {
 		notifiers = append(notifiers, NewSlack(log.WithField(notifierLogFieldKey, "Slack"), conf.Slack))
@@ -35,20 +44,30 @@ func LoadNotifiers(log *logrus.Logger, conf config.CommunicationsConfig) ([]Noti
 	}
 
 	if conf.Discord.Enabled {
-		notifiers = append(notifiers, NewDiscord(log.WithField(notifierLogFieldKey, "Discord"), conf.Discord))
+		dNotifier, err := NewDiscord(log.WithField(notifierLogFieldKey, "Discord"), conf.Discord)
+		if err != nil {
+			return nil, fmt.Errorf("while creating Discord notifier: %w", err)
+		}
+
+		notifiers = append(notifiers, dNotifier)
 	}
 
 	if conf.ElasticSearch.Enabled {
-		esNotifier, err := NewElasticSearch(log.WithField(notifierLogFieldKey, "ElasticSearch"), conf.ElasticSearch)
+		esNotifier, err := NewElasticSearch(log.WithField(notifierLogFieldKey, "ElasticSearch"), conf.ElasticSearch, reporter)
 		if err != nil {
-			return nil, fmt.Errorf("while creating ElasticSearch client: %w", err)
+			return nil, fmt.Errorf("while creating Elasticsearch notifier: %w", err)
 		}
 
 		notifiers = append(notifiers, esNotifier)
 	}
 
 	if conf.Webhook.Enabled {
-		notifiers = append(notifiers, NewWebhook(log.WithField(notifierLogFieldKey, "Webhook"), conf))
+		whNotifier, err := NewWebhook(log.WithField(notifierLogFieldKey, "Webhook"), conf, reporter)
+		if err != nil {
+			return nil, fmt.Errorf("while creating Webhook notifier: %w", err)
+		}
+
+		notifiers = append(notifiers, whNotifier)
 	}
 
 	return notifiers, nil

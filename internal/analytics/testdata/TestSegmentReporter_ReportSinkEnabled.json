@@ -1,0 +1,24 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "installation-id",
+		"event": "Integration enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"platform": "webhook",
+			"type": "sink"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "1",
+		"anonymousId": "installation-id",
+		"event": "Integration enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"platform": "elasticsearch",
+			"type": "sink"
+		}
+	}
+]

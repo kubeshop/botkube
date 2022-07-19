@@ -25,6 +25,7 @@ var embedColor = map[config.Level]int{
 // Discord contains URL and ClusterName
 type Discord struct {
 	log logrus.FieldLogger
+	api *discordgo.Session
 
 	Token     string
 	ChannelID string
@@ -32,13 +33,18 @@ type Discord struct {
 }
 
 // NewDiscord returns new Discord object
-func NewDiscord(log logrus.FieldLogger, c config.Discord) *Discord {
+func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
+	api, err := discordgo.New("Bot " + c.Token)
+	if err != nil {
+		return nil, fmt.Errorf("while creating Discord session: %w", err)
+	}
+
 	return &Discord{
 		log:       log,
-		Token:     c.Token,
+		api:       api,
 		ChannelID: c.Channel,
 		NotifType: c.NotifType,
-	}
+	}, nil
 }
 
 // SendEvent sends event notification to Discord Channel
@@ -46,15 +52,12 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) *Discord {
 func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	d.log.Debugf(">> Sending to discord: %+v", event)
 
-	api, err := discordgo.New("Bot " + d.Token)
-	if err != nil {
-		return fmt.Errorf("while creating Discord session: %w", err)
-	}
 	messageSend := formatDiscordMessage(event, d.NotifType)
 
-	if _, err := api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
+	if _, err := d.api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
 		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
+
 	d.log.Debugf("Event successfully sent to channel %s", d.ChannelID)
 	return nil
 }
@@ -63,18 +66,23 @@ func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (d *Discord) SendMessage(_ context.Context, msg string) error {
 	d.log.Debugf(">> Sending to discord: %+v", msg)
-	api, err := discordgo.New("Bot " + d.Token)
-	if err != nil {
-		return fmt.Errorf("while creating Discord session: %w", err)
-	}
 
-	if _, err := api.ChannelMessageSend(d.ChannelID, msg); err != nil {
+	if _, err := d.api.ChannelMessageSend(d.ChannelID, msg); err != nil {
 		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
 	}
 	d.log.Debugf("Event successfully sent to Discord %v", msg)
 	return nil
 }
 
+// IntegrationName describes the notifier integration name.
+func (d *Discord) IntegrationName() config.CommPlatformIntegration {
+	return config.DiscordCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (d *Discord) Type() config.IntegrationType {
+	return config.BotIntegrationType
+}
 func formatDiscordMessage(event events.Event, notifyType config.NotifType) discordgo.MessageSend {
 	var messageEmbed discordgo.MessageEmbed
 

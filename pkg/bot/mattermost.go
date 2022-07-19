@@ -36,6 +36,7 @@ const (
 type MMBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
+	reporter        AnalyticsReporter
 
 	Token            string
 	BotName          string
@@ -64,10 +65,11 @@ type mattermostMessage struct {
 }
 
 // NewMattermostBot returns new Bot object
-func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *MMBot {
+func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *MMBot {
 	return &MMBot{
 		log:              log,
 		executorFactory:  executorFactory,
+		reporter:         reporter,
 		ServerURL:        c.Communications.Mattermost.URL,
 		BotName:          c.Communications.Mattermost.BotName,
 		Token:            c.Communications.Mattermost.Token,
@@ -104,6 +106,11 @@ func (b *MMBot) Start(ctx context.Context) error {
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.ServerURL, err)
 	}
 
+	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	if err != nil {
+		return fmt.Errorf("while reporting analytics: %w", err)
+	}
+
 	// It is observed that Mattermost server closes connections unexpectedly after some time.
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
@@ -122,6 +129,11 @@ func (b *MMBot) Start(ctx context.Context) error {
 			b.listen(ctx)
 		}
 	}
+}
+
+// IntegrationName describes the notifier integration name.
+func (b *MMBot) IntegrationName() config.CommPlatformIntegration {
+	return config.MattermostCommPlatformIntegration
 }
 
 // TODO: refactor - handle and send methods should be defined on Bot level
@@ -148,7 +160,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	r := regexp.MustCompile(`^(?i)@BotKube `)
 	mm.Request = r.ReplaceAllString(post.Message, ``)
 
-	e := mm.executorFactory.NewDefault(config.MattermostBot, mm.IsAuthChannel, mm.Request)
+	e := mm.executorFactory.NewDefault(b.IntegrationName(), mm.IsAuthChannel, mm.Request)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }

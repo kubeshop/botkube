@@ -45,15 +45,6 @@ const (
 	// Critical level
 	Critical Level = "critical"
 
-	// SlackBot bot platform
-	SlackBot BotPlatform = "slack"
-	// MattermostBot bot platform
-	MattermostBot BotPlatform = "mattermost"
-	// TeamsBot bot platform
-	TeamsBot BotPlatform = "teams"
-	// DiscordBot bot Platform
-	DiscordBot BotPlatform = "discord"
-
 	communicationEnvVariablePrefix = "COMMUNICATIONS_"
 	communicationConfigDelimiter   = "."
 )
@@ -64,8 +55,39 @@ type EventType string
 // Level type to store event levels
 type Level string
 
-// BotPlatform supported by BotKube
-type BotPlatform string
+// CommPlatformIntegration defines integrations with communication platforms.
+type CommPlatformIntegration string
+
+const (
+	// SlackCommPlatformIntegration defines Slack integration.
+	SlackCommPlatformIntegration CommPlatformIntegration = "slack"
+
+	// MattermostCommPlatformIntegration defines Mattermost integration.
+	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
+
+	// TeamsCommPlatformIntegration defines Teams integration.
+	TeamsCommPlatformIntegration CommPlatformIntegration = "teams"
+
+	// DiscordCommPlatformIntegration defines Discord integration.
+	DiscordCommPlatformIntegration CommPlatformIntegration = "discord"
+
+	//ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
+	ElasticsearchCommPlatformIntegration CommPlatformIntegration = "elasticsearch"
+
+	// WebhookCommPlatformIntegration defines an outgoing webhook integration.
+	WebhookCommPlatformIntegration CommPlatformIntegration = "webhook"
+)
+
+// IntegrationType describes the type of integration with a communication platform.
+type IntegrationType string
+
+const (
+	// BotIntegrationType describes two-way integration.
+	BotIntegrationType IntegrationType = "bot"
+
+	// SinkIntegrationType describes one-way integration.
+	SinkIntegrationType IntegrationType = "sink"
+)
 
 // ResourceConfigFileName is a name of BotKube resource configuration file
 var ResourceConfigFileName = "resource_config.yaml"

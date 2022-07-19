@@ -19,7 +19,9 @@ const defaultHTTPCliTimeout = 30 * time.Second
 
 // Webhook contains URL
 type Webhook struct {
-	log logrus.FieldLogger
+	log      logrus.FieldLogger
+	reporter SinkAnalyticsReporter
+
 	URL string
 }
 
@@ -51,11 +53,19 @@ type EventStatus struct {
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(log logrus.FieldLogger, c config.CommunicationsConfig) *Webhook {
-	return &Webhook{
-		log: log,
-		URL: c.Webhook.URL,
+func NewWebhook(log logrus.FieldLogger, c config.CommunicationsConfig, reporter SinkAnalyticsReporter) (*Webhook, error) {
+	whNotifier := &Webhook{
+		log:      log,
+		reporter: reporter,
+		URL:      c.Webhook.URL,
 	}
+
+	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
+	if err != nil {
+		return nil, fmt.Errorf("while reporting analytics: %w", err)
+	}
+
+	return whNotifier, nil
 }
 
 // SendEvent sends event notification to Webhook url
@@ -124,4 +134,14 @@ func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) 
 	}
 
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (w *Webhook) IntegrationName() config.CommPlatformIntegration {
+	return config.WebhookCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (w *Webhook) Type() config.IntegrationType {
+	return config.SinkIntegrationType
 }

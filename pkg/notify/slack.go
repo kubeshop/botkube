@@ -27,7 +27,8 @@ var attachmentColor = map[config.Level]string{
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
-	log       logrus.FieldLogger
+	log logrus.FieldLogger
+
 	Channel   string
 	NotifType config.NotifType
 	Client    *slack.Client
@@ -82,6 +83,7 @@ func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
 
 		return postMessageWrappedErr
 	}
+
 	s.log.Debugf("Event successfully sent to channel %q at %s", channelID, timestamp)
 	return nil
 }
@@ -319,4 +321,14 @@ func FormatShortMessage(event events.Event) (msg string) {
 		msg += fmt.Sprintf("```\n%s```", additionalMsg)
 	}
 	return msg
+}
+
+// IntegrationName describes the notifier integration name.
+func (s *Slack) IntegrationName() config.CommPlatformIntegration {
+	return config.SlackCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (s *Slack) Type() config.IntegrationType {
+	return config.BotIntegrationType
 }

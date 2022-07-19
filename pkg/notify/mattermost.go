@@ -16,7 +16,8 @@ import (
 
 // Mattermost contains server URL and token
 type Mattermost struct {
-	log       logrus.FieldLogger
+	log logrus.FieldLogger
+
 	Client    *model.Client4
 	Channel   string
 	NotifType config.NotifType
@@ -128,6 +129,16 @@ func (m *Mattermost) SendMessage(_ context.Context, msg string) error {
 	}
 
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (m *Mattermost) IntegrationName() config.CommPlatformIntegration {
+	return config.MattermostCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (m *Mattermost) Type() config.IntegrationType {
+	return config.BotIntegrationType
 }
 
 func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
