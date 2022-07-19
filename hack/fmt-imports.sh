@@ -12,9 +12,7 @@ REPO_ROOT_DIR=$(cd "${CURRENT_DIR}/.." && pwd)
 
 imports::install() {
   echo "Ensuring goimports-reviser installed..."
-  # TODO: change to upstream version once https://github.com/incu6us/goimports-reviser/pull/77 is merged.
-
-  go install github.com/mszostok/goimports-reviser/v2@f4a8f06bf75ef4e9c91d7039394f84ad379393bd
+  go install github.com/incu6us/goimports-reviser/v2@latest
 }
 
 imports::format() {
@@ -23,7 +21,7 @@ imports::format() {
 
   paths=$(find . -name '*.go')
 
-  # TODO: If we will switch to Go scripting, we can easily run it in parallel to speed up the execution.
+  # TODO: Consider to run it in parallel to speed up the execution.
   for file in $paths; do
     goimports-reviser -file-path "$file" -rm-unused -local github.com/kubeshop/botkube -project-name github.com/kubeshop/botkube
   done

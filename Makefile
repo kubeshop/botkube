@@ -29,6 +29,8 @@ check-git-status:
 	@if [ -z "$(shell git config user.email)" ] ; then echo 'ERROR: Unable to detect git credentials' && exit 1 ; fi
 
 lint-fix: go-import-fmt
+	@go mod tidy
+	@go mod verify
 	@golangci-lint run --fix "./..."
 
 go-import-fmt:
