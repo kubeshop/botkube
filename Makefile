@@ -1,7 +1,7 @@
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status container-image test test-integration build pre-build publish lint lint-fix system-check save-images load-and-push-images
+.PHONY: release git-tag check-git-status container-image test test-integration build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images
 
 # Show this help.
 help:
