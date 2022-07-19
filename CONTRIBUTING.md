@@ -73,7 +73,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    ```sh
    cp resource_config.yaml.tpl resource_config.yaml
    cp comm_config.yaml.tpl comm_config.yaml
-   ``` 
+   ```
 
    Edit the newly created `resource_config.yaml` and `comm_config.yaml` files to configure resource and set communication credentials.
 
@@ -119,7 +119,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
   ```sh
   # From project root directory
-  make lint
+  make lint-fix
   ```
   This will run the `golangci-lint` tool to lint the Go code.
 

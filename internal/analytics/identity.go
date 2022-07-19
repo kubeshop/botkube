@@ -1,8 +1,9 @@
 package analytics
 
 import (
-	"github.com/kubeshop/botkube/pkg/version"
 	k8sVersion "k8s.io/apimachinery/pkg/version"
+
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 // Identity defines an anonymous identity for a given installation.
