@@ -55,7 +55,6 @@ var allowedAPIVersions = []string{
 	"storage.k8s.io/v1beta1",
 	"telemetry.istio.io/v1alpha1",
 	"traefik.containo.us/v1alpha1",
-	"v1",
 }
 
 const (
