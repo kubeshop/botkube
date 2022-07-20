@@ -16,6 +16,7 @@ Created on 2022-06-14 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
   * [Send notifications to multiple communications platform](#send-notifications-to-multiple-communications-platform)
   * [Run executor only from a dedicated channel](#run-executor-only-from-a-dedicated-channel)
   * [Validate channel annotation](#validate-channel-annotation)
+  * [Reference other sources inside them](#reference-other-sources-inside-them)
 - [Alternatives](#alternatives)
   * [Route notifications to a given channel based on the Kubernetes Namespace](#route-notifications-to-a-given-channel-based-on-the-kubernetes-namespace-1)
     + [Annotate Namespace](#annotate-namespace)
@@ -107,9 +108,13 @@ This section describes the necessary changes in the syntax. **It's not backward 
         namespaces:
           include: ["istio-system"]
         events: ["error"]
+        updateSetting:
+          includeDiff: true
+          fields:
+            - status.phase
       - name: networking.istio.io/v1alpha3/VirtualServices
         namespaces:
-          include: ["@all"]
+          include: ["all"]
         events: ["error"]
 
     # Recommendations about the best practices
@@ -137,10 +142,13 @@ This section describes the necessary changes in the syntax. **It's not backward 
               namespaces: # override the top level Namespace
                 include: ["istio-system"]
               events: ["error"]
+              updateSetting:
+                includeDiff: true
+                fields:
+                  - status.phase
             - name: networking.istio.io/v1alpha3/VirtualServices
               # uses the default Namespace settings from top level definition.
               events: ["error"]
-
 
         # Recommendations about the best practices
         recommendations:
@@ -194,7 +202,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
     </table>
 
 
-2. Communications
+3. Communications
     <table>
     <tr>
     <td> Before </td> <td> After </td>
@@ -309,7 +317,7 @@ communications: # allows to have multiple slacks, or ES configurations
 **Sources**
 
 ```yaml
-Sources:
+sources:
  - name: nodes-errors # name used for bindings
    kubernetes:
      resources:
@@ -552,6 +560,44 @@ executors:
 
 If you use the `botkube.io/channel: <channel_name>` annotation, notifications are sent to a given channel even if not authorized.
 With a new syntax, we can check if there is a matching source binding for a given channel.
+
+### Reference other sources inside them
+
+We won't add a dedicated support to define a new source called "all-errors" and embed "network-errors", "nodes-errors" along with other resources instead of re-declaring all again. However, the [YAML anchors](https://helm.sh/docs/chart_template_guide/yaml_techniques/#yaml-anchors) can be used to overcome this issue.
+
+**Sources**
+```yaml
+sources:
+  - name: nodes-errors
+    kubernetes:
+      resources: &nodes-errors
+        - name: v1/nodes
+          namespaces:
+            include: ["@all"]
+          events:
+            - error
+  - name: network-errors
+    kubernetes:
+      namespaces:
+        include: ["@all"]
+      resources: &network-errors
+        - name: v1/services
+          events:
+            - error
+        - name: networking.k8s.io/v1/ingresses
+          events:
+            - error
+  - name: all-errors
+    kubernetes:
+      namespaces:
+        include: ["@all"]
+      resources:
+        <<: *nodes-errors
+        <<: *network-errors
+          - name: v1/pod
+            events:
+              - error
+```
 
 ## Alternatives
 
