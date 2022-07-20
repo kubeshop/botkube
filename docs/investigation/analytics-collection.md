@@ -1,5 +1,7 @@
 # Analytics collection
 
+Test
+
 This document contains a summary of a short research around collecting anonymous analytics (a.k.a. telemetry) for BotKube.
 
 ## Goal

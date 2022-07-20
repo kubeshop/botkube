@@ -9,10 +9,11 @@ import (
 	"os"
 	"time"
 
+	segment "github.com/segmentio/analytics-go"
+
 	"github.com/google/go-github/v44/github"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
 	"golang.org/x/sync/errgroup"
