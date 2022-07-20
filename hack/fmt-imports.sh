@@ -62,34 +62,42 @@ host::arch() {
 
 host::install::imports() {
   readonly INSTALL_DIR="${REPO_ROOT_DIR}/bin"
-	mkdir -p "${INSTALL_DIR}"
-	export PATH="${INSTALL_DIR}:${PATH}"
+  mkdir -p "${INSTALL_DIR}"
+  export PATH="${INSTALL_DIR}:${PATH}"
 
-	echo "Install goimports-reviser ${GOIMPORTS_REVISER_VERSION} to local ./bin..."
+  echo "Install goimports-reviser ${GOIMPORTS_REVISER_VERSION} to local ./bin..."
 
-	os=$(host::os)
-	arch=$(host::arch)
-	name="goimports-reviser_${GOIMPORTS_REVISER_VERSION}_${os}_${arch}"
+  os=$(host::os)
+  arch=$(host::arch)
+  name="goimports-reviser_${GOIMPORTS_REVISER_VERSION}_${os}_${arch}"
 
-	pushd "${INSTALL_DIR}"
+  pushd "${INSTALL_DIR}"
 
-	# download the release
-	curl -L -O "https://github.com/incu6us/goimports-reviser/releases/download/v${GOIMPORTS_REVISER_VERSION}/${name}.tar.gz"
+  # download the release
+  curl -L -O "https://github.com/incu6us/goimports-reviser/releases/download/v${GOIMPORTS_REVISER_VERSION}/${name}.tar.gz"
 
-	# extract the archive
-	tar -zxvf "${name}".tar.gz
+  # extract the archive
+  tar -zxvf "${name}".tar.gz
 
-	popd
+  popd
 }
 
+imports::files_to_check() {
+  pushd "$REPO_ROOT_DIR" > /dev/null
+  paths=$(git diff --name-only main  '**/*.go')
+  popd > /dev/null
+
+  echo "$paths"
+}
 imports::format() {
+  paths=$1
+
   echo "Executing goimports-reviser..."
   pushd "$REPO_ROOT_DIR" > /dev/null
 
-  paths=$(find . -name '*.go')
-
   # TODO: Consider to run it in parallel to speed up the execution.
   for file in $paths; do
+    echo "Formatting $file..."
     goimports-reviser -file-path "$file" -rm-unused -local github.com/kubeshop/botkube -project-name github.com/kubeshop/botkube
   done
 
@@ -97,9 +105,15 @@ imports::format() {
 }
 
 main() {
-  host::install::imports
+  filesToCheck=$(imports::files_to_check)
+  if [ -z "$filesToCheck" ]
+  then
+    echo "Skipping executions as no files were modified."
+    exit 0
+  fi
 
-  imports::format
+  host::install::imports
+  imports::format "$filesToCheck"
 }
 
 main
