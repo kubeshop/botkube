@@ -21,7 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
@@ -69,7 +69,7 @@ type Controller struct {
 	reporter              AnalyticsReporter
 	startTime             time.Time
 	conf                  *config.Config
-	notifiers             []notify.Notifier
+	notifiers             []notifier.Notifier
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
 
@@ -85,7 +85,7 @@ type Controller struct {
 // New create a new Controller instance.
 func New(log logrus.FieldLogger,
 	conf *config.Config,
-	notifiers []notify.Notifier,
+	notifiers []notifier.Notifier,
 	filterEngine filterengine.FilterEngine,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
@@ -317,7 +317,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	// Send event over notifiers
 	anonymousEvent := analytics.AnonymizedEventDetailsFrom(event)
 	for _, n := range c.notifiers {
-		go func(n notify.Notifier) {
+		go func(n notifier.Notifier) {
 			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
 
 			err := n.SendEvent(ctx, event)

@@ -86,7 +86,7 @@ spec:
           projected:
             sources:
             - configMap:
-                name: {{ include "botkube.fullname" . }}-configmap
+                name: {{ include "botkube.fullname" . }}-global-config
             - configMap:
                 name: {{ include "botkube.fullname" . }}-analytics-config
             - secret:

@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 // ConfigWatcher watches for the config file changes and exits the app.
@@ -18,11 +18,11 @@ type ConfigWatcher struct {
 	log         logrus.FieldLogger
 	configPaths []string
 	clusterName string
-	notifiers   []notify.Notifier
+	notifiers   []notifier.Notifier
 }
 
 // NewConfigWatcher returns new ConfigWatcher instance.
-func NewConfigWatcher(log logrus.FieldLogger, configPaths []string, clusterName string, notifiers []notify.Notifier) *ConfigWatcher {
+func NewConfigWatcher(log logrus.FieldLogger, configPaths []string, clusterName string, notifiers []notifier.Notifier) *ConfigWatcher {
 	return &ConfigWatcher{
 		log:         log,
 		configPaths: configPaths,
@@ -47,7 +47,7 @@ func (w *ConfigWatcher) Do(ctx context.Context, cancelFunc context.CancelFunc) (
 	ctx, cancelFn := context.WithCancel(ctx)
 	defer cancelFn()
 
-	log := w.log.WithField("configs", w.configPaths)
+	log := w.log.WithField("configPaths", w.configPaths)
 
 	errGroup, _ := errgroup.WithContext(ctx)
 	errGroup.Go(func() error {
@@ -56,12 +56,12 @@ func (w *ConfigWatcher) Do(ctx context.Context, cancelFunc context.CancelFunc) (
 			case <-ctx.Done():
 				log.Info("Shutdown requested. Finishing...")
 				return nil
-			case _, ok := <-watcher.Events:
+			case ev, ok := <-watcher.Events:
 				if !ok {
 					return fmt.Errorf("unexpected file watch end")
 				}
 
-				log.Infof("Config updated. Sending last message before exit...")
+				log.WithField("configPath", ev.Name).Infof("Config updated. Sending last message before exit...")
 				err := sendMessageToNotifiers(ctx, w.notifiers, fmt.Sprintf(configUpdateMsg, w.clusterName))
 				if err != nil {
 					wrappedErr := fmt.Errorf("while sending message to notifiers: %w", err)

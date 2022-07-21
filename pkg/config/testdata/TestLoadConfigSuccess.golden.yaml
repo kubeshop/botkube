@@ -237,7 +237,8 @@ communications:
     slack:
         enabled: true
         channel: config-slack-override
-        notifyType: short
+        notification:
+            type: short
         token: token-from-env
     mattermost:
         enabled: false
@@ -246,13 +247,15 @@ communications:
         token: MATTERMOST_TOKEN
         team: MATTERMOST_TEAM
         channel: MATTERMOST_CHANNEL
-        notifyType: short
+        notification:
+            type: short
     discord:
         enabled: false
         token: DISCORD_TOKEN
         botID: DISCORD_BOT_ID
         channel: DISCORD_CHANNEL_ID
-        notifyType: short
+        notification:
+            type: short
     webhook:
         enabled: false
         url: WEBHOOK_URL
@@ -262,7 +265,8 @@ communications:
         appPassword: APPLICATION_PASSWORD
         team: ""
         port: "3978"
-        notifyType: short
+        notification:
+            type: short
     elasticsearch:
         enabled: false
         username: ELASTICSEARCH_USERNAME
@@ -306,7 +310,7 @@ settings:
                 - nodes
         defaultNamespace: default
         restrictAccess: false
-    clusterName: TestConfigSuccess
+    clusterName: cluster-name-from-env
     configWatcher: true
     upgradeNotifier: true
     metricsPort: "1313"
@@ -314,4 +318,4 @@ settings:
         level: error
         disableColors: false
     informersResyncPeriod: 30m0s
-    kubeconfig: TestConfigSuccess
+    kubeconfig: kubeconfig-from-env

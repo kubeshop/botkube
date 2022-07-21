@@ -323,8 +323,9 @@ communications:
     channel: 'SLACK_CHANNEL'
     # -- Slack token.
     token: 'SLACK_API_TOKEN'
-    # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notifyType: short
+    notification:
+      # -- Configures notification type that are sent. Possible values: `short`, `long`.
+      type: short
 
   ## Settings for Mattermost.
   mattermost:
@@ -341,8 +342,9 @@ communications:
     # -- The Mattermost channel name for receiving BotKube alerts.
     # The BotKube user needs to be added to it.
     channel: 'MATTERMOST_CHANNEL'
-    # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notifyType: short
+    notification:
+      # -- Configures notification type that are sent. Possible values: `short`, `long`.
+      type: short
 
   ## Settings for MS Teams.
   teams:
@@ -354,8 +356,9 @@ communications:
     appPassword: 'APPLICATION_PASSWORD'
     # -- The path in endpoint URL provided while registering BotKube to MS Teams.
     messagePath: "/bots/teams"
-    # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notifyType: short
+    notification:
+      # -- Configures notification type that are sent. Possible values: `short`, `long`.
+      type: short
     # -- The Service port for bot endpoint on BotKube container.
     port: 3978
 
@@ -370,8 +373,9 @@ communications:
     # -- Discord channel ID for receiving BotKube alerts.
     # The BotKube user needs to be added to it.
     channel: 'DISCORD_CHANNEL_ID'
-    # -- Configures notification type that are sent. Possible values: `short`, `long`.
-    notifyType: short
+    notification:
+      # -- Configures notification type that are sent. Possible values: `short`, `long`.
+      type: short
 
   ## Settings for Elasticsearch.
   elasticsearch:

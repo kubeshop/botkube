@@ -182,7 +182,7 @@ func TestSlack(t *testing.T) {
 			assertionFn := func(msg slack.Message) bool {
 				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
 					strings.Contains(msg.Text, "kube-root-ca.crt") &&
-					strings.Contains(msg.Text, "botkube-configmap")
+					strings.Contains(msg.Text, "botkube-global-config")
 			}
 
 			slackTester.PostMessageToBot(t, channel.Name, command)

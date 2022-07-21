@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -18,9 +18,9 @@ import (
 type Mattermost struct {
 	log logrus.FieldLogger
 
-	Client    *model.Client4
-	Channel   string
-	NotifType config.NotifyType
+	Client       *model.Client4
+	Channel      string
+	Notification config.Notification
 }
 
 // NewMattermost returns new Mattermost object
@@ -38,10 +38,10 @@ func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, er
 	}
 
 	return &Mattermost{
-		log:       log,
-		Client:    client,
-		Channel:   botChannel.Id,
-		NotifType: c.NotifyType,
+		log:          log,
+		Client:       client,
+		Channel:      botChannel.Id,
+		Notification: c.Notification,
 	}, nil
 }
 
@@ -51,7 +51,7 @@ func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
 
 	var fields []*model.SlackAttachmentField
 
-	switch m.NotifType {
+	switch m.Notification.Type {
 	case config.LongNotify:
 		fields = mmLongNotification(event)
 	case config.ShortNotify:

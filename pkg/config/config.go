@@ -26,6 +26,8 @@ var configPathsFlag []string
 const (
 	configEnvVariablePrefix = "BOTKUBE_"
 	configDelimiter         = "."
+	camelCaseDelimiter      = "__"
+	nestedFieldDelimiter    = "_"
 )
 
 // EventType to watch
@@ -103,14 +105,14 @@ const (
 // Notify flag to toggle event notification
 var Notify = true
 
-// NotifyType to change notification type
-type NotifyType string
+// NotificationType to change notification type
+type NotificationType string
 
 const (
-	// ShortNotify is the Default NotifyType
-	ShortNotify NotifyType = "short"
+	// ShortNotify is the Default NotificationType
+	ShortNotify NotificationType = "short"
 	// LongNotify for short events notification
-	LongNotify NotifyType = "long"
+	LongNotify NotificationType = "long"
 )
 
 // Config structure of configuration yaml file
@@ -159,6 +161,11 @@ type Namespaces struct {
 	Ignore  []string `yaml:"ignore,omitempty"`
 }
 
+// Notification holds notification configuration.
+type Notification struct {
+	Type NotificationType
+}
+
 // CommunicationsConfig channels to send events to
 type CommunicationsConfig struct {
 	Slack         Slack         `yaml:"slack"`
@@ -171,10 +178,10 @@ type CommunicationsConfig struct {
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled    bool       `yaml:"enabled"`
-	Channel    string     `yaml:"channel"`
-	NotifyType NotifyType `yaml:"notifyType,omitempty"`
-	Token      string     `yaml:"token,omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
+	Token        string       `yaml:"token,omitempty"`
 }
 
 // Elasticsearch config auth settings
@@ -205,33 +212,33 @@ type Index struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled    bool       `yaml:"enabled"`
-	BotName    string     `yaml:"botName"`
-	URL        string     `yaml:"url"`
-	Token      string     `yaml:"token"`
-	Team       string     `yaml:"team"`
-	Channel    string     `yaml:"channel"`
-	NotifyType NotifyType `yaml:"notifyType,omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	BotName      string       `yaml:"botName"`
+	URL          string       `yaml:"url"`
+	Token        string       `yaml:"token"`
+	Team         string       `yaml:"team"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Teams creds for authentication with MS Teams
 type Teams struct {
-	Enabled     bool       `yaml:"enabled"`
-	AppID       string     `yaml:"appID,omitempty"`
-	AppPassword string     `yaml:"appPassword,omitempty"`
-	Team        string     `yaml:"team"`
-	Port        string     `yaml:"port"`
-	MessagePath string     `yaml:"messagePath,omitempty"`
-	NotifyType  NotifyType `yaml:"notifyType,omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	AppID        string       `yaml:"appID,omitempty"`
+	AppPassword  string       `yaml:"appPassword,omitempty"`
+	Team         string       `yaml:"team"`
+	Port         string       `yaml:"port"`
+	MessagePath  string       `yaml:"messagePath,omitempty"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled    bool       `yaml:"enabled"`
-	Token      string     `yaml:"token"`
-	BotID      string     `yaml:"botID"`
-	Channel    string     `yaml:"channel"`
-	NotifyType NotifyType `yaml:"notifyType,omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	Token        string       `yaml:"token"`
+	BotID        string       `yaml:"botID"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
@@ -316,21 +323,9 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
 }
 
 // FromEnvOrFlag resolves and returns paths for config files.
-// 1. from 'CONFIG_PATH' env variable (backward compatible). If not found, then:
-// 2. from 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then:
+// 1. from 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then:
 // 3. from '--config' flag.
 func FromEnvOrFlag() []string {
-	// old style where `comm_config.yaml` and `resource_config.yaml` were used.
-	oldCfgPath := os.Getenv("CONFIG_PATH")
-	if oldCfgPath != "" {
-		return []string{
-			filepath.Join(oldCfgPath, "comm_config.yaml"),
-			filepath.Join(oldCfgPath, "resource_config.yaml"),
-			filepath.Join(oldCfgPath, "analytics.yaml"),
-		}
-	}
-
-	// new style
 	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
 	if envCfgs != "" {
 		return strings.Split(envCfgs, ",")
@@ -347,7 +342,7 @@ func RegisterFlags(flags *pflag.FlagSet) {
 func normalizeConfigEnvName(name string) string {
 	name = strings.TrimPrefix(name, configEnvVariablePrefix)
 
-	words := strings.Split(name, "__")
+	words := strings.Split(name, camelCaseDelimiter)
 	toTitle := cases.Title(language.AmericanEnglish)
 
 	var buff strings.Builder
@@ -358,5 +353,5 @@ func normalizeConfigEnvName(name string) string {
 		buff.WriteString(toTitle.String(word))
 	}
 
-	return strings.ReplaceAll(buff.String(), "_", configDelimiter)
+	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
 }

@@ -97,7 +97,7 @@ func (b *SlackBot) Start(ctx context.Context) error {
 					return fmt.Errorf("while reporting analytics: %w", err)
 				}
 
-				b.log.WithField("channel", b.ChannelName).Info("BotKube connected to Slack!")
+				b.log.Info("BotKube connected to Slack!")
 
 			case *slack.MessageEvent:
 				// Skip if message posted by BotKube

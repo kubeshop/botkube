@@ -33,7 +33,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 const (
@@ -114,7 +114,7 @@ func run() error {
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
 	// List notifiers
-	notifiers, err := notify.LoadNotifiers(logger, conf.Communications, reporter)
+	notifiers, err := notifier.LoadNotifiers(logger, conf.Communications, reporter)
 	if err != nil {
 		return reportFatalError("while loading notifiers", err)
 	}

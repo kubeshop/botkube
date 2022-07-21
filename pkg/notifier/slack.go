@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -29,25 +29,25 @@ var attachmentColor = map[config.Level]string{
 type Slack struct {
 	log logrus.FieldLogger
 
-	Channel   string
-	NotifType config.NotifyType
-	Client    *slack.Client
+	Channel      string
+	Notification config.Notification
+	Client       *slack.Client
 }
 
 // NewSlack returns new Slack object
 func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
-		log:       log,
-		Channel:   c.Channel,
-		NotifType: c.NotifyType,
-		Client:    slack.New(c.Token),
+		log:          log,
+		Channel:      c.Channel,
+		Notification: c.Notification,
+		Client:       slack.New(c.Token),
 	}
 }
 
 // SendEvent sends event notification to slack
 func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
 	s.log.Debugf(">> Sending to slack: %+v", event)
-	attachment := formatSlackMessage(event, s.NotifType)
+	attachment := formatSlackMessage(event, s.Notification)
 
 	targetChannel := event.Channel
 	if targetChannel == "" {
@@ -100,8 +100,8 @@ func (s *Slack) SendMessage(ctx context.Context, msg string) error {
 	return nil
 }
 
-func formatSlackMessage(event events.Event, notifyType config.NotifyType) (attachment slack.Attachment) {
-	switch notifyType {
+func formatSlackMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
+	switch notification.Type {
 	case config.LongNotify:
 		attachment = slackLongNotification(event)
 

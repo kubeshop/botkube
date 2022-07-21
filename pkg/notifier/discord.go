@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -27,9 +27,9 @@ type Discord struct {
 	log logrus.FieldLogger
 	api *discordgo.Session
 
-	Token      string
-	ChannelID  string
-	NotifyType config.NotifyType
+	Token        string
+	ChannelID    string
+	Notification config.Notification
 }
 
 // NewDiscord returns new Discord object
@@ -40,10 +40,10 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 	}
 
 	return &Discord{
-		log:        log,
-		api:        api,
-		ChannelID:  c.Channel,
-		NotifyType: c.NotifyType,
+		log:          log,
+		api:          api,
+		ChannelID:    c.Channel,
+		Notification: c.Notification,
 	}, nil
 }
 
@@ -52,7 +52,7 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	d.log.Debugf(">> Sending to discord: %+v", event)
 
-	messageSend := formatDiscordMessage(event, d.NotifyType)
+	messageSend := formatDiscordMessage(event, d.Notification)
 
 	if _, err := d.api.ChannelMessageSendComplex(d.ChannelID, &messageSend); err != nil {
 		return fmt.Errorf("while sending Discord message to channel %q: %w", d.ChannelID, err)
@@ -83,10 +83,10 @@ func (d *Discord) IntegrationName() config.CommPlatformIntegration {
 func (d *Discord) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
-func formatDiscordMessage(event events.Event, notifyType config.NotifyType) discordgo.MessageSend {
+func formatDiscordMessage(event events.Event, notification config.Notification) discordgo.MessageSend {
 	var messageEmbed discordgo.MessageEmbed
 
-	switch notifyType {
+	switch notification.Type {
 	case config.LongNotify:
 		// generate Long notification message
 		messageEmbed = discordLongNotification(event)

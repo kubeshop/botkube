@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
-func sendMessageToNotifiers(ctx context.Context, notifiers []notify.Notifier, msg string) error {
+func sendMessageToNotifiers(ctx context.Context, notifiers []notifier.Notifier, msg string) error {
 	if msg == "" {
 		return fmt.Errorf("message cannot be empty")
 	}

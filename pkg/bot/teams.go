@@ -51,7 +51,7 @@ type Teams struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	NotifType        config.NotifyType
+	Notification     config.Notification
 	Adapter          core.Adapter
 	DefaultNamespace string
 
@@ -80,7 +80,7 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		reporter:         reporter,
 		AppID:            c.Communications.Teams.AppID,
 		AppPassword:      c.Communications.Teams.AppPassword,
-		NotifType:        c.Communications.Teams.NotifyType,
+		Notification:     c.Communications.Teams.Notification,
 		MessagePath:      msgPath,
 		Port:             port,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
@@ -296,7 +296,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
-	card := formatTeamsMessage(event, b.NotifType)
+	card := formatTeamsMessage(event, b.Notification)
 	if err := b.sendProactiveMessage(ctx, card); err != nil {
 		return fmt.Errorf("while sending notification: %w", err)
 	}

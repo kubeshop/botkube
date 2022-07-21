@@ -18,8 +18,8 @@ import (
 func TestLoadConfigSuccess(t *testing.T) {
 	// given
 	t.Setenv("BOTKUBE_COMMUNICATIONS_SLACK_TOKEN", "token-from-env")
-	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "TestConfigSuccess")
-	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "TestConfigSuccess")
+	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
+	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
 
 	// when
@@ -123,6 +123,11 @@ func TestNormalizeConfigEnvName(t *testing.T) {
 			name:            "env var with a camel key in the middle (3 words)",
 			givenEnvVarName: "BOTKUBE_COMMUNICATIONS__SLACK__TOKEN_ID_NAME",
 			expYAMLKey:      "communicationsSlackToken.id.name",
+		},
+		{
+			name:            "multiple camel keys in the path",
+			givenEnvVarName: "BOTKUBE_MY__COMMUNICATIONS_RANDOM__WORD_SLACK__TOKEN_ID_NAME",
+			expYAMLKey:      "myCommunications.randomWord.slackToken.id.name",
 		},
 	}
 	for _, tc := range tests {
