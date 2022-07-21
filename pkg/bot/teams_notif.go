@@ -5,7 +5,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 var themeColor = map[config.Level]string{
@@ -18,12 +18,12 @@ var themeColor = map[config.Level]string{
 
 type fact map[string]interface{}
 
-func formatTeamsMessage(event events.Event, notifType config.NotifType) map[string]interface{} {
-	switch notifType {
-	case config.LongNotify:
+func formatTeamsMessage(event events.Event, notification config.Notification) map[string]interface{} {
+	switch notification.Type {
+	case config.LongNotification:
 		return teamsLongNotification(event)
 
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:
@@ -46,7 +46,7 @@ func teamsShortNotification(event events.Event) map[string]interface{} {
 			},
 			{
 				"type": "TextBlock",
-				"text": strings.ReplaceAll(notify.FormatShortMessage(event), "```", ""),
+				"text": strings.ReplaceAll(notifier.FormatShortMessage(event), "```", ""),
 				"wrap": true,
 			},
 		},

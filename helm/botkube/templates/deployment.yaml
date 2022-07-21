@@ -66,18 +66,12 @@ spec:
             - name: cache
               mountPath: "/.kube/cache"
           env:
-            - name: CONFIG_PATH
-              value: "/config/"
-            - name: LOG_LEVEL
-              value: {{ .Values.log.level | quote }}
-            - name: LOG_DISABLE_COLORS
-              value: {{ .Values.log.disableColors | quote }}
-            - name: ANALYTICS_DISABLE
-              value: {{ .Values.analytics.disable | quote }}
-            - name: METRICS_PORT
+            - name: BOTKUBE_CONFIG_PATHS
+              value: "/config/analytics.yaml,/config/resource_config.yaml,/config/comm_config.yaml"
+            - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
-            - name: KUBECONFIG
+            - name: BOTKUBE_SETTINGS_KUBECONFIG
               value: "/.kube/config"
             {{- end }}
           {{- with .Values.extraEnv }}
@@ -92,11 +86,9 @@ spec:
           projected:
             sources:
             - configMap:
-                name: {{ include "botkube.fullname" . }}-configmap
-            {{- if not .Values.analytics.disable }}
+                name: {{ include "botkube.fullname" . }}-global-config
             - configMap:
                 name: {{ include "botkube.fullname" . }}-analytics-config
-            {{- end}}
             - secret:
                 name: {{ include "botkube.CommunicationsSecretName" . }}
       {{- with .Values.extraVolumes }}

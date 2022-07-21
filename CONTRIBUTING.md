@@ -80,14 +80,13 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 3. Export the path to directory of `config.yaml`
 
    ```sh
-   # From project root directory
-   export CONFIG_PATH=$(pwd)
+   export BOTKUBE_CONFIG_PATHS="$(pwd)/resource_config.yaml,$(pwd)/comm_config.yaml"
    ```
 
 4. Export the path to Kubeconfig:
 
    ```sh
-   export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
+   export BOTKUBE_SETTINGS_KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
    ```
 
 5. Make sure you are able to access your Kubernetes cluster:

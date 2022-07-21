@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -52,8 +52,8 @@ func LoadNotifiers(log logrus.FieldLogger, conf config.CommunicationsConfig, rep
 		notifiers = append(notifiers, dNotifier)
 	}
 
-	if conf.ElasticSearch.Enabled {
-		esNotifier, err := NewElasticSearch(log.WithField(notifierLogFieldKey, "ElasticSearch"), conf.ElasticSearch, reporter)
+	if conf.Elasticsearch.Enabled {
+		esNotifier, err := NewElasticSearch(log.WithField(notifierLogFieldKey, "ElasticSearch"), conf.Elasticsearch, reporter)
 		if err != nil {
 			return nil, fmt.Errorf("while creating Elasticsearch notifier: %w", err)
 		}

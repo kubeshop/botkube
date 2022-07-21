@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
-	"github.com/vrischmann/envconfig"
+	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
@@ -34,23 +33,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
-
-// Config contains the app configuration parameters.
-type Config struct {
-	MetricsPort string `envconfig:"default=2112"`
-	Log         struct {
-		Level         string `envconfig:"default=error"`
-		DisableColors bool   `envconfig:"optional"`
-	}
-	ConfigPath            string        `envconfig:"optional"`
-	InformersResyncPeriod time.Duration `envconfig:"default=30m"`
-	KubeconfigPath        string        `envconfig:"optional,KUBECONFIG"`
-	Analytics             struct {
-		Disable bool `envconfig:"default=false"`
-	}
-}
 
 const (
 	componentLogFieldKey = "component"
@@ -66,18 +50,17 @@ func main() {
 
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
 func run() error {
-	// Load env configuration
-	var appCfg Config
-	err := envconfig.Init(&appCfg)
+	// Load configuration
+	config.RegisterFlags(pflag.CommandLine)
+	conf, loadedCfgFiles, err := config.LoadWithDefaults(config.FromEnvOrFlag)
 	if err != nil {
 		return fmt.Errorf("while loading app configuration: %w", err)
 	}
 
-	// Create logger
-	logger := newLogger(appCfg.Log.Level, appCfg.Log.DisableColors)
+	logger := newLogger(conf.Settings.Log.Level, conf.Settings.Log.DisableColors)
 
 	// Set up analytics reporter
-	reporter, err := newAnalyticsReporter(appCfg.Analytics.Disable, logger)
+	reporter, err := newAnalyticsReporter(conf.Analytics.Disable, logger)
 	if err != nil {
 		return fmt.Errorf("while creating analytics reporter: %w", err)
 	}
@@ -101,7 +84,7 @@ func run() error {
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	// Prepare K8s clients and mapper
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", appCfg.KubeconfigPath)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
@@ -115,32 +98,23 @@ func run() error {
 	if err != nil {
 		return reportFatalError("while creating K8s clientset", err)
 	}
-	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, appCfg.ConfigPath)
+	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, conf.Analytics.InstallationID)
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}
 
 	// Prometheus metrics
-	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), appCfg.MetricsPort)
+	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)
 	})
 
-	// Load config
-	conf, err := config.Load(appCfg.ConfigPath)
-	if err != nil {
-		return reportFatalError("while loading configuration", err)
-	}
-	if conf == nil {
-		return reportFatalError("while loading configuration", errors.New("config cannot be nil"))
-	}
-
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
 	// List notifiers
-	notifiers, err := notify.LoadNotifiers(logger, conf.Communications, reporter)
+	notifiers, err := notifier.LoadNotifiers(logger, conf.Communications, reporter)
 	if err != nil {
 		return reportFatalError("while loading notifiers", err)
 	}
@@ -219,7 +193,7 @@ func run() error {
 	if conf.Settings.ConfigWatcher {
 		cfgWatcher := controller.NewConfigWatcher(
 			logger.WithField(componentLogFieldKey, "Config Watcher"),
-			appCfg.ConfigPath,
+			loadedCfgFiles,
 			conf.Settings.ClusterName,
 			notifiers,
 		)
@@ -235,10 +209,9 @@ func run() error {
 		conf,
 		notifiers,
 		filterEngine,
-		appCfg.ConfigPath,
 		dynamicCli,
 		mapper,
-		appCfg.InformersResyncPeriod,
+		conf.Settings.InformersResyncPeriod,
 		reporter,
 	)
 
