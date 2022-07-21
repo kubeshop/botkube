@@ -224,6 +224,7 @@ type Mattermost struct {
 // Teams creds for authentication with MS Teams
 type Teams struct {
 	Enabled      bool         `yaml:"enabled"`
+	BotName      string       `yaml:"botName,omitempty"`
 	AppID        string       `yaml:"appID,omitempty"`
 	AppPassword  string       `yaml:"appPassword,omitempty"`
 	Team         string       `yaml:"team"`

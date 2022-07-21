@@ -44,6 +44,7 @@ type Teams struct {
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
 
+	BotName          string
 	AppID            string
 	AppPassword      string
 	MessagePath      string
@@ -78,6 +79,7 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
+		BotName:          c.Communications.Teams.BotName,
 		AppID:            c.Communications.Teams.AppID,
 		AppPassword:      c.Communications.Teams.AppPassword,
 		Notification:     c.Communications.Teams.Notification,
@@ -202,7 +204,9 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, err
 			}
 
-			msg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(consentCtx.Command), "<at>BotKube</at>"))
+			msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
+			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
+			msg := strings.TrimSpace(msgWithoutPrefix)
 			e := b.executorFactory.NewDefault(b.IntegrationName(), true, msg)
 			out := e.Execute()
 
@@ -236,8 +240,9 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 }
 
 func (b *Teams) processMessage(activity schema.Activity) string {
-	// Trim @BotKube prefix
-	msg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(activity.Text), "<at>BotKube</at>"))
+	msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
+	msgWithoutPrefix := strings.TrimPrefix(activity.Text, msgPrefix)
+	msg := strings.TrimSpace(msgWithoutPrefix)
 
 	// User needs to execute "notifier start" cmd to enable notifications
 	// Parse "notifier" command and set conversation reference

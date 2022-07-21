@@ -350,6 +350,8 @@ communications:
   teams:
     # -- If true, enables MS Teams bot.
     enabled: false
+    # -- The Bot name set while registering Bot to MS Teams.
+    botName: 'BotKube'
     # -- The BotKube application ID generated while registering Bot to MS Teams.
     appID: 'APPLICATION_ID'
     # -- The BotKube application password generated while registering Bot to MS Teams.
