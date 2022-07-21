@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
+
+const readHeaderTimeout = 1 * time.Minute
 
 // Server provides functionality to start HTTP server with a cancelable context.
 type Server struct {
@@ -17,7 +20,7 @@ type Server struct {
 // New creates a new HTTP server.
 func New(log logrus.FieldLogger, addr string, handler http.Handler) *Server {
 	return &Server{
-		srv: &http.Server{Addr: addr, Handler: handler},
+		srv: &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: readHeaderTimeout},
 		log: log,
 	}
 }

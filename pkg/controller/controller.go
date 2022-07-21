@@ -106,13 +106,10 @@ func New(log logrus.FieldLogger,
 
 // Start creates new informer controllers to watch k8s resources
 func (c *Controller) Start(ctx context.Context) error {
-	err := c.initInformerMap()
-	if err != nil {
-		return fmt.Errorf("while initializing informer map: %w", err)
-	}
+	c.initInformerMap()
 
 	c.log.Info("Starting controller")
-	err = sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	err := sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}
@@ -338,7 +335,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 }
 
-func (c *Controller) initInformerMap() error {
+func (c *Controller) initInformerMap() {
 	// Create dynamic shared informer factory
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
@@ -388,7 +385,6 @@ func (c *Controller) initInformerMap() error {
 	}
 	c.log.Infof("Allowed Events: %+v", c.observedEventKindsMap)
 	c.log.Infof("Allowed UpdateEvents: %+v", c.observedUpdateEventsMap)
-	return nil
 }
 
 func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, error) {
