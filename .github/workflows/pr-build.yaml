@@ -22,7 +22,6 @@ on:
       - 'resource_config.yaml.tpl'
 
 env:
-  GO_VERSION: 1.18
   HELM_VERSION: v3.9.0
   K3D_VERSION: v5.4.3
   PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -52,7 +51,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Install GoReleaser
