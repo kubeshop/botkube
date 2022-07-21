@@ -102,10 +102,10 @@ func (s *Slack) SendMessage(ctx context.Context, msg string) error {
 
 func formatSlackMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
 	switch notification.Type {
-	case config.LongNotify:
+	case config.LongNotification:
 		attachment = slackLongNotification(event)
 
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:

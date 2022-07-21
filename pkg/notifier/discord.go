@@ -87,11 +87,11 @@ func formatDiscordMessage(event events.Event, notification config.Notification) 
 	var messageEmbed discordgo.MessageEmbed
 
 	switch notification.Type {
-	case config.LongNotify:
+	case config.LongNotification:
 		// generate Long notification message
 		messageEmbed = discordLongNotification(event)
 
-	case config.ShortNotify:
+	case config.ShortNotification:
 		// generate Short notification message
 		fallthrough
 

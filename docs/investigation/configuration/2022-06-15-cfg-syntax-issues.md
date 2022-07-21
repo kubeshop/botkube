@@ -327,7 +327,8 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
     communications:
       slack:
         token: 'SLACK_API_TOKEN'
-        notifyType: short
+        notification:
+          type: short
         policyBinding:
           - channel: "#dev"
             policies: development

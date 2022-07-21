@@ -20,10 +20,10 @@ type fact map[string]interface{}
 
 func formatTeamsMessage(event events.Event, notification config.Notification) map[string]interface{} {
 	switch notification.Type {
-	case config.LongNotify:
+	case config.LongNotification:
 		return teamsLongNotification(event)
 
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:

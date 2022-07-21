@@ -109,10 +109,10 @@ var Notify = true
 type NotificationType string
 
 const (
-	// ShortNotify is the Default NotificationType
-	ShortNotify NotificationType = "short"
-	// LongNotify for short events notification
-	LongNotify NotificationType = "long"
+	// ShortNotification is the default NotificationType
+	ShortNotification NotificationType = "short"
+	// LongNotification for short events notification
+	LongNotification NotificationType = "long"
 )
 
 // Config structure of configuration yaml file
@@ -323,8 +323,7 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
 }
 
 // FromEnvOrFlag resolves and returns paths for config files.
-// 1. from 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then:
-// 3. from '--config' flag.
+// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
 func FromEnvOrFlag() []string {
 	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
 	if envCfgs != "" {

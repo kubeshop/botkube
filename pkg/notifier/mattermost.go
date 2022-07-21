@@ -52,9 +52,9 @@ func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
 	var fields []*model.SlackAttachmentField
 
 	switch m.Notification.Type {
-	case config.LongNotify:
+	case config.LongNotification:
 		fields = mmLongNotification(event)
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:
