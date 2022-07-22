@@ -17,7 +17,10 @@ import (
 // go test -run=TestLoadConfigSuccess ./pkg/config/... -test.update-golden
 func TestLoadConfigSuccess(t *testing.T) {
 	// given
-	t.Setenv("BOTKUBE_COMMUNICATIONS_SLACK_TOKEN", "token-from-env")
+
+	// TODO: https://github.com/kubeshop/botkube/issues/655
+	// t.Setenv("BOTKUBE_COMMUNICATIONS_SLACK_TOKEN", "token-from-env")
+
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
@@ -27,8 +30,9 @@ func TestLoadConfigSuccess(t *testing.T) {
 		return []string{
 			"testdata/config-all.yaml",
 			"testdata/config-global.yaml",
-			"testdata/config-slack-override.yaml",
+			"testdata/config-slack-override.yaml", // TODO: https://github.com/kubeshop/botkube/issues/655
 			"testdata/analytics.yaml",
+			"testdata/executors.yaml",
 		}
 	})
 
@@ -42,6 +46,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	golden.Assert(t, string(gotData), filename)
 }
 
+// TODO: validate that has Executors[0].Kubectl.
 func TestFromEnvOrFlag(t *testing.T) {
 	var expConfigPaths = []string{
 		"configs/first.yaml",

@@ -1,6 +1,7 @@
 # Channels configuration
 communications:
-  # Settings for Slack
-  slack:
-    enabled: true
-    channel: 'config-slack-override'
+  - name: default-workspace
+    # Settings for Slack
+    slack:
+      enabled: true
+      channel: 'config-slack-override'

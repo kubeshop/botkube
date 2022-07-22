@@ -44,13 +44,13 @@ func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		log:              log,
 		reporter:         reporter,
 		executorFactory:  executorFactory,
-		Token:            c.Communications.Discord.Token,
-		BotID:            c.Communications.Discord.BotID,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		Token:            c.Communications[0].Discord.Token,
+		BotID:            c.Communications[0].Discord.BotID,
+		AllowKubectl:     c.Executors[0].Kubectl.Enabled,
+		RestrictAccess:   c.Executors[0].Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelID:        c.Communications.Discord.Channel,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		ChannelID:        c.Communications[0].Discord.Channel,
+		DefaultNamespace: c.Executors[0].Kubectl.DefaultNamespace,
 	}
 }
 

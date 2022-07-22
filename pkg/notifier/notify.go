@@ -28,7 +28,7 @@ type SinkAnalyticsReporter interface {
 }
 
 // LoadNotifiers returns list of configured notifiers
-func LoadNotifiers(log logrus.FieldLogger, conf config.CommunicationsConfig, reporter analytics.Reporter) ([]Notifier, error) {
+func LoadNotifiers(log logrus.FieldLogger, conf config.Communications, reporter analytics.Reporter) ([]Notifier, error) {
 	var notifiers []Notifier
 	if conf.Slack.Enabled {
 		notifiers = append(notifiers, NewSlack(log.WithField(notifierLogFieldKey, "Slack"), conf.Slack))

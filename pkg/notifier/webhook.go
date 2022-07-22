@@ -53,7 +53,7 @@ type EventStatus struct {
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(log logrus.FieldLogger, c config.CommunicationsConfig, reporter SinkAnalyticsReporter) (*Webhook, error) {
+func NewWebhook(log logrus.FieldLogger, c config.Communications, reporter SinkAnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:      log,
 		reporter: reporter,

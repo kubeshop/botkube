@@ -21,7 +21,7 @@ type ResourceMapping struct {
 // LoadResourceMappingIfShould initializes helper maps to allow kubectl execution for required resources.
 // If Kubectl support is disabled, it returns empty ResourceMapping without an error.
 func LoadResourceMappingIfShould(log logrus.FieldLogger, conf *config.Config, discoveryCli discovery.DiscoveryInterface) (ResourceMapping, error) {
-	if !conf.Settings.Kubectl.Enabled {
+	if !conf.Executors[0].Kubectl.Enabled {
 		log.Infof("Kubectl disabled. Finishing...")
 		return ResourceMapping{}, nil
 	}
@@ -33,10 +33,10 @@ func LoadResourceMappingIfShould(log logrus.FieldLogger, conf *config.Config, di
 		AllowedKubectlVerbMap:     make(map[string]bool),
 	}
 
-	for _, r := range conf.Settings.Kubectl.Commands.Resources {
+	for _, r := range conf.Executors[0].Kubectl.Commands.Resources {
 		resMapping.AllowedKubectlResourceMap[r] = true
 	}
-	for _, r := range conf.Settings.Kubectl.Commands.Verbs {
+	for _, r := range conf.Executors[0].Kubectl.Commands.Verbs {
 		resMapping.AllowedKubectlVerbMap[r] = true
 	}
 

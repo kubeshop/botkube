@@ -117,22 +117,34 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
-	Resources       []Resource           `yaml:"resources"`
-	Recommendations bool                 `yaml:"recommendations"`
-	Communications  CommunicationsConfig `yaml:"communications"`
-	Analytics       AnalyticsConfig      `yaml:"analytics"`
-	Settings        Settings             `yaml:"settings"`
+	Sources        []Sources        `yaml:"sources"`
+	Executors      []Executors      `yaml:"executors"`
+	Communications []Communications `yaml:"communications"`
+
+	Analytics Analytics `yaml:"analytics"`
+	Settings  Settings  `yaml:"settings"`
 }
 
-// AnalyticsConfig contains configuration parameters for analytics collection.
-type AnalyticsConfig struct {
+type Sources struct {
+	Name            string           `yaml:"name"`
+	Kubernetes      KubernetesSource `yaml:"kubernetes"`
+	Recommendations bool             `yaml:"recommendations"`
+}
+
+type KubernetesSource struct {
+	Resources []Resource `yaml:"resources"`
+}
+
+// Executors contains executors configuration parameters.
+type Executors struct {
+	Name    string  `yaml:"name"`
+	Kubectl Kubectl `yaml:"kubectl"`
+}
+
+// Analytics contains configuration parameters for analytics collection.
+type Analytics struct {
 	InstallationID string `yaml:"installationID"`
 	Disable        bool   `yaml:"disable"`
-}
-
-// Communications contains communication config
-type Communications struct {
-	Communications CommunicationsConfig `yaml:"communications"`
 }
 
 // Resource contains resources to watch
@@ -166,8 +178,9 @@ type Notification struct {
 	Type NotificationType
 }
 
-// CommunicationsConfig channels to send events to
-type CommunicationsConfig struct {
+// Communications channels to send events to
+type Communications struct {
+	Name          string        `yaml:"name"`
 	Slack         Slack         `yaml:"slack"`
 	Mattermost    Mattermost    `yaml:"mattermost"`
 	Discord       Discord       `yaml:"discord"`
@@ -262,11 +275,8 @@ type Commands struct {
 	Resources []string `yaml:"resources"`
 }
 
-// Settings for multicluster support
+// Settings contains BotKube's related configuration.
 type Settings struct {
-	// TODO: extract to `executors` in https://github.com/kubeshop/botkube/issues/596
-	Kubectl Kubectl `yaml:"kubectl"`
-
 	ClusterName     string `yaml:"clusterName"`
 	ConfigWatcher   bool   `yaml:"configWatcher"`
 	UpgradeNotifier bool   `yaml:"upgradeNotifier"`

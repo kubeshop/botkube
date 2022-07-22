@@ -70,15 +70,15 @@ func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory 
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		ServerURL:        c.Communications.Mattermost.URL,
-		BotName:          c.Communications.Mattermost.BotName,
-		Token:            c.Communications.Mattermost.Token,
-		TeamName:         c.Communications.Mattermost.Team,
-		ChannelName:      c.Communications.Mattermost.Channel,
+		ServerURL:        c.Communications[0].Mattermost.URL,
+		BotName:          c.Communications[0].Mattermost.BotName,
+		Token:            c.Communications[0].Mattermost.Token,
+		TeamName:         c.Communications[0].Mattermost.Team,
+		ChannelName:      c.Communications[0].Mattermost.Channel,
 		ClusterName:      c.Settings.ClusterName,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		AllowKubectl:     c.Executors[0].Kubectl.Enabled,
+		RestrictAccess:   c.Executors[0].Kubectl.RestrictAccess,
+		DefaultNamespace: c.Executors[0].Kubectl.DefaultNamespace,
 	}
 }
 

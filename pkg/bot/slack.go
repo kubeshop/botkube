@@ -48,12 +48,12 @@ func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		Token:            c.Communications.Slack.Token,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		Token:            c.Communications[0].Slack.Token,
+		AllowKubectl:     c.Executors[0].Kubectl.Enabled,
+		RestrictAccess:   c.Executors[0].Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelName:      c.Communications.Slack.Channel,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		ChannelName:      c.Communications[0].Slack.Channel,
+		DefaultNamespace: c.Executors[0].Kubectl.DefaultNamespace,
 	}
 }
 
