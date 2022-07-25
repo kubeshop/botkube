@@ -102,9 +102,6 @@ const (
 	SinkIntegrationType IntegrationType = "sink"
 )
 
-// Notify flag to toggle event notification
-var Notify = true
-
 // NotificationType to change notification type
 type NotificationType string
 

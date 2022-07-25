@@ -15,7 +15,7 @@ type Bot interface {
 
 // ExecutorFactory facilitates creation of execute.Executor instances.
 type ExecutorFactory interface {
-	NewDefault(platform config.CommPlatformIntegration, isAuthChannel bool, message string) execute.Executor
+	NewDefault(platform config.CommPlatformIntegration, notifierHandler execute.NotifierHandler, isAuthChannel bool, message string) execute.Executor
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.

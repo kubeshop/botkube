@@ -229,12 +229,6 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 
 	c.log.Debugf("Processing %s to %s/%v in %s namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
 
-	// Check if Notify disabled
-	if !config.Notify {
-		c.log.Debug("Skipping notification")
-		return
-	}
-
 	// Create new event object
 	event, err := events.New(objectMeta, obj, eventType, resource, c.conf.Settings.ClusterName)
 	if err != nil {

@@ -37,6 +37,7 @@ type MMBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notify          bool
 
 	Token            string
 	BotName          string
@@ -71,6 +72,7 @@ func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory 
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
+		notify:           true, // enabled by default
 		ServerURL:        mattermost.URL,
 		BotName:          mattermost.BotName,
 		Token:            mattermost.Token,
@@ -137,10 +139,21 @@ func (b *MMBot) IntegrationName() config.CommPlatformIntegration {
 	return config.MattermostCommPlatformIntegration
 }
 
+// Enabled returns current notification status.
+func (b *MMBot) Enabled() bool {
+	return b.notify
+}
+
+// SetEnabled sets a new notification status.
+func (b *MMBot) SetEnabled(value bool) error {
+	b.notify = value
+	return nil
+}
+
 // TODO: refactor - handle and send methods should be defined on Bot level
 
 // Check incoming message and take action
-func (mm *mattermostMessage) handleMessage(b MMBot) {
+func (mm *mattermostMessage) handleMessage(b *MMBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
@@ -161,7 +174,7 @@ func (mm *mattermostMessage) handleMessage(b MMBot) {
 	r := regexp.MustCompile(`^(?i)@BotKube `)
 	mm.Request = r.ReplaceAllString(post.Message, ``)
 
-	e := mm.executorFactory.NewDefault(b.IntegrationName(), mm.IsAuthChannel, mm.Request)
+	e := mm.executorFactory.NewDefault(b.IntegrationName(), b, mm.IsAuthChannel, mm.Request)
 	mm.Response = e.Execute()
 	mm.sendMessage()
 }
@@ -195,7 +208,7 @@ func (mm mattermostMessage) sendMessage() {
 }
 
 // Check if Mattermost server is reachable
-func (b MMBot) checkServerConnection() error {
+func (b *MMBot) checkServerConnection() error {
 	// Check api connection
 	if _, resp := b.APIClient.GetOldClientConfig(""); resp.Error != nil {
 		return resp.Error
@@ -210,7 +223,7 @@ func (b MMBot) checkServerConnection() error {
 }
 
 // Check if team exists in Mattermost
-func (b MMBot) getTeam() *model.Team {
+func (b *MMBot) getTeam() *model.Team {
 	botTeam, resp := b.APIClient.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
 		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
@@ -219,7 +232,7 @@ func (b MMBot) getTeam() *model.Team {
 }
 
 // Check if BotKube user exists in Mattermost
-func (b MMBot) getUser() *model.User {
+func (b *MMBot) getUser() *model.User {
 	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, b.BotName, 1, "")
 	if resp.Error != nil {
 		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.BotName, resp.Error)
@@ -228,7 +241,7 @@ func (b MMBot) getUser() *model.User {
 }
 
 // Create channel if not present and add BotKube user in channel
-func (b MMBot) getChannel() *model.Channel {
+func (b *MMBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
@@ -240,7 +253,7 @@ func (b MMBot) getChannel() *model.Channel {
 	return botChannel
 }
 
-func (b MMBot) listen(ctx context.Context) {
+func (b *MMBot) listen(ctx context.Context) {
 	b.WSClient.Listen()
 	defer b.WSClient.Close()
 	for {

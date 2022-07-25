@@ -17,6 +17,7 @@ type SlackBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        FatalErrorAnalyticsReporter
+	notify          bool
 
 	Token            string
 	AllowKubectl     bool
@@ -49,6 +50,7 @@ func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
+		notify:           true, // enabled by default
 		Token:            slack.Token,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
@@ -149,6 +151,17 @@ func (b *SlackBot) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }
 
+// Enabled returns current notification status.
+func (b *SlackBot) Enabled() bool {
+	return b.notify
+}
+
+// SetEnabled sets a new notification status.
+func (b *SlackBot) SetEnabled(value bool) error {
+	b.notify = value
+	return nil
+}
+
 // TODO: refactor - handle and send methods should be defined on Bot level
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) error {
@@ -176,7 +189,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) error {
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
-	e := sm.executorFactory.NewDefault(b.IntegrationName(), sm.IsAuthChannel, sm.Request)
+	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, sm.IsAuthChannel, sm.Request)
 	sm.Response = e.Execute()
 	err = sm.Send()
 	if err != nil {

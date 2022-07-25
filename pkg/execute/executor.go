@@ -9,7 +9,6 @@ import (
 	"unicode"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -18,8 +17,8 @@ import (
 )
 
 var (
-	// ValidNotifierCommand is a map of valid notifier commands
-	ValidNotifierCommand = map[string]bool{
+	// validNotifierCommand is a map of valid notifier commands
+	validNotifierCommand = map[string]bool{
 		"notifier": true,
 	}
 	validPingCommand = map[string]bool{
@@ -50,17 +49,14 @@ var (
 )
 
 const (
-	notifierStopMsg    = "Sure! I won't send you notifications from cluster '%s' anymore."
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
 	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
 
-	// NotifierStartMsg notifier enabled response message
-	NotifierStartMsg = "Brace yourselves, notifications are coming from cluster '%s'."
-	// IncompleteCmdMsg incomplete command response message
-	IncompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
+	// incompleteCmdMsg incomplete command response message
+	incompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
 	// WrongClusterCmdMsg incomplete command response message
 	WrongClusterCmdMsg = "Sorry, the admin hasn't configured me to do that for the cluster '%s'."
 
@@ -72,11 +68,13 @@ const (
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	cfg          config.Config
-	filterEngine filterengine.FilterEngine
-	log          logrus.FieldLogger
-	runCmdFn     CommandRunnerFunc
-	resMapping   ResourceMapping
+	cfg              config.Config
+	filterEngine     filterengine.FilterEngine
+	log              logrus.FieldLogger
+	runCmdFn         CommandRunnerFunc
+	resMapping       ResourceMapping
+	notifierExecutor *NotifierExecutor
+	notifierHandler  NotifierHandler
 
 	Message       string
 	IsAuthChannel bool
@@ -174,8 +172,26 @@ func (e *DefaultExecutor) Execute() string {
 			return e.runKubectlCommand(args)
 		}
 	}
-	if ValidNotifierCommand[args[0]] {
-		return e.runNotifierCommand(args, clusterName, e.IsAuthChannel)
+	if validNotifierCommand[args[0]] {
+		if !e.IsAuthChannel {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			return ""
+		}
+
+		res, err := e.notifierExecutor.Do(args, e.Platform, clusterName, e.notifierHandler)
+		if err != nil {
+			if err == errInvalidNotifierCommand {
+				return incompleteCmdMsg
+			}
+
+			if err == errUnsupportedCommand {
+				return unsupportedCmdMsg
+			}
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while executing notifier command: %s", err.Error())
+		}
+
+		return res
 	}
 	if validPingCommand[args[0]] {
 		res := e.runVersionCommand(args, clusterName)
@@ -284,58 +300,13 @@ func (e *DefaultExecutor) runKubectlCommand(args []string) string {
 }
 
 // TODO: Have a separate cli which runs bot commands
-func (e *DefaultExecutor) runNotifierCommand(args []string, clusterName string, isAuthChannel bool) string {
-	if !isAuthChannel {
-		return ""
-	}
-	if len(args) < 2 {
-		return IncompleteCmdMsg
-	}
-
-	var cmdVerb = args[1]
-	defer func() {
-		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(e.Platform, cmdToReport)
-		if err != nil {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while reporting notifier command: %s", err.Error())
-		}
-	}()
-
-	switch args[1] {
-	case Start.String():
-		config.Notify = true
-		e.log.Info("Notifier enabled")
-		return fmt.Sprintf(NotifierStartMsg, clusterName)
-	case Stop.String():
-		config.Notify = false
-		e.log.Info("Notifier disabled")
-		return fmt.Sprintf(notifierStopMsg, clusterName)
-	case Status.String():
-		if !config.Notify {
-			return fmt.Sprintf("Notifications are off for cluster '%s'", clusterName)
-		}
-		return fmt.Sprintf("Notifications are on for cluster '%s'", clusterName)
-	case ShowConfig.String():
-		out, err := e.showControllerConfig()
-		if err != nil {
-			e.log.Error("Error in executing showconfig command: ", err)
-			return "Error in getting configuration!"
-		}
-		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out)
-	}
-
-	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return e.printDefaultMsg(e.Platform)
-}
-
 // runFilterCommand to list, enable or disable filters
 func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if !isAuthChannel {
 		return ""
 	}
 	if len(args) < 2 {
-		return IncompleteCmdMsg
+		return incompleteCmdMsg
 	}
 
 	var cmdVerb = args[1]
@@ -386,7 +357,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return ""
 	}
 	if len(args) > 1 && args[1] != string(infoList) {
-		return IncompleteCmdMsg
+		return incompleteCmdMsg
 	}
 
 	err := e.analyticsReporter.ReportCommand(e.Platform, strings.Join(args, " "))
@@ -462,32 +433,6 @@ func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) s
 		}
 	}
 	return e.findBotKubeVersion()
-}
-
-const redactedSecretStr = "*** REDACTED ***"
-
-func (e *DefaultExecutor) showControllerConfig() (string, error) {
-	cfg := e.cfg
-
-	// hide sensitive info
-	// TODO: Refactor - split config into two files and avoid printing sensitive data
-	// 	without need to resetting them manually (which is an error-prone approach)
-	for key, old := range cfg.Communications {
-		old.Slack.Token = redactedSecretStr
-		old.Elasticsearch.Password = redactedSecretStr
-		old.Discord.Token = redactedSecretStr
-		old.Mattermost.Token = redactedSecretStr
-
-		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
-		cfg.Communications[key] = old
-	}
-
-	b, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }
 
 func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[string]bool) string {

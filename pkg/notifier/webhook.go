@@ -35,7 +35,7 @@ type WebhookPayload struct {
 	Warnings        []string    `json:"warnings,omitempty"`
 }
 
-// EventMeta contains the meta data about the event occurred
+// EventMeta contains the metadata about the event occurred
 type EventMeta struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`

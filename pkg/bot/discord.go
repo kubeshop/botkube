@@ -16,6 +16,7 @@ type DiscordBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notify          bool
 
 	Token            string
 	AllowKubectl     bool
@@ -30,21 +31,24 @@ type DiscordBot struct {
 type discordMessage struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
-	Event           *discordgo.MessageCreate
-	BotID           string
-	Request         string
-	Response        string
-	IsAuthChannel   bool
-	Session         *discordgo.Session
+
+	Event         *discordgo.MessageCreate
+	BotID         string
+	Request       string
+	Response      string
+	IsAuthChannel bool
+	Session       *discordgo.Session
 }
 
 // NewDiscordBot returns new Bot object
 func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *DiscordBot {
 	discord := c.Communications.GetFirst().Discord
 	return &DiscordBot{
-		log:              log,
-		reporter:         reporter,
-		executorFactory:  executorFactory,
+		log:             log,
+		reporter:        reporter,
+		executorFactory: executorFactory,
+		notify:          true, // enabled by default
+
 		Token:            discord.Token,
 		BotID:            discord.BotID,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
@@ -104,6 +108,17 @@ func (b *DiscordBot) IntegrationName() config.CommPlatformIntegration {
 	return config.DiscordCommPlatformIntegration
 }
 
+// Enabled returns current notification status.
+func (b *DiscordBot) Enabled() bool {
+	return b.notify
+}
+
+// SetEnabled sets a new notification status.
+func (b *DiscordBot) SetEnabled(value bool) error {
+	b.notify = value
+	return nil
+}
+
 // TODO: refactor - handle and send methods should be defined on Bot level
 
 // HandleMessage handles the incoming messages
@@ -129,7 +144,7 @@ func (dm *discordMessage) HandleMessage(b *DiscordBot) {
 		return
 	}
 
-	e := dm.executorFactory.NewDefault(b.IntegrationName(), dm.IsAuthChannel, dm.Request)
+	e := dm.executorFactory.NewDefault(b.IntegrationName(), b, dm.IsAuthChannel, dm.Request)
 
 	dm.Response = e.Execute()
 	dm.Send()
