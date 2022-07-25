@@ -478,7 +478,7 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 		old.Discord.Token = redactedSecretStr
 		old.Mattermost.Token = redactedSecretStr
 
-		// map are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
+		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
 		cfg.Communications[key] = old
 	}
 
