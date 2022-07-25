@@ -131,7 +131,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
 
     ```yaml
     sources:
-      - name: default
+      'default' # map key, name used for bindings
         kubernetes:
           # New 'namespace' property - allows Namespace restriction
           # It can be overridden in the nested level.
@@ -188,7 +188,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
 
     ```yaml
     executors:
-      - name: kubectl-read-only # name used for bindings
+      'kubectl-read-only' # map key, name used for bindings
         kubectl:
           # New 'namespace' property - allows Namespace restriction
           namespaces:
@@ -250,14 +250,15 @@ This section describes the necessary changes in the syntax. **It's not backward 
 
     ```yaml
     communications: # it' is a list so it allows to have e.g multiple Elasticsearch configurations
-      - name: tenant-b-workspace
+      'tenant-b-workspace': # map key
         slack:
           token: 'SLACK_API_TOKEN'
           # ...trimmed...
 
           # describe channel bindings
           channels:
-            - name: "#team-a"
+            'default': # map key
+              name: "#team-a"
               bindings:
                 sources:
                   - "nodes-errors"
@@ -271,10 +272,10 @@ This section describes the necessary changes in the syntax. **It's not backward 
 
           # ELS index bindings
           index:
-            - destination:
-                name: network-errors
-                type: botkube-event
-                shards: 1
+            'destination': # map key
+              name: network-errors
+              type: botkube-event
+              shards: 1
               bindings:
                 sources:
                   - "nodes-errors"
@@ -304,11 +305,13 @@ communications: # allows to have multiple slacks, or ES configurations
       token: 'SLACK_API_TOKEN'
       # customized notifications
       channels:
-        - name: "#nodes"
+				'nodes':
+          name: "#nodes"
           bindings:
             sources:
               - "nodes-errors"
-        - name: "#network"
+				'network':
+					name: "#network"
           bindings:
             sources:
               - "network-errors"
@@ -318,7 +321,7 @@ communications: # allows to have multiple slacks, or ES configurations
 
 ```yaml
 sources:
- - name: nodes-errors # name used for bindings
+ 'nodes-errors': # map key, name used for bindings
    kubernetes:
      resources:
        - name: v1/nodes
@@ -327,7 +330,7 @@ sources:
              - @all
          events:
            - error
-  - name: network-errors
+  'network-errors':
     kubernetes:
       namespace:
         include: ["@all"]
@@ -369,19 +372,22 @@ communications: # allows to have multiple slacks, or ES configurations
     slack:
       token: 'SLACK_API_TOKEN'
       channels:
-        - name: "#dev-team-a"
+        'dev-team-a':
+          name: "#dev-team-a"
           bindings:
             sources:
               - "team-a"
             executors:
               - "team-a"
-        - name: "#dev-team-b"
+        'dev-team-b':
+          name: "#dev-team-b"
           bindings:
             sources:
               - "team-b"
             executors:
               - "team-b"
-        - name: "#admin"
+        'admin':
+          name: "#admin"
           bindings:
             sources:
               - "team-a"
@@ -394,7 +400,7 @@ communications: # allows to have multiple slacks, or ES configurations
 **Sources**
 ```yaml
 sources:
-  - name: team-a
+  'team-a':  # map key, name used for bindings
     kubernetes:
       namespaces:
         include: ["team-a"]
@@ -405,7 +411,7 @@ sources:
             - delete
             - error
 
-  - name: team-b
+  'team-b':
     kubernetes:
       namespaces:
         include: ["team-b"]
@@ -420,14 +426,14 @@ sources:
 **Executors**
 ```yaml
 executors:
-  - name: team-a
+  'team-a':  # map key, name used for bindings
     kubectl:
       namespaces:
         include: ["team-b"]
       commands:
         verbs: ["get", "logs"]
         resources: ["Deployments", "Pods", "Services"]
-  - name: team-b
+  'team-b':
     kubectl:
       namespaces:
         include: ["team-b"]
@@ -447,17 +453,19 @@ With presented configuration:
 
 ```yaml
 communications:
-  - name: tenant-workspace
+  'tenant-workspace':  # map key
     slack:
       token: 'SLACK_API_TOKEN'
       channels:
-        - name: "#nodes"
+        'nodes':
+          name: "#nodes"
           bindings:
             sources:
               - nodes-errors
             executors:
               - kubectl-full-access
-        - name: "#all"
+        'all':
+          name: "#all"
           bindings:
             sources:
               - network-errors
@@ -466,11 +474,11 @@ communications:
               - kubectl-full-access
     elasticsearch:
       server: 'ELASTICSEARCH_ADDRESS'
-      index:
-        - destination:
-            name: network-errors
-            type: botkube-event
-            shards: 1
+      indices:
+        'for-network':
+          name: network-errors
+          type: botkube-event
+          shards: 1
           bindings:
             sources:
               - network-errors
@@ -479,7 +487,7 @@ communications:
 **Sources**
 ```yaml
 sources:
-  - name: nodes-errors
+  'nodes-errors':  # map key, name used for bindings
     kubernetes:
       resources:
         - name: v1/nodes
@@ -487,7 +495,7 @@ sources:
             include: ["@all"]
           events:
             - error
-  - name: network-errors
+  'network-errors':
     kubernetes:
       namespaces:
         include: ["@all"]
@@ -503,7 +511,7 @@ sources:
 **Executors**
 ```yaml
 executors:
-  - name: kubectl-full-access
+  'kubectl-full-access':  # map key, name used for bindings
     kubectl:
       namespaces:
         include: ["@all"]
@@ -521,25 +529,26 @@ With presented configuration:
 **Communicators**
 ```yaml
 communications: # allows to have multiple slacks, or ES configurations
-  - name: tenant-workspace
-  slack:
-    token: 'SLACK_API_TOKEN'
-    # customized notifications
-    channels:
-      - name: "#dev-team-a"
-        bindings:
-          executors:
-            - kubectl-team-a-ns-access
-      - name: "#admin"
-        bindings:
-          executors:
-            - kubectl-full-access
+  'tenant-workspace':  # map key
+    slack:
+      token: 'SLACK_API_TOKEN'
+      channels:
+        'dev-team-a':
+          name: "#dev-team-a"
+          bindings:
+            executors:
+              - kubectl-team-a-ns-access
+        'admin':
+          name: "#admin"
+          bindings:
+            executors:
+              - kubectl-full-access
 ```
 
 **Executors**
 ```yaml
 executors:
-  - name: kubectl-full-access
+  'kubectl-full-access':  # map key, name used for bindings
     kubectl:
       enabled: true
       namespaces:
@@ -547,7 +556,7 @@ executors:
       commands:
         verbs: ["get", "logs"]
         resources: ["Deployments", "Pods", "Services"]
-  - name: kubectl-team-a-ns-access
+  'kubectl-team-a-ns-access':
     kubectl:
       namespaces:
         include: ["team-a"]
@@ -568,7 +577,7 @@ We won't add a dedicated support to define a new source called "all-errors" and 
 **Sources**
 ```yaml
 sources:
-  - name: nodes-errors
+  'nodes-errors':
     kubernetes:
       resources: &nodes-errors
         - name: v1/nodes
@@ -576,7 +585,7 @@ sources:
             include: ["@all"]
           events:
             - error
-  - name: network-errors
+  'network-errors':
     kubernetes:
       namespaces:
         include: ["@all"]
@@ -587,7 +596,7 @@ sources:
         - name: networking.k8s.io/v1/ingresses
           events:
             - error
-  - name: all-errors
+  'all-errors':
     kubernetes:
       namespaces:
         include: ["@all"]
@@ -656,6 +665,60 @@ sources:
          events:
            - error
 ```
+
+## Use array instead of map
+
+We could also use an array for defining multiple configuration. For example:
+
+```yaml
+communications:
+  - name: tenant-workspace
+    slack:
+      token: 'SLACK_API_TOKEN'
+      channels:
+        - name: "#nodes"
+          namespace:
+            include: ["team-a"]
+          bindings:
+            sources:
+              - "nodes-errors"
+            executors:
+              - "kubectl-read-only"
+              - "helm-full-access"
+
+executors:
+  - name: kubectl-read-only
+    kubectl:
+      commands:
+        verbs: ["api-resources", "...", "auth"]
+        resources: ["deployments", "..", "nodes"]
+  - name: helm-full-access
+    helm:
+      commands:
+        verbs: ["list", "delete", "install"]
+
+sources:
+  - name: nodes-errors
+   kubernetes:
+     resources:
+       - name: v1/nodes
+         events:
+           - error
+```
+
+It gives us more descriptive and intuitive API, however, after evaluation we found such problems:
+- it's not easy to define an environment variable to override the `communications[*].slack.token` property
+- Helm doesn't support overriding array parameters. It replaces the whole array. For example:
+  ```yaml
+  # values.yaml
+  communications: # allows to have multiple slacks, or ES configurations
+  - name: tenant-workspace
+    slack:
+      enabled: true
+      token: 'SLACK_API_TOKEN'
+  ```
+  if installed with `helm install --set communications[0].slack.token="foo"`, the rest of the `slack` properties will be removed instead of merged. See related issue: https://github.com/helm/helm/issues/5711.
+- it requires additionally validation logic, e.g. check that a given channel is not specified multiple times, otherwise we would need to add specific merging strategy. For example, replace the previous occurrence or merge related properties with append/override option.
 
 </details>
 
