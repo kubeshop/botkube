@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -27,26 +27,27 @@ var attachmentColor = map[config.Level]string{
 
 // Slack contains Token for authentication with slack and Channel name to send notification to
 type Slack struct {
-	log       logrus.FieldLogger
-	Channel   string
-	NotifType config.NotifType
-	Client    *slack.Client
+	log logrus.FieldLogger
+
+	Channel      string
+	Notification config.Notification
+	Client       *slack.Client
 }
 
 // NewSlack returns new Slack object
 func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
-		log:       log,
-		Channel:   c.Channel,
-		NotifType: c.NotifType,
-		Client:    slack.New(c.Token),
+		log:          log,
+		Channel:      c.Channel,
+		Notification: c.Notification,
+		Client:       slack.New(c.Token),
 	}
 }
 
 // SendEvent sends event notification to slack
 func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
 	s.log.Debugf(">> Sending to slack: %+v", event)
-	attachment := formatSlackMessage(event, s.NotifType)
+	attachment := formatSlackMessage(event, s.Notification)
 
 	targetChannel := event.Channel
 	if targetChannel == "" {
@@ -82,6 +83,7 @@ func (s *Slack) SendEvent(ctx context.Context, event events.Event) error {
 
 		return postMessageWrappedErr
 	}
+
 	s.log.Debugf("Event successfully sent to channel %q at %s", channelID, timestamp)
 	return nil
 }
@@ -98,12 +100,12 @@ func (s *Slack) SendMessage(ctx context.Context, msg string) error {
 	return nil
 }
 
-func formatSlackMessage(event events.Event, notifyType config.NotifType) (attachment slack.Attachment) {
-	switch notifyType {
-	case config.LongNotify:
+func formatSlackMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
+	switch notification.Type {
+	case config.LongNotification:
 		attachment = slackLongNotification(event)
 
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:
@@ -194,7 +196,7 @@ func slackLongNotification(event events.Event) slack.Attachment {
 		})
 	}
 
-	// Add clustername in the message
+	// Add clusterName in the message
 	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
 		Title: "Cluster",
 		Value: event.Cluster,
@@ -319,4 +321,14 @@ func FormatShortMessage(event events.Event) (msg string) {
 		msg += fmt.Sprintf("```\n%s```", additionalMsg)
 	}
 	return msg
+}
+
+// IntegrationName describes the notifier integration name.
+func (s *Slack) IntegrationName() config.CommPlatformIntegration {
+	return config.SlackCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (s *Slack) Type() config.IntegrationType {
+	return config.BotIntegrationType
 }

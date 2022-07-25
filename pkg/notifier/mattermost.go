@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -16,10 +16,11 @@ import (
 
 // Mattermost contains server URL and token
 type Mattermost struct {
-	log       logrus.FieldLogger
-	Client    *model.Client4
-	Channel   string
-	NotifType config.NotifType
+	log logrus.FieldLogger
+
+	Client       *model.Client4
+	Channel      string
+	Notification config.Notification
 }
 
 // NewMattermost returns new Mattermost object
@@ -37,10 +38,10 @@ func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, er
 	}
 
 	return &Mattermost{
-		log:       log,
-		Client:    client,
-		Channel:   botChannel.Id,
-		NotifType: c.NotifType,
+		log:          log,
+		Client:       client,
+		Channel:      botChannel.Id,
+		Notification: c.Notification,
 	}, nil
 }
 
@@ -50,10 +51,10 @@ func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
 
 	var fields []*model.SlackAttachmentField
 
-	switch m.NotifType {
-	case config.LongNotify:
+	switch m.Notification.Type {
+	case config.LongNotification:
 		fields = mmLongNotification(event)
-	case config.ShortNotify:
+	case config.ShortNotification:
 		fallthrough
 
 	default:
@@ -130,6 +131,16 @@ func (m *Mattermost) SendMessage(_ context.Context, msg string) error {
 	return nil
 }
 
+// IntegrationName describes the notifier integration name.
+func (m *Mattermost) IntegrationName() config.CommPlatformIntegration {
+	return config.MattermostCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (m *Mattermost) Type() config.IntegrationType {
+	return config.BotIntegrationType
+}
+
 func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
 	fields := []*model.SlackAttachmentField{
 		{
@@ -201,7 +212,7 @@ func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
 		})
 	}
 
-	// Add clustername in the message
+	// Add clusterName in the message
 	fields = append(fields, &model.SlackAttachmentField{
 		Title: "Cluster",
 		Value: event.Cluster,

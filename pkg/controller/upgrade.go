@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-github/v44/github"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
@@ -28,12 +28,12 @@ type GitHubRepoClient interface {
 // UpgradeChecker checks for new BotKube releases.
 type UpgradeChecker struct {
 	log       logrus.FieldLogger
-	notifiers []notify.Notifier
+	notifiers []notifier.Notifier
 	ghRepoCli GitHubRepoClient
 }
 
 // NewUpgradeChecker creates a new instance of the Upgrade Checker.
-func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notify.Notifier, ghCli GitHubRepoClient) *UpgradeChecker {
+func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notifier.Notifier, ghCli GitHubRepoClient) *UpgradeChecker {
 	return &UpgradeChecker{log: log, notifiers: notifiers, ghRepoCli: ghCli}
 }
 

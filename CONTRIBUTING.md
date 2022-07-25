@@ -73,21 +73,20 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    ```sh
    cp resource_config.yaml.tpl resource_config.yaml
    cp comm_config.yaml.tpl comm_config.yaml
-   ``` 
+   ```
 
    Edit the newly created `resource_config.yaml` and `comm_config.yaml` files to configure resource and set communication credentials.
 
 3. Export the path to directory of `config.yaml`
 
    ```sh
-   # From project root directory
-   export CONFIG_PATH=$(pwd)
+   export BOTKUBE_CONFIG_PATHS="$(pwd)/resource_config.yaml,$(pwd)/comm_config.yaml"
    ```
 
 4. Export the path to Kubeconfig:
 
    ```sh
-   export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
+   export BOTKUBE_SETTINGS_KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
    ```
 
 5. Make sure you are able to access your Kubernetes cluster:
@@ -119,7 +118,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
   ```sh
   # From project root directory
-  make lint
+  make lint-fix
   ```
   This will run the `golangci-lint` tool to lint the Go code.
 

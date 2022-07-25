@@ -10,9 +10,6 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-
-	"github.com/kubeshop/botkube/pkg/filterengine/filters"
-
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +19,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 )
 
 type Config struct {
@@ -32,8 +31,8 @@ type Config struct {
 		ContainerName string        `envconfig:"default=botkube"`
 		WaitTimeout   time.Duration `envconfig:"default=3m"`
 		Envs          struct {
-			SlackEnabledName   string `envconfig:"default=COMMUNICATIONS_SLACK_ENABLED"`
-			SlackChannelIDName string `envconfig:"default=COMMUNICATIONS_SLACK_CHANNEL"`
+			SlackEnabledName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_SLACK_ENABLED"`
+			SlackChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_SLACK_CHANNEL"`
 		}
 	}
 	ClusterName string `envconfig:"default=sample"`
@@ -183,7 +182,7 @@ func TestSlack(t *testing.T) {
 			assertionFn := func(msg slack.Message) bool {
 				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
 					strings.Contains(msg.Text, "kube-root-ca.crt") &&
-					strings.Contains(msg.Text, "botkube-configmap")
+					strings.Contains(msg.Text, "botkube-global-config")
 			}
 
 			slackTester.PostMessageToBot(t, channel.Name, command)

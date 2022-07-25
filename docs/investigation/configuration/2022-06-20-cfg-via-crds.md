@@ -59,7 +59,7 @@ Defining configuration via CRD allows:
 - Out-of-the-box validation via Open API schema.
   - Currently, not available.
 - Configuration that will be cluster-wide and namespace-scoped.
-	- Currently, it's possible but not in a native K8s way.
+  - Currently, it's possible but not in a native K8s way.
 
 However, switching from config files to CRDs also adds some limitations:
 
@@ -328,7 +328,8 @@ metadata:
 spec:
   template: Slack
   parameters:
-    notiftype: short
+    notification:
+      type: short
     token:
       # value: <plain_data>
       valueFrom:
@@ -468,7 +469,8 @@ kind: ClusterSlack
 metadata:
   name: slack-instance
 spec:
-  notiftype: short
+  notification:
+    type: short
   token:
     # value: <plain_data>
     valueFrom:

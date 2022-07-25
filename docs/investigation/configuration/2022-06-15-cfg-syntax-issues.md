@@ -135,7 +135,7 @@ The resource configuration file contains:
     ```yaml
     settings:
       # Cluster name to differentiate incoming messages
-      clustername: not-configured
+      clusterName: not-configured
       # Kubectl executor configs
       kubectl:
         enabled: false
@@ -172,9 +172,9 @@ The resource configuration file contains:
     ```yaml
     settings:
       # Cluster name to differentiate incoming messages
-      clustername: not-configured
+      clusterName: not-configured
       # Set true to enable config watcher
-      configwatcher: true
+      configWatcher: true
       # Set false to disable upgrade notification
       upgradeNotifier: true
     ```
@@ -327,7 +327,8 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
     communications:
       slack:
         token: 'SLACK_API_TOKEN'
-        notiftype: short
+        notification:
+          type: short
         policyBinding:
           - channel: "#dev"
             policies: development

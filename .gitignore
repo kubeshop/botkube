@@ -30,6 +30,8 @@ tags
 ._*
 
 # App-specific files
-analytics.yaml
-resource_config.yaml
-comm_config.yaml
+/analytics.yaml
+/resource_config.yaml
+/comm_config.yaml
+
+/bin

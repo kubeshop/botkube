@@ -1,0 +1,36 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "installation-id",
+		"event": "Event handled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"event": {
+				"type": "create",
+				"apiVersion": "apps/v1",
+				"kind": "Deployment"
+			},
+			"platform": "slack",
+			"success": true,
+			"type": "bot"
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "1",
+		"anonymousId": "installation-id",
+		"event": "Event handled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"event": {
+				"type": "create",
+				"apiVersion": "apps/v1",
+				"kind": "Deployment"
+			},
+			"platform": "elasticsearch",
+			"success": true,
+			"type": "sink"
+		}
+	}
+]

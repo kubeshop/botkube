@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -15,6 +16,7 @@ import (
 type SlackBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
+	reporter        FatalErrorAnalyticsReporter
 
 	Token            string
 	AllowKubectl     bool
@@ -41,10 +43,11 @@ type slackMessage struct {
 }
 
 // NewSlackBot returns new Bot object
-func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *SlackBot {
+func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) *SlackBot {
 	return &SlackBot{
 		log:              log,
 		executorFactory:  executorFactory,
+		reporter:         reporter,
 		Token:            c.Communications.Slack.Token,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
 		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
@@ -71,7 +74,10 @@ func (b *SlackBot) Start(ctx context.Context) error {
 	}
 
 	rtm := api.NewRTM()
-	go rtm.ManageConnection()
+	go func() {
+		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
+		rtm.ManageConnection()
+	}()
 
 	for {
 		select {
@@ -86,6 +92,11 @@ func (b *SlackBot) Start(ctx context.Context) error {
 
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
+				err := b.reporter.ReportBotEnabled(b.IntegrationName())
+				if err != nil {
+					return fmt.Errorf("while reporting analytics: %w", err)
+				}
+
 				b.log.Info("BotKube connected to Slack!")
 
 			case *slack.MessageEvent:
@@ -132,6 +143,11 @@ func (b *SlackBot) Start(ctx context.Context) error {
 	}
 }
 
+// IntegrationName describes the notifier integration name.
+func (b *SlackBot) IntegrationName() config.CommPlatformIntegration {
+	return config.SlackCommPlatformIntegration
+}
+
 // TODO: refactor - handle and send methods should be defined on Bot level
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) error {
@@ -159,7 +175,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) error {
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
-	e := sm.executorFactory.NewDefault(config.SlackBot, sm.IsAuthChannel, sm.Request)
+	e := sm.executorFactory.NewDefault(b.IntegrationName(), sm.IsAuthChannel, sm.Request)
 	sm.Response = e.Execute()
 	err = sm.Send()
 	if err != nil {

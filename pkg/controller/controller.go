@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,10 +17,11 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
-	"github.com/kubeshop/botkube/pkg/notify"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
@@ -46,14 +48,29 @@ type KindNS struct {
 	Namespace string
 }
 
+// AnalyticsReporter defines a reporter that collects analytics data.
+type AnalyticsReporter interface {
+	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
+	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails) error
+
+	// ReportHandledEventError reports a failure while handling event using a given communication platform.
+	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails, err error) error
+
+	// ReportFatalError reports a fatal app error.
+	ReportFatalError(err error) error
+
+	// Close cleans up the reporter resources.
+	Close() error
+}
+
 // Controller watches Kubernetes resources and send events to notifiers.
 type Controller struct {
 	log                   logrus.FieldLogger
+	reporter              AnalyticsReporter
 	startTime             time.Time
 	conf                  *config.Config
-	notifiers             []notify.Notifier
+	notifiers             []notifier.Notifier
 	filterEngine          filterengine.FilterEngine
-	configPath            string
 	informersResyncPeriod time.Duration
 
 	dynamicCli dynamic.Interface
@@ -68,34 +85,31 @@ type Controller struct {
 // New create a new Controller instance.
 func New(log logrus.FieldLogger,
 	conf *config.Config,
-	notifiers []notify.Notifier,
+	notifiers []notifier.Notifier,
 	filterEngine filterengine.FilterEngine,
-	configPath string,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
+	reporter AnalyticsReporter,
 ) *Controller {
 	return &Controller{
 		log:                   log,
 		conf:                  conf,
 		notifiers:             notifiers,
 		filterEngine:          filterEngine,
-		configPath:            configPath,
 		dynamicCli:            dynamicCli,
 		mapper:                mapper,
 		informersResyncPeriod: informersResyncPeriod,
+		reporter:              reporter,
 	}
 }
 
 // Start creates new informer controllers to watch k8s resources
 func (c *Controller) Start(ctx context.Context) error {
-	err := c.initInformerMap()
-	if err != nil {
-		return fmt.Errorf("while initializing informer map: %w", err)
-	}
+	c.initInformerMap()
 
 	c.log.Info("Starting controller")
-	err = sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	err := sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}
@@ -298,17 +312,30 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Send event over notifiers
+	anonymousEvent := analytics.AnonymizedEventDetailsFrom(event)
 	for _, n := range c.notifiers {
-		go func(n notify.Notifier) {
+		go func(n notifier.Notifier) {
+			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
+
 			err := n.SendEvent(ctx, event)
 			if err != nil {
+				reportErr := c.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), anonymousEvent, err)
+				if reportErr != nil {
+					err = multierror.Append(err, fmt.Errorf("while reporting analytics: %w", reportErr))
+				}
+
 				c.log.Errorf("while sending event: %s", err.Error())
+			}
+
+			reportErr := c.reporter.ReportHandledEventSuccess(n.Type(), n.IntegrationName(), anonymousEvent)
+			if reportErr != nil {
+				c.log.Errorf("while reporting analytics: %w", err)
 			}
 		}(n)
 	}
 }
 
-func (c *Controller) initInformerMap() error {
+func (c *Controller) initInformerMap() {
 	// Create dynamic shared informer factory
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
@@ -358,7 +385,6 @@ func (c *Controller) initInformerMap() error {
 	}
 	c.log.Infof("Allowed Events: %+v", c.observedEventKindsMap)
 	c.log.Infof("Allowed UpdateEvents: %+v", c.observedUpdateEventsMap)
-	return nil
 }
 
 func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, error) {

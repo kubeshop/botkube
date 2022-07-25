@@ -23,21 +23,15 @@ type ErrorEvent struct {
 	GVR       schema.GroupVersionResource
 	Kind      string
 	Namespace string
-	Name      string
 	Specs     runtime.Object
 }
 
 // UpdateObjects stores specs and patch for updating a k8s fake object and expected Slack response
 type UpdateObjects struct {
-	GVR           schema.GroupVersionResource
-	Kind          string
-	Namespace     string
-	Name          string
-	Specs         runtime.Object
-	Patch         []byte
-	Diff          string
-	UpdateSetting config.UpdateSetting
-	NotifType     config.NotifType
+	GVR       schema.GroupVersionResource
+	Kind      string
+	Namespace string
+	Specs     runtime.Object
 }
 
 // DeleteObjects stores specs for deleting a k8s fake object
@@ -45,7 +39,6 @@ type DeleteObjects struct {
 	GVR       schema.GroupVersionResource
 	Kind      string
 	Namespace string
-	Name      string
 	Specs     runtime.Object
 }
 

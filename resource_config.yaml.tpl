@@ -4,7 +4,7 @@ resources:
   - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                               # resource name should be plural (e.g apps/v1/deployments, v1/pods)
     namespaces:               # List of namespaces, "all" will watch all the namespaces
-      include:  
+      include:
         - all
       ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
         -                     # example : include [all], ignore [x,y,secret-ns-*]
@@ -14,7 +14,7 @@ resources:
       - error
   - name: v1/services
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -24,7 +24,7 @@ resources:
       - error
   - name: apps/v1/deployments
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -40,7 +40,7 @@ resources:
         - status.availableReplicas
   - name: apps/v1/statefulsets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -56,7 +56,7 @@ resources:
         - status.readyReplicas
   - name: networking.k8s.io/v1/ingresses
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -66,7 +66,7 @@ resources:
       - error
   - name: v1/nodes
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -76,7 +76,7 @@ resources:
       - error
   - name: v1/namespaces
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -86,7 +86,7 @@ resources:
       - error
   - name: v1/persistentvolumes
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -96,7 +96,7 @@ resources:
       - error
   - name: v1/persistentvolumeclaims
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -106,7 +106,7 @@ resources:
       - error
   - name: v1/secrets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -116,7 +116,7 @@ resources:
       - error
   - name: v1/configmaps
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -126,7 +126,7 @@ resources:
       - error
   - name: apps/v1/daemonsets
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -142,7 +142,7 @@ resources:
         - status.numberReady
   - name: batch/v1/jobs
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -158,7 +158,7 @@ resources:
         - status.conditions[*].type
   - name: rbac.authorization.k8s.io/v1/roles
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -168,7 +168,7 @@ resources:
       - error
   - name: rbac.authorization.k8s.io/v1/rolebindings
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -178,7 +178,7 @@ resources:
       - error
   - name: rbac.authorization.k8s.io/v1/clusterrolebindings
     namespaces:
-      include:  
+      include:
         - all
       ignore:
         -
@@ -203,7 +203,7 @@ recommendations: true
 # Setting to support multiple clusters
 settings:
   # Cluster name to differentiate incoming messages
-  clustername: not-configured
+  clusterName: not-configured
   # Kubectl executor configs
   kubectl:
     # Set true to enable kubectl commands execution
@@ -219,6 +219,6 @@ settings:
     # Set true to enable commands execution from configured channel only
     restrictAccess: false
   # Set true to enable config watcher
-  configwatcher: true
+  configWatcher: true
   # Set false to disable upgrade notification
   upgradeNotifier: true

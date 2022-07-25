@@ -42,7 +42,9 @@ var _ Bot = (*Teams)(nil)
 type Teams struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
+	reporter        AnalyticsReporter
 
+	BotName          string
 	AppID            string
 	AppPassword      string
 	MessagePath      string
@@ -50,7 +52,7 @@ type Teams struct {
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
-	NotifType        config.NotifType
+	Notification     config.Notification
 	Adapter          core.Adapter
 	DefaultNamespace string
 
@@ -62,7 +64,7 @@ type consentContext struct {
 }
 
 // NewTeamsBot returns Teams instance
-func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory) *Teams {
+func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
 	// Set notifier off by default
 	config.Notify = false
 	port := c.Communications.Teams.Port
@@ -76,9 +78,11 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 	return &Teams{
 		log:              log,
 		executorFactory:  executorFactory,
+		reporter:         reporter,
+		BotName:          c.Communications.Teams.BotName,
 		AppID:            c.Communications.Teams.AppID,
 		AppPassword:      c.Communications.Teams.AppPassword,
-		NotifType:        c.Communications.Teams.NotifType,
+		Notification:     c.Communications.Teams.Notification,
 		MessagePath:      msgPath,
 		Port:             port,
 		AllowKubectl:     c.Settings.Kubectl.Enabled,
@@ -105,6 +109,11 @@ func (b *Teams) Start(ctx context.Context) error {
 
 	router := mux.NewRouter()
 	router.PathPrefix(b.MessagePath).HandlerFunc(b.processActivity)
+
+	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	if err != nil {
+		return fmt.Errorf("while reporting analytics: %w", err)
+	}
 
 	srv := httpsrv.New(b.log, addr, router)
 	err = srv.Serve(ctx)
@@ -195,8 +204,10 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, err
 			}
 
-			msg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(consentCtx.Command), "<at>BotKube</at>"))
-			e := b.executorFactory.NewDefault(config.TeamsBot, true, msg)
+			msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
+			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
+			msg := strings.TrimSpace(msgWithoutPrefix)
+			e := b.executorFactory.NewDefault(b.IntegrationName(), true, msg)
 			out := e.Execute()
 
 			actJSON, _ := json.MarshalIndent(turn.Activity, "", "  ")
@@ -229,8 +240,9 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 }
 
 func (b *Teams) processMessage(activity schema.Activity) string {
-	// Trim @BotKube prefix
-	msg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(activity.Text), "<at>BotKube</at>"))
+	msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
+	msgWithoutPrefix := strings.TrimPrefix(activity.Text, msgPrefix)
+	msg := strings.TrimSpace(msgWithoutPrefix)
 
 	// User needs to execute "notifier start" cmd to enable notifications
 	// Parse "notifier" command and set conversation reference
@@ -253,7 +265,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	}
 
 	// Multicluster is not supported for Teams
-	e := b.executorFactory.NewDefault(config.TeamsBot, true, msg)
+	e := b.executorFactory.NewDefault(b.IntegrationName(), true, msg)
 	return formatCodeBlock(e.Execute())
 }
 
@@ -289,10 +301,11 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
-	card := formatTeamsMessage(event, b.NotifType)
+	card := formatTeamsMessage(event, b.Notification)
 	if err := b.sendProactiveMessage(ctx, card); err != nil {
-		b.log.Errorf("Failed to send notification. %s", err.Error())
+		return fmt.Errorf("while sending notification: %w", err)
 	}
+
 	b.log.Debugf("Event successfully sent to MS Teams >> %+v", event)
 	return nil
 }
@@ -313,6 +326,16 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 	}
 	b.log.Debug("Message successfully sent to MS Teams")
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (b *Teams) IntegrationName() config.CommPlatformIntegration {
+	return config.TeamsCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (b *Teams) Type() config.IntegrationType {
+	return config.BotIntegrationType
 }
 
 func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interface{}) error {

@@ -1,16 +1,37 @@
 package config
 
 import (
+	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/knadh/koanf"
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	"gopkg.in/yaml.v3"
+	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/spf13/pflag"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+//go:embed default.yaml
+var defaultConfiguration []byte
+
+var configPathsFlag []string
+
+const (
+	configEnvVariablePrefix = "BOTKUBE_"
+	configDelimiter         = "."
+	camelCaseDelimiter      = "__"
+	nestedFieldDelimiter    = "_"
+)
+
+// EventType to watch
+type EventType string
 
 const (
 	// CreateEvent when resource is created
@@ -29,11 +50,12 @@ const (
 	InfoEvent EventType = "info"
 	// AllEvent to watch all events
 	AllEvent EventType = "all"
-	// ShortNotify is the Default NotifType
-	ShortNotify NotifType = "short"
-	// LongNotify for short events notification
-	LongNotify NotifType = "long"
+)
 
+// Level type to store event levels
+type Level string
+
+const (
 	// Info level
 	Info Level = "info"
 	// Warn level
@@ -44,66 +66,87 @@ const (
 	Error Level = "error"
 	// Critical level
 	Critical Level = "critical"
-
-	// SlackBot bot platform
-	SlackBot BotPlatform = "slack"
-	// MattermostBot bot platform
-	MattermostBot BotPlatform = "mattermost"
-	// TeamsBot bot platform
-	TeamsBot BotPlatform = "teams"
-	// DiscordBot bot Platform
-	DiscordBot BotPlatform = "discord"
-
-	communicationEnvVariablePrefix = "COMMUNICATIONS_"
-	communicationConfigDelimiter   = "."
 )
 
-// EventType to watch
-type EventType string
+// CommPlatformIntegration defines integrations with communication platforms.
+type CommPlatformIntegration string
 
-// Level type to store event levels
-type Level string
+const (
+	// SlackCommPlatformIntegration defines Slack integration.
+	SlackCommPlatformIntegration CommPlatformIntegration = "slack"
 
-// BotPlatform supported by BotKube
-type BotPlatform string
+	// MattermostCommPlatformIntegration defines Mattermost integration.
+	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
 
-// ResourceConfigFileName is a name of BotKube resource configuration file
-var ResourceConfigFileName = "resource_config.yaml"
+	// TeamsCommPlatformIntegration defines Teams integration.
+	TeamsCommPlatformIntegration CommPlatformIntegration = "teams"
 
-// CommunicationConfigFileName is a name of BotKube communication configuration file
-var CommunicationConfigFileName = "comm_config.yaml"
+	// DiscordCommPlatformIntegration defines Discord integration.
+	DiscordCommPlatformIntegration CommPlatformIntegration = "discord"
+
+	//ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
+	ElasticsearchCommPlatformIntegration CommPlatformIntegration = "elasticsearch"
+
+	// WebhookCommPlatformIntegration defines an outgoing webhook integration.
+	WebhookCommPlatformIntegration CommPlatformIntegration = "webhook"
+)
+
+// IntegrationType describes the type of integration with a communication platform.
+type IntegrationType string
+
+const (
+	// BotIntegrationType describes two-way integration.
+	BotIntegrationType IntegrationType = "bot"
+
+	// SinkIntegrationType describes one-way integration.
+	SinkIntegrationType IntegrationType = "sink"
+)
 
 // Notify flag to toggle event notification
 var Notify = true
 
-// NotifType to change notification type
-type NotifType string
+// NotificationType to change notification type
+type NotificationType string
+
+const (
+	// ShortNotification is the default NotificationType
+	ShortNotification NotificationType = "short"
+	// LongNotification for short events notification
+	LongNotification NotificationType = "long"
+)
 
 // Config structure of configuration yaml file
 type Config struct {
-	Resources       []Resource
-	Recommendations bool
-	Communications  CommunicationsConfig
-	Settings        Settings
+	Resources       []Resource           `yaml:"resources"`
+	Recommendations bool                 `yaml:"recommendations"`
+	Communications  CommunicationsConfig `yaml:"communications"`
+	Analytics       AnalyticsConfig      `yaml:"analytics"`
+	Settings        Settings             `yaml:"settings"`
+}
+
+// AnalyticsConfig contains configuration parameters for analytics collection.
+type AnalyticsConfig struct {
+	InstallationID string `yaml:"installationID"`
+	Disable        bool   `yaml:"disable"`
 }
 
 // Communications contains communication config
 type Communications struct {
-	Communications CommunicationsConfig
+	Communications CommunicationsConfig `yaml:"communications"`
 }
 
 // Resource contains resources to watch
 type Resource struct {
-	Name          string
-	Namespaces    Namespaces
-	Events        []EventType
+	Name          string        `yaml:"name"`
+	Namespaces    Namespaces    `yaml:"namespaces"`
+	Events        []EventType   `yaml:"events"`
 	UpdateSetting UpdateSetting `yaml:"updateSetting"`
 }
 
 //UpdateSetting struct defines updateEvent fields specification
 type UpdateSetting struct {
-	Fields      []string
-	IncludeDiff bool `yaml:"includeDiff"`
+	Fields      []string `yaml:"fields"`
+	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
 // Namespaces contains namespaces to include and ignore
@@ -114,171 +157,201 @@ type UpdateSetting struct {
 // It can also contain a * that would expand to zero or more arbitrary characters
 // example : include [all], ignore [x,y,secret-ns-*]
 type Namespaces struct {
-	Include []string
-	Ignore  []string `yaml:",omitempty"`
+	Include []string `yaml:"include"`
+	Ignore  []string `yaml:"ignore,omitempty"`
+}
+
+// Notification holds notification configuration.
+type Notification struct {
+	Type NotificationType
 }
 
 // CommunicationsConfig channels to send events to
 type CommunicationsConfig struct {
-	Slack         Slack
-	Mattermost    Mattermost
-	Discord       Discord
-	Webhook       Webhook
-	Teams         Teams
-	ElasticSearch ElasticSearch
+	Slack         Slack         `yaml:"slack"`
+	Mattermost    Mattermost    `yaml:"mattermost"`
+	Discord       Discord       `yaml:"discord"`
+	Webhook       Webhook       `yaml:"webhook"`
+	Teams         Teams         `yaml:"teams"`
+	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
 }
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled   bool
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
-	Token     string    `yaml:",omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
+	Token        string       `yaml:"token,omitempty"`
 }
 
-// ElasticSearch config auth settings
-type ElasticSearch struct {
-	Enabled       bool
-	Username      string
-	Password      string `yaml:",omitempty"`
-	Server        string
+// Elasticsearch config auth settings
+type Elasticsearch struct {
+	Enabled       bool       `yaml:"enabled"`
+	Username      string     `yaml:"username"`
+	Password      string     `yaml:"password"`
+	Server        string     `yaml:"server"`
 	SkipTLSVerify bool       `yaml:"skipTLSVerify"`
 	AWSSigning    AWSSigning `yaml:"awsSigning"`
-	Index         Index
+	Index         Index      `yaml:"index"`
 }
 
 // AWSSigning contains AWS configurations
 type AWSSigning struct {
-	Enabled   bool
+	Enabled   bool   `yaml:"enabled"`
 	AWSRegion string `yaml:"awsRegion"`
 	RoleArn   string `yaml:"roleArn"`
 }
 
 // Index settings for ELS
 type Index struct {
-	Name     string
-	Type     string
-	Shards   int
-	Replicas int
+	Name     string `yaml:"name"`
+	Type     string `yaml:"type"`
+	Shards   int    `yaml:"shards"`
+	Replicas int    `yaml:"replicas"`
 }
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled   bool
-	BotName   string `yaml:"botName"`
-	URL       string
-	Token     string
-	Team      string
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	BotName      string       `yaml:"botName"`
+	URL          string       `yaml:"url"`
+	Token        string       `yaml:"token"`
+	Team         string       `yaml:"team"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Teams creds for authentication with MS Teams
 type Teams struct {
-	Enabled     bool
-	AppID       string `yaml:"appID,omitempty"`
-	AppPassword string `yaml:"appPassword,omitempty"`
-	Team        string
-	Port        string
-	MessagePath string    `yaml:"messagePath,omitempty"`
-	NotifType   NotifType `yaml:",omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	BotName      string       `yaml:"botName,omitempty"`
+	AppID        string       `yaml:"appID,omitempty"`
+	AppPassword  string       `yaml:"appPassword,omitempty"`
+	Team         string       `yaml:"team"`
+	Port         string       `yaml:"port"`
+	MessagePath  string       `yaml:"messagePath,omitempty"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled   bool
-	Token     string
-	BotID     string
-	Channel   string
-	NotifType NotifType `yaml:",omitempty"`
+	Enabled      bool         `yaml:"enabled"`
+	Token        string       `yaml:"token"`
+	BotID        string       `yaml:"botID"`
+	Channel      string       `yaml:"channel"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
 type Webhook struct {
-	Enabled bool
-	URL     string
+	Enabled bool   `yaml:"enabled"`
+	URL     string `yaml:"url"`
 }
 
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
-	Enabled          bool
-	Commands         Commands
-	DefaultNamespace string `yaml:"defaultNamespace"`
-	RestrictAccess   bool   `yaml:"restrictAccess"`
+	Enabled          bool     `yaml:"enabled"`
+	Commands         Commands `yaml:"commands"`
+	DefaultNamespace string   `yaml:"defaultNamespace"`
+	RestrictAccess   bool     `yaml:"restrictAccess"`
 }
 
 // Commands allowed in bot
 type Commands struct {
-	Verbs     []string
-	Resources []string
+	Verbs     []string `yaml:"verbs"`
+	Resources []string `yaml:"resources"`
 }
 
 // Settings for multicluster support
 type Settings struct {
-	ClusterName     string
-	Kubectl         Kubectl
-	ConfigWatcher   bool
-	UpgradeNotifier bool `yaml:"upgradeNotifier"`
+	// TODO: extract to `executors` in https://github.com/kubeshop/botkube/issues/596
+	Kubectl Kubectl `yaml:"kubectl"`
+
+	ClusterName     string `yaml:"clusterName"`
+	ConfigWatcher   bool   `yaml:"configWatcher"`
+	UpgradeNotifier bool   `yaml:"upgradeNotifier"`
+
+	MetricsPort string `yaml:"metricsPort"`
+	Log         struct {
+		Level         string `yaml:"level"`
+		DisableColors bool   `yaml:"disableColors"`
+	} `yaml:"log"`
+	InformersResyncPeriod time.Duration `yaml:"informersResyncPeriod"`
+	Kubeconfig            string        `yaml:"kubeconfig"`
 }
 
 func (eventType EventType) String() string {
 	return string(eventType)
 }
 
-// NewCommunicationsConfig return new communication config object
-func NewCommunicationsConfig() (*Communications, error) {
-	configPath := os.Getenv("CONFIG_PATH")
-	commCfgFilePath := filepath.Join(configPath, CommunicationConfigFileName)
+// PathsGetter returns the list of absolute paths to the config files.
+type PathsGetter func() []string
 
-	k := koanf.New(communicationConfigDelimiter)
+// LoadWithDefaults loads new configuration from files and environment variables.
+func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
+	configPaths := getCfgPaths()
+	k := koanf.New(configDelimiter)
 
-	// Load base YAML config.
-	if err := k.Load(file.Provider(filepath.Clean(commCfgFilePath)), koanfyaml.Parser()); err != nil {
-		return nil, err
+	// load default settings
+	if err := k.Load(rawbytes.Provider(defaultConfiguration), koanfyaml.Parser()); err != nil {
+		return nil, nil, fmt.Errorf("while loading default configuration: %w", err)
 	}
 
-	// Load environment variables and merge into the loaded config.
+	// merge with user conf files
+	for _, path := range configPaths {
+		if err := k.Load(file.Provider(filepath.Clean(path)), koanfyaml.Parser()); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// LoadWithDefaults environment variables and merge into the loaded config.
 	err := k.Load(env.Provider(
-		communicationEnvVariablePrefix,
-		communicationConfigDelimiter,
-		normalizeCommunicationConfigEnvName,
+		configEnvVariablePrefix,
+		configDelimiter,
+		normalizeConfigEnvName,
 	), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var cfg Communications
+	var cfg Config
 	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "yaml"})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &cfg, nil
+	return &cfg, configPaths, nil
 }
 
-func normalizeCommunicationConfigEnvName(name string) string {
-	name = strings.ToLower(name)
-	return strings.ReplaceAll(name, "_", ".")
+// FromEnvOrFlag resolves and returns paths for config files.
+// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
+func FromEnvOrFlag() []string {
+	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
+	if envCfgs != "" {
+		return strings.Split(envCfgs, ",")
+	}
+
+	return configPathsFlag
 }
 
-// Load loads new configuration from file.
-func Load(dir string) (*Config, error) {
-	resCfgFilePath := filepath.Join(dir, ResourceConfigFileName)
-	rawCfg, err := os.ReadFile(filepath.Clean(resCfgFilePath))
-	if err != nil {
-		return nil, err
+// RegisterFlags registers config related flags.
+func RegisterFlags(flags *pflag.FlagSet) {
+	flags.StringSliceVarP(&configPathsFlag, "config", "c", nil, "Specify configuration file in YAML format (can specify multiple).")
+}
+
+func normalizeConfigEnvName(name string) string {
+	name = strings.TrimPrefix(name, configEnvVariablePrefix)
+
+	words := strings.Split(name, camelCaseDelimiter)
+	toTitle := cases.Title(language.AmericanEnglish)
+
+	var buff strings.Builder
+
+	buff.WriteString(strings.ToLower(words[0]))
+	for _, word := range words[1:] {
+		word = strings.ToLower(word)
+		buff.WriteString(toTitle.String(word))
 	}
 
-	cfg := &Config{}
-	if err := yaml.Unmarshal(rawCfg, cfg); err != nil {
-		return nil, err
-	}
-
-	comm, err := NewCommunicationsConfig()
-	if err != nil {
-		return nil, err
-	}
-	cfg.Communications = comm.Communications
-
-	return cfg, nil
+	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
 }

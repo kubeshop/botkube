@@ -1,4 +1,4 @@
-package notify
+package notifier
 
 import (
 	"context"
@@ -34,20 +34,22 @@ const (
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
-// ElasticSearch contains auth cred and index setting
-type ElasticSearch struct {
-	log           logrus.FieldLogger
+// Elasticsearch contains auth cred and index setting
+type Elasticsearch struct {
+	log      logrus.FieldLogger
+	reporter SinkAnalyticsReporter
+
 	ELSClient     *elastic.Client
 	Server        string
 	SkipTLSVerify bool
 	Index         string
 	Shards        int
 	Replicas      int
-	Type          string
+	IndexType     string
 }
 
-// NewElasticSearch returns new ElasticSearch object
-func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch) (*ElasticSearch, error) {
+// NewElasticSearch returns new Elasticsearch object
+func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter SinkAnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
@@ -107,14 +109,23 @@ func NewElasticSearch(log logrus.FieldLogger, c config.ElasticSearch) (*ElasticS
 			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
 		}
 	}
-	return &ElasticSearch{
+
+	esNotifier := &Elasticsearch{
 		log:       log,
+		reporter:  reporter,
 		ELSClient: elsClient,
 		Index:     c.Index.Name,
-		Type:      c.Index.Type,
+		IndexType: c.Index.Type,
 		Shards:    c.Index.Shards,
 		Replicas:  c.Index.Replicas,
-	}, nil
+	}
+
+	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
+	if err != nil {
+		return nil, fmt.Errorf("while reporting analytics: %w", err)
+	}
+
+	return esNotifier, nil
 }
 
 type mapping struct {
@@ -129,7 +140,7 @@ type index struct {
 	Replicas int `json:"number_of_replicas"`
 }
 
-func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error {
+func (e *Elasticsearch) flushIndex(ctx context.Context, event interface{}) error {
 	// Construct the ELS Index Name with timestamp suffix
 	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
@@ -154,7 +165,7 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(indexName).Type(e.Type).BodyJson(event).Do(ctx)
+	_, err = e.ELSClient.Index().Index(indexName).Type(e.IndexType).BodyJson(event).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while posting data to ELS: %w", err)
 	}
@@ -162,22 +173,33 @@ func (e *ElasticSearch) flushIndex(ctx context.Context, event interface{}) error
 	if err != nil {
 		return fmt.Errorf("while flushing data in ELS: %w", err)
 	}
-	e.log.Debugf("Event successfully sent to ElasticSearch index %s", indexName)
+	e.log.Debugf("Event successfully sent to Elasticsearch index %s", indexName)
 	return nil
 }
 
-// SendEvent sends event notification to ElasticSearch
-func (e *ElasticSearch) SendEvent(ctx context.Context, event events.Event) (err error) {
-	e.log.Debugf(">> Sending to ElasticSearch: %+v", event)
+// SendEvent sends event notification to Elasticsearch
+func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err error) {
+	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	// Create index if not exists
 	if err := e.flushIndex(ctx, event); err != nil {
-		return err
+		return fmt.Errorf("while sending event to Elasticsearch: %w", err)
 	}
+
 	return nil
 }
 
 // SendMessage is no-op
-func (e *ElasticSearch) SendMessage(_ context.Context, _ string) error {
+func (e *Elasticsearch) SendMessage(_ context.Context, _ string) error {
 	return nil
+}
+
+// IntegrationName describes the notifier integration name.
+func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
+	return config.ElasticsearchCommPlatformIntegration
+}
+
+// Type describes the notifier type.
+func (e *Elasticsearch) Type() config.IntegrationType {
+	return config.SinkIntegrationType
 }
