@@ -38,7 +38,7 @@ type Slack struct {
 func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
 		log:          log,
-		Channel:      c.Channel,
+		Channel:      c.Channels.GetFirst().Name,
 		Notification: c.Notification,
 		Client:       slack.New(c.Token),
 	}

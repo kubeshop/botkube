@@ -117,27 +117,44 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
-	Sources        []Sources        `yaml:"sources"`
-	Executors      []Executors      `yaml:"executors"`
-	Communications []Communications `yaml:"communications"`
+	Sources        IndexableMap[Sources]        `yaml:"sources"`
+	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required,eq=1"`
+	Communications IndexableMap[Communications] `yaml:"communications"  validate:"required,eq=1"`
 
 	Analytics Analytics `yaml:"analytics"`
 	Settings  Settings  `yaml:"settings"`
 }
 
+// ChannelBindings contains configuration bindings per channel.
+type ChannelBindings struct {
+	Name     string      `yaml:"name"`
+	Bindings BotBindings `yaml:"bindings"`
+}
+
+// BotBindings contains configuration for possible Bot bindings.
+type BotBindings struct {
+	Sources   []string `yaml:"sources"`
+	Executors []string `yaml:"executors"`
+}
+
+// SinkBindings contains configuration for possible Sink bindings.
+type SinkBindings struct {
+	Sources []string `yaml:"sources"`
+}
+
+// Sources contains configuration for BotKube app sources.
 type Sources struct {
-	Name            string           `yaml:"name"`
 	Kubernetes      KubernetesSource `yaml:"kubernetes"`
 	Recommendations bool             `yaml:"recommendations"`
 }
 
+// KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
 	Resources []Resource `yaml:"resources"`
 }
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Name    string  `yaml:"name"`
 	Kubectl Kubectl `yaml:"kubectl"`
 }
 
@@ -180,32 +197,31 @@ type Notification struct {
 
 // Communications channels to send events to
 type Communications struct {
-	Name          string        `yaml:"name"`
 	Slack         Slack         `yaml:"slack"`
 	Mattermost    Mattermost    `yaml:"mattermost"`
 	Discord       Discord       `yaml:"discord"`
-	Webhook       Webhook       `yaml:"webhook"`
 	Teams         Teams         `yaml:"teams"`
+	Webhook       Webhook       `yaml:"webhook"`
 	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
 }
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled      bool         `yaml:"enabled"`
-	Channel      string       `yaml:"channel"`
-	Notification Notification `yaml:"notification,omitempty"`
-	Token        string       `yaml:"token,omitempty"`
+	Enabled      bool                          `yaml:"enabled"`
+	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                  `yaml:"notification,omitempty"`
+	Token        string                        `yaml:"token,omitempty"`
 }
 
 // Elasticsearch config auth settings
 type Elasticsearch struct {
-	Enabled       bool       `yaml:"enabled"`
-	Username      string     `yaml:"username"`
-	Password      string     `yaml:"password"`
-	Server        string     `yaml:"server"`
-	SkipTLSVerify bool       `yaml:"skipTLSVerify"`
-	AWSSigning    AWSSigning `yaml:"awsSigning"`
-	Index         Index      `yaml:"index"`
+	Enabled       bool                   `yaml:"enabled"`
+	Username      string                 `yaml:"username"`
+	Password      string                 `yaml:"password"`
+	Server        string                 `yaml:"server"`
+	SkipTLSVerify bool                   `yaml:"skipTLSVerify"`
+	AWSSigning    AWSSigning             `yaml:"awsSigning"`
+	Indices       IndexableMap[ELSIndex] `yaml:"indices"  validate:"required,eq=1"`
 }
 
 // AWSSigning contains AWS configurations
@@ -215,50 +231,56 @@ type AWSSigning struct {
 	RoleArn   string `yaml:"roleArn"`
 }
 
-// Index settings for ELS
-type Index struct {
+// ELSIndex settings for ELS
+type ELSIndex struct {
 	Name     string `yaml:"name"`
 	Type     string `yaml:"type"`
 	Shards   int    `yaml:"shards"`
 	Replicas int    `yaml:"replicas"`
+
+	Bindings SinkBindings `yaml:"bindings"`
 }
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled      bool         `yaml:"enabled"`
-	BotName      string       `yaml:"botName"`
-	URL          string       `yaml:"url"`
-	Token        string       `yaml:"token"`
-	Team         string       `yaml:"team"`
-	Channel      string       `yaml:"channel"`
-	Notification Notification `yaml:"notification,omitempty"`
+	Enabled      bool                          `yaml:"enabled"`
+	BotName      string                        `yaml:"botName"`
+	URL          string                        `yaml:"url"`
+	Token        string                        `yaml:"token"`
+	Team         string                        `yaml:"team"`
+	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                  `yaml:"notification,omitempty"`
 }
 
 // Teams creds for authentication with MS Teams
 type Teams struct {
-	Enabled      bool         `yaml:"enabled"`
-	BotName      string       `yaml:"botName,omitempty"`
-	AppID        string       `yaml:"appID,omitempty"`
-	AppPassword  string       `yaml:"appPassword,omitempty"`
-	Team         string       `yaml:"team"`
-	Port         string       `yaml:"port"`
-	MessagePath  string       `yaml:"messagePath,omitempty"`
-	Notification Notification `yaml:"notification,omitempty"`
+	Enabled     bool   `yaml:"enabled"`
+	BotName     string `yaml:"botName,omitempty"`
+	AppID       string `yaml:"appID,omitempty"`
+	AppPassword string `yaml:"appPassword,omitempty"`
+	Team        string `yaml:"team"`
+	Port        string `yaml:"port"`
+	MessagePath string `yaml:"messagePath,omitempty"`
+	// TODO: not used yet.
+	Channels     IndexableMap[ChannelBindings] `yaml:"channels"`
+	Notification Notification                  `yaml:"notification,omitempty"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled      bool         `yaml:"enabled"`
-	Token        string       `yaml:"token"`
-	BotID        string       `yaml:"botID"`
-	Channel      string       `yaml:"channel"`
-	Notification Notification `yaml:"notification,omitempty"`
+	Enabled      bool                          `yaml:"enabled"`
+	Token        string                        `yaml:"token"`
+	BotID        string                        `yaml:"botID"`
+	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                  `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
 type Webhook struct {
 	Enabled bool   `yaml:"enabled"`
 	URL     string `yaml:"url"`
+	// TODO: not used yet.
+	Bindings SinkBindings
 }
 
 // Kubectl configuration for executing commands inside cluster
@@ -330,6 +352,10 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
 		return nil, nil, err
 	}
 
+	if err := ValidateStruct(cfg); err != nil {
+		return nil, nil, fmt.Errorf("while validating loaded configuration: %w", err)
+	}
+
 	return &cfg, configPaths, nil
 }
 
@@ -364,4 +390,19 @@ func normalizeConfigEnvName(name string) string {
 	}
 
 	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
+}
+
+// IndexableMap provides an option to construct an indexable map.
+type IndexableMap[T any] map[string]T
+
+// GetFirst returns the first map element.
+// It's not deterministic if map has more than one element.
+func (t IndexableMap[T]) GetFirst() T {
+	var empty T
+
+	for _, v := range t {
+		return v
+	}
+
+	return empty
 }

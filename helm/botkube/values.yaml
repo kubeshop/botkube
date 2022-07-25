@@ -50,234 +50,229 @@ kubeconfig:
   ##    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
-## BotKube runtime configuration.
-config:
-  # -- Describes the Kubernetes resources you want to watch.
-  # @default -- Watch all built-in K8s kinds.
-  resources:
-    - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
-                                # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-      namespaces:               # List of namespaces, "all" will watch all the namespaces
-        include:
-          - all
-        ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
-          -                     # example : include [all], ignore [x,y,secret-ns-*]
-      events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
-        - create
-        - delete
-        - error
-    - name: v1/services
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: apps/v1/deployments
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - update
-        - delete
-        - error
-      updateSetting:
-        includeDiff: true
-        fields:
-          - spec.template.spec.containers[*].image
-          - status.availableReplicas
-    - name: apps/v1/statefulsets
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - update
-        - delete
-        - error
-      updateSetting:
-        includeDiff: true
-        fields:
-          - spec.template.spec.containers[*].image
-          - status.readyReplicas
-    - name: networking.k8s.io/v1/ingresses
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: v1/nodes
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: v1/namespaces
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: v1/persistentvolumes
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: v1/persistentvolumeclaims
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: v1/configmaps
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: apps/v1/daemonsets
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - update
-        - delete
-        - error
-      updateSetting:
-        includeDiff: true
-        fields:
-          - spec.template.spec.containers[*].image
-          - status.numberReady
-    - name: batch/v1/jobs
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - update
-        - delete
-        - error
-      updateSetting:
-        includeDiff: true
-        fields:
-          - spec.template.spec.containers[*].image
-          - status.conditions[*].type
-    - name: rbac.authorization.k8s.io/v1/roles
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: rbac.authorization.k8s.io/v1/rolebindings
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-    - name: rbac.authorization.k8s.io/v1/clusterroles
-      namespaces:
-        include:
-          - all
-        ignore:
-          -
-      events:
-        - create
-        - delete
-        - error
-   ## Custom resource example
-   # - name: velero.io/v1/backups
-   #   namespaces:
-   #     include:
-   #       - all
-   #     ignore:
-   #       -
-   #   events:
-   #     - create
-   #     - update
-   #     - delete
-   #     - error
-   #   updateSetting:
-   #     includeDiff: true
-   #     fields:
-   #       - status.phase
 
-  # -- If true, BotKube sends recommendations about the best practices for the created resource.
-  recommendations: true
+# -- Map of enabled sources. The `sources` property name is an alias for a given configuration.
+# Key name used as a binding reference.
+#
+## Format: sources.<alias>
+sources:
+  'k8s-events':
 
-  ## For using custom SSL certificates.
-  ssl:
-    # -- If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`.
-    enabled: false
+    # -- If true, BotKube sends recommendations about the best practices for the created resource.
+    recommendations: true
 
-    # -- Using existing SSL Secret. It MUST be in `botkube` Namespace.
-    ## Secret format:
-    ##  data:
-    ##    config: {base64_encoded_kubeconfig}
-    existingSecretName: ""
+    kubernetes:
+      # -- Describes the Kubernetes resources you want to watch.
+      # @default -- Watch all built-in K8s kinds.
+      resources:
+        - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
+                                    # resource name should be plural (e.g apps/v1/deployments, v1/pods)
+          namespaces:               # List of namespaces, "all" will watch all the namespaces
+            include:
+              - all
+            ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
+              -                     # example : include [all], ignore [x,y,secret-ns-*]
+          events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
+            - create
+            - delete
+            - error
+        - name: v1/services
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: apps/v1/deployments
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.availableReplicas
+        - name: apps/v1/statefulsets
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.readyReplicas
+        - name: networking.k8s.io/v1/ingresses
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/nodes
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/namespaces
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/persistentvolumes
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/persistentvolumeclaims
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/configmaps
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: apps/v1/daemonsets
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.numberReady
+        - name: batch/v1/jobs
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.conditions[*].type
+        - name: rbac.authorization.k8s.io/v1/roles
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/clusterroles
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+       ## Custom resource example
+       # - name: velero.io/v1/backups
+       #   namespaces:
+       #     include:
+       #       - all
+       #     ignore:
+       #       -
+       #   events:
+       #     - create
+       #     - update
+       #     - delete
+       #     - error
+       #   updateSetting:
+       #     includeDiff: true
+       #     fields:
+       #       - status.phase
 
-    # -- SSL Certificate file e.g certs/my-cert.crt.
-    cert: ""
-
-  ## Global BotKube configuration.
-  settings:
-    # -- Cluster name to differentiate incoming messages.
-    clusterName: not-configured
+# Map of enabled executors. The `executors` property name is an alias for a given configuration.
+# Key name is used as a binding reference.
+#
+## Format: executors.<alias>
+executors:
+  'kubectl-read-only':
     ## Kubectl executor configuration.
     kubectl:
       # -- If true, enables `kubectl` commands execution.
@@ -292,127 +287,186 @@ config:
       defaultNamespace: default
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
-    # -- If true, restarts the BotKube Pod on config changes.
-    configWatcher: true
-    # -- If true, notifies about new BotKube releases.
-    upgradeNotifier: true
-    ## BotKube logging settings.
-    log:
-      # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
-      level: info
-      # -- If true, disable ANSI colors in logging.
-      disableColors: false
 
-## Communication settings
+
+# -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
+## Secret format:
+##  stringData:
+##    comm_config.yaml: |
+##      communications:
+##        # Here specify settings for each app, like Slack, Mattermost etc.
+##        # NOTE: Use setting format visible below.
+existingCommunicationsSecretName: ""
+
+# Map of enabled communication mediums. The `config` property name is an alias for a given configuration.
+#
+## Format: config.<alias>
 communications:
+  'default-workspace':
+    ## Settings for Slack.
+    slack:
+      # -- If true, enables Slack bot.
+      enabled: false
+      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      #
+      ## Format: channels.<alias>
+      channels:
+        'default':
+          # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      # -- Slack token.
+      token: 'SLACK_API_TOKEN'
+      notification:
+        # -- Configures notification type that are sent. Possible values: `short`, `long`.
+        type: short
 
-  # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
+    ## Settings for Mattermost.
+    mattermost:
+      # -- If true, enables Mattermost bot.
+      enabled: false
+      # -- User in Mattermost which belongs the specified Personal Access token.
+      botName: 'BotKube'
+      # -- The URL (including http/https schema) where Mattermost is running. e.g https://example.com:9243
+      url: 'MATTERMOST_SERVER_URL'
+      # -- Personal Access token generated by BotKube user.
+      token: 'MATTERMOST_TOKEN'
+      # -- The Mattermost Team name where BotKube is added.
+      team: 'MATTERMOST_TEAM'
+      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      #
+      ## Format: channels.<alias>
+      channels:
+        'default':
+          # -- The Mattermost channel name for receiving BotKube alerts.
+          # The BotKube user needs to be added to it.
+          name: 'MATTERMOST_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        # -- Configures notification type that are sent. Possible values: `short`, `long`.
+        type: short
+
+    ## Settings for MS Teams.
+    teams:
+      # -- If true, enables MS Teams bot.
+      enabled: false
+      # -- The Bot name set while registering Bot to MS Teams.
+      botName: 'BotKube'
+      # -- The BotKube application ID generated while registering Bot to MS Teams.
+      appID: 'APPLICATION_ID'
+      # -- The BotKube application password generated while registering Bot to MS Teams.
+      appPassword: 'APPLICATION_PASSWORD'
+      # -- The path in endpoint URL provided while registering BotKube to MS Teams.
+      messagePath: "/bots/teams"
+      notification:
+        # -- Configures notification type that are sent. Possible values: `short`, `long`.
+        type: short
+      # -- The Service port for bot endpoint on BotKube container.
+      port: 3978
+
+    ## Settings for Discord.
+    discord:
+      # -- If true, enables Discord bot.
+      enabled: false
+      # -- BotKube Bot Token.
+      token: 'DISCORD_TOKEN'
+      # -- BotKube Application Client ID.
+      botID: 'DISCORD_BOT_ID'
+      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      #
+      ## Format: channels.<alias>
+      channels:
+        'default':
+          # -- Discord channel ID for receiving BotKube alerts.
+          # The BotKube user needs to be added to it.
+          name: 'DISCORD_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        # -- Configures notification type that are sent. Possible values: `short`, `long`.
+        type: short
+
+    ## Settings for Elasticsearch.
+    elasticsearch:
+      # -- If true, enables Elasticsearch.
+      enabled: false
+      awsSigning:
+        # -- If true, enables awsSigning using IAM for Elasticsearch hosted on AWS. Make sure AWS environment variables are set.
+        # [Ref doc](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
+        enabled: false
+        # -- AWS region where Elasticsearch is deployed.
+        awsRegion: "us-east-1"
+        # -- AWS IAM Role arn to assume for credentials, use this only if you don't want to use the EC2 instance role or not running on AWS instance.
+        roleArn: ""
+      # -- The server URL, e.g https://example.com:9243
+      server: 'ELASTICSEARCH_ADDRESS'
+      # -- Basic Auth username.
+      username: 'ELASTICSEARCH_USERNAME'
+      # -- Basic Auth password.
+      password: 'ELASTICSEARCH_PASSWORD'
+      # -- If true, skips the verification of TLS certificate of the Elastic nodes.
+      # It's useful for clusters with self-signed certificates.
+      skipTLSVerify: false
+      # -- Map of configured indices. The `indices` property name is an alias for a given configuration.
+      #
+      ## Format: indices.<alias>
+      indices:
+        'default':
+          # -- Configures Elasticsearch index settings.
+          name: botkube
+          type: botkube-event
+          shards: 1
+          replicas: 0
+          bindings:
+            sources:
+              - k8s-events
+
+    ## Settings for Webhook.
+    webhook:
+      # -- If true, enables Webhook.
+      enabled: false
+      # -- The Webhook URL, e.g.: https://example.com:80
+      url: 'WEBHOOK_URL'
+
+## Global BotKube configuration.
+settings:
+  # -- Cluster name to differentiate incoming messages.
+  clusterName: not-configured
+  # -- If true, restarts the BotKube Pod on config changes.
+  configWatcher: true
+  # -- If true, notifies about new BotKube releases.
+  upgradeNotifier: true
+  ## BotKube logging settings.
+  log:
+    # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
+    level: info
+    # -- If true, disable ANSI colors in logging.
+    disableColors: false
+
+## For using custom SSL certificates.
+ssl:
+  # -- If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`.
+  enabled: false
+
+  # -- Using existing SSL Secret. It MUST be in `botkube` Namespace.
   ## Secret format:
-  ##  stringData:
-  ##    comm_config.yaml: |
-  ##      communications:
-  ##        # Here specify settings for each app, like Slack, Mattermost etc.
-  ##        # NOTE: Use setting format visible below.
+  ##  data:
+  ##    config: {base64_encoded_kubeconfig}
   existingSecretName: ""
 
-  ## Settings for Slack.
-  slack:
-    # -- If true, enables Slack bot.
-    enabled: false
-    # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
-    channel: 'SLACK_CHANNEL'
-    # -- Slack token.
-    token: 'SLACK_API_TOKEN'
-    notification:
-      # -- Configures notification type that are sent. Possible values: `short`, `long`.
-      type: short
-
-  ## Settings for Mattermost.
-  mattermost:
-    # -- If true, enables Mattermost bot.
-    enabled: false
-    # -- User in Mattermost which belongs the specified Personal Access token.
-    botName: 'BotKube'
-    # -- The URL (including http/https schema) where Mattermost is running. e.g https://example.com:9243
-    url: 'MATTERMOST_SERVER_URL'
-    # -- Personal Access token generated by BotKube user.
-    token: 'MATTERMOST_TOKEN'
-    # -- The Mattermost Team name where BotKube is added.
-    team: 'MATTERMOST_TEAM'
-    # -- The Mattermost channel name for receiving BotKube alerts.
-    # The BotKube user needs to be added to it.
-    channel: 'MATTERMOST_CHANNEL'
-    notification:
-      # -- Configures notification type that are sent. Possible values: `short`, `long`.
-      type: short
-
-  ## Settings for MS Teams.
-  teams:
-    # -- If true, enables MS Teams bot.
-    enabled: false
-    # -- The Bot name set while registering Bot to MS Teams.
-    botName: 'BotKube'
-    # -- The BotKube application ID generated while registering Bot to MS Teams.
-    appID: 'APPLICATION_ID'
-    # -- The BotKube application password generated while registering Bot to MS Teams.
-    appPassword: 'APPLICATION_PASSWORD'
-    # -- The path in endpoint URL provided while registering BotKube to MS Teams.
-    messagePath: "/bots/teams"
-    notification:
-      # -- Configures notification type that are sent. Possible values: `short`, `long`.
-      type: short
-    # -- The Service port for bot endpoint on BotKube container.
-    port: 3978
-
-  ## Settings for Discord.
-  discord:
-    # -- If true, enables Discord bot.
-    enabled: false
-    # -- BotKube Bot Token.
-    token: 'DISCORD_TOKEN'
-    # -- BotKube Application Client ID.
-    botID: 'DISCORD_BOT_ID'
-    # -- Discord channel ID for receiving BotKube alerts.
-    # The BotKube user needs to be added to it.
-    channel: 'DISCORD_CHANNEL_ID'
-    notification:
-      # -- Configures notification type that are sent. Possible values: `short`, `long`.
-      type: short
-
-  ## Settings for Elasticsearch.
-  elasticsearch:
-    # -- If true, enables Elasticsearch.
-    enabled: false
-    awsSigning:
-      # -- If true, enables awsSigning using IAM for Elasticsearch hosted on AWS. Make sure AWS environment variables are set.
-      # [Ref doc](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
-      enabled: false
-      # -- AWS region where Elasticsearch is deployed.
-      awsRegion: "us-east-1"
-      # -- AWS IAM Role arn to assume for credentials, use this only if you don't want to use the EC2 instance role or not running on AWS instance.
-      roleArn: ""
-    # -- The server URL, e.g https://example.com:9243
-    server: 'ELASTICSEARCH_ADDRESS'
-    # -- Basic Auth username.
-    username: 'ELASTICSEARCH_USERNAME'
-    # -- Basic Auth password.
-    password: 'ELASTICSEARCH_PASSWORD'
-    # -- If true, skips the verification of TLS certificate of the Elastic nodes.
-    # It's useful for clusters with self-signed certificates.
-    skipTLSVerify: false
-    # -- Configures Elasticsearch index settings.
-    index:
-      name: botkube
-      type: botkube-event
-      shards: 1
-      replicas: 0
-
-  ## Settings for Webhook.
-  webhook:
-    # -- If true, enables Webhook.
-    enabled: false
-    # -- The Webhook URL, e.g.: https://example.com:80
-    url: 'WEBHOOK_URL'
+  # -- SSL Certificate file e.g certs/my-cert.crt.
+  cert: ""
 
 # -- Configures Service settings for ServiceMonitor CR.
 service:

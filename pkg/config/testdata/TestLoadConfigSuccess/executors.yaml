@@ -1,5 +1,5 @@
 executors:
-  - name: kubectl
+  'kubectl-read-only':
     # Kubectl executor configs
     kubectl:
       # TODO: https://github.com/kubeshop/botkube/issues/596

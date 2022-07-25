@@ -1,30 +1,36 @@
 communications:
-  slack:
-    enabled: false # Tests will override this temporarily
-    token: "" # Provide a valid token for BotKube app
-    channel: "" # Tests will override this temporarily
-config:
-  resources:
-    - name: v1/configmaps
-      namespaces:
-        include:
-          - botkube
-      events:
-        - create
-        - update
-        - delete
-    - name: v1/pods
-      namespaces:
-        include:
-          - botkube
-      events:
-        - create
-  settings:
-    clusterName: sample
+  'default-workspace':
+    slack:
+      enabled: false # Tests will override this temporarily
+      token: "" # Provide a valid token for BotKube app
+      channel: "" # Tests will override this temporarily
+sources:
+  'k8s-events':
+    kubernetes:
+      resources:
+        - name: v1/configmaps
+          namespaces:
+            include:
+              - botkube
+          events:
+            - create
+            - update
+            - delete
+        - name: v1/pods
+          namespaces:
+            include:
+              - botkube
+          events:
+            - create
+executors:
+  'kubectl-read-only':
     kubectl:
       enabled: true
-    upgradeNotifier: false
-  enabled: true
+
+settings:
+  clusterName: sample
+  upgradeNotifier: false
+
 extraAnnotations:
   botkube.io/disable: "true"
 e2eTest:
