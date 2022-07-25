@@ -85,31 +85,32 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [serviceMonitor](./values.yaml#L436) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
 | [deployment.annotations](./values.yaml#L446) | object | `{}` | Extra annotations to pass to the BotKube Deployment. |
 | [extraAnnotations](./values.yaml#L453) | object | `{}` | Extra annotations to pass to the BotKube Pod. |
-| [priorityClassName](./values.yaml#L455) | string | `""` | Priority class name for the BotKube Pod. |
-| [nameOverride](./values.yaml#L458) | string | `""` | Fully override "botkube.name" template. |
-| [fullnameOverride](./values.yaml#L460) | string | `""` | Fully override "botkube.fullname" template. |
-| [resources](./values.yaml#L466) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
-| [extraEnv](./values.yaml#L478) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
-| [extraVolumes](./values.yaml#L490) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
-| [extraVolumeMounts](./values.yaml#L505) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
-| [nodeSelector](./values.yaml#L523) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
-| [tolerations](./values.yaml#L527) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
-| [affinity](./values.yaml#L531) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
-| [rbac](./values.yaml#L535) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
-| [serviceAccount.create](./values.yaml#L544) | bool | `true` | If true, a ServiceAccount is automatically created. |
-| [serviceAccount.name](./values.yaml#L547) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
-| [serviceAccount.annotations](./values.yaml#L549) | object | `{}` | Extra annotations for the ServiceAccount. |
-| [extraObjects](./values.yaml#L552) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
-| [analytics.disable](./values.yaml#L580) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
-| [e2eTest.image.registry](./values.yaml#L586) | string | `"ghcr.io"` | Test runner image registry. |
-| [e2eTest.image.repository](./values.yaml#L588) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
-| [e2eTest.image.pullPolicy](./values.yaml#L590) | string | `"IfNotPresent"` | Test runner image pull policy. |
-| [e2eTest.image.tag](./values.yaml#L592) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
-| [e2eTest.deployment](./values.yaml#L594) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
-| [e2eTest.slack.botName](./values.yaml#L599) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.slack.testerAppToken](./values.yaml#L601) | string | `""` | Slack tester application token that interacts with BotKube bot. |
-| [e2eTest.slack.additionalContextMessage](./values.yaml#L603) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.slack.messageWaitTimeout](./values.yaml#L605) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [extraLabels](./values.yaml#L455) | object | `{}` | Extra labels to pass to the BotKube Pod. |
+| [priorityClassName](./values.yaml#L457) | string | `""` | Priority class name for the BotKube Pod. |
+| [nameOverride](./values.yaml#L460) | string | `""` | Fully override "botkube.name" template. |
+| [fullnameOverride](./values.yaml#L462) | string | `""` | Fully override "botkube.fullname" template. |
+| [resources](./values.yaml#L468) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
+| [extraEnv](./values.yaml#L480) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
+| [extraVolumes](./values.yaml#L492) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
+| [extraVolumeMounts](./values.yaml#L507) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
+| [nodeSelector](./values.yaml#L525) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
+| [tolerations](./values.yaml#L529) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
+| [affinity](./values.yaml#L533) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
+| [rbac](./values.yaml#L537) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
+| [serviceAccount.create](./values.yaml#L546) | bool | `true` | If true, a ServiceAccount is automatically created. |
+| [serviceAccount.name](./values.yaml#L549) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
+| [serviceAccount.annotations](./values.yaml#L551) | object | `{}` | Extra annotations for the ServiceAccount. |
+| [extraObjects](./values.yaml#L554) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
+| [analytics.disable](./values.yaml#L582) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
+| [e2eTest.image.registry](./values.yaml#L588) | string | `"ghcr.io"` | Test runner image registry. |
+| [e2eTest.image.repository](./values.yaml#L590) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
+| [e2eTest.image.pullPolicy](./values.yaml#L592) | string | `"IfNotPresent"` | Test runner image pull policy. |
+| [e2eTest.image.tag](./values.yaml#L594) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
+| [e2eTest.deployment](./values.yaml#L596) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
+| [e2eTest.slack.botName](./values.yaml#L601) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.slack.testerAppToken](./values.yaml#L603) | string | `""` | Slack tester application token that interacts with BotKube bot. |
+| [e2eTest.slack.additionalContextMessage](./values.yaml#L605) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.slack.messageWaitTimeout](./values.yaml#L607) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
 
 ### AWS IRSA on EKS support
 
