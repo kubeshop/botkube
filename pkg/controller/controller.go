@@ -117,9 +117,9 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.startTime = time.Now()
 
 	// Register informers for resource lifecycle events
-	if len(c.conf.Sources) > 0 && len(c.conf.Sources[0].Kubernetes.Resources) > 0 {
+	if len(c.conf.Sources) > 0 && len(c.conf.Sources.GetFirst().Kubernetes.Resources) > 0 {
 		c.log.Info("Registering resource lifecycle informer")
-		for _, r := range c.conf.Sources[0].Kubernetes.Resources {
+		for _, r := range c.conf.Sources.GetFirst().Kubernetes.Resources {
 			if _, ok := c.resourceInformerMap[r.Name]; !ok {
 				continue
 			}
@@ -306,7 +306,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// check if Recommendations are disabled
-	if !c.conf.Sources[0].Recommendations {
+	if !c.conf.Sources.GetFirst().Recommendations {
 		event.Recommendations = nil
 		c.log.Debug("Skipping Recommendations in Event Notifications")
 	}
@@ -340,7 +340,7 @@ func (c *Controller) initInformerMap() {
 		return
 	}
 
-	resources := c.conf.Sources[0].Kubernetes.Resources
+	resources := c.conf.Sources.GetFirst().Kubernetes.Resources
 	// Create dynamic shared informer factory
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 

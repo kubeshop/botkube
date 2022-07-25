@@ -32,7 +32,7 @@ func NewMattermost(log logrus.FieldLogger, c config.Mattermost) (*Mattermost, er
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
-	botChannel, resp := client.GetChannelByName(c.Channel, botTeam.Id, "")
+	botChannel, resp := client.GetChannelByName(c.Channels.GetFirst().Name, botTeam.Id, "")
 	if resp.Error != nil {
 		return nil, resp.Error
 	}

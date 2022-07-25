@@ -67,11 +67,14 @@ type consentContext struct {
 func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
 	// Set notifier off by default
 	config.Notify = false
-	port := c.Communications[0].Teams.Port
+
+	teams := c.Communications.GetFirst().Teams
+
+	port := teams.Port
 	if port == "" {
 		port = defaultPort
 	}
-	msgPath := c.Communications[0].Teams.MessagePath
+	msgPath := teams.MessagePath
 	if msgPath == "" {
 		msgPath = "/"
 	}
@@ -79,15 +82,15 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		BotName:          c.Communications[0].Teams.BotName,
-		AppID:            c.Communications[0].Teams.AppID,
-		AppPassword:      c.Communications[0].Teams.AppPassword,
-		Notification:     c.Communications[0].Teams.Notification,
+		BotName:          teams.BotName,
+		AppID:            teams.AppID,
+		AppPassword:      teams.AppPassword,
+		Notification:     teams.Notification,
 		MessagePath:      msgPath,
 		Port:             port,
-		AllowKubectl:     c.Executors[0].Kubectl.Enabled,
-		RestrictAccess:   c.Executors[0].Kubectl.RestrictAccess,
-		DefaultNamespace: c.Executors[0].Kubectl.DefaultNamespace,
+		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
+		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
+		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 		ClusterName:      c.Settings.ClusterName,
 	}
 }

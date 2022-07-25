@@ -160,7 +160,7 @@ func (e *DefaultExecutor) Execute() string {
 				e.resMapping.AllowedKubectlResourceMap[e.resMapping.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
 				e.resMapping.AllowedKubectlResourceMap[e.resMapping.ShortnameResourceMap[strings.ToLower(args[1])]])) { // Check if matches with short name
 			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-			allowKubectl := e.cfg.Executors[0].Kubectl.Enabled
+			allowKubectl := e.cfg.Executors.GetFirst().Kubectl.Enabled
 			if !allowKubectl {
 				if isClusterNamePresent && clusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
 					return fmt.Sprintf(kubectlDisabledMsg, clusterName)
@@ -168,7 +168,7 @@ func (e *DefaultExecutor) Execute() string {
 				return ""
 			}
 
-			if e.cfg.Executors[0].Kubectl.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
+			if e.cfg.Executors.GetFirst().Kubectl.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
 				return ""
 			}
 			return e.runKubectlCommand(args)
@@ -232,7 +232,7 @@ func (e *DefaultExecutor) runKubectlCommand(args []string) string {
 	}
 
 	clusterName := e.cfg.Settings.ClusterName
-	defaultNamespace := e.cfg.Executors[0].Kubectl.DefaultNamespace
+	defaultNamespace := e.cfg.Executors.GetFirst().Kubectl.DefaultNamespace
 	isAuthChannel := e.IsAuthChannel
 	// run commands in namespace specified under Config.Settings.DefaultNamespace field
 	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
@@ -472,10 +472,15 @@ func (e *DefaultExecutor) showControllerConfig() (string, error) {
 	// hide sensitive info
 	// TODO: Refactor - split config into two files and avoid printing sensitive data
 	// 	without need to resetting them manually (which is an error-prone approach)
-	cfg.Communications[0].Slack.Token = redactedSecretStr
-	cfg.Communications[0].Elasticsearch.Password = redactedSecretStr
-	cfg.Communications[0].Discord.Token = redactedSecretStr
-	cfg.Communications[0].Mattermost.Token = redactedSecretStr
+	for key, old := range cfg.Communications {
+		old.Slack.Token = redactedSecretStr
+		old.Elasticsearch.Password = redactedSecretStr
+		old.Discord.Token = redactedSecretStr
+		old.Mattermost.Token = redactedSecretStr
+
+		// map are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
+		cfg.Communications[key] = old
+	}
 
 	b, err := yaml.Marshal(cfg)
 	if err != nil {

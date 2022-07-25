@@ -25,7 +25,7 @@ func WithAllFilters(logger *logrus.Logger, dynamicCli dynamic.Interface, mapper 
 	}
 
 	if len(conf.Sources) > 0 {
-		res := conf.Sources[0].Kubernetes.Resources
+		res := conf.Sources.GetFirst().Kubernetes.Resources
 		enabledFilters = append(enabledFilters, filters.NewNamespaceChecker(logger.WithField(filterLogFieldKey, "Namespace Checker"), res))
 	}
 

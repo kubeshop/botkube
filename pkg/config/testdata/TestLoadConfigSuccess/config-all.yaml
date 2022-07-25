@@ -1,8 +1,95 @@
-sources:
-  - name: default
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      token: 'SLACK_API_TOKEN'
+      notification:
+        type: short
 
-    # Check true if you want to receive recommendations
-    # about the best practices for the created resource
+    mattermost:
+      enabled: false
+      url: 'MATTERMOST_SERVER_URL'
+      token: 'MATTERMOST_TOKEN'
+      team: 'MATTERMOST_TEAM'
+      channels:
+        'alias':
+          name: 'MATTERMOST_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    teams:
+      enabled: false
+      appID: 'APPLICATION_ID'
+      appPassword: 'APPLICATION_PASSWORD'
+      channels:
+        'alias':
+          name: 'TEAMS_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+      port: 3978
+
+    discord:
+      enabled: false
+      token: 'DISCORD_TOKEN'
+      botID: 'DISCORD_BOT_ID'
+      channels:
+        'alias':
+          name: 'DISCORD_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    elasticsearch:
+      enabled: false
+      awsSigning:
+        enabled: false
+        awsRegion: 'us-east-1'
+        roleArn: ''
+      server: 'ELASTICSEARCH_ADDRESS'
+      username: 'ELASTICSEARCH_USERNAME'
+      password: 'ELASTICSEARCH_PASSWORD'
+      skipTLSVerify: false
+      indices:
+        'alias':
+          name: botkube
+          type: botkube-event
+          shards: 1
+          bindings:
+            sources:
+              - "k8s-events"
+
+    webhook:
+      enabled: false
+      url: 'WEBHOOK_URL'
+      bindings:
+        sources:
+          - k8s-events
+
+sources:
+  'k8s-events':
+
     recommendations: true
 
     kubernetes:
@@ -12,14 +99,13 @@ sources:
       # namespace:
       #   include: [ "@all" ]
       resources:
-        - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
-                                    # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-          namespaces:               # List of namespaces, "all" will watch all the namespaces
+        - name: v1/pods
+          namespaces:
             include:
               - all
-            ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
-              -                     # example : include [all], ignore [x,y,secret-ns-*]
-          events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
+            ignore:
+              - # example : include [all], ignore [x,y,secret-ns-*]
+          events:
             - create
             - delete
             - error
@@ -207,33 +293,3 @@ sources:
             - create
             - delete
             - error
-
-# Setting to support multiple clusters
-settings:
-  # Cluster name to differentiate incoming messages
-  clusterName: not-configured
-  # Set true to enable config watcher
-  configWatcher: true
-  # Set false to disable upgrade notification
-  upgradeNotifier: true
-
-executors:
-  - name: kubectl
-    # Kubectl executor configs
-    kubectl:
-      # TODO: https://github.com/kubeshop/botkube/issues/596
-      # New 'namespace' property - allows Namespace restriction
-      #namespaces:
-      #  include: ["team-a"]
-      # Set true to enable kubectl commands execution
-      enabled: false
-      # List of allowed commands
-      commands:
-        # method which are allowed
-        verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth" ]
-        # resource configuration which is allowed
-        resources: [ "deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
-      # set Namespace to execute botkube kubectl commands by default
-      defaultNamespace: default
-      # Set true to enable commands execution from configured channel only
-      restrictAccess: false
