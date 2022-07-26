@@ -314,12 +314,12 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the integration name.
 func (b *Teams) IntegrationName() config.CommPlatformIntegration {
 	return config.TeamsCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the integration type.
 func (b *Teams) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }

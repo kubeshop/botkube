@@ -103,9 +103,14 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the integration name.
 func (b *DiscordBot) IntegrationName() config.CommPlatformIntegration {
 	return config.DiscordCommPlatformIntegration
+}
+
+// Type describes the integration type.
+func (b *DiscordBot) Type() config.IntegrationType {
+	return config.BotIntegrationType
 }
 
 // Enabled returns current notification status.

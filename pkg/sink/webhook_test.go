@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"context"

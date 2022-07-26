@@ -5,7 +5,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/notifier"
+	"github.com/kubeshop/botkube/pkg/sink"
 )
 
 var themeColor = map[config.Level]string{
@@ -46,7 +46,7 @@ func teamsShortNotification(event events.Event) map[string]interface{} {
 			},
 			{
 				"type": "TextBlock",
-				"text": strings.ReplaceAll(notifier.FormatShortMessage(event), "```", ""),
+				"text": strings.ReplaceAll(sink.FormatShortMessage(event), "```", ""),
 				"wrap": true,
 			},
 		},

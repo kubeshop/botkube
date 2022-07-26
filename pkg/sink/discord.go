@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"context"
@@ -74,12 +74,12 @@ func (d *Discord) SendMessage(_ context.Context, msg string) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (d *Discord) IntegrationName() config.CommPlatformIntegration {
 	return config.DiscordCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the sink type.
 func (d *Discord) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }

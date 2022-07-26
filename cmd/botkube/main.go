@@ -33,12 +33,13 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
-	"github.com/kubeshop/botkube/pkg/notifier"
+	"github.com/kubeshop/botkube/pkg/sink"
 )
 
 const (
 	componentLogFieldKey = "component"
 	botLogFieldKey       = "bot"
+	sinkLogFieldKey      = "sink"
 	printAPIKeyCharCount = 3
 )
 
@@ -113,12 +114,6 @@ func run() error {
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
-	// List notifiers
-	notifiers, err := notifier.LoadNotifiers(logger, conf.Communications.GetFirst(), reporter)
-	if err != nil {
-		return reportFatalError("while loading notifiers", err)
-	}
-
 	// Create Executor Factory
 	resMapping, err := execute.LoadResourceMappingIfShould(
 		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
@@ -138,26 +133,30 @@ func run() error {
 		reporter,
 	)
 
+	commCfg := conf.Communications.GetFirst()
+	var notifiers []controller.Notifier
+
 	// Run bots
-	if conf.Communications.GetFirst().Slack.Enabled {
+	if commCfg.Slack.Enabled {
 		sb := bot.NewSlackBot(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
+		notifiers = append(notifiers, sb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return sb.Start(ctx)
 		})
 	}
 
-	if conf.Communications.GetFirst().Mattermost.Enabled {
+	if commCfg.Mattermost.Enabled {
 		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory, reporter)
+		notifiers = append(notifiers, mb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return mb.Start(ctx)
 		})
 	}
 
-	if conf.Communications.GetFirst().Teams.Enabled {
+	if commCfg.Teams.Enabled {
 		tb := bot.NewTeamsBot(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory, reporter)
-		// TODO: Unify that with other notifiers: Split this into two structs or merge other bots and notifiers into single structs
 		notifiers = append(notifiers, tb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -165,12 +164,31 @@ func run() error {
 		})
 	}
 
-	if conf.Communications.GetFirst().Discord.Enabled {
+	if commCfg.Discord.Enabled {
 		db := bot.NewDiscordBot(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory, reporter)
+		notifiers = append(notifiers, db)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return db.Start(ctx)
 		})
+	}
+
+	// Run sinks
+	if commCfg.Elasticsearch.Enabled {
+		es, err := sink.NewElasticSearch(logger.WithField(sinkLogFieldKey, "Elasticsearch"), commCfg.Elasticsearch, reporter)
+		if err != nil {
+			return reportFatalError("while creating Elasticsearch sink", err)
+		}
+		notifiers = append(notifiers, es)
+	}
+
+	if commCfg.Webhook.Enabled {
+		wh, err := sink.NewWebhook(logger.WithField(sinkLogFieldKey, "Webhook"), commCfg.Webhook, reporter)
+		if err != nil {
+			return reportFatalError("while creating Webhook sink", err)
+		}
+
+		notifiers = append(notifiers, wh)
 	}
 
 	// Start upgrade checker

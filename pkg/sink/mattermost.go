@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"context"
@@ -131,12 +131,12 @@ func (m *Mattermost) SendMessage(_ context.Context, msg string) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (m *Mattermost) IntegrationName() config.CommPlatformIntegration {
 	return config.MattermostCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the sink type.
 func (m *Mattermost) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }

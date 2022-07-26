@@ -12,6 +12,17 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
+const channelNotFoundCode = "channel_not_found"
+
+var attachmentColor = map[config.Level]string{
+	config.Info:     "good",
+	config.Warn:     "warning",
+	config.Debug:    "good",
+	config.Error:    "danger",
+	config.Critical: "danger",
+}
+
 // SlackBot listens for user's message, execute commands and sends back the response
 type SlackBot struct {
 	log             logrus.FieldLogger
@@ -19,6 +30,7 @@ type SlackBot struct {
 	reporter        FatalErrorAnalyticsReporter
 	notify          bool
 
+	Notification     config.Notification
 	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -146,7 +158,12 @@ func (b *SlackBot) Start(ctx context.Context) error {
 	}
 }
 
-// IntegrationName describes the notifier integration name.
+// Type describes the sink type.
+func (b *SlackBot) Type() config.IntegrationType {
+	return config.BotIntegrationType
+}
+
+// IntegrationName describes the sink integration name.
 func (b *SlackBot) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }

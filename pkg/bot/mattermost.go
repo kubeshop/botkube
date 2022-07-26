@@ -134,7 +134,7 @@ func (b *MMBot) Start(ctx context.Context) error {
 	}
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (b *MMBot) IntegrationName() config.CommPlatformIntegration {
 	return config.MattermostCommPlatformIntegration
 }

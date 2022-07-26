@@ -21,13 +21,12 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
-	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
+	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube sink start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
 
 	finalMessageTimeout = 20 * time.Second
@@ -69,7 +68,7 @@ type Controller struct {
 	reporter              AnalyticsReporter
 	startTime             time.Time
 	conf                  *config.Config
-	notifiers             []notifier.Notifier
+	notifiers             []Notifier
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
 
@@ -85,7 +84,7 @@ type Controller struct {
 // New create a new Controller instance.
 func New(log logrus.FieldLogger,
 	conf *config.Config,
-	notifiers []notifier.Notifier,
+	notifiers []Notifier,
 	filterEngine filterengine.FilterEngine,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
@@ -308,7 +307,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	// Send event over notifiers
 	anonymousEvent := analytics.AnonymizedEventDetailsFrom(event)
 	for _, n := range c.notifiers {
-		go func(n notifier.Notifier) {
+		go func(n Notifier) {
 			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
 
 			err := n.SendEvent(ctx, event)

@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ const defaultHTTPCliTimeout = 30 * time.Second
 // Webhook contains URL
 type Webhook struct {
 	log      logrus.FieldLogger
-	reporter SinkAnalyticsReporter
+	reporter AnalyticsReporter
 
 	URL string
 }
@@ -53,11 +53,11 @@ type EventStatus struct {
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(log logrus.FieldLogger, c config.Communications, reporter SinkAnalyticsReporter) (*Webhook, error) {
+func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:      log,
 		reporter: reporter,
-		URL:      c.Webhook.URL,
+		URL:      c.URL,
 	}
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
@@ -136,12 +136,12 @@ func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) 
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (w *Webhook) IntegrationName() config.CommPlatformIntegration {
 	return config.WebhookCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the sink type.
 func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }

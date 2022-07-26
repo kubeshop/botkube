@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"context"
@@ -323,12 +323,7 @@ func FormatShortMessage(event events.Event) (msg string) {
 	return msg
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (s *Slack) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
-}
-
-// Type describes the notifier type.
-func (s *Slack) Type() config.IntegrationType {
-	return config.BotIntegrationType
 }

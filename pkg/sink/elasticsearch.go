@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"context"
@@ -37,7 +37,7 @@ const (
 // Elasticsearch contains auth cred and index setting
 type Elasticsearch struct {
 	log      logrus.FieldLogger
-	reporter SinkAnalyticsReporter
+	reporter AnalyticsReporter
 
 	ELSClient     *elastic.Client
 	Server        string
@@ -49,7 +49,7 @@ type Elasticsearch struct {
 }
 
 // NewElasticSearch returns new Elasticsearch object
-func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter SinkAnalyticsReporter) (*Elasticsearch, error) {
+func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials
@@ -194,12 +194,12 @@ func (e *Elasticsearch) SendMessage(_ context.Context, _ string) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the sink integration name.
 func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
 	return config.ElasticsearchCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the sink type.
 func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }

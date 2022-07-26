@@ -9,7 +9,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 // ConfigWatcher watches for the config file changes and exits the app.
@@ -18,11 +17,11 @@ type ConfigWatcher struct {
 	log         logrus.FieldLogger
 	configPaths []string
 	clusterName string
-	notifiers   []notifier.Notifier
+	notifiers   []Notifier
 }
 
 // NewConfigWatcher returns new ConfigWatcher instance.
-func NewConfigWatcher(log logrus.FieldLogger, configPaths []string, clusterName string, notifiers []notifier.Notifier) *ConfigWatcher {
+func NewConfigWatcher(log logrus.FieldLogger, configPaths []string, clusterName string, notifiers []Notifier) *ConfigWatcher {
 	return &ConfigWatcher{
 		log:         log,
 		configPaths: configPaths,
