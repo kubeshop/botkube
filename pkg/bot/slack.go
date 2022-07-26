@@ -70,7 +70,7 @@ func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		reporter:         reporter,
 		notify:           true, // enabled by default
 		Token:            slackCfg.Token,
-		Client:           slack.New(slackCfg.Token),
+		Client:           slack.New(slackCfg.Token), // TODO: Merge clients
 		Notification:     slackCfg.Notification,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
@@ -260,6 +260,11 @@ func (sm *slackMessage) Send() error {
 
 // SendEvent sends event notification to slack
 func (b *SlackBot) SendEvent(ctx context.Context, event events.Event) error {
+	if !b.notify {
+		b.log.Info("Notifications are disabled. Skipping event...")
+		return nil
+	}
+
 	b.log.Debugf(">> Sending to slack: %+v", event)
 	attachment := b.formatSlackMessage(event, b.Notification)
 

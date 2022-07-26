@@ -2,9 +2,13 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -13,7 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-var _ Bot = &MMBot{}
+var _ Bot = &MattermostBot{}
 
 // mmChannelType to find Mattermost channel type
 type mmChannelType string
@@ -34,13 +38,14 @@ const (
 // 	- Use latest Mattermost API v6
 // 	- Remove usage of `log.Fatal` - return error instead
 
-// MMBot listens for user's message, execute commands and sends back the response
-type MMBot struct {
+// MattermostBot listens for user's message, execute commands and sends back the response
+type MattermostBot struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
 	notify          bool
 
+	Notification     config.Notification
 	Token            string
 	BotName          string
 	TeamName         string
@@ -68,13 +73,27 @@ type mattermostMessage struct {
 }
 
 // NewMattermostBot returns new Bot object
-func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *MMBot {
+func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*MattermostBot, error) {
 	mattermost := c.Communications.GetFirst().Mattermost
-	return &MMBot{
+
+	// Set configurations for MattermostBot server
+	client := model.NewAPIv4Client(mattermost.URL)
+	client.SetOAuthToken(mattermost.Token)
+	botTeam, resp := client.GetTeamByName(mattermost.Team, "")
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	botChannel, resp := client.GetChannelByName(mattermost.Channels.GetFirst().Name, botTeam.Id, "")
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	return &MattermostBot{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
 		notify:           true, // enabled by default
+		Notification:     mattermost.Notification,
 		ServerURL:        mattermost.URL,
 		BotName:          mattermost.BotName,
 		Token:            mattermost.Token,
@@ -84,11 +103,12 @@ func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory 
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
+		APIClient:        client,
 	}
 }
 
 // Start establishes mattermost connection and listens for messages
-func (b *MMBot) Start(ctx context.Context) error {
+func (b *MattermostBot) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 	b.APIClient = model.NewAPIv4Client(b.ServerURL)
 	b.APIClient.SetOAuthToken(b.Token)
@@ -137,17 +157,22 @@ func (b *MMBot) Start(ctx context.Context) error {
 }
 
 // IntegrationName describes the sink integration name.
-func (b *MMBot) IntegrationName() config.CommPlatformIntegration {
+func (b *MattermostBot) IntegrationName() config.CommPlatformIntegration {
 	return config.MattermostCommPlatformIntegration
 }
 
+// Type describes the sink type.
+func (b *MattermostBot) Type() config.IntegrationType {
+	return config.BotIntegrationType
+}
+
 // Enabled returns current notification status.
-func (b *MMBot) Enabled() bool {
+func (b *MattermostBot) Enabled() bool {
 	return b.notify
 }
 
 // SetEnabled sets a new notification status.
-func (b *MMBot) SetEnabled(value bool) error {
+func (b *MattermostBot) SetEnabled(value bool) error {
 	b.notify = value
 	return nil
 }
@@ -155,7 +180,7 @@ func (b *MMBot) SetEnabled(value bool) error {
 // TODO: refactor - handle and send methods should be defined on Bot level
 
 // Check incoming message and take action
-func (mm *mattermostMessage) handleMessage(b *MMBot) {
+func (mm *mattermostMessage) handleMessage(b *MattermostBot) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
 	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
 	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
@@ -210,7 +235,7 @@ func (mm mattermostMessage) sendMessage() {
 }
 
 // Check if Mattermost server is reachable
-func (b *MMBot) checkServerConnection() error {
+func (b *MattermostBot) checkServerConnection() error {
 	// Check api connection
 	if _, resp := b.APIClient.GetOldClientConfig(""); resp.Error != nil {
 		return resp.Error
@@ -225,7 +250,7 @@ func (b *MMBot) checkServerConnection() error {
 }
 
 // Check if team exists in Mattermost
-func (b *MMBot) getTeam() *model.Team {
+func (b *MattermostBot) getTeam() *model.Team {
 	botTeam, resp := b.APIClient.GetTeamByName(b.TeamName, "")
 	if resp.Error != nil {
 		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
@@ -234,7 +259,7 @@ func (b *MMBot) getTeam() *model.Team {
 }
 
 // Check if BotKube user exists in Mattermost
-func (b *MMBot) getUser() *model.User {
+func (b *MattermostBot) getUser() *model.User {
 	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, b.BotName, 1, "")
 	if resp.Error != nil {
 		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.BotName, resp.Error)
@@ -243,7 +268,7 @@ func (b *MMBot) getUser() *model.User {
 }
 
 // Create channel if not present and add BotKube user in channel
-func (b *MMBot) getChannel() *model.Channel {
+func (b *MattermostBot) getChannel() *model.Channel {
 	// Checking if channel exists
 	botChannel, resp := b.APIClient.GetChannelByName(b.ChannelName, b.getTeam().Id, "")
 	if resp.Error != nil {
@@ -255,7 +280,7 @@ func (b *MMBot) getChannel() *model.Channel {
 	return botChannel
 }
 
-func (b *MMBot) listen(ctx context.Context) {
+func (b *MattermostBot) listen(ctx context.Context) {
 	b.WSClient.Listen()
 	defer b.WSClient.Close()
 	for {
@@ -298,5 +323,183 @@ func (b *MMBot) listen(ctx context.Context) {
 			}
 			mm.handleMessage(b)
 		}
+	}
+}
+
+// SendEvent sends event notification to MattermostBot
+func (b *MattermostBot) SendEvent(ctx context.Context, event events.Event) error {
+	if !b.notify {
+		b.log.Info("Notifications are disabled. Skipping event...")
+		return nil
+	}
+
+	b.log.Debugf(">> Sending to MattermostBot: %+v", event)
+
+	var fields []*model.SlackAttachmentField
+
+	switch b.Notification.Type {
+	case config.LongNotification:
+		fields = mmLongNotification(event)
+	case config.ShortNotification:
+		fallthrough
+
+	default:
+		// set missing cluster name to event object
+		fields = mmShortNotification(event)
+	}
+
+	attachment := []*model.SlackAttachment{
+		{
+			Color:     attachmentColor[event.Level],
+			Title:     event.Title,
+			Fields:    fields,
+			Footer:    "BotKube",
+			Timestamp: json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
+		},
+	}
+
+	targetChannel := event.Channel
+	if targetChannel == "" {
+		// empty value in event.channel sends notifications to default channel.
+		targetChannel = b.ChannelName
+	}
+	isDefaultChannel := targetChannel == b.ChannelName
+
+	post := &model.Post{
+		Props: map[string]interface{}{
+			"attachments": attachment,
+		},
+		ChannelId: targetChannel,
+	}
+
+	_, resp := b.APIClient.CreatePost(post)
+	if resp.Error != nil {
+		createPostWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, resp.Error)
+
+		if isDefaultChannel {
+			return createPostWrappedErr
+		}
+
+		// fallback to default channel
+
+		// send error message to default channel
+		msg := fmt.Sprintf("Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
+		sendMessageErr := b.SendMessage(ctx, msg)
+		if sendMessageErr != nil {
+			return multierror.Append(createPostWrappedErr, sendMessageErr)
+		}
+
+		// sending missed event to default channel
+		// reset event.ChannelName and send event
+		event.Channel = ""
+		sendEventErr := b.SendEvent(ctx, event)
+		if sendEventErr != nil {
+			return multierror.Append(createPostWrappedErr, sendEventErr)
+		}
+
+		return createPostWrappedErr
+	}
+
+	b.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
+	return nil
+}
+
+// SendMessage sends message to MattermostBot channel
+func (b *MattermostBot) SendMessage(_ context.Context, msg string) error {
+	post := &model.Post{
+		ChannelId: b.ChannelName,
+		Message:   msg,
+	}
+	if _, resp := b.APIClient.CreatePost(post); resp.Error != nil {
+		return fmt.Errorf("while creating a post: %w", resp.Error)
+	}
+
+	return nil
+}
+
+func mmLongNotification(event events.Event) []*model.SlackAttachmentField {
+	fields := []*model.SlackAttachmentField{
+		{
+			Title: "Kind",
+			Value: event.Kind,
+			Short: true,
+		},
+		{
+			Title: "Name",
+			Value: event.Name,
+			Short: true,
+		},
+	}
+
+	if event.Namespace != "" {
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Namespace",
+			Value: event.Namespace,
+			Short: true,
+		})
+	}
+
+	if event.Reason != "" {
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Reason",
+			Value: event.Reason,
+			Short: true,
+		})
+	}
+
+	if len(event.Messages) > 0 {
+		message := ""
+		for _, m := range event.Messages {
+			message += fmt.Sprintf("%s\n", m)
+		}
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Message",
+			Value: message,
+		})
+	}
+
+	if event.Action != "" {
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Action",
+			Value: event.Action,
+		})
+	}
+
+	if len(event.Recommendations) > 0 {
+		rec := ""
+		for _, r := range event.Recommendations {
+			rec += fmt.Sprintf("%s\n", r)
+		}
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Recommendations",
+			Value: rec,
+		})
+	}
+
+	if len(event.Warnings) > 0 {
+		warn := ""
+		for _, w := range event.Warnings {
+			warn += fmt.Sprintf("%s\n", w)
+		}
+
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Warnings",
+			Value: warn,
+		})
+	}
+
+	// Add clusterName in the message
+	fields = append(fields, &model.SlackAttachmentField{
+		Title: "Cluster",
+		Value: event.Cluster,
+	})
+	return fields
+}
+
+func mmShortNotification(event events.Event) []*model.SlackAttachmentField {
+	return []*model.SlackAttachmentField{
+		{
+			Value: FormatShortMessage(event),
+		},
 	}
 }

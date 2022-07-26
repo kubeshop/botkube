@@ -147,7 +147,7 @@ func run() error {
 	}
 
 	if commCfg.Mattermost.Enabled {
-		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory, reporter)
+		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "MattermostBot"), conf, executorFactory, reporter)
 		notifiers = append(notifiers, mb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
