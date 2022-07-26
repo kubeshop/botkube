@@ -71,7 +71,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 2. Use templates to create configuration files:
 
    ```sh
-   cp resource_config.yaml.tpl resource_config.yaml
+   cp global_config.yaml.tpl resource_config.yaml
    cp comm_config.yaml.tpl comm_config.yaml
    ```
 

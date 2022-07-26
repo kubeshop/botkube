@@ -1,13 +1,13 @@
-{{- if or .Values.serviceMonitor.enabled .Values.communications.teams.enabled }}
+{{- if or .Values.serviceMonitor.enabled (include "botkube.communication.team.enabled" $) }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "botkube.fullname" . }}
-  labels: 
+  labels:
     app.kubernetes.io/name: {{ include "botkube.name" . }}
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}  
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
     app: botkube
 spec:
   type: ClusterIP
@@ -17,10 +17,12 @@ spec:
     port: {{ .Values.service.port }}
     targetPort: {{ .Values.service.targetPort }}
   {{- end }}
-  {{- if .Values.communications.teams.enabled }}
-  - name: "teams"
-    port: {{ .Values.communications.teams.port }}
+  {{- range $key, $val := .Values.communications }}
+  {{- if .teams.enabled }}
+  - name: {{ $key | quote }}
+    port: {{ $val.teams.port }}
+  {{- end }}
   {{- end }}
   selector:
-    app: botkube 
+    app: botkube
 {{- end }}

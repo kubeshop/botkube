@@ -40,17 +40,18 @@ type discordMessage struct {
 
 // NewDiscordBot returns new Bot object
 func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *DiscordBot {
+	discord := c.Communications.GetFirst().Discord
 	return &DiscordBot{
 		log:              log,
 		reporter:         reporter,
 		executorFactory:  executorFactory,
-		Token:            c.Communications.Discord.Token,
-		BotID:            c.Communications.Discord.BotID,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		Token:            discord.Token,
+		BotID:            discord.BotID,
+		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
+		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelID:        c.Communications.Discord.Channel,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		ChannelID:        discord.Channels.GetFirst().ID,
+		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 	}
 }
 
