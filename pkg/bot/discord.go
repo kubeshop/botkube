@@ -11,6 +11,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+var _ Bot = &DiscordBot{}
+
 // DiscordBot listens for user's message, execute commands and sends back the response
 type DiscordBot struct {
 	log             logrus.FieldLogger

@@ -13,6 +13,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+var _ Bot = &MMBot{}
+
 // mmChannelType to find Mattermost channel type
 type mmChannelType string
 
@@ -201,7 +203,7 @@ func (mm mattermostMessage) sendMessage() {
 		post.Message = formatCodeBlock(mm.Response)
 	}
 
-	// Create a post in the Channel
+	// Create a post in the ChannelName
 	if _, resp := mm.APIClient.CreatePost(post); resp.Error != nil {
 		mm.log.Error("Failed to send message. Error: ", resp.Error)
 	}

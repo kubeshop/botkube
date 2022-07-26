@@ -35,7 +35,7 @@ const (
 	activityUploadInfo = "uploadInfo"
 )
 
-var _ Bot = (*Teams)(nil)
+var _ Bot = &Teams{}
 
 // Teams contains credentials to start Teams backend server
 type Teams struct {

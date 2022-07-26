@@ -44,7 +44,7 @@ func (s *slackTester) CreateChannel(t *testing.T) (*slack.Channel, func(t *testi
 	channel, err := s.cli.CreateConversation(channelName, false)
 	require.NoError(t, err)
 
-	t.Logf("Channel %q (ID: %q) created", channelName, channel.ID)
+	t.Logf("ChannelName %q (ID: %q) created", channelName, channel.ID)
 
 	cleanupFn := func(t *testing.T) {
 		t.Helper()

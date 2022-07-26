@@ -47,7 +47,7 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 	}, nil
 }
 
-// SendEvent sends event notification to Discord Channel
+// SendEvent sends event notification to Discord ChannelName
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	d.log.Debugf(">> Sending to discord: %+v", event)
@@ -62,7 +62,7 @@ func (d *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	return nil
 }
 
-// SendMessage sends message to Discord Channel
+// SendMessage sends message to Discord ChannelName
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (d *Discord) SendMessage(_ context.Context, msg string) error {
 	d.log.Debugf(">> Sending to discord: %+v", msg)

@@ -97,14 +97,14 @@ func (m *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
 		// fallback to default channel
 
 		// send error message to default channel
-		msg := fmt.Sprintf("Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
+		msg := fmt.Sprintf("Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
 		sendMessageErr := m.SendMessage(ctx, msg)
 		if sendMessageErr != nil {
 			return multierror.Append(createPostWrappedErr, sendMessageErr)
 		}
 
 		// sending missed event to default channel
-		// reset event.Channel and send event
+		// reset event.ChannelName and send event
 		event.Channel = ""
 		sendEventErr := m.SendEvent(ctx, event)
 		if sendEventErr != nil {

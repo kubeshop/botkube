@@ -2,7 +2,11 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -12,7 +16,9 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
+var _ Bot = &SlackBot{}
+
+const sendFailureMessageFmt = "Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```"
 const channelNotFoundCode = "channel_not_found"
 
 var attachmentColor = map[config.Level]string{
@@ -30,6 +36,7 @@ type SlackBot struct {
 	reporter        FatalErrorAnalyticsReporter
 	notify          bool
 
+	Client           *slack.Client
 	Notification     config.Notification
 	Token            string
 	AllowKubectl     bool
@@ -52,22 +59,23 @@ type slackMessage struct {
 	Response      string
 	IsAuthChannel bool
 	RTM           *slack.RTM
-	SlackClient   *slack.Client
 }
 
 // NewSlackBot returns new Bot object
 func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) *SlackBot {
-	slack := c.Communications.GetFirst().Slack
+	slackCfg := c.Communications.GetFirst().Slack
 	return &SlackBot{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
 		notify:           true, // enabled by default
-		Token:            slack.Token,
+		Token:            slackCfg.Token,
+		Client:           slack.New(slackCfg.Token),
+		Notification:     slackCfg.Notification,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelName:      slack.Channels.GetFirst().Name,
+		ChannelName:      slackCfg.Channels.GetFirst().Name,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 	}
 }
@@ -125,7 +133,6 @@ func (b *SlackBot) Start(ctx context.Context) error {
 					Event:           ev,
 					BotID:           botID,
 					RTM:             rtm,
-					SlackClient:     api,
 				}
 				err := sm.HandleMessage(b)
 				if err != nil {
@@ -183,7 +190,7 @@ func (b *SlackBot) SetEnabled(value bool) error {
 
 func (sm *slackMessage) HandleMessage(b *SlackBot) error {
 	// Check if message posted in authenticated channel
-	info, err := sm.SlackClient.GetConversationInfo(sm.Event.Channel, true)
+	info, err := b.Client.GetConversationInfo(sm.Event.Channel, true)
 	if err == nil {
 		if info.IsChannel || info.IsPrivate {
 			// Message posted in a channel
@@ -249,4 +256,176 @@ func (sm *slackMessage) Send() error {
 	}
 
 	return nil
+}
+
+// SendEvent sends event notification to slack
+func (b *SlackBot) SendEvent(ctx context.Context, event events.Event) error {
+	b.log.Debugf(">> Sending to slack: %+v", event)
+	attachment := b.formatSlackMessage(event, b.Notification)
+
+	targetChannel := event.Channel
+	if targetChannel == "" {
+		// empty value in event.channel sends notifications to default channel.
+		targetChannel = b.ChannelName
+	}
+	isDefaultChannel := targetChannel == b.ChannelName
+
+	channelID, timestamp, err := b.Client.PostMessage(targetChannel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+	if err != nil {
+		postMessageWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, err)
+
+		if isDefaultChannel || err.Error() != channelNotFoundCode {
+			return postMessageWrappedErr
+		}
+
+		// channel not found, fallback to default channel
+
+		// send error message to default channel
+		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
+		sendMessageErr := b.SendMessage(ctx, msg)
+		if sendMessageErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendMessageErr)
+		}
+
+		// sending missed event to default channel
+		// reset event.ChannelName and send event
+		event.Channel = ""
+		sendEventErr := b.SendEvent(ctx, event)
+		if sendEventErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendEventErr)
+		}
+
+		return postMessageWrappedErr
+	}
+
+	b.log.Debugf("Event successfully sent to channel %q at %b", channelID, timestamp)
+	return nil
+}
+
+// SendMessage sends message to slack channel
+func (b *SlackBot) SendMessage(ctx context.Context, msg string) error {
+	b.log.Debugf(">> Sending to slack: %+v", msg)
+	channelID, timestamp, err := b.Client.PostMessageContext(ctx, b.ChannelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
+	if err != nil {
+		return fmt.Errorf("while sending SlackBot message to channel %q: %w", b.ChannelName, err)
+	}
+
+	b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
+	return nil
+}
+
+func (b *SlackBot) formatSlackMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
+	switch notification.Type {
+	case config.LongNotification:
+		attachment = b.slackLongNotification(event)
+
+	case config.ShortNotification:
+		fallthrough
+
+	default:
+		// set missing cluster name to event object
+		attachment = b.slackShortNotification(event)
+	}
+
+	// Add timestamp
+	ts := json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10))
+	if ts > "0" {
+		attachment.Ts = ts
+	}
+	attachment.Color = attachmentColor[event.Level]
+	return attachment
+}
+
+func (b *SlackBot) slackLongNotification(event events.Event) slack.Attachment {
+	attachment := slack.Attachment{
+		Pretext: fmt.Sprintf("*%s*", event.Title),
+		Fields: []slack.AttachmentField{
+			{
+				Title: "Kind",
+				Value: event.Kind,
+				Short: true,
+			},
+			{
+
+				Title: "Name",
+				Value: event.Name,
+				Short: true,
+			},
+		},
+		Footer: "BotKube",
+	}
+	if event.Namespace != "" {
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Namespace",
+			Value: event.Namespace,
+			Short: true,
+		})
+	}
+
+	if event.Reason != "" {
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Reason",
+			Value: event.Reason,
+			Short: true,
+		})
+	}
+
+	if len(event.Messages) > 0 {
+		message := ""
+		for _, m := range event.Messages {
+			message += fmt.Sprintf("%s\n", m)
+		}
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Message",
+			Value: message,
+		})
+	}
+
+	if event.Action != "" {
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Action",
+			Value: event.Action,
+		})
+	}
+
+	if len(event.Recommendations) > 0 {
+		rec := ""
+		for _, r := range event.Recommendations {
+			rec += fmt.Sprintf("%s\n", r)
+		}
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Recommendations",
+			Value: rec,
+		})
+	}
+
+	if len(event.Warnings) > 0 {
+		warn := ""
+		for _, w := range event.Warnings {
+			warn += fmt.Sprintf("%s\n", w)
+		}
+		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+			Title: "Warnings",
+			Value: warn,
+		})
+	}
+
+	// Add clusterName in the message
+	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
+		Title: "Cluster",
+		Value: event.Cluster,
+	})
+	return attachment
+}
+
+func (b *SlackBot) slackShortNotification(event events.Event) slack.Attachment {
+	return slack.Attachment{
+		Title: event.Title,
+		Fields: []slack.AttachmentField{
+			{
+				Value: FormatShortMessage(event),
+			},
+		},
+		Footer: "BotKube",
+	}
 }
