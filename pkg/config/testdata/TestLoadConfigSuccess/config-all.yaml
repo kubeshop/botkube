@@ -52,7 +52,7 @@ communications: # req 1 elm.
       botID: 'DISCORD_BOT_ID'
       channels:
         'alias':
-          name: 'DISCORD_CHANNEL_ID'
+          id: 'DISCORD_CHANNEL_ID'
           bindings:
             executors:
               - kubectl-read-only

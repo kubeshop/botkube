@@ -302,7 +302,7 @@ existingCommunicationsSecretName: ""
 #
 ## Format: config.<alias>
 communications:
-  'default-workspace':
+  'default-group':
     ## Settings for Slack.
     slack:
       # -- If true, enables Slack bot.
@@ -387,7 +387,7 @@ communications:
         'default':
           # -- Discord channel ID for receiving BotKube alerts.
           # The BotKube user needs to be added to it.
-          name: 'DISCORD_CHANNEL_ID'
+          id: 'DISCORD_CHANNEL_ID'
           bindings:
             executors:
               - kubectl-read-only

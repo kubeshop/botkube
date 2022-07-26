@@ -1,5 +1,5 @@
 communications:
-  'default-workspace':
+  'default-group':
     slack:
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for BotKube app

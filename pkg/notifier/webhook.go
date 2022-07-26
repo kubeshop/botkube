@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second

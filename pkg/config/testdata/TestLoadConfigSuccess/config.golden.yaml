@@ -299,7 +299,7 @@ communications:
             botID: DISCORD_BOT_ID
             channels:
                 alias:
-                    name: DISCORD_CHANNEL_ID
+                    id: DISCORD_CHANNEL_ID
                     bindings:
                         sources:
                             - k8s-events

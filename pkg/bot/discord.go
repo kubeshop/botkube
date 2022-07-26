@@ -50,7 +50,7 @@ func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelID:        discord.Channels.GetFirst().Name,
+		ChannelID:        discord.Channels.GetFirst().ID,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 	}
 }

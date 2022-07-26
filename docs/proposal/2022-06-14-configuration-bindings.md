@@ -305,13 +305,13 @@ communications: # allows to have multiple slacks, or ES configurations
       token: 'SLACK_API_TOKEN'
       # customized notifications
       channels:
-				'nodes':
+        'nodes':
           name: "#nodes"
           bindings:
             sources:
               - "nodes-errors"
-				'network':
-					name: "#network"
+        'network':
+          name: "#network"
           bindings:
             sources:
               - "network-errors"

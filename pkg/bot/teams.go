@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/hashicorp/go-multierror"
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
@@ -20,6 +19,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const (

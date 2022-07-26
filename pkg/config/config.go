@@ -125,9 +125,15 @@ type Config struct {
 	Settings  Settings  `yaml:"settings"`
 }
 
-// ChannelBindings contains configuration bindings per channel.
-type ChannelBindings struct {
+// ChannelBindingsByName contains configuration bindings per channel.
+type ChannelBindingsByName struct {
 	Name     string      `yaml:"name"`
+	Bindings BotBindings `yaml:"bindings"`
+}
+
+// ChannelBindingsByID contains configuration bindings per channel.
+type ChannelBindingsByID struct {
+	ID       string      `yaml:"id"`
 	Bindings BotBindings `yaml:"bindings"`
 }
 
@@ -207,10 +213,10 @@ type Communications struct {
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled      bool                          `yaml:"enabled"`
-	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                  `yaml:"notification,omitempty"`
-	Token        string                        `yaml:"token,omitempty"`
+	Enabled      bool                                `yaml:"enabled"`
+	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                        `yaml:"notification,omitempty"`
+	Token        string                              `yaml:"token,omitempty"`
 }
 
 // Elasticsearch config auth settings
@@ -243,13 +249,13 @@ type ELSIndex struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled      bool                          `yaml:"enabled"`
-	BotName      string                        `yaml:"botName"`
-	URL          string                        `yaml:"url"`
-	Token        string                        `yaml:"token"`
-	Team         string                        `yaml:"team"`
-	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                  `yaml:"notification,omitempty"`
+	Enabled      bool                                `yaml:"enabled"`
+	BotName      string                              `yaml:"botName"`
+	URL          string                              `yaml:"url"`
+	Token        string                              `yaml:"token"`
+	Team         string                              `yaml:"team"`
+	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                        `yaml:"notification,omitempty"`
 }
 
 // Teams creds for authentication with MS Teams
@@ -262,17 +268,17 @@ type Teams struct {
 	Port        string `yaml:"port"`
 	MessagePath string `yaml:"messagePath,omitempty"`
 	// TODO: not used yet.
-	Channels     IndexableMap[ChannelBindings] `yaml:"channels"`
-	Notification Notification                  `yaml:"notification,omitempty"`
+	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"`
+	Notification Notification                        `yaml:"notification,omitempty"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled      bool                          `yaml:"enabled"`
-	Token        string                        `yaml:"token"`
-	BotID        string                        `yaml:"botID"`
-	Channels     IndexableMap[ChannelBindings] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                  `yaml:"notification,omitempty"`
+	Enabled      bool                              `yaml:"enabled"`
+	Token        string                            `yaml:"token"`
+	BotID        string                            `yaml:"botID"`
+	Channels     IndexableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                      `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
@@ -397,6 +403,7 @@ type IndexableMap[T any] map[string]T
 
 // GetFirst returns the first map element.
 // It's not deterministic if map has more than one element.
+// TODO(remove): https://github.com/kubeshop/botkube/issues/596
 func (t IndexableMap[T]) GetFirst() T {
 	var empty T
 

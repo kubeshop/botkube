@@ -2,7 +2,7 @@
 #
 # Format: communications.<alias>
 communications:
-  'default-workspace':
+  'default-group':
     # Settings for Slack
     slack:
       enabled: false
@@ -53,7 +53,7 @@ communications:
       botID: 'DISCORD_BOT_ID'                   # BotKube Application Client ID
       channels:
         'alias':
-          name: 'DISCORD_CHANNEL_ID'            # Discord Channel id for receiving BotKube alerts:
+          id: 'DISCORD_CHANNEL_ID'            # Discord Channel id for receiving BotKube alerts:
           bindings:
             executors:
               - kubectl-read-only
