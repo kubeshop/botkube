@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -38,17 +39,16 @@ type Slack struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        FatalErrorAnalyticsReporter
+	notifyMutex     sync.RWMutex
 	notify          bool
+	botID           string
 
 	Client           *slack.Client
 	Notification     config.Notification
-	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
 	ChannelName      string
-	SlackURL         string
-	BotID            string
 	DefaultNamespace string
 }
 
@@ -66,41 +66,38 @@ type slackMessage struct {
 }
 
 // NewSlack creates a new Slack instance.
-func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) *Slack {
+func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
 	slackCfg := c.Communications.GetFirst().Slack
+
+	client := slack.New(slackCfg.Token)
+
+	authResp, err := client.AuthTest()
+	if err != nil {
+		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
+	}
+	botID := authResp.UserID
+
 	return &Slack{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
 		notify:           true, // enabled by default
-		Token:            slackCfg.Token,
-		Client:           slack.New(slackCfg.Token), // TODO: Merge clients
+		botID:            botID,
+		Client:           client,
 		Notification:     slackCfg.Notification,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
 		ChannelName:      slackCfg.Channels.GetFirst().Name,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
-	}
+	}, nil
 }
 
 // Start starts the Slack RTM connection and listens for messages
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
-	var botID string
-	api := slack.New(b.Token)
-	if len(b.SlackURL) != 0 {
-		api = slack.New(b.Token, slack.OptionAPIURL(b.SlackURL))
-		botID = b.BotID
-	} else {
-		authResp, err := api.AuthTest()
-		if err != nil {
-			return fmt.Errorf("while testing the ability to do auth request: %w", err)
-		}
-		botID = authResp.UserID
-	}
 
-	rtm := api.NewRTM()
+	rtm := b.Client.NewRTM()
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
 		rtm.ManageConnection()
@@ -128,14 +125,14 @@ func (b *Slack) Start(ctx context.Context) error {
 
 			case *slack.MessageEvent:
 				// Skip if message posted by BotKube
-				if ev.User == botID {
+				if ev.User == b.botID {
 					continue
 				}
 				sm := slackMessage{
 					log:             b.log,
 					executorFactory: b.executorFactory,
 					Event:           ev,
-					BotID:           botID,
+					BotID:           b.botID,
 					RTM:             rtm,
 				}
 				err := sm.HandleMessage(b)
@@ -181,11 +178,15 @@ func (b *Slack) IntegrationName() config.CommPlatformIntegration {
 
 // Enabled returns current notification status.
 func (b *Slack) Enabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
 // SetEnabled sets a new notification status.
 func (b *Slack) SetEnabled(value bool) error {
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
 	b.notify = value
 	return nil
 }

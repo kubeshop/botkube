@@ -138,7 +138,10 @@ func run() error {
 
 	// Run bots
 	if commCfg.Slack.Enabled {
-		sb := bot.NewSlack(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
+		sb, err := bot.NewSlack(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
+		if err != nil {
+			return reportFatalError("while creating Slack bot", err)
+		}
 		notifiers = append(notifiers, sb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)

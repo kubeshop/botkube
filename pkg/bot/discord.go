@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,7 @@ type Discord struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notifyMutex     sync.RWMutex
 	notify          bool
 	api             *discordgo.Session
 
@@ -168,11 +170,15 @@ func (b *Discord) Type() config.IntegrationType {
 
 // Enabled returns current notification status.
 func (b *Discord) Enabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
 // SetEnabled sets a new notification status.
 func (b *Discord) SetEnabled(value bool) error {
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
 	b.notify = value
 	return nil
 }

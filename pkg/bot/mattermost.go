@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ type Mattermost struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notifyMutex     sync.RWMutex
 	notify          bool
 
 	Notification     config.Notification
@@ -174,11 +176,15 @@ func (b *Mattermost) Type() config.IntegrationType {
 
 // Enabled returns current notification status.
 func (b *Mattermost) Enabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
 // SetEnabled sets a new notification status.
 func (b *Mattermost) SetEnabled(value bool) error {
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
 	b.notify = value
 	return nil
 }

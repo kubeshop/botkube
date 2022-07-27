@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/infracloudio/msbotbuilder-go/core"
@@ -49,6 +50,7 @@ type Teams struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notifyMutex     sync.RWMutex
 	notify          bool
 
 	BotName          string
@@ -63,7 +65,8 @@ type Teams struct {
 	Adapter          core.Adapter
 	DefaultNamespace string
 
-	ConversationRef *schema.ConversationReference
+	conversationRefMutex sync.RWMutex
+	conversationRef      *schema.ConversationReference
 }
 
 type consentContext struct {
@@ -305,11 +308,13 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
 
 // SendMessage sends message to MsTeams
 func (b *Teams) SendMessage(ctx context.Context, msg string) error {
-	if b.ConversationRef == nil {
+	b.conversationRefMutex.RLock()
+	defer b.conversationRefMutex.RUnlock()
+	if b.conversationRef == nil {
 		b.log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.ConversationRef, coreActivity.HandlerFuncs{
+	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			return turn.SendActivity(coreActivity.MsgOptionText(msg))
 		},
@@ -331,12 +336,43 @@ func (b *Teams) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
+// Enabled returns current notification status.
+func (b *Teams) Enabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
+	return b.notify
+}
+
+// SetEnabled sets a new notification status.
+func (b *Teams) SetEnabled(value bool, activity schema.Activity) error {
+	if value {
+		b.conversationRefMutex.Lock()
+		defer b.conversationRefMutex.Unlock()
+
+		// Set conversation reference
+		ref := coreActivity.GetCoversationReference(activity)
+		b.conversationRef = &ref
+		// Remove messageID from the ChannelID
+		if ID, ok := activity.ChannelData["teamsChannelId"]; ok {
+			b.conversationRef.ChannelID = ID.(string)
+			b.conversationRef.Conversation.ID = ID.(string)
+		}
+	}
+
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
+	b.notify = value
+	return nil
+}
+
 func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interface{}) error {
-	if b.ConversationRef == nil {
+	b.conversationRefMutex.RLock()
+	defer b.conversationRefMutex.RUnlock()
+	if b.conversationRef == nil {
 		b.log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.ConversationRef, coreActivity.HandlerFuncs{
+	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			attachments := []schema.Attachment{
 				{
@@ -361,21 +397,10 @@ func newTeamsNotifMgrForActivity(b *Teams, activity schema.Activity) *teamsNotif
 
 // Enabled returns current notification status.
 func (n *teamsNotificationManager) Enabled() bool {
-	return n.b.notify
+	return n.b.Enabled()
 }
 
 // SetEnabled sets a new notification status.
 func (n *teamsNotificationManager) SetEnabled(value bool) error {
-	if value {
-		// Set conversation reference
-		ref := coreActivity.GetCoversationReference(n.activity)
-		n.b.ConversationRef = &ref
-		// Remove messageID from the ChannelID
-		if ID, ok := n.activity.ChannelData["teamsChannelId"]; ok {
-			n.b.ConversationRef.ChannelID = ID.(string)
-			n.b.ConversationRef.Conversation.ID = ID.(string)
-		}
-	}
-	n.b.notify = value
-	return nil
+	return n.b.SetEnabled(value, n.activity)
 }
