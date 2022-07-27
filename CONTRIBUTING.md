@@ -29,34 +29,31 @@ This section describes how to build and run the BotKube from the source code.
 
 ### Build and install on Kubernetes
 
-1. Build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`:
+1. Build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`. Choose one option:
 
-You have two options,
+   - **Single target build for your local K8s cluster**
 
-**Single target build for your local K8s cluster**
+     This is ideal for running BotKube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
-This is ideal for running BotKube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [MiniKube](https://minikube.sigs.k8s.io/docs/).
+     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target. By default, the build targets `linux/amd64`.
 
-As a side benefit, it gets around some issues of building BotKube on M1 Chips.
+        ```sh
+        IMAGE_PLATFORM=linux/arm64 make container-image-single
+        docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
+        docker push <your_account>/botkube:v9.99.9-dev
+        ```
+        Where `<your_account>` is Docker hub account to which you can push the image.
 
-_Remember to use the `IMAGE_PLATFORM` env var to set your target architecture_. For example, the command below is building `linux/arm64` target. By default, the build targets `linux/amd64`.
+   - **Multi-arch target builds for any K8s cluster**
 
-   ```sh
-   IMAGE_PLATFORM=linux/arm64 make container-image-single
-   docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
-   docker push <your_account>/botkube:v9.99.9-dev
-   ```
-Where `<your_account>` is Docker hub account to which you can push the image.
+     This is ideal for running BotKube on remote clusters.
 
-**Multi-arch target builds for any K8s cluster**
+     When tagging your dev image take care to add your target image architecture as a suffix. For example, in the command below we added `-amd64` as our target architecture.
 
-This is ideal for running BotKub on remote clusters. 
+     This ensures the image will run correctly on the target K8s cluster.
 
-When tagging your dev image _take care to add your target image architecture as a suffix_. For example, in the command below we added `-amd64` as our target architecture.
-
-This ensures the image will run correctly on the target K8s cluster. 
-
-Note: This command takes sometime to run as it builds for multiple architectures.  
+     > **Note**
+     > This command takes some time to run as it builds the images for multiple architectures.
 
    ```sh
    make container-image
