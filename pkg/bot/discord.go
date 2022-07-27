@@ -134,6 +134,11 @@ func (b *Discord) Start(ctx context.Context) error {
 // SendEvent sends event notification to Discord ChannelName
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
 func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
+	if !b.notify {
+		b.log.Info("Notifications are disabled. Skipping event...")
+		return nil
+	}
+
 	b.log.Debugf(">> Sending to discord: %+v", event)
 
 	messageSend := b.formatMessage(event, b.Notification)
