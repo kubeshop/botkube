@@ -530,7 +530,7 @@ spec:
 #### K8s notification CRD
 
 ```yaml
-apiVersion: "sink.core.botkube.io/v1"
+apiVersion: "notifier.core.botkube.io/v1"
 kind: Kubernetes
 metadata:
   name: network-errors
@@ -556,7 +556,7 @@ spec:
       events:
         - error
 ---
-apiVersion: "sink.core.botkube.io/v1"
+apiVersion: "notifier.core.botkube.io/v1"
 kind: Kubernetes
 metadata:
   name: network-errors

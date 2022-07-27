@@ -25,7 +25,7 @@ type NotifierHandler interface {
 	SetEnabled(value bool) error
 }
 
-var errInvalidNotifierCommand = errors.New("invalid sink command")
+var errInvalidNotifierCommand = errors.New("invalid notifier command")
 var errUnsupportedCommand = errors.New("unsupported command")
 
 // NotifierExecutor executes all commands that are related to notifications.
@@ -44,7 +44,7 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, analyticsRep
 
 // Do executes a given Notifier command based on args.
 func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegration, clusterName string, handler NotifierHandler) (string, error) {
-	if len(args) < 2 {
+	if len(args) != 2 {
 		return "", errInvalidNotifierCommand
 	}
 
@@ -54,7 +54,7 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 		err := e.analyticsReporter.ReportCommand(platform, cmdToReport)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while reporting sink command: %s", err.Error())
+			e.log.Errorf("while reporting notifier command: %s", err.Error())
 		}
 	}()
 
@@ -97,7 +97,7 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 
 const redactedSecretStr = "*** REDACTED ***"
 
-// Deprecated: this function doesn't fit in the scope of sink. It was moved from legacy reasons, but it will be removed in future.
+// Deprecated: this function doesn't fit in the scope of notifier. It was moved from legacy reasons, but it will be removed in future.
 func (e *NotifierExecutor) showControllerConfig() (string, error) {
 	cfg := e.cfg
 

@@ -265,8 +265,8 @@ func TestSlack(t *testing.T) {
 		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
 		require.NoError(t, err)
 
-		t.Log("Stopping sink...")
-		command := "sink stop"
+		t.Log("Stopping notifier...")
+		command := "notifier stop"
 		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' anymore.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
@@ -286,8 +286,8 @@ func TestSlack(t *testing.T) {
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
-		t.Log("Starting sink")
-		command = "sink start"
+		t.Log("Starting notifier")
+		command = "notifier start"
 		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, notifications are coming from cluster '%s'.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)

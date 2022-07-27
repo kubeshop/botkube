@@ -66,13 +66,13 @@ func TestSegmentReporter_ReportCommand(t *testing.T) {
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 
 	// when
-	err := segmentReporter.ReportCommand(config.DiscordCommPlatformIntegration, "sink stop")
+	err := segmentReporter.ReportCommand(config.DiscordCommPlatformIntegration, "notifier stop")
 	require.NoError(t, err)
 
 	err = segmentReporter.ReportCommand(config.SlackCommPlatformIntegration, "get")
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportCommand(config.TeamsCommPlatformIntegration, "sink start")
+	err = segmentReporter.ReportCommand(config.TeamsCommPlatformIntegration, "notifier start")
 	require.NoError(t, err)
 
 	// then

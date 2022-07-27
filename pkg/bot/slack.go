@@ -169,12 +169,12 @@ func (b *Slack) Start(ctx context.Context) error {
 	}
 }
 
-// Type describes the sink type.
+// Type describes the notifier type.
 func (b *Slack) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// IntegrationName describes the sink integration name.
+// IntegrationName describes the notifier integration name.
 func (b *Slack) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }

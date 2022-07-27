@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	// validNotifierCommand is a map of valid sink commands
+	// validNotifierCommand is a map of valid notifier commands
 	validNotifierCommand = map[string]bool{
-		"sink": true,
+		"notifier": true,
 	}
 	validPingCommand = map[string]bool{
 		"ping": true,
@@ -86,10 +86,10 @@ type DefaultExecutor struct {
 // CommandRunnerFunc is a function which runs arbitrary commands
 type CommandRunnerFunc func(command string, args []string) (string, error)
 
-// NotifierAction creates custom type for sink actions
+// NotifierAction creates custom type for notifier actions
 type NotifierAction string
 
-// Defines constants for sink actions
+// Defines constants for NOTIFIER actions
 const (
 	Start      NotifierAction = "start"
 	Stop       NotifierAction = "stop"
@@ -188,7 +188,7 @@ func (e *DefaultExecutor) Execute() string {
 				return unsupportedCmdMsg
 			}
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while executing sink command: %s", err.Error())
+			e.log.Errorf("while executing notifier command: %s", err.Error())
 		}
 
 		return res

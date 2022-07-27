@@ -162,12 +162,12 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	}
 }
 
-// IntegrationName describes the sink integration name.
+// IntegrationName describes the notifier integration name.
 func (b *Mattermost) IntegrationName() config.CommPlatformIntegration {
 	return config.MattermostCommPlatformIntegration
 }
 
-// Type describes the sink type.
+// Type describes the notifier type.
 func (b *Mattermost) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }

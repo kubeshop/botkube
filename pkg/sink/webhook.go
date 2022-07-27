@@ -137,12 +137,12 @@ func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) 
 	return nil
 }
 
-// IntegrationName describes the sink integration name.
+// IntegrationName describes the notifier integration name.
 func (w *Webhook) IntegrationName() config.CommPlatformIntegration {
 	return config.WebhookCommPlatformIntegration
 }
 
-// Type describes the sink type.
+// Type describes the notifier type.
 func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }

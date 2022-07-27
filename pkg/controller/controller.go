@@ -26,7 +26,7 @@ import (
 
 const (
 	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
-	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube sink start` to enable notification once BotKube comes online."
+	controllerStopMsg  = "My watch has ended for cluster '%s'!\nPlease send `@BotKube notifier start` to enable notification once BotKube comes online."
 	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
 
 	finalMessageTimeout = 20 * time.Second

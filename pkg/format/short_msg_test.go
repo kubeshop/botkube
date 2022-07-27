@@ -166,13 +166,13 @@ func TestShortMessage(t *testing.T) {
 		},
 	}
 
-	for _, tC := range testCases {
-		t.Run(tC.Name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
 			// when
-			actual := format.ShortMessage(tC.Input)
+			actual := format.ShortMessage(tc.Input)
 
 			// then
-			assert.Equal(t, tC.Expected, actual)
+			assert.Equal(t, tc.Expected, actual)
 		})
 	}
 }

@@ -196,12 +196,12 @@ func (e *Elasticsearch) SendMessage(_ context.Context, _ string) error {
 	return nil
 }
 
-// IntegrationName describes the sink integration name.
+// IntegrationName describes the notifier integration name.
 func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
 	return config.ElasticsearchCommPlatformIntegration
 }
 
-// Type describes the sink type.
+// Type describes the notifier type.
 func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }
