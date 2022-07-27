@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	notifierStartMsgFmt  = "Brace yourselves, notifications are coming from cluster %q."
+	notifierStartMsgFmt  = "Brace yourselves, incoming notifications from cluster %q."
 	notifierStopMsgFmt   = "Sure! I won't send you notifications from cluster %q anymore."
 	notifierStatusMsgFmt = "Notifications from cluster %q are %s."
 )
@@ -88,7 +88,7 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 			return "", fmt.Errorf("while executing 'showconfig' command: %w", err)
 		}
 
-		return fmt.Sprintf("Showing config for cluster '%s'\n\n%s", clusterName, out), nil
+		return fmt.Sprintf("Showing config for cluster %q:\n\n%s", clusterName, out), nil
 	}
 
 	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information

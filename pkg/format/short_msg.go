@@ -36,7 +36,7 @@ func messageHeader(event events.Event) string {
 
 	case config.ErrorEvent:
 		return fmt.Sprintf(
-			"Error Occurred in %s: *%s* in *%s* cluster",
+			"Error occurred for %s *%s* in *%s* cluster",
 			event.Kind,
 			resourceName,
 			event.Cluster,
@@ -44,7 +44,7 @@ func messageHeader(event events.Event) string {
 
 	case config.WarningEvent:
 		return fmt.Sprintf(
-			"Warning %s: *%s* in *%s* cluster",
+			"Warning for %s *%s* in *%s* cluster",
 			event.Kind,
 			resourceName,
 			event.Cluster,
@@ -52,7 +52,7 @@ func messageHeader(event events.Event) string {
 
 	case config.InfoEvent, config.NormalEvent:
 		return fmt.Sprintf(
-			"%s Info: *%s* in *%s* cluster",
+			"Info for %s *%s* in *%s* cluster",
 			event.Kind,
 			resourceName,
 			event.Cluster,
