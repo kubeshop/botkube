@@ -22,6 +22,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 )
 
+var _ Sink = &Elasticsearch{}
+
 const (
 	// indexSuffixFormat is the date format that would be appended to the index name
 	indexSuffixFormat = "2006-01-02" // YYYY-MM-DD
@@ -34,7 +36,7 @@ const (
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
-// Elasticsearch contains auth cred and index setting
+// Elasticsearch provides integration with the Elasticsearch solution.
 type Elasticsearch struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
@@ -48,8 +50,8 @@ type Elasticsearch struct {
 	IndexType     string
 }
 
-// NewElasticSearch returns new Elasticsearch object
-func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
+// NewElasticsearch creates a new Elasticsearch instance.
+func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
 	var creds *credentials.Credentials

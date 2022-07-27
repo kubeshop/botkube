@@ -2,13 +2,13 @@ package bot
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/controller"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 )
 
-// Bot connects to communication channels and reads/sends messages
+// Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
 	IntegrationName() config.CommPlatformIntegration

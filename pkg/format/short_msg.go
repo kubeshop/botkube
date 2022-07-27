@@ -1,18 +1,14 @@
-package bot
+package format
 
 import (
 	"fmt"
+
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"strings"
 )
 
-func formatCodeBlock(msg string) string {
-	return fmt.Sprintf("```\n%s\n```", strings.TrimSpace(msg))
-}
-
-// FormatShortMessage prepares message in short event format
-func FormatShortMessage(event events.Event) (msg string) {
+// ShortMessage prepares message in short event format.
+func ShortMessage(event events.Event) (msg string) {
 	additionalMsg := ""
 	if len(event.Messages) > 0 {
 		for _, m := range event.Messages {

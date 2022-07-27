@@ -9,17 +9,37 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/format"
 )
 
-var _ Bot = &DiscordBot{}
+// TODO: Refactor:
+// 	- handle and send methods from `discordMessage` should be defined on Bot level,
+//  - split to multiple files in a separate package,
+//  - review all the methods and see if they can be simplified.
 
-// DiscordBot listens for user's message, execute commands and sends back the response
-type DiscordBot struct {
+var _ Bot = &Discord{}
+
+// customTimeFormat holds custom time format string
+const customTimeFormat = "2006-01-02T15:04:05Z"
+
+var embedColor = map[config.Level]int{
+	config.Info:     8311585,  // green
+	config.Warn:     16312092, // yellow
+	config.Debug:    8311585,  // green
+	config.Error:    13632027, // red
+	config.Critical: 13632027, // red
+}
+
+// Discord listens for user's message, execute commands and sends back the response
+type Discord struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
 	notify          bool
+	api             *discordgo.Session
 
+	Notification     config.Notification
 	Token            string
 	AllowKubectl     bool
 	RestrictAccess   bool
@@ -42,14 +62,21 @@ type discordMessage struct {
 	Session       *discordgo.Session
 }
 
-// NewDiscordBot returns new Bot object
-func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *DiscordBot {
+// NewDiscord creates a new Discord instance.
+func NewDiscord(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Discord, error) {
 	discord := c.Communications.GetFirst().Discord
-	return &DiscordBot{
+
+	api, err := discordgo.New("Bot " + discord.Token)
+	if err != nil {
+		return nil, fmt.Errorf("while creating Discord session: %w", err)
+	}
+
+	return &Discord{
 		log:             log,
 		reporter:        reporter,
 		executorFactory: executorFactory,
 		notify:          true, // enabled by default
+		api:             api,
 
 		Token:            discord.Token,
 		BotID:            discord.BotID,
@@ -58,19 +85,16 @@ func NewDiscordBot(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		ClusterName:      c.Settings.ClusterName,
 		ChannelID:        discord.Channels.GetFirst().ID,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
-	}
+		Notification:     discord.Notification,
+	}, nil
 }
 
-// Start starts the DiscordBot websocket connection and listens for messages
-func (b *DiscordBot) Start(ctx context.Context) error {
+// Start starts the Discord websocket connection and listens for messages
+func (b *Discord) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
-	api, err := discordgo.New("Bot " + b.Token)
-	if err != nil {
-		return fmt.Errorf("while creating Discord session: %w", err)
-	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
-	api.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	b.api.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		dm := discordMessage{
 			log:             b.log,
 			executorFactory: b.executorFactory,
@@ -83,7 +107,7 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 	})
 
 	// Open a websocket connection to Discord and begin listening.
-	err = api.Open()
+	err := b.api.Open()
 	if err != nil {
 		return fmt.Errorf("while opening connection: %w", err)
 	}
@@ -97,7 +121,7 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
-	err = api.Close()
+	err = b.api.Close()
 	if err != nil {
 		return fmt.Errorf("while closing connection: %w", err)
 	}
@@ -105,31 +129,56 @@ func (b *DiscordBot) Start(ctx context.Context) error {
 	return nil
 }
 
+// SendEvent sends event notification to Discord ChannelName
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
+	b.log.Debugf(">> Sending to discord: %+v", event)
+
+	messageSend := b.formatMessage(event, b.Notification)
+
+	if _, err := b.api.ChannelMessageSendComplex(b.ChannelID, &messageSend); err != nil {
+		return fmt.Errorf("while sending Discord message to channel %q: %w", b.ChannelID, err)
+	}
+
+	b.log.Debugf("Event successfully sent to channel %s", b.ChannelID)
+	return nil
+}
+
+// SendMessage sends message to Discord ChannelName
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+func (b *Discord) SendMessage(_ context.Context, msg string) error {
+	b.log.Debugf(">> Sending to discord: %+v", msg)
+
+	if _, err := b.api.ChannelMessageSend(b.ChannelID, msg); err != nil {
+		return fmt.Errorf("while sending Discord message to channel %q: %w", b.ChannelID, err)
+	}
+	b.log.Debugf("Event successfully sent to Discord %v", msg)
+	return nil
+}
+
 // IntegrationName describes the integration name.
-func (b *DiscordBot) IntegrationName() config.CommPlatformIntegration {
+func (b *Discord) IntegrationName() config.CommPlatformIntegration {
 	return config.DiscordCommPlatformIntegration
 }
 
 // Type describes the integration type.
-func (b *DiscordBot) Type() config.IntegrationType {
+func (b *Discord) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
 // Enabled returns current notification status.
-func (b *DiscordBot) Enabled() bool {
+func (b *Discord) Enabled() bool {
 	return b.notify
 }
 
 // SetEnabled sets a new notification status.
-func (b *DiscordBot) SetEnabled(value bool) error {
+func (b *Discord) SetEnabled(value bool) error {
 	b.notify = value
 	return nil
 }
 
-// TODO: refactor - handle and send methods should be defined on Bot level
-
 // HandleMessage handles the incoming messages
-func (dm *discordMessage) HandleMessage(b *DiscordBot) {
+func (dm *discordMessage) HandleMessage(b *Discord) {
 	// Serve only if starts with mention
 	if !strings.HasPrefix(dm.Event.Content, "<@!"+dm.BotID+"> ") && !strings.HasPrefix(dm.Event.Content, "<@"+dm.BotID+"> ") {
 		return
@@ -183,7 +232,7 @@ func (dm discordMessage) Send() {
 		return
 	}
 
-	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, formatCodeBlock(dm.Response)); err != nil {
+	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, format.CodeBlock(dm.Response)); err != nil {
 		dm.log.Error("Error in sending message:", err)
 	}
 }

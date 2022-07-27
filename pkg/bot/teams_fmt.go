@@ -5,7 +5,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/sink"
+	"github.com/kubeshop/botkube/pkg/format"
 )
 
 var themeColor = map[config.Level]string{
@@ -18,20 +18,20 @@ var themeColor = map[config.Level]string{
 
 type fact map[string]interface{}
 
-func formatTeamsMessage(event events.Event, notification config.Notification) map[string]interface{} {
+func (b *Teams) formatMessage(event events.Event, notification config.Notification) map[string]interface{} {
 	switch notification.Type {
 	case config.LongNotification:
-		return teamsLongNotification(event)
+		return b.longNotification(event)
 
 	case config.ShortNotification:
 		fallthrough
 
 	default:
-		return teamsShortNotification(event)
+		return b.shortNotification(event)
 	}
 }
 
-func teamsShortNotification(event events.Event) map[string]interface{} {
+func (b *Teams) shortNotification(event events.Event) map[string]interface{} {
 	return map[string]interface{}{
 		"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
 		"type":    "AdaptiveCard",
@@ -46,14 +46,14 @@ func teamsShortNotification(event events.Event) map[string]interface{} {
 			},
 			{
 				"type": "TextBlock",
-				"text": strings.ReplaceAll(sink.FormatShortMessage(event), "```", ""),
+				"text": strings.ReplaceAll(format.ShortMessage(event), "```", ""),
 				"wrap": true,
 			},
 		},
 	}
 }
 
-func teamsLongNotification(event events.Event) map[string]interface{} {
+func (b *Teams) longNotification(event events.Event) map[string]interface{} {
 	card := map[string]interface{}{
 		"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
 		"type":    "AdaptiveCard",

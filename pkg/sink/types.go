@@ -2,7 +2,13 @@ package sink
 
 import (
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/controller"
 )
+
+// Sink sends messages to communication channels. It is a one-way integration.
+type Sink interface {
+	controller.Notifier
+}
 
 // AnalyticsReporter defines a reporter that collects analytics data for sinks.
 type AnalyticsReporter interface {

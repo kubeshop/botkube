@@ -138,7 +138,7 @@ func run() error {
 
 	// Run bots
 	if commCfg.Slack.Enabled {
-		sb := bot.NewSlackBot(logger.WithField(botLogFieldKey, "SlackBot"), conf, executorFactory, reporter)
+		sb := bot.NewSlack(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
 		notifiers = append(notifiers, sb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -147,7 +147,10 @@ func run() error {
 	}
 
 	if commCfg.Mattermost.Enabled {
-		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "MattermostBot"), conf, executorFactory, reporter)
+		mb, err := bot.NewMattermost(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory, reporter)
+		if err != nil {
+			return reportFatalError("while creating Mattermost bot", err)
+		}
 		notifiers = append(notifiers, mb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -156,7 +159,7 @@ func run() error {
 	}
 
 	if commCfg.Teams.Enabled {
-		tb := bot.NewTeamsBot(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory, reporter)
+		tb := bot.NewTeams(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory, reporter)
 		notifiers = append(notifiers, tb)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -165,7 +168,10 @@ func run() error {
 	}
 
 	if commCfg.Discord.Enabled {
-		db := bot.NewDiscordBot(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory, reporter)
+		db, err := bot.NewDiscord(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory, reporter)
+		if err != nil {
+			return reportFatalError("while creating Discord bot", err)
+		}
 		notifiers = append(notifiers, db)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -175,7 +181,7 @@ func run() error {
 
 	// Run sinks
 	if commCfg.Elasticsearch.Enabled {
-		es, err := sink.NewElasticSearch(logger.WithField(sinkLogFieldKey, "Elasticsearch"), commCfg.Elasticsearch, reporter)
+		es, err := sink.NewElasticsearch(logger.WithField(sinkLogFieldKey, "Elasticsearch"), commCfg.Elasticsearch, reporter)
 		if err != nil {
 			return reportFatalError("while creating Elasticsearch sink", err)
 		}

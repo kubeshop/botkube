@@ -17,9 +17,16 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
+
+// TODO: Refactor:
+//  - see if we cannot set conversation ref without waiting for `@BotKube notify start` message.
+//  - see if a public endpoint can be avoided to handle Teams messages.
+//  - split to multiple files in a separate package,
+//  - review all the methods and see if they can be simplified.
 
 const (
 	defaultPort      = "3978"
@@ -37,7 +44,7 @@ const (
 
 var _ Bot = &Teams{}
 
-// Teams contains credentials to start Teams backend server
+// Teams listens for user's message, execute commands and sends back the response.
 type Teams struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
@@ -63,8 +70,8 @@ type consentContext struct {
 	Command string
 }
 
-// NewTeamsBot returns Teams instance
-func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
+// NewTeams creates a new Teams instance.
+func NewTeams(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
 	teams := c.Communications.GetFirst().Teams
 
 	port := teams.Port
@@ -248,7 +255,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	// Multicluster is not supported for Teams
 
 	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
-	return formatCodeBlock(e.Execute())
+	return format.CodeBlock(e.Execute())
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -287,7 +294,7 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
 		b.log.Info("Notifications are disabled. Skipping event...")
 		return nil
 	}
-	card := formatTeamsMessage(event, b.Notification)
+	card := b.formatMessage(event, b.Notification)
 	if err := b.sendProactiveMessage(ctx, card); err != nil {
 		return fmt.Errorf("while sending notification: %w", err)
 	}

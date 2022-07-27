@@ -12,12 +12,13 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
 
-// Webhook contains URL
+// Webhook provides functionality to notify external service about new events.
 type Webhook struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
@@ -52,7 +53,7 @@ type EventStatus struct {
 	Messages []string         `json:"messages,omitempty"`
 }
 
-// NewWebhook returns new Webhook object
+// NewWebhook creates a new Webhook instance.
 func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:      log,
@@ -84,7 +85,7 @@ func (w *Webhook) SendEvent(ctx context.Context, event events.Event) (err error)
 			Error:    event.Error,
 			Messages: event.Messages,
 		},
-		EventSummary:    FormatShortMessage(event),
+		EventSummary:    format.ShortMessage(event),
 		TimeStamp:       event.TimeStamp,
 		Recommendations: event.Recommendations,
 		Warnings:        event.Warnings,
@@ -111,7 +112,7 @@ func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) 
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", w.URL, bytes.NewBuffer(message))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.URL, bytes.NewBuffer(message))
 	if err != nil {
 		return err
 	}
