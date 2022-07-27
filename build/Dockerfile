@@ -1,11 +1,10 @@
 FROM alpine:3.15
 ARG botkube_version="dev"
-LABEL name="botkube" \
-    version="${botkube_version}" \
-    release="${botkube_version}" \
-    summary="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
-    maintainer="Prasad Ghangal<prasad.ghangal@gmail.com>" \
-    description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters"
+LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
+      org.opencontainers.image.title="BotKube" \
+      org.opencontainers.image.version="${botkube_version}" \
+      org.opencontainers.image.description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
+      org.opencontainers.image.documentation="https://botkube.io"
 
 COPY botkube /usr/local/bin/botkube
 # Download the latest kubectl in the appropriate architecture. Currently handles aarch64 (arm64) and x86_64 (amd64).

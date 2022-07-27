@@ -10,6 +10,9 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY $TEST_NAME /test
 
 LABEL name="botkube" \
-    test=$TEST_NAME
+      test=$TEST_NAME \
+      org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
+      org.opencontainers.image.title="BotKube E2 tests" \
+      org.opencontainers.image.description="BotKube E2E tests which are run against BotKube installed on Kubernetes cluster and Slack API."
 
 CMD ["/test", "-test.v"]
