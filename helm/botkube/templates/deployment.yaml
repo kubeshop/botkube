@@ -25,7 +25,7 @@ spec:
         component: controller
         app: botkube
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/global-config.yaml") . | sha256sum }}
       {{- if .Values.extraAnnotations }}
 {{ toYaml .Values.extraAnnotations | indent 8 }}
       {{- end }}
@@ -54,7 +54,7 @@ spec:
           {{- with .Values.extraVolumeMounts }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.config.ssl.enabled }}
+          {{- if .Values.ssl.enabled }}
             - name: certs
               mountPath: "/etc/ssl/certs"
           {{ end }}
@@ -67,7 +67,7 @@ spec:
               mountPath: "/.kube/cache"
           env:
             - name: BOTKUBE_CONFIG_PATHS
-              value: "/config/analytics.yaml,/config/resource_config.yaml,/config/comm_config.yaml"
+              value: "/config/analytics.yaml,/config/global_config.yaml,/config/comm_config.yaml"
             - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
@@ -94,7 +94,7 @@ spec:
       {{- with .Values.extraVolumes }}
         {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.config.ssl.enabled }}
+      {{- if .Values.ssl.enabled }}
         - name: certs
           secret:
             secretName: {{ include "botkube.SSLCertSecretName" . }}

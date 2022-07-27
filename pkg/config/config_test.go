@@ -1,9 +1,10 @@
 package config_test
 
 import (
-	"fmt"
+	"path/filepath"
 	"testing"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,7 @@ import (
 // go test -run=TestLoadConfigSuccess ./pkg/config/... -test.update-golden
 func TestLoadConfigSuccess(t *testing.T) {
 	// given
-	t.Setenv("BOTKUBE_COMMUNICATIONS_SLACK_TOKEN", "token-from-env")
+	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_TOKEN", "token-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
@@ -25,10 +26,11 @@ func TestLoadConfigSuccess(t *testing.T) {
 	// when
 	gotCfg, _, err := config.LoadWithDefaults(func() []string {
 		return []string{
-			"testdata/config-all.yaml",
-			"testdata/config-global.yaml",
-			"testdata/config-slack-override.yaml",
-			"testdata/analytics.yaml",
+			testdataFile(t, "config-all.yaml"),
+			testdataFile(t, "config-global.yaml"),
+			testdataFile(t, "config-slack-override.yaml"),
+			testdataFile(t, "analytics.yaml"),
+			testdataFile(t, "executors.yaml"),
 		}
 	})
 
@@ -38,8 +40,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	gotData, err := yaml.Marshal(gotCfg)
 	require.NoError(t, err)
 
-	filename := fmt.Sprintf("%s.golden.yaml", t.Name())
-	golden.Assert(t, string(gotData), filename)
+	golden.Assert(t, string(gotData), filepath.Join(t.Name(), "config.golden.yaml"))
 }
 
 func TestFromEnvOrFlag(t *testing.T) {
@@ -139,4 +140,61 @@ func TestNormalizeConfigEnvName(t *testing.T) {
 			assert.Equal(t, tc.expYAMLKey, gotName)
 		})
 	}
+}
+
+func TestLoadedConfigValidation(t *testing.T) {
+	// given
+	tests := []struct {
+		name        string
+		expErrMsg   string
+		configFiles []string
+	}{
+		{
+			name: "no config files",
+			expErrMsg: heredoc.Doc(`
+				while validating loaded configuration: 2 errors occurred:
+					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'required' tag
+					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'required' tag`),
+			configFiles: nil,
+		},
+		{
+			// TODO(remove): https://github.com/kubeshop/botkube/issues/596
+			name: "empty executors and communications settings",
+			expErrMsg: heredoc.Doc(`
+				while validating loaded configuration: 2 errors occurred:
+					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'eq' tag
+					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'eq' tag`),
+			configFiles: []string{
+				testdataFile(t, "empty-executors-communications.yaml"),
+			},
+		},
+		{
+			// TODO(remove): https://github.com/kubeshop/botkube/issues/596
+			name: "multiple executors and communications settings",
+			expErrMsg: heredoc.Doc(`
+				while validating loaded configuration: 2 errors occurred:
+					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'eq' tag
+					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'eq' tag`),
+			configFiles: []string{
+				testdataFile(t, "multiple-executors-communications.yaml"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// when
+			cfg, _, err := config.LoadWithDefaults(func() []string {
+				return tc.configFiles
+			})
+
+			// then
+			assert.Nil(t, cfg)
+			assert.EqualError(t, err, tc.expErrMsg)
+		})
+	}
+}
+
+func testdataFile(t *testing.T, name string) string {
+	t.Helper()
+	return filepath.Join("testdata", t.Name(), name)
 }

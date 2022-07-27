@@ -31,11 +31,11 @@ spec:
         - name: DEPLOYMENT_WAIT_TIMEOUT
           value: "{{ .Values.e2eTest.deployment.waitTimeout }}"
         - name: DEPLOYMENT_ENVS_SLACK_ENABLED_NAME
-          value: "BOTKUBE_COMMUNICATIONS_SLACK_ENABLED"
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"
         - name: DEPLOYMENT_ENVS_SLACK_CHANNEL_ID_NAME
-          value: "BOTKUBE_COMMUNICATIONS_SLACK_CHANNEL"
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"
         - name: CLUSTER_NAME
-          value: "{{ .Values.config.settings.clusterName }}"
+          value: "{{ .Values.settings.clusterName }}"
         - name: SLACK_BOT_NAME
           value: "{{ .Values.e2eTest.slack.botName }}"
         - name: SLACK_ADDITIONAL_CONTEXT_MESSAGE

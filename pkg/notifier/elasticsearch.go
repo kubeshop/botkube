@@ -114,10 +114,10 @@ func NewElasticSearch(log logrus.FieldLogger, c config.Elasticsearch, reporter S
 		log:       log,
 		reporter:  reporter,
 		ELSClient: elsClient,
-		Index:     c.Index.Name,
-		IndexType: c.Index.Type,
-		Shards:    c.Index.Shards,
-		Replicas:  c.Index.Replicas,
+		Index:     c.Indices.GetFirst().Name,
+		IndexType: c.Indices.GetFirst().Type,
+		Shards:    c.Indices.GetFirst().Shards,
+		Replicas:  c.Indices.GetFirst().Replicas,
 	}
 
 	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())

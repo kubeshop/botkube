@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
 

@@ -1,0 +1,8 @@
+# Setting to support multiple clusters
+settings:
+  # Cluster name to differentiate incoming messages
+  clusterName: not-configured
+  # Set true to enable config watcher
+  configWatcher: true
+  # Set false to disable upgrade notification
+  upgradeNotifier: true

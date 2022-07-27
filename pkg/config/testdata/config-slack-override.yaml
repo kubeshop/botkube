@@ -1,6 +1,0 @@
-# Channels configuration
-communications:
-  # Settings for Slack
-  slack:
-    enabled: true
-    channel: 'config-slack-override'
