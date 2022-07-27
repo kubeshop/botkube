@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const hyperlinkRegex = `(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`
@@ -161,4 +163,35 @@ func RemoveHyperlink(hyperlink string) string {
 		}
 	}
 	return command
+}
+
+// IsNamespaceAllowed checks if a given Namespace is allowed based on the config.
+func IsNamespaceAllowed(nsCfg config.Namespaces, givenNs string) bool {
+	isAll := len(nsCfg.Include) == 1 && nsCfg.Include[0] == config.AllNamespaceIndicator
+
+	// Ignore contains a list of namespaces to be ignored when 'all' namespaces are included.
+	// It can also contain a * that would expand to zero or more arbitrary characters.
+	// Example: include [all], ignore [x,y,secret-ns-*]
+	if isAll && len(nsCfg.Ignore) > 0 {
+		for _, ignoredNamespace := range nsCfg.Ignore {
+			// exact match
+			if ignoredNamespace == givenNs {
+				return false
+			}
+
+			// regexp
+			if strings.Contains(ignoredNamespace, "*") {
+				ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
+				matched, err := regexp.MatchString(ns, givenNs)
+				if err == nil && matched {
+					return false
+				}
+			}
+		}
+	}
+	if isAll {
+		return true
+	}
+
+	return Contains(nsCfg.Include, givenNs)
 }

@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 	"text/tabwriter"
-	"unicode"
 
 	"github.com/sirupsen/logrus"
 
@@ -50,7 +49,6 @@ var (
 
 const (
 	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
 	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
@@ -81,6 +79,7 @@ type DefaultExecutor struct {
 	Platform      config.CommPlatformIntegration
 
 	analyticsReporter AnalyticsReporter
+	kubectlExecutor   *Kubectl
 }
 
 // CommandRunnerFunc is a function which runs arbitrary commands
@@ -152,25 +151,22 @@ func (e *DefaultExecutor) Execute() string {
 		return "" // this prevents all bots on all clusters to answer something
 	}
 
-	if len(args) >= 1 && e.resMapping.AllowedKubectlVerbMap[args[0]] {
-		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
-			(len(args) >= 2 && (e.resMapping.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
-				e.resMapping.AllowedKubectlResourceMap[e.resMapping.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
-				e.resMapping.AllowedKubectlResourceMap[e.resMapping.ShortnameResourceMap[strings.ToLower(args[1])]])) { // Check if matches with short name
-			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-			allowKubectl := e.cfg.Executors.GetFirst().Kubectl.Enabled
-			if !allowKubectl {
-				if isClusterNamePresent && clusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
-					return fmt.Sprintf(kubectlDisabledMsg, clusterName)
-				}
-				return ""
-			}
-
-			if e.cfg.Executors.GetFirst().Kubectl.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
-				return ""
-			}
-			return e.runKubectlCommand(args)
+	if e.kubectlExecutor.CanHandle(args) {
+		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
+		// The length of the slice was already checked before
+		// See the DefaultExecutor.Execute() logic.
+		verb := args[0]
+		err := e.analyticsReporter.ReportCommand(e.Platform, verb)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
+		out, err := e.kubectlExecutor.Execute(e.Message, e.IsAuthChannel)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while executing kubectl: %s", err.Error())
+		}
+		return out
 	}
 	if validNotifierCommand[args[0]] {
 		if !e.IsAuthChannel {
@@ -224,79 +220,6 @@ func (e *DefaultExecutor) printDefaultMsg(p config.CommPlatformIntegration) stri
 		return teamsUnsupportedCmdMsg
 	}
 	return unsupportedCmdMsg
-}
-
-// Trim single and double quotes from ends of string
-func (e *DefaultExecutor) trimQuotes(clusterValue string) string {
-	return strings.TrimFunc(clusterValue, func(r rune) bool {
-		if r == unicode.SimpleFold('\u0027') || r == unicode.SimpleFold('\u0022') {
-			return true
-		}
-		return false
-	})
-}
-
-func (e *DefaultExecutor) runKubectlCommand(args []string) string {
-	// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
-	// The length of the slice was already checked before
-	// See the DefaultExecutor.Execute() logic.
-	verb := args[0]
-	err := e.analyticsReporter.ReportCommand(e.Platform, verb)
-	if err != nil {
-		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-		e.log.Errorf("while reporting executed command: %s", err.Error())
-	}
-
-	clusterName := e.cfg.Settings.ClusterName
-	defaultNamespace := e.cfg.Executors.GetFirst().Kubectl.DefaultNamespace
-	isAuthChannel := e.IsAuthChannel
-	// run commands in namespace specified under Config.Settings.DefaultNamespace field
-	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
-		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-	}
-
-	// Remove unnecessary flags
-	var finalArgs []string
-	isClusterNameArg := false
-	for index, arg := range args {
-		if isClusterNameArg {
-			isClusterNameArg = false
-			continue
-		}
-		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
-			continue
-		}
-		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
-			continue
-		}
-		// Check --cluster-name flag
-		if strings.HasPrefix(arg, ClusterFlag.String()) {
-			// Check if flag value in current or next argument and compare with config.settings.clusterName
-			if arg == ClusterFlag.String() {
-				if index == len(args)-1 || e.trimQuotes(args[index+1]) != clusterName {
-					return ""
-				}
-				isClusterNameArg = true
-			} else {
-				if e.trimQuotes(strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1]) != clusterName {
-					return ""
-				}
-			}
-			isAuthChannel = true
-			continue
-		}
-		finalArgs = append(finalArgs, arg)
-	}
-	if !isAuthChannel {
-		return ""
-	}
-	// Get command runner
-	out, err := e.runCmdFn(kubectlBinary, finalArgs)
-	if err != nil {
-		e.log.Error("Error in executing kubectl command: ", err)
-		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
-	}
-	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
 }
 
 // TODO: Have a separate cli which runs bot commands

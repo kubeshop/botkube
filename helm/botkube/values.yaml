@@ -275,6 +275,14 @@ executors:
   'kubectl-read-only':
     ## Kubectl executor configuration.
     kubectl:
+      namespaces:
+        # -- List of allowed Kubernetes Namespaces for command execution. The "all" keyword, allows all the Namespaces.
+        include:
+          - all
+        # -- List of ignored Kubernetes Namespace. It can be used only when `include: ["all"]`.
+        # It can contain a wildcard (*) that expands to zero or more arbitrary characters
+        # Example: `ignore: ["x", "y", "secret-ns-*"]`
+        ignore: []
       # -- If true, enables `kubectl` commands execution.
       enabled: false
       ## List of allowed `kubectl` commands.

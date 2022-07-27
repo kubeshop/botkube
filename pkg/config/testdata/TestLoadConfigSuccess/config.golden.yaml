@@ -239,6 +239,13 @@ sources:
 executors:
     kubectl-read-only:
         kubectl:
+            namespaces:
+                include:
+                    - all
+                ignore:
+                    - foo
+                    - bar
+                    - test-*-ns
             enabled: false
             commands:
                 verbs:

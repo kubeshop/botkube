@@ -51,7 +51,7 @@ type Rules struct {
 	Verbs string `json:"verbs"`
 }
 
-// ExpectedDiff struct to generate expected diff
+// ExpectedDiff struct to generate isAllowed diff
 type ExpectedDiff struct {
 	Path string
 	X    string

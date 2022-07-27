@@ -30,6 +30,10 @@ const (
 	nestedFieldDelimiter    = "_"
 )
 
+const (
+	AllNamespaceIndicator = "all"
+)
+
 // EventType to watch
 type EventType string
 
@@ -288,10 +292,11 @@ type Webhook struct {
 
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
-	Enabled          bool     `yaml:"enabled"`
-	Commands         Commands `yaml:"commands"`
-	DefaultNamespace string   `yaml:"defaultNamespace"`
-	RestrictAccess   bool     `yaml:"restrictAccess"`
+	Namespaces       Namespaces `yaml:"namespaces"`
+	Enabled          bool       `yaml:"enabled"`
+	Commands         Commands   `yaml:"commands"`
+	DefaultNamespace string     `yaml:"defaultNamespace"`
+	RestrictAccess   bool       `yaml:"restrictAccess"`
 }
 
 // Commands allowed in bot
