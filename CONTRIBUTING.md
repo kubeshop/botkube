@@ -31,15 +31,41 @@ This section describes how to build and run the BotKube from the source code.
 
 1. Build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`:
 
+You have two options,
+
+**Single target build for your local K8s cluster**
+
+This is ideal for running BotKube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [MiniKube](https://minikube.sigs.k8s.io/docs/).
+
+As a side benefit, it gets around some issues of building BotKube on M1 Chips.
+
+_Remember to use the `IMAGE_PLATFORM` env var to set your target architecture_. For example, the command below is building `linux/arm64` target. By default, the build targets `linux/amd64`.
+
    ```sh
-   make build
+   IMAGE_PLATFORM=linux/arm64 make container-image-single
+   docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
+   docker push <your_account>/botkube:v9.99.9-dev
+   ```
+Where `<your_account>` is Docker hub account to which you can push the image.
+
+**Multi-arch target builds for any K8s cluster**
+
+This is ideal for running BotKub on remote clusters. 
+
+When tagging your dev image _take care to add your target image architecture as a suffix_. For example, in the command below we added `-amd64` as our target architecture.
+
+This ensures the image will run correctly on the target K8s cluster. 
+
+Note: This command takes sometime to run as it builds for multiple architectures.  
+
+   ```sh
    make container-image
    docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
    docker push <your_account>/botkube:v9.99.9-dev
    ```
    Where `<your_account>` is Docker hub account to which you can push the image.
 
-2. Deploy newly created image in your cluster:
+2. Deploy the newly created image in your cluster:
 
    ```sh
    helm install botkube --namespace botkube --create-namespace \
@@ -48,6 +74,7 @@ This section describes how to build and run the BotKube from the source code.
    --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
    --set settings.clustername=<CLUSTER_NAME> \
    --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
+   --set image.registry=<image_registry e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
    ./helm/botkube
