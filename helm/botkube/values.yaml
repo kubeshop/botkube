@@ -505,6 +505,8 @@ deployment:
 replicaCount: 1
 # -- Extra annotations to pass to the BotKube Pod.
 extraAnnotations: {}
+# -- Extra labels to pass to the BotKube Pod.
+extraLabels: {}
 # -- Priority class name for the BotKube Pod.
 priorityClassName: ""
 

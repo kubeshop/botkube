@@ -52,7 +52,13 @@ build: pre-build
 container-image: pre-build
 	@echo "Building docker image"
 	@./hack/goreleaser.sh build
-	@echo "Docker image build successfully"
+	@echo "Docker image build successful"
+
+# Build the image
+container-image-single: pre-build
+	@echo "Building single target docker image"
+	@./hack/goreleaser.sh build_single
+	@echo "Single target docker image build successful"
 
 # Publish release using goreleaser
 gorelease:

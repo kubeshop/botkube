@@ -24,6 +24,9 @@ spec:
       labels:
         component: controller
         app: botkube
+      {{- if .Values.extraLabels }}
+{{ toYaml .Values.extraLabels | indent 8 }}
+      {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/global-config.yaml") . | sha256sum }}
       {{- if .Values.extraAnnotations }}
