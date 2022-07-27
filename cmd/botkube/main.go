@@ -114,7 +114,7 @@ func run() error {
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
 	// List notifiers
-	notifiers, err := notifier.LoadNotifiers(logger, conf.Communications, reporter)
+	notifiers, err := notifier.LoadNotifiers(logger, conf.Communications.GetFirst(), reporter)
 	if err != nil {
 		return reportFatalError("while loading notifiers", err)
 	}
@@ -139,7 +139,7 @@ func run() error {
 	)
 
 	// Run bots
-	if conf.Communications.Slack.Enabled {
+	if conf.Communications.GetFirst().Slack.Enabled {
 		sb := bot.NewSlackBot(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -147,7 +147,7 @@ func run() error {
 		})
 	}
 
-	if conf.Communications.Mattermost.Enabled {
+	if conf.Communications.GetFirst().Mattermost.Enabled {
 		mb := bot.NewMattermostBot(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory, reporter)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -155,7 +155,7 @@ func run() error {
 		})
 	}
 
-	if conf.Communications.Teams.Enabled {
+	if conf.Communications.GetFirst().Teams.Enabled {
 		tb := bot.NewTeamsBot(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory, reporter)
 		// TODO: Unify that with other notifiers: Split this into two structs or merge other bots and notifiers into single structs
 		notifiers = append(notifiers, tb)
@@ -165,7 +165,7 @@ func run() error {
 		})
 	}
 
-	if conf.Communications.Discord.Enabled {
+	if conf.Communications.GetFirst().Discord.Enabled {
 		db := bot.NewDiscordBot(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory, reporter)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)

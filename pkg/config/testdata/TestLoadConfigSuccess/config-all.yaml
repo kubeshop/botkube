@@ -1,0 +1,295 @@
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      token: 'SLACK_API_TOKEN'
+      notification:
+        type: short
+
+    mattermost:
+      enabled: false
+      url: 'MATTERMOST_SERVER_URL'
+      token: 'MATTERMOST_TOKEN'
+      team: 'MATTERMOST_TEAM'
+      channels:
+        'alias':
+          name: 'MATTERMOST_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    teams:
+      enabled: false
+      appID: 'APPLICATION_ID'
+      appPassword: 'APPLICATION_PASSWORD'
+      channels:
+        'alias':
+          name: 'TEAMS_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+      port: 3978
+
+    discord:
+      enabled: false
+      token: 'DISCORD_TOKEN'
+      botID: 'DISCORD_BOT_ID'
+      channels:
+        'alias':
+          id: 'DISCORD_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    elasticsearch:
+      enabled: false
+      awsSigning:
+        enabled: false
+        awsRegion: 'us-east-1'
+        roleArn: ''
+      server: 'ELASTICSEARCH_ADDRESS'
+      username: 'ELASTICSEARCH_USERNAME'
+      password: 'ELASTICSEARCH_PASSWORD'
+      skipTLSVerify: false
+      indices:
+        'alias':
+          name: botkube
+          type: botkube-event
+          shards: 1
+          bindings:
+            sources:
+              - "k8s-events"
+
+    webhook:
+      enabled: false
+      url: 'WEBHOOK_URL'
+      bindings:
+        sources:
+          - k8s-events
+
+sources:
+  'k8s-events':
+
+    recommendations: true
+
+    kubernetes:
+      # TODO: https://github.com/kubeshop/botkube/issues/596
+      # New 'namespace' property - allows Namespace restriction
+      # It can be overridden in the nested level.
+      # namespace:
+      #   include: [ "@all" ]
+      resources:
+        - name: v1/pods
+          namespaces:
+            include:
+              - all
+            ignore:
+              - # example : include [all], ignore [x,y,secret-ns-*]
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/services
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: apps/v1/deployments
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.availableReplicas
+        - name: apps/v1/statefulsets
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.readyReplicas
+        - name: networking.k8s.io/v1/ingresses
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/nodes
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/namespaces
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/persistentvolumes
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/persistentvolumeclaims
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/secrets
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/configmaps
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: apps/v1/daemonsets
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.numberReady
+        - name: batch/v1/jobs
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - update
+            - delete
+            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.conditions[*].type
+        - name: rbac.authorization.k8s.io/v1/roles
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error
+        - name: rbac.authorization.k8s.io/v1/clusterroles
+          namespaces:
+            include:
+              - all
+            ignore:
+              -
+          events:
+            - create
+            - delete
+            - error

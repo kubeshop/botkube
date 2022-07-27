@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const sendFailureMessageFmt = "Unable to send message to Channel `%s`: `%s`\n```add Botkube app to the Channel %s\nMissed events follows below:```"
@@ -38,7 +38,7 @@ type Slack struct {
 func NewSlack(log logrus.FieldLogger, c config.Slack) *Slack {
 	return &Slack{
 		log:          log,
-		Channel:      c.Channel,
+		Channel:      c.Channels.GetFirst().Name,
 		Notification: c.Notification,
 		Client:       slack.New(c.Token),
 	}

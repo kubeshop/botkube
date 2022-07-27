@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -21,6 +20,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
@@ -117,9 +117,9 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.startTime = time.Now()
 
 	// Register informers for resource lifecycle events
-	if len(c.conf.Resources) > 0 {
+	if len(c.conf.Sources) > 0 && len(c.conf.Sources.GetFirst().Kubernetes.Resources) > 0 {
 		c.log.Info("Registering resource lifecycle informer")
-		for _, r := range c.conf.Resources {
+		for _, r := range c.conf.Sources.GetFirst().Kubernetes.Resources {
 			if _, ok := c.resourceInformerMap[r.Name]; !ok {
 				continue
 			}
@@ -306,7 +306,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// check if Recommendations are disabled
-	if !c.conf.Recommendations {
+	if !c.conf.Sources.GetFirst().Recommendations {
 		event.Recommendations = nil
 		c.log.Debug("Skipping Recommendations in Event Notifications")
 	}
@@ -336,6 +336,11 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 }
 
 func (c *Controller) initInformerMap() {
+	if len(c.conf.Sources) == 0 {
+		return
+	}
+
+	resources := c.conf.Sources.GetFirst().Kubernetes.Resources
 	// Create dynamic shared informer factory
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
@@ -344,7 +349,7 @@ func (c *Controller) initInformerMap() {
 	c.observedEventKindsMap = make(map[EventKind]bool)
 	c.observedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
-	for _, v := range c.conf.Resources {
+	for _, v := range resources {
 		gvr, err := c.parseResourceArg(v.Name)
 		if err != nil {
 			c.log.Infof("Unable to parse resource: %v\n", v.Name)
@@ -354,7 +359,7 @@ func (c *Controller) initInformerMap() {
 		c.resourceInformerMap[v.Name] = c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
 	}
 	// Allowed event kinds map and Allowed Update Events Map
-	for _, r := range c.conf.Resources {
+	for _, r := range resources {
 		allEvents := false
 		for _, e := range r.Events {
 			if e == config.AllEvent {

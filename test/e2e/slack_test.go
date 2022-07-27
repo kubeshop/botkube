@@ -31,8 +31,8 @@ type Config struct {
 		ContainerName string        `envconfig:"default=botkube"`
 		WaitTimeout   time.Duration `envconfig:"default=3m"`
 		Envs          struct {
-			SlackEnabledName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_SLACK_ENABLED"`
-			SlackChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_SLACK_CHANNEL"`
+			SlackEnabledName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"`
+			SlackChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"`
 		}
 	}
 	ClusterName string `envconfig:"default=sample"`

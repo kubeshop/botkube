@@ -23,16 +23,20 @@ spec:
   rules:
   - http:
       paths:
-        {{- if .Values.communications.teams.enabled }}
-        - path: {{ .Values.communications.teams.messagePath }}
+
+        {{- range .Values.communications }}
+        {{- if .teams.enabled }}
+        - path: {{ .teams.messagePath }}
           pathType: Prefix
           backend:
             service:
               name: {{ include "botkube.fullname" . }}
               port:
-                number: {{ .Values.communications.teams.port }}
+                number: {{ .teams.port }}
         {{- end }}
-    {{- if .Values.ingress.host }}
+        {{- end }}
+
+  {{- if .Values.ingress.host }}
     host: {{ .Values.ingress.host }}
     {{- end }}
 {{- end -}}

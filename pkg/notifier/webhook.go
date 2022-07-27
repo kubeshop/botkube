@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
@@ -53,7 +53,7 @@ type EventStatus struct {
 }
 
 // NewWebhook returns new Webhook object
-func NewWebhook(log logrus.FieldLogger, c config.CommunicationsConfig, reporter SinkAnalyticsReporter) (*Webhook, error) {
+func NewWebhook(log logrus.FieldLogger, c config.Communications, reporter SinkAnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:      log,
 		reporter: reporter,

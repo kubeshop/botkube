@@ -66,19 +66,20 @@ type mattermostMessage struct {
 
 // NewMattermostBot returns new Bot object
 func NewMattermostBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *MMBot {
+	mattermost := c.Communications.GetFirst().Mattermost
 	return &MMBot{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		ServerURL:        c.Communications.Mattermost.URL,
-		BotName:          c.Communications.Mattermost.BotName,
-		Token:            c.Communications.Mattermost.Token,
-		TeamName:         c.Communications.Mattermost.Team,
-		ChannelName:      c.Communications.Mattermost.Channel,
+		ServerURL:        mattermost.URL,
+		BotName:          mattermost.BotName,
+		Token:            mattermost.Token,
+		TeamName:         mattermost.Team,
+		ChannelName:      mattermost.Channels.GetFirst().Name,
 		ClusterName:      c.Settings.ClusterName,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
+		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
+		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 	}
 }
 

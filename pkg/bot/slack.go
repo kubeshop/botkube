@@ -44,16 +44,17 @@ type slackMessage struct {
 
 // NewSlackBot returns new Bot object
 func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) *SlackBot {
+	slack := c.Communications.GetFirst().Slack
 	return &SlackBot{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		Token:            c.Communications.Slack.Token,
-		AllowKubectl:     c.Settings.Kubectl.Enabled,
-		RestrictAccess:   c.Settings.Kubectl.RestrictAccess,
+		Token:            slack.Token,
+		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
+		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelName:      c.Communications.Slack.Channel,
-		DefaultNamespace: c.Settings.Kubectl.DefaultNamespace,
+		ChannelName:      slack.Channels.GetFirst().Name,
+		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 	}
 }
 

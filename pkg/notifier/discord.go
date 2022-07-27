@@ -42,7 +42,7 @@ func NewDiscord(log logrus.FieldLogger, c config.Discord) (*Discord, error) {
 	return &Discord{
 		log:          log,
 		api:          api,
-		ChannelID:    c.Channel,
+		ChannelID:    c.Channels.GetFirst().ID,
 		Notification: c.Notification,
 	}, nil
 }
