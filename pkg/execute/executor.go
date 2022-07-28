@@ -48,10 +48,10 @@ var (
 )
 
 const (
-	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
-	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
-	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+	unsupportedCmdMsg = "Command not supported. Please run /botkubehelp to see supported commands."
+	filterNameMissing = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	filterEnabled     = "I have enabled '%s' filter on '%s' cluster."
+	filterDisabled    = "Done. I won't run '%s' filter on '%s' cluster."
 
 	// incompleteCmdMsg incomplete command response message
 	incompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."

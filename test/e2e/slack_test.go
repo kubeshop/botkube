@@ -41,6 +41,7 @@ type Config struct {
 
 type SlackConfig struct {
 	BotName                  string `envconfig:"default=botkube"`
+	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
 	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
@@ -74,6 +75,7 @@ func TestSlack(t *testing.T) {
 
 	slackTester.PostInitialMessage(t, channel.Name)
 	botUserID := slackTester.FindUserIDForBot(t)
+	testerUserID := slackTester.FindUserIDForTester(t)
 	slackTester.InviteBotToChannel(t, botUserID, channel.ID)
 
 	t.Log("Patching Deployment with test env variables...")
@@ -161,7 +163,7 @@ func TestSlack(t *testing.T) {
 			t.Log("Ensuring bot didn't write anything new...")
 			time.Sleep(appCfg.Slack.MessageWaitTimeout)
 			// Same expected message as before
-			err = slackTester.WaitForLastMessageContains(botUserID, channel.ID, command)
+			err = slackTester.WaitForLastMessageContains(testerUserID, channel.ID, command)
 			assert.NoError(t, err)
 		})
 	})
@@ -212,12 +214,11 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "get"
-			expectedMessage := codeBlock(heredoc.Docf(`
-				Cluster: %s
+			expectedMessage := codeBlock(heredoc.Docf(`Cluster: %s
 				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
 
 				error: Required resource not specified.
-				Use "kubectl explain <resource>" for a detailed description of that resource (e.g. kubectl explain pods).
+				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
 				while executing kubectl command: exit status 1`, appCfg.ClusterName))
 

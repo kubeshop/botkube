@@ -115,9 +115,10 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [e2eTest.image.tag](./values.yaml#L656) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
 | [e2eTest.deployment](./values.yaml#L658) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
 | [e2eTest.slack.botName](./values.yaml#L663) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.slack.testerAppToken](./values.yaml#L665) | string | `""` | Slack tester application token that interacts with BotKube bot. |
-| [e2eTest.slack.additionalContextMessage](./values.yaml#L667) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.slack.messageWaitTimeout](./values.yaml#L669) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [e2eTest.slack.testerName](./values.yaml#L665) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.slack.testerAppToken](./values.yaml#L667) | string | `""` | Slack tester application token that interacts with BotKube bot. |
+| [e2eTest.slack.additionalContextMessage](./values.yaml#L669) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.slack.messageWaitTimeout](./values.yaml#L671) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
 
 ### AWS IRSA on EKS support
 

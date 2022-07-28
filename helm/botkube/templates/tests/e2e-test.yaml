@@ -38,6 +38,8 @@ spec:
           value: "{{ .Values.settings.clusterName }}"
         - name: SLACK_BOT_NAME
           value: "{{ .Values.e2eTest.slack.botName }}"
+        - name: SLACK_TESTER_NAME
+          value: "{{ .Values.e2eTest.slack.testerName }}"
         - name: SLACK_ADDITIONAL_CONTEXT_MESSAGE
           value: "{{ .Values.e2eTest.slack.additionalContextMessage }}"
         - name: SLACK_TESTER_APP_TOKEN

@@ -661,6 +661,8 @@ e2eTest:
   slack:
     # -- Name of the BotKube bot to interact with during the e2e tests.
     botName: "botkube"
+    # -- Name of the BotKube Tester bot that sends messages during the e2e tests.
+    testerName: "botkube_tester"
     # -- Slack tester application token that interacts with BotKube bot.
     testerAppToken: ""
     # -- Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from.
