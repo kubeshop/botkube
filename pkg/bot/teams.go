@@ -23,9 +23,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
-// TODO: Refactor:
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
 //  - see if we cannot set conversation ref without waiting for `@BotKube notify start` message.
 //  - see if a public endpoint can be avoided to handle Teams messages.
+//  - see if we can use different library
 //  - split to multiple files in a separate package,
 //  - review all the methods and see if they can be simplified.
 
@@ -336,16 +337,16 @@ func (b *Teams) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// Enabled returns current notification status.
-func (b *Teams) Enabled() bool {
+// NotificationsEnabled returns current notification status.
+func (b *Teams) NotificationsEnabled() bool {
 	b.notifyMutex.RLock()
 	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
-// SetEnabled sets a new notification status.
-func (b *Teams) SetEnabled(value bool, activity schema.Activity) error {
-	if value {
+// SetNotificationsEnabled sets a new notification status.
+func (b *Teams) SetNotificationsEnabled(enabled bool, activity schema.Activity) error {
+	if enabled {
 		b.conversationRefMutex.Lock()
 		defer b.conversationRefMutex.Unlock()
 
@@ -361,7 +362,7 @@ func (b *Teams) SetEnabled(value bool, activity schema.Activity) error {
 
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = value
+	b.notify = enabled
 	return nil
 }
 
@@ -395,12 +396,12 @@ func newTeamsNotifMgrForActivity(b *Teams, activity schema.Activity) *teamsNotif
 	return &teamsNotificationManager{b: b, activity: activity}
 }
 
-// Enabled returns current notification status.
-func (n *teamsNotificationManager) Enabled() bool {
-	return n.b.Enabled()
+// NotificationsEnabled returns current notification status.
+func (n *teamsNotificationManager) NotificationsEnabled() bool {
+	return n.b.NotificationsEnabled()
 }
 
-// SetEnabled sets a new notification status.
-func (n *teamsNotificationManager) SetEnabled(value bool) error {
-	return n.b.SetEnabled(value, n.activity)
+// SetNotificationsEnabled sets a new notification status.
+func (n *teamsNotificationManager) SetNotificationsEnabled(enabled bool) error {
+	return n.b.SetNotificationsEnabled(enabled, n.activity)
 }

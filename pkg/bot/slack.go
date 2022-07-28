@@ -12,19 +12,21 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	format2 "github.com/kubeshop/botkube/pkg/format"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
-// TODO: Refactor:
-// 	- handle and send methods from `slackMessage` should be defined on Bot level,
-//  - split to multiple files in a separate package,
-//  - review all the methods and see if they can be simplified.
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
+//    - handle and send methods from `slackMessage` should be defined on Bot level,
+//    - split to multiple files in a separate package,
+//    - review all the methods and see if they can be simplified.
 
 var _ Bot = &Slack{}
 
-const sendFailureMessageFmt = "Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```"
-const channelNotFoundCode = "channel_not_found"
+const (
+	sendFailureMessageFmt = "Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```"
+	channelNotFoundCode   = "channel_not_found"
+)
 
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
@@ -176,18 +178,18 @@ func (b *Slack) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }
 
-// Enabled returns current notification status.
-func (b *Slack) Enabled() bool {
+// NotificationsEnabled returns current notification status.
+func (b *Slack) NotificationsEnabled() bool {
 	b.notifyMutex.RLock()
 	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
-// SetEnabled sets a new notification status.
-func (b *Slack) SetEnabled(value bool) error {
+// SetNotificationsEnabled sets a new notification status.
+func (b *Slack) SetNotificationsEnabled(enabled bool) error {
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = value
+	b.notify = enabled
 	return nil
 }
 
@@ -247,7 +249,7 @@ func (sm *slackMessage) Send() error {
 		return nil
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(format2.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if sm.Event.ThreadTimestamp != "" {

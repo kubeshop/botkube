@@ -15,14 +15,14 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	format2 "github.com/kubeshop/botkube/pkg/format"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
-// TODO: Refactor:
-// 	- handle and send methods from `mattermostMessage` should be defined on Bot level,
-//  - split to multiple files in a separate package,
-//  - review all the methods and see if they can be simplified.
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
+//    - handle and send methods from `mattermostMessage` should be defined on Bot level,
+//    - split to multiple files in a separate package,
+//    - review all the methods and see if they can be simplified.
 
 var _ Bot = &Mattermost{}
 
@@ -174,18 +174,18 @@ func (b *Mattermost) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// Enabled returns current notification status.
-func (b *Mattermost) Enabled() bool {
+// NotificationsEnabled returns current notification status.
+func (b *Mattermost) NotificationsEnabled() bool {
 	b.notifyMutex.RLock()
 	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
-// SetEnabled sets a new notification status.
-func (b *Mattermost) SetEnabled(value bool) error {
+// SetNotificationsEnabled sets a new notification status.
+func (b *Mattermost) SetNotificationsEnabled(enabled bool) error {
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = value
+	b.notify = enabled
 	return nil
 }
 
@@ -235,10 +235,9 @@ func (mm mattermostMessage) sendMessage() {
 		}
 		post.FileIds = []string{res.FileInfos[0].Id}
 	} else {
-		post.Message = format2.CodeBlock(mm.Response)
+		post.Message = formatx.CodeBlock(mm.Response)
 	}
 
-	// Create a post in the ChannelName
 	if _, resp := mm.APIClient.CreatePost(post); resp.Error != nil {
 		mm.log.Error("Failed to send message. Error: ", resp.Error)
 	}
@@ -380,14 +379,14 @@ func (b *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
 		// fallback to default channel
 
 		// send error message to default channel
-		msg := fmt.Sprintf("Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
+		msg := fmt.Sprintf("Unable to send message to channel %q: `%s`\n```add Botkube app to the channel %q\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
 		sendMessageErr := b.SendMessage(ctx, msg)
 		if sendMessageErr != nil {
 			return multierror.Append(createPostWrappedErr, sendMessageErr)
 		}
 
 		// sending missed event to default channel
-		// reset event.ChannelName and send event
+		// reset channel, so it will be defaulted
 		event.Channel = ""
 		sendEventErr := b.SendEvent(ctx, event)
 		if sendEventErr != nil {

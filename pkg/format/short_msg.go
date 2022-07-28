@@ -65,9 +65,7 @@ func messageHeader(event events.Event) string {
 func messageAttachments(event events.Event) string {
 	var additionalMsgStrBuilder strings.Builder
 	if len(event.Messages) > 0 {
-		for _, m := range event.Messages {
-			additionalMsgStrBuilder.WriteString(fmt.Sprintf("%s\n", m))
-		}
+		additionalMsgStrBuilder.WriteString(JoinMessages(event.Messages))
 	}
 	if len(event.Recommendations) > 0 {
 		additionalMsgStrBuilder.WriteString("Recommendations:\n")

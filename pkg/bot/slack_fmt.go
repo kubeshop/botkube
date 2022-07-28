@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	format2 "github.com/kubeshop/botkube/pkg/format"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 func (b *Slack) formatMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
@@ -21,7 +21,7 @@ func (b *Slack) formatMessage(event events.Event, notification config.Notificati
 		fallthrough
 
 	default:
-		// set missing cluster name to event object
+		// set missing cluster name to an event object
 		attachment = b.shortNotification(event)
 	}
 
@@ -52,68 +52,27 @@ func (b *Slack) longNotification(event events.Event) slack.Attachment {
 		},
 		Footer: "BotKube",
 	}
-	if event.Namespace != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Namespace",
-			Value: event.Namespace,
-			Short: true,
-		})
-	}
 
-	if event.Reason != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Reason",
-			Value: event.Reason,
-			Short: true,
-		})
-	}
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Namespace, "Namespace", true)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Reason, "Reason", true)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Messages), "Message", false)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Action, "Action", true)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Recommendations), "Recommendations", false)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Warnings), "Warnings", false)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Cluster, "Cluster", false)
 
-	if len(event.Messages) > 0 {
-		message := ""
-		for _, m := range event.Messages {
-			message += fmt.Sprintf("%s\n", m)
-		}
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Message",
-			Value: message,
-		})
-	}
-
-	if event.Action != "" {
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Action",
-			Value: event.Action,
-		})
-	}
-
-	if len(event.Recommendations) > 0 {
-		rec := ""
-		for _, r := range event.Recommendations {
-			rec += fmt.Sprintf("%s\n", r)
-		}
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Recommendations",
-			Value: rec,
-		})
-	}
-
-	if len(event.Warnings) > 0 {
-		warn := ""
-		for _, w := range event.Warnings {
-			warn += fmt.Sprintf("%s\n", w)
-		}
-		attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-			Title: "Warnings",
-			Value: warn,
-		})
-	}
-
-	// Add clusterName in the message
-	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-		Title: "Cluster",
-		Value: event.Cluster,
-	})
 	return attachment
+}
+
+func (b *Slack) appendIfNotEmpty(fields []slack.AttachmentField, in string, title string, short bool) []slack.AttachmentField {
+	if in == "" {
+		return fields
+	}
+	return append(fields, slack.AttachmentField{
+		Title: title,
+		Value: in,
+		Short: short,
+	})
 }
 
 func (b *Slack) shortNotification(event events.Event) slack.Attachment {
@@ -121,7 +80,7 @@ func (b *Slack) shortNotification(event events.Event) slack.Attachment {
 		Title: event.Title,
 		Fields: []slack.AttachmentField{
 			{
-				Value: format2.ShortMessage(event),
+				Value: formatx.ShortMessage(event),
 			},
 		},
 		Footer: "BotKube",

@@ -89,7 +89,7 @@ type CommandRunnerFunc func(command string, args []string) (string, error)
 // NotifierAction creates custom type for notifier actions
 type NotifierAction string
 
-// Defines constants for NOTIFIER actions
+// Defines constants for notifier actions
 const (
 	Start      NotifierAction = "start"
 	Stop       NotifierAction = "stop"

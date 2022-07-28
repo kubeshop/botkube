@@ -14,14 +14,14 @@ import (
 	"github.com/kubeshop/botkube/pkg/format"
 )
 
-// TODO: Refactor:
-// 	- handle and send methods from `discordMessage` should be defined on Bot level,
-//  - split to multiple files in a separate package,
-//  - review all the methods and see if they can be simplified.
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
+//    - handle and send methods from `discordMessage` should be defined on Bot level,
+//    - split to multiple files in a separate package,
+//    - review all the methods and see if they can be simplified.
 
 var _ Bot = &Discord{}
 
-// customTimeFormat holds custom time format string
+// customTimeFormat holds custom time format string.
 const customTimeFormat = "2006-01-02T15:04:05Z"
 
 var embedColor = map[config.Level]int{
@@ -32,7 +32,7 @@ var embedColor = map[config.Level]int{
 	config.Critical: 13632027, // red
 }
 
-// Discord listens for user's message, execute commands and sends back the response
+// Discord listens for user's message, execute commands and sends back the response.
 type Discord struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
@@ -51,7 +51,7 @@ type Discord struct {
 	DefaultNamespace string
 }
 
-// discordMessage contains message details to execute command and send back the result
+// discordMessage contains message details to execute command and send back the result.
 type discordMessage struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
@@ -91,7 +91,7 @@ func NewDiscord(log logrus.FieldLogger, c *config.Config, executorFactory Execut
 	}, nil
 }
 
-// Start starts the Discord websocket connection and listens for messages
+// Start starts the Discord websocket connection and listens for messages.
 func (b *Discord) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
@@ -131,15 +131,15 @@ func (b *Discord) Start(ctx context.Context) error {
 	return nil
 }
 
-// SendEvent sends event notification to Discord ChannelName
-// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+// SendEvent sends event notification to Discord ChannelID.
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
 func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	if !b.notify {
 		b.log.Info("Notifications are disabled. Skipping event...")
 		return nil
 	}
 
-	b.log.Debugf(">> Sending to discord: %+v", event)
+	b.log.Debugf(">> Sending to Discord: %+v", event)
 
 	messageSend := b.formatMessage(event, b.Notification)
 
@@ -151,10 +151,10 @@ func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	return nil
 }
 
-// SendMessage sends message to Discord ChannelName
-// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752
+// SendMessage sends message to Discord ChannelName.
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
 func (b *Discord) SendMessage(_ context.Context, msg string) error {
-	b.log.Debugf(">> Sending to discord: %+v", msg)
+	b.log.Debugf(">> Sending to Discord: %+v", msg)
 
 	if _, err := b.api.ChannelMessageSend(b.ChannelID, msg); err != nil {
 		return fmt.Errorf("while sending Discord message to channel %q: %w", b.ChannelID, err)
@@ -173,22 +173,22 @@ func (b *Discord) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// Enabled returns current notification status.
-func (b *Discord) Enabled() bool {
+// NotificationsEnabled returns current notification status.
+func (b *Discord) NotificationsEnabled() bool {
 	b.notifyMutex.RLock()
 	defer b.notifyMutex.RUnlock()
 	return b.notify
 }
 
-// SetEnabled sets a new notification status.
-func (b *Discord) SetEnabled(value bool) error {
+// SetNotificationsEnabled sets a new notification status.
+func (b *Discord) SetNotificationsEnabled(enabled bool) error {
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = value
+	b.notify = enabled
 	return nil
 }
 
-// HandleMessage handles the incoming messages
+// HandleMessage handles the incoming messages.
 func (dm *discordMessage) HandleMessage(b *Discord) {
 	// Serve only if starts with mention
 	if !strings.HasPrefix(dm.Event.Content, "<@!"+dm.BotID+"> ") && !strings.HasPrefix(dm.Event.Content, "<@"+dm.BotID+"> ") {

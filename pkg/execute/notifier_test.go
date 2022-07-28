@@ -3,6 +3,7 @@ package execute
 import (
 	"testing"
 
+	"github.com/MakeNowJust/heredoc"
 	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,6 +17,11 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 	platform := config.SlackCommPlatformIntegration
 	clusterName := "cluster-name"
 	statusArgs := []string{"notifier", "status"}
+	cfg := config.Config{
+		Settings: config.Settings{
+			ClusterName: "foo",
+		},
+	}
 
 	testCases := []struct {
 		Name                 string
@@ -23,6 +29,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		InputNotifierHandler NotifierHandler
 		ExpectedResult       string
 		ExpectedStatusAfter  string
+		ExpectedErrorMessage string
 	}{
 		{
 			Name:                 "Start",
@@ -38,43 +45,32 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			ExpectedResult:       `Sure! I won't send you notifications from cluster "cluster-name" anymore.`,
 			ExpectedStatusAfter:  `Notifications from cluster "cluster-name" are disabled.`,
 		},
-	}
+		{
+			Name:                 "Show config",
+			InputArgs:            []string{"notifier", "showconfig"},
+			InputNotifierHandler: &fakeNotifierHandler{enabled: false},
+			ExpectedResult: heredoc.Doc(`
+				Showing config for cluster "cluster-name":
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, config.Config{}, &fakeAnalyticsReporter{})
-
-			// execute command
-
-			// when
-			actual, err := e.Do(tc.InputArgs, platform, clusterName, tc.InputNotifierHandler)
-
-			// then
-			require.Nil(t, err)
-			assert.Equal(t, tc.ExpectedResult, actual)
-
-			// get status after executing a given command
-
-			// when
-			actual, err = e.Do(statusArgs, platform, clusterName, tc.InputNotifierHandler)
-			// then
-			require.Nil(t, err)
-			assert.Equal(t, tc.ExpectedStatusAfter, actual)
-		})
-	}
-}
-
-func TestNotifierExecutor_Do_Error(t *testing.T) {
-	// given
-	log, _ := logtest.NewNullLogger()
-	platform := config.SlackCommPlatformIntegration
-	clusterName := "cluster-name"
-
-	testCases := []struct {
-		Name                 string
-		InputArgs            []string
-		ExpectedErrorMessage string
-	}{
+				sources: {}
+				executors: {}
+				communications: {}
+				analytics:
+				    installationID: ""
+				    disable: false
+				settings:
+				    clusterName: foo
+				    configWatcher: false
+				    upgradeNotifier: false
+				    metricsPort: ""
+				    log:
+				        level: ""
+				        disableColors: false
+				    informersResyncPeriod: 0s
+				    kubeconfig: ""
+			`),
+			ExpectedStatusAfter: `Notifications from cluster "cluster-name" are disabled.`,
+		},
 		{
 			Name:                 "Invalid verb",
 			InputArgs:            []string{"notifier", "foo"},
@@ -94,14 +90,33 @@ func TestNotifierExecutor_Do_Error(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, config.Config{}, &fakeAnalyticsReporter{})
+			e := NewNotifierExecutor(log, cfg, &fakeAnalyticsReporter{})
+
+			// execute command
 
 			// when
-			_, err := e.Do(tc.InputArgs, platform, clusterName, &fakeNotifierHandler{})
+			actual, err := e.Do(tc.InputArgs, platform, clusterName, tc.InputNotifierHandler)
 
 			// then
-			require.NotNil(t, err)
-			assert.EqualError(t, err, tc.ExpectedErrorMessage)
+
+			if tc.ExpectedErrorMessage != "" {
+				// error case
+				require.NotNil(t, err)
+				assert.EqualError(t, err, tc.ExpectedErrorMessage)
+				return
+			}
+
+			// success case
+			require.Nil(t, err)
+			assert.Equal(t, tc.ExpectedResult, actual)
+
+			// get status after executing a given command
+
+			// when
+			actual, err = e.Do(statusArgs, platform, clusterName, tc.InputNotifierHandler)
+			// then
+			require.Nil(t, err)
+			assert.Equal(t, tc.ExpectedStatusAfter, actual)
 		})
 	}
 }
@@ -110,12 +125,12 @@ type fakeNotifierHandler struct {
 	enabled bool
 }
 
-func (f *fakeNotifierHandler) Enabled() bool {
+func (f *fakeNotifierHandler) NotificationsEnabled() bool {
 	return f.enabled
 }
 
-func (f *fakeNotifierHandler) SetEnabled(value bool) error {
-	f.enabled = value
+func (f *fakeNotifierHandler) SetNotificationsEnabled(enabled bool) error {
+	f.enabled = enabled
 	return nil
 }
 

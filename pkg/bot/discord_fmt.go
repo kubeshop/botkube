@@ -7,7 +7,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/format"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 func (b *Discord) formatMessage(event events.Event, notification config.Notification) discordgo.MessageSend {
@@ -27,9 +27,7 @@ func (b *Discord) formatMessage(event events.Event, notification config.Notifica
 		messageEmbed = b.shortNotification(event)
 	}
 
-	// Add timestamp
 	messageEmbed.Timestamp = event.TimeStamp.UTC().Format(customTimeFormat)
-
 	messageEmbed.Color = embedColor[event.Level]
 
 	return discordgo.MessageSend{
@@ -57,69 +55,33 @@ func (b *Discord) longNotification(event events.Event) discordgo.MessageEmbed {
 			Text: "BotKube",
 		},
 	}
-	if event.Namespace != "" {
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:   "Namespace",
-			Value:  event.Namespace,
-			Inline: true,
-		})
-	}
 
-	if event.Reason != "" {
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:   "Reason",
-			Value:  event.Reason,
-			Inline: true,
-		})
-	}
-
-	if len(event.Messages) > 0 {
-		message := ""
-		for _, m := range event.Messages {
-			message += fmt.Sprintf("%s\n", m)
-		}
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:  "Message",
-			Value: message,
-		})
-	}
-
-	if event.Action != "" {
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:  "Action",
-			Value: event.Action,
-		})
-	}
-
-	if len(event.Recommendations) > 0 {
-		rec := ""
-		for _, r := range event.Recommendations {
-			rec += fmt.Sprintf("%s\n", r)
-		}
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:  "Recommendations",
-			Value: rec,
-		})
-	}
-
-	if len(event.Warnings) > 0 {
-		warn := ""
-		for _, w := range event.Warnings {
-			warn += fmt.Sprintf("%s\n", w)
-		}
-		messageEmbed.Fields = append(messageEmbed.Fields, &discordgo.MessageEmbedField{
-			Name:  "Warnings",
-			Value: warn,
-		})
-	}
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, event.Namespace, "Namespace", true)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, event.Reason, "Reason", true)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, formatx.JoinMessages(event.Messages), "Message", false)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, event.Action, "Action", true)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, formatx.JoinMessages(event.Recommendations), "Recommendations", false)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, formatx.JoinMessages(event.Warnings), "Warnings", false)
+	messageEmbed.Fields = b.appendIfNotEmpty(messageEmbed.Fields, event.Cluster, "Cluster", false)
 
 	return messageEmbed
+}
+
+func (b *Discord) appendIfNotEmpty(fields []*discordgo.MessageEmbedField, in string, title string, short bool) []*discordgo.MessageEmbedField {
+	if in == "" {
+		return fields
+	}
+	return append(fields, &discordgo.MessageEmbedField{
+		Name:   title,
+		Value:  in,
+		Inline: short,
+	})
 }
 
 func (b *Discord) shortNotification(event events.Event) discordgo.MessageEmbed {
 	return discordgo.MessageEmbed{
 		Title:       event.Title,
-		Description: format.ShortMessage(event),
+		Description: formatx.ShortMessage(event),
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "BotKube",
 		},

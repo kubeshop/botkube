@@ -6,6 +6,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 var themeColor = map[config.Level]string{
@@ -16,6 +17,7 @@ var themeColor = map[config.Level]string{
 	config.Critical: "attention",
 }
 
+// TODO: Use dedicated types as a part of https://github.com/kubeshop/botkube/issues/667
 type fact map[string]interface{}
 
 func (b *Teams) formatMessage(event events.Event, notification config.Notification) map[string]interface{} {
@@ -54,79 +56,31 @@ func (b *Teams) shortNotification(event events.Event) map[string]interface{} {
 }
 
 func (b *Teams) longNotification(event events.Event) map[string]interface{} {
+	// TODO: Use dedicated types as a part of https://github.com/kubeshop/botkube/issues/667
 	card := map[string]interface{}{
 		"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
 		"type":    "AdaptiveCard",
 		"version": "1.0",
 	}
 
-	sectionFacts := []fact{}
-
-	if event.Cluster != "" {
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Cluster",
-			"value": event.Cluster,
-		})
+	sectionFacts := []fact{
+		{
+			"title": "Kind",
+			"value": event.Kind,
+		},
+		{
+			"title": "Name",
+			"value": event.Name,
+		},
 	}
 
-	sectionFacts = append(sectionFacts, fact{
-		"title": "Name",
-		"value": event.Name,
-	})
-
-	if event.Namespace != "" {
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Namespace",
-			"value": event.Namespace,
-		})
-	}
-
-	if event.Reason != "" {
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Reason",
-			"value": event.Reason,
-		})
-	}
-
-	if len(event.Messages) > 0 {
-		message := ""
-		for _, m := range event.Messages {
-			message = message + m + "\n"
-		}
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Message",
-			"value": message,
-		})
-	}
-
-	if event.Action != "" {
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Action",
-			"value": event.Action,
-		})
-	}
-
-	if len(event.Recommendations) > 0 {
-		rec := ""
-		for _, r := range event.Recommendations {
-			rec = rec + r + "\n"
-		}
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Recommendations",
-			"value": rec,
-		})
-	}
-
-	if len(event.Warnings) > 0 {
-		warn := ""
-		for _, w := range event.Warnings {
-			warn = warn + w + "\n"
-		}
-		sectionFacts = append(sectionFacts, fact{
-			"title": "Warnings",
-			"value": warn,
-		})
-	}
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, event.Namespace, "Namespace")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, event.Reason, "Reason")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, formatx.JoinMessages(event.Messages), "Message")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, event.Action, "Action")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, formatx.JoinMessages(event.Recommendations), "Recommendations")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, formatx.JoinMessages(event.Warnings), "Warnings")
+	sectionFacts = b.appendIfNotEmpty(sectionFacts, event.Cluster, "Cluster")
 
 	card["body"] = []map[string]interface{}{
 		{
@@ -141,4 +95,14 @@ func (b *Teams) longNotification(event events.Event) map[string]interface{} {
 		},
 	}
 	return card
+}
+
+func (b *Teams) appendIfNotEmpty(fields []fact, in string, title string) []fact {
+	if in == "" {
+		return fields
+	}
+	return append(fields, fact{
+		"title": title,
+		"value": in,
+	})
 }

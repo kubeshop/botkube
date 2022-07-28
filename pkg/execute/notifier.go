@@ -18,15 +18,17 @@ const (
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.
 type NotifierHandler interface {
-	// Enabled returns current notification status.
-	Enabled() bool
+	// NotificationsEnabled returns current notification status.
+	NotificationsEnabled() bool
 
-	// SetEnabled sets a new notification status.
-	SetEnabled(value bool) error
+	// SetNotificationsEnabled sets a new notification status.
+	SetNotificationsEnabled(enabled bool) error
 }
 
-var errInvalidNotifierCommand = errors.New("invalid notifier command")
-var errUnsupportedCommand = errors.New("unsupported command")
+var (
+	errInvalidNotifierCommand = errors.New("invalid notifier command")
+	errUnsupportedCommand     = errors.New("unsupported command")
+)
 
 // NotifierExecutor executes all commands that are related to notifications.
 type NotifierExecutor struct {
@@ -49,7 +51,11 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 	}
 
 	var cmdVerb = args[1]
+	var isUnknownVerb bool
 	defer func() {
+		if isUnknownVerb {
+			cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+		}
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
 		err := e.analyticsReporter.ReportCommand(platform, cmdToReport)
 		if err != nil {
@@ -60,21 +66,21 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 
 	switch NotifierAction(cmdVerb) {
 	case Start:
-		err := handler.SetEnabled(true)
+		err := handler.SetNotificationsEnabled(true)
 		if err != nil {
 			return "", fmt.Errorf("while setting notifications to true: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStartMsgFmt, clusterName), nil
 	case Stop:
-		err := handler.SetEnabled(false)
+		err := handler.SetNotificationsEnabled(false)
 		if err != nil {
 			return "", fmt.Errorf("while setting notifications to false: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStopMsgFmt, clusterName), nil
 	case Status:
-		enabled := handler.Enabled()
+		enabled := handler.NotificationsEnabled()
 
 		enabledStr := "enabled"
 		if !enabled {
@@ -89,9 +95,10 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 		}
 
 		return fmt.Sprintf("Showing config for cluster %q:\n\n%s", clusterName, out), nil
+	default:
+		isUnknownVerb = true
 	}
 
-	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
 	return "", errUnsupportedCommand
 }
 
