@@ -27,7 +27,7 @@ func TestGetClusterNameFromKubectlCmd(t *testing.T) {
 	for _, ts := range tests {
 		got := GetClusterNameFromKubectlCmd(ts.input)
 		if got != ts.expected {
-			t.Errorf("isAllowed: %v, got: %v", ts.expected, got)
+			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}
 	}
 }
@@ -44,12 +44,12 @@ func TestContains(t *testing.T) {
 	expected := true
 	got := Contains(commands, containsValue)
 	if got != expected {
-		t.Errorf("isAllowed: %v, got: %v", expected, got)
+		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 	expected = false
 	got = Contains(commands, notContainsValue)
 	if got != expected {
-		t.Errorf("isAllowed: %v, got: %v", expected, got)
+		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 }
 
@@ -75,7 +75,7 @@ func TestRemoveHypelink(t *testing.T) {
 	for _, ts := range tests {
 		got := RemoveHyperlink(ts.input)
 		if got != ts.expected {
-			t.Errorf("isAllowed: %v, got: %v", ts.expected, got)
+			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}
 	}
 }
@@ -122,7 +122,7 @@ func TestIsNamespaceAllowed(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			actual := IsNamespaceAllowed(test.nsConfig, test.givenNs)
 			if actual != test.isAllowed {
-				t.Errorf("isAllowed: %v != actual: %v\n", test.isAllowed, actual)
+				t.Errorf("expected: %v != actual: %v\n", test.isAllowed, actual)
 			}
 		})
 	}

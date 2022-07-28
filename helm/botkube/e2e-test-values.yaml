@@ -26,6 +26,9 @@ executors:
   'kubectl-read-only':
     kubectl:
       enabled: true
+      namespaces:
+        include:
+          - default
 
 settings:
   clusterName: sample
