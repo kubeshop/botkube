@@ -151,7 +151,7 @@ func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 	return nil
 }
 
-// SendMessage sends message to Discord ChannelName.
+// SendMessage sends message to Discord channel.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
 func (b *Discord) SendMessage(_ context.Context, msg string) error {
 	b.log.Debugf(">> Sending to Discord: %+v", msg)

@@ -24,7 +24,7 @@ import (
 var _ Bot = &Slack{}
 
 const (
-	sendFailureMessageFmt = "Unable to send message to ChannelName `%s`: `%s`\n```add Botkube app to the ChannelName %s\nMissed events follows below:```"
+	sendFailureMessageFmt = "Unable to send message to channel `%s`: `%s`\n```add Botkube app to the channel %s\nMissed events follows below:```"
 	channelNotFoundCode   = "channel_not_found"
 )
 
@@ -298,7 +298,7 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
 		}
 
 		// sending missed event to default channel
-		// reset event.ChannelName and send event
+		// reset channel, so it will be defaulted
 		event.Channel = ""
 		sendEventErr := b.SendEvent(ctx, event)
 		if sendEventErr != nil {
