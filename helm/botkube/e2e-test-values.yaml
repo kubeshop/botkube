@@ -28,6 +28,7 @@ executors:
       enabled: true
       namespaces:
         include:
+          - botkube
           - default
 
 settings:

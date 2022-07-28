@@ -225,7 +225,7 @@ func TestSlack(t *testing.T) {
 		})
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
-			command := "get --namespace team-b"
+			command := "get po --namespace team-b"
 			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster '%s'.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
