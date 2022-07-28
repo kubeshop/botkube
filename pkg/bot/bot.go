@@ -4,18 +4,20 @@ import (
 	"context"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 )
 
-// Bot connects to communication channels and reads/sends messages
+// Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
 	IntegrationName() config.CommPlatformIntegration
+	controller.Notifier
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.
 type ExecutorFactory interface {
-	NewDefault(platform config.CommPlatformIntegration, isAuthChannel bool, message string) execute.Executor
+	NewDefault(platform config.CommPlatformIntegration, notifierHandler execute.NotifierHandler, isAuthChannel bool, message string) execute.Executor
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.

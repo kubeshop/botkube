@@ -15,6 +15,7 @@ type DefaultExecutorFactory struct {
 	filterEngine      filterengine.FilterEngine
 	resMapping        ResourceMapping
 	analyticsReporter AnalyticsReporter
+	notifierExecutor  *NotifierExecutor
 }
 
 // Executor is an interface for processes to execute commands
@@ -44,21 +45,28 @@ func NewExecutorFactory(
 		filterEngine:      filterEngine,
 		resMapping:        resMapping,
 		analyticsReporter: analyticsReporter,
+		notifierExecutor: NewNotifierExecutor(
+			log.WithField("component", "Notifier Executor"),
+			cfg,
+			analyticsReporter,
+		),
 	}
 }
 
 // NewDefault creates new Default Executor.
-func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegration, isAuthChannel bool, message string) Executor {
+func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegration, notifierHandler NotifierHandler, isAuthChannel bool, message string) Executor {
 	return &DefaultExecutor{
 		log:               f.log,
 		runCmdFn:          f.runCmdFn,
 		cfg:               f.cfg,
 		resMapping:        f.resMapping,
 		analyticsReporter: f.analyticsReporter,
+		notifierExecutor:  f.notifierExecutor,
+		filterEngine:      f.filterEngine,
 
-		filterEngine:  f.filterEngine,
-		IsAuthChannel: isAuthChannel,
-		Message:       message,
-		Platform:      platform,
+		notifierHandler: notifierHandler,
+		IsAuthChannel:   isAuthChannel,
+		Message:         message,
+		Platform:        platform,
 	}
 }

@@ -267,7 +267,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Stopping notifier...")
 		command := "notifier stop"
-		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' anymore.", appCfg.ClusterName))
+		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster %q anymore.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -288,7 +288,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Starting notifier")
 		command = "notifier start"
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, notifications are coming from cluster '%s'.", appCfg.ClusterName))
+		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster %q.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)

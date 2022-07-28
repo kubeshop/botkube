@@ -4,27 +4,53 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	formatx "github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
-// SlackBot listens for user's message, execute commands and sends back the response
-type SlackBot struct {
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
+//    - handle and send methods from `slackMessage` should be defined on Bot level,
+//    - split to multiple files in a separate package,
+//    - review all the methods and see if they can be simplified.
+
+var _ Bot = &Slack{}
+
+const (
+	sendFailureMessageFmt = "Unable to send message to channel `%s`: `%s`\n```add Botkube app to the channel %s\nMissed events follows below:```"
+	channelNotFoundCode   = "channel_not_found"
+)
+
+var attachmentColor = map[config.Level]string{
+	config.Info:     "good",
+	config.Warn:     "warning",
+	config.Debug:    "good",
+	config.Error:    "danger",
+	config.Critical: "danger",
+}
+
+// Slack listens for user's message, execute commands and sends back the response.
+type Slack struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        FatalErrorAnalyticsReporter
+	notifyMutex     sync.RWMutex
+	notify          bool
+	botID           string
 
-	Token            string
+	Client           *slack.Client
+	Notification     config.Notification
 	AllowKubectl     bool
 	RestrictAccess   bool
 	ClusterName      string
 	ChannelName      string
-	SlackURL         string
-	BotID            string
 	DefaultNamespace string
 }
 
@@ -39,42 +65,41 @@ type slackMessage struct {
 	Response      string
 	IsAuthChannel bool
 	RTM           *slack.RTM
-	SlackClient   *slack.Client
 }
 
-// NewSlackBot returns new Bot object
-func NewSlackBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) *SlackBot {
-	slack := c.Communications.GetFirst().Slack
-	return &SlackBot{
+// NewSlack creates a new Slack instance.
+func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
+	slackCfg := c.Communications.GetFirst().Slack
+
+	client := slack.New(slackCfg.Token)
+
+	authResp, err := client.AuthTest()
+	if err != nil {
+		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
+	}
+	botID := authResp.UserID
+
+	return &Slack{
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
-		Token:            slack.Token,
+		notify:           true, // enabled by default
+		botID:            botID,
+		Client:           client,
+		Notification:     slackCfg.Notification,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
 		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
 		ClusterName:      c.Settings.ClusterName,
-		ChannelName:      slack.Channels.GetFirst().Name,
+		ChannelName:      slackCfg.Channels.GetFirst().Name,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
-	}
+	}, nil
 }
 
 // Start starts the Slack RTM connection and listens for messages
-func (b *SlackBot) Start(ctx context.Context) error {
+func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
-	var botID string
-	api := slack.New(b.Token)
-	if len(b.SlackURL) != 0 {
-		api = slack.New(b.Token, slack.OptionAPIURL(b.SlackURL))
-		botID = b.BotID
-	} else {
-		authResp, err := api.AuthTest()
-		if err != nil {
-			return fmt.Errorf("while testing the ability to do auth request: %w", err)
-		}
-		botID = authResp.UserID
-	}
 
-	rtm := api.NewRTM()
+	rtm := b.Client.NewRTM()
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
 		rtm.ManageConnection()
@@ -102,16 +127,15 @@ func (b *SlackBot) Start(ctx context.Context) error {
 
 			case *slack.MessageEvent:
 				// Skip if message posted by BotKube
-				if ev.User == botID {
+				if ev.User == b.botID {
 					continue
 				}
 				sm := slackMessage{
 					log:             b.log,
 					executorFactory: b.executorFactory,
 					Event:           ev,
-					BotID:           botID,
+					BotID:           b.botID,
 					RTM:             rtm,
-					SlackClient:     api,
 				}
 				err := sm.HandleMessage(b)
 				if err != nil {
@@ -144,16 +168,34 @@ func (b *SlackBot) Start(ctx context.Context) error {
 	}
 }
 
+// Type describes the notifier type.
+func (b *Slack) Type() config.IntegrationType {
+	return config.BotIntegrationType
+}
+
 // IntegrationName describes the notifier integration name.
-func (b *SlackBot) IntegrationName() config.CommPlatformIntegration {
+func (b *Slack) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }
 
-// TODO: refactor - handle and send methods should be defined on Bot level
+// NotificationsEnabled returns current notification status.
+func (b *Slack) NotificationsEnabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
+	return b.notify
+}
 
-func (sm *slackMessage) HandleMessage(b *SlackBot) error {
+// SetNotificationsEnabled sets a new notification status.
+func (b *Slack) SetNotificationsEnabled(enabled bool) error {
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
+	b.notify = enabled
+	return nil
+}
+
+func (sm *slackMessage) HandleMessage(b *Slack) error {
 	// Check if message posted in authenticated channel
-	info, err := sm.SlackClient.GetConversationInfo(sm.Event.Channel, true)
+	info, err := b.Client.GetConversationInfo(sm.Event.Channel, true)
 	if err == nil {
 		if info.IsChannel || info.IsPrivate {
 			// Message posted in a channel
@@ -176,7 +218,7 @@ func (sm *slackMessage) HandleMessage(b *SlackBot) error {
 	// Trim the @BotKube prefix
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
-	e := sm.executorFactory.NewDefault(b.IntegrationName(), sm.IsAuthChannel, sm.Request)
+	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, sm.IsAuthChannel, sm.Request)
 	sm.Response = e.Execute()
 	err = sm.Send()
 	if err != nil {
@@ -207,7 +249,7 @@ func (sm *slackMessage) Send() error {
 		return nil
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(formatCodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if sm.Event.ThreadTimestamp != "" {
@@ -218,5 +260,66 @@ func (sm *slackMessage) Send() error {
 		return fmt.Errorf("while posting Slack message: %w", err)
 	}
 
+	return nil
+}
+
+// SendEvent sends event notification to slack
+func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
+	if !b.notify {
+		b.log.Info("Notifications are disabled. Skipping event...")
+		return nil
+	}
+
+	b.log.Debugf(">> Sending to slack: %+v", event)
+	attachment := b.formatMessage(event, b.Notification)
+
+	targetChannel := event.Channel
+	if targetChannel == "" {
+		// empty value in event.channel sends notifications to default channel.
+		targetChannel = b.ChannelName
+	}
+	isDefaultChannel := targetChannel == b.ChannelName
+
+	channelID, timestamp, err := b.Client.PostMessage(targetChannel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+	if err != nil {
+		postMessageWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, err)
+
+		if isDefaultChannel || err.Error() != channelNotFoundCode {
+			return postMessageWrappedErr
+		}
+
+		// channel not found, fallback to default channel
+
+		// send error message to default channel
+		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
+		sendMessageErr := b.SendMessage(ctx, msg)
+		if sendMessageErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendMessageErr)
+		}
+
+		// sending missed event to default channel
+		// reset channel, so it will be defaulted
+		event.Channel = ""
+		sendEventErr := b.SendEvent(ctx, event)
+		if sendEventErr != nil {
+			return multierror.Append(postMessageWrappedErr, sendEventErr)
+		}
+
+		return postMessageWrappedErr
+	}
+
+	b.log.Debugf("Event successfully sent to channel %q at %b", channelID, timestamp)
+	return nil
+}
+
+// SendMessage sends message to slack channel
+func (b *Slack) SendMessage(ctx context.Context, msg string) error {
+	b.log.Debugf(">> Sending to slack: %+v", msg)
+	channelID, timestamp, err := b.Client.PostMessageContext(ctx, b.ChannelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
+	if err != nil {
+		return fmt.Errorf("while sending Slack message to channel %q: %w", b.ChannelName, err)
+	}
+
+	b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
 	return nil
 }

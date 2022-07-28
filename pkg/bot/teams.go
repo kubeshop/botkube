@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/infracloudio/msbotbuilder-go/core"
@@ -17,10 +18,17 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
+
+// TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
+//  - see if we cannot set conversation ref without waiting for `@BotKube notify start` message.
+//  - see if a public endpoint can be avoided to handle Teams messages.
+//  - see if we can use different library
+//  - split to multiple files in a separate package,
+//  - review all the methods and see if they can be simplified.
 
 const (
 	defaultPort      = "3978"
@@ -36,13 +44,15 @@ const (
 	activityUploadInfo = "uploadInfo"
 )
 
-var _ Bot = (*Teams)(nil)
+var _ Bot = &Teams{}
 
-// Teams contains credentials to start Teams backend server
+// Teams listens for user's message, execute commands and sends back the response.
 type Teams struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
+	notifyMutex     sync.RWMutex
+	notify          bool
 
 	BotName          string
 	AppID            string
@@ -56,18 +66,16 @@ type Teams struct {
 	Adapter          core.Adapter
 	DefaultNamespace string
 
-	ConversationRef *schema.ConversationReference
+	conversationRefMutex sync.RWMutex
+	conversationRef      *schema.ConversationReference
 }
 
 type consentContext struct {
 	Command string
 }
 
-// NewTeamsBot returns Teams instance
-func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
-	// Set notifier off by default
-	config.Notify = false
-
+// NewTeams creates a new Teams instance.
+func NewTeams(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
 	teams := c.Communications.GetFirst().Teams
 
 	port := teams.Port
@@ -82,6 +90,7 @@ func NewTeamsBot(log logrus.FieldLogger, c *config.Config, executorFactory Execu
 		log:              log,
 		executorFactory:  executorFactory,
 		reporter:         reporter,
+		notify:           false, // disabled by default
 		BotName:          teams.BotName,
 		AppID:            teams.AppID,
 		AppPassword:      teams.AppPassword,
@@ -210,7 +219,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
 			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
 			msg := strings.TrimSpace(msgWithoutPrefix)
-			e := b.executorFactory.NewDefault(b.IntegrationName(), true, msg)
+			e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
 			out := e.Execute()
 
 			actJSON, _ := json.MarshalIndent(turn.Activity, "", "  ")
@@ -247,29 +256,10 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	msgWithoutPrefix := strings.TrimPrefix(activity.Text, msgPrefix)
 	msg := strings.TrimSpace(msgWithoutPrefix)
 
-	// User needs to execute "notifier start" cmd to enable notifications
-	// Parse "notifier" command and set conversation reference
-	args := strings.Fields(msg)
-	if activity.Conversation.ConversationType != convTypePersonal && len(args) > 0 && execute.ValidNotifierCommand[args[0]] {
-		if len(args) < 2 {
-			return execute.IncompleteCmdMsg
-		}
-		if execute.Start.String() == args[1] {
-			config.Notify = true
-			ref := coreActivity.GetCoversationReference(activity)
-			b.ConversationRef = &ref
-			// Remove messageID from the ChannelID
-			if ID, ok := activity.ChannelData["teamsChannelId"]; ok {
-				b.ConversationRef.ChannelID = ID.(string)
-				b.ConversationRef.Conversation.ID = ID.(string)
-			}
-			return fmt.Sprintf(execute.NotifierStartMsg, b.ClusterName)
-		}
-	}
-
 	// Multicluster is not supported for Teams
-	e := b.executorFactory.NewDefault(b.IntegrationName(), true, msg)
-	return formatCodeBlock(e.Execute())
+
+	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
+	return format.CodeBlock(e.Execute())
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -304,7 +294,11 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
-	card := formatTeamsMessage(event, b.Notification)
+	if !b.notify {
+		b.log.Info("Notifications are disabled. Skipping event...")
+		return nil
+	}
+	card := b.formatMessage(event, b.Notification)
 	if err := b.sendProactiveMessage(ctx, card); err != nil {
 		return fmt.Errorf("while sending notification: %w", err)
 	}
@@ -315,11 +309,13 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
 
 // SendMessage sends message to MsTeams
 func (b *Teams) SendMessage(ctx context.Context, msg string) error {
-	if b.ConversationRef == nil {
+	b.conversationRefMutex.RLock()
+	defer b.conversationRefMutex.RUnlock()
+	if b.conversationRef == nil {
 		b.log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.ConversationRef, coreActivity.HandlerFuncs{
+	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			return turn.SendActivity(coreActivity.MsgOptionText(msg))
 		},
@@ -331,22 +327,53 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 	return nil
 }
 
-// IntegrationName describes the notifier integration name.
+// IntegrationName describes the integration name.
 func (b *Teams) IntegrationName() config.CommPlatformIntegration {
 	return config.TeamsCommPlatformIntegration
 }
 
-// Type describes the notifier type.
+// Type describes the integration type.
 func (b *Teams) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
+// NotificationsEnabled returns current notification status.
+func (b *Teams) NotificationsEnabled() bool {
+	b.notifyMutex.RLock()
+	defer b.notifyMutex.RUnlock()
+	return b.notify
+}
+
+// SetNotificationsEnabled sets a new notification status.
+func (b *Teams) SetNotificationsEnabled(enabled bool, activity schema.Activity) error {
+	if enabled {
+		b.conversationRefMutex.Lock()
+		defer b.conversationRefMutex.Unlock()
+
+		// Set conversation reference
+		ref := coreActivity.GetCoversationReference(activity)
+		b.conversationRef = &ref
+		// Remove messageID from the ChannelID
+		if ID, ok := activity.ChannelData["teamsChannelId"]; ok {
+			b.conversationRef.ChannelID = ID.(string)
+			b.conversationRef.Conversation.ID = ID.(string)
+		}
+	}
+
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
+	b.notify = enabled
+	return nil
+}
+
 func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interface{}) error {
-	if b.ConversationRef == nil {
+	b.conversationRefMutex.RLock()
+	defer b.conversationRefMutex.RUnlock()
+	if b.conversationRef == nil {
 		b.log.Infof("Skipping SendMessage since conversation ref not set")
 		return nil
 	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.ConversationRef, coreActivity.HandlerFuncs{
+	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			attachments := []schema.Attachment{
 				{
@@ -358,4 +385,23 @@ func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interf
 		},
 	})
 	return err
+}
+
+type teamsNotificationManager struct {
+	b        *Teams
+	activity schema.Activity
+}
+
+func newTeamsNotifMgrForActivity(b *Teams, activity schema.Activity) *teamsNotificationManager {
+	return &teamsNotificationManager{b: b, activity: activity}
+}
+
+// NotificationsEnabled returns current notification status.
+func (n *teamsNotificationManager) NotificationsEnabled() bool {
+	return n.b.NotificationsEnabled()
+}
+
+// SetNotificationsEnabled sets a new notification status.
+func (n *teamsNotificationManager) SetNotificationsEnabled(enabled bool) error {
+	return n.b.SetNotificationsEnabled(enabled, n.activity)
 }

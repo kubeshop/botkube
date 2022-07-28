@@ -1,4 +1,4 @@
-package notifier
+package sink
 
 import (
 	"bytes"
@@ -12,15 +12,16 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
 
-// Webhook contains URL
+// Webhook provides functionality to notify external service about new events.
 type Webhook struct {
 	log      logrus.FieldLogger
-	reporter SinkAnalyticsReporter
+	reporter AnalyticsReporter
 
 	URL string
 }
@@ -35,7 +36,7 @@ type WebhookPayload struct {
 	Warnings        []string    `json:"warnings,omitempty"`
 }
 
-// EventMeta contains the meta data about the event occurred
+// EventMeta contains the metadata about the event occurred
 type EventMeta struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
@@ -52,12 +53,12 @@ type EventStatus struct {
 	Messages []string         `json:"messages,omitempty"`
 }
 
-// NewWebhook returns new Webhook object
-func NewWebhook(log logrus.FieldLogger, c config.Communications, reporter SinkAnalyticsReporter) (*Webhook, error) {
+// NewWebhook creates a new Webhook instance.
+func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:      log,
 		reporter: reporter,
-		URL:      c.Webhook.URL,
+		URL:      c.URL,
 	}
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
@@ -84,7 +85,7 @@ func (w *Webhook) SendEvent(ctx context.Context, event events.Event) (err error)
 			Error:    event.Error,
 			Messages: event.Messages,
 		},
-		EventSummary:    FormatShortMessage(event),
+		EventSummary:    format.ShortMessage(event),
 		TimeStamp:       event.TimeStamp,
 		Recommendations: event.Recommendations,
 		Warnings:        event.Warnings,
@@ -111,7 +112,7 @@ func (w *Webhook) PostWebhook(ctx context.Context, jsonPayload *WebhookPayload) 
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", w.URL, bytes.NewBuffer(message))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.URL, bytes.NewBuffer(message))
 	if err != nil {
 		return err
 	}
