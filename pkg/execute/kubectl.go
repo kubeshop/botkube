@@ -15,7 +15,8 @@ import (
 const (
 	kubectlDisabledMsgFmt            = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	kubectlNotAuthorizedMsgFmt       = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in %s Namespace on cluster '%s'."
+	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in '%s' Namespace on cluster '%s'."
+	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'."
 	kubectlDefaultNamespace          = "default"
 )
 
@@ -51,18 +52,6 @@ func (e *Kubectl) CanHandle(args []string) bool {
 	// 1. Check if such kubectl verb is enabled
 	if !e.resMapping.AllowedKubectlVerbMap[args[0]] {
 		return false
-	}
-
-	// 2. Those commands don't have resources specified directly in command. For example:
-	//    - kubectl logs foo
-	if validDebugCommands[args[0]] {
-		return true
-	}
-
-	// 3. Check if user has access to a given Kubernetes resource
-	// TODO: move to execute..
-	if len(args) > 1 && e.matchesAllowedResources(args[1]) { // we can have problems if user will add a flag as a second arg
-		return true
 	}
 
 	return false
@@ -115,6 +104,16 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 		// do not send information, user may have more cluster available on the same channel,
 		// and we are probably not the target cluster.
 		return "", nil
+	}
+
+	// 2. Those commands don't have resources specified directly in command. For example:
+	//    - kubectl logs foo
+	if !validDebugCommands[args[0]] {
+
+		// 3. Check if user has access to a given Kubernetes resource
+		if len(args) > 1 && e.matchesAllowedResources(args[1]) { // we can have problems if user will add a flag as a second arg
+			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, args[1], clusterName), nil
+		}
 	}
 
 	args, executionNs, err := e.ensureNamespaceFlag(args, defaultNamespace)
