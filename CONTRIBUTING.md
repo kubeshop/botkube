@@ -55,12 +55,12 @@ This section describes how to build and run the BotKube from the source code.
      > **Note**
      > This command takes some time to run as it builds the images for multiple architectures.
 
-   ```sh
-   make container-image
-   docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
-   docker push <your_account>/botkube:v9.99.9-dev
-   ```
-   Where `<your_account>` is Docker hub account to which you can push the image.
+     ```sh
+     make container-image
+     docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
+     docker push <your_account>/botkube:v9.99.9-dev
+     ```
+     Where `<your_account>` is Docker hub account to which you can push the image.
 
 2. Deploy the newly created image in your cluster:
 
@@ -69,7 +69,7 @@ This section describes how to build and run the BotKube from the source code.
    --set communications.slack.enabled=true \
    --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
    --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
-   --set settings.clustername=<CLUSTER_NAME> \
+   --set settings.clusterName=<CLUSTER_NAME> \
    --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
    --set image.registry=<image_registry e.g. docker.io> \
    --set image.repository=<your_account>/botkube \

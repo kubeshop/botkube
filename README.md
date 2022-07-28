@@ -20,9 +20,6 @@
   <a href="https://github.com/kubeshop/botkube/actions?query=workflow%3ACI+branch%3Amain">
     <img src="https://github.com/kubeshop/botkube/workflows/CI/badge.svg?branch=main" alt="CI Build" />
   </a>
-  <a href="https://goreportcard.com/report/github.com/kubeshop/botkube">
-    <img src="https://goreportcard.com/badge/github.com/kubeshop/botkube" alt="Go Report" />
-  </a>
   <a href="https://godoc.org/github.com/kubeshop/botkube">
     <img src="https://godoc.org/github.com/kubeshop/botkube?status.svg" alt="Go Docs" />
   </a>
