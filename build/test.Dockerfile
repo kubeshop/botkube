@@ -13,6 +13,8 @@ LABEL name="botkube" \
       test=$TEST_NAME \
       org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.title="BotKube E2 tests" \
-      org.opencontainers.image.description="BotKube E2E tests which are run against BotKube installed on Kubernetes cluster and Slack API."
+      org.opencontainers.image.description="BotKube E2E tests which are run against BotKube installed on Kubernetes cluster and Slack API." \
+      org.opencontainers.image.documentation="https://botkube.io" \
+      org.opencontainers.image.licenses="MIT"
 
 CMD ["/test", "-test.v"]

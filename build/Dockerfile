@@ -4,7 +4,8 @@ LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.title="BotKube" \
       org.opencontainers.image.version="${botkube_version}" \
       org.opencontainers.image.description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
-      org.opencontainers.image.documentation="https://botkube.io"
+      org.opencontainers.image.documentation="https://botkube.io" \
+      org.opencontainers.image.licenses="MIT"
 
 COPY botkube /usr/local/bin/botkube
 # Download the latest kubectl in the appropriate architecture. Currently handles aarch64 (arm64) and x86_64 (amd64).
