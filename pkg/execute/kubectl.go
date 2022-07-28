@@ -3,7 +3,6 @@ package execute
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -15,7 +14,7 @@ import (
 const (
 	kubectlDisabledMsgFmt            = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	kubectlNotAuthorizedMsgFmt       = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in '%s' Namespace on cluster '%s'."
+	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'."
 	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'."
 	kubectlDefaultNamespace          = "default"
 )
@@ -40,78 +39,52 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, mapping ResourceMappi
 
 // CanHandle returns true if it's allowed kubectl command that can be handled by this executor.
 //
-// TODO: we can check in general if this is a valid kubectl command
-// This will help us to return more friendly message, e.g.
-// detect a valid kubectl command but say that you're simply not authorized to use it.
-// Additionally, instead of using config with allowed verbs and commands we simply should use related SA.
+// TODO: we should just introduce a command name explicitly. In this case `@BotKube kubectl get po` instead of `@BotKube get po`
+// As a result, we are able to detect kubectl command but say that you're simply not authorized to use it instead of "Command not supported. (..)"
 func (e *Kubectl) CanHandle(args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
 
-	// 1. Check if such kubectl verb is enabled
+	// Check if such kubectl verb is enabled
 	if !e.resMapping.AllowedKubectlVerbMap[args[0]] {
 		return false
 	}
 
-	return false
-}
-
-func (e *Kubectl) matchesAllowedResources(name string) bool {
-	variants := []string{
-		// received name
-		name,
-		// normalized short name
-		e.resMapping.ShortnameResourceMap[strings.ToLower(name)],
-		// normalized kind name
-		e.resMapping.KindResourceMap[strings.ToLower(name)],
-	}
-
-	for _, name := range variants {
-		if e.resMapping.AllowedKubectlResourceMap[name] {
-			return true
-		}
-	}
-
-	return false
+	return true
 }
 
 // Execute executes kubectl command based on a given args.
+//
+// This method should be called ONLY if:
+// - we are a target cluster,
+// - and Kubectl.CanHandle returned true.
 func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
+	e.log.Infof("message %s, auth %v", command, isAuthChannel)
 	var (
 		// TODO: https://github.com/kubeshop/botkube/issues/596
 		// use a related config from communicator bindings.
 		kubectlCfg = e.cfg.Executors.GetFirst().Kubectl
 
-		args                 = strings.Fields(strings.TrimSpace(command))
-		clusterName          = e.cfg.Settings.ClusterName
-		isClusterNamePresent = strings.Contains(command, "--cluster-name")
-		inClusterName        = utils.GetClusterNameFromKubectlCmd(command)
-		defaultNamespace     = kubectlCfg.DefaultNamespace
+		args             = strings.Fields(strings.TrimSpace(command))
+		clusterName      = e.cfg.Settings.ClusterName
+		defaultNamespace = kubectlCfg.DefaultNamespace
 	)
 
+	if !isAuthChannel && kubectlCfg.RestrictAccess {
+		return fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName), nil
+	}
+
 	if !kubectlCfg.Enabled {
-		if isClusterNamePresent && clusterName == inClusterName {
-			return fmt.Sprintf(kubectlDisabledMsgFmt, clusterName), nil
-		}
-		return "", nil
+		return fmt.Sprintf(kubectlDisabledMsgFmt, clusterName), nil
 	}
 
-	if kubectlCfg.RestrictAccess && !isAuthChannel && isClusterNamePresent {
-		if clusterName == inClusterName {
-			return fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName), nil
-		}
-		// do not send information, user may have more cluster available on the same channel,
-		// and we are probably not the target cluster.
-		return "", nil
-	}
-
-	// 2. Those commands don't have resources specified directly in command. For example:
-	//    - kubectl logs foo
+	// Some commands don't have resources specified directly in command. For example:
+	// - kubectl logs foo
 	if !validDebugCommands[args[0]] {
-
-		// 3. Check if user has access to a given Kubernetes resource
-		if len(args) > 1 && e.matchesAllowedResources(args[1]) { // we can have problems if user will add a flag as a second arg
+		// Check if user has access to a given Kubernetes resource
+		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
+		if len(args) > 1 && !e.matchesAllowedResources(args[1]) { // we can have problems if user will add a flag as a second arg
 			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, args[1], clusterName), nil
 		}
 	}
@@ -125,11 +98,7 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 		return fmt.Sprintf(kubectlNotAllowedNamespaceMsgFmt, executionNs, clusterName), nil
 	}
 
-	finalArgs, shouldExecute := e.getFinalArgs(args, clusterName, isAuthChannel)
-	if !shouldExecute {
-		return "", nil
-	}
-
+	finalArgs := e.getFinalArgs(args)
 	out, err := e.runCmdFn(kubectlBinary, finalArgs)
 	if err != nil {
 		err = fmt.Errorf("while executing kubectl command: %w", err)
@@ -141,12 +110,13 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 
 // TODO: This code was moved from:
 //   https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
-// Further refactoring in needed.
-func (e *Kubectl) getFinalArgs(args []string, clusterName string, isAuthChannel bool) ([]string, bool) {
+// Further refactoring in needed. For example, the cluster flag should be removed by a higher logic as it's strictly
+// BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
+func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string
 	isClusterNameArg := false
-	for index, arg := range args {
+	for _, arg := range args {
 		if isClusterNameArg {
 			isClusterNameArg = false
 			continue
@@ -157,47 +127,29 @@ func (e *Kubectl) getFinalArgs(args []string, clusterName string, isAuthChannel 
 		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
 			continue
 		}
-		// Check --cluster-name flag
+		// Remove --cluster-name flag and it's value
 		if strings.HasPrefix(arg, ClusterFlag.String()) {
 			// Check if flag value in current or next argument and compare with config.settings.clusterName
 			if arg == ClusterFlag.String() {
-				if index == len(args)-1 || e.trimQuotes(args[index+1]) != clusterName {
-					return nil, false
-				}
 				isClusterNameArg = true
-			} else {
-				if e.trimQuotes(strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1]) != clusterName {
-					return nil, false
-				}
 			}
-			isAuthChannel = true
 			continue
 		}
 		finalArgs = append(finalArgs, arg)
 	}
-	if !isAuthChannel {
-		return nil, false
-	}
 
-	return finalArgs, true
-}
-
-// trim single and double quotes from ends of string
-func (e *Kubectl) trimQuotes(clusterValue string) string {
-	return strings.TrimFunc(clusterValue, func(r rune) bool {
-		if r == unicode.SimpleFold('\u0027') || r == unicode.SimpleFold('\u0022') {
-			return true
-		}
-		return false
-	})
+	return finalArgs
 }
 
 // getNamespaceFlag returns the namespace value extracted from a given args.
 // If `--namespace/-n` was not found, returns 'default'.
 func (e *Kubectl) getNamespaceFlag(args []string) (string, error) {
 	f := pflag.NewFlagSet("extract-ns", pflag.ContinueOnError)
+	// ignore unknown flags errors, e.g. `--cluster-name` etc.
+	f.ParseErrorsWhitelist.UnknownFlags = true
+
 	var out string
-	f.StringVarP(&out, "namespace", "n", "default", "Kubernetes Namespace")
+	f.StringVarP(&out, "namespace", "n", "", "Kubernetes Namespace")
 	if err := f.Parse(args); err != nil {
 		return "", err
 	}
@@ -221,4 +173,23 @@ func (e *Kubectl) ensureNamespaceFlag(args []string, defaultNamespace string) ([
 	args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
 
 	return args, defaultNamespace, nil
+}
+
+func (e *Kubectl) matchesAllowedResources(name string) bool {
+	variants := []string{
+		// received name
+		name,
+		// normalized short name
+		e.resMapping.ShortnameResourceMap[strings.ToLower(name)],
+		// normalized kind name
+		e.resMapping.KindResourceMap[strings.ToLower(name)],
+	}
+
+	for _, name := range variants {
+		if e.resMapping.AllowedKubectlResourceMap[name] {
+			return true
+		}
+	}
+
+	return false
 }

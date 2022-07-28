@@ -31,6 +31,7 @@ const (
 )
 
 const (
+	// AllNamespaceIndicator represents a keyword for allowing all Kubernetes Namespaces.
 	AllNamespaceIndicator = "all"
 )
 

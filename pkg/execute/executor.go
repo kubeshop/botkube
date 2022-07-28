@@ -140,15 +140,23 @@ func (action FiltersAction) String() string {
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	clusterName := e.cfg.Settings.ClusterName
 	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.Message)
-	args := strings.Fields(strings.TrimSpace(command))
+
+	var (
+		clusterName   = e.cfg.Settings.ClusterName
+		inClusterName = utils.GetClusterNameFromKubectlCmd(command)
+		args          = strings.Fields(strings.TrimSpace(command))
+	)
 	if len(args) == 0 {
 		if e.IsAuthChannel {
 			return e.printDefaultMsg(e.Platform)
 		}
 		return "" // this prevents all bots on all clusters to answer something
+	}
+
+	if inClusterName != "" && inClusterName != clusterName {
+		return "" // user specified different target cluster
 	}
 
 	if e.kubectlExecutor.CanHandle(args) {
