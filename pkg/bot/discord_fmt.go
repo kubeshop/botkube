@@ -10,10 +10,10 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-func (b *Discord) formatMessage(event events.Event, notification config.Notification) discordgo.MessageSend {
+func (b *Discord) formatMessage(event events.Event) discordgo.MessageSend {
 	var messageEmbed discordgo.MessageEmbed
 
-	switch notification.Type {
+	switch b.notification.Type {
 	case config.LongNotification:
 		// generate Long notification message
 		messageEmbed = b.longNotification(event)

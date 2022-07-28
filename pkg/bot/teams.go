@@ -46,13 +46,22 @@ const (
 
 var _ Bot = &Teams{}
 
+type conversation struct {
+	ref    schema.ConversationReference
+	notify bool
+}
+
 // Teams listens for user's message, execute commands and sends back the response.
 type Teams struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
-	notifyMutex     sync.RWMutex
-	notify          bool
+	// TODO: Be consistent with other communicators when Teams supports multiple channels
+	//channels map[string][ChannelBindingsByName]
+	bindings           config.BotBindings
+	conversationsMutex sync.RWMutex
+	conversations      map[string]conversation
+	notifyMutex        sync.Mutex
 
 	BotName      string
 	AppID        string
@@ -62,10 +71,6 @@ type Teams struct {
 	ClusterName  string
 	Notification config.Notification
 	Adapter      core.Adapter
-
-	conversationRefMutex sync.RWMutex
-	conversationRef      *schema.ConversationReference
-	ExecutorsBindings    []string
 }
 
 type consentContext struct {
@@ -73,30 +78,28 @@ type consentContext struct {
 }
 
 // NewTeams creates a new Teams instance.
-func NewTeams(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
-	teams := c.Communications.GetFirst().Teams
-
-	port := teams.Port
+func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
+	port := cfg.Port
 	if port == "" {
 		port = defaultPort
 	}
-	msgPath := teams.MessagePath
+	msgPath := cfg.MessagePath
 	if msgPath == "" {
 		msgPath = "/"
 	}
 	return &Teams{
-		log:               log,
-		executorFactory:   executorFactory,
-		reporter:          reporter,
-		notify:            false, // disabled by default
-		BotName:           teams.BotName,
-		AppID:             teams.AppID,
-		AppPassword:       teams.AppPassword,
-		Notification:      teams.Notification,
-		MessagePath:       msgPath,
-		Port:              port,
-		ExecutorsBindings: teams.Channels.GetFirst().Bindings.Executors,
-		ClusterName:       c.Settings.ClusterName,
+		log:             log,
+		executorFactory: executorFactory,
+		reporter:        reporter,
+		BotName:         cfg.BotName,
+		ClusterName:     clusterName,
+		AppID:           cfg.AppID,
+		AppPassword:     cfg.AppPassword,
+		Notification:    cfg.Notification,
+		bindings:        cfg.Bindings,
+		MessagePath:     msgPath,
+		Port:            port,
+		conversations:   make(map[string]conversation),
 	}
 }
 
@@ -180,7 +183,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 		OnInvokeFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			b.deleteConsent(ctx, turn.Activity.ReplyToID, coreActivity.GetCoversationReference(turn.Activity))
 			if err != nil {
-				return schema.Activity{}, fmt.Errorf("failed to read file: %s", err.Error())
+				return schema.Activity{}, fmt.Errorf("while reading file: %w", err)
 			}
 			if turn.Activity.Value["type"] != activityFileUpload {
 				return schema.Activity{}, nil
@@ -199,32 +202,40 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, err
 			}
 			if err := json.Unmarshal(infoJSON, &uploadInfo); err != nil {
-				return schema.Activity{}, err
+				return schema.Activity{}, fmt.Errorf("while unmarshalling activity: %w", err)
 			}
 
 			// Parse context
 			consentCtx := consentContext{}
 			ctxJSON, err := json.Marshal(turn.Activity.Value["context"])
 			if err != nil {
-				return schema.Activity{}, err
+				return schema.Activity{}, fmt.Errorf("while marshalling activity context: %w", err)
 			}
 			if err := json.Unmarshal(ctxJSON, &consentCtx); err != nil {
-				return schema.Activity{}, err
+				return schema.Activity{}, fmt.Errorf("while unmarshalling activity context: %w", err)
 			}
 
 			msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
 			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
-			msg := strings.TrimSpace(msgWithoutPrefix)
-			e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
-			out := e.Execute(b.ExecutorsBindings)
 
-			actJSON, _ := json.MarshalIndent(turn.Activity, "", "  ")
+			ref, err := b.getConversationReferenceFrom(activity)
+			if err != nil {
+				return schema.Activity{}, fmt.Errorf("while getting conversation reference: %w", err)
+			}
+
+			e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, activity.ChannelID, b.bindings.Executors, msgWithoutPrefix)
+			out := e.Execute()
+
+			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
+			if err != nil {
+				return schema.Activity{}, fmt.Errorf("while marshalling activity: %w", err)
+			}
 			b.log.Debugf("Incoming MSTeams Activity: %s", actJSON)
 
 			// upload file
 			err = b.putRequest(uploadInfo.UploadURL, []byte(out))
 			if err != nil {
-				return schema.Activity{}, fmt.Errorf("failed to upload file: %s", err.Error())
+				return schema.Activity{}, fmt.Errorf("while uploading file: %w", err)
 			}
 
 			// notify user about uploaded file
@@ -254,8 +265,14 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 
 	// Multicluster is not supported for Teams
 
-	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
-	return format.CodeBlock(e.Execute(b.ExecutorsBindings))
+	ref, err := b.getConversationReferenceFrom(activity)
+	if err != nil {
+		b.log.Errorf("while getting conversation reference: %s", err.Error())
+		return ""
+	}
+
+	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, msg)
+	return format.CodeBlock(e.Execute())
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -290,37 +307,43 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
-	if !b.notify {
-		b.log.Info("Notifications are disabled. Skipping event...")
-		return nil
-	}
+	b.log.Debugf(">> Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
-	if err := b.sendProactiveMessage(ctx, card); err != nil {
-		return fmt.Errorf("while sending notification: %w", err)
+
+	var errs error
+	for _, convRef := range b.getConversationRefsToNotify() {
+		err := b.sendProactiveMessage(ctx, convRef, card)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", convRef.ChannelID, err))
+			continue
+		}
+
+		b.log.Debugf("Event successfully sent to channel %q at %b", convRef.ChannelID)
 	}
 
-	b.log.Debugf("Event successfully sent to MS Teams >> %+v", event)
-	return nil
+	return errs
 }
 
 // SendMessage sends message to MsTeams
 func (b *Teams) SendMessage(ctx context.Context, msg string) error {
-	b.conversationRefMutex.RLock()
-	defer b.conversationRefMutex.RUnlock()
-	if b.conversationRef == nil {
-		b.log.Infof("Skipping SendMessage since conversation ref not set")
-		return nil
+	var errs error
+	for _, convCfg := range b.getConversations() {
+		channelID := convCfg.ref.ChannelID
+
+		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
+			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
+				return turn.SendActivity(coreActivity.MsgOptionText(msg))
+			},
+		})
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Teams message to channel %q: %w", channelID, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
-		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			return turn.SendActivity(coreActivity.MsgOptionText(msg))
-		},
-	})
-	if err != nil {
-		return err
-	}
-	b.log.Debug("Message successfully sent to MS Teams")
-	return nil
+
+	return errs
 }
 
 // IntegrationName describes the integration name.
@@ -333,43 +356,42 @@ func (b *Teams) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// NotificationsEnabled returns current notification status.
-func (b *Teams) NotificationsEnabled() bool {
-	b.notifyMutex.RLock()
-	defer b.notifyMutex.RUnlock()
-	return b.notify
+// NotificationsEnabled returns current notification status for a given channel ID.
+func (b *Teams) NotificationsEnabled(channelID string) bool {
+	channel, exists := b.getConversations()[channelID]
+	if !exists {
+		return false
+	}
+
+	return channel.notify
 }
 
-// SetNotificationsEnabled sets a new notification status.
-func (b *Teams) SetNotificationsEnabled(enabled bool, activity schema.Activity) error {
-	if enabled {
-		b.conversationRefMutex.Lock()
-		defer b.conversationRefMutex.Unlock()
+// SetNotificationsEnabled sets a new notification status for a given channel ID.
+func (b *Teams) SetNotificationsEnabled(enabled bool, ref schema.ConversationReference) error {
+	// avoid race conditions with using the setter concurrently, as we set whole map
+	b.notifyMutex.Lock()
+	defer b.notifyMutex.Unlock()
 
-		// Set conversation reference
-		ref := coreActivity.GetCoversationReference(activity)
-		b.conversationRef = &ref
-		// Remove messageID from the ChannelID
-		if ID, ok := activity.ChannelData["teamsChannelId"]; ok {
-			b.conversationRef.ChannelID = ID.(string)
-			b.conversationRef.Conversation.ID = ID.(string)
+	conversations := b.getConversations()
+	conv, exists := conversations[ref.ChannelID]
+	if !exists {
+		// not returning execute.ErrNotificationsNotConfigured error, as MS Teams channels are configured dynamically.
+		// In such case this shouldn't be considered as an error.
+
+		conv = conversation{
+			ref: ref,
 		}
 	}
 
-	b.notifyMutex.Lock()
-	defer b.notifyMutex.Unlock()
-	b.notify = enabled
+	conv.notify = enabled
+	conversations[ref.ChannelID] = conv
+	b.setConversations(conversations)
+
 	return nil
 }
 
-func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interface{}) error {
-	b.conversationRefMutex.RLock()
-	defer b.conversationRefMutex.RUnlock()
-	if b.conversationRef == nil {
-		b.log.Infof("Skipping SendMessage since conversation ref not set")
-		return nil
-	}
-	err := b.Adapter.ProactiveMessage(ctx, *b.conversationRef, coreActivity.HandlerFuncs{
+func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.ConversationReference, card map[string]interface{}) error {
+	err := b.Adapter.ProactiveMessage(ctx, convRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			attachments := []schema.Attachment{
 				{
@@ -383,21 +405,71 @@ func (b *Teams) sendProactiveMessage(ctx context.Context, card map[string]interf
 	return err
 }
 
+func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
+	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
+	var convRefsToNotify []schema.ConversationReference
+	for _, convConfig := range b.getConversations() {
+		if !convConfig.notify {
+			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", convConfig.ref.ChannelID)
+			continue
+		}
+
+		convRefsToNotify = append(convRefsToNotify, convConfig.ref)
+	}
+	return convRefsToNotify
+}
+
+func (b *Teams) getConversations() map[string]conversation {
+	b.conversationsMutex.RLock()
+	defer b.conversationsMutex.RUnlock()
+	return b.conversations
+}
+
+func (b *Teams) setConversations(conversations map[string]conversation) {
+	b.conversationsMutex.Lock()
+	defer b.conversationsMutex.Unlock()
+	b.conversations = conversations
+}
+
+// The whole integration should be rewritten using a different library. See the TODO on the top of the file.
+func (b *Teams) getConversationReferenceFrom(activity schema.Activity) (schema.ConversationReference, error) {
+	// Such ref has the ChannelID property always set to `msteams`. Why? ¯\_(ツ)_/¯
+	ref := coreActivity.GetCoversationReference(activity)
+
+	// Set proper IDs as seen in previous implementation. Why both activity and channel IDs are needed? ¯\_(ツ)_/¯
+	rawChannelID, exists := activity.ChannelData["teamsChannelId"]
+	if !exists {
+		// Apparently `msteams` ID is sometimes OK, for example in private conversation.
+		// Why? Is there a separation for two users? I guess the Activity ID also matters... ¯\_(ツ)_/¯
+		b.log.Info("Teams Channel ID not found. Using default ID...`")
+		return ref, nil
+	}
+
+	channelID, ok := rawChannelID.(string)
+	if !ok {
+		return schema.ConversationReference{}, fmt.Errorf("couldn't convert channelID from channel data to string")
+	}
+
+	ref.ChannelID = channelID
+	ref.Conversation.ID = channelID
+	return ref, nil
+}
+
 type teamsNotificationManager struct {
-	b        *Teams
-	activity schema.Activity
+	b   *Teams
+	ref schema.ConversationReference
 }
 
-func newTeamsNotifMgrForActivity(b *Teams, activity schema.Activity) *teamsNotificationManager {
-	return &teamsNotificationManager{b: b, activity: activity}
+func newTeamsNotifMgrForActivity(b *Teams, ref schema.ConversationReference) *teamsNotificationManager {
+	return &teamsNotificationManager{b: b, ref: ref}
 }
 
-// NotificationsEnabled returns current notification status.
-func (n *teamsNotificationManager) NotificationsEnabled() bool {
-	return n.b.NotificationsEnabled()
+// NotificationsEnabled returns current notification status for a given channel ID.
+func (n *teamsNotificationManager) NotificationsEnabled(channelID string) bool {
+	return n.b.NotificationsEnabled(channelID)
 }
 
-// SetNotificationsEnabled sets a new notification status.
-func (n *teamsNotificationManager) SetNotificationsEnabled(enabled bool) error {
-	return n.b.SetNotificationsEnabled(enabled, n.activity)
+// SetNotificationsEnabled sets a new notification status for a given channel ID.
+func (n *teamsNotificationManager) SetNotificationsEnabled(_ string, enabled bool) error {
+	return n.b.SetNotificationsEnabled(enabled, n.ref)
 }

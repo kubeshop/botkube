@@ -27,28 +27,56 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		Name                 string
 		InputArgs            []string
 		InputNotifierHandler NotifierHandler
+		ConversationID       string
 		ExpectedResult       string
 		ExpectedStatusAfter  string
 		ExpectedErrorMessage string
 	}{
 		{
-			Name:                 "Start",
-			InputArgs:            []string{"notifier", "start"},
-			InputNotifierHandler: &fakeNotifierHandler{enabled: false},
-			ExpectedResult:       `Brace yourselves, incoming notifications from cluster "cluster-name".`,
-			ExpectedStatusAfter:  `Notifications from cluster "cluster-name" are enabled.`,
+			Name:           "Start",
+			InputArgs:      []string{"notifier", "start"},
+			ConversationID: "conv-id",
+			InputNotifierHandler: &fakeNotifierHandler{
+				conf: map[string]bool{"conv-id": false},
+			},
+			ExpectedResult:      `Brace yourselves, incoming notifications from cluster 'cluster-name'.`,
+			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are enabled here.`,
 		},
 		{
-			Name:                 "Stop",
-			InputArgs:            []string{"notifier", "stop"},
-			InputNotifierHandler: &fakeNotifierHandler{enabled: true},
-			ExpectedResult:       `Sure! I won't send you notifications from cluster "cluster-name" anymore.`,
-			ExpectedStatusAfter:  `Notifications from cluster "cluster-name" are disabled.`,
+			Name:           "Start for non-configured channel",
+			InputArgs:      []string{"notifier", "start"},
+			ConversationID: "non-existing",
+			InputNotifierHandler: &fakeNotifierHandler{
+				conf: map[string]bool{"conv-id": false},
+			},
+			ExpectedResult:      `I'm not configured to send notifications here ('non-existing') from cluster 'cluster-name', so you cannot turn them on or off.`,
+			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
+		},
+		{
+			Name:           "Stop",
+			ConversationID: "conv-id",
+			InputArgs:      []string{"notifier", "stop"},
+			InputNotifierHandler: &fakeNotifierHandler{
+				conf: map[string]bool{"conv-id": true},
+			},
+			ExpectedResult:      `Sure! I won't send you notifications from cluster 'cluster-name' here.`,
+			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
+		},
+		{
+			Name:           "Stop for non-configured channel",
+			ConversationID: "non-existing",
+			InputArgs:      []string{"notifier", "stop"},
+			InputNotifierHandler: &fakeNotifierHandler{conf: map[string]bool{
+				"conv-id": true,
+			}},
+			ExpectedResult:      `I'm not configured to send notifications here ('non-existing') from cluster 'cluster-name', so you cannot turn them on or off.`,
+			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},
 		{
 			Name:                 "Show config",
+			ConversationID:       "conv-id",
 			InputArgs:            []string{"notifier", "showconfig"},
-			InputNotifierHandler: &fakeNotifierHandler{enabled: false},
+			InputNotifierHandler: &fakeNotifierHandler{},
 			ExpectedResult: heredoc.Doc(`
 				Showing config for cluster "cluster-name":
 
@@ -69,7 +97,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				    informersResyncPeriod: 0s
 				    kubeconfig: ""
 			`),
-			ExpectedStatusAfter: `Notifications from cluster "cluster-name" are disabled.`,
+			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},
 		{
 			Name:                 "Invalid verb",
@@ -95,7 +123,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			// execute command
 
 			// when
-			actual, err := e.Do(tc.InputArgs, platform, clusterName, tc.InputNotifierHandler)
+			actual, err := e.Do(tc.InputArgs, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
 
 			// then
 
@@ -113,7 +141,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			// get status after executing a given command
 
 			// when
-			actual, err = e.Do(statusArgs, platform, clusterName, tc.InputNotifierHandler)
+			actual, err = e.Do(statusArgs, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, tc.ExpectedStatusAfter, actual)
@@ -122,15 +150,25 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 }
 
 type fakeNotifierHandler struct {
-	enabled bool
+	conf map[string]bool
 }
 
-func (f *fakeNotifierHandler) NotificationsEnabled() bool {
-	return f.enabled
+func (f *fakeNotifierHandler) NotificationsEnabled(convID string) bool {
+	enabled, exists := f.conf[convID]
+	if !exists {
+		return false
+	}
+
+	return enabled
 }
 
-func (f *fakeNotifierHandler) SetNotificationsEnabled(enabled bool) error {
-	f.enabled = enabled
+func (f *fakeNotifierHandler) SetNotificationsEnabled(convID string, enabled bool) error {
+	_, exists := f.conf[convID]
+	if !exists {
+		return ErrNotificationsNotConfigured
+	}
+
+	f.conf[convID] = enabled
 	return nil
 }
 

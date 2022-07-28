@@ -16,6 +16,7 @@ type Notifier interface {
 
 	// SendMessage is used for notifying about BotKube start/stop listening, possible BotKube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
+	// TODO: Consider option per channel to turn on/off "announcements" (BotKube start/stop/upgrade notify/config change.
 	SendMessage(context.Context, string) error
 
 	// IntegrationName returns a name of a given communication platform.

@@ -2,6 +2,7 @@ package execute
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -16,10 +17,6 @@ import (
 )
 
 var (
-	// validNotifierCommand is a map of valid notifier commands
-	validNotifierCommand = map[string]bool{
-		"notifier": true,
-	}
 	validPingCommand = map[string]bool{
 		"ping": true,
 	}
@@ -66,18 +63,18 @@ const (
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	cfg              config.Config
-	filterEngine     filterengine.FilterEngine
-	log              logrus.FieldLogger
-	runCmdFn         CommandRunnerFunc
-	notifierExecutor *NotifierExecutor
-	notifierHandler  NotifierHandler
-
-	Message       string
-	IsAuthChannel bool
-	Platform      config.CommPlatformIntegration
-
+	cfg               config.Config
+	filterEngine      filterengine.FilterEngine
+	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
+	runCmdFn          CommandRunnerFunc
+	notifierExecutor  *NotifierExecutor
+	notifierHandler   NotifierHandler
+	bindings          []string
+	message           string
+	isAuthChannel     bool
+	platform          config.CommPlatformIntegration
+	conversationID    string
 	kubectlExecutor   *Kubectl
 }
 
@@ -138,9 +135,9 @@ func (action FiltersAction) String() string {
 }
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute(channelBindings []string) string {
+func (e *DefaultExecutor) Execute() string {
 	// Remove hyperlink if it got added automatically
-	command := utils.RemoveHyperlink(e.Message)
+	command := utils.RemoveHyperlink(e.message)
 
 	var (
 		clusterName   = e.cfg.Settings.ClusterName
@@ -148,8 +145,8 @@ func (e *DefaultExecutor) Execute(channelBindings []string) string {
 		args          = strings.Fields(strings.TrimSpace(command))
 	)
 	if len(args) == 0 {
-		if e.IsAuthChannel {
-			return e.printDefaultMsg(e.Platform)
+		if e.isAuthChannel {
+			return e.printDefaultMsg(e.platform)
 		}
 		return "" // this prevents all bots on all clusters to answer something
 	}
@@ -162,17 +159,17 @@ func (e *DefaultExecutor) Execute(channelBindings []string) string {
 		return "" // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(channelBindings, args) {
+	if e.kubectlExecutor.CanHandle(e.bindings, args) {
 		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
 		// The length of the slice was already checked before
 		// See the DefaultExecutor.Execute() logic.
 		verb := args[0]
-		err := e.analyticsReporter.ReportCommand(e.Platform, verb)
+		err := e.analyticsReporter.ReportCommand(e.platform, verb)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
-		out, err := e.kubectlExecutor.Execute(channelBindings, e.Message, e.IsAuthChannel)
+		out, err := e.kubectlExecutor.Execute(e.bindings, e.message, e.isAuthChannel)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -180,21 +177,17 @@ func (e *DefaultExecutor) Execute(channelBindings []string) string {
 		}
 		return out
 	}
-	if validNotifierCommand[args[0]] {
-		if !e.IsAuthChannel {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			return ""
-		}
-
-		res, err := e.notifierExecutor.Do(args, e.Platform, clusterName, e.notifierHandler)
+	if e.notifierExecutor.CanHandle(args) {
+		res, err := e.notifierExecutor.Do(args, e.platform, e.conversationID, clusterName, e.notifierHandler)
 		if err != nil {
-			if err == errInvalidNotifierCommand {
+			if errors.Is(err, errInvalidNotifierCommand) {
 				return incompleteCmdMsg
 			}
 
-			if err == errUnsupportedCommand {
+			if errors.Is(err, errUnsupportedCommand) {
 				return unsupportedCmdMsg
 			}
+
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing notifier command: %s", err.Error())
 		}
@@ -213,16 +206,16 @@ func (e *DefaultExecutor) Execute(channelBindings []string) string {
 	}
 	// Check if filter command
 	if validFilterCommand[args[0]] {
-		return e.runFilterCommand(args, clusterName, e.IsAuthChannel)
+		return e.runFilterCommand(args, clusterName, e.isAuthChannel)
 	}
 
 	//Check if info command
 	if validInfoCommand[args[0]] {
-		return e.runInfoCommand(args, e.IsAuthChannel)
+		return e.runInfoCommand(args, e.isAuthChannel)
 	}
 
-	if e.IsAuthChannel {
-		return e.printDefaultMsg(e.Platform)
+	if e.isAuthChannel {
+		return e.printDefaultMsg(e.platform)
 	}
 	return ""
 }
@@ -247,7 +240,7 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(e.Platform, cmdToReport)
+		err := e.analyticsReporter.ReportCommand(e.platform, cmdToReport)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while reporting filter command: %s", err.Error())
@@ -283,7 +276,7 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 	}
 
 	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return e.printDefaultMsg(e.Platform)
+	return e.printDefaultMsg(e.platform)
 }
 
 //runInfoCommand to list allowed commands
@@ -295,7 +288,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return incompleteCmdMsg
 	}
 
-	err := e.analyticsReporter.ReportCommand(e.Platform, strings.Join(args, " "))
+	err := e.analyticsReporter.ReportCommand(e.platform, strings.Join(args, " "))
 	if err != nil {
 		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 		e.log.Errorf("while reporting info command: %s", err.Error())
@@ -347,7 +340,7 @@ func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) string {
-	err := e.analyticsReporter.ReportCommand(e.Platform, args[0])
+	err := e.analyticsReporter.ReportCommand(e.platform, args[0])
 	if err != nil {
 		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 		e.log.Errorf("while reporting version command: %s", err.Error())

@@ -31,8 +31,9 @@ type Config struct {
 		ContainerName string        `envconfig:"default=botkube"`
 		WaitTimeout   time.Duration `envconfig:"default=3m"`
 		Envs          struct {
-			SlackEnabledName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"`
-			SlackChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"`
+			SlackEnabledName            string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"`
+			DefaultSlackChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"`
+			SecondarySlackChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_SECONDARY_NAME"`
 		}
 	}
 	ClusterName string `envconfig:"default=sample"`
@@ -70,17 +71,26 @@ func TestSlack(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Setting up test Slack setup...")
-	channel, cleanupChannelFn := slackTester.CreateChannel(t)
-	t.Cleanup(func() { cleanupChannelFn(t) })
-
-	slackTester.PostInitialMessage(t, channel.Name)
 	botUserID := slackTester.FindUserIDForBot(t)
 	testerUserID := slackTester.FindUserIDForTester(t)
-	slackTester.InviteBotToChannel(t, botUserID, channel.ID)
+
+	channel, cleanupChannelFn := slackTester.CreateChannel(t)
+	t.Cleanup(func() { cleanupChannelFn(t) })
+	secondChannel, cleanupSecondChannelFn := slackTester.CreateChannel(t)
+	t.Cleanup(func() { cleanupSecondChannelFn(t) })
+
+	channels := map[string]*slack.Channel{
+		appCfg.Deployment.Envs.DefaultSlackChannelIDName:   channel,
+		appCfg.Deployment.Envs.SecondarySlackChannelIDName: secondChannel,
+	}
+	for _, currentChannel := range channels {
+		slackTester.PostInitialMessage(t, currentChannel.Name)
+		slackTester.InviteBotToChannel(t, botUserID, currentChannel.ID)
+	}
 
 	t.Log("Patching Deployment with test env variables...")
 	deployNsCli := k8sCli.AppsV1().Deployments(appCfg.Deployment.Namespace)
-	revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, channel.Name)
+	revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, channels)
 	t.Cleanup(func() { revertDeployFn(t) })
 
 	t.Log("Waiting for Deployment")
@@ -317,8 +327,12 @@ func TestSlack(t *testing.T) {
 		})
 	})
 
-	t.Run("Notifications", func(t *testing.T) {
+	t.Run("Multi-channel notifications", func(t *testing.T) {
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+		var channelIDs []string
+		for _, channel := range channels {
+			channelIDs = append(channelIDs, channel.ID)
+		}
 
 		t.Log("Creating ConfigMap...")
 		var cfgMapAlreadyDeleted bool
@@ -342,7 +356,7 @@ func TestSlack(t *testing.T) {
 				fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
 			)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap...")
@@ -361,13 +375,27 @@ func TestSlack(t *testing.T) {
 				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
 			)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier...")
 		command := "notifier stop"
-		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster %q anymore.", appCfg.ClusterName))
+		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster %q here.", appCfg.ClusterName))
 
+		slackTester.PostMessageToBot(t, channel.Name, command)
+		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		assert.NoError(t, err)
+
+		t.Log("Getting notifier status from second channel...")
+		command = "notifier status"
+		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster %q are enabled here.", appCfg.ClusterName))
+		slackTester.PostMessageToBot(t, secondChannel.Name, command)
+		err = slackTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
+		assert.NoError(t, err)
+
+		t.Log("Getting notifier status from first channel...")
+		command = "notifier status"
+		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster %q are disabled here.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
@@ -379,18 +407,29 @@ func TestSlack(t *testing.T) {
 		_, err = cfgMapCli.Update(context.Background(), cfgMap, metav1.UpdateOptions{})
 		require.NoError(t, err)
 
-		t.Log("Ensuring bot didn't write anything new...")
+		t.Log("Ensuring bot didn't write anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
+		t.Log("Expecting bot message on second channel...")
+		assertionFn = func(msg slack.Message) bool {
+			return doesMessageContainExactlyOneAttachment(
+				msg,
+				"v1/configmaps updated",
+				"daa038",
+				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
+			)
+		}
+		err = slackTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
+
 		t.Log("Starting notifier")
 		command = "notifier start"
 		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster %q.", appCfg.ClusterName))
-
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		require.NoError(t, err)
 
 		t.Log("Creating and deleting ignored ConfigMap")
 		ignoredCfgMap := &v1.ConfigMap{
@@ -426,7 +465,7 @@ func TestSlack(t *testing.T) {
 				fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
 			)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
 		require.NoError(t, err)
 	})
 

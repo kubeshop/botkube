@@ -41,6 +41,7 @@ const (
 	componentLogFieldKey = "component"
 	botLogFieldKey       = "bot"
 	sinkLogFieldKey      = "sink"
+	commGroupFieldKey    = "commGroup"
 	printAPIKeyCharCount = 3
 )
 
@@ -142,71 +143,79 @@ func run() error {
 		reporter,
 	)
 
-	commCfg := conf.Communications.GetFirst()
+	commCfg := conf.Communications
 	var notifiers []controller.Notifier
 
-	// Run bots
-	if commCfg.Slack.Enabled {
-		sb, err := bot.NewSlack(logger.WithField(botLogFieldKey, "Slack"), conf, executorFactory, reporter)
-		if err != nil {
-			return reportFatalError("while creating Slack bot", err)
-		}
-		notifiers = append(notifiers, sb)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return sb.Start(ctx)
-		})
-	}
+	// TODO: Current limitation: Communication platform config should be separate inside every group:
+	//    For example, if in both communication groups there's a Slack configuration pointing to the same workspace,
+	//	  when user executes `kubectl` command, one Bot instance will execute the command and return response,
+	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
+	for commGroupName, commGroupCfg := range commCfg {
+		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
 
-	if commCfg.Mattermost.Enabled {
-		mb, err := bot.NewMattermost(logger.WithField(botLogFieldKey, "Mattermost"), conf, executorFactory, reporter)
-		if err != nil {
-			return reportFatalError("while creating Mattermost bot", err)
-		}
-		notifiers = append(notifiers, mb)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return mb.Start(ctx)
-		})
-	}
-
-	if commCfg.Teams.Enabled {
-		tb := bot.NewTeams(logger.WithField(botLogFieldKey, "MS Teams"), conf, executorFactory, reporter)
-		notifiers = append(notifiers, tb)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return tb.Start(ctx)
-		})
-	}
-
-	if commCfg.Discord.Enabled {
-		db, err := bot.NewDiscord(logger.WithField(botLogFieldKey, "Discord"), conf, executorFactory, reporter)
-		if err != nil {
-			return reportFatalError("while creating Discord bot", err)
-		}
-		notifiers = append(notifiers, db)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return db.Start(ctx)
-		})
-	}
-
-	// Run sinks
-	if commCfg.Elasticsearch.Enabled {
-		es, err := sink.NewElasticsearch(logger.WithField(sinkLogFieldKey, "Elasticsearch"), commCfg.Elasticsearch, reporter)
-		if err != nil {
-			return reportFatalError("while creating Elasticsearch sink", err)
-		}
-		notifiers = append(notifiers, es)
-	}
-
-	if commCfg.Webhook.Enabled {
-		wh, err := sink.NewWebhook(logger.WithField(sinkLogFieldKey, "Webhook"), commCfg.Webhook, reporter)
-		if err != nil {
-			return reportFatalError("while creating Webhook sink", err)
+		// Run bots
+		if commGroupCfg.Slack.Enabled {
+			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupCfg.Slack, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating Slack bot", err)
+			}
+			notifiers = append(notifiers, sb)
+			errGroup.Go(func() error {
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				return sb.Start(ctx)
+			})
 		}
 
-		notifiers = append(notifiers, wh)
+		if commGroupCfg.Mattermost.Enabled {
+			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupCfg.Mattermost, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating Mattermost bot", err)
+			}
+			notifiers = append(notifiers, mb)
+			errGroup.Go(func() error {
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				return mb.Start(ctx)
+			})
+		}
+
+		if commGroupCfg.Teams.Enabled {
+			tb := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			notifiers = append(notifiers, tb)
+			errGroup.Go(func() error {
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				return tb.Start(ctx)
+			})
+		}
+
+		if commGroupCfg.Discord.Enabled {
+			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupCfg.Discord, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating Discord bot", err)
+			}
+			notifiers = append(notifiers, db)
+			errGroup.Go(func() error {
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				return db.Start(ctx)
+			})
+		}
+
+		// Run sinks
+		if commGroupCfg.Elasticsearch.Enabled {
+			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupCfg.Elasticsearch, reporter)
+			if err != nil {
+				return reportFatalError("while creating Elasticsearch sink", err)
+			}
+			notifiers = append(notifiers, es)
+		}
+
+		if commGroupCfg.Webhook.Enabled {
+			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupCfg.Webhook, reporter)
+			if err != nil {
+				return reportFatalError("while creating Webhook sink", err)
+			}
+
+			notifiers = append(notifiers, wh)
+		}
 	}
 
 	// Start upgrade checker
