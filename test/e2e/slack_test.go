@@ -156,10 +156,12 @@ func TestSlack(t *testing.T) {
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "commands list --cluster-name non-existing"
-			expectedMessage := codeBlock("Sorry, the admin hasn't configured me to do that for the cluster 'non-existing'.")
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err := slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			t.Log("Ensuring bot didn't write anything new...")
+			time.Sleep(appCfg.Slack.MessageWaitTimeout)
+			// Same expected message as before
+			err = slackTester.WaitForLastMessageContains(botUserID, channel.ID, command)
 			assert.NoError(t, err)
 		})
 	})
@@ -211,13 +213,13 @@ func TestSlack(t *testing.T) {
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "get"
 			expectedMessage := codeBlock(heredoc.Docf(`
-					Cluster: %s
-					You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
+				Cluster: %s
+				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
 
-					error: Required resource not specified.
-					Use "kubectl explain <resource>" for a detailed description of that resource (e.g. kubectl explain pods).
-					See 'kubectl get -h' for help and examples
-					while executing kubectl command: exit status 1`, appCfg.ClusterName))
+				error: Required resource not specified.
+				Use "kubectl explain <resource>" for a detailed description of that resource (e.g. kubectl explain pods).
+				See 'kubectl get -h' for help and examples
+				while executing kubectl command: exit status 1`, appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)

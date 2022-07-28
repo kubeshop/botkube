@@ -72,11 +72,13 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 	)
 
 	if !isAuthChannel && kubectlCfg.RestrictAccess {
-		return fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName), nil
+		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
+		return e.omitIfIfWeAreNotExplicitlyTargetCluster(command, msg)
 	}
 
 	if !kubectlCfg.Enabled {
-		return fmt.Sprintf(kubectlDisabledMsgFmt, clusterName), nil
+		msg := fmt.Sprintf(kubectlDisabledMsgFmt, clusterName)
+		return e.omitIfIfWeAreNotExplicitlyTargetCluster(command, msg)
 	}
 
 	// Some commands don't have resources specified directly in command. For example:
@@ -84,7 +86,7 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 	if !validDebugCommands[args[0]] {
 		// Check if user has access to a given Kubernetes resource
 		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
-		if len(args) > 1 && !e.matchesAllowedResources(args[1]) { // we can have problems if user will add a flag as a second arg
+		if len(args) > 1 && !e.matchesAllowedResources(args[1]) {
 			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, args[1], clusterName), nil
 		}
 	}
@@ -106,6 +108,15 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 	}
 
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out), nil
+}
+
+// omitIfIfWeAreNotExplicitlyTargetCluster returns verboseMs if there is explicit '--cluster-name' flag that matches this cluster.
+// It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
+func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(cmd string, verboseMsg string) (string, error) {
+	if utils.GetClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
+		return verboseMsg, nil
+	}
+	return "", nil
 }
 
 // TODO: This code was moved from:
