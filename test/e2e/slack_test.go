@@ -41,6 +41,7 @@ type Config struct {
 
 type SlackConfig struct {
 	BotName                  string `envconfig:"default=botkube"`
+	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
 	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
@@ -74,6 +75,7 @@ func TestSlack(t *testing.T) {
 
 	slackTester.PostInitialMessage(t, channel.Name)
 	botUserID := slackTester.FindUserIDForBot(t)
+	testerUserID := slackTester.FindUserIDForTester(t)
 	slackTester.InviteBotToChannel(t, botUserID, channel.ID)
 
 	t.Log("Patching Deployment with test env variables...")
@@ -138,7 +140,11 @@ func TestSlack(t *testing.T) {
 			  - nodes
 			  - pods
 			  - statefulsets
-			  - storageclasses`))
+			  - storageclasses
+			allowed namespaces:
+			  include:
+			    - botkube
+			    - default`))
 
 		t.Run("With default cluster", func(t *testing.T) {
 			slackTester.PostMessageToBot(t, channel.Name, command)
@@ -156,10 +162,12 @@ func TestSlack(t *testing.T) {
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "commands list --cluster-name non-existing"
-			expectedMessage := codeBlock("Sorry, the admin hasn't configured me to do that for the cluster 'non-existing'.")
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err := slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			t.Log("Ensuring bot didn't write anything new...")
+			time.Sleep(appCfg.Slack.MessageWaitTimeout)
+			// Same expected message as before
+			err = slackTester.WaitForLastMessageContains(testerUserID, channel.ID, command)
 			assert.NoError(t, err)
 		})
 	})
@@ -192,7 +200,7 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get ingress"
-			expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources on cluster '%s'. Use 'commands list' to see all allowed resources.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -210,7 +218,22 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "get"
-			expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
+			expectedMessage := codeBlock(heredoc.Docf(`Cluster: %s
+				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
+
+				error: Required resource not specified.
+				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
+				See 'kubectl get -h' for help and examples
+				exit status 1`, appCfg.ClusterName))
+
+			slackTester.PostMessageToBot(t, channel.Name, command)
+			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			assert.NoError(t, err)
+		})
+
+		t.Run("Specify forbidden namespace", func(t *testing.T) {
+			command := "get po --namespace team-b"
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)

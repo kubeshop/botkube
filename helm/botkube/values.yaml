@@ -275,6 +275,14 @@ executors:
   'kubectl-read-only':
     ## Kubectl executor configuration.
     kubectl:
+      namespaces:
+        # -- List of allowed Kubernetes Namespaces for command execution. The "all" keyword, allows all the Namespaces.
+        include:
+          - all
+        # -- List of ignored Kubernetes Namespace. It can be used only when `include: ["all"]`.
+        # It can contain a wildcard (*) that expands to zero or more arbitrary characters
+        # Example: `ignore: ["x", "y", "secret-ns-*"]`
+        ignore: []
       # -- If true, enables `kubectl` commands execution.
       enabled: false
       ## List of allowed `kubectl` commands.
@@ -283,7 +291,7 @@ executors:
         verbs: ["api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth"]
         # -- Configures which K8s resource are allowed.
         resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps"]
-      # -- Configures the default Namespace for executing BotKube `kubectl` commands.
+      # -- Configures the default Namespace for executing BotKube `kubectl` commands. If not set, uses the 'default'.
       defaultNamespace: default
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
@@ -653,6 +661,8 @@ e2eTest:
   slack:
     # -- Name of the BotKube bot to interact with during the e2e tests.
     botName: "botkube"
+    # -- Name of the BotKube Tester bot that sends messages during the e2e tests.
+    testerName: "botkube_tester"
     # -- Slack tester application token that interacts with BotKube bot.
     testerAppToken: ""
     # -- Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from.

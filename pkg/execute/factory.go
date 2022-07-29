@@ -16,6 +16,7 @@ type DefaultExecutorFactory struct {
 	resMapping        ResourceMapping
 	analyticsReporter AnalyticsReporter
 	notifierExecutor  *NotifierExecutor
+	kubectlExecutor   *Kubectl
 }
 
 // Executor is an interface for processes to execute commands
@@ -50,6 +51,12 @@ func NewExecutorFactory(
 			cfg,
 			analyticsReporter,
 		),
+		kubectlExecutor: NewKubectl(
+			log.WithField("component", "Kubectl Executor"),
+			cfg,
+			resMapping,
+			runCmdFn,
+		),
 	}
 }
 
@@ -61,6 +68,7 @@ func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegrat
 		cfg:               f.cfg,
 		resMapping:        f.resMapping,
 		analyticsReporter: f.analyticsReporter,
+		kubectlExecutor:   f.kubectlExecutor,
 		notifierExecutor:  f.notifierExecutor,
 		filterEngine:      f.filterEngine,
 

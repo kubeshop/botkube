@@ -2,8 +2,6 @@ package filters
 
 import (
 	"context"
-	"regexp"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -33,7 +31,7 @@ func (f *NamespaceChecker) Run(_ context.Context, _ interface{}, event *events.E
 		if event.Resource != resource.Name {
 			continue
 		}
-		shouldSkipEvent := isNamespaceIgnored(resource.Namespaces, event.Namespace)
+		shouldSkipEvent := !resource.Namespaces.IsAllowed(event.Namespace)
 		event.Skip = shouldSkipEvent
 		break
 	}
@@ -49,28 +47,4 @@ func (f *NamespaceChecker) Name() string {
 // Describe describes the filter
 func (f *NamespaceChecker) Describe() string {
 	return "Checks if event belongs to blocklisted namespaces and filter them."
-}
-
-// isNamespaceIgnored checks if an event to be ignored from user config
-func isNamespaceIgnored(resourceNamespaces config.Namespaces, eventNamespace string) bool {
-	if len(resourceNamespaces.Include) == 1 && resourceNamespaces.Include[0] == "all" {
-		if len(resourceNamespaces.Ignore) > 0 {
-			for _, ignoredNamespace := range resourceNamespaces.Ignore {
-				// exact match
-				if ignoredNamespace == eventNamespace {
-					return true
-				}
-
-				// regexp
-				if strings.Contains(ignoredNamespace, "*") {
-					ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
-					matched, err := regexp.MatchString(ns, eventNamespace)
-					if err == nil && matched {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
 }

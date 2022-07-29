@@ -26,6 +26,10 @@ executors:
   'kubectl-read-only':
     kubectl:
       enabled: true
+      namespaces:
+        include:
+          - botkube
+          - default
 
 settings:
   clusterName: sample

@@ -2,10 +2,9 @@ executors:
   'kubectl-read-only':
     # Kubectl executor configs
     kubectl:
-      # TODO: https://github.com/kubeshop/botkube/issues/596
-      # New 'namespace' property - allows Namespace restriction
-      #namespaces:
-      #  include: ["team-a"]
+      namespaces:
+        include: [ "all" ]
+        ignore: [ "foo", "bar", "test-*-ns" ]
 
       # Set true to enable kubectl commands execution
       enabled: false

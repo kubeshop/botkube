@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 	"text/tabwriter"
-	"unicode"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -49,11 +49,10 @@ var (
 )
 
 const (
-	unsupportedCmdMsg  = "Command not supported. Please run /botkubehelp to see supported commands."
-	kubectlDisabledMsg = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
-	filterNameMissing  = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
-	filterEnabled      = "I have enabled '%s' filter on '%s' cluster."
-	filterDisabled     = "Done. I won't run '%s' filter on '%s' cluster."
+	unsupportedCmdMsg = "Command not supported. Please run /botkubehelp to see supported commands."
+	filterNameMissing = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	filterEnabled     = "I have enabled '%s' filter on '%s' cluster."
+	filterDisabled    = "Done. I won't run '%s' filter on '%s' cluster."
 
 	// incompleteCmdMsg incomplete command response message
 	incompleteCmdMsg = "You missed to pass options for the command. Please run /botkubehelp to see command options."
@@ -81,6 +80,7 @@ type DefaultExecutor struct {
 	Platform      config.CommPlatformIntegration
 
 	analyticsReporter AnalyticsReporter
+	kubectlExecutor   *Kubectl
 }
 
 // CommandRunnerFunc is a function which runs arbitrary commands
@@ -141,10 +141,14 @@ func (action FiltersAction) String() string {
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() string {
-	clusterName := e.cfg.Settings.ClusterName
 	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.Message)
-	args := strings.Fields(strings.TrimSpace(command))
+
+	var (
+		clusterName   = e.cfg.Settings.ClusterName
+		inClusterName = utils.GetClusterNameFromKubectlCmd(command)
+		args          = strings.Fields(strings.TrimSpace(command))
+	)
 	if len(args) == 0 {
 		if e.IsAuthChannel {
 			return e.printDefaultMsg(e.Platform)
@@ -152,25 +156,30 @@ func (e *DefaultExecutor) Execute() string {
 		return "" // this prevents all bots on all clusters to answer something
 	}
 
-	if len(args) >= 1 && e.resMapping.AllowedKubectlVerbMap[args[0]] {
-		if validDebugCommands[args[0]] || // Don't check for resource if is a valid debug command
-			(len(args) >= 2 && (e.resMapping.AllowedKubectlResourceMap[args[1]] || // Check if allowed resource
-				e.resMapping.AllowedKubectlResourceMap[e.resMapping.KindResourceMap[strings.ToLower(args[1])]] || // Check if matches with kind name
-				e.resMapping.AllowedKubectlResourceMap[e.resMapping.ShortnameResourceMap[strings.ToLower(args[1])]])) { // Check if matches with short name
-			isClusterNamePresent := strings.Contains(e.Message, "--cluster-name")
-			allowKubectl := e.cfg.Executors.GetFirst().Kubectl.Enabled
-			if !allowKubectl {
-				if isClusterNamePresent && clusterName == utils.GetClusterNameFromKubectlCmd(e.Message) {
-					return fmt.Sprintf(kubectlDisabledMsg, clusterName)
-				}
-				return ""
-			}
+	if inClusterName != "" && inClusterName != clusterName {
+		e.log.WithFields(logrus.Fields{
+			"config-cluster-name":  clusterName,
+			"command-cluster-name": inClusterName,
+		}).Debugf("Specified cluster name doesn't match ours. Ignoring further execution...")
+		return "" // user specified different target cluster
+	}
 
-			if e.cfg.Executors.GetFirst().Kubectl.RestrictAccess && !e.IsAuthChannel && isClusterNamePresent {
-				return ""
-			}
-			return e.runKubectlCommand(args)
+	if e.kubectlExecutor.CanHandle(args) {
+		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
+		// The length of the slice was already checked before
+		// See the DefaultExecutor.Execute() logic.
+		verb := args[0]
+		err := e.analyticsReporter.ReportCommand(e.Platform, verb)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
+		out, err := e.kubectlExecutor.Execute(e.Message, e.IsAuthChannel)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while executing kubectl: %s", err.Error())
+		}
+		return out
 	}
 	if validNotifierCommand[args[0]] {
 		if !e.IsAuthChannel {
@@ -224,79 +233,6 @@ func (e *DefaultExecutor) printDefaultMsg(p config.CommPlatformIntegration) stri
 		return teamsUnsupportedCmdMsg
 	}
 	return unsupportedCmdMsg
-}
-
-// Trim single and double quotes from ends of string
-func (e *DefaultExecutor) trimQuotes(clusterValue string) string {
-	return strings.TrimFunc(clusterValue, func(r rune) bool {
-		if r == unicode.SimpleFold('\u0027') || r == unicode.SimpleFold('\u0022') {
-			return true
-		}
-		return false
-	})
-}
-
-func (e *DefaultExecutor) runKubectlCommand(args []string) string {
-	// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
-	// The length of the slice was already checked before
-	// See the DefaultExecutor.Execute() logic.
-	verb := args[0]
-	err := e.analyticsReporter.ReportCommand(e.Platform, verb)
-	if err != nil {
-		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-		e.log.Errorf("while reporting executed command: %s", err.Error())
-	}
-
-	clusterName := e.cfg.Settings.ClusterName
-	defaultNamespace := e.cfg.Executors.GetFirst().Kubectl.DefaultNamespace
-	isAuthChannel := e.IsAuthChannel
-	// run commands in namespace specified under Config.Settings.DefaultNamespace field
-	if !utils.Contains(args, "-n") && !utils.Contains(args, "--namespace") && len(defaultNamespace) != 0 {
-		args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-	}
-
-	// Remove unnecessary flags
-	var finalArgs []string
-	isClusterNameArg := false
-	for index, arg := range args {
-		if isClusterNameArg {
-			isClusterNameArg = false
-			continue
-		}
-		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
-			continue
-		}
-		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
-			continue
-		}
-		// Check --cluster-name flag
-		if strings.HasPrefix(arg, ClusterFlag.String()) {
-			// Check if flag value in current or next argument and compare with config.settings.clusterName
-			if arg == ClusterFlag.String() {
-				if index == len(args)-1 || e.trimQuotes(args[index+1]) != clusterName {
-					return ""
-				}
-				isClusterNameArg = true
-			} else {
-				if e.trimQuotes(strings.SplitAfterN(arg, ClusterFlag.String()+"=", 2)[1]) != clusterName {
-					return ""
-				}
-			}
-			isAuthChannel = true
-			continue
-		}
-		finalArgs = append(finalArgs, arg)
-	}
-	if !isAuthChannel {
-		return ""
-	}
-	// Get command runner
-	out, err := e.runCmdFn(kubectlBinary, finalArgs)
-	if err != nil {
-		e.log.Error("Error in executing kubectl command: ", err)
-		return fmt.Sprintf("Cluster: %s\n%s", clusterName, out+err.Error())
-	}
-	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out)
 }
 
 // TODO: Have a separate cli which runs bot commands
@@ -373,7 +309,13 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 
 	allowedVerbs := e.getSortedEnabledCommands("allowed verbs", e.resMapping.AllowedKubectlVerbMap)
 	allowedResources := e.getSortedEnabledCommands("allowed resources", e.resMapping.AllowedKubectlResourceMap)
-	return fmt.Sprintf("%s%s", allowedVerbs, allowedResources)
+	allowedNamespaces, err := e.getNamespaceConfig()
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while rendering namespace config: %s", err.Error())
+	}
+
+	return fmt.Sprintf("%s%s%s", allowedVerbs, allowedResources, allowedNamespaces)
 }
 
 // Use tabwriter to display string in tabular form
@@ -453,4 +395,21 @@ func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[s
 	const itemSeparator = "\n  - "
 	items := strings.Join(keys, itemSeparator)
 	return fmt.Sprintf("%s:%s%s\n", header, itemSeparator, items)
+}
+
+func (e *DefaultExecutor) getNamespaceConfig() (string, error) {
+	ns := e.cfg.Executors.GetFirst().Kubectl.Namespaces
+
+	out := map[string]config.Namespaces{
+		"allowed namespaces": ns,
+	}
+	var buff strings.Builder
+	encode := yaml.NewEncoder(&buff)
+	encode.SetIndent(2)
+	err := encode.Encode(out)
+	if err != nil {
+		return "", err
+	}
+
+	return buff.String(), nil
 }
