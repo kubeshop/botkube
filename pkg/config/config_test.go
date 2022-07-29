@@ -198,3 +198,51 @@ func testdataFile(t *testing.T, name string) string {
 	t.Helper()
 	return filepath.Join("testdata", t.Name(), name)
 }
+
+func TestIsNamespaceAllowed(t *testing.T) {
+	tests := map[string]struct {
+		nsConfig  config.Namespaces
+		givenNs   string
+		isAllowed bool
+	}{
+		"should watch all except ignored ones": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo", "abc"}},
+			givenNs:   "demo",
+			isAllowed: false,
+		},
+		"should watch all when ignore has empty items only": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: []string{""}},
+			givenNs:   "demo",
+			isAllowed: true,
+		},
+		"should watch all when ignore is a nil slice": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: nil},
+			givenNs:   "demo",
+			isAllowed: true,
+		},
+		"should ignore matched by regex": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: []string{"my-*"}},
+			givenNs:   "my-ns",
+			isAllowed: false,
+		},
+		"should ignore matched by regexp even if exact name is mentioned too": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo", "ignored-*-ns"}},
+			givenNs:   "ignored-42-ns",
+			isAllowed: false,
+		},
+		"should watch all if regexp is not matching given namespace": {
+			nsConfig:  config.Namespaces{Include: []string{"all"}, Ignore: []string{"demo-*"}},
+			givenNs:   "demo",
+			isAllowed: true,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			actual := test.nsConfig.IsAllowed(test.givenNs)
+			if actual != test.isAllowed {
+				t.Errorf("expected: %v != actual: %v\n", test.isAllowed, actual)
+			}
+		})
+	}
+}

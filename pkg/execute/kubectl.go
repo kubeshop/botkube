@@ -14,8 +14,8 @@ import (
 const (
 	kubectlDisabledMsgFmt            = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
 	kubectlNotAuthorizedMsgFmt       = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'."
-	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'."
+	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
+	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'. Use 'commands list' to see all allowed resources."
 	kubectlDefaultNamespace          = "default"
 )
 
@@ -60,7 +60,13 @@ func (e *Kubectl) CanHandle(args []string) bool {
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
 func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
-	e.log.Infof("message %s, auth %v", command, isAuthChannel)
+	log := e.log.WithFields(logrus.Fields{
+		"isAuthChannel": isAuthChannel,
+		"command":       command,
+	})
+
+	log.Debugf("Handling command...")
+
 	var (
 		// TODO: https://github.com/kubeshop/botkube/issues/596
 		// use a related config from communicator bindings.
@@ -73,12 +79,12 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 
 	if !isAuthChannel && kubectlCfg.RestrictAccess {
 		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
-		return e.omitIfIfWeAreNotExplicitlyTargetCluster(command, msg)
+		return e.omitIfIfWeAreNotExplicitlyTargetCluster(log, command, msg)
 	}
 
 	if !kubectlCfg.Enabled {
 		msg := fmt.Sprintf(kubectlDisabledMsgFmt, clusterName)
-		return e.omitIfIfWeAreNotExplicitlyTargetCluster(command, msg)
+		return e.omitIfIfWeAreNotExplicitlyTargetCluster(log, command, msg)
 	}
 
 	// Some commands don't have resources specified directly in command. For example:
@@ -96,33 +102,35 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 		return "", fmt.Errorf("while ensuring Namespace for command execution: %w", err)
 	}
 
-	if !utils.IsNamespaceAllowed(kubectlCfg.Namespaces, executionNs) {
+	if !kubectlCfg.Namespaces.IsAllowed(executionNs) {
 		return fmt.Sprintf(kubectlNotAllowedNamespaceMsgFmt, executionNs, clusterName), nil
 	}
 
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.runCmdFn(kubectlBinary, finalArgs)
 	if err != nil {
-		err = fmt.Errorf("while executing kubectl command: %w", err)
-		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), err
+		errCtx := fmt.Errorf("while executing kubectl command: %w", err)
+		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), errCtx
 	}
 
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out), nil
 }
 
-// omitIfIfWeAreNotExplicitlyTargetCluster returns verboseMs if there is explicit '--cluster-name' flag that matches this cluster.
+// omitIfIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
-func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(cmd string, verboseMsg string) (string, error) {
+func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg string) (string, error) {
 	if utils.GetClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
 		return verboseMsg, nil
 	}
+
+	log.WithField("verboseMsg", verboseMsg).Debugf("Skipping kubectl verbose message...")
 	return "", nil
 }
 
 // TODO: This code was moved from:
 //   https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
-// Further refactoring in needed. For example, the cluster flag should be removed by a higher logic as it's strictly
-// BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
+// Further refactoring in needed. For example, the cluster flag should be removed by an upper layer as it's strictly
+// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
 func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string

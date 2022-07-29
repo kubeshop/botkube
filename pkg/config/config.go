@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"k8s.io/utils/strings/slices"
 )
 
 //go:embed default.yaml
@@ -196,6 +198,43 @@ type UpdateSetting struct {
 type Namespaces struct {
 	Include []string `yaml:"include"`
 	Ignore  []string `yaml:"ignore,omitempty"`
+}
+
+// IsAllowed checks if a given Namespace is allowed based on the config.
+// Copied from https://github.com/kubeshop/botkube/blob/b6b7d449278617d40f05d0792b419a7692ad980f/pkg/filterengine/filters/namespace_checker.go#L54-L76
+// TODO(https://github.com/kubeshop/botkube/issues/596): adjust contract.
+func (n *Namespaces) IsAllowed(givenNs string) bool {
+	if n == nil {
+		return false
+	}
+
+	isAll := len(n.Include) == 1 && n.Include[0] == AllNamespaceIndicator
+
+	// Ignore contains a list of namespaces to be ignored when 'all' namespaces are included.
+	// It can also contain a * that would expand to zero or more arbitrary characters.
+	// Example: include [all], ignore [x,y,secret-ns-*]
+	if isAll && len(n.Ignore) > 0 {
+		for _, ignoredNamespace := range n.Ignore {
+			// exact match
+			if ignoredNamespace == givenNs {
+				return false
+			}
+
+			// regexp
+			if strings.Contains(ignoredNamespace, "*") {
+				ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
+				matched, err := regexp.MatchString(ns, givenNs)
+				if err == nil && matched {
+					return false
+				}
+			}
+		}
+	}
+	if isAll {
+		return true
+	}
+
+	return slices.Contains(n.Include, givenNs)
 }
 
 // Notification holds notification configuration.

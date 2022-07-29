@@ -140,7 +140,11 @@ func TestSlack(t *testing.T) {
 			  - nodes
 			  - pods
 			  - statefulsets
-			  - storageclasses`))
+			  - storageclasses
+			allowed namespaces:
+			  include:
+			    - botkube
+			    - default`))
 
 		t.Run("With default cluster", func(t *testing.T) {
 			slackTester.PostMessageToBot(t, channel.Name, command)
@@ -196,7 +200,7 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get ingress"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources on cluster '%s'.", appCfg.ClusterName))
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources on cluster '%s'. Use 'commands list' to see all allowed resources.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -220,7 +224,7 @@ func TestSlack(t *testing.T) {
 				error: Required resource not specified.
 				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
-				while executing kubectl command: exit status 1`, appCfg.ClusterName))
+				exit status 1`, appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -229,7 +233,7 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "get po --namespace team-b"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster '%s'.", appCfg.ClusterName))
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)

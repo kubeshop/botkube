@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -156,6 +157,10 @@ func (e *DefaultExecutor) Execute() string {
 	}
 
 	if inClusterName != "" && inClusterName != clusterName {
+		e.log.WithFields(logrus.Fields{
+			"config-cluster-name":  clusterName,
+			"command-cluster-name": inClusterName,
+		}).Debugf("Specified cluster name doesn't match ours. Ignoring further execution...")
 		return "" // user specified different target cluster
 	}
 
@@ -304,7 +309,13 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 
 	allowedVerbs := e.getSortedEnabledCommands("allowed verbs", e.resMapping.AllowedKubectlVerbMap)
 	allowedResources := e.getSortedEnabledCommands("allowed resources", e.resMapping.AllowedKubectlResourceMap)
-	return fmt.Sprintf("%s%s", allowedVerbs, allowedResources)
+	allowedNamespaces, err := e.getNamespaceConfig()
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while rendering namespace config: %s", err.Error())
+	}
+
+	return fmt.Sprintf("%s%s%s", allowedVerbs, allowedResources, allowedNamespaces)
 }
 
 // Use tabwriter to display string in tabular form
@@ -384,4 +395,21 @@ func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[s
 	const itemSeparator = "\n  - "
 	items := strings.Join(keys, itemSeparator)
 	return fmt.Sprintf("%s:%s%s\n", header, itemSeparator, items)
+}
+
+func (e *DefaultExecutor) getNamespaceConfig() (string, error) {
+	ns := e.cfg.Executors.GetFirst().Kubectl.Namespaces
+
+	out := map[string]config.Namespaces{
+		"allowed namespaces": ns,
+	}
+	var buff strings.Builder
+	encode := yaml.NewEncoder(&buff)
+	encode.SetIndent(2)
+	err := encode.Encode(out)
+	if err != nil {
+		return "", err
+	}
+
+	return buff.String(), nil
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // NamespaceChecker ignore events from blocklisted namespaces
@@ -32,7 +31,7 @@ func (f *NamespaceChecker) Run(_ context.Context, _ interface{}, event *events.E
 		if event.Resource != resource.Name {
 			continue
 		}
-		shouldSkipEvent := !utils.IsNamespaceAllowed(resource.Namespaces, event.Namespace)
+		shouldSkipEvent := !resource.Namespaces.IsAllowed(event.Namespace)
 		event.Skip = shouldSkipEvent
 		break
 	}

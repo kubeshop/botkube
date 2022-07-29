@@ -104,7 +104,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command is not authorized to work with 'pod' resources on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command is not authorized to work with 'pod' resources on cluster 'test'. Use 'commands list' to see all allowed resources.",
 		},
 		{
 			name: "Should forbid execution if namespace is not allowed in config",
@@ -121,7 +121,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
 		},
 		{
 			name: "Should use default Namespace from config if not specified in command",
@@ -141,7 +141,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'from-config' Namespace on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'from-config' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
 		},
 		{
 			name: "Should explicitly use 'default' Namespace if not specified both in command and config",
@@ -160,7 +160,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
 		},
 		{
 			name: "Should forbid execution in not allowed namespace",
@@ -182,7 +182,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
 		},
 		{
 			name: "Should forbid execution if all namespace are allowed but command namespace is explicitly ignored in config",
@@ -205,7 +205,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'.",
+			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
 		},
 		{
 			name: "Should allow execution if verb, resource, and all namespaces are allowed",
