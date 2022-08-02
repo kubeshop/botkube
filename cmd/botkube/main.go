@@ -31,6 +31,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -115,9 +116,9 @@ func run() error {
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
 	// Create Executor Factory
-	resMapping, err := execute.LoadResourceMappingIfShould(
+	// TODO: return empty if all kubectl executors are disabled?
+	resourceNameNormalizer, err := kubectl.NewResourceNameNormalizer(
 		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
-		conf,
 		discoveryCli,
 	)
 	if err != nil {
@@ -129,7 +130,8 @@ func run() error {
 		execute.DefaultCommandRunnerFunc,
 		*conf,
 		filterEngine,
-		resMapping,
+		kubectl.NewChecker(resourceNameNormalizer.Variants),
+		kubectl.NewMerger(conf.Executors),
 		reporter,
 	)
 

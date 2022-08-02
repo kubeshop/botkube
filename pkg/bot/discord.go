@@ -12,6 +12,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -83,7 +84,7 @@ func NewDiscord(log logrus.FieldLogger, c *config.Config, executorFactory Execut
 		Token:            discord.Token,
 		BotID:            discord.BotID,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
+		RestrictAccess:   ptr.ToBool(c.Executors.GetFirst().Kubectl.RestrictAccess),
 		ClusterName:      c.Settings.ClusterName,
 		ChannelID:        discord.Channels.GetFirst().ID,
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,

@@ -17,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -122,7 +123,7 @@ func NewMattermost(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		ChannelID:        channel.Id,
 		ClusterName:      c.Settings.ClusterName,
 		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
+		RestrictAccess:   ptr.ToBool(c.Executors.GetFirst().Kubectl.RestrictAccess),
 		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
 		APIClient:        client,
 		WebSocketURL:     webSocketURL,
