@@ -333,7 +333,7 @@ type Webhook struct {
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
 	Namespaces       Namespaces `yaml:"namespaces,omitempty"`
-	Enabled          bool       `yaml:"enabled,omitempty"`
+	Enabled          bool       `yaml:"enabled"`
 	Commands         Commands   `yaml:"commands,omitempty"`
 	DefaultNamespace string     `yaml:"defaultNamespace,omitempty"`
 	RestrictAccess   *bool      `yaml:"restrictAccess,omitempty"`

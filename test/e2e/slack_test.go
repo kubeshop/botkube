@@ -121,30 +121,37 @@ func TestSlack(t *testing.T) {
 	t.Run("Commands list", func(t *testing.T) {
 		command := "commands list"
 		expectedMessage := codeBlock(heredoc.Doc(`
-			allowed verbs:
-			  - api-resources
-			  - api-versions
-			  - auth
-			  - cluster-info
-			  - describe
-			  - diff
-			  - explain
-			  - get
-			  - logs
-			  - top
-			allowed resources:
-			  - configmaps
-			  - daemonsets
-			  - deployments
-			  - namespaces
-			  - nodes
-			  - pods
-			  - statefulsets
-			  - storageclasses
-			allowed namespaces:
-			  include:
-			    - botkube
-			    - default`))
+			enabled:
+			  kubectl:
+			    kubectl-read-only:
+			      namespaces:
+			        include:
+			          - botkube
+			          - default
+			      enabled: true
+			      commands:
+			        verbs:
+			          - api-resources
+			          - api-versions
+			          - cluster-info
+			          - describe
+			          - diff
+			          - explain
+			          - get
+			          - logs
+			          - top
+			          - auth
+			        resources:
+			          - deployments
+			          - pods
+			          - namespaces
+			          - daemonsets
+			          - statefulsets
+			          - storageclasses
+			          - nodes
+			          - configmaps
+			      defaultNamespace: default
+			      restrictAccess: false`))
 
 		t.Run("With default cluster", func(t *testing.T) {
 			slackTester.PostMessageToBot(t, channel.Name, command)

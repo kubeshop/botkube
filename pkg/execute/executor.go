@@ -162,7 +162,8 @@ func (e *DefaultExecutor) Execute() string {
 		return "" // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(args) {
+	channelBindings := []string{"kubectl-read-only"}
+	if e.kubectlExecutor.CanHandle(channelBindings, args) {
 		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
 		// The length of the slice was already checked before
 		// See the DefaultExecutor.Execute() logic.
@@ -172,7 +173,7 @@ func (e *DefaultExecutor) Execute() string {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
-		out, err := e.kubectlExecutor.Execute([]string{"kubectl-read-only"}, e.Message, e.IsAuthChannel)
+		out, err := e.kubectlExecutor.Execute(channelBindings, e.Message, e.IsAuthChannel)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())

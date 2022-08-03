@@ -68,7 +68,7 @@ func TestKubectlCheckerIsResourceAllowedInNs(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			config := kubectl.NewMerger(fixExecutorsConfig(t)).Merge(tc.bindings, tc.namespace)
+			config := kubectl.NewMerger(fixExecutorsConfig(t)).MergeForNamespace(tc.bindings, tc.namespace)
 			checker := kubectl.NewChecker(tc.variantFn)
 
 			// when
@@ -127,7 +127,7 @@ func TestKubectlCheckerIsVerbAllowedInNs(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			config := kubectl.NewMerger(fixExecutorsConfig(t)).Merge(tc.bindings, tc.namespace)
+			config := kubectl.NewMerger(fixExecutorsConfig(t)).MergeForNamespace(tc.bindings, tc.namespace)
 			checker := kubectl.NewChecker(nil)
 
 			// when

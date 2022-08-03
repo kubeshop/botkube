@@ -20,6 +20,7 @@ executors:
         verbs: [ "get" ]
         resources: [ "deployments" ]
       defaultNamespace: "team-a"
+      restrictAccess: false
   'kubectl-team-b':
     kubectl:
       enabled: true
@@ -36,6 +37,16 @@ executors:
       commands:
         verbs: [ "logs", "top" ]
         resources: [ ]
+      restrictAccess: true
+  'kubectl-all':
+    kubectl:
+      enabled: true
+      namespaces:
+        include: [ "all" ]
+      commands:
+        verbs: [ "cluster-info" ]
+        resources: [ ]
+      defaultNamespace: "foo"
   'kubectl-exec':
     kubectl:
       enabled: false

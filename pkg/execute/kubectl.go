@@ -3,6 +3,7 @@ package execute
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -13,10 +14,12 @@ import (
 )
 
 const (
-	kubectlNotAuthorizedMsgFmt       = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
-	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'. Use 'commands list' to see all allowed resources."
-	kubectlDefaultNamespace          = "default"
+	kubectlNotAuthorizedMsgFmt          = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
+	kubectlNotAllowedNamespaceMsgFmt    = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
+	kubectlNotAllowedAllNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in all Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
+	kubectlNotAllowedKindMsgFmt         = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'. Use 'commands list' to see all allowed resources."
+	kubectlFlagAfterVerbMsg             = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
+	kubectlDefaultNamespace             = "default"
 )
 
 // Kubectl executes kubectl commands using local binary.
@@ -44,13 +47,13 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merge
 //
 // TODO: we should just introduce a command name explicitly. In this case `@BotKube kubectl get po` instead of `@BotKube get po`
 // As a result, we are able to detect kubectl command but say that you're simply not authorized to use it instead of "Command not supported. (..)"
-func (e *Kubectl) CanHandle(args []string) bool {
+func (e *Kubectl) CanHandle(bindings []string, args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
 
 	// Check if such kubectl verb is enabled
-	if !e.kcChecker.IsKnownVerb(e.merger.AllEnabledVerbs(), args[0]) {
+	if !e.kcChecker.IsKnownVerb(e.merger.MergeAllEnabledVerbs(bindings), args[0]) {
 		return false
 	}
 
@@ -74,22 +77,19 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 		args        = strings.Fields(strings.TrimSpace(command))
 		clusterName = e.cfg.Settings.ClusterName
 		verb        = args[0]
-		resource    = ""
+		resource    = e.getResourceName(args)
 	)
-	if len(args) > 1 {
-		resource = args[1]
-	}
 
 	executionNs, err := e.getCommandNamespace(args)
 	if err != nil {
 		return "", fmt.Errorf("while extracting Namespace from command: %w", err)
 	}
-	if executionNs == "" { // namespace not found in command, so find default add `-n` flag to args
+	if executionNs == "" { // namespace not found in command, so find default and add `-n` flag to args
 		executionNs = e.findDefaultNamespace(bindings)
 		args = e.addNamespaceFlag(args, executionNs)
 	}
 
-	kcConfig := e.merger.Merge(bindings, executionNs)
+	kcConfig := e.merger.MergeForNamespace(bindings, executionNs)
 
 	if !isAuthChannel && kcConfig.RestrictAccess {
 		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
@@ -97,15 +97,21 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	}
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
+		if executionNs == config.AllNamespaceIndicator {
+			return fmt.Sprintf(kubectlNotAllowedAllNamespaceMsgFmt, clusterName), nil
+		}
 		return fmt.Sprintf(kubectlNotAllowedNamespaceMsgFmt, executionNs, clusterName), nil
 	}
 
 	// Some commands don't have resources specified directly in command. For example:
 	// - kubectl logs foo
-	if !validDebugCommands[verb] {
+	if !validDebugCommands[verb] && resource != "" {
+		if !e.validResourceName(resource) {
+			return kubectlFlagAfterVerbMsg, nil
+		}
 		// Check if user has access to a given Kubernetes resource
 		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
-		if len(args) > 1 && !e.kcChecker.IsResourceAllowedInNs(kcConfig, resource) {
+		if !e.kcChecker.IsResourceAllowedInNs(kcConfig, resource) {
 			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, resource, clusterName), nil
 		}
 	}
@@ -113,8 +119,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.runCmdFn(kubectlBinary, finalArgs)
 	if err != nil {
-		errCtx := fmt.Errorf("while executing kubectl command: %w", err)
-		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), errCtx
+		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), nil
 	}
 
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out), nil
@@ -202,7 +207,7 @@ func (e *Kubectl) getCommandNamespace(args []string) (string, error) {
 		return "", err
 	}
 	if inAllNs {
-		return config.AllNamespaceIndicator, nil
+		return config.AllNamespaceIndicator, nil // TODO: find all namespaces
 	}
 
 	// 2. Check for `-n/--namespace` in args
@@ -219,7 +224,7 @@ func (e *Kubectl) getCommandNamespace(args []string) (string, error) {
 
 func (e *Kubectl) findDefaultNamespace(bindings []string) string {
 	// 1. Merge all enabled kubectls, to find the defaultNamespace settings
-	cfg := e.merger.Merge(bindings, config.AllNamespaceIndicator)
+	cfg := e.merger.MergeAllEnabled(bindings)
 	if cfg.DefaultNamespace != "" {
 		// 2. Use user defined default
 		return cfg.DefaultNamespace
@@ -232,4 +237,18 @@ func (e *Kubectl) findDefaultNamespace(bindings []string) string {
 // addNamespaceFlag add namespace to returned args list.
 func (e *Kubectl) addNamespaceFlag(args []string, defaultNamespace string) []string {
 	return append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+}
+
+func (e *Kubectl) getResourceName(args []string) string {
+	if len(args) < 2 {
+		return ""
+	}
+	parts := strings.SplitN(args[1], "/", 2)
+	resource := parts[0]
+	return resource
+}
+
+func (e *Kubectl) validResourceName(resource string) bool {
+	// ensures that resource name starts with letter
+	return unicode.IsLetter(rune(resource[0]))
 }

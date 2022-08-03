@@ -26,31 +26,43 @@ func NewMerger(executors config.IndexableMap[config.Executors]) *Merger {
 	}
 }
 
-// Merge returns kubectl configuration for a given set of bindings.
-//  Only if the allowed Namespace is matched.
+// MergeForNamespace returns kubectl configuration for a given set of bindings.
+// It merges entries only if a given Namespace is matched.
 //    kubectl.commands.verbs
 //    kubectl.commands.resources
-func (kc *Merger) Merge(includeBindings []string, forNamespace string) EnabledKubectl {
-	bindings := map[string]struct{}{}
-	for _, name := range includeBindings {
-		bindings[name] = struct{}{}
+func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl {
+	enabledInNs := func(executor config.Kubectl) bool {
+		return executor.Enabled && executor.Namespaces.IsAllowed(forNamespace)
 	}
+	return kc.merge(kc.collect(includeBindings, enabledInNs))
+}
 
-	var collectedKubectls []config.Kubectl
-	for name, executor := range kc.executors {
-		if _, found := bindings[name]; !found {
-			continue
-		}
-		if !executor.Kubectl.Enabled {
-			continue
-		}
-		if forNamespace != config.AllNamespaceIndicator && !executor.Kubectl.Namespaces.IsAllowed(forNamespace) {
-			continue
-		}
-
-		collectedKubectls = append(collectedKubectls, executor.Kubectl)
+// MergeAllEnabled returns kubectl configuration for all kubectl configs.
+func (kc *Merger) MergeAllEnabled(includeBindings []string) EnabledKubectl {
+	onlyEnabled := func(executor config.Kubectl) bool {
+		return executor.Enabled
 	}
+	return kc.merge(kc.collect(includeBindings, onlyEnabled))
+}
 
+// MergeAllEnabledVerbs returns verbs collected from all enabled kubectl executors.
+func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
+	verbs := map[string]struct{}{}
+
+	for _, name := range bindings {
+		executor, found := kc.executors[name]
+		if !found {
+			continue
+		}
+
+		for _, name := range executor.Kubectl.Commands.Verbs {
+			verbs[name] = struct{}{}
+		}
+	}
+	return verbs
+}
+
+func (kc *Merger) merge(collectedKubectls []config.Kubectl) EnabledKubectl {
 	if len(collectedKubectls) == 0 {
 		return EnabledKubectl{}
 	}
@@ -86,17 +98,22 @@ func (kc *Merger) Merge(includeBindings []string, forNamespace string) EnabledKu
 	}
 }
 
-// AllEnabledVerbs returns verbs collected from all enabled kubectl executors.
-func (kc *Merger) AllEnabledVerbs() map[string]struct{} {
-	verbs := map[string]struct{}{}
+type collectPredicateFunc func(executor config.Kubectl) bool
 
-	for _, executor := range kc.executors {
-		if !executor.Kubectl.Enabled {
+func (kc *Merger) collect(includeBindings []string, predicate collectPredicateFunc) []config.Kubectl {
+	var out []config.Kubectl
+	for _, name := range includeBindings {
+		executor, found := kc.executors[name]
+		if !found {
 			continue
 		}
-		for _, name := range executor.Kubectl.Commands.Verbs {
-			verbs[name] = struct{}{}
+
+		if !predicate(executor.Kubectl) {
+			continue
 		}
+
+		out = append(out, executor.Kubectl)
 	}
-	return verbs
+
+	return out
 }
