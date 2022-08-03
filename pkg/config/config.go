@@ -122,7 +122,7 @@ const (
 // Config structure of configuration yaml file
 type Config struct {
 	Sources        IndexableMap[Sources]        `yaml:"sources"`
-	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required,eq=1"`
+	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required,min=1"`
 	Communications IndexableMap[Communications] `yaml:"communications"  validate:"required,eq=1"`
 
 	Analytics Analytics `yaml:"analytics"`

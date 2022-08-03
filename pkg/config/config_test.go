@@ -162,21 +162,10 @@ func TestLoadedConfigValidation(t *testing.T) {
 			name: "empty executors and communications settings",
 			expErrMsg: heredoc.Doc(`
 				while validating loaded configuration: 2 errors occurred:
-					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'eq' tag
+					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'min' tag
 					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'eq' tag`),
 			configFiles: []string{
 				testdataFile(t, "empty-executors-communications.yaml"),
-			},
-		},
-		{
-			// TODO(remove): https://github.com/kubeshop/botkube/issues/596
-			name: "multiple executors and communications settings",
-			expErrMsg: heredoc.Doc(`
-				while validating loaded configuration: 2 errors occurred:
-					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'eq' tag
-					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'eq' tag`),
-			configFiles: []string{
-				testdataFile(t, "multiple-executors-communications.yaml"),
 			},
 		},
 	}

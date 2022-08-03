@@ -12,7 +12,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -44,12 +43,9 @@ type Discord struct {
 
 	Notification     config.Notification
 	Token            string
-	AllowKubectl     bool
-	RestrictAccess   bool
-	ClusterName      string
 	ChannelID        string
 	BotID            string
-	DefaultNamespace string
+	ExecutorBindings []string
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -83,11 +79,8 @@ func NewDiscord(log logrus.FieldLogger, c *config.Config, executorFactory Execut
 
 		Token:            discord.Token,
 		BotID:            discord.BotID,
-		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   ptr.ToBool(c.Executors.GetFirst().Kubectl.RestrictAccess),
-		ClusterName:      c.Settings.ClusterName,
 		ChannelID:        discord.Channels.GetFirst().ID,
-		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
+		ExecutorBindings: discord.Channels.GetFirst().Bindings.Executors,
 		Notification:     discord.Notification,
 	}, nil
 }
@@ -214,7 +207,7 @@ func (dm *discordMessage) HandleMessage(b *Discord) {
 
 	e := dm.executorFactory.NewDefault(b.IntegrationName(), b, dm.IsAuthChannel, dm.Request)
 
-	dm.Response = e.Execute()
+	dm.Response = e.Execute(b.ExecutorBindings)
 	dm.Send()
 }
 

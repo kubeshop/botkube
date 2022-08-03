@@ -3,7 +3,13 @@ communications:
     slack:
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for BotKube app
-      channel: "" # Tests will override this temporarily
+      channels:
+        'default':
+          name: ""           # Test will override that
+          bindings:
+            executors:
+              - kubectl-read-only
+              - kubectl-wait-cmd
 sources:
   'k8s-events':
     kubernetes:
@@ -30,6 +36,16 @@ executors:
         include:
           - botkube
           - default
+  'kubectl-wait-cmd':
+    kubectl:
+      enabled: true
+      namespaces:
+        include:
+          - botkube
+          - default
+      commands:
+        verbs: [ "wait" ]
+      restrictAccess: false
 
 settings:
   clusterName: sample

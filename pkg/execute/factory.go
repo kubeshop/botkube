@@ -21,7 +21,7 @@ type DefaultExecutorFactory struct {
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute() string
+	Execute(bindings []string) string
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.

@@ -151,6 +151,17 @@ func TestSlack(t *testing.T) {
 			          - nodes
 			          - configmaps
 			      defaultNamespace: default
+			      restrictAccess: false
+			    kubectl-wait-cmd:
+			      namespaces:
+			        include:
+			          - botkube
+			          - default
+			      enabled: true
+			      commands:
+			        verbs:
+			          - wait
+			        resources: []
 			      restrictAccess: false`))
 
 		t.Run("With default cluster", func(t *testing.T) {
@@ -198,6 +209,17 @@ func TestSlack(t *testing.T) {
 				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
 					strings.Contains(msg.Text, "kube-root-ca.crt") &&
 					strings.Contains(msg.Text, "botkube-global-config")
+			}
+
+			slackTester.PostMessageToBot(t, channel.Name, command)
+			err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+			assert.NoError(t, err)
+		})
+		t.Run("Wait for Deployment (should be allowed based on the second binding)", func(t *testing.T) {
+			command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			assertionFn := func(msg slack.Message) bool {
+				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					strings.Contains(msg.Text, "deployment.apps/botkube condition met")
 			}
 
 			slackTester.PostMessageToBot(t, channel.Name, command)

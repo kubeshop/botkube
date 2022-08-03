@@ -138,7 +138,7 @@ func (action FiltersAction) String() string {
 }
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute() string {
+func (e *DefaultExecutor) Execute(channelBindings []string) string {
 	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.Message)
 
@@ -162,7 +162,6 @@ func (e *DefaultExecutor) Execute() string {
 		return "" // user specified different target cluster
 	}
 
-	channelBindings := []string{"kubectl-read-only"}
 	if e.kubectlExecutor.CanHandle(channelBindings, args) {
 		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
 		// The length of the slice was already checked before
