@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	kubectlNotAuthorizedMsgFmt          = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt    = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
-	kubectlNotAllowedAllNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in all Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
-	kubectlNotAllowedKindMsgFmt         = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'. Use 'commands list' to see all allowed resources."
-	kubectlFlagAfterVerbMsg             = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
-	kubectlDefaultNamespace             = "default"
+	kubectlNotAuthorizedMsgFmt         = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
+	kubectlNotAllowedVerbMsgFmt        = "Sorry, the kubectl '%s' command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedVerbInAllNsMsgFmt = "Sorry, the kubectl '%s' command cannot be executed for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedKindMsgFmt        = "Sorry, the kubectl command is not authorized to work with '%s' resources in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedKinInAllNsMsgFmt  = "Sorry, the kubectl command is not authorized to work with '%s' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlFlagAfterVerbMsg            = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
+	kubectlDefaultNamespace            = "default"
 )
 
 // Kubectl executes kubectl commands using local binary.
@@ -98,9 +99,9 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
 		if executionNs == config.AllNamespaceIndicator {
-			return fmt.Sprintf(kubectlNotAllowedAllNamespaceMsgFmt, clusterName), nil
+			return fmt.Sprintf(kubectlNotAllowedVerbInAllNsMsgFmt, verb, clusterName), nil
 		}
-		return fmt.Sprintf(kubectlNotAllowedNamespaceMsgFmt, executionNs, clusterName), nil
+		return fmt.Sprintf(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName), nil
 	}
 
 	// Some commands don't have resources specified directly in command. For example:
@@ -112,7 +113,10 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 		// Check if user has access to a given Kubernetes resource
 		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
 		if !e.kcChecker.IsResourceAllowedInNs(kcConfig, resource) {
-			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, resource, clusterName), nil
+			if executionNs == config.AllNamespaceIndicator {
+				return fmt.Sprintf(kubectlNotAllowedKinInAllNsMsgFmt, resource, clusterName), nil
+			}
+			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, resource, executionNs, clusterName), nil
 		}
 	}
 

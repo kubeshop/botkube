@@ -115,23 +115,30 @@ func run() error {
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
-	// Create Executor Factory
-	// TODO: return empty if all kubectl executors are disabled?
-	resourceNameNormalizer, err := kubectl.NewResourceNameNormalizer(
-		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
-		discoveryCli,
-	)
-	if err != nil {
-		return reportFatalError("while loading resource mapping", err)
+	// Kubectl config merger
+	kcMerger := kubectl.NewMerger(conf.Executors)
+
+	// Load resource variants name if needed
+	var resourceNameNormalizerFunc kubectl.ResourceVariantsFunc
+	if kcMerger.IsAtLeastOneEnabled() {
+		resourceNameNormalizer, err := kubectl.NewResourceNameNormalizer(
+			logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
+			discoveryCli,
+		)
+		if err != nil {
+			return reportFatalError("while loading resource mapping", err)
+		}
+		resourceNameNormalizerFunc = resourceNameNormalizer.Variants
 	}
 
+	// Create executor factor
 	executorFactory := execute.NewExecutorFactory(
 		logger.WithField(componentLogFieldKey, "Executor"),
 		execute.DefaultCommandRunnerFunc,
 		*conf,
 		filterEngine,
-		kubectl.NewChecker(resourceNameNormalizer.Variants),
-		kubectl.NewMerger(conf.Executors),
+		kubectl.NewChecker(resourceNameNormalizerFunc),
+		kcMerger,
 		reporter,
 	)
 

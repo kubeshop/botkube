@@ -10,6 +10,9 @@ communications:
             executors:
               - kubectl-read-only
               - kubectl-wait-cmd
+              - kubectl-exec-cmd
+              - kubectl-allow-all
+
 sources:
   'k8s-events':
     kubernetes:
@@ -46,6 +49,25 @@ executors:
       commands:
         verbs: [ "wait" ]
       restrictAccess: false
+  'kubectl-exec-cmd':
+    kubectl:
+      enabled: false
+      namespaces:
+        include:
+          - botkube
+          - default
+      commands:
+        verbs: [ "exec" ]
+      restrictAccess: false
+  'kubectl-allow-all':
+    kubectl:
+      enabled: true
+      namespaces:
+        include:
+          - all
+      commands:
+        verbs: [ "get" ]
+        resources: [ "deployments" ]
 
 settings:
   clusterName: sample

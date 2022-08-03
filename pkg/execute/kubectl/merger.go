@@ -27,9 +27,14 @@ func NewMerger(executors config.IndexableMap[config.Executors]) *Merger {
 }
 
 // MergeForNamespace returns kubectl configuration for a given set of bindings.
+//
 // It merges entries only if a given Namespace is matched.
-//    kubectl.commands.verbs
-//    kubectl.commands.resources
+//   - kubectl.commands.verbs     - strategy append
+//   - kubectl.commands.resources - strategy append
+//   - kubectl.defaultNamespace   - strategy override (if not empty)
+//   - kubectl.restrictAccess     - strategy override (if not empty)
+//
+// The order of merging is the same as the order of items specified in the includeBindings list.
 func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl {
 	enabledInNs := func(executor config.Kubectl) bool {
 		return executor.Enabled && executor.Namespaces.IsAllowed(forNamespace)
@@ -45,6 +50,16 @@ func (kc *Merger) MergeAllEnabled(includeBindings []string) EnabledKubectl {
 	return kc.merge(kc.collect(includeBindings, onlyEnabled))
 }
 
+// IsAtLeastOneEnabled returns true if at least one kubectl executor is enabled.
+func (kc *Merger) IsAtLeastOneEnabled() bool {
+	for _, executor := range kc.executors {
+		if executor.Kubectl.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
 // MergeAllEnabledVerbs returns verbs collected from all enabled kubectl executors.
 func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
 	verbs := map[string]struct{}{}
@@ -52,6 +67,10 @@ func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
 	for _, name := range bindings {
 		executor, found := kc.executors[name]
 		if !found {
+			continue
+		}
+
+		if !executor.Kubectl.Enabled {
 			continue
 		}
 
