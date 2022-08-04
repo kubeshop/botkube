@@ -387,7 +387,7 @@ func (e *DefaultExecutor) getEnabledKubectlConfigs() (string, error) {
 	}
 
 	out := map[string]map[string]kubectlCollection{
-		"enabled": {
+		"Enabled executors": {
 			"kubectl": enabledKubectls,
 		},
 	}

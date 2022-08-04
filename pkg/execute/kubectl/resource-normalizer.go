@@ -14,8 +14,8 @@ type ResourceNormalizer struct {
 	shortnameResourceMap map[string]string
 }
 
-// NewResourceNameNormalizer returns new ResourceNormalizer instance.
-func NewResourceNameNormalizer(log logrus.FieldLogger, discoveryCli discovery.DiscoveryInterface) (ResourceNormalizer, error) {
+// NewResourceNormalizer returns new ResourceNormalizer instance.
+func NewResourceNormalizer(log logrus.FieldLogger, discoveryCli discovery.DiscoveryInterface) (ResourceNormalizer, error) {
 	resMapping := ResourceNormalizer{
 		kindResourceMap:      make(map[string]string),
 		shortnameResourceMap: make(map[string]string),
@@ -41,8 +41,8 @@ func NewResourceNameNormalizer(log logrus.FieldLogger, discoveryCli discovery.Di
 	return resMapping, nil
 }
 
-// Variants returns list with alternative names for a given input resource.
-func (r ResourceNormalizer) Variants(in string) []string {
+// Normalize returns list with alternative names for a given input resource.
+func (r ResourceNormalizer) Normalize(in string) []string {
 	variants := []string{
 		// normalized received name
 		strings.ToLower(in),

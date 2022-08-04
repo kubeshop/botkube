@@ -247,8 +247,7 @@ func (e *Kubectl) getResourceName(args []string) string {
 	if len(args) < 2 {
 		return ""
 	}
-	parts := strings.SplitN(args[1], "/", 2)
-	resource := parts[0]
+	resource, _, _ := strings.Cut(args[1], "/")
 	return resource
 }
 

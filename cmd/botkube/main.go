@@ -121,14 +121,14 @@ func run() error {
 	// Load resource variants name if needed
 	var resourceNameNormalizerFunc kubectl.ResourceVariantsFunc
 	if kcMerger.IsAtLeastOneEnabled() {
-		resourceNameNormalizer, err := kubectl.NewResourceNameNormalizer(
-			logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
+		resourceNameNormalizer, err := kubectl.NewResourceNormalizer(
+			logger.WithField(componentLogFieldKey, "Resource Name Normalizer"),
 			discoveryCli,
 		)
 		if err != nil {
-			return reportFatalError("while loading resource mapping", err)
+			return reportFatalError("while creating resource name normalizer", err)
 		}
-		resourceNameNormalizerFunc = resourceNameNormalizer.Variants
+		resourceNameNormalizerFunc = resourceNameNormalizer.Normalize
 	}
 
 	// Create executor factor

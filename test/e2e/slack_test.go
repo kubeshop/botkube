@@ -121,7 +121,7 @@ func TestSlack(t *testing.T) {
 	t.Run("Commands list", func(t *testing.T) {
 		command := "commands list"
 		expectedMessage := codeBlock(heredoc.Doc(`
-			enabled:
+			Enabled executors:
 			  kubectl:
 			    kubectl-allow-all:
 			      namespaces:

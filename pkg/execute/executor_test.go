@@ -67,7 +67,7 @@ executors:
         verbs: [ "get", "describe" ]
         resources: [ "deployments", "pods" ]`
 
-func TestDefaultExecutor_getSortedNamespaceConfig(t *testing.T) {
+func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	testCases := []struct {
 		name            string
 		executorsConfig string
@@ -77,7 +77,7 @@ func TestDefaultExecutor_getSortedNamespaceConfig(t *testing.T) {
 			name:            "All namespaces enabled",
 			executorsConfig: rawEnabledExecutorsConfig,
 			expOutput: heredoc.Doc(`
-           enabled:
+           Enabled executors:
              kubectl:
                kubectl-global:
                  namespaces:
@@ -118,7 +118,7 @@ func TestDefaultExecutor_getSortedNamespaceConfig(t *testing.T) {
 			name:            "All namespace enabled and a few ignored",
 			executorsConfig: rawDisabledExecutorsConfig,
 			expOutput: heredoc.Doc(`
-           enabled:
+           Enabled executors:
              kubectl: {}
            `),
 		},
