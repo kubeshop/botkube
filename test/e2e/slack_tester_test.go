@@ -185,10 +185,10 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *slackTester) WaitForMessagesPostedOnChannels(userID string, channelIDs []string, limitMessages int, msgAssertFn func(msg slack.Message) bool) error {
-	var errs error
+	errs := multierror.New()
 	for _, channelID := range channelIDs {
 		errs = multierror.Append(errs, s.WaitForMessagePosted(userID, channelID, limitMessages, msgAssertFn))
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }

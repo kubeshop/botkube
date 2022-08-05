@@ -275,7 +275,7 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
 	b.log.Debugf(">> Sending to Slack: %+v", event)
 	attachment := b.formatMessage(event)
 
-	var errs error
+	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event) {
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
@@ -286,7 +286,7 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
 		b.log.Debugf("Event successfully sent to channel %q (ID: %q) at %b", channelName, channelID, timestamp)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 func (b *Slack) getChannelsToNotify(event events.Event) []string {
@@ -310,7 +310,7 @@ func (b *Slack) getChannelsToNotify(event events.Event) []string {
 
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg string) error {
-	var errs error
+	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
 		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
@@ -322,7 +322,7 @@ func (b *Slack) SendMessage(ctx context.Context, msg string) error {
 		b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 func (b *Slack) getChannels() map[string]channelConfigByName {

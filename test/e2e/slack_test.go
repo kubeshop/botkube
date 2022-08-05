@@ -380,7 +380,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Stopping notifier...")
 		command := "notifier stop"
-		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster %q here.", appCfg.ClusterName))
+		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -388,14 +388,14 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Getting notifier status from second channel...")
 		command = "notifier status"
-		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster %q are enabled here.", appCfg.ClusterName))
+		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, secondChannel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from first channel...")
 		command = "notifier status"
-		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster %q are disabled here.", appCfg.ClusterName))
+		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
@@ -426,7 +426,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Starting notifier")
 		command = "notifier start"
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster %q.", appCfg.ClusterName))
+		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)

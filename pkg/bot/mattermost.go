@@ -321,7 +321,7 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
 	b.log.Debugf(">> Sending to Mattermost: %+v", event)
 	attachment := b.formatAttachments(event)
 
-	var errs error
+	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(event) {
 		post := &model.Post{
 			Props: map[string]interface{}{
@@ -339,7 +339,7 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
 		b.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 func (b *Mattermost) getChannelsToNotify(event events.Event) []string {
@@ -362,7 +362,7 @@ func (b *Mattermost) getChannelsToNotify(event events.Event) []string {
 
 // SendMessage sends message to Mattermost channel
 func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
-	var errs error
+	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
 		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
@@ -376,7 +376,7 @@ func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
 
 		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
-	return errs
+	return errs.ErrorOrNil()
 }
 
 func (b *Mattermost) findAndTrimBotMention(msg string) (string, bool) {

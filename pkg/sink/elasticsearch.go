@@ -175,7 +175,7 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
-	var errs error
+	errs := multierror.New()
 	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
 	for _, indexCfg := range e.indices {
 		err := e.flushIndex(ctx, indexCfg, event)
@@ -187,7 +187,7 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err 
 		e.log.Debugf("Event successfully sent to Elasticsearch index %q", indexCfg.Name)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 // SendMessage is no-op

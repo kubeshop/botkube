@@ -139,7 +139,7 @@ func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 
 	msgToSend := b.formatMessage(event)
 
-	var errs error
+	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify() {
 		msg := msgToSend // copy as the struct is modified when using Discord API client
 		if _, err := b.api.ChannelMessageSendComplex(channelID, &msg); err != nil {
@@ -150,13 +150,13 @@ func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
 		b.log.Debugf("Event successfully sent to channel %q", channelID)
 	}
 
-	return nil
+	return errs.ErrorOrNil()
 }
 
 // SendMessage sends message to Discord channel.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
 func (b *Discord) SendMessage(_ context.Context, msg string) error {
-	var errs error
+	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
 		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
@@ -167,7 +167,7 @@ func (b *Discord) SendMessage(_ context.Context, msg string) error {
 		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 // IntegrationName describes the integration name.

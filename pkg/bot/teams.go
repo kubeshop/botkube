@@ -316,7 +316,7 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
 	b.log.Debugf(">> Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 
-	var errs error
+	errs := multierror.New()
 	for _, convRef := range b.getConversationRefsToNotify() {
 		err := b.sendProactiveMessage(ctx, convRef, card)
 		if err != nil {
@@ -327,12 +327,12 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
 		b.log.Debugf("Event successfully sent to channel %q at %b", convRef.ChannelID)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 // SendMessage sends message to MsTeams
 func (b *Teams) SendMessage(ctx context.Context, msg string) error {
-	var errs error
+	errs := multierror.New()
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
@@ -349,7 +349,7 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 
-	return errs
+	return errs.ErrorOrNil()
 }
 
 // IntegrationName describes the integration name.
