@@ -6,121 +6,148 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-func TestDefaultExecutor_getSortedEnabledCommands(t *testing.T) {
+var rawEnabledExecutorsConfig = `
+executors:
+  'kubectl-team-a':
+    kubectl:
+      enabled: true
+      namespaces:
+        include: [ "team-a" ]
+      commands:
+        verbs: [ "get" ]
+        resources: [ "deployments" ]
+      defaultNamespace: "team-a"
+  'kubectl-team-b':
+    kubectl:
+      enabled: true
+      namespaces:
+        include: [ "team-b" ]
+      commands:
+        verbs: [ "get", "describe" ]
+        resources: [ "deployments", "pods" ]
+  'kubectl-global':
+    kubectl:
+      enabled: true
+      namespaces:
+        include: [ "all" ]
+      commands:
+        verbs: [ "logs", "top" ]
+        resources: [ ]
+  'kubectl-exec':
+    kubectl:
+      enabled: false
+      namespaces:
+        include: [ "all" ]
+      commands:
+        verbs: [ "exec" ]
+        resources: [ ]`
+
+var rawDisabledExecutorsConfig = `
+executors:
+  'kubectl-team-a':
+    kubectl:
+      enabled: false
+      namespaces:
+        include: [ "team-a" ]
+      commands:
+        verbs: [ "get" ]
+        resources: [ "deployments" ]
+      defaultNamespace: "team-a"
+  'kubectl-team-b':
+    kubectl:
+      enabled: false
+      namespaces:
+        include: [ "team-b" ]
+      commands:
+        verbs: [ "get", "describe" ]
+        resources: [ "deployments", "pods" ]`
+
+func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	testCases := []struct {
-		Name           string
-		InputHeader    string
-		InputMap       map[string]bool
-		ExpectedOutput string
+		name            string
+		executorsConfig string
+		expOutput       string
 	}{
 		{
-			Name:        "All commands disabled",
-			InputHeader: "test",
-			InputMap: map[string]bool{
-				"cmd1": false,
-				"cmd2": false,
-			},
-			ExpectedOutput: "test: []",
-		},
-		{
-			Name:        "All commands enabled",
-			InputHeader: "foo",
-			InputMap: map[string]bool{
-				"b1": true,
-				"a2": false,
-				"a3": true,
-				"a4": true,
-				"a5": true,
-				"a6": false,
-			},
-			ExpectedOutput: heredoc.Doc(`
-				foo:
-				  - a3
-				  - a4
-				  - a5
-				  - b1
-			`),
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.Name, func(t *testing.T) {
-			e := &DefaultExecutor{}
-			res := e.getSortedEnabledCommands(testCase.InputHeader, testCase.InputMap)
-
-			assert.Equal(t, testCase.ExpectedOutput, res)
-		})
-	}
-}
-
-func TestDefaultExecutor_getSortedNamespaceConfig(t *testing.T) {
-	testCases := []struct {
-		name      string
-		nsConfig  config.Namespaces
-		expOutput string
-	}{
-		{
-			name: "All namespaces enabled",
-			nsConfig: config.Namespaces{
-				Include: []string{config.AllNamespaceIndicator},
-			},
+			name:            "All namespaces enabled",
+			executorsConfig: rawEnabledExecutorsConfig,
 			expOutput: heredoc.Doc(`
-				allowed namespaces:
-				  include:
-				    - all
-			`),
+           Enabled executors:
+             kubectl:
+               kubectl-global:
+                 namespaces:
+                   include:
+                     - all
+                 enabled: true
+                 commands:
+                   verbs:
+                     - logs
+                     - top
+                   resources: []
+               kubectl-team-a:
+                 namespaces:
+                   include:
+                     - team-a
+                 enabled: true
+                 commands:
+                   verbs:
+                     - get
+                   resources:
+                     - deployments
+                 defaultNamespace: team-a
+               kubectl-team-b:
+                 namespaces:
+                   include:
+                     - team-b
+                 enabled: true
+                 commands:
+                   verbs:
+                     - get
+                     - describe
+                   resources:
+                     - deployments
+                     - pods
+           `),
 		},
 		{
-			name: "All namespace enabled and a few ignored",
-			nsConfig: config.Namespaces{
-				Include: []string{config.AllNamespaceIndicator},
-				Ignore:  []string{"demo", "abc", "ns-*-test"},
-			},
+			name:            "All namespace enabled and a few ignored",
+			executorsConfig: rawDisabledExecutorsConfig,
 			expOutput: heredoc.Doc(`
-				allowed namespaces:
-				  include:
-				    - all
-				  ignore:
-				    - demo
-				    - abc
-				    - ns-*-test
-				`),
-		},
-		{
-			name: "Only some namespace enabled",
-			nsConfig: config.Namespaces{
-				Include: []string{"demo", "abc"},
-			},
-			expOutput: heredoc.Doc(`
-				allowed namespaces:
-				  include:
-				    - demo
-				    - abc
-			 `),
+           Enabled executors:
+             kubectl: {}
+           `),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			e := &DefaultExecutor{cfg: config.Config{
-				Executors: config.IndexableMap[config.Executors]{
-					"default": config.Executors{
-						Kubectl: config.Kubectl{
-							Namespaces: tc.nsConfig,
-						},
-					},
+			executor := &DefaultExecutor{
+				cfg: config.Config{
+					Executors: fixExecutorsConfig(t, tc.executorsConfig),
 				},
-			}}
+			}
 
 			// when
-			res, err := e.getNamespaceConfig()
+			res, err := executor.getEnabledKubectlConfigs()
 
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, tc.expOutput, res)
 		})
 	}
+}
+
+func fixExecutorsConfig(t *testing.T, raw string) config.IndexableMap[config.Executors] {
+	t.Helper()
+
+	var givenCfg config.Config
+	err := yaml.Unmarshal([]byte(raw), &givenCfg)
+	require.NoError(t, err)
+
+	return givenCfg.Executors
 }

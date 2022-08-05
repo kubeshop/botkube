@@ -121,30 +121,58 @@ func TestSlack(t *testing.T) {
 	t.Run("Commands list", func(t *testing.T) {
 		command := "commands list"
 		expectedMessage := codeBlock(heredoc.Doc(`
-			allowed verbs:
-			  - api-resources
-			  - api-versions
-			  - auth
-			  - cluster-info
-			  - describe
-			  - diff
-			  - explain
-			  - get
-			  - logs
-			  - top
-			allowed resources:
-			  - configmaps
-			  - daemonsets
-			  - deployments
-			  - namespaces
-			  - nodes
-			  - pods
-			  - statefulsets
-			  - storageclasses
-			allowed namespaces:
-			  include:
-			    - botkube
-			    - default`))
+			Enabled executors:
+			  kubectl:
+			    kubectl-allow-all:
+			      namespaces:
+			        include:
+			          - all
+			      enabled: true
+			      commands:
+			        verbs:
+			          - get
+			        resources:
+			          - deployments
+			    kubectl-read-only:
+			      namespaces:
+			        include:
+			          - botkube
+			          - default
+			      enabled: true
+			      commands:
+			        verbs:
+			          - api-resources
+			          - api-versions
+			          - cluster-info
+			          - describe
+			          - diff
+			          - explain
+			          - get
+			          - logs
+			          - top
+			          - auth
+			        resources:
+			          - deployments
+			          - pods
+			          - namespaces
+			          - daemonsets
+			          - statefulsets
+			          - storageclasses
+			          - nodes
+			          - configmaps
+			      defaultNamespace: default
+			      restrictAccess: false
+			    kubectl-wait-cmd:
+			      namespaces:
+			        include:
+			          - botkube
+			          - default
+			      enabled: true
+			      commands:
+			        verbs:
+			          - wait
+			        resources: []
+			      restrictAccess: false`))
 
 		t.Run("With default cluster", func(t *testing.T) {
 			slackTester.PostMessageToBot(t, channel.Name, command)
@@ -200,7 +228,7 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get ingress"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources on cluster '%s'. Use 'commands list' to see all allowed resources.", appCfg.ClusterName))
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -233,11 +261,59 @@ func TestSlack(t *testing.T) {
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "get po --namespace team-b"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces.", appCfg.ClusterName))
+			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
 			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
+		})
+
+		t.Run("Based on other bindings", func(t *testing.T) {
+			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
+				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+				assertionFn := func(msg slack.Message) bool {
+					return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg.Text, "deployment.apps/botkube condition met")
+				}
+
+				slackTester.PostMessageToBot(t, channel.Name, command)
+				err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				assert.NoError(t, err)
+			})
+
+			t.Run("Exec (the 3rd binding which is disabled)", func(t *testing.T) {
+				command := "exec"
+				expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
+
+				slackTester.PostMessageToBot(t, channel.Name, command)
+				err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				assert.NoError(t, err)
+			})
+
+			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
+				command := "get pods -A"
+				expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+
+				slackTester.PostMessageToBot(t, channel.Name, command)
+				err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				assert.NoError(t, err)
+			})
+
+			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
+				command := "get deploy -A"
+				assertionFn := func(msg slack.Message) bool {
+					return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg.Text, "local-path-provisioner") &&
+						strings.Contains(msg.Text, "coredns") &&
+						strings.Contains(msg.Text, "traefik") &&
+						strings.Contains(msg.Text, "metrics-server") &&
+						strings.Contains(msg.Text, "botkube")
+				}
+
+				slackTester.PostMessageToBot(t, channel.Name, command)
+				err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				assert.NoError(t, err)
+			})
 		})
 	})
 

@@ -60,14 +60,11 @@ type Mattermost struct {
 	BotName          string
 	TeamName         string
 	ChannelID        string
-	ClusterName      string
-	AllowKubectl     bool
-	RestrictAccess   bool
 	ServerURL        string
 	WebSocketURL     string
 	WSClient         *model.WebSocketClient
 	APIClient        *model.Client4
-	DefaultNamespace string
+	ExecutorBindings []string
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -120,10 +117,7 @@ func NewMattermost(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		Token:            mattermost.Token,
 		TeamName:         mattermost.Team,
 		ChannelID:        channel.Id,
-		ClusterName:      c.Settings.ClusterName,
-		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
-		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
+		ExecutorBindings: mattermost.Channels.GetFirst().Bindings.Executors,
 		APIClient:        client,
 		WebSocketURL:     webSocketURL,
 	}, nil
@@ -212,7 +206,7 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 	mm.Request = r.ReplaceAllString(post.Message, ``)
 
 	e := mm.executorFactory.NewDefault(b.IntegrationName(), b, mm.IsAuthChannel, mm.Request)
-	mm.Response = e.Execute()
+	mm.Response = e.Execute(b.ExecutorBindings)
 	mm.sendMessage()
 }
 

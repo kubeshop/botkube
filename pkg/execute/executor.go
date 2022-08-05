@@ -3,7 +3,6 @@ package execute
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -71,7 +70,6 @@ type DefaultExecutor struct {
 	filterEngine     filterengine.FilterEngine
 	log              logrus.FieldLogger
 	runCmdFn         CommandRunnerFunc
-	resMapping       ResourceMapping
 	notifierExecutor *NotifierExecutor
 	notifierHandler  NotifierHandler
 
@@ -140,7 +138,7 @@ func (action FiltersAction) String() string {
 }
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute() string {
+func (e *DefaultExecutor) Execute(channelBindings []string) string {
 	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.Message)
 
@@ -164,7 +162,7 @@ func (e *DefaultExecutor) Execute() string {
 		return "" // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(args) {
+	if e.kubectlExecutor.CanHandle(channelBindings, args) {
 		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
 		// The length of the slice was already checked before
 		// See the DefaultExecutor.Execute() logic.
@@ -174,10 +172,11 @@ func (e *DefaultExecutor) Execute() string {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
-		out, err := e.kubectlExecutor.Execute(e.Message, e.IsAuthChannel)
+		out, err := e.kubectlExecutor.Execute(channelBindings, e.Message, e.IsAuthChannel)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
+			return ""
 		}
 		return out
 	}
@@ -307,15 +306,13 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
 	}
 
-	allowedVerbs := e.getSortedEnabledCommands("allowed verbs", e.resMapping.AllowedKubectlVerbMap)
-	allowedResources := e.getSortedEnabledCommands("allowed resources", e.resMapping.AllowedKubectlResourceMap)
-	allowedNamespaces, err := e.getNamespaceConfig()
+	enabledKubectls, err := e.getEnabledKubectlConfigs()
 	if err != nil {
 		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 		e.log.Errorf("while rendering namespace config: %s", err.Error())
 	}
 
-	return fmt.Sprintf("%s%s%s", allowedVerbs, allowedResources, allowedNamespaces)
+	return enabledKubectls
 }
 
 // Use tabwriter to display string in tabular form
@@ -377,32 +374,24 @@ func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) s
 	return e.findBotKubeVersion()
 }
 
-func (e *DefaultExecutor) getSortedEnabledCommands(header string, commands map[string]bool) string {
-	var keys []string
-	for key := range commands {
-		if !commands[key] {
+func (e *DefaultExecutor) getEnabledKubectlConfigs() (string, error) {
+	type kubectlCollection map[string]config.Kubectl
+
+	enabledKubectls := kubectlCollection{}
+	for name, item := range e.cfg.Executors {
+		if !item.Kubectl.Enabled {
 			continue
 		}
 
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	if len(keys) == 0 {
-		return fmt.Sprintf("%s: []", header)
+		enabledKubectls[name] = item.Kubectl
 	}
 
-	const itemSeparator = "\n  - "
-	items := strings.Join(keys, itemSeparator)
-	return fmt.Sprintf("%s:%s%s\n", header, itemSeparator, items)
-}
-
-func (e *DefaultExecutor) getNamespaceConfig() (string, error) {
-	ns := e.cfg.Executors.GetFirst().Kubectl.Namespaces
-
-	out := map[string]config.Namespaces{
-		"allowed namespaces": ns,
+	out := map[string]map[string]kubectlCollection{
+		"Enabled executors": {
+			"kubectl": enabledKubectls,
+		},
 	}
+
 	var buff strings.Builder
 	encode := yaml.NewEncoder(&buff)
 	encode.SetIndent(2)

@@ -47,11 +47,8 @@ type Slack struct {
 
 	Client           *slack.Client
 	Notification     config.Notification
-	AllowKubectl     bool
-	RestrictAccess   bool
-	ClusterName      string
 	ChannelName      string
-	DefaultNamespace string
+	ExecutorBindings []string
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -87,11 +84,8 @@ func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory Executor
 		botID:            botID,
 		Client:           client,
 		Notification:     slackCfg.Notification,
-		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
-		ClusterName:      c.Settings.ClusterName,
 		ChannelName:      slackCfg.Channels.GetFirst().Name,
-		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
+		ExecutorBindings: slackCfg.Channels.GetFirst().Bindings.Executors,
 	}, nil
 }
 
@@ -219,7 +213,7 @@ func (sm *slackMessage) HandleMessage(b *Slack) error {
 	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
 
 	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, sm.IsAuthChannel, sm.Request)
-	sm.Response = e.Execute()
+	sm.Response = e.Execute(b.ExecutorBindings)
 	err = sm.Send()
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)

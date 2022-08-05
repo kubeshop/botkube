@@ -54,20 +54,18 @@ type Teams struct {
 	notifyMutex     sync.RWMutex
 	notify          bool
 
-	BotName          string
-	AppID            string
-	AppPassword      string
-	MessagePath      string
-	Port             string
-	AllowKubectl     bool
-	RestrictAccess   bool
-	ClusterName      string
-	Notification     config.Notification
-	Adapter          core.Adapter
-	DefaultNamespace string
+	BotName      string
+	AppID        string
+	AppPassword  string
+	MessagePath  string
+	Port         string
+	ClusterName  string
+	Notification config.Notification
+	Adapter      core.Adapter
 
 	conversationRefMutex sync.RWMutex
 	conversationRef      *schema.ConversationReference
+	ExecutorsBindings    []string
 }
 
 type consentContext struct {
@@ -87,20 +85,18 @@ func NewTeams(log logrus.FieldLogger, c *config.Config, executorFactory Executor
 		msgPath = "/"
 	}
 	return &Teams{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		notify:           false, // disabled by default
-		BotName:          teams.BotName,
-		AppID:            teams.AppID,
-		AppPassword:      teams.AppPassword,
-		Notification:     teams.Notification,
-		MessagePath:      msgPath,
-		Port:             port,
-		AllowKubectl:     c.Executors.GetFirst().Kubectl.Enabled,
-		RestrictAccess:   c.Executors.GetFirst().Kubectl.RestrictAccess,
-		DefaultNamespace: c.Executors.GetFirst().Kubectl.DefaultNamespace,
-		ClusterName:      c.Settings.ClusterName,
+		log:               log,
+		executorFactory:   executorFactory,
+		reporter:          reporter,
+		notify:            false, // disabled by default
+		BotName:           teams.BotName,
+		AppID:             teams.AppID,
+		AppPassword:       teams.AppPassword,
+		Notification:      teams.Notification,
+		MessagePath:       msgPath,
+		Port:              port,
+		ExecutorsBindings: teams.Channels.GetFirst().Bindings.Executors,
+		ClusterName:       c.Settings.ClusterName,
 	}
 }
 
@@ -220,7 +216,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
 			msg := strings.TrimSpace(msgWithoutPrefix)
 			e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
-			out := e.Execute()
+			out := e.Execute(b.ExecutorsBindings)
 
 			actJSON, _ := json.MarshalIndent(turn.Activity, "", "  ")
 			b.log.Debugf("Incoming MSTeams Activity: %s", actJSON)
@@ -259,7 +255,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	// Multicluster is not supported for Teams
 
 	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, activity), true, msg)
-	return format.CodeBlock(e.Execute())
+	return format.CodeBlock(e.Execute(b.ExecutorsBindings))
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {

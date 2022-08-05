@@ -31,6 +31,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -114,22 +115,30 @@ func run() error {
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
 
-	// Create Executor Factory
-	resMapping, err := execute.LoadResourceMappingIfShould(
-		logger.WithField(componentLogFieldKey, "Resource Mapping Loader"),
-		conf,
-		discoveryCli,
-	)
-	if err != nil {
-		return reportFatalError("while loading resource mapping", err)
+	// Kubectl config merger
+	kcMerger := kubectl.NewMerger(conf.Executors)
+
+	// Load resource variants name if needed
+	var resourceNameNormalizerFunc kubectl.ResourceVariantsFunc
+	if kcMerger.IsAtLeastOneEnabled() {
+		resourceNameNormalizer, err := kubectl.NewResourceNormalizer(
+			logger.WithField(componentLogFieldKey, "Resource Name Normalizer"),
+			discoveryCli,
+		)
+		if err != nil {
+			return reportFatalError("while creating resource name normalizer", err)
+		}
+		resourceNameNormalizerFunc = resourceNameNormalizer.Normalize
 	}
 
+	// Create executor factor
 	executorFactory := execute.NewExecutorFactory(
 		logger.WithField(componentLogFieldKey, "Executor"),
 		execute.DefaultCommandRunnerFunc,
 		*conf,
 		filterEngine,
-		resMapping,
+		kubectl.NewChecker(resourceNameNormalizerFunc),
+		kcMerger,
 		reporter,
 	)
 

@@ -3,37 +3,44 @@ package execute
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const (
-	kubectlDisabledMsgFmt            = "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster '%s'."
-	kubectlNotAuthorizedMsgFmt       = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedNamespaceMsgFmt = "Sorry, the kubectl command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see all allowed namespaces."
-	kubectlNotAllowedKindMsgFmt      = "Sorry, the kubectl command is not authorized to work with '%s' resources on cluster '%s'. Use 'commands list' to see all allowed resources."
-	kubectlDefaultNamespace          = "default"
+	kubectlNotAuthorizedMsgFmt         = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
+	kubectlNotAllowedVerbMsgFmt        = "Sorry, the kubectl '%s' command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedVerbInAllNsMsgFmt = "Sorry, the kubectl '%s' command cannot be executed for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedKindMsgFmt        = "Sorry, the kubectl command is not authorized to work with '%s' resources in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedKinInAllNsMsgFmt  = "Sorry, the kubectl command is not authorized to work with '%s' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlFlagAfterVerbMsg            = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
+	kubectlDefaultNamespace            = "default"
 )
 
 // Kubectl executes kubectl commands using local binary.
 type Kubectl struct {
-	log        logrus.FieldLogger
-	cfg        config.Config
-	resMapping ResourceMapping
-	runCmdFn   CommandRunnerFunc
+	log logrus.FieldLogger
+	cfg config.Config
+
+	kcChecker *kubectl.Checker
+	runCmdFn  CommandRunnerFunc
+	merger    *kubectl.Merger
 }
 
 // NewKubectl creates a new instance of Kubectl.
-func NewKubectl(log logrus.FieldLogger, cfg config.Config, mapping ResourceMapping, fn CommandRunnerFunc) *Kubectl {
+func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merger, kcChecker *kubectl.Checker, fn CommandRunnerFunc) *Kubectl {
 	return &Kubectl{
-		log:        log,
-		cfg:        cfg,
-		resMapping: mapping,
-		runCmdFn:   fn,
+		log:       log,
+		cfg:       cfg,
+		merger:    merger,
+		kcChecker: kcChecker,
+		runCmdFn:  fn,
 	}
 }
 
@@ -41,13 +48,13 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, mapping ResourceMappi
 //
 // TODO: we should just introduce a command name explicitly. In this case `@BotKube kubectl get po` instead of `@BotKube get po`
 // As a result, we are able to detect kubectl command but say that you're simply not authorized to use it instead of "Command not supported. (..)"
-func (e *Kubectl) CanHandle(args []string) bool {
+func (e *Kubectl) CanHandle(bindings []string, args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
 
 	// Check if such kubectl verb is enabled
-	if !e.resMapping.AllowedKubectlVerbMap[args[0]] {
+	if !e.kcChecker.IsKnownVerb(e.merger.MergeAllEnabledVerbs(bindings), args[0]) {
 		return false
 	}
 
@@ -59,7 +66,7 @@ func (e *Kubectl) CanHandle(args []string) bool {
 // This method should be called ONLY if:
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
-func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
+func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool) (string, error) {
 	log := e.log.WithFields(logrus.Fields{
 		"isAuthChannel": isAuthChannel,
 		"command":       command,
@@ -68,49 +75,55 @@ func (e *Kubectl) Execute(command string, isAuthChannel bool) (string, error) {
 	log.Debugf("Handling command...")
 
 	var (
-		// TODO: https://github.com/kubeshop/botkube/issues/596
-		// use a related config from communicator bindings.
-		kubectlCfg = e.cfg.Executors.GetFirst().Kubectl
-
-		args             = strings.Fields(strings.TrimSpace(command))
-		clusterName      = e.cfg.Settings.ClusterName
-		defaultNamespace = kubectlCfg.DefaultNamespace
+		args        = strings.Fields(strings.TrimSpace(command))
+		clusterName = e.cfg.Settings.ClusterName
+		verb        = args[0]
+		resource    = e.getResourceName(args)
 	)
 
-	if !isAuthChannel && kubectlCfg.RestrictAccess {
+	executionNs, err := e.getCommandNamespace(args)
+	if err != nil {
+		return "", fmt.Errorf("while extracting Namespace from command: %w", err)
+	}
+	if executionNs == "" { // namespace not found in command, so find default and add `-n` flag to args
+		executionNs = e.findDefaultNamespace(bindings)
+		args = e.addNamespaceFlag(args, executionNs)
+	}
+
+	kcConfig := e.merger.MergeForNamespace(bindings, executionNs)
+
+	if !isAuthChannel && kcConfig.RestrictAccess {
 		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
 		return e.omitIfIfWeAreNotExplicitlyTargetCluster(log, command, msg)
 	}
 
-	if !kubectlCfg.Enabled {
-		msg := fmt.Sprintf(kubectlDisabledMsgFmt, clusterName)
-		return e.omitIfIfWeAreNotExplicitlyTargetCluster(log, command, msg)
+	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
+		if executionNs == config.AllNamespaceIndicator {
+			return fmt.Sprintf(kubectlNotAllowedVerbInAllNsMsgFmt, verb, clusterName), nil
+		}
+		return fmt.Sprintf(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName), nil
 	}
 
 	// Some commands don't have resources specified directly in command. For example:
 	// - kubectl logs foo
-	if !validDebugCommands[args[0]] {
+	if !validDebugCommands[verb] && resource != "" {
+		if !e.validResourceName(resource) {
+			return kubectlFlagAfterVerbMsg, nil
+		}
 		// Check if user has access to a given Kubernetes resource
 		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
-		if len(args) > 1 && !e.matchesAllowedResources(args[1]) {
-			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, args[1], clusterName), nil
+		if !e.kcChecker.IsResourceAllowedInNs(kcConfig, resource) {
+			if executionNs == config.AllNamespaceIndicator {
+				return fmt.Sprintf(kubectlNotAllowedKinInAllNsMsgFmt, resource, clusterName), nil
+			}
+			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, resource, executionNs, clusterName), nil
 		}
-	}
-
-	args, executionNs, err := e.ensureNamespaceFlag(args, defaultNamespace)
-	if err != nil {
-		return "", fmt.Errorf("while ensuring Namespace for command execution: %w", err)
-	}
-
-	if !kubectlCfg.Namespaces.IsAllowed(executionNs) {
-		return fmt.Sprintf(kubectlNotAllowedNamespaceMsgFmt, executionNs, clusterName), nil
 	}
 
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.runCmdFn(kubectlBinary, finalArgs)
 	if err != nil {
-		errCtx := fmt.Errorf("while executing kubectl command: %w", err)
-		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), errCtx
+		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), nil
 	}
 
 	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out), nil
@@ -161,7 +174,7 @@ func (e *Kubectl) getFinalArgs(args []string) []string {
 }
 
 // getNamespaceFlag returns the namespace value extracted from a given args.
-// If `--namespace/-n` was not found, returns 'default'.
+// If `--namespace/-n` was not found, returns empty string.
 func (e *Kubectl) getNamespaceFlag(args []string) (string, error) {
 	f := pflag.NewFlagSet("extract-ns", pflag.ContinueOnError)
 	// ignore unknown flags errors, e.g. `--cluster-name` etc.
@@ -175,40 +188,70 @@ func (e *Kubectl) getNamespaceFlag(args []string) (string, error) {
 	return out, nil
 }
 
-// ensureNamespaceFlag ensures that a Namespace flag is available in args. If necessary, add it to returned args list.
-func (e *Kubectl) ensureNamespaceFlag(args []string, defaultNamespace string) ([]string, string, error) {
-	executionNs, err := e.getNamespaceFlag(args)
-	if err != nil {
-		return nil, "", fmt.Errorf("while getting Namespace for command execution: %w", err)
-	}
-	if executionNs != "" { // was specified in a received command
-		return args, executionNs, nil
-	}
+// getAllNamespaceFlag returns the namespace value extracted from a given args.
+// If `--A, --all-namespaces` was not found, returns empty string.
+func (e *Kubectl) getAllNamespaceFlag(args []string) (bool, error) {
+	f := pflag.NewFlagSet("extract-ns", pflag.ContinueOnError)
+	// ignore unknown flags errors, e.g. `--cluster-name` etc.
+	f.ParseErrorsWhitelist.UnknownFlags = true
 
-	if defaultNamespace == "" {
-		defaultNamespace = kubectlDefaultNamespace
+	var out bool
+	f.BoolVarP(&out, "all-namespaces", "A", false, "Kubernetes All Namespaces")
+	if err := f.Parse(args); err != nil {
+		return false, err
 	}
-
-	args = append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
-
-	return args, defaultNamespace, nil
+	return out, nil
 }
 
-func (e *Kubectl) matchesAllowedResources(name string) bool {
-	variants := []string{
-		// received name
-		name,
-		// normalized short name
-		e.resMapping.ShortnameResourceMap[strings.ToLower(name)],
-		// normalized kind name
-		e.resMapping.KindResourceMap[strings.ToLower(name)],
+func (e *Kubectl) getCommandNamespace(args []string) (string, error) {
+	// 1. Check for `-A, --all-namespaces` in args. Based on the kubectl manual:
+	//    "Namespace in current context is ignored even if specified with --namespace."
+	inAllNs, err := e.getAllNamespaceFlag(args)
+	if err != nil {
+		return "", err
+	}
+	if inAllNs {
+		return config.AllNamespaceIndicator, nil // TODO: find all namespaces
 	}
 
-	for _, name := range variants {
-		if e.resMapping.AllowedKubectlResourceMap[name] {
-			return true
-		}
+	// 2. Check for `-n/--namespace` in args
+	executionNs, err := e.getNamespaceFlag(args)
+	if err != nil {
+		return "", err
+	}
+	if executionNs != "" {
+		return executionNs, nil
 	}
 
-	return false
+	return "", nil
+}
+
+func (e *Kubectl) findDefaultNamespace(bindings []string) string {
+	// 1. Merge all enabled kubectls, to find the defaultNamespace settings
+	cfg := e.merger.MergeAllEnabled(bindings)
+	if cfg.DefaultNamespace != "" {
+		// 2. Use user defined default
+		return cfg.DefaultNamespace
+	}
+
+	// 3. If not found, explicitly use `default` namespace.
+	return kubectlDefaultNamespace
+}
+
+// addNamespaceFlag add namespace to returned args list.
+func (e *Kubectl) addNamespaceFlag(args []string, defaultNamespace string) []string {
+	return append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+}
+
+func (e *Kubectl) getResourceName(args []string) string {
+	if len(args) < 2 {
+		return ""
+	}
+	resource, _, _ := strings.Cut(args[1], "/")
+	return resource
+}
+
+func (e *Kubectl) validResourceName(resource string) bool {
+	// ensures that resource name starts with letter
+	return unicode.IsLetter(rune(resource[0]))
 }

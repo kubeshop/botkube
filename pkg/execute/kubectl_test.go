@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestKubectlExecute(t *testing.T) {
@@ -19,7 +21,6 @@ func TestKubectlExecute(t *testing.T) {
 
 		command              string
 		channelNotAuthorized bool
-		resMapping           ResourceMapping
 		kubectlCfg           config.Kubectl
 		expKubectlExecuted   bool
 		expOutMsg            string
@@ -30,12 +31,13 @@ func TestKubectlExecute(t *testing.T) {
 			command:              "get pod --cluster-name test",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
-				Enabled:        true,
-				RestrictAccess: true,
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"default"},
+				},
+				RestrictAccess: ptr.Bool(true),
+				Commands: config.Commands{
+					Verbs: []string{"get"},
 				},
 			},
 
@@ -48,12 +50,13 @@ func TestKubectlExecute(t *testing.T) {
 			command:              "get pod --cluster-name other-cluster",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
-				Enabled:        true,
-				RestrictAccess: true,
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"default"},
+				},
+				RestrictAccess: ptr.Bool(true),
+				Commands: config.Commands{
+					Verbs: []string{"get"},
 				},
 			},
 
@@ -66,12 +69,13 @@ func TestKubectlExecute(t *testing.T) {
 			command:              "get pod",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
-				Enabled:        true,
-				RestrictAccess: true,
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"default"},
+				},
+				RestrictAccess: ptr.Bool(true),
+				Commands: config.Commands{
+					Verbs: []string{"get"},
 				},
 			},
 
@@ -79,49 +83,56 @@ func TestKubectlExecute(t *testing.T) {
 			expOutMsg:          "",
 		},
 		{
-			name: "Should forbid execution if kubectl is disabled in config",
-
-			command:    "get pod --cluster-name test",
-			kubectlCfg: config.Kubectl{Enabled: false},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-			},
-
-			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the admin hasn't given me the permission to execute kubectl command on cluster 'test'.",
-		},
-		{
 			name: "Should forbid execution if resource is not allowed in config",
 
-			command:    "get pod",
-			kubectlCfg: config.Kubectl{Enabled: true},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+			command: "get pod -n foo",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"foo"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: nil,
 				},
 			},
-
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command is not authorized to work with 'pod' resources on cluster 'test'. Use 'commands list' to see all allowed resources.",
+			expOutMsg:          "Sorry, the kubectl command is not authorized to work with 'pod' resources in the 'foo' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+		},
+		{
+			name: "Should all execution if resource is missing, so kubectl can validate it further",
+
+			command: "get",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"default"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: nil,
+				},
+			},
+			expKubectlExecuted: true,
+			expOutMsg:          "Cluster: test\nkubectl executed",
 		},
 		{
 			name: "Should forbid execution if namespace is not allowed in config",
 
-			command:    "get pod",
-			kubectlCfg: config.Kubectl{Enabled: true},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+			command: "get pod",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: nil, // no namespace allowed.
 				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
 		},
 		{
 			name: "Should use default Namespace from config if not specified in command",
@@ -130,18 +141,17 @@ func TestKubectlExecute(t *testing.T) {
 			kubectlCfg: config.Kubectl{
 				Enabled:          true,
 				DefaultNamespace: "from-config",
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+				Namespaces: config.Namespaces{
+					Include: nil, // forbid `from-config` to get a suitable error message.
 				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'from-config' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed in the 'from-config' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
 		},
 		{
 			name: "Should explicitly use 'default' Namespace if not specified both in command and config",
@@ -149,18 +159,17 @@ func TestKubectlExecute(t *testing.T) {
 			command: "get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+				Namespaces: config.Namespaces{
+					Include: nil, // forbid `default` to get a suitable error message.
 				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution in not allowed namespace",
@@ -171,18 +180,14 @@ func TestKubectlExecute(t *testing.T) {
 				Namespaces: config.Namespaces{
 					Include: []string{"team-a"},
 				},
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution if all namespace are allowed but command namespace is explicitly ignored in config",
@@ -194,18 +199,14 @@ func TestKubectlExecute(t *testing.T) {
 					Include: []string{config.AllNamespaceIndicator},
 					Ignore:  []string{"team-b"},
 				},
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: false,
-			expOutMsg:          "Sorry, the kubectl command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see all allowed namespaces.",
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
 		},
 		{
 			name: "Should allow execution if verb, resource, and all namespaces are allowed",
@@ -216,13 +217,9 @@ func TestKubectlExecute(t *testing.T) {
 				Namespaces: config.Namespaces{
 					Include: []string{config.AllNamespaceIndicator},
 				},
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
@@ -238,13 +235,9 @@ func TestKubectlExecute(t *testing.T) {
 				Namespaces: config.Namespaces{
 					Include: []string{"team-a"},
 				},
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
@@ -252,7 +245,7 @@ func TestKubectlExecute(t *testing.T) {
 			expOutMsg:          "Cluster: test\nkubectl executed",
 		},
 		{
-			name: "Should allow execution from not authorized channel if restrictions are not enabled",
+			name: "Should allow execution from not authorized channel if restrictions are disabled",
 
 			command:              "get pod -n team-a",
 			channelNotAuthorized: true,
@@ -261,37 +254,127 @@ func TestKubectlExecute(t *testing.T) {
 				Namespaces: config.Namespaces{
 					Include: []string{"team-a"},
 				},
-			},
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
-				},
-				AllowedKubectlResourceMap: map[string]bool{
-					"pod": true,
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expKubectlExecuted: true,
 			expOutMsg:          "Cluster: test\nkubectl executed",
 		},
+		{
+			name: "Should allow execution from not authorized channel if restrictions are disabled",
+
+			command:              "get pod/name-foo-42 -n team-a",
+			channelNotAuthorized: true,
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expKubectlExecuted: true,
+			expOutMsg:          "Cluster: test\nkubectl executed",
+		},
+		{
+			name: "Should allow execution for all Namespaces",
+
+			command: "get pod/name-foo-42 -n team-a",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expKubectlExecuted: true,
+			expOutMsg:          "Cluster: test\nkubectl executed",
+		},
+		{
+			name: "Should forbid execution for all Namespaces",
+
+			command: "get pod -A",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expKubectlExecuted: false,
+			expOutMsg:          "Sorry, the kubectl 'get' command cannot be executed for all Namespaces on cluster 'test'. Use 'commands list' to see allowed commands.",
+		},
+		{
+			name: "Should all execution for all Namespaces",
+
+			command: "get pod -A",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"all"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expKubectlExecuted: true,
+			expOutMsg:          "Cluster: test\nkubectl executed",
+		},
+		{
+			name: "Known limitation (since v0.12.4): Return error if flag is added before resource name",
+
+			command: "get -n team-a pod",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expKubectlExecuted: false,
+			expOutMsg:          "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			cfg := fixCfgWithKubectlExecutor(t, tc.kubectlCfg)
+			merger := kubectl.NewMerger(cfg.Executors)
+			kcChecker := kubectl.NewChecker(nil)
 
 			wasKubectlExecuted := false
-			executor := NewKubectl(logger, cfg, tc.resMapping, func(command string, args []string) (string, error) {
+
+			executor := NewKubectl(logger, cfg, merger, kcChecker, func(command string, args []string) (string, error) {
 				wasKubectlExecuted = true
 				return "kubectl executed", nil
 			})
 
 			// when
-			canHandle := executor.CanHandle(strings.Fields(strings.TrimSpace(tc.command)))
-			gotOutMsg, err := executor.Execute(tc.command, !tc.channelNotAuthorized)
+			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
+			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized)
 
 			// then
-			assert.True(t, canHandle)
+			assert.True(t, canHandle, "it should be able to handle the execution")
 			require.NoError(t, err)
 			assert.Equal(t, tc.expKubectlExecuted, wasKubectlExecuted)
 			assert.Equal(t, tc.expOutMsg, gotOutMsg)
@@ -307,23 +390,37 @@ func TestKubectlCanHandle(t *testing.T) {
 
 		command      string
 		expCanHandle bool
-		resMapping   ResourceMapping
+		kubectlCfg   config.Kubectl
 	}{
 		{
 			name:    "Should allow for known verb",
 			command: "get pod --cluster-name test",
-			resMapping: ResourceMapping{
-				AllowedKubectlVerbMap: map[string]bool{
-					"get": true,
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
 				},
 			},
 
 			expCanHandle: true,
 		},
 		{
-			name:       "Should forbid if verbs is unknown",
-			command:    "get pod --cluster-name test",
-			resMapping: ResourceMapping{},
+			name:    "Should forbid if verbs is unknown",
+			command: "get pod --cluster-name test",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"describe"},
+					Resources: []string{"pod"},
+				},
+			},
 
 			expCanHandle: false,
 		},
@@ -331,16 +428,22 @@ func TestKubectlCanHandle(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			executor := NewKubectl(logger, config.Config{}, tc.resMapping, nil)
+			cfg := fixCfgWithKubectlExecutor(t, tc.kubectlCfg)
+			merger := kubectl.NewMerger(cfg.Executors)
+			kcChecker := kubectl.NewChecker(nil)
+
+			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
 
 			// when
-			canHandle := executor.CanHandle(strings.Fields(strings.TrimSpace(tc.command)))
+			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
 
 			// then
 			assert.Equal(t, tc.expCanHandle, canHandle)
 		})
 	}
 }
+
+var fixBindingsNames = []string{"default"}
 
 func fixCfgWithKubectlExecutor(t *testing.T, executor config.Kubectl) config.Config {
 	t.Helper()
