@@ -21,7 +21,7 @@ type DefaultExecutorFactory struct {
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute(bindings []string) string
+	Execute() string
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
@@ -54,7 +54,7 @@ func NewExecutorFactory(log logrus.FieldLogger, runCmdFn CommandRunnerFunc, cfg 
 }
 
 // NewDefault creates new Default Executor.
-func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegration, notifierHandler NotifierHandler, isAuthChannel bool, message string) Executor {
+func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegration, notifierHandler NotifierHandler, isAuthChannel bool, conversationID string, bindings []string, message string) Executor {
 	return &DefaultExecutor{
 		log:               f.log,
 		runCmdFn:          f.runCmdFn,
@@ -65,8 +65,10 @@ func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegrat
 		filterEngine:      f.filterEngine,
 
 		notifierHandler: notifierHandler,
-		IsAuthChannel:   isAuthChannel,
-		Message:         message,
-		Platform:        platform,
+		isAuthChannel:   isAuthChannel,
+		bindings:        bindings,
+		message:         message,
+		platform:        platform,
+		conversationID:  conversationID,
 	}
 }

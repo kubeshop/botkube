@@ -12,16 +12,15 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-func (b *Slack) formatMessage(event events.Event, notification config.Notification) (attachment slack.Attachment) {
-	switch notification.Type {
+func (b *Slack) formatMessage(event events.Event) slack.Attachment {
+	var attachment slack.Attachment
+
+	switch b.notification.Type {
 	case config.LongNotification:
 		attachment = b.longNotification(event)
-
 	case config.ShortNotification:
 		fallthrough
-
 	default:
-		// set missing cluster name to an event object
 		attachment = b.shortNotification(event)
 	}
 

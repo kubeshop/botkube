@@ -20,6 +20,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 var _ Sink = &Elasticsearch{}
@@ -40,14 +41,8 @@ const (
 type Elasticsearch struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
-
-	ELSClient     *elastic.Client
-	Server        string
-	SkipTLSVerify bool
-	Index         string
-	Shards        int
-	Replicas      int
-	IndexType     string
+	client   *elastic.Client
+	indices  map[string]config.ELSIndex
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
@@ -113,13 +108,10 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 	}
 
 	esNotifier := &Elasticsearch{
-		log:       log,
-		reporter:  reporter,
-		ELSClient: elsClient,
-		Index:     c.Indices.GetFirst().Name,
-		IndexType: c.Indices.GetFirst().Type,
-		Shards:    c.Indices.GetFirst().Shards,
-		Replicas:  c.Indices.GetFirst().Replicas,
+		log:      log,
+		reporter: reporter,
+		client:   elsClient,
+		indices:  c.Indices,
 	}
 
 	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
@@ -142,11 +134,11 @@ type index struct {
 	Replicas int `json:"number_of_replicas"`
 }
 
-func (e *Elasticsearch) flushIndex(ctx context.Context, event interface{}) error {
+func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex, event interface{}) error {
 	// Construct the ELS Index Name with timestamp suffix
-	indexName := e.Index + "-" + time.Now().Format(indexSuffixFormat)
+	indexName := indexCfg.Name + "-" + time.Now().Format(indexSuffixFormat)
 	// Create index if not exists
-	exists, err := e.ELSClient.IndexExists(indexName).Do(ctx)
+	exists, err := e.client.IndexExists(indexName).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while getting index: %w", err)
 	}
@@ -155,23 +147,23 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, event interface{}) error
 		mapping := mapping{
 			Settings: settings{
 				index{
-					Shards:   e.Shards,
-					Replicas: e.Replicas,
+					Shards:   indexCfg.Shards,
+					Replicas: indexCfg.Replicas,
 				},
 			},
 		}
-		_, err := e.ELSClient.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
+		_, err := e.client.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
 		if err != nil {
 			return fmt.Errorf("while creating index: %w", err)
 		}
 	}
 
 	// Send event to els
-	_, err = e.ELSClient.Index().Index(indexName).Type(e.IndexType).BodyJson(event).Do(ctx)
+	_, err = e.client.Index().Index(indexName).Type(indexCfg.Type).BodyJson(event).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while posting data to ELS: %w", err)
 	}
-	_, err = e.ELSClient.Flush().Index(indexName).Do(ctx)
+	_, err = e.client.Flush().Index(indexName).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while flushing data in ELS: %w", err)
 	}
@@ -183,12 +175,19 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, event interface{}) error
 func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
-	// Create index if not exists
-	if err := e.flushIndex(ctx, event); err != nil {
-		return fmt.Errorf("while sending event to Elasticsearch: %w", err)
+	errs := multierror.New()
+	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
+	for _, indexCfg := range e.indices {
+		err := e.flushIndex(ctx, indexCfg, event)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
+			continue
+		}
+
+		e.log.Debugf("Event successfully sent to Elasticsearch index %q", indexCfg.Name)
 	}
 
-	return nil
+	return errs.ErrorOrNil()
 }
 
 // SendMessage is no-op

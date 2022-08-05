@@ -32,8 +32,10 @@ spec:
           value: "{{ .Values.e2eTest.deployment.waitTimeout }}"
         - name: DEPLOYMENT_ENVS_SLACK_ENABLED_NAME
           value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"
-        - name: DEPLOYMENT_ENVS_SLACK_CHANNEL_ID_NAME
+        - name: DEPLOYMENT_ENVS_DEFAULT_SLACK_CHANNEL_ID_NAME
           value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"
+        - name: DEPLOYMENT_ENVS_SECONDARY_SLACK_CHANNEL_ID_NAME
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_SECONDARY_NAME"
         - name: CLUSTER_NAME
           value: "{{ .Values.settings.clusterName }}"
         - name: SLACK_BOT_NAME

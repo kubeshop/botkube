@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -19,11 +20,10 @@ import (
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 )
 
-func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, channelName string) func(t *testing.T) {
+func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, channels map[string]*slack.Channel) func(t *testing.T) {
 	t.Helper()
 
 	slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName
-	slackChannelIDEnvName := appCfg.Deployment.Envs.SlackChannelIDName
 
 	deployment, err := deployNsCli.Get(context.Background(), appCfg.Deployment.Name, metav1.GetOptions{})
 	require.NoError(t, err)
@@ -52,12 +52,16 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		require.NoError(t, err)
 	}
 
+	newEnvs := []v1.EnvVar{
+		{Name: slackEnabledEnvName, Value: strconv.FormatBool(true)},
+	}
+	for envName, slackChannel := range channels {
+		newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: slackChannel.Name})
+	}
+
 	deployment.Spec.Template.Spec.Containers[containerIdx].Env = updateEnv(
 		envs,
-		[]v1.EnvVar{
-			{Name: slackEnabledEnvName, Value: strconv.FormatBool(true)},
-			{Name: slackChannelIDEnvName, Value: channelName},
-		},
+		newEnvs,
 		nil,
 	)
 

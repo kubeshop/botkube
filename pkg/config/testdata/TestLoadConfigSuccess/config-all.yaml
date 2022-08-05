@@ -34,14 +34,11 @@ communications: # req 1 elm.
       enabled: false
       appID: 'APPLICATION_ID'
       appPassword: 'APPLICATION_PASSWORD'
-      channels:
-        'alias':
-          name: 'TEAMS_CHANNEL_ID'
-          bindings:
-            executors:
-              - kubectl-read-only
-            sources:
-              - k8s-events
+      bindings:
+        executors:
+          - kubectl-read-only
+        sources:
+          - k8s-events
       notification:
         type: short
       port: 3978

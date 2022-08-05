@@ -11,23 +11,28 @@ import (
 )
 
 const (
-	notifierStartMsgFmt  = "Brace yourselves, incoming notifications from cluster %q."
-	notifierStopMsgFmt   = "Sure! I won't send you notifications from cluster %q anymore."
-	notifierStatusMsgFmt = "Notifications from cluster %q are %s."
+	notifierStartMsgFmt         = "Brace yourselves, incoming notifications from cluster '%s'."
+	notifierStopMsgFmt          = "Sure! I won't send you notifications from cluster '%s' here."
+	notifierStatusMsgFmt        = "Notifications from cluster '%s' are %s here."
+	notifierNotConfiguredMsgFmt = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
+
+	notifierCmdFirstArg = "notifier"
 )
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.
 type NotifierHandler interface {
-	// NotificationsEnabled returns current notification status.
-	NotificationsEnabled() bool
+	// NotificationsEnabled returns current notification status for a given conversation ID.
+	NotificationsEnabled(conversationID string) bool
 
-	// SetNotificationsEnabled sets a new notification status.
-	SetNotificationsEnabled(enabled bool) error
+	// SetNotificationsEnabled sets a new notification status for a given conversation ID.
+	SetNotificationsEnabled(conversationID string, enabled bool) error
 }
 
 var (
 	errInvalidNotifierCommand = errors.New("invalid notifier command")
 	errUnsupportedCommand     = errors.New("unsupported command")
+	// ErrNotificationsNotConfigured describes an error when user wants to toggle on/off the notifications for not configured channel.
+	ErrNotificationsNotConfigured = errors.New("notifications not configured for this channel")
 )
 
 // NotifierExecutor executes all commands that are related to notifications.
@@ -44,8 +49,21 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, analyticsRep
 	return &NotifierExecutor{log: log, cfg: cfg, analyticsReporter: analyticsReporter}
 }
 
+// CanHandle returns true if the arguments can be handled by this executor.
+func (e *NotifierExecutor) CanHandle(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+
+	if args[0] != notifierCmdFirstArg {
+		return false
+	}
+
+	return true
+}
+
 // Do executes a given Notifier command based on args.
-func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegration, clusterName string, handler NotifierHandler) (string, error) {
+func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegration, conversationID string, clusterName string, handler NotifierHandler) (string, error) {
 	if len(args) != 2 {
 		return "", errInvalidNotifierCommand
 	}
@@ -66,21 +84,29 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 
 	switch NotifierAction(cmdVerb) {
 	case Start:
-		err := handler.SetNotificationsEnabled(true)
+		err := handler.SetNotificationsEnabled(conversationID, true)
 		if err != nil {
+			if errors.Is(err, ErrNotificationsNotConfigured) {
+				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
+			}
+
 			return "", fmt.Errorf("while setting notifications to true: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStartMsgFmt, clusterName), nil
 	case Stop:
-		err := handler.SetNotificationsEnabled(false)
+		err := handler.SetNotificationsEnabled(conversationID, false)
 		if err != nil {
+			if errors.Is(err, ErrNotificationsNotConfigured) {
+				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
+			}
+
 			return "", fmt.Errorf("while setting notifications to false: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStopMsgFmt, clusterName), nil
 	case Status:
-		enabled := handler.NotificationsEnabled()
+		enabled := handler.NotificationsEnabled(conversationID)
 
 		enabledStr := "enabled"
 		if !enabled {

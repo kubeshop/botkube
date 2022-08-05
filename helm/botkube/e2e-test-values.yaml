@@ -5,13 +5,22 @@ communications:
       token: "" # Provide a valid token for BotKube app
       channels:
         'default':
-          name: ""           # Test will override that
+          name: "" # Tests will override this temporarily
           bindings:
             executors:
               - kubectl-read-only
               - kubectl-wait-cmd
               - kubectl-exec-cmd
               - kubectl-allow-all
+            sources:
+              - k8s-events
+        'secondary':
+          name: "" # Tests will override this temporarily
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
 
 sources:
   'k8s-events':

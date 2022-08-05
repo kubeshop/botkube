@@ -3,7 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +12,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
@@ -23,10 +24,7 @@ import (
 
 var _ Bot = &Slack{}
 
-const (
-	sendFailureMessageFmt = "Unable to send message to channel `%s`: `%s`\n```add Botkube app to the channel %s\nMissed events follows below:```"
-	channelNotFoundCode   = "channel_not_found"
-)
+const slackBotMentionPrefixFmt = "^<@%s>"
 
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
@@ -41,14 +39,13 @@ type Slack struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        FatalErrorAnalyticsReporter
-	notifyMutex     sync.RWMutex
-	notify          bool
 	botID           string
-
-	Client           *slack.Client
-	Notification     config.Notification
-	ChannelName      string
-	ExecutorBindings []string
+	client          *slack.Client
+	notification    config.Notification
+	channelsMutex   sync.RWMutex
+	channels        map[string]channelConfigByName
+	notifyMutex     sync.Mutex
+	botMentionRegex *regexp.Regexp
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -56,19 +53,16 @@ type slackMessage struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 
-	Event         *slack.MessageEvent
-	BotID         string
-	Request       string
-	Response      string
-	IsAuthChannel bool
-	RTM           *slack.RTM
+	Event    *slack.MessageEvent
+	BotID    string
+	Request  string
+	Response string
+	RTM      *slack.RTM
 }
 
 // NewSlack creates a new Slack instance.
-func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	slackCfg := c.Communications.GetFirst().Slack
-
-	client := slack.New(slackCfg.Token)
+func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
+	client := slack.New(cfg.Token)
 
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -76,16 +70,25 @@ func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory Executor
 	}
 	botID := authResp.UserID
 
+	botMentionRegex, err := slackBotMentionRegex(botID)
+	if err != nil {
+		return nil, err
+	}
+
+	channels := slackChannelsConfigFrom(cfg.Channels)
+	if err != nil {
+		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
+	}
+
 	return &Slack{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		notify:           true, // enabled by default
-		botID:            botID,
-		Client:           client,
-		Notification:     slackCfg.Notification,
-		ChannelName:      slackCfg.Channels.GetFirst().Name,
-		ExecutorBindings: slackCfg.Channels.GetFirst().Bindings.Executors,
+		log:             log,
+		executorFactory: executorFactory,
+		reporter:        reporter,
+		botID:           botID,
+		client:          client,
+		notification:    cfg.Notification,
+		channels:        channels,
+		botMentionRegex: botMentionRegex,
 	}, nil
 }
 
@@ -93,7 +96,7 @@ func NewSlack(log logrus.FieldLogger, c *config.Config, executorFactory Executor
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	rtm := b.Client.NewRTM()
+	rtm := b.client.NewRTM()
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
 		rtm.ManageConnection()
@@ -172,48 +175,58 @@ func (b *Slack) IntegrationName() config.CommPlatformIntegration {
 	return config.SlackCommPlatformIntegration
 }
 
-// NotificationsEnabled returns current notification status.
-func (b *Slack) NotificationsEnabled() bool {
-	b.notifyMutex.RLock()
-	defer b.notifyMutex.RUnlock()
-	return b.notify
+// NotificationsEnabled returns current notification status for a given channel name.
+func (b *Slack) NotificationsEnabled(channelName string) bool {
+	channel, exists := b.getChannels()[channelName]
+	if !exists {
+		return false
+	}
+
+	return channel.notify
 }
 
-// SetNotificationsEnabled sets a new notification status.
-func (b *Slack) SetNotificationsEnabled(enabled bool) error {
+// SetNotificationsEnabled sets a new notification status for a given channel name.
+func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error {
+	// avoid race conditions with using the setter concurrently, as we set whole map
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = enabled
+
+	channels := b.getChannels()
+	channel, exists := channels[channelName]
+	if !exists {
+		return execute.ErrNotificationsNotConfigured
+	}
+
+	channel.notify = enabled
+	channels[channelName] = channel
+	b.setChannels(channels)
+
 	return nil
 }
 
 func (sm *slackMessage) HandleMessage(b *Slack) error {
-	// Check if message posted in authenticated channel
-	info, err := b.Client.GetConversationInfo(sm.Event.Channel, true)
-	if err == nil {
-		if info.IsChannel || info.IsPrivate {
-			// Message posted in a channel
-			// Serve only if starts with mention
-			if !strings.HasPrefix(sm.Event.Text, "<@"+sm.BotID+">") {
-				sm.log.Debugf("Ignoring message as it doesn't contain %q prefix", sm.BotID)
-				return nil
-			}
-			// Serve only if current channel is in config
-			if b.ChannelName == info.Name {
-				sm.IsAuthChannel = true
-			}
-		}
+	// Handle message only if starts with mention
+	trimmedMsg, found := b.findAndTrimBotMention(sm.Event.Text)
+	if !found {
+		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
+		return nil
 	}
-	// Serve only if current channel is in config
-	if b.ChannelName == sm.Event.Channel {
-		sm.IsAuthChannel = true
+	sm.Request = trimmedMsg
+
+	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
+	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
+	// but unfortunately BotKube would need another scope (get all conversations).
+	// Keeping current way of doing this until we come up with a better idea.
+	channelID := sm.Event.Channel
+	info, err := b.client.GetConversationInfo(channelID, true)
+	if err != nil {
+		return fmt.Errorf("while getting conversation info: %w", err)
 	}
 
-	// Trim the @BotKube prefix
-	sm.Request = strings.TrimPrefix(sm.Event.Text, "<@"+sm.BotID+">")
+	channel, isAuthChannel := b.getChannels()[info.Name]
 
-	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, sm.IsAuthChannel, sm.Request)
-	sm.Response = e.Execute(b.ExecutorBindings)
+	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, sm.Request)
+	sm.Response = e.Execute()
 	err = sm.Send()
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
@@ -259,61 +272,96 @@ func (sm *slackMessage) Send() error {
 
 // SendEvent sends event notification to slack
 func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
-	if !b.notify {
-		b.log.Info("Notifications are disabled. Skipping event...")
-		return nil
-	}
+	b.log.Debugf(">> Sending to Slack: %+v", event)
+	attachment := b.formatMessage(event)
 
-	b.log.Debugf(">> Sending to slack: %+v", event)
-	attachment := b.formatMessage(event, b.Notification)
-
-	targetChannel := event.Channel
-	if targetChannel == "" {
-		// empty value in event.channel sends notifications to default channel.
-		targetChannel = b.ChannelName
-	}
-	isDefaultChannel := targetChannel == b.ChannelName
-
-	channelID, timestamp, err := b.Client.PostMessage(targetChannel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
-	if err != nil {
-		postMessageWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, err)
-
-		if isDefaultChannel || err.Error() != channelNotFoundCode {
-			return postMessageWrappedErr
+	errs := multierror.New()
+	for _, channelName := range b.getChannelsToNotify(event) {
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
+			continue
 		}
 
-		// channel not found, fallback to default channel
-
-		// send error message to default channel
-		msg := fmt.Sprintf(sendFailureMessageFmt, targetChannel, err.Error(), targetChannel)
-		sendMessageErr := b.SendMessage(ctx, msg)
-		if sendMessageErr != nil {
-			return multierror.Append(postMessageWrappedErr, sendMessageErr)
-		}
-
-		// sending missed event to default channel
-		// reset channel, so it will be defaulted
-		event.Channel = ""
-		sendEventErr := b.SendEvent(ctx, event)
-		if sendEventErr != nil {
-			return multierror.Append(postMessageWrappedErr, sendEventErr)
-		}
-
-		return postMessageWrappedErr
+		b.log.Debugf("Event successfully sent to channel %q (ID: %q) at %b", channelName, channelID, timestamp)
 	}
 
-	b.log.Debugf("Event successfully sent to channel %q at %b", channelID, timestamp)
-	return nil
+	return errs.ErrorOrNil()
+}
+
+func (b *Slack) getChannelsToNotify(event events.Event) []string {
+	// support custom event routing
+	if event.Channel != "" {
+		return []string{event.Channel}
+	}
+
+	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
+	var channelsToNotify []string
+	for _, channelCfg := range b.getChannels() {
+		if !channelCfg.notify {
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
+			continue
+		}
+
+		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
+	}
+	return channelsToNotify
 }
 
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg string) error {
-	b.log.Debugf(">> Sending to slack: %+v", msg)
-	channelID, timestamp, err := b.Client.PostMessageContext(ctx, b.ChannelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
-	if err != nil {
-		return fmt.Errorf("while sending Slack message to channel %q: %w", b.ChannelName, err)
+	errs := multierror.New()
+	for _, channel := range b.getChannels() {
+		channelName := channel.Name
+		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
 	}
 
-	b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
-	return nil
+	return errs.ErrorOrNil()
+}
+
+func (b *Slack) getChannels() map[string]channelConfigByName {
+	b.channelsMutex.RLock()
+	defer b.channelsMutex.RUnlock()
+	return b.channels
+}
+
+func (b *Slack) setChannels(channels map[string]channelConfigByName) {
+	b.channelsMutex.Lock()
+	defer b.channelsMutex.Unlock()
+	b.channels = channels
+}
+
+func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
+	if !b.botMentionRegex.MatchString(msg) {
+		return "", false
+	}
+
+	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
+func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
+	channels := make(map[string]channelConfigByName)
+	for _, channCfg := range channelsCfg {
+		channels[channCfg.Identifier()] = channelConfigByName{
+			ChannelBindingsByName: channCfg,
+			notify:                defaultNotifyValue,
+		}
+	}
+
+	return channels
+}
+
+func slackBotMentionRegex(botID string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(slackBotMentionPrefixFmt, botID))
+	if err != nil {
+		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
+	}
+
+	return botMentionRegex, nil
 }

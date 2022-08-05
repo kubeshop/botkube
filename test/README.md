@@ -71,7 +71,7 @@ This directory contains E2E tests which are run against BotKube installed on Kub
     ```bash
     helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
       -f ./helm/botkube/e2e-test-values.yaml \
-      --set communications.slack.token="${SLACK_BOT_TOKEN}" \
+      --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
       --set image.registry="${IMAGE_REGISTRY}" \
       --set image.repository="${IMAGE_REPOSITORY}" \
       --set image.tag="${IMAGE_TAG}" \

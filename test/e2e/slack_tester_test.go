@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const recentMessagesLimit = 5
@@ -135,6 +137,12 @@ func (s *slackTester) WaitForLastMessageEqual(userID, channelID string, expected
 	})
 }
 
+func (s *slackTester) WaitForLastMessageEqualOnChannels(userID string, channelIDs []string, expectedMsg string) error {
+	return s.WaitForMessagesPostedOnChannels(userID, channelIDs, 1, func(msg slack.Message) bool {
+		return msg.Text == expectedMsg
+	})
+}
+
 func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, msgAssertFn func(msg slack.Message) bool) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
@@ -174,4 +182,13 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 	}
 
 	return nil
+}
+
+func (s *slackTester) WaitForMessagesPostedOnChannels(userID string, channelIDs []string, limitMessages int, msgAssertFn func(msg slack.Message) bool) error {
+	errs := multierror.New()
+	for _, channelID := range channelIDs {
+		errs = multierror.Append(errs, s.WaitForMessagePosted(userID, channelID, limitMessages, msgAssertFn))
+	}
+
+	return errs.ErrorOrNil()
 }

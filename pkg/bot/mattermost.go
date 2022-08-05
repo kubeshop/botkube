@@ -2,11 +2,9 @@ package bot
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -15,6 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
@@ -26,21 +25,14 @@ import (
 
 var _ Bot = &Mattermost{}
 
-// mmChannelType to find Mattermost channel type
-type mmChannelType string
-
-const (
-	mmChannelPrivate mmChannelType = "P"
-	mmChannelPublic  mmChannelType = "O"
-)
-
 const (
 	// WebSocketProtocol stores protocol initials for web socket
 	WebSocketProtocol = "ws://"
 	// WebSocketSecureProtocol stores protocol initials for web socket
 	WebSocketSecureProtocol = "wss://"
 
-	httpsScheme = "https"
+	httpsScheme                  = "https"
+	mattermostBotMentionRegexFmt = "^@(?i)%s"
 )
 
 // TODO:
@@ -52,19 +44,17 @@ type Mattermost struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
-	notifyMutex     sync.RWMutex
-	notify          bool
-
-	Notification     config.Notification
-	Token            string
-	BotName          string
-	TeamName         string
-	ChannelID        string
-	ServerURL        string
-	WebSocketURL     string
-	WSClient         *model.WebSocketClient
-	APIClient        *model.Client4
-	ExecutorBindings []string
+	notification    config.Notification
+	serverURL       string
+	botName         string
+	teamName        string
+	webSocketURL    string
+	wsClient        *model.WebSocketClient
+	apiClient       *model.Client4
+	channelsMutex   sync.RWMutex
+	channels        map[string]channelConfigByID
+	notifyMutex     sync.Mutex
+	botMentionRegex *regexp.Regexp
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -80,12 +70,15 @@ type mattermostMessage struct {
 }
 
 // NewMattermost creates a new Mattermost instance.
-func NewMattermost(log logrus.FieldLogger, c *config.Config, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
-	mattermost := c.Communications.GetFirst().Mattermost
-
-	checkURL, err := url.Parse(mattermost.URL)
+func NewMattermost(log logrus.FieldLogger, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
+	botMentionRegex, err := mattermostBotMentionRegex(cfg.BotName)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", mattermost.URL, err)
+		return nil, err
+	}
+
+	checkURL, err := url.Parse(cfg.URL)
+	if err != nil {
+		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", cfg.URL, err)
 	}
 
 	// Create WebSocketClient and handle messages
@@ -94,32 +87,31 @@ func NewMattermost(log logrus.FieldLogger, c *config.Config, executorFactory Exe
 		webSocketURL = WebSocketSecureProtocol + checkURL.Host
 	}
 
-	client := model.NewAPIv4Client(mattermost.URL)
-	client.SetOAuthToken(mattermost.Token)
+	client := model.NewAPIv4Client(cfg.URL)
+	client.SetOAuthToken(cfg.Token)
 
-	botTeam, resp := client.GetTeamByName(mattermost.Team, "")
+	botTeam, resp := client.GetTeamByName(cfg.Team, "")
 	if resp.Error != nil {
-		return nil, resp.Error
+		return nil, fmt.Errorf("while getting team by name: %w", resp.Error)
 	}
-	channel, resp := client.GetChannelByName(mattermost.Channels.GetFirst().Name, botTeam.Id, "")
-	if resp.Error != nil {
-		return nil, resp.Error
+
+	channelsByIDCfg, err := mattermostChannelsCfgFrom(client, botTeam.Id, cfg.Channels)
+	if err != nil {
+		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
 	return &Mattermost{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		notify:           true, // enabled by default
-		Notification:     mattermost.Notification,
-		ServerURL:        mattermost.URL,
-		BotName:          mattermost.BotName,
-		Token:            mattermost.Token,
-		TeamName:         mattermost.Team,
-		ChannelID:        channel.Id,
-		ExecutorBindings: mattermost.Channels.GetFirst().Bindings.Executors,
-		APIClient:        client,
-		WebSocketURL:     webSocketURL,
+		log:             log,
+		executorFactory: executorFactory,
+		reporter:        reporter,
+		notification:    cfg.Notification,
+		serverURL:       cfg.URL,
+		botName:         cfg.BotName,
+		teamName:        cfg.Team,
+		apiClient:       client,
+		webSocketURL:    webSocketURL,
+		channels:        channelsByIDCfg,
+		botMentionRegex: botMentionRegex,
 	}, nil
 }
 
@@ -130,7 +122,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// Check connection to Mattermost server
 	err := b.checkServerConnection()
 	if err != nil {
-		return fmt.Errorf("while pinging Mattermost server %q: %w", b.ServerURL, err)
+		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
@@ -149,7 +141,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 			return nil
 		default:
 			var appErr *model.AppError
-			b.WSClient, appErr = model.NewWebSocketClient4(b.WebSocketURL, b.APIClient.AuthToken)
+			b.wsClient, appErr = model.NewWebSocketClient4(b.webSocketURL, b.apiClient.AuthToken)
 			if appErr != nil {
 				return fmt.Errorf("while creating WebSocket connection: %w", appErr)
 			}
@@ -168,45 +160,53 @@ func (b *Mattermost) Type() config.IntegrationType {
 	return config.BotIntegrationType
 }
 
-// NotificationsEnabled returns current notification status.
-func (b *Mattermost) NotificationsEnabled() bool {
-	b.notifyMutex.RLock()
-	defer b.notifyMutex.RUnlock()
-	return b.notify
+// NotificationsEnabled returns current notification status for a given channel ID.
+func (b *Mattermost) NotificationsEnabled(channelID string) bool {
+	channel, exists := b.getChannels()[channelID]
+	if !exists {
+		return false
+	}
+
+	return channel.notify
 }
 
-// SetNotificationsEnabled sets a new notification status.
-func (b *Mattermost) SetNotificationsEnabled(enabled bool) error {
+// SetNotificationsEnabled sets a new notification status for a given channel ID.
+func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) error {
+	// avoid race conditions with using the setter concurrently, as we set whole map
 	b.notifyMutex.Lock()
 	defer b.notifyMutex.Unlock()
-	b.notify = enabled
+
+	channels := b.getChannels()
+	channel, exists := channels[channelID]
+	if !exists {
+		return execute.ErrNotificationsNotConfigured
+	}
+
+	channel.notify = enabled
+	channels[channelID] = channel
+	b.setChannels(channels)
+
 	return nil
 }
 
 // Check incoming message and take action
 func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
-	channelType := mmChannelType(mm.Event.Data["channel_type"].(string))
-	if channelType == mmChannelPrivate || channelType == mmChannelPublic {
-		// Message posted in a channel
-		// Serve only if starts with mention
-		if !strings.HasPrefix(strings.ToLower(post.Message), fmt.Sprintf("@%s ", strings.ToLower(b.BotName))) {
-			return
-		}
+
+	// Handle message only if starts with mention
+	trimmedMsg, found := b.findAndTrimBotMention(post.Message)
+	if !found {
+		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botName)
+		return
 	}
+	mm.Request = trimmedMsg
 
-	// Check if message posted in authenticated channel
-	if mm.Event.Broadcast.ChannelId == b.ChannelID {
-		mm.IsAuthChannel = true
-	}
-	mm.log.Debugf("Received mattermost event: %+v", mm.Event.Data)
+	channelID := mm.Event.Broadcast.ChannelId
+	channel, exists := b.getChannels()[channelID]
+	mm.IsAuthChannel = exists
 
-	// remove @BotKube prefix if exists
-	r := regexp.MustCompile(`^(?i)@BotKube `)
-	mm.Request = r.ReplaceAllString(post.Message, ``)
-
-	e := mm.executorFactory.NewDefault(b.IntegrationName(), b, mm.IsAuthChannel, mm.Request)
-	mm.Response = e.Execute(b.ExecutorBindings)
+	e := mm.executorFactory.NewDefault(b.IntegrationName(), b, mm.IsAuthChannel, channelID, channel.Bindings.Executors, mm.Request)
+	mm.Response = e.Execute()
 	mm.sendMessage()
 }
 
@@ -240,12 +240,12 @@ func (mm mattermostMessage) sendMessage() {
 // Check if Mattermost server is reachable
 func (b *Mattermost) checkServerConnection() error {
 	// Check api connection
-	if _, resp := b.APIClient.GetOldClientConfig(""); resp.Error != nil {
+	if _, resp := b.apiClient.GetOldClientConfig(""); resp.Error != nil {
 		return resp.Error
 	}
 
 	// Get channel list
-	_, resp := b.APIClient.GetTeamByName(b.TeamName, "")
+	_, resp := b.apiClient.GetTeamByName(b.teamName, "")
 	if resp.Error != nil {
 		return resp.Error
 	}
@@ -254,34 +254,34 @@ func (b *Mattermost) checkServerConnection() error {
 
 // Check if team exists in Mattermost
 func (b *Mattermost) getTeam() *model.Team {
-	botTeam, resp := b.APIClient.GetTeamByName(b.TeamName, "")
+	botTeam, resp := b.apiClient.GetTeamByName(b.teamName, "")
 	if resp.Error != nil {
-		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.TeamName, resp.Error)
+		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.teamName, resp.Error)
 	}
 	return botTeam
 }
 
 // Check if BotKube user exists in Mattermost
 func (b *Mattermost) getUser() *model.User {
-	users, resp := b.APIClient.AutocompleteUsersInTeam(b.getTeam().Id, b.BotName, 1, "")
+	users, resp := b.apiClient.AutocompleteUsersInTeam(b.getTeam().Id, b.botName, 1, "")
 	if resp.Error != nil {
-		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.BotName, resp.Error)
+		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.botName, resp.Error)
 	}
 	return users.Users[0]
 }
 
 func (b *Mattermost) listen(ctx context.Context) {
-	b.WSClient.Listen()
-	defer b.WSClient.Close()
+	b.wsClient.Listen()
+	defer b.wsClient.Close()
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
 			return
-		case event, ok := <-b.WSClient.EventChannel:
+		case event, ok := <-b.wsClient.EventChannel:
 			if !ok {
-				if b.WSClient.ListenError != nil {
-					b.log.Debugf("while listening on websocket connection: %s", b.WSClient.ListenError.Error())
+				if b.wsClient.ListenError != nil {
+					b.log.Debugf("while listening on websocket connection: %s", b.wsClient.ListenError.Error())
 				}
 
 				b.log.Info("Incoming events channel closed. Finishing...")
@@ -309,7 +309,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 				executorFactory: b.executorFactory,
 				Event:           event,
 				IsAuthChannel:   false,
-				APIClient:       b.APIClient,
+				APIClient:       b.apiClient,
 			}
 			mm.handleMessage(b)
 		}
@@ -317,92 +317,113 @@ func (b *Mattermost) listen(ctx context.Context) {
 }
 
 // SendEvent sends event notification to Mattermost
-func (b *Mattermost) SendEvent(ctx context.Context, event events.Event) error {
-	if !b.notify {
-		b.log.Info("Notifications are disabled. Skipping event...")
-		return nil
-	}
-
+func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
 	b.log.Debugf(">> Sending to Mattermost: %+v", event)
+	attachment := b.formatAttachments(event)
 
-	var fields []*model.SlackAttachmentField
-
-	switch b.Notification.Type {
-	case config.LongNotification:
-		fields = b.longNotification(event)
-	case config.ShortNotification:
-		fallthrough
-
-	default:
-		// set missing cluster name to event object
-		fields = b.shortNotification(event)
-	}
-
-	attachment := []*model.SlackAttachment{
-		{
-			Color:     attachmentColor[event.Level],
-			Title:     event.Title,
-			Fields:    fields,
-			Footer:    "BotKube",
-			Timestamp: json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
-		},
-	}
-
-	targetChannel := event.Channel
-	if targetChannel == "" {
-		// empty value in event.channel sends notifications to default channel.
-		targetChannel = b.ChannelID
-	}
-	isDefaultChannel := targetChannel == b.ChannelID
-
-	post := &model.Post{
-		Props: map[string]interface{}{
-			"attachments": attachment,
-		},
-		ChannelId: targetChannel,
-	}
-
-	_, resp := b.APIClient.CreatePost(post)
-	if resp.Error != nil {
-		createPostWrappedErr := fmt.Errorf("while posting message to channel %q: %w", targetChannel, resp.Error)
-
-		if isDefaultChannel {
-			return createPostWrappedErr
+	errs := multierror.New()
+	for _, channelID := range b.getChannelsToNotify(event) {
+		post := &model.Post{
+			Props: map[string]interface{}{
+				"attachments": attachment,
+			},
+			ChannelId: channelID,
 		}
 
-		// fallback to default channel
-
-		// send error message to default channel
-		msg := fmt.Sprintf("Unable to send message to channel %q: `%s`\n```add Botkube app to the channel %q\nMissed events follows below:```", targetChannel, resp.Error, targetChannel)
-		sendMessageErr := b.SendMessage(ctx, msg)
-		if sendMessageErr != nil {
-			return multierror.Append(createPostWrappedErr, sendMessageErr)
+		_, resp := b.apiClient.CreatePost(post)
+		if resp.Error != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelID, resp.Error))
+			continue
 		}
 
-		// sending missed event to default channel
-		// reset channel, so it will be defaulted
-		event.Channel = ""
-		sendEventErr := b.SendEvent(ctx, event)
-		if sendEventErr != nil {
-			return multierror.Append(createPostWrappedErr, sendEventErr)
-		}
-
-		return createPostWrappedErr
+		b.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
 	}
 
-	b.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
-	return nil
+	return errs.ErrorOrNil()
+}
+
+func (b *Mattermost) getChannelsToNotify(event events.Event) []string {
+	if event.Channel != "" {
+		return []string{event.Channel}
+	}
+
+	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
+	var channelsToNotify []string
+	for _, channelCfg := range b.getChannels() {
+		if !channelCfg.notify {
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
+			continue
+		}
+
+		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
+	}
+	return channelsToNotify
 }
 
 // SendMessage sends message to Mattermost channel
 func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
-	post := &model.Post{
-		ChannelId: b.ChannelID,
-		Message:   msg,
+	errs := multierror.New()
+	for _, channel := range b.getChannels() {
+		channelID := channel.ID
+		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		post := &model.Post{
+			ChannelId: channelID,
+			Message:   msg,
+		}
+		if _, resp := b.apiClient.CreatePost(post); resp.Error != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while creating a post: %w", resp.Error))
+		}
+
+		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
-	if _, resp := b.APIClient.CreatePost(post); resp.Error != nil {
-		return fmt.Errorf("while creating a post: %w", resp.Error)
+	return errs.ErrorOrNil()
+}
+
+func (b *Mattermost) findAndTrimBotMention(msg string) (string, bool) {
+	if !b.botMentionRegex.MatchString(msg) {
+		return "", false
 	}
 
-	return nil
+	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
+func (b *Mattermost) getChannels() map[string]channelConfigByID {
+	b.channelsMutex.RLock()
+	defer b.channelsMutex.RUnlock()
+	return b.channels
+}
+
+func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
+	b.channelsMutex.Lock()
+	defer b.channelsMutex.Unlock()
+	b.channels = channels
+}
+
+func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
+	res := make(map[string]channelConfigByID)
+	for _, channCfg := range channelsCfg {
+		fetchedChannel, resp := client.GetChannelByName(channCfg.Identifier(), teamID, "")
+		if resp.Error != nil {
+			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, resp.Error)
+		}
+
+		res[fetchedChannel.Id] = channelConfigByID{
+			ChannelBindingsByID: config.ChannelBindingsByID{
+				ID:       fetchedChannel.Id,
+				Bindings: channCfg.Bindings,
+			},
+			notify: defaultNotifyValue,
+		}
+	}
+
+	return res, nil
+}
+
+func mattermostBotMentionRegex(botName string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(mattermostBotMentionRegexFmt, botName))
+	if err != nil {
+		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
+	}
+
+	return botMentionRegex, nil
 }

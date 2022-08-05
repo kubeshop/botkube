@@ -122,8 +122,8 @@ const (
 // Config structure of configuration yaml file
 type Config struct {
 	Sources        IndexableMap[Sources]        `yaml:"sources"`
-	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required,min=1"`
-	Communications IndexableMap[Communications] `yaml:"communications"  validate:"required,eq=1"`
+	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required"`
+	Communications IndexableMap[Communications] `yaml:"communications"  validate:"required,min=1"`
 
 	Analytics Analytics `yaml:"analytics"`
 	Settings  Settings  `yaml:"settings"`
@@ -135,10 +135,20 @@ type ChannelBindingsByName struct {
 	Bindings BotBindings `yaml:"bindings"`
 }
 
+// Identifier returns ChannelBindingsByID identifier.
+func (c ChannelBindingsByName) Identifier() string {
+	return c.Name
+}
+
 // ChannelBindingsByID contains configuration bindings per channel.
 type ChannelBindingsByID struct {
 	ID       string      `yaml:"id"`
 	Bindings BotBindings `yaml:"bindings"`
+}
+
+// Identifier returns ChannelBindingsByID identifier.
+func (c ChannelBindingsByID) Identifier() string {
+	return c.ID
 }
 
 // BotBindings contains configuration for possible Bot bindings.
@@ -254,10 +264,10 @@ type Communications struct {
 
 // Slack configuration to authentication and send notifications
 type Slack struct {
-	Enabled      bool                                `yaml:"enabled"`
-	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                        `yaml:"notification,omitempty"`
-	Token        string                              `yaml:"token,omitempty"`
+	Enabled      bool                                   `yaml:"enabled"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                           `yaml:"notification,omitempty"`
+	Token        string                                 `yaml:"token,omitempty"`
 }
 
 // Elasticsearch config auth settings
@@ -290,13 +300,13 @@ type ELSIndex struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled      bool                                `yaml:"enabled"`
-	BotName      string                              `yaml:"botName"`
-	URL          string                              `yaml:"url"`
-	Token        string                              `yaml:"token"`
-	Team         string                              `yaml:"team"`
-	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                        `yaml:"notification,omitempty"`
+	Enabled      bool                                   `yaml:"enabled"`
+	BotName      string                                 `yaml:"botName"`
+	URL          string                                 `yaml:"url"`
+	Token        string                                 `yaml:"token"`
+	Team         string                                 `yaml:"team"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                           `yaml:"notification,omitempty"`
 }
 
 // Teams creds for authentication with MS Teams
@@ -308,18 +318,19 @@ type Teams struct {
 	Team        string `yaml:"team"`
 	Port        string `yaml:"port"`
 	MessagePath string `yaml:"messagePath,omitempty"`
-	// TODO: not used yet.
-	Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"`
-	Notification Notification                        `yaml:"notification,omitempty"`
+	// TODO: Be consistent with other communicators when MS Teams support multiple channels
+	//Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"`
+	Bindings     BotBindings  `yaml:"bindings"`
+	Notification Notification `yaml:"notification,omitempty"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled      bool                              `yaml:"enabled"`
-	Token        string                            `yaml:"token"`
-	BotID        string                            `yaml:"botID"`
-	Channels     IndexableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required,eq=1"`
-	Notification Notification                      `yaml:"notification,omitempty"`
+	Enabled      bool                                 `yaml:"enabled"`
+	Token        string                               `yaml:"token"`
+	BotID        string                               `yaml:"botID"`
+	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required,eq=1"`
+	Notification Notification                         `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
@@ -454,4 +465,25 @@ func (t IndexableMap[T]) GetFirst() T {
 	}
 
 	return empty
+}
+
+// IdentifiableMap provides an option to construct an indexable map for identifiable items.
+type IdentifiableMap[T Identifiable] map[string]T
+
+// Identifiable exports an Identifier method.
+type Identifiable interface {
+	Identifier() string
+}
+
+// GetByIdentifier gets an item from a map by identifier.
+func (t IdentifiableMap[T]) GetByIdentifier(val string) (T, bool) {
+	for _, v := range t {
+		if v.Identifier() != val {
+			continue
+		}
+		return v, true
+	}
+
+	var empty T
+	return empty, false
 }

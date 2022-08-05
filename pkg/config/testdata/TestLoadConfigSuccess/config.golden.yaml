@@ -320,14 +320,11 @@ communications:
             appPassword: APPLICATION_PASSWORD
             team: ""
             port: "3978"
-            channels:
-                alias:
-                    name: TEAMS_CHANNEL_ID
-                    bindings:
-                        sources:
-                            - k8s-events
-                        executors:
-                            - kubectl-read-only
+            bindings:
+                sources:
+                    - k8s-events
+                executors:
+                    - kubectl-read-only
             notification:
                 type: short
         webhook:
