@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
+	"regexp"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -46,6 +46,8 @@ const (
 
 var _ Bot = &Teams{}
 
+const teamsBotMentionPrefixFmt = "^<at>%s</at>"
+
 type conversation struct {
 	ref    schema.ConversationReference
 	notify bool
@@ -62,6 +64,7 @@ type Teams struct {
 	conversationsMutex sync.RWMutex
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
+	botMentionRegex    *regexp.Regexp
 
 	BotName      string
 	AppID        string
@@ -78,7 +81,12 @@ type consentContext struct {
 }
 
 // NewTeams creates a new Teams instance.
-func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) *Teams {
+func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Teams, error) {
+	botMentionRegex, err := teamsBotMentionRegex(cfg.BotName)
+	if err != nil {
+		return nil, err
+	}
+
 	port := cfg.Port
 	if port == "" {
 		port = defaultPort
@@ -100,7 +108,8 @@ func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, exec
 		MessagePath:     msgPath,
 		Port:            port,
 		conversations:   make(map[string]conversation),
-	}
+		botMentionRegex: botMentionRegex,
+	}, nil
 }
 
 // Start MS Teams server to serve messages from Teams client
@@ -215,8 +224,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, fmt.Errorf("while unmarshalling activity context: %w", err)
 			}
 
-			msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
-			msgWithoutPrefix := strings.TrimPrefix(consentCtx.Command, msgPrefix)
+			msgWithoutPrefix := b.trimBotMention(consentCtx.Command)
 
 			ref, err := b.getConversationReferenceFrom(activity)
 			if err != nil {
@@ -259,9 +267,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 }
 
 func (b *Teams) processMessage(activity schema.Activity) string {
-	msgPrefix := fmt.Sprintf("<at>%s</at>", b.BotName)
-	msgWithoutPrefix := strings.TrimPrefix(activity.Text, msgPrefix)
-	msg := strings.TrimSpace(msgWithoutPrefix)
+	trimmedMsg := b.trimBotMention(activity.Text)
 
 	// Multicluster is not supported for Teams
 
@@ -271,7 +277,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 		return ""
 	}
 
-	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, msg)
+	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, trimmedMsg)
 	return format.CodeBlock(e.Execute())
 }
 
@@ -455,6 +461,10 @@ func (b *Teams) getConversationReferenceFrom(activity schema.Activity) (schema.C
 	return ref, nil
 }
 
+func (b *Teams) trimBotMention(msg string) string {
+	return b.botMentionRegex.ReplaceAllString(msg, "")
+}
+
 type teamsNotificationManager struct {
 	b   *Teams
 	ref schema.ConversationReference
@@ -472,4 +482,13 @@ func (n *teamsNotificationManager) NotificationsEnabled(channelID string) bool {
 // SetNotificationsEnabled sets a new notification status for a given channel ID.
 func (n *teamsNotificationManager) SetNotificationsEnabled(_ string, enabled bool) error {
 	return n.b.SetNotificationsEnabled(enabled, n.ref)
+}
+
+func teamsBotMentionRegex(BotName string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, BotName))
+	if err != nil {
+		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
+	}
+
+	return botMentionRegex, nil
 }

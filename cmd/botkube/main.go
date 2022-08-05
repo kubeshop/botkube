@@ -179,7 +179,10 @@ func run() error {
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			tb := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating Teams bot", err)
+			}
 			notifiers = append(notifiers, tb)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)

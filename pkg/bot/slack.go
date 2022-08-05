@@ -3,7 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ import (
 
 var _ Bot = &Slack{}
 
-const slackBotMentionPrefixFmt = "<@%s>"
+const slackBotMentionPrefixFmt = "^<@%s>"
 
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
@@ -45,6 +45,7 @@ type Slack struct {
 	channelsMutex   sync.RWMutex
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
+	botMentionRegex *regexp.Regexp
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -69,6 +70,11 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 	}
 	botID := authResp.UserID
 
+	botMentionRegex, err := slackBotMentionRegex(botID)
+	if err != nil {
+		return nil, err
+	}
+
 	channels := slackChannelsConfigFrom(cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
@@ -82,6 +88,7 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 		client:          client,
 		notification:    cfg.Notification,
 		channels:        channels,
+		botMentionRegex: botMentionRegex,
 	}, nil
 }
 
@@ -198,11 +205,13 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 }
 
 func (sm *slackMessage) HandleMessage(b *Slack) error {
-	// Handle message only if it starts with bot mention
-	if !strings.HasPrefix(sm.Event.Text, fmt.Sprintf(slackBotMentionPrefixFmt, sm.BotID)) {
-		sm.log.Debugf("Ignoring message as it doesn't contain %q prefix", sm.BotID)
+	// Handle message only if starts with mention
+	trimmedMsg, found := b.findAndTrimBotMention(sm.Event.Text)
+	if !found {
+		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
 	}
+	sm.Request = trimmedMsg
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
@@ -215,9 +224,6 @@ func (sm *slackMessage) HandleMessage(b *Slack) error {
 	}
 
 	channel, isAuthChannel := b.getChannels()[info.Name]
-
-	// Trim the BotKube bot prefix
-	sm.Request = strings.TrimPrefix(sm.Event.Text, fmt.Sprintf(slackBotMentionPrefixFmt, sm.BotID))
 
 	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, sm.Request)
 	sm.Response = e.Execute()
@@ -331,6 +337,14 @@ func (b *Slack) setChannels(channels map[string]channelConfigByName) {
 	b.channels = channels
 }
 
+func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
+	if !b.botMentionRegex.MatchString(msg) {
+		return "", false
+	}
+
+	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
 func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
 	channels := make(map[string]channelConfigByName)
 	for _, channCfg := range channelsCfg {
@@ -341,4 +355,13 @@ func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBi
 	}
 
 	return channels
+}
+
+func slackBotMentionRegex(botID string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(slackBotMentionPrefixFmt, botID))
+	if err != nil {
+		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
+	}
+
+	return botMentionRegex, nil
 }

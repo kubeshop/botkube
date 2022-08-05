@@ -26,7 +26,10 @@ var _ Bot = &Discord{}
 
 // customTimeFormat holds custom time format string.
 const (
-	customTimeFormat          = "2006-01-02T15:04:05Z"
+	customTimeFormat = "2006-01-02T15:04:05Z"
+
+	// discordBotMentionRegexFmt supports also nicknames (the exclamation mark).
+	// Read more: https://discordjs.guide/miscellaneous/parsing-mention-arguments.html#how-discord-mentions-work
 	discordBotMentionRegexFmt = "^<@!?%s>"
 )
 
@@ -66,18 +69,17 @@ type discordMessage struct {
 
 // NewDiscord creates a new Discord instance.
 func NewDiscord(log logrus.FieldLogger, cfg config.Discord, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Discord, error) {
+	botMentionRegex, err := discordBotMentionRegex(cfg.BotID)
+	if err != nil {
+		return nil, err
+	}
+
 	api, err := discordgo.New("Bot " + cfg.Token)
 	if err != nil {
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
 	}
 
 	channelsCfg := discordChannelsConfigFrom(cfg.Channels)
-
-	// Support nicknames (exclamation mark) as well: https://discordjs.guide/miscellaneous/parsing-mention-arguments.html#how-discord-mentions-work
-	botMentionRegex, err := discordBotMentionRegex(cfg.BotID)
-	if err != nil {
-		return nil, err
-	}
 
 	return &Discord{
 		log:             log,
