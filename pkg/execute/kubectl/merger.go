@@ -44,24 +44,15 @@ func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace strin
 
 // MergeAllEnabled returns kubectl configuration for all kubectl configs.
 func (kc *Merger) MergeAllEnabled(includeBindings []string) EnabledKubectl {
-	onlyEnabled := func(executor config.Kubectl) bool {
-		return executor.Enabled
-	}
-	return kc.merge(kc.collect(includeBindings, onlyEnabled))
-}
-
-// IsAtLeastOneEnabled returns true if at least one kubectl executor is enabled.
-func (kc *Merger) IsAtLeastOneEnabled() bool {
-	for _, executor := range kc.executors {
-		if executor.Kubectl.Enabled {
-			return true
-		}
-	}
-	return false
+	return kc.merge(kc.GetAllEnabled(includeBindings))
 }
 
 // MergeAllEnabledVerbs returns verbs collected from all enabled kubectl executors.
 func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
+	if kc.executors == nil {
+		return nil
+	}
+
 	verbs := map[string]struct{}{}
 
 	for _, name := range bindings {
@@ -81,7 +72,25 @@ func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
 	return verbs
 }
 
-func (kc *Merger) merge(collectedKubectls []config.Kubectl) EnabledKubectl {
+// GetAllEnabled returns the collection of enabled kubectl executors for a given list of bindings without merging them.
+func (kc *Merger) GetAllEnabled(includeBindings []string) map[string]config.Kubectl {
+	onlyEnabled := func(executor config.Kubectl) bool {
+		return executor.Enabled
+	}
+	return kc.collect(includeBindings, onlyEnabled)
+}
+
+// IsAtLeastOneEnabled returns true if at least one kubectl executor is enabled.
+func (kc *Merger) IsAtLeastOneEnabled() bool {
+	for _, executor := range kc.executors {
+		if executor.Kubectl.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
+func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl) EnabledKubectl {
 	if len(collectedKubectls) == 0 {
 		return EnabledKubectl{}
 	}
@@ -119,8 +128,11 @@ func (kc *Merger) merge(collectedKubectls []config.Kubectl) EnabledKubectl {
 
 type collectPredicateFunc func(executor config.Kubectl) bool
 
-func (kc *Merger) collect(includeBindings []string, predicate collectPredicateFunc) []config.Kubectl {
-	var out []config.Kubectl
+func (kc *Merger) collect(includeBindings []string, predicate collectPredicateFunc) map[string]config.Kubectl {
+	if kc.executors == nil {
+		return nil
+	}
+	out := map[string]config.Kubectl{}
 	for _, name := range includeBindings {
 		executor, found := kc.executors[name]
 		if !found {
@@ -131,7 +143,7 @@ func (kc *Merger) collect(includeBindings []string, predicate collectPredicateFu
 			continue
 		}
 
-		out = append(out, executor.Kubectl)
+		out[name] = executor.Kubectl
 	}
 
 	return out

@@ -77,6 +77,15 @@ executors:
       commands:
         verbs: [ "get" ]
         resources: [ "deployments" ]
+  'kubectl-not-bound-to-any-channel':
+    kubectl:
+      enabled: true
+      namespaces:
+        include:
+          - all
+      commands:
+        verbs: [ "port-forward" ]
+        resources: [ "deployments" ]
 
 settings:
   clusterName: sample
