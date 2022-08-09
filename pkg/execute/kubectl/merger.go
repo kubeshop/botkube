@@ -39,12 +39,12 @@ func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace strin
 	enabledInNs := func(executor config.Kubectl) bool {
 		return executor.Enabled && executor.Namespaces.IsAllowed(forNamespace)
 	}
-	return kc.merge(kc.collect(includeBindings, enabledInNs))
+	return kc.merge(kc.collect(includeBindings, enabledInNs), includeBindings)
 }
 
 // MergeAllEnabled returns kubectl configuration for all kubectl configs.
 func (kc *Merger) MergeAllEnabled(includeBindings []string) EnabledKubectl {
-	return kc.merge(kc.GetAllEnabled(includeBindings))
+	return kc.merge(kc.GetAllEnabled(includeBindings), includeBindings)
 }
 
 // MergeAllEnabledVerbs returns verbs collected from all enabled kubectl executors.
@@ -90,7 +90,7 @@ func (kc *Merger) IsAtLeastOneEnabled() bool {
 	return false
 }
 
-func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl) EnabledKubectl {
+func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder []string) EnabledKubectl {
 	if len(collectedKubectls) == 0 {
 		return EnabledKubectl{}
 	}
@@ -102,7 +102,12 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl) EnabledKube
 		allowedResources = map[string]struct{}{}
 		allowedVerbs     = map[string]struct{}{}
 	)
-	for _, item := range collectedKubectls {
+	for _, name := range mapKeyOrder {
+		item, found := collectedKubectls[name]
+		if !found {
+			continue
+		}
+
 		for _, resourceName := range item.Commands.Resources {
 			allowedResources[resourceName] = struct{}{}
 		}

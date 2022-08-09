@@ -120,7 +120,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 		},
 		{
-			name: "Should enable restrict access based on the bindings order",
+			name: "Should enable restrict access when it's not specified in other bindings",
 			givenBindings: []string{
 				"kubectl-global", // enables restrict
 				"kubectl-team-b", // doesn't specify restrict
