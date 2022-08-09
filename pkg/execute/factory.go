@@ -17,6 +17,7 @@ type DefaultExecutorFactory struct {
 	analyticsReporter AnalyticsReporter
 	notifierExecutor  *NotifierExecutor
 	kubectlExecutor   *Kubectl
+	merger            *kubectl.Merger
 }
 
 // Executor is an interface for processes to execute commands
@@ -43,6 +44,7 @@ func NewExecutorFactory(log logrus.FieldLogger, runCmdFn CommandRunnerFunc, cfg 
 			cfg,
 			analyticsReporter,
 		),
+		merger: merger,
 		kubectlExecutor: NewKubectl(
 			log.WithField("component", "Kubectl Executor"),
 			cfg,
@@ -63,12 +65,12 @@ func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegrat
 		kubectlExecutor:   f.kubectlExecutor,
 		notifierExecutor:  f.notifierExecutor,
 		filterEngine:      f.filterEngine,
-
-		notifierHandler: notifierHandler,
-		isAuthChannel:   isAuthChannel,
-		bindings:        bindings,
-		message:         message,
-		platform:        platform,
-		conversationID:  conversationID,
+		merger:            f.merger,
+		notifierHandler:   notifierHandler,
+		isAuthChannel:     isAuthChannel,
+		bindings:          bindings,
+		message:           message,
+		platform:          platform,
+		conversationID:    conversationID,
 	}
 }

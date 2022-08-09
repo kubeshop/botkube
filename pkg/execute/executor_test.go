@@ -9,9 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
-var rawEnabledExecutorsConfig = `
+var rawExecutorsConfig = `
 executors:
   'kubectl-team-a':
     kubectl:
@@ -47,35 +48,23 @@ executors:
         verbs: [ "exec" ]
         resources: [ ]`
 
-var rawDisabledExecutorsConfig = `
-executors:
-  'kubectl-team-a':
-    kubectl:
-      enabled: false
-      namespaces:
-        include: [ "team-a" ]
-      commands:
-        verbs: [ "get" ]
-        resources: [ "deployments" ]
-      defaultNamespace: "team-a"
-  'kubectl-team-b':
-    kubectl:
-      enabled: false
-      namespaces:
-        include: [ "team-b" ]
-      commands:
-        verbs: [ "get", "describe" ]
-        resources: [ "deployments", "pods" ]`
-
 func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	testCases := []struct {
 		name            string
 		executorsConfig string
-		expOutput       string
+		bindings        []string
+
+		expOutput string
 	}{
 		{
-			name:            "All namespaces enabled",
-			executorsConfig: rawEnabledExecutorsConfig,
+			name:            "All bindings specified",
+			executorsConfig: rawExecutorsConfig,
+			bindings: []string{
+				"kubectl-team-a",
+				"kubectl-team-b",
+				"kubectl-global",
+				"kubectl-exec",
+			},
 			expOutput: heredoc.Doc(`
            Enabled executors:
              kubectl:
@@ -115,8 +104,33 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
            `),
 		},
 		{
-			name:            "All namespace enabled and a few ignored",
-			executorsConfig: rawDisabledExecutorsConfig,
+			name:            "One enabled binding specified",
+			executorsConfig: rawExecutorsConfig,
+			bindings: []string{
+				"kubectl-team-a",
+			},
+			expOutput: heredoc.Doc(`
+           Enabled executors:
+             kubectl:
+               kubectl-team-a:
+                 namespaces:
+                   include:
+                     - team-a
+                 enabled: true
+                 commands:
+                   verbs:
+                     - get
+                   resources:
+                     - deployments
+                 defaultNamespace: team-a
+           `),
+		},
+		{
+			name:            "One disabled binding specified",
+			executorsConfig: rawExecutorsConfig,
+			bindings: []string{
+				"kubectl-exec",
+			},
 			expOutput: heredoc.Doc(`
            Enabled executors:
              kubectl: {}
@@ -126,14 +140,14 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
+			executors := fixExecutorsConfig(t, tc.executorsConfig)
 			executor := &DefaultExecutor{
-				cfg: config.Config{
-					Executors: fixExecutorsConfig(t, tc.executorsConfig),
-				},
+				merger:   kubectl.NewMerger(executors),
+				bindings: tc.bindings,
 			}
 
 			// when
-			res, err := executor.getEnabledKubectlConfigs()
+			res, err := executor.getEnabledKubectlExecutorsInChannel()
 
 			// then
 			require.NoError(t, err)

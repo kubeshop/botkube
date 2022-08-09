@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -76,6 +77,7 @@ type DefaultExecutor struct {
 	platform          config.CommPlatformIntegration
 	conversationID    string
 	kubectlExecutor   *Kubectl
+	merger            *kubectl.Merger
 }
 
 // CommandRunnerFunc is a function which runs arbitrary commands
@@ -211,7 +213,7 @@ func (e *DefaultExecutor) Execute() string {
 
 	//Check if info command
 	if validInfoCommand[args[0]] {
-		return e.runInfoCommand(args, e.isAuthChannel)
+		return e.runInfoCommand(args)
 	}
 
 	if e.isAuthChannel {
@@ -280,8 +282,8 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 }
 
 //runInfoCommand to list allowed commands
-func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) string {
-	if !isAuthChannel {
+func (e *DefaultExecutor) runInfoCommand(args []string) string {
+	if !e.isAuthChannel {
 		return ""
 	}
 	if len(args) > 1 && args[1] != string(infoList) {
@@ -299,7 +301,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string, isAuthChannel bool) stri
 		return fmt.Sprintf(WrongClusterCmdMsg, args[3])
 	}
 
-	enabledKubectls, err := e.getEnabledKubectlConfigs()
+	enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
 	if err != nil {
 		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 		e.log.Errorf("while rendering namespace config: %s", err.Error())
@@ -367,18 +369,10 @@ func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) s
 	return e.findBotKubeVersion()
 }
 
-func (e *DefaultExecutor) getEnabledKubectlConfigs() (string, error) {
+func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) {
 	type kubectlCollection map[string]config.Kubectl
 
-	enabledKubectls := kubectlCollection{}
-	for name, item := range e.cfg.Executors {
-		if !item.Kubectl.Enabled {
-			continue
-		}
-
-		enabledKubectls[name] = item.Kubectl
-	}
-
+	enabledKubectls := e.merger.GetAllEnabled(e.bindings)
 	out := map[string]map[string]kubectlCollection{
 		"Enabled executors": {
 			"kubectl": enabledKubectls,
