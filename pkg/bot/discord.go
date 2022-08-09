@@ -134,7 +134,7 @@ func (b *Discord) Start(ctx context.Context) error {
 
 // SendEvent sends event notification to Discord ChannelID.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
+func (b *Discord) SendEvent(_ context.Context, event events.Event, eventSources []string) (err error) {
 	b.log.Debugf(">> Sending to Discord: %+v", event)
 
 	msgToSend := b.formatMessage(event)

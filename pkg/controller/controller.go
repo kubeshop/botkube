@@ -112,6 +112,64 @@ func New(log logrus.FieldLogger,
 	}
 }
 
+type eventSources struct {
+	event   config.EventType
+	sources []string
+}
+
+func pivotEventsAndSources(in config.IndexableMap[config.Sources]) map[string][]eventSources {
+	out := make(map[string][]eventSources)
+
+	// all unique events per resources
+	resourceEvents := map[string]map[config.EventType]struct{}{}
+	for _, srcGroupCfg := range in {
+		for _, r := range srcGroupCfg.Kubernetes.Resources {
+			for _, e := range r.Events {
+				if _, ok := resourceEvents[r.Name]; !ok {
+					resourceEvents[r.Name] = map[config.EventType]struct{}{e: {}}
+				} else {
+					resourceEvents[r.Name][e] = struct{}{}
+				}
+			}
+		}
+	}
+
+	fmt.Printf("\n\nRESOURCE_EVENTS: %+v\n\n", resourceEvents)
+
+	for resourceName, uniqueEvents := range resourceEvents {
+
+		collectedSources := make(map[config.EventType][]string)
+
+		for srcGroupName, srcGroupCfg := range in {
+			for _, r := range srcGroupCfg.Kubernetes.Resources {
+
+				for _, e := range r.Events {
+					if resourceName == r.Name {
+						collectedSources[e] = append(collectedSources[e], srcGroupName)
+					}
+				}
+			}
+		}
+
+		fmt.Printf("\n\nCOLLECTED_SOURCES: %+v\n\n", collectedSources)
+
+		for evt := range uniqueEvents {
+			if _, ok := out[resourceName]; !ok {
+
+				out[resourceName] = []eventSources{{
+					event:   evt,
+					sources: collectedSources[evt],
+				}}
+
+			} else {
+				out[resourceName] = append(out[resourceName], eventSources{event: evt, sources: collectedSources[evt]})
+			}
+		}
+	}
+
+	return out
+}
+
 // Start creates new informer controllers to watch k8s resources
 func (c *Controller) Start(ctx context.Context) error {
 	c.initInformerMap()
@@ -125,15 +183,33 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.startTime = time.Now()
 
 	// Register informers for resource lifecycle events
-	if len(c.conf.Sources) > 0 && len(c.conf.Sources.GetFirst().Kubernetes.Resources) > 0 {
-		c.log.Info("Registering resource lifecycle informer")
-		for _, r := range c.conf.Sources.GetFirst().Kubernetes.Resources {
-			if _, ok := c.resourceInformerMap[r.Name]; !ok {
+	if len(c.conf.Sources) > 0 {
+		pivots := pivotEventsAndSources(c.conf.Sources)
+		fmt.Printf("\n\nPIVOTS:\n%+v\n\n", pivots)
+
+		for resource, pivot := range pivots {
+			if _, ok := c.resourceInformerMap[resource]; !ok {
 				continue
 			}
-			c.log.Infof("Adding informer for resource %q", r.Name)
-			c.resourceInformerMap[r.Name].AddEventHandler(c.registerEventHandlers(ctx, r.Name, r.Events))
+			fmt.Println("PIVOT", pivot)
+			c.resourceInformerMap[resource].AddEventHandler(c.registerEventHandlers(ctx, resource, pivot))
+			c.log.Infof("Added informer for resource %q", resource)
 		}
+
+		//for _, srcGroupCfg := range c.conf.Sources {
+		//	resources := srcGroupCfg.Kubernetes.Resources
+		//	if len(resources) == 0 {
+		//		continue
+		//	}
+		//	c.log.Info("Registering resource lifecycle informer")
+		//	for _, r := range resources {
+		//		if _, ok := c.resourceInformerMap[r.Name]; !ok {
+		//			continue
+		//		}
+		//		c.log.Infof("Adding informer for resource %q", r.Name)
+		//		c.resourceInformerMap[r.Name].AddEventHandler(c.registerEventHandlers(ctx, "", r.Name, r.Events))
+		//	}
+		//}
 	}
 
 	// Register informers for k8s events
@@ -163,10 +239,10 @@ func (c *Controller) Start(ctx context.Context) error {
 				switch strings.ToLower(eventObj.Type) {
 				case config.WarningEvent.String():
 					// Send WarningEvent as ErrorEvents
-					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.ErrorEvent)
+					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.ErrorEvent, []string{})
 				case config.NormalEvent.String():
 					// Send NormalEvent as Insignificant InfoEvent
-					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.InfoEvent)
+					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.InfoEvent, []string{})
 				}
 			},
 		})
@@ -187,33 +263,44 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) registerEventHandlers(ctx context.Context, resourceType string, events []config.EventType) (handlerFns cache.ResourceEventHandlerFuncs) {
-	for _, event := range events {
+func (c *Controller) registerEventHandlers(ctx context.Context, resource string, eventsWithSources []eventSources) (handlerFns cache.ResourceEventHandlerFuncs) {
+	makeCreateFunc := func(sources []string) func(obj interface{}) {
+		return func(obj interface{}) {
+			c.log.Debugf("Processing add to resource: %q, event: %q, event sources: %q", resource, config.CreateEvent, sources)
+			c.sendEvent(ctx, obj, nil, resource, config.CreateEvent, sources)
+		}
+	}
+
+	makeDeleteFunc := func(sources []string) func(obj interface{}) {
+		return func(obj interface{}) {
+			c.log.Debugf("Processing delete to resource: %q, event: %q, event sources: %q", resource, config.DeleteEvent, sources)
+			c.sendEvent(ctx, obj, nil, resource, config.DeleteEvent, sources)
+		}
+	}
+
+	for _, es := range eventsWithSources {
+		event := es.event
+		fmt.Println("event: ", event)
 		if event == config.AllEvent || event == config.CreateEvent {
-			handlerFns.AddFunc = func(obj interface{}) {
-				c.log.Debugf("Processing add to %q", resourceType)
-				c.sendEvent(ctx, obj, nil, resourceType, config.CreateEvent)
-			}
+			handlerFns.AddFunc = makeCreateFunc(es.sources)
 		}
 
 		if event == config.AllEvent || event == config.UpdateEvent {
 			handlerFns.UpdateFunc = func(old, new interface{}) {
-				c.log.Debugf("Processing update to %q\n Object: %+v\n", resourceType, new)
-				c.sendEvent(ctx, new, old, resourceType, config.UpdateEvent)
+				c.log.Debugf("Processing update to %q\n Object: %+v\n", resource, new)
+				c.sendEvent(ctx, new, old, resource, config.UpdateEvent, es.sources)
 			}
 		}
 
 		if event == config.AllEvent || event == config.DeleteEvent {
-			handlerFns.DeleteFunc = func(obj interface{}) {
-				c.log.Debugf("Processing delete to %q", resourceType)
-				c.sendEvent(ctx, obj, nil, resourceType, config.DeleteEvent)
-			}
+			handlerFns.DeleteFunc = makeDeleteFunc(es.sources)
 		}
 	}
 	return handlerFns
 }
 
-func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType) {
+//func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, source string, resource string, eventType config.EventType) {
+func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType, eventSources []string) {
 	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
@@ -326,7 +413,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 		go func(n Notifier) {
 			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
 
-			err := n.SendEvent(ctx, event)
+			err := n.SendEvent(ctx, event, eventSources)
 			if err != nil {
 				reportErr := c.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), anonymousEvent, err)
 				if reportErr != nil {
@@ -349,8 +436,6 @@ func (c *Controller) initInformerMap() {
 		return
 	}
 
-	resources := c.conf.Sources.GetFirst().Kubernetes.Resources
-	// Create dynamic shared informer factory
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
 	// Init maps
@@ -358,45 +443,55 @@ func (c *Controller) initInformerMap() {
 	c.observedEventKindsMap = make(map[EventKind]bool)
 	c.observedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
 
-	for _, v := range resources {
-		gvr, err := c.parseResourceArg(v.Name)
-		if err != nil {
-			c.log.Infof("Unable to parse resource: %v\n", v.Name)
-			continue
+	for srcGroupName, srcGroupCfg := range c.conf.Sources {
+		resources := srcGroupCfg.Kubernetes.Resources
+
+		for _, r := range resources {
+			if _, ok := c.resourceInformerMap[r.Name]; ok {
+				continue
+			}
+
+			gvr, err := c.parseResourceArg(r.Name)
+			if err != nil {
+				c.log.Infof("Unable to parse resource: %s for source: %s\n", r.Name, srcGroupName)
+				continue
+			}
+
+			c.resourceInformerMap[r.Name] = c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
 		}
 
-		c.resourceInformerMap[v.Name] = c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
-	}
-	// Allowed event kinds map and Allowed Update Events Map
-	for _, r := range resources {
-		allEvents := false
-		for _, e := range r.Events {
-			if e == config.AllEvent {
-				allEvents = true
-				break
-			}
-			for _, ns := range r.Namespaces.Include {
-				c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
-			}
-			// AllowedUpdateEventsMap entry is created only for UpdateEvent
-			if e == config.UpdateEvent {
+		// Allowed event kinds map and Allowed Update Events Map
+		for _, r := range resources {
+			allEvents := false
+			for _, e := range r.Events {
+				if e == config.AllEvent {
+					allEvents = true
+					break
+				}
 				for _, ns := range r.Namespaces.Include {
-					c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
+					c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
+				}
+				// AllowedUpdateEventsMap entry is created only for UpdateEvent
+				if e == config.UpdateEvent {
+					for _, ns := range r.Namespaces.Include {
+						c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
+					}
+				}
+			}
+
+			// For AllEvent type, add all events to map
+			if allEvents {
+				events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
+				for _, ev := range events {
+					for _, ns := range r.Namespaces.Include {
+						c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
+						c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
+					}
 				}
 			}
 		}
-
-		// For AllEvent type, add all events to map
-		if allEvents {
-			events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
-			for _, ev := range events {
-				for _, ns := range r.Namespaces.Include {
-					c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
-					c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
-				}
-			}
-		}
 	}
+
 	c.log.Infof("Allowed Events: %+v", c.observedEventKindsMap)
 	c.log.Infof("Allowed UpdateEvents: %+v", c.observedUpdateEventsMap)
 }
