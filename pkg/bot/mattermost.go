@@ -317,7 +317,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 }
 
 // SendEvent sends event notification to Mattermost
-func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
+func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf(">> Sending to Mattermost: %+v", event)
 	attachment := b.formatAttachments(event)
 

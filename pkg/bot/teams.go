@@ -312,7 +312,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 }
 
 // SendEvent sends event message via Bot interface
-func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
+func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf(">> Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 

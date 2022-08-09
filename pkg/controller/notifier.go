@@ -12,7 +12,7 @@ import (
 type Notifier interface {
 
 	// SendEvent notifies about new incoming event from source.
-	SendEvent(context.Context, events.Event) error
+	SendEvent(context.Context, events.Event, []string) error
 
 	// SendMessage is used for notifying about BotKube start/stop listening, possible BotKube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.

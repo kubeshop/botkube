@@ -172,7 +172,7 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 }
 
 // SendEvent sends event notification to Elasticsearch
-func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event) (err error) {
+func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	errs := multierror.New()
