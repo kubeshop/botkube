@@ -51,8 +51,8 @@ kubeconfig:
   existingSecret: ""
 
 
-# -- Map of enabled sources. The `sources` property name is an alias for a given configuration.
-# Key name used as a binding reference.
+# -- Map of enabled sources. The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
+# Key name is used as a binding reference.
 #
 ## Format: sources.<alias>
 sources:
@@ -267,7 +267,7 @@ sources:
        #     fields:
        #       - status.phase
 
-# Map of enabled executors. The `executors` property name is an alias for a given configuration.
+# Map of enabled executors. The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
 # Key name is used as a binding reference.
 #
 ## Format: executors.<alias>
@@ -306,16 +306,16 @@ executors:
 ##        # NOTE: Use setting format visible below.
 existingCommunicationsSecretName: ""
 
-# Map of enabled communication mediums. The `config` property name is an alias for a given configuration.
+# Map of enabled communication mediums. The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.
 #
-## Format: config.<alias>
+## Format: communications.<alias>
 communications:
   'default-group':
     ## Settings for Slack.
     slack:
       # -- If true, enables Slack bot.
       enabled: false
-      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
       ## Format: channels.<alias>
       channels:
@@ -323,8 +323,10 @@ communications:
           # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
           name: 'SLACK_CHANNEL'
           bindings:
+            # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
             sources:
               - k8s-events
       # -- Slack token.
@@ -345,7 +347,7 @@ communications:
       token: 'MATTERMOST_TOKEN'
       # -- The Mattermost Team name where BotKube is added.
       team: 'MATTERMOST_TEAM'
-      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
       ## Format: channels.<alias>
       channels:
@@ -354,8 +356,10 @@ communications:
           # The BotKube user needs to be added to it.
           name: 'MATTERMOST_CHANNEL'
           bindings:
+            # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
             sources:
               - k8s-events
       notification:
@@ -372,6 +376,13 @@ communications:
       appID: 'APPLICATION_ID'
       # -- The BotKube application password generated while registering Bot to MS Teams.
       appPassword: 'APPLICATION_PASSWORD'
+      bindings:
+        # -- Executor bindings apply to all MS Teams channels where BotKube has access to.
+        executors:
+          - kubectl-read-only
+        # -- Source bindings apply to all channels which have notification turned on with `@BotKube notifier start` command.
+        sources:
+          - k8s-events
       # -- The path in endpoint URL provided while registering BotKube to MS Teams.
       messagePath: "/bots/teams"
       notification:
@@ -388,7 +399,7 @@ communications:
       token: 'DISCORD_TOKEN'
       # -- BotKube Application Client ID.
       botID: 'DISCORD_BOT_ID'
-      # -- Map of configured channels. The `channels` property name is an alias for a given configuration.
+      # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
       ## Format: channels.<alias>
       channels:
@@ -397,8 +408,10 @@ communications:
           # The BotKube user needs to be added to it.
           id: 'DISCORD_CHANNEL_ID'
           bindings:
+            # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
             sources:
               - k8s-events
       notification:
@@ -437,6 +450,7 @@ communications:
           shards: 1
           replicas: 0
           bindings:
+            # -- Notification sources configuration for a given index.
             sources:
               - k8s-events
 
