@@ -33,6 +33,7 @@ type Event struct {
 	Action    string
 	Skip      bool `json:",omitempty"`
 	Resource  string
+	Object    interface{}
 
 	Recommendations []string
 	Warnings        []string
@@ -52,6 +53,7 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 	objectTypeMeta := utils.GetObjectTypeMetaData(object)
 	event := Event{
 		TypeMeta:  objectTypeMeta,
+		Object:    object,
 		Name:      objectMeta.Name,
 		Namespace: objectMeta.Namespace,
 		Level:     LevelMap[eventType],

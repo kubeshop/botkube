@@ -117,13 +117,20 @@ This section describes the necessary changes in the syntax. **It's not backward 
           include: [".*"]
         events: ["error"]
 
-    # Recommendations about the best practices
-    recommendations: true
-
-
-
-
-
+    # Describes configuration for various recommendation insights.
+    recommendations:
+      # Recommendations for Pod Kubernetes resource.
+      pod:
+        # If true, notifies about Pod containers that use `latest` tag for images.
+        noLatestImageTag: true
+        # If true, notifies about Pod resources created without labels.
+        labelsSet: true
+      # Recommendations for Ingress Kubernetes resource.
+      ingress:
+        # If true, notifies about Ingress resources with invalid backend service reference.
+        backendServiceValid: true
+        # If true, notifies about Ingress resources with invalid TLS secret reference.
+        tlsSecretValid: true
     ```
 
     </td>

@@ -87,7 +87,13 @@ communications: # req 1 elm.
 sources:
   'k8s-events':
 
-    recommendations: true
+    recommendations:
+      pod:
+        noLatestImageTag: false
+        labelsSet: true
+      ingress:
+        backendServiceValid: true
+        tlsSecretValid: false
 
     kubernetes:
       # TODO: https://github.com/kubeshop/botkube/issues/596

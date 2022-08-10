@@ -164,12 +164,36 @@ type SinkBindings struct {
 // Sources contains configuration for BotKube app sources.
 type Sources struct {
 	Kubernetes      KubernetesSource `yaml:"kubernetes"`
-	Recommendations bool             `yaml:"recommendations"`
+	Recommendations Recommendations  `yaml:"recommendations"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
 	Resources []Resource `yaml:"resources" validate:"dive"`
+}
+
+// Recommendations contains configuration for various recommendation insights.
+type Recommendations struct {
+	Ingress IngressRecommendations `yaml:"ingress"`
+	Pod     PodRecommendations     `yaml:"pod"`
+}
+
+// PodRecommendations contains configuration for pods recommendations.
+type PodRecommendations struct {
+	// NoLatestImageTag notifies about Pod containers that use `latest` tag for images.
+	NoLatestImageTag bool `yaml:"noLatestImageTag"`
+
+	// LabelsSet notifies about Pod resources created without labels.
+	LabelsSet bool `yaml:"labelsSet"`
+}
+
+// IngressRecommendations contains configuration for ingress recommendations.
+type IngressRecommendations struct {
+	// BackendServiceValid notifies about Ingress resources with invalid backend service reference.
+	BackendServiceValid bool `yaml:"backendServiceValid"`
+
+	// TLSSecretValid notifies about Ingress resources with invalid TLS secret reference.
+	TLSSecretValid bool `yaml:"tlsSecretValid"`
 }
 
 // Executors contains executors configuration parameters.

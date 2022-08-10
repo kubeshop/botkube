@@ -21,7 +21,7 @@ func NewNamespaceChecker(log logrus.FieldLogger, configuredResources []config.Re
 }
 
 // Run filters and modifies event struct
-func (f *NamespaceChecker) Run(_ context.Context, _ interface{}, event *events.Event) error {
+func (f *NamespaceChecker) Run(_ context.Context, event *events.Event) error {
 	// Skip filter for cluster scoped resource
 	if len(event.Namespace) == 0 {
 		return nil

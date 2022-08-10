@@ -235,7 +235,13 @@ sources:
                   updateSetting:
                     fields: []
                     includeDiff: false
-        recommendations: true
+        recommendations:
+            ingress:
+                backendServiceValid: true
+                tlsSecretValid: false
+            pod:
+                noLatestImageTag: false
+                labelsSet: true
 executors:
     kubectl-read-only:
         kubectl:

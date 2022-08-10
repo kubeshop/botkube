@@ -34,6 +34,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
+	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
 )
 
@@ -118,7 +119,9 @@ func run() error {
 	})
 
 	// Set up the filter engine
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf)
+	// TODO: Get all unique resources as a part of https://github.com/kubeshop/botkube/issues/676
+	res := conf.Sources.GetFirst().Kubernetes.Resources
+	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, res)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
@@ -255,11 +258,14 @@ func run() error {
 		})
 	}
 
+	recommFactory := recommendation.NewFactory(logger.WithField(componentLogFieldKey, "Recommendations"), dynamicCli)
+
 	// Create and start controller
 	ctrl := controller.New(
 		logger.WithField(componentLogFieldKey, "Controller"),
 		conf,
 		notifiers,
+		recommFactory,
 		filterEngine,
 		dynamicCli,
 		mapper,

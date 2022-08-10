@@ -21,6 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
@@ -62,6 +63,11 @@ type AnalyticsReporter interface {
 	Close() error
 }
 
+// RecommendationFactory defines a factory that creates recommendations.
+type RecommendationFactory interface {
+	NewForSources(sources config.IndexableMap[config.Sources]) recommendation.Set
+}
+
 // Controller watches Kubernetes resources and send events to notifiers.
 type Controller struct {
 	log                   logrus.FieldLogger
@@ -69,6 +75,7 @@ type Controller struct {
 	startTime             time.Time
 	conf                  *config.Config
 	notifiers             []Notifier
+	recommFactory         RecommendationFactory
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
 
@@ -85,6 +92,7 @@ type Controller struct {
 func New(log logrus.FieldLogger,
 	conf *config.Config,
 	notifiers []Notifier,
+	recommFactory RecommendationFactory,
 	filterEngine filterengine.FilterEngine,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
@@ -95,6 +103,7 @@ func New(log logrus.FieldLogger,
 		log:                   log,
 		conf:                  conf,
 		notifiers:             notifiers,
+		recommFactory:         recommFactory,
 		filterEngine:          filterEngine,
 		dynamicCli:            dynamicCli,
 		mapper:                mapper,
@@ -281,7 +290,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Filter events
-	event = c.filterEngine.Run(ctx, obj, event)
+	event = c.filterEngine.Run(ctx, event)
 	if event.Skip {
 		c.log.Debugf("Skipping event: %#v", event)
 		return
@@ -298,10 +307,12 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 		return
 	}
 
-	// check if Recommendations are disabled
-	if !c.conf.Sources.GetFirst().Recommendations {
-		event.Recommendations = nil
-		c.log.Debug("Skipping Recommendations in Event Notifications")
+	// TODO: Get sources applicable for a given event https://github.com/kubeshop/botkube/issues/676
+	sources := c.conf.Sources // temporary solution - get all sources
+
+	err = c.recommFactory.NewForSources(sources).Run(ctx, &event)
+	if err != nil {
+		c.log.Errorf("while running recommendations: %w", err)
 	}
 
 	// Send event over notifiers
