@@ -164,7 +164,7 @@ spec:
   parameters:
     namespaces:
       include:
-        - all
+        - ".*"
     commands:
       # method which are allowed
       verbs: ["get", "logs"]
@@ -235,7 +235,7 @@ spec:
   parameters: # Core webhook for ClusterNotifier, validates it against 'ClusterNotifierTemplate[Kubernetes].validation.openAPIV3Schema'
     namespaces:  # global, can be OVERRIDDEN per resource
       include:
-        - all
+        - ".*"
     resources:
       - name: v1/pods
         namespaces: # it overrides the top one!
@@ -507,7 +507,7 @@ metadata:
 spec:
   namespaces:
     include:
-      - all
+      - ".*"
   commands:
     # method which are allowed
     verbs: ["get", "logs"]
@@ -537,7 +537,7 @@ metadata:
 spec:
   namespaces:  # global, can be OVERRIDDEN per resource
     include:
-      - all
+      - ".*"
 
   resources:
     - name: v1/pods

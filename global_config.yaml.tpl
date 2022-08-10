@@ -11,18 +11,23 @@ sources:
 
     kubernetes:
       # TODO: https://github.com/kubeshop/botkube/issues/596
-      # New 'namespace' property - allows Namespace restriction
+      # New 'namespace' property.
       # It can be overridden in the nested level.
       # namespace:
-      #   include: [ "@all" ]
+      #   include: [ ".*" ]
       resources:
         - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                                     # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-          namespaces:               # List of namespaces, "all" will watch all the namespaces
+          namespaces:
+            # Include contains a list of allowed Namespaces.
+            # It can also contain a regex expressions:
+            #  - ".*" - to specify all Namespaces.
             include:
-              - all
-            ignore:                 # List of namespaces to be ignored (omitempty), used only with include: all, can contain a wildcard (*)
-              -                     # example : include [all], ignore [x,y,secret-ns-*]
+              - ".*"
+            # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+            # It can also contain a regex expressions:
+            #  - "test-.*" - to specif all Namespaces with `test-` prefix.
+            #exclude: []
           events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
             - create
             - delete
@@ -30,8 +35,8 @@ sources:
         - name: v1/services
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -40,8 +45,8 @@ sources:
         - name: apps/v1/deployments
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -56,8 +61,8 @@ sources:
         - name: apps/v1/statefulsets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -72,8 +77,8 @@ sources:
         - name: networking.k8s.io/v1/ingresses
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -82,8 +87,8 @@ sources:
         - name: v1/nodes
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -92,8 +97,8 @@ sources:
         - name: v1/namespaces
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -102,8 +107,8 @@ sources:
         - name: v1/persistentvolumes
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -112,8 +117,8 @@ sources:
         - name: v1/persistentvolumeclaims
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -122,8 +127,8 @@ sources:
         - name: v1/secrets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -132,8 +137,8 @@ sources:
         - name: v1/configmaps
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -142,8 +147,8 @@ sources:
         - name: apps/v1/daemonsets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -158,8 +163,8 @@ sources:
         - name: batch/v1/jobs
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -174,8 +179,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/roles
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -184,8 +189,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/rolebindings
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -194,19 +199,13 @@ sources:
         - name: rbac.authorization.k8s.io/v1/clusterrolebindings
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
-            - delete
             - error
-        - name: rbac.authorization.k8s.io/v1/clusterroles
-          namespaces:
-            include:
-              - all
-            ignore:
-              -
+        - name: v1/services
           events:
             - create
             - delete
@@ -230,7 +229,7 @@ executors:
     # Kubectl executor configs
     kubectl:
       namespaces:
-        include: ["all"]
+        include: [".*"]
       # Set true to enable kubectl commands execution
       enabled: false
       # List of allowed commands

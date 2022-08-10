@@ -35,7 +35,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "logs", "top" ]
         resources: [ ]
@@ -43,7 +43,7 @@ executors:
     kubectl:
       enabled: false
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "exec" ]
         resources: [ ]`
@@ -71,7 +71,7 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
                kubectl-global:
                  namespaces:
                    include:
-                     - all
+                     - .*
                  enabled: true
                  commands:
                    verbs:

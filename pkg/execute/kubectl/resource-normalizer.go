@@ -27,7 +27,7 @@ func NewResourceNormalizer(log logrus.FieldLogger, discoveryCli discovery.Discov
 	}
 	for _, resource := range resourceList {
 		for _, r := range resource.APIResources {
-			// Ignore subresources
+			// Exclude subresources
 			if strings.Contains(r.Name, "/") {
 				continue
 			}

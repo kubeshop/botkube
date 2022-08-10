@@ -35,7 +35,7 @@ func (f *NamespaceChecker) Run(_ context.Context, _ interface{}, event *events.E
 		event.Skip = shouldSkipEvent
 		break
 	}
-	f.log.Debug("Ignore Namespaces filter successful!")
+	f.log.Debug("Exclude Namespaces filter successful!")
 	return nil
 }
 

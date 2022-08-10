@@ -3,8 +3,8 @@ executors:
     # Kubectl executor configs
     kubectl:
       namespaces:
-        include: [ "all" ]
-        ignore: [ "foo", "bar", "test-*-ns" ]
+        include: [ ".*" ]
+        exclude: [ "foo", "bar", "test-*-ns" ]
 
       # Set true to enable kubectl commands execution
       enabled: false

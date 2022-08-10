@@ -33,7 +33,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "logs", "top" ]
         resources: [ ]
@@ -42,7 +42,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "cluster-info" ]
         resources: [ ]
@@ -51,7 +51,7 @@ executors:
     kubectl:
       enabled: false
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "exec" ]
         resources: [ ]`

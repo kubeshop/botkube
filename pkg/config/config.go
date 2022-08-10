@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"k8s.io/utils/strings/slices"
 )
 
 //go:embed default.yaml
@@ -34,7 +33,7 @@ const (
 
 const (
 	// AllNamespaceIndicator represents a keyword for allowing all Kubernetes Namespaces.
-	AllNamespaceIndicator = "all"
+	AllNamespaceIndicator = ".*"
 )
 
 // EventType to watch
@@ -198,53 +197,66 @@ type UpdateSetting struct {
 	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
-// Namespaces contains namespaces to include and ignore
-// Include contains a list of namespaces to be watched,
-//  - "all" to watch all the namespaces
-// Ignore contains a list of namespaces to be ignored when all namespaces are included
-// It is an optional (omitempty) field which is tandem with Include [all]
-// It can also contain a * that would expand to zero or more arbitrary characters
-// example : include [all], ignore [x,y,secret-ns-*]
+// Namespaces provides an option to include and exclude given Namespaces.
 type Namespaces struct {
+	// Include contains a list of allowed Namespaces.
+	// It can also contain a regex expressions:
+	//  - ".*" - to specify all Namespaces.
 	Include []string `yaml:"include"`
-	Ignore  []string `yaml:"ignore,omitempty"`
+
+	// Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+	// It can also contain a regex expressions:
+	//  - "test-.*" - to specif all Namespaces with `test-` prefix.
+	Exclude []string `yaml:"exclude,omitempty"`
 }
 
 // IsAllowed checks if a given Namespace is allowed based on the config.
-// Copied from https://github.com/kubeshop/botkube/blob/b6b7d449278617d40f05d0792b419a7692ad980f/pkg/filterengine/filters/namespace_checker.go#L54-L76
-// TODO(https://github.com/kubeshop/botkube/issues/596): adjust contract.
 func (n *Namespaces) IsAllowed(givenNs string) bool {
 	if n == nil {
 		return false
 	}
 
-	isAll := len(n.Include) == 1 && n.Include[0] == AllNamespaceIndicator
-
-	// Ignore contains a list of namespaces to be ignored when 'all' namespaces are included.
-	// It can also contain a * that would expand to zero or more arbitrary characters.
-	// Example: include [all], ignore [x,y,secret-ns-*]
-	if isAll && len(n.Ignore) > 0 {
-		for _, ignoredNamespace := range n.Ignore {
+	// 1. Check if excluded
+	if len(n.Exclude) > 0 {
+		for _, excludeNamespace := range n.Exclude {
+			if strings.TrimSpace(excludeNamespace) == "" {
+				continue
+			}
 			// exact match
-			if ignoredNamespace == givenNs {
+			if excludeNamespace == givenNs {
 				return false
 			}
 
 			// regexp
-			if strings.Contains(ignoredNamespace, "*") {
-				ns := strings.Replace(ignoredNamespace, "*", ".*", -1)
-				matched, err := regexp.MatchString(ns, givenNs)
-				if err == nil && matched {
-					return false
-				}
+			matched, err := regexp.MatchString(excludeNamespace, givenNs)
+			if err == nil && matched {
+				return false
 			}
 		}
 	}
-	if isAll {
-		return true
+
+	// 2. Check if included, if matched, return true
+	if len(n.Include) > 0 {
+		for _, includeNamespace := range n.Include {
+			if strings.TrimSpace(includeNamespace) == "" {
+				continue
+			}
+
+			// exact match
+			if includeNamespace == givenNs {
+				return true
+			}
+
+			// regexp
+			matched, err := regexp.MatchString(includeNamespace, givenNs)
+			if err == nil && matched {
+				return true
+			}
+		}
 	}
 
-	return slices.Contains(n.Include, givenNs)
+	// 2.1. If not included, return false
+	return false
 }
 
 // Notification holds notification configuration.
