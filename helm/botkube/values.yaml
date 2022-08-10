@@ -51,8 +51,10 @@ kubeconfig:
   existingSecret: ""
 
 
-# -- Map of enabled sources. The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
+# -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
+# The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
 # Key name is used as a binding reference.
+# @default -- See the `values.yaml` file for full object.
 #
 ## Format: sources.<alias>
 sources:
@@ -267,8 +269,10 @@ sources:
        #     fields:
        #       - status.phase
 
-# Map of enabled executors. The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
+# -- Map of executors. Executor contains configuration for running `kubectl` commands.
+# The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
 # Key name is used as a binding reference.
+# @default -- See the `values.yaml` file for full object.
 #
 ## Format: executors.<alias>
 executors:
@@ -306,7 +310,9 @@ executors:
 ##        # NOTE: Use setting format visible below.
 existingCommunicationsSecretName: ""
 
-# Map of enabled communication mediums. The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.
+# -- Map of communication groups. Communication group contains settings for multiple communication platforms.
+# The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.
+# @default -- See the `values.yaml` file for full object.
 #
 ## Format: communications.<alias>
 communications:
