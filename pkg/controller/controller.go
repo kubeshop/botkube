@@ -182,11 +182,11 @@ func (c *Controller) Start(ctx context.Context) error {
 
 	c.startTime = time.Now()
 
+	pivots := pivotEventsAndSources(c.conf.Sources)
+	fmt.Printf("\n\nPIVOTS:\n%+v\n\n", pivots)
+
 	// Register informers for resource lifecycle events
 	if len(c.conf.Sources) > 0 {
-		pivots := pivotEventsAndSources(c.conf.Sources)
-		fmt.Printf("\n\nPIVOTS:\n%+v\n\n", pivots)
-
 		for resource, pivot := range pivots {
 			if _, ok := c.resourceInformerMap[resource]; !ok {
 				continue
@@ -195,56 +195,56 @@ func (c *Controller) Start(ctx context.Context) error {
 			c.resourceInformerMap[resource].AddEventHandler(c.registerEventHandlers(ctx, resource, pivot))
 			c.log.Infof("Added informer for resource %q", resource)
 		}
-
-		//for _, srcGroupCfg := range c.conf.Sources {
-		//	resources := srcGroupCfg.Kubernetes.Resources
-		//	if len(resources) == 0 {
-		//		continue
-		//	}
-		//	c.log.Info("Registering resource lifecycle informer")
-		//	for _, r := range resources {
-		//		if _, ok := c.resourceInformerMap[r.Name]; !ok {
-		//			continue
-		//		}
-		//		c.log.Infof("Adding informer for resource %q", r.Name)
-		//		c.resourceInformerMap[r.Name].AddEventHandler(c.registerEventHandlers(ctx, "", r.Name, r.Events))
-		//	}
-		//}
 	}
 
 	// Register informers for k8s events
 	c.log.Infof("Registering Kubernetes events informer for types %q and %q", config.WarningEvent.String(), config.NormalEvent.String())
+	createEventsResourceAddHandler := func(cfg map[string][]eventSources) func(obj interface{}) {
+		return func(obj interface{}) {
+			var eventObj coreV1.Event
+			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+			if err != nil {
+				c.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+			}
+			_, err = cache.MetaNamespaceKeyFunc(obj)
+			if err != nil {
+				c.log.Errorf("Failed to get MetaNamespaceKey from event resource")
+				return
+			}
+
+			// Find involved object type
+			gvr, err := utils.GetResourceFromKind(c.mapper, eventObj.InvolvedObject.GroupVersionKind())
+			if err != nil {
+				c.log.Errorf("Failed to get involved object: %v", err)
+				return
+			}
+			gvrToString := utils.GVRToString(gvr)
+
+			switch strings.ToLower(eventObj.Type) {
+			case config.WarningEvent.String():
+				// Send WarningEvent as ErrorEvents
+
+				var errorEventSources []string
+				eventSourcesList := cfg[gvrToString]
+				for _, es := range eventSourcesList {
+					if es.event == config.ErrorEvent {
+						errorEventSources = es.sources
+						break
+					}
+				}
+
+				c.sendEvent(ctx, obj, nil, gvrToString, config.ErrorEvent, errorEventSources)
+			case config.NormalEvent.String():
+				// Send NormalEvent as Insignificant InfoEvent
+				c.sendEvent(ctx, obj, nil, gvrToString, config.InfoEvent, []string{})
+			}
+		}
+	}
 	c.dynamicKubeInformerFactory.
 		ForResource(schema.GroupVersionResource{Version: "v1", Resource: "events"}).
 		Informer().
 		AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				var eventObj coreV1.Event
-				err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
-				if err != nil {
-					c.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
-				}
-				_, err = cache.MetaNamespaceKeyFunc(obj)
-				if err != nil {
-					c.log.Errorf("Failed to get MetaNamespaceKey from event resource")
-					return
-				}
-
-				// Find involved object type
-				gvr, err := utils.GetResourceFromKind(c.mapper, eventObj.InvolvedObject.GroupVersionKind())
-				if err != nil {
-					c.log.Errorf("Failed to get involved object: %v", err)
-					return
-				}
-				switch strings.ToLower(eventObj.Type) {
-				case config.WarningEvent.String():
-					// Send WarningEvent as ErrorEvents
-					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.ErrorEvent, []string{})
-				case config.NormalEvent.String():
-					// Send NormalEvent as Insignificant InfoEvent
-					c.sendEvent(ctx, obj, nil, utils.GVRToString(gvr), config.InfoEvent, []string{})
-				}
-			},
+			AddFunc: createEventsResourceAddHandler(pivots),
 		})
 
 	stopCh := ctx.Done()

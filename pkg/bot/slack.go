@@ -290,10 +290,10 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-func intersects(eventSources, channelSources []string) bool {
-	for _, es := range eventSources {
-		for _, cs := range channelSources {
-			if strings.ToLower(es) == strings.ToLower(cs) {
+func intersect(this, that []string) bool {
+	for _, i := range this {
+		for _, j := range that {
+			if strings.ToLower(i) == strings.ToLower(j) {
 				return true
 			}
 		}
@@ -307,22 +307,19 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 		return []string{event.Channel}
 	}
 
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
 	var out []string
-	for _, channelCfg := range b.getChannels() {
-		if !channelCfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
-			continue
-		}
-
-		channelSources := channelCfg.ChannelBindingsByName.Bindings.Sources
-
-		fmt.Println("getChannelsToNotify - EVENTSOURCES: ", eventSources)
-		fmt.Println("getChannelsToNotify - channelSources: ", channelSources)
-
-		intersects := intersects(eventSources, channelSources)
-		if intersects {
-			out = append(out, channelCfg.Identifier())
+	for _, cfg := range b.getChannels() {
+		switch {
+		case !cfg.notify:
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+		case len(eventSources) == 0: // global k8s event
+			out = append(out, cfg.Identifier())
+		default:
+			fmt.Println("getChannelsToNotify - EVENTSOURCES: ", eventSources)
+			fmt.Println("getChannelsToNotify - channelSources: ", cfg.Bindings.Sources)
+			if intersect(eventSources, cfg.Bindings.Sources) {
+				out = append(out, cfg.Identifier())
+			}
 		}
 	}
 	return out
