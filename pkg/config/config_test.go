@@ -152,8 +152,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 		{
 			name: "no config files",
 			expErrMsg: heredoc.Doc(`
-				found critical validation errors: 2 errors occurred:
-					* Key: 'Config.Executors' Executors is a required field
+				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Communications' Communications is a required field`),
 			configFiles: nil,
 		},
