@@ -156,7 +156,7 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	}
 }
 
-func fixExecutorsConfig(t *testing.T, raw string) config.IndexableMap[config.Executors] {
+func fixExecutorsConfig(t *testing.T, raw string) map[string]config.Executors {
 	t.Helper()
 
 	var givenCfg config.Config

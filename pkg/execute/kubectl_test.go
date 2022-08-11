@@ -452,8 +452,8 @@ func fixCfgWithKubectlExecutor(t *testing.T, executor config.Kubectl) config.Con
 		Settings: config.Settings{
 			ClusterName: "test",
 		},
-		Executors: config.IndexableMap[config.Executors]{
-			"default": config.Executors{
+		Executors: map[string]config.Executors{
+			"default": {
 				Kubectl: executor,
 			},
 		},

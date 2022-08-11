@@ -142,7 +142,7 @@ func TestNormalizeConfigEnvName(t *testing.T) {
 	}
 }
 
-func TestLoadedConfigValidation(t *testing.T) {
+func TestLoadedConfigValidationErrors(t *testing.T) {
 	// given
 	tests := []struct {
 		name        string
@@ -152,16 +152,16 @@ func TestLoadedConfigValidation(t *testing.T) {
 		{
 			name: "no config files",
 			expErrMsg: heredoc.Doc(`
-				while validating loaded configuration: 2 errors occurred:
-					* Key: 'Config.Executors' Error:Field validation for 'Executors' failed on the 'required' tag
-					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'required' tag`),
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Executors' Executors is a required field
+					* Key: 'Config.Communications' Communications is a required field`),
 			configFiles: nil,
 		},
 		{
 			name: "empty executors and communications settings",
 			expErrMsg: heredoc.Doc(`
-				while validating loaded configuration: 1 error occurred:
-					* Key: 'Config.Communications' Error:Field validation for 'Communications' failed on the 'min' tag`),
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications' Communications must contain at least 1 item`),
 			configFiles: []string{
 				testdataFile(t, "empty-executors-communications.yaml"),
 			},
@@ -170,13 +170,47 @@ func TestLoadedConfigValidation(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, _, err := config.LoadWithDefaults(func() []string {
+			cfg, details, err := config.LoadWithDefaults(func() []string {
 				return tc.configFiles
 			})
 
 			// then
 			assert.Nil(t, cfg)
+			assert.NoError(t, details.ValidateWarnings)
 			assert.EqualError(t, err, tc.expErrMsg)
+		})
+	}
+}
+
+func TestLoadedConfigValidationWarnings(t *testing.T) {
+	// given
+	tests := []struct {
+		name        string
+		expWarnMsg  string
+		configFiles []string
+	}{
+		{
+			name: "executor specifies all and exact namespace in include property",
+			expWarnMsg: heredoc.Doc(`
+				2 errors occurred:
+					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include matches both all and exact namespaces
+					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include matches both all and exact namespaces`),
+			configFiles: []string{
+				testdataFile(t, "executors-include-warning.yaml"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// when
+			cfg, details, err := config.LoadWithDefaults(func() []string {
+				return tc.configFiles
+			})
+
+			// then
+			assert.NotNil(t, cfg)
+			assert.NoError(t, err)
+			assert.EqualError(t, details.ValidateWarnings, tc.expWarnMsg)
 		})
 	}
 }

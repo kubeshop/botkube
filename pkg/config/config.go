@@ -120,9 +120,9 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
-	Sources        IndexableMap[Sources]        `yaml:"sources"`
-	Executors      IndexableMap[Executors]      `yaml:"executors" validate:"required"`
-	Communications IndexableMap[Communications] `yaml:"communications"  validate:"required,min=1"`
+	Sources        IndexableMap[Sources]     `yaml:"sources" validate:"dive"`
+	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
+	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1"`
 
 	Analytics Analytics `yaml:"analytics"`
 	Settings  Settings  `yaml:"settings"`
@@ -169,7 +169,7 @@ type Sources struct {
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Resources []Resource `yaml:"resources"`
+	Resources []Resource `yaml:"resources" validate:"dive"`
 }
 
 // Executors contains executors configuration parameters.
@@ -284,13 +284,13 @@ type Slack struct {
 
 // Elasticsearch config auth settings
 type Elasticsearch struct {
-	Enabled       bool                   `yaml:"enabled"`
-	Username      string                 `yaml:"username"`
-	Password      string                 `yaml:"password"`
-	Server        string                 `yaml:"server"`
-	SkipTLSVerify bool                   `yaml:"skipTLSVerify"`
-	AWSSigning    AWSSigning             `yaml:"awsSigning"`
-	Indices       IndexableMap[ELSIndex] `yaml:"indices"  validate:"required,eq=1"`
+	Enabled       bool                `yaml:"enabled"`
+	Username      string              `yaml:"username"`
+	Password      string              `yaml:"password"`
+	Server        string              `yaml:"server"`
+	SkipTLSVerify bool                `yaml:"skipTLSVerify"`
+	AWSSigning    AWSSigning          `yaml:"awsSigning"`
+	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required,eq=1"`
 }
 
 // AWSSigning contains AWS configurations
@@ -331,7 +331,7 @@ type Teams struct {
 	Port        string `yaml:"port"`
 	MessagePath string `yaml:"messagePath,omitempty"`
 	// TODO: Be consistent with other communicators when MS Teams support multiple channels
-	//Channels     IndexableMap[ChannelBindingsByName] `yaml:"channels"`
+	//Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"`
 	Bindings     BotBindings  `yaml:"bindings"`
 	Notification Notification `yaml:"notification,omitempty"`
 }
@@ -390,20 +390,26 @@ func (eventType EventType) String() string {
 // PathsGetter returns the list of absolute paths to the config files.
 type PathsGetter func() []string
 
+// LoadWithDefaultsDetails holds the LoadWithDefaults function details.
+type LoadWithDefaultsDetails struct {
+	LoadedCfgFilesPaths []string
+	ValidateWarnings    error
+}
+
 // LoadWithDefaults loads new configuration from files and environment variables.
-func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
+func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails, error) {
 	configPaths := getCfgPaths()
 	k := koanf.New(configDelimiter)
 
 	// load default settings
 	if err := k.Load(rawbytes.Provider(defaultConfiguration), koanfyaml.Parser()); err != nil {
-		return nil, nil, fmt.Errorf("while loading default configuration: %w", err)
+		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("while loading default configuration: %w", err)
 	}
 
 	// merge with user conf files
 	for _, path := range configPaths {
 		if err := k.Load(file.Provider(filepath.Clean(path)), koanfyaml.Parser()); err != nil {
-			return nil, nil, err
+			return nil, LoadWithDefaultsDetails{}, err
 		}
 	}
 
@@ -414,20 +420,27 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, []string, error) {
 		normalizeConfigEnvName,
 	), nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, LoadWithDefaultsDetails{}, err
 	}
 
 	var cfg Config
 	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "yaml"})
 	if err != nil {
-		return nil, nil, err
+		return nil, LoadWithDefaultsDetails{}, err
 	}
 
-	if err := ValidateStruct(cfg); err != nil {
-		return nil, nil, fmt.Errorf("while validating loaded configuration: %w", err)
+	result, err := ValidateStruct(cfg)
+	if err != nil {
+		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("while validating loaded configuration: %w", err)
+	}
+	if err := result.Criticals.ErrorOrNil(); err != nil {
+		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("found critical validation errors: %w", err)
 	}
 
-	return &cfg, configPaths, nil
+	return &cfg, LoadWithDefaultsDetails{
+		LoadedCfgFilesPaths: configPaths,
+		ValidateWarnings:    result.Warnings.ErrorOrNil(),
+	}, nil
 }
 
 // FromEnvOrFlag resolves and returns paths for config files.

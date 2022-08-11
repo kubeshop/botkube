@@ -1,0 +1,23 @@
+communications: # req 1 elm.
+  'default-group':
+    slack:
+      enabled: false
+
+executors:
+  'kubectl-read-only':
+    kubectl:
+      namespaces:
+        include: [ ".*", "test" ]
+        exclude: [ "foo", "bar", "test-*-ns" ]
+
+sources:
+  k8s-events:
+    kubernetes:
+      resources:
+        - name: v1/pods
+          namespaces:
+            include: [ ".*", "kube-system" ]
+          events:
+            - create
+            - delete
+            - error

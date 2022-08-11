@@ -56,7 +56,7 @@ executors:
         verbs: [ "exec" ]
         resources: [ ]`
 
-func fixExecutorsConfig(t *testing.T) config.IndexableMap[config.Executors] {
+func fixExecutorsConfig(t *testing.T) map[string]config.Executors {
 	t.Helper()
 
 	var givenCfg config.Config
