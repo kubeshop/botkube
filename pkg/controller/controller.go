@@ -190,6 +190,7 @@ func (c *Controller) Start(ctx context.Context) error {
 
 	// Register informers for k8s events
 	c.log.Infof("Registering Kubernetes events informer for types %q and %q", config.WarningEvent.String(), config.NormalEvent.String())
+	// Dynamic error handling
 	createEventsResourceAddHandler := func(cfg map[string][]eventSources) func(obj interface{}) {
 		return func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -210,24 +211,22 @@ func (c *Controller) Start(ctx context.Context) error {
 				return
 			}
 			gvrToString := utils.GVRToString(gvr)
+			var errorEventSources []string
+			eventSourcesList := cfg[gvrToString]
+			for _, es := range eventSourcesList {
+				if es.event == config.ErrorEvent {
+					errorEventSources = es.sources
+					break
+				}
+			}
 
 			switch strings.ToLower(eventObj.Type) {
+			// Send WarningEvent as ErrorEvents
 			case config.WarningEvent.String():
-				// Send WarningEvent as ErrorEvents
-
-				var errorEventSources []string
-				eventSourcesList := cfg[gvrToString]
-				for _, es := range eventSourcesList {
-					if es.event == config.ErrorEvent {
-						errorEventSources = es.sources
-						break
-					}
-				}
-
 				c.sendEvent(ctx, obj, nil, gvrToString, config.ErrorEvent, errorEventSources)
 			case config.NormalEvent.String():
 				// Send NormalEvent as Insignificant InfoEvent
-				c.sendEvent(ctx, obj, nil, gvrToString, config.InfoEvent, []string{})
+				c.sendEvent(ctx, obj, nil, gvrToString, config.InfoEvent, errorEventSources)
 			}
 		}
 	}
