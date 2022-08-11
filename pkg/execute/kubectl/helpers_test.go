@@ -33,7 +33,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "logs", "top" ]
         resources: [ ]
@@ -42,7 +42,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "cluster-info" ]
         resources: [ ]
@@ -51,12 +51,12 @@ executors:
     kubectl:
       enabled: false
       namespaces:
-        include: [ "all" ]
+        include: [ ".*" ]
       commands:
         verbs: [ "exec" ]
         resources: [ ]`
 
-func fixExecutorsConfig(t *testing.T) config.IndexableMap[config.Executors] {
+func fixExecutorsConfig(t *testing.T) map[string]config.Executors {
 	t.Helper()
 
 	var givenCfg config.Config

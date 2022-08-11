@@ -55,12 +55,16 @@ func main() {
 func run() error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	conf, loadedCfgFiles, err := config.LoadWithDefaults(config.FromEnvOrFlag)
+	conf, confDetails, err := config.LoadWithDefaults(config.FromEnvOrFlag)
 	if err != nil {
 		return fmt.Errorf("while loading app configuration: %w", err)
 	}
 
 	logger := newLogger(conf.Settings.Log.Level, conf.Settings.Log.DisableColors)
+
+	if confDetails.ValidateWarnings != nil {
+		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
+	}
 
 	// Set up analytics reporter
 	reporter, err := newAnalyticsReporter(conf.Analytics.Disable, logger)
@@ -241,7 +245,7 @@ func run() error {
 	if conf.Settings.ConfigWatcher {
 		cfgWatcher := controller.NewConfigWatcher(
 			logger.WithField(componentLogFieldKey, "Config Watcher"),
-			loadedCfgFiles,
+			confDetails.LoadedCfgFilesPaths,
 			conf.Settings.ClusterName,
 			notifiers,
 		)

@@ -136,7 +136,7 @@ func TestSlack(t *testing.T) {
 			    kubectl-allow-all:
 			      namespaces:
 			        include:
-			          - all
+			          - .*
 			      enabled: true
 			      commands:
 			        verbs:

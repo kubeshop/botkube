@@ -197,7 +197,7 @@ func TestKubectlExecute(t *testing.T) {
 				Enabled: true,
 				Namespaces: config.Namespaces{
 					Include: []string{config.AllNamespaceIndicator},
-					Ignore:  []string{"team-b"},
+					Exclude: []string{"team-b"},
 				},
 				Commands: config.Commands{
 					Verbs:     []string{"get"},
@@ -325,7 +325,7 @@ func TestKubectlExecute(t *testing.T) {
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
-					Include: []string{"all"},
+					Include: []string{".*"},
 				},
 				Commands: config.Commands{
 					Verbs:     []string{"get"},
@@ -452,8 +452,8 @@ func fixCfgWithKubectlExecutor(t *testing.T, executor config.Kubectl) config.Con
 		Settings: config.Settings{
 			ClusterName: "test",
 		},
-		Executors: config.IndexableMap[config.Executors]{
-			"default": config.Executors{
+		Executors: map[string]config.Executors{
+			"default": {
 				Kubectl: executor,
 			},
 		},

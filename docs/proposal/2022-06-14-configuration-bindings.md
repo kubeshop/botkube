@@ -114,7 +114,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
             - status.phase
       - name: networking.istio.io/v1alpha3/VirtualServices
         namespaces:
-          include: ["all"]
+          include: [".*"]
         events: ["error"]
 
     # Recommendations about the best practices
@@ -136,7 +136,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
           # New 'namespace' property - allows Namespace restriction
           # It can be overridden in the nested level.
           namespace:
-            include: ["@all"]
+            include: [".*"]
           resources:
             - name: v1/pods
               namespaces: # override the top level Namespace
@@ -327,13 +327,13 @@ sources:
        - name: v1/nodes
          namespaces:
            include:
-             - @all
+             - ".*"
          events:
            - error
   'network-errors':
     kubernetes:
       namespace:
-        include: ["@all"]
+        include: [".*"]
       resources:
         - name: v1/pods
           namespaces: # override the top level Namespace
@@ -492,13 +492,13 @@ sources:
       resources:
         - name: v1/nodes
           namespaces:
-            include: ["@all"]
+            include: [".*"]
           events:
             - error
   'network-errors':
     kubernetes:
       namespaces:
-        include: ["@all"]
+        include: [".*"]
       resources:
         - name: v1/services
           events:
@@ -514,7 +514,7 @@ executors:
   'kubectl-full-access':  # map key, name used for bindings
     kubectl:
       namespaces:
-        include: ["@all"]
+        include: [".*"]
       commands:
         verbs: ["get", "...", "logs"]
         resources: ["Deployments", "Pods", "Services"]
@@ -552,7 +552,7 @@ executors:
     kubectl:
       enabled: true
       namespaces:
-        include: ["@all"]
+        include: [".*"]
       commands:
         verbs: ["get", "logs"]
         resources: ["Deployments", "Pods", "Services"]
@@ -582,13 +582,13 @@ sources:
       resources: &nodes-errors
         - name: v1/nodes
           namespaces:
-            include: ["@all"]
+            include: [".*"]
           events:
             - error
   'network-errors':
     kubernetes:
       namespaces:
-        include: ["@all"]
+        include: [".*"]
       resources: &network-errors
         - name: v1/services
           events:
@@ -599,7 +599,7 @@ sources:
   'all-errors':
     kubernetes:
       namespaces:
-        include: ["@all"]
+        include: [".*"]
       resources:
         <<: *nodes-errors
         <<: *network-errors
@@ -738,7 +738,7 @@ This section described necessary changes if proposal will be accepted.
 
 ### Follow-up changes
 
-1. Change selector for all Namespaces from `all` to `@all`.
+1. Change selector for all Namespaces from `all` to `.*`.
 2. Add full channel/user indicator - `@` or `#`.
 3. Recommendations are merged under notifications.
 4. Update `@BotKube` commands to reflect new configuration.

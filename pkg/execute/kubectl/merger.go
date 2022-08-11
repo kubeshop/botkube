@@ -16,11 +16,11 @@ type EnabledKubectl struct {
 // Merger provides functionality to merge multiple bindings
 // associated with the kubectl executor.
 type Merger struct {
-	executors config.IndexableMap[config.Executors]
+	executors map[string]config.Executors
 }
 
 // NewMerger returns a new Merger instance.
-func NewMerger(executors config.IndexableMap[config.Executors]) *Merger {
+func NewMerger(executors map[string]config.Executors) *Merger {
 	return &Merger{
 		executors: executors,
 	}

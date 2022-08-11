@@ -91,17 +91,17 @@ sources:
 
     kubernetes:
       # TODO: https://github.com/kubeshop/botkube/issues/596
-      # New 'namespace' property - allows Namespace restriction
+      # New 'namespace' property.
       # It can be overridden in the nested level.
       # namespace:
-      #   include: [ "@all" ]
+      #   include: [ ".*" ]
       resources:
         - name: v1/pods
           namespaces:
             include:
-              - all
-            ignore:
-              - # example : include [all], ignore [x,y,secret-ns-*]
+              - ".*"
+            exclude:
+              - # example [x,y,secret-ns-*]
           events:
             - create
             - delete
@@ -109,8 +109,8 @@ sources:
         - name: v1/services
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -119,8 +119,8 @@ sources:
         - name: apps/v1/deployments
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -135,8 +135,8 @@ sources:
         - name: apps/v1/statefulsets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -151,8 +151,8 @@ sources:
         - name: networking.k8s.io/v1/ingresses
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -161,8 +161,8 @@ sources:
         - name: v1/nodes
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -171,8 +171,8 @@ sources:
         - name: v1/namespaces
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -181,8 +181,8 @@ sources:
         - name: v1/persistentvolumes
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -191,8 +191,8 @@ sources:
         - name: v1/persistentvolumeclaims
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -201,8 +201,8 @@ sources:
         - name: v1/secrets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -211,8 +211,8 @@ sources:
         - name: v1/configmaps
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -221,8 +221,8 @@ sources:
         - name: apps/v1/daemonsets
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -237,8 +237,8 @@ sources:
         - name: batch/v1/jobs
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -253,8 +253,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/roles
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -263,8 +263,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/rolebindings
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -273,8 +273,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/clusterrolebindings
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create
@@ -283,8 +283,8 @@ sources:
         - name: rbac.authorization.k8s.io/v1/clusterroles
           namespaces:
             include:
-              - all
-            ignore:
+              - ".*"
+            exclude:
               -
           events:
             - create

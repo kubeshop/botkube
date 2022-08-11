@@ -73,7 +73,7 @@ executors:
       enabled: true
       namespaces:
         include:
-          - all
+          - ".*"
       commands:
         verbs: [ "get" ]
         resources: [ "deployments" ]
@@ -82,7 +82,7 @@ executors:
       enabled: true
       namespaces:
         include:
-          - all
+          - ".*"
       commands:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]

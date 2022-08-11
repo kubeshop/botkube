@@ -5,6 +5,8 @@ require (
 	github.com/aws/aws-sdk-go v1.44.20
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/fsnotify/fsnotify v1.5.4
+	github.com/go-playground/locales v0.14.0
+	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/google/go-github/v44 v44.1.0
 	github.com/google/uuid v1.3.0
@@ -58,8 +60,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/go-playground/locales v0.14.0 // indirect
-	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/goccy/go-json v0.4.8 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
