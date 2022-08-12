@@ -256,7 +256,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	if eventType == config.UpdateEvent {
 		var updateMsg string
 		// Check if all namespaces allowed
-		updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: "all"}]
+		updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: config.AllNamespaceIndicator}]
 		if !exist {
 			// Check if specified namespace is allowed
 			updateSetting, exist = c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
@@ -428,7 +428,7 @@ func (c *Controller) shouldSendEvent(namespace string, resource string, eventTyp
 		return false
 	}
 
-	if eventMap[EventKind{Resource: resource, Namespace: "all", EventType: eventType}] {
+	if eventMap[EventKind{Resource: resource, Namespace: config.AllNamespaceIndicator, EventType: eventType}] {
 		return true
 	}
 
@@ -437,36 +437,4 @@ func (c *Controller) shouldSendEvent(namespace string, resource string, eventTyp
 	}
 
 	return false
-}
-
-// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/kubeshop/botkube/issues/589
-
-// ShouldSendEvent exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) ShouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
-	return c.shouldSendEvent(namespace, resource, eventType)
-}
-
-// ObservedEventKindsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) ObservedEventKindsMap() map[EventKind]bool {
-	return c.observedEventKindsMap
-}
-
-// SetObservedEventKindsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) SetObservedEventKindsMap(observedEventKindsMap map[EventKind]bool) {
-	c.observedEventKindsMap = observedEventKindsMap
-}
-
-// ObservedUpdateEventsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) ObservedUpdateEventsMap() map[KindNS]config.UpdateSetting {
-	return c.observedUpdateEventsMap
-}
-
-// SetObservedUpdateEventsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) SetObservedUpdateEventsMap(observedUpdateEventsMap map[KindNS]config.UpdateSetting) {
-	c.observedUpdateEventsMap = observedUpdateEventsMap
 }
