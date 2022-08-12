@@ -117,20 +117,8 @@ This section describes the necessary changes in the syntax. **It's not backward 
           include: [".*"]
         events: ["error"]
 
-    # Describes configuration for various recommendation insights.
-    recommendations:
-      # Recommendations for Pod Kubernetes resource.
-      pod:
-        # If true, notifies about Pod containers that use `latest` tag for images.
-        noLatestImageTag: true
-        # If true, notifies about Pod resources created without labels.
-        labelsSet: true
-      # Recommendations for Ingress Kubernetes resource.
-      ingress:
-        # If true, notifies about Ingress resources with invalid backend service reference.
-        backendServiceValid: true
-        # If true, notifies about Ingress resources with invalid TLS secret reference.
-        tlsSecretValid: true
+    # Recommendations about the best practices
+    recommendations: true
     ```
 
     </td>
@@ -140,6 +128,21 @@ This section describes the necessary changes in the syntax. **It's not backward 
     sources:
       'default' # map key, name used for bindings
         kubernetes:
+          # Describes configuration for various recommendation insights.
+          recommendations:
+            # Recommendations for Pod Kubernetes resource.
+            pod:
+              # If true, notifies about Pod containers that use `latest` tag for images.
+              noLatestImageTag: true
+              # If true, notifies about Pod resources created without labels.
+              labelsSet: true
+            # Recommendations for Ingress Kubernetes resource.
+            ingress:
+              # If true, notifies about Ingress resources with invalid backend service reference.
+              backendServiceValid: true
+              # If true, notifies about Ingress resources with invalid TLS secret reference.
+              tlsSecretValid: true
+
           # New 'namespace' property - allows Namespace restriction
           # It can be overridden in the nested level.
           namespace:
@@ -156,15 +159,6 @@ This section describes the necessary changes in the syntax. **It's not backward 
             - name: networking.istio.io/v1alpha3/VirtualServices
               # uses the default Namespace settings from top level definition.
               events: ["error"]
-
-        # Recommendations about the best practices
-        recommendations:
-          image:     # "Checks if 'latest' image tag is used for container image."
-            enabled: true
-          pod:       # "Checks if labels are missing in the pod specs."
-            enabled: true
-          ingress:   # "Checks if services and tls secrets used in ingress are available."
-            enabled: true
     ```
 
     </td>

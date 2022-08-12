@@ -13,40 +13,46 @@ import (
 
 func TestFactory_NewForSources(t *testing.T) {
 	// given
-	sources := config.IndexableMap[config.Sources]{
-		"first": config.Sources{
-			Recommendations: config.Recommendations{
-				Pod: config.PodRecommendations{
-					LabelsSet:        true,
-					NoLatestImageTag: false,
-				},
-				Ingress: config.IngressRecommendations{
-					BackendServiceValid: false,
-					TLSSecretValid:      false,
-				},
-			},
-		},
-		"second": config.Sources{
-			Recommendations: config.Recommendations{
-				Pod: config.PodRecommendations{
-					LabelsSet:        true,
-					NoLatestImageTag: true,
-				},
-				Ingress: config.IngressRecommendations{
-					BackendServiceValid: false,
-					TLSSecretValid:      true,
+	sources := map[string]config.Sources{
+		"first": {
+			Kubernetes: config.KubernetesSource{
+				Recommendations: config.Recommendations{
+					Pod: config.PodRecommendations{
+						LabelsSet:        true,
+						NoLatestImageTag: false,
+					},
+					Ingress: config.IngressRecommendations{
+						BackendServiceValid: false,
+						TLSSecretValid:      false,
+					},
 				},
 			},
 		},
-		"third": config.Sources{
-			Recommendations: config.Recommendations{
-				Pod: config.PodRecommendations{
-					LabelsSet:        false,
-					NoLatestImageTag: true,
+		"second": {
+			Kubernetes: config.KubernetesSource{
+				Recommendations: config.Recommendations{
+					Pod: config.PodRecommendations{
+						LabelsSet:        true,
+						NoLatestImageTag: true,
+					},
+					Ingress: config.IngressRecommendations{
+						BackendServiceValid: false,
+						TLSSecretValid:      true,
+					},
 				},
-				Ingress: config.IngressRecommendations{
-					BackendServiceValid: true,
-					TLSSecretValid:      true,
+			},
+		},
+		"third": {
+			Kubernetes: config.KubernetesSource{
+				Recommendations: config.Recommendations{
+					Pod: config.PodRecommendations{
+						LabelsSet:        false,
+						NoLatestImageTag: true,
+					},
+					Ingress: config.IngressRecommendations{
+						BackendServiceValid: true,
+						TLSSecretValid:      true,
+					},
 				},
 			},
 		},

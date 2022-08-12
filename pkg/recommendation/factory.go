@@ -34,19 +34,20 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 }
 
 // NewForSources merges recommendation options from multiple sources, and creates a new Set.
-func (f *Factory) NewForSources(sources config.IndexableMap[config.Sources]) Set {
+func (f *Factory) NewForSources(sources map[string]config.Sources) Set {
 	set := make(map[string]Recommendation)
 	for _, source := range sources {
-		f.createIfNotExist(source.Recommendations.Pod.LabelsSet, set,
+		k8sSource := source.Kubernetes
+		f.createIfNotExist(k8sSource.Recommendations.Pod.LabelsSet, set,
 			func() Recommendation { return NewPodLabelsSet() },
 		)
-		f.createIfNotExist(source.Recommendations.Pod.NoLatestImageTag, set,
+		f.createIfNotExist(k8sSource.Recommendations.Pod.NoLatestImageTag, set,
 			func() Recommendation { return NewPodNoLatestImageTag() },
 		)
-		f.createIfNotExist(source.Recommendations.Ingress.BackendServiceValid, set,
+		f.createIfNotExist(k8sSource.Recommendations.Ingress.BackendServiceValid, set,
 			func() Recommendation { return NewIngressBackendServiceValid(f.dynamicCli) },
 		)
-		f.createIfNotExist(source.Recommendations.Ingress.TLSSecretValid, set,
+		f.createIfNotExist(k8sSource.Recommendations.Ingress.TLSSecretValid, set,
 			func() Recommendation { return NewIngressTLSSecretValid(f.dynamicCli) },
 		)
 	}

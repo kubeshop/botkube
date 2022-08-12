@@ -163,13 +163,13 @@ type SinkBindings struct {
 
 // Sources contains configuration for BotKube app sources.
 type Sources struct {
-	Kubernetes      KubernetesSource `yaml:"kubernetes"`
-	Recommendations Recommendations  `yaml:"recommendations"`
+	Kubernetes KubernetesSource `yaml:"kubernetes"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Resources []Resource `yaml:"resources" validate:"dive"`
+	Recommendations Recommendations `yaml:"recommendations"`
+	Resources       []Resource      `yaml:"resources" validate:"dive"`
 }
 
 // Recommendations contains configuration for various recommendation insights.

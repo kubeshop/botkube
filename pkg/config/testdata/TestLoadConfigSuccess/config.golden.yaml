@@ -1,6 +1,13 @@
 sources:
     k8s-events:
         kubernetes:
+            recommendations:
+                ingress:
+                    backendServiceValid: true
+                    tlsSecretValid: false
+                pod:
+                    noLatestImageTag: false
+                    labelsSet: true
             resources:
                 - name: v1/pods
                   namespaces:
@@ -235,13 +242,6 @@ sources:
                   updateSetting:
                     fields: []
                     includeDiff: false
-        recommendations:
-            ingress:
-                backendServiceValid: true
-                tlsSecretValid: false
-            pod:
-                noLatestImageTag: false
-                labelsSet: true
 executors:
     kubectl-read-only:
         kubectl:

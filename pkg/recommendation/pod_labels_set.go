@@ -28,11 +28,6 @@ func (f PodLabelsSet) Do(_ context.Context, event events.Event) (Result, error) 
 		return Result{}, nil
 	}
 
-	//podObjectMeta, err := utils.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, event.Object)
-	//if err != nil {
-	//	return fmt.Errorf("while getting object metadata: %w", err)
-	//}
-
 	unstrObj, ok := event.Object.(*unstructured.Unstructured)
 	if !ok {
 		return Result{}, fmt.Errorf("cannot convert %T into type %T", event.Object, unstrObj)

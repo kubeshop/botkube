@@ -65,7 +65,7 @@ type AnalyticsReporter interface {
 
 // RecommendationFactory defines a factory that creates recommendations.
 type RecommendationFactory interface {
-	NewForSources(sources config.IndexableMap[config.Sources]) recommendation.Set
+	NewForSources(sources map[string]config.Sources) recommendation.Set
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.
