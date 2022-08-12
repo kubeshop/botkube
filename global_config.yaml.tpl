@@ -5,22 +5,23 @@
 sources:
   'k8s-events':
 
-    # Describes configuration for various recommendation insights.
-    recommendations:
-      # Recommendations for Pod Kubernetes resource.
-      pod:
-        # If true, notifies about Pod containers that use `latest` tag for images.
-        noLatestImageTag: true
-        # If true, notifies about Pod resources created without labels.
-        labelsSet: true
-      # Recommendations for Ingress Kubernetes resource.
-      ingress:
-        # If true, notifies about Ingress resources with invalid backend service reference.
-        backendServiceValid: true
-        # If true, notifies about Ingress resources with invalid TLS secret reference.
-        tlsSecretValid: true
-
     kubernetes:
+
+      # Describes configuration for various recommendation insights.
+      recommendations:
+        # Recommendations for Pod Kubernetes resource.
+        pod:
+          # If true, notifies about Pod containers that use `latest` tag for images.
+          noLatestImageTag: true
+          # If true, notifies about Pod resources created without labels.
+          labelsSet: true
+        # Recommendations for Ingress Kubernetes resource.
+        ingress:
+          # If true, notifies about Ingress resources with invalid backend service reference.
+          backendServiceValid: true
+          # If true, notifies about Ingress resources with invalid TLS secret reference.
+          tlsSecretValid: true
+
       # TODO: https://github.com/kubeshop/botkube/issues/596
       # New 'namespace' property.
       # It can be overridden in the nested level.
