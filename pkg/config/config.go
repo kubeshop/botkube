@@ -128,6 +128,100 @@ type Config struct {
 	Settings  Settings  `yaml:"settings"`
 }
 
+type resourceEvents map[string]map[EventType]struct{}
+
+type RoutedEvent struct {
+	event   EventType
+	sources []string
+}
+
+type SourcesRouter struct {
+	table    map[string][]RoutedEvent
+	bindings map[string]struct{}
+}
+
+func (r *SourcesRouter) AddAnySlackBindings(c IdentifiableMap[ChannelBindingsByName]) {
+	for _, name := range c {
+		for _, source := range name.Bindings.Sources {
+			r.bindings[source] = struct{}{}
+		}
+	}
+}
+
+func (r *SourcesRouter) BuildTable(cfg *Config) *SourcesRouter {
+	sources := r.GetBoundSources(cfg.Sources)
+	resourceEvents := catalogueResourceEvents(sources)
+
+	for resource, uniqueEvents := range resourceEvents {
+		eventSources := catalogueEventSources(resource, sources)
+		fmt.Printf("\n\nCOLLECTED_SOURCES: %+v\n\n", eventSources)
+		r.buildTable(resource, uniqueEvents, eventSources)
+	}
+
+	return r
+}
+
+func catalogueEventSources(resource string, sources IndexableMap[Sources]) map[EventType][]string {
+	out := make(map[EventType][]string)
+	for srcGroupName, srcGroupCfg := range sources {
+		for _, r := range srcGroupCfg.Kubernetes.Resources {
+			for _, e := range r.Events {
+				if resource == r.Name {
+					out[e] = append(out[e], srcGroupName)
+				}
+			}
+		}
+	}
+	return out
+}
+
+func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) IndexableMap[Sources] {
+	out := make(IndexableMap[Sources])
+	for name, t := range sources {
+		if _, ok := r.bindings[name]; ok {
+			out[name] = t
+		}
+	}
+	return out
+}
+
+func (r *SourcesRouter) buildTable(resource string, events map[EventType]struct{}, sources map[EventType][]string) {
+	for evt := range events {
+		if _, ok := r.table[resource]; !ok {
+
+			r.table[resource] = []RoutedEvent{{
+				event:   evt,
+				sources: sources[evt],
+			}}
+
+		} else {
+			r.table[resource] = append(r.table[resource], RoutedEvent{event: evt, sources: sources[evt]})
+		}
+	}
+}
+
+func catalogueResourceEvents(sources IndexableMap[Sources]) resourceEvents {
+	out := map[string]map[EventType]struct{}{}
+	for _, srcGroupCfg := range sources {
+		for _, resource := range srcGroupCfg.Kubernetes.Resources {
+			for _, e := range resource.Events {
+				if _, ok := out[resource.Name]; !ok {
+					out[resource.Name] = map[EventType]struct{}{e: {}}
+				} else {
+					out[resource.Name][e] = struct{}{}
+				}
+			}
+		}
+	}
+	return out
+}
+
+func NewSourcesRouter() *SourcesRouter {
+	return &SourcesRouter{
+		table: make(map[string][]RoutedEvent),
+	}
+}
+
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
 	Name     string      `yaml:"name"`

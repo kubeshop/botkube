@@ -78,10 +78,11 @@ type Controller struct {
 	recommFactory         RecommendationFactory
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
+	sourcesRouter         *config.SourcesRouter
 
 	dynamicCli dynamic.Interface
-	mapper     meta.RESTMapper
 
+	mapper                     meta.RESTMapper
 	dynamicKubeInformerFactory dynamicinformer.DynamicSharedInformerFactory
 	resourceInformerMap        map[string]cache.SharedIndexInformer
 	observedEventKindsMap      map[EventKind]bool
@@ -97,6 +98,7 @@ func New(log logrus.FieldLogger,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
+	router *config.SourcesRouter,
 	reporter AnalyticsReporter,
 ) *Controller {
 	return &Controller{
@@ -108,6 +110,7 @@ func New(log logrus.FieldLogger,
 		dynamicCli:            dynamicCli,
 		mapper:                mapper,
 		informersResyncPeriod: informersResyncPeriod,
+		sourcesRouter:         router,
 		reporter:              reporter,
 	}
 }
@@ -480,8 +483,8 @@ func (c *Controller) initInformerMap() {
 
 			// For AllEvent type, add all events to map
 			if allEvents {
-				events := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
-				for _, ev := range events {
+				eventTypes := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
+				for _, ev := range eventTypes {
 					for _, ns := range r.Namespaces.Include {
 						c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
 						c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting

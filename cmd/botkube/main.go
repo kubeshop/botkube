@@ -150,6 +150,8 @@ func run() error {
 		reporter,
 	)
 
+	router := config.NewSourcesRouter()
+
 	commCfg := conf.Communications
 	var notifiers []controller.Notifier
 
@@ -167,6 +169,7 @@ func run() error {
 				return reportFatalError("while creating Slack bot", err)
 			}
 			notifiers = append(notifiers, sb)
+			router.AddAnySlackBindings(commGroupCfg.Slack.Channels)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return sb.Start(ctx)
@@ -270,6 +273,7 @@ func run() error {
 		dynamicCli,
 		mapper,
 		conf.Settings.InformersResyncPeriod,
+		router.BuildTable(conf),
 		reporter,
 	)
 
