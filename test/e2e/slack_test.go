@@ -116,12 +116,9 @@ func TestSlack(t *testing.T) {
 		command := "filters list"
 		expectedMessage := codeBlock(heredoc.Doc(`
 			FILTER                  ENABLED DESCRIPTION
-			ImageTagChecker         true    Checks and adds recommendation if 'latest' image tag is used for container image.
-			IngressValidator        true    Checks if services and tls secrets used in ingress specs are available.
 			NamespaceChecker        true    Checks if event belongs to blocklisted namespaces and filter them.
 			NodeEventsChecker       true    Sends notifications on node level critical events.
-			ObjectAnnotationChecker true    Checks if annotations <http://botkube.io/*|botkube.io/*> present in object specs and filters them.
-			PodLabelChecker         true    Checks and adds recommendations if labels are missing in the pod specs.`))
+			ObjectAnnotationChecker true    Checks if annotations <http://botkube.io/*|botkube.io/*> present in object specs and filters them.`))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err := slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -484,6 +481,7 @@ func TestSlack(t *testing.T) {
 				},
 			},
 		}
+		require.Len(t, pod.Spec.Containers, 1)
 		pod, err = podCli.Create(context.Background(), pod, metav1.CreateOptions{})
 		require.NoError(t, err)
 
@@ -505,8 +503,8 @@ func TestSlack(t *testing.T) {
 			fieldMessage := attachment.Fields[0].Value
 			return title == "v1/pods created" &&
 				strings.Contains(fieldMessage, "Recommendations:") &&
-				strings.Contains(fieldMessage, "- :latest tag used in image 'nginx:latest' of Container 'nginx' should be avoided.") &&
-				strings.Contains(fieldMessage, fmt.Sprintf("- pod '%s' creation without labels should be avoided.", pod.Name))
+				strings.Contains(fieldMessage, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
+				strings.Contains(fieldMessage, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
 		}
 		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
 		require.NoError(t, err)

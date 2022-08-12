@@ -14,28 +14,28 @@ import (
 )
 
 const (
-	// DisableAnnotation is the object disable annotation
+	// DisableAnnotation is the object disable annotation.
 	DisableAnnotation string = "botkube.io/disable"
-	// ChannelAnnotation is the multichannel support annotation
+	// ChannelAnnotation is the multichannel support annotation.
 	ChannelAnnotation string = "botkube.io/channel"
 )
 
-// ObjectAnnotationChecker add recommendations to the event object if pod created without any labels
+// ObjectAnnotationChecker forwards events to specific channels based on a special annotation if it is set on a given K8s resource.
 type ObjectAnnotationChecker struct {
 	log        logrus.FieldLogger
 	dynamicCli dynamic.Interface
 	mapper     meta.RESTMapper
 }
 
-// NewObjectAnnotationChecker creates a new ObjectAnnotationChecker instance
+// NewObjectAnnotationChecker creates a new ObjectAnnotationChecker instance.
 func NewObjectAnnotationChecker(log logrus.FieldLogger, dynamicCli dynamic.Interface, mapper meta.RESTMapper) *ObjectAnnotationChecker {
 	return &ObjectAnnotationChecker{log: log, dynamicCli: dynamicCli, mapper: mapper}
 }
 
-// Run filters and modifies event struct
-func (f *ObjectAnnotationChecker) Run(ctx context.Context, object interface{}, event *events.Event) error {
+// Run filters and modifies event struct.
+func (f *ObjectAnnotationChecker) Run(ctx context.Context, event *events.Event) error {
 	// get objects metadata
-	obj, err := utils.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, object)
+	obj, err := utils.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, event.Object)
 	if err != nil {
 		return fmt.Errorf("while getting object metadata: %w", err)
 	}
@@ -55,18 +55,18 @@ func (f *ObjectAnnotationChecker) Run(ctx context.Context, object interface{}, e
 	return nil
 }
 
-// Name returns the filter's name
+// Name returns the filter's name.
 func (f *ObjectAnnotationChecker) Name() string {
 	return "ObjectAnnotationChecker"
 }
 
-// Describe describes the filter
+// Describe describes the filter.
 func (f *ObjectAnnotationChecker) Describe() string {
 	return "Checks if annotations botkube.io/* present in object specs and filters them."
 }
 
-// isObjectNotifDisabled checks annotation botkube.io/disable
-// annotation botkube.io/disable disables the event notifications from objects
+// isObjectNotifDisabled checks annotation botkube.io/disable.
+// Annotation botkube.io/disable disables the event notifications from objects.
 func (f *ObjectAnnotationChecker) isObjectNotifDisabled(obj metaV1.ObjectMeta) bool {
 	if obj.Annotations[DisableAnnotation] == "true" {
 		f.log.Debug("Skipping Disabled Event Notifications!")
@@ -75,9 +75,9 @@ func (f *ObjectAnnotationChecker) isObjectNotifDisabled(obj metaV1.ObjectMeta) b
 	return false
 }
 
-// reconfigureChannel checks annotation botkube.io/channel
-// annotation botkube.io/channel directs event notifications to channels
-// based on the channel names present in them
+// reconfigureChannel checks annotation botkube.io/channel.
+// Annotation botkube.io/channel directs event notifications to channels
+// based on the channel names present in them.
 // Note: Add botkube app into the desired channel to receive notifications
 func (f *ObjectAnnotationChecker) reconfigureChannel(obj metaV1.ObjectMeta) (string, bool) {
 	// redirect messages to channels based on annotations

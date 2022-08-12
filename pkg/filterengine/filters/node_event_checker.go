@@ -28,9 +28,9 @@ func NewNodeEventsChecker(log logrus.FieldLogger) *NodeEventsChecker {
 }
 
 // Run filers and modifies event struct
-func (f *NodeEventsChecker) Run(_ context.Context, object interface{}, event *events.Event) error {
+func (f *NodeEventsChecker) Run(_ context.Context, event *events.Event) error {
 	// Check for Event object
-	if utils.GetObjectTypeMetaData(object).Kind == "Event" {
+	if utils.GetObjectTypeMetaData(event.Object).Kind == "Event" {
 		return nil
 	}
 

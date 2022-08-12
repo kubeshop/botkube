@@ -19,8 +19,7 @@ type DefaultFilterEngine struct {
 
 // FilterEngine has methods to register and run filters
 type FilterEngine interface {
-	// TODO: Why `Run` method takes object as input argument, if event already contains it as well? Refactor it if possible
-	Run(context.Context, interface{}, events.Event) events.Event
+	Run(context.Context, events.Event) events.Event
 	Register(...Filter)
 	RegisteredFilters() []RegisteredFilter
 	SetFilter(string, bool) error
@@ -34,12 +33,12 @@ type RegisteredFilter struct {
 
 // Filter has method to run filter
 type Filter interface {
-	Run(context.Context, interface{}, *events.Event) error
+	Run(context.Context, *events.Event) error
 	Name() string
 	Describe() string
 }
 
-// New creates new DefaultFilterEngine object
+// New creates new DefaultFilterEngine instance.
 func New(log logrus.FieldLogger) *DefaultFilterEngine {
 	return &DefaultFilterEngine{
 		log:     log,
@@ -48,7 +47,7 @@ func New(log logrus.FieldLogger) *DefaultFilterEngine {
 }
 
 // Run runs the registered filters always iterating over a slice of filters with sorted keys
-func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event events.Event) events.Event {
+func (f *DefaultFilterEngine) Run(ctx context.Context, event events.Event) events.Event {
 	f.log.Debug("Running registered filters")
 	filters := f.RegisteredFilters()
 	for _, filter := range filters {
@@ -56,7 +55,7 @@ func (f *DefaultFilterEngine) Run(ctx context.Context, object interface{}, event
 			continue
 		}
 
-		err := filter.Run(ctx, object, &event)
+		err := filter.Run(ctx, &event)
 		if err != nil {
 			f.log.Errorf("while running filter %q: %w", filter.Name(), err)
 		}

@@ -87,9 +87,16 @@ communications: # req 1 elm.
 sources:
   'k8s-events':
 
-    recommendations: true
-
     kubernetes:
+
+      recommendations:
+        pod:
+          noLatestImageTag: false
+          labelsSet: true
+        ingress:
+          backendServiceValid: true
+          tlsSecretValid: false
+
       # TODO: https://github.com/kubeshop/botkube/issues/596
       # New 'namespace' property.
       # It can be overridden in the nested level.
