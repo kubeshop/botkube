@@ -34,36 +34,46 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 }
 
 // NewForSources merges recommendation options from multiple sources, and creates a new Set.
-func (f *Factory) NewForSources(sources map[string]config.Sources) Set {
+func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) Set {
 	set := make(map[string]Recommendation)
-	for _, source := range sources {
+	for _, key := range mapKeyOrder {
+		source, exists := sources[key]
+		if !exists {
+			continue
+		}
+
 		k8sSource := source.Kubernetes
-		f.createIfNotExist(k8sSource.Recommendations.Pod.LabelsSet, set,
+		f.enableRecommendationIfShould(k8sSource.Recommendations.Pod.LabelsSet, set,
 			func() Recommendation { return NewPodLabelsSet() },
 		)
-		f.createIfNotExist(k8sSource.Recommendations.Pod.NoLatestImageTag, set,
+		f.enableRecommendationIfShould(k8sSource.Recommendations.Pod.NoLatestImageTag, set,
 			func() Recommendation { return NewPodNoLatestImageTag() },
 		)
-		f.createIfNotExist(k8sSource.Recommendations.Ingress.BackendServiceValid, set,
+		f.enableRecommendationIfShould(k8sSource.Recommendations.Ingress.BackendServiceValid, set,
 			func() Recommendation { return NewIngressBackendServiceValid(f.dynamicCli) },
 		)
-		f.createIfNotExist(k8sSource.Recommendations.Ingress.TLSSecretValid, set,
+		f.enableRecommendationIfShould(k8sSource.Recommendations.Ingress.TLSSecretValid, set,
 			func() Recommendation { return NewIngressTLSSecretValid(f.dynamicCli) },
 		)
 	}
 	return newRecommendationsSet(f.logger, set)
 }
 
-func (f *Factory) createIfNotExist(condition bool, set map[string]Recommendation, constructorFn func() Recommendation) {
-	if !condition {
+func (f *Factory) enableRecommendationIfShould(condition *bool, set map[string]Recommendation, constructorFn func() Recommendation) {
+	if condition == nil {
+		// not specified = keep previous configuration
 		return
 	}
 
-	// this solution has a downside that we need to create an instance every time,
-	// but it seems to be the least error-prone way to do it.
-	// Alternative: provide key names manually.
 	recomm := constructorFn()
 
+	if !*condition {
+		// Disabled - remove from set if exists
+		delete(set, recomm.Name())
+		return
+	}
+
+	// Enabled - set if it doesn't exist
 	key := recomm.Name()
 	if _, ok := set[key]; ok {
 		return

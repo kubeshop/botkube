@@ -65,7 +65,7 @@ type AnalyticsReporter interface {
 
 // RecommendationFactory defines a factory that creates recommendations.
 type RecommendationFactory interface {
-	NewForSources(sources map[string]config.Sources) recommendation.Set
+	NewForSources(sources map[string]config.Sources, mapKeyOrder []string) recommendation.Set
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.
@@ -308,9 +308,14 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// TODO: Get sources applicable for a given event https://github.com/kubeshop/botkube/issues/676
-	sources := c.conf.Sources // temporary solution - get all sources
+	// temporary solution - get all sources
+	sources := c.conf.Sources
+	var sourceBindings []string
+	for key := range sources {
+		sourceBindings = append(sourceBindings, key)
+	}
 
-	err = c.recommFactory.NewForSources(sources).Run(ctx, &event)
+	err = c.recommFactory.NewForSources(sources, sourceBindings).Run(ctx, &event)
 	if err != nil {
 		c.log.Errorf("while running recommendations: %w", err)
 	}

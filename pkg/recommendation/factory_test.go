@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -18,12 +19,12 @@ func TestFactory_NewForSources(t *testing.T) {
 			Kubernetes: config.KubernetesSource{
 				Recommendations: config.Recommendations{
 					Pod: config.PodRecommendations{
-						LabelsSet:        true,
-						NoLatestImageTag: false,
+						LabelsSet:        ptr.Bool(true),
+						NoLatestImageTag: ptr.Bool(false),
 					},
 					Ingress: config.IngressRecommendations{
-						BackendServiceValid: false,
-						TLSSecretValid:      false,
+						BackendServiceValid: ptr.Bool(false),
+						// keep TLSSecretValid not specified
 					},
 				},
 			},
@@ -32,12 +33,12 @@ func TestFactory_NewForSources(t *testing.T) {
 			Kubernetes: config.KubernetesSource{
 				Recommendations: config.Recommendations{
 					Pod: config.PodRecommendations{
-						LabelsSet:        true,
-						NoLatestImageTag: true,
+						// keep LabelsSet not specified
+						NoLatestImageTag: ptr.Bool(true), // override `false` from `second`
 					},
 					Ingress: config.IngressRecommendations{
-						BackendServiceValid: false,
-						TLSSecretValid:      true,
+						BackendServiceValid: ptr.Bool(false),
+						TLSSecretValid:      ptr.Bool(true),
 					},
 				},
 			},
@@ -46,19 +47,20 @@ func TestFactory_NewForSources(t *testing.T) {
 			Kubernetes: config.KubernetesSource{
 				Recommendations: config.Recommendations{
 					Pod: config.PodRecommendations{
-						LabelsSet:        false,
-						NoLatestImageTag: true,
+						NoLatestImageTag: ptr.Bool(false), // override `true` from `second`
 					},
 					Ingress: config.IngressRecommendations{
-						BackendServiceValid: true,
-						TLSSecretValid:      true,
+						BackendServiceValid: ptr.Bool(true), // override `false` from `first`
+						// keep TLSSecretValid not specified
 					},
 				},
 			},
 		},
 	}
+
+	mapKeyOrder := []string{"first", "second", "third"}
+
 	expected := map[string]struct{}{
-		"PodNoLatestImageTag":        {},
 		"PodLabelsSet":               {},
 		"IngressTLSSecretValid":      {},
 		"IngressBackendServiceValid": {},
@@ -67,7 +69,7 @@ func TestFactory_NewForSources(t *testing.T) {
 	factory := recommendation.NewFactory(logger, nil)
 
 	// when
-	res := factory.NewForSources(sources)
+	res := factory.NewForSources(sources, mapKeyOrder)
 	actual := res.Set()
 
 	// then
