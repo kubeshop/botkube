@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"k8s.io/client-go/tools/cache"
 )
 
 //go:embed default.yaml
@@ -128,16 +130,59 @@ type Config struct {
 	Settings  Settings  `yaml:"settings"`
 }
 
-type resourceEvents map[string]map[EventType]struct{}
+type mergedEvents map[string]map[EventType]struct{}
+
+type SourceRoutes struct {
+	source     string
+	namespaces []string
+}
 
 type RoutedEvent struct {
-	event   EventType
-	sources []string
+	event  EventType
+	routes []SourceRoutes
+}
+
+type Informer struct {
+	informer cache.SharedIndexInformer
+	events   []EventType
+	//cache.ResourceEventHandlerFuncs
+}
+
+func (i Informer) handle(target EventType, handlerFn func(obj interface{}, oldObj interface{})) {
+	switch {
+	case target == CreateEvent:
+		//i.AddFunc = func(obj interface{}) { handlerFn(obj, nil) }
+		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) { handlerFn(obj, nil) },
+		})
+	case target == DeleteEvent:
+		//i.DeleteFunc = func(obj interface{}) { handlerFn(obj, nil) }
+		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			DeleteFunc: func(obj interface{}) { handlerFn(obj, nil) },
+		})
+	case target == UpdateEvent:
+		//i.UpdateFunc = handlerFn
+		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			UpdateFunc: handlerFn,
+		})
+
+	case target == ErrorEvent:
+	}
+}
+
+func (i Informer) canHandle(target EventType) bool {
+	for _, e := range i.events {
+		if target == e {
+			return true
+		}
+	}
+	return false
 }
 
 type SourcesRouter struct {
-	table    map[string][]RoutedEvent
-	bindings map[string]struct{}
+	table     map[string][]RoutedEvent
+	bindings  map[string]struct{}
+	informers map[string]Informer
 }
 
 func (r *SourcesRouter) AddAnySlackBindings(c IdentifiableMap[ChannelBindingsByName]) {
@@ -150,29 +195,59 @@ func (r *SourcesRouter) AddAnySlackBindings(c IdentifiableMap[ChannelBindingsByN
 
 func (r *SourcesRouter) BuildTable(cfg *Config) *SourcesRouter {
 	sources := r.GetBoundSources(cfg.Sources)
-	resourceEvents := catalogueResourceEvents(sources)
+	mergedEvents := mergeResourceEvents(sources)
 
-	for resource, uniqueEvents := range resourceEvents {
-		eventSources := catalogueEventSources(resource, sources)
-		fmt.Printf("\n\nCOLLECTED_SOURCES: %+v\n\n", eventSources)
-		r.buildTable(resource, uniqueEvents, eventSources)
+	for resource, resourceEvents := range mergedEvents {
+		eventRoutes := mergeEventRoutes(resource, sources)
+		fmt.Printf("\n\nCOLLECTED_ROUTES: %+v\n\n", eventRoutes)
+		r.buildTable(resource, resourceEvents, eventRoutes)
 	}
 
 	return r
 }
 
-func catalogueEventSources(resource string, sources IndexableMap[Sources]) map[EventType][]string {
-	out := make(map[EventType][]string)
+func mergeResourceEvents(sources IndexableMap[Sources]) mergedEvents {
+	out := map[string]map[EventType]struct{}{}
+	for _, srcGroupCfg := range sources {
+		for _, resource := range srcGroupCfg.Kubernetes.Resources {
+			if _, ok := out[resource.Name]; !ok {
+				out[resource.Name] = make(map[EventType]struct{})
+			}
+			for _, e := range flattenEvents(resource.Events) {
+				out[resource.Name][e] = struct{}{}
+			}
+		}
+	}
+	return out
+}
+
+func mergeEventRoutes(resource string, sources IndexableMap[Sources]) map[EventType][]SourceRoutes {
+	out := make(map[EventType][]SourceRoutes)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range r.Events {
+			for _, e := range flattenEvents(r.Events) {
 				if resource == r.Name {
-					out[e] = append(out[e], srcGroupName)
+					out[e] = append(out[e], SourceRoutes{source: srcGroupName, namespaces: r.Namespaces.Include})
 				}
 			}
 		}
 	}
 	return out
+}
+
+func (r *SourcesRouter) buildTable(resource string, events map[EventType]struct{}, pairings map[EventType][]SourceRoutes) {
+	for evt := range events {
+		if _, ok := r.table[resource]; !ok {
+
+			r.table[resource] = []RoutedEvent{{
+				event:  evt,
+				routes: pairings[evt],
+			}}
+
+		} else {
+			r.table[resource] = append(r.table[resource], RoutedEvent{event: evt, routes: pairings[evt]})
+		}
+	}
 }
 
 func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) IndexableMap[Sources] {
@@ -185,32 +260,47 @@ func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) Indexable
 	return out
 }
 
-func (r *SourcesRouter) buildTable(resource string, events map[EventType]struct{}, sources map[EventType][]string) {
-	for evt := range events {
-		if _, ok := r.table[resource]; !ok {
+type registrationHandler func(resource string) cache.SharedIndexInformer
+type eventHandler func(ctx context.Context, resource string, routes []SourceRoutes) func(obj, oldObj interface{})
 
-			r.table[resource] = []RoutedEvent{{
-				event:   evt,
-				sources: sources[evt],
-			}}
-
-		} else {
-			r.table[resource] = append(r.table[resource], RoutedEvent{event: evt, sources: sources[evt]})
+func (r *SourcesRouter) RegisterInformers(targetEvents []EventType, handler registrationHandler) {
+	for resource := range r.table {
+		informer := handler(resource)
+		r.informers[resource] = Informer{
+			informer: informer,
+			events:   targetEvents,
+			//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
 		}
 	}
 }
 
-func catalogueResourceEvents(sources IndexableMap[Sources]) resourceEvents {
-	out := map[string]map[EventType]struct{}{}
-	for _, srcGroupCfg := range sources {
-		for _, resource := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range resource.Events {
-				if _, ok := out[resource.Name]; !ok {
-					out[resource.Name] = map[EventType]struct{}{e: {}}
-				} else {
-					out[resource.Name][e] = struct{}{}
-				}
-			}
+func (r *SourcesRouter) HandleEvent(ctx context.Context, target EventType, handlerFn eventHandler) {
+	for resource, informer := range r.informers {
+		if informer.canHandle(target) {
+			routes := r.sourceRoutes(resource, target)
+			informer.handle(target, handlerFn(ctx, resource, routes))
+			break
+		}
+	}
+}
+
+func (r *SourcesRouter) sourceRoutes(resource string, target EventType) []SourceRoutes {
+	var out []SourceRoutes
+	for _, routedEvents := range r.table[resource] {
+		if routedEvents.event == target {
+			out = append(out, routedEvents.routes...)
+		}
+	}
+	return out
+}
+
+func flattenEvents(events []EventType) []EventType {
+	var out []EventType
+	for _, event := range events {
+		if event == AllEvent {
+			out = append(out, []EventType{CreateEvent, UpdateEvent, DeleteEvent, ErrorEvent}...)
+		} else {
+			out = append(out, event)
 		}
 	}
 	return out
@@ -219,6 +309,7 @@ func catalogueResourceEvents(sources IndexableMap[Sources]) resourceEvents {
 func NewSourcesRouter() *SourcesRouter {
 	return &SourcesRouter{
 		table: make(map[string][]RoutedEvent),
+		//informers: make(map[string]cache.SharedIndexInformer),
 	}
 }
 
