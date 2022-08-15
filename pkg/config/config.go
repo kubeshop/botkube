@@ -143,8 +143,11 @@ type RoutedEvent struct {
 }
 
 type Informer struct {
-	informer cache.SharedIndexInformer
-	events   []EventType
+	informer     cache.SharedIndexInformer
+	events       []EventType
+	srcResources []string
+	srcEvents    []EventType
+
 	//cache.ResourceEventHandlerFuncs
 }
 
@@ -263,8 +266,9 @@ func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) Indexable
 type registrationHandler func(resource string) cache.SharedIndexInformer
 type eventHandler func(ctx context.Context, resource string, routes []SourceRoutes) func(obj, oldObj interface{})
 
-func (r *SourcesRouter) RegisterInformers(targetEvents []EventType, handler registrationHandler) {
+func (r *SourcesRouter) RegisterRoutedInformers(handler registrationHandler) {
 	for resource := range r.table {
+		targetEvents := r.resourceEvents(resource)
 		informer := handler(resource)
 		r.informers[resource] = Informer{
 			informer: informer,
@@ -274,21 +278,69 @@ func (r *SourcesRouter) RegisterInformers(targetEvents []EventType, handler regi
 	}
 }
 
+func (r *SourcesRouter) RegisterMappedInformers(src EventType, dstResource string, dstEvents []EventType, handler registrationHandler) {
+	srcResources := r.resourcesForEvent(src)
+	if len(srcResources) == 0 {
+		return
+	}
+
+	informer := handler(dstResource)
+	r.informers[dstResource] = Informer{
+		informer:     informer,
+		events:       dstEvents,
+		srcResources: srcResources,
+		srcEvents:    []EventType{src},
+		//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
+	}
+
+}
+
+//func (r *SourcesRouter) RegisterInformers(targetEvents []EventType, handler registrationHandler) {
+//	resources := r.resourcesForEvents(targetEvents)
+//	for resource := range resources {
+//		informer := handler(resource)
+//		r.informers[resource] = Informer{
+//			informer: informer,
+//			events:   targetEvents,
+//			//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
+//		}
+//	}
+//}
+
 func (r *SourcesRouter) HandleEvent(ctx context.Context, target EventType, handlerFn eventHandler) {
 	for resource, informer := range r.informers {
 		if informer.canHandle(target) {
 			routes := r.sourceRoutes(resource, target)
 			informer.handle(target, handlerFn(ctx, resource, routes))
-			break
 		}
 	}
 }
 
 func (r *SourcesRouter) sourceRoutes(resource string, target EventType) []SourceRoutes {
 	var out []SourceRoutes
-	for _, routedEvents := range r.table[resource] {
-		if routedEvents.event == target {
-			out = append(out, routedEvents.routes...)
+	for _, routedEvent := range r.table[resource] {
+		if routedEvent.event == target {
+			out = append(out, routedEvent.routes...)
+		}
+	}
+	return out
+}
+
+func (r *SourcesRouter) resourceEvents(resource string) []EventType {
+	var out []EventType
+	for _, routedEvent := range r.table[resource] {
+		out = append(out, routedEvent.event)
+	}
+	return out
+}
+
+func (r *SourcesRouter) resourcesForEvent(target EventType) []string {
+	var out []string
+	for resource, routedEvents := range r.table {
+		for _, routedEvent := range routedEvents {
+			if routedEvent.event == target {
+				out = append(out, resource)
+			}
 		}
 	}
 	return out
