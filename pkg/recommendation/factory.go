@@ -33,41 +33,64 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 	return &Factory{logger: logger, dynamicCli: dynamicCli}
 }
 
-// NewForSources merges recommendation options from multiple sources, and creates a new Set.
-func (f *Factory) NewForSources(sources map[string]config.Sources) Set {
-	set := make(map[string]Recommendation)
-	for _, source := range sources {
-		k8sSource := source.Kubernetes
-		f.createIfNotExist(k8sSource.Recommendations.Pod.LabelsSet, set,
-			func() Recommendation { return NewPodLabelsSet() },
-		)
-		f.createIfNotExist(k8sSource.Recommendations.Pod.NoLatestImageTag, set,
-			func() Recommendation { return NewPodNoLatestImageTag() },
-		)
-		f.createIfNotExist(k8sSource.Recommendations.Ingress.BackendServiceValid, set,
-			func() Recommendation { return NewIngressBackendServiceValid(f.dynamicCli) },
-		)
-		f.createIfNotExist(k8sSource.Recommendations.Ingress.TLSSecretValid, set,
-			func() Recommendation { return NewIngressTLSSecretValid(f.dynamicCli) },
-		)
-	}
-	return newRecommendationsSet(f.logger, set)
+// NewForSources merges recommendation options from multiple sources, and creates a new AggregatedRunner.
+func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) AggregatedRunner {
+	mergedCfg := f.mergeConfig(sources, mapKeyOrder)
+	recommendations := f.recommendationsForConfig(mergedCfg)
+	return newAggregatedRunner(f.logger, recommendations)
 }
 
-func (f *Factory) createIfNotExist(condition bool, set map[string]Recommendation, constructorFn func() Recommendation) {
-	if !condition {
-		return
+func (f *Factory) mergeConfig(sources map[string]config.Sources, mapKeyOrder []string) config.Recommendations {
+	mergedCfg := config.Recommendations{}
+	for _, key := range mapKeyOrder {
+		source, exists := sources[key]
+		if !exists {
+			continue
+		}
+
+		sourceCfg := source.Kubernetes.Recommendations
+		if sourceCfg.Pod.LabelsSet != nil {
+			mergedCfg.Pod.LabelsSet = sourceCfg.Pod.LabelsSet
+		}
+		if sourceCfg.Pod.NoLatestImageTag != nil {
+			mergedCfg.Pod.NoLatestImageTag = sourceCfg.Pod.NoLatestImageTag
+		}
+		if sourceCfg.Ingress.BackendServiceValid != nil {
+			mergedCfg.Ingress.BackendServiceValid = sourceCfg.Ingress.BackendServiceValid
+		}
+		if sourceCfg.Ingress.TLSSecretValid != nil {
+			mergedCfg.Ingress.TLSSecretValid = sourceCfg.Ingress.TLSSecretValid
+		}
 	}
 
-	// this solution has a downside that we need to create an instance every time,
-	// but it seems to be the least error-prone way to do it.
-	// Alternative: provide key names manually.
-	recomm := constructorFn()
+	return mergedCfg
+}
 
-	key := recomm.Name()
-	if _, ok := set[key]; ok {
-		return
+func (f *Factory) recommendationsForConfig(cfg config.Recommendations) []Recommendation {
+	var recommendations []Recommendation
+	if isTrue(cfg.Pod.LabelsSet) {
+		recommendations = append(recommendations, NewPodLabelsSet())
 	}
 
-	set[key] = recomm
+	if isTrue(cfg.Pod.NoLatestImageTag) {
+		recommendations = append(recommendations, NewPodNoLatestImageTag())
+	}
+
+	if isTrue(cfg.Ingress.BackendServiceValid) {
+		recommendations = append(recommendations, NewIngressBackendServiceValid(f.dynamicCli))
+	}
+
+	if isTrue(cfg.Ingress.TLSSecretValid) {
+		recommendations = append(recommendations, NewIngressTLSSecretValid(f.dynamicCli))
+	}
+
+	return recommendations
+}
+
+func isTrue(in *bool) bool {
+	if in == nil {
+		return false
+	}
+
+	return *in
 }
