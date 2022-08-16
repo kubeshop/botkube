@@ -65,7 +65,7 @@ type AnalyticsReporter interface {
 
 // RecommendationFactory defines a factory that creates recommendations.
 type RecommendationFactory interface {
-	NewForSources(sources map[string]config.Sources, mapKeyOrder []string) recommendation.Set
+	NewForSources(sources map[string]config.Sources, mapKeyOrder []string) recommendation.AggregatedRunner
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.
@@ -315,7 +315,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 		sourceBindings = append(sourceBindings, key)
 	}
 
-	err = c.recommFactory.NewForSources(sources, sourceBindings).Run(ctx, &event)
+	err = c.recommFactory.NewForSources(sources, sourceBindings).Do(ctx, &event)
 	if err != nil {
 		c.log.Errorf("while running recommendations: %w", err)
 	}

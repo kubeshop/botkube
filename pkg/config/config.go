@@ -181,19 +181,19 @@ type Recommendations struct {
 // PodRecommendations contains configuration for pods recommendations.
 type PodRecommendations struct {
 	// NoLatestImageTag notifies about Pod containers that use `latest` tag for images.
-	NoLatestImageTag *bool `yaml:"noLatestImageTag"`
+	NoLatestImageTag *bool `yaml:"noLatestImageTag,omitempty"`
 
 	// LabelsSet notifies about Pod resources created without labels.
-	LabelsSet *bool `yaml:"labelsSet"`
+	LabelsSet *bool `yaml:"labelsSet,omitempty"`
 }
 
 // IngressRecommendations contains configuration for ingress recommendations.
 type IngressRecommendations struct {
 	// BackendServiceValid notifies about Ingress resources with invalid backend service reference.
-	BackendServiceValid *bool `yaml:"backendServiceValid"`
+	BackendServiceValid *bool `yaml:"backendServiceValid,omitempty"`
 
 	// TLSSecretValid notifies about Ingress resources with invalid TLS secret reference.
-	TLSSecretValid *bool `yaml:"tlsSecretValid"`
+	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
 // Executors contains executors configuration parameters.

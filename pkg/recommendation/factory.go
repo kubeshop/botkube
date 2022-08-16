@@ -33,51 +33,64 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 	return &Factory{logger: logger, dynamicCli: dynamicCli}
 }
 
-// NewForSources merges recommendation options from multiple sources, and creates a new Set.
-func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) Set {
-	set := make(map[string]Recommendation)
+// NewForSources merges recommendation options from multiple sources, and creates a new AggregatedRunner.
+func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) AggregatedRunner {
+	mergedCfg := f.mergeConfig(sources, mapKeyOrder)
+	recommendations := f.recommendationsForConfig(mergedCfg)
+	return newAggregatedRunner(f.logger, recommendations)
+}
+
+func (f *Factory) mergeConfig(sources map[string]config.Sources, mapKeyOrder []string) config.Recommendations {
+	mergedCfg := config.Recommendations{}
 	for _, key := range mapKeyOrder {
 		source, exists := sources[key]
 		if !exists {
 			continue
 		}
 
-		k8sSource := source.Kubernetes
-		f.enableRecommendationIfShould(k8sSource.Recommendations.Pod.LabelsSet, set,
-			func() Recommendation { return NewPodLabelsSet() },
-		)
-		f.enableRecommendationIfShould(k8sSource.Recommendations.Pod.NoLatestImageTag, set,
-			func() Recommendation { return NewPodNoLatestImageTag() },
-		)
-		f.enableRecommendationIfShould(k8sSource.Recommendations.Ingress.BackendServiceValid, set,
-			func() Recommendation { return NewIngressBackendServiceValid(f.dynamicCli) },
-		)
-		f.enableRecommendationIfShould(k8sSource.Recommendations.Ingress.TLSSecretValid, set,
-			func() Recommendation { return NewIngressTLSSecretValid(f.dynamicCli) },
-		)
+		sourceCfg := source.Kubernetes.Recommendations
+		if sourceCfg.Pod.LabelsSet != nil {
+			mergedCfg.Pod.LabelsSet = sourceCfg.Pod.LabelsSet
+		}
+		if sourceCfg.Pod.NoLatestImageTag != nil {
+			mergedCfg.Pod.NoLatestImageTag = sourceCfg.Pod.NoLatestImageTag
+		}
+		if sourceCfg.Ingress.BackendServiceValid != nil {
+			mergedCfg.Ingress.BackendServiceValid = sourceCfg.Ingress.BackendServiceValid
+		}
+		if sourceCfg.Ingress.TLSSecretValid != nil {
+			mergedCfg.Ingress.TLSSecretValid = sourceCfg.Ingress.TLSSecretValid
+		}
 	}
-	return newRecommendationsSet(f.logger, set)
+
+	return mergedCfg
 }
 
-func (f *Factory) enableRecommendationIfShould(condition *bool, set map[string]Recommendation, constructorFn func() Recommendation) {
-	if condition == nil {
-		// not specified = keep previous configuration
-		return
+func (f *Factory) recommendationsForConfig(cfg config.Recommendations) []Recommendation {
+	var recommendations []Recommendation
+	if isTrue(cfg.Pod.LabelsSet) {
+		recommendations = append(recommendations, NewPodLabelsSet())
 	}
 
-	recomm := constructorFn()
-
-	if !*condition {
-		// Disabled - remove from set if exists
-		delete(set, recomm.Name())
-		return
+	if isTrue(cfg.Pod.NoLatestImageTag) {
+		recommendations = append(recommendations, NewPodNoLatestImageTag())
 	}
 
-	// Enabled - set if it doesn't exist
-	key := recomm.Name()
-	if _, ok := set[key]; ok {
-		return
+	if isTrue(cfg.Ingress.BackendServiceValid) {
+		recommendations = append(recommendations, NewIngressBackendServiceValid(f.dynamicCli))
 	}
 
-	set[key] = recomm
+	if isTrue(cfg.Ingress.TLSSecretValid) {
+		recommendations = append(recommendations, NewIngressTLSSecretValid(f.dynamicCli))
+	}
+
+	return recommendations
+}
+
+func isTrue(in *bool) bool {
+	if in == nil {
+		return false
+	}
+
+	return *in
 }

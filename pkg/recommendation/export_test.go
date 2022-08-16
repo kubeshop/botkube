@@ -1,5 +1,5 @@
 package recommendation
 
-func (s *Set) Set() map[string]Recommendation {
-	return s.set
+func (s *AggregatedRunner) Recommendations() []Recommendation {
+	return s.recommendations
 }

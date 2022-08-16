@@ -59,26 +59,25 @@ func TestFactory_NewForSources(t *testing.T) {
 	}
 
 	mapKeyOrder := []string{"first", "second", "third"}
-
-	expected := map[string]struct{}{
-		"PodLabelsSet":               {},
-		"IngressTLSSecretValid":      {},
-		"IngressBackendServiceValid": {},
+	expectedNames := []string{
+		"PodLabelsSet",
+		"IngressBackendServiceValid",
+		"IngressTLSSecretValid",
 	}
 	logger, _ := logtest.NewNullLogger()
 	factory := recommendation.NewFactory(logger, nil)
 
 	// when
 	res := factory.NewForSources(sources, mapKeyOrder)
-	actual := res.Set()
+	actual := res.Recommendations()
 
 	// then
-	require.Len(t, actual, len(expected))
-	for key := range expected {
-		val, ok := actual[key]
-		require.True(t, ok)
-		require.NotNil(t, val)
+	require.Len(t, actual, len(expectedNames))
 
-		assert.Equal(t, key, val.Name())
+	var actualNames []string
+	for _, r := range actual {
+		actualNames = append(actualNames, r.Name())
 	}
+
+	assert.Equal(t, expectedNames, actualNames)
 }
