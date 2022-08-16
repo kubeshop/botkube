@@ -315,8 +315,6 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 		case len(eventSources) == 0: // global k8s event
 			out = append(out, cfg.Identifier())
 		default:
-			fmt.Println("getChannelsToNotify - EVENTSOURCES: ", eventSources)
-			fmt.Println("getChannelsToNotify - channelSources: ", cfg.Bindings.Sources)
 			if intersect(eventSources, cfg.Bindings.Sources) {
 				out = append(out, cfg.Identifier())
 			}
