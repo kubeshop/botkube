@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -15,9 +16,14 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -146,34 +152,61 @@ type Informer struct {
 	informer     cache.SharedIndexInformer
 	events       []EventType
 	srcResources []string
-	srcEvents    []EventType
+	srcEvent     EventType
 
 	//cache.ResourceEventHandlerFuncs
 }
 
-func (i Informer) handle(target EventType, handlerFn func(obj interface{}, oldObj interface{})) {
-	switch {
-	case target == CreateEvent:
-		//i.AddFunc = func(obj interface{}) { handlerFn(obj, nil) }
+func (i Informer) handleRouted(target EventType, handlerFn func(obj interface{}, oldObj interface{})) {
+	switch target {
+	case CreateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) { handlerFn(obj, nil) },
 		})
-	case target == DeleteEvent:
-		//i.DeleteFunc = func(obj interface{}) { handlerFn(obj, nil) }
+	case DeleteEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) { handlerFn(obj, nil) },
 		})
-	case target == UpdateEvent:
-		//i.UpdateFunc = handlerFn
+	case UpdateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: handlerFn,
 		})
-
-	case target == ErrorEvent:
 	}
 }
 
-func (i Informer) canHandle(target EventType) bool {
+func (i Informer) handleMapped(ctx context.Context, targetEvent EventType, routeTable map[string][]RoutedEvent, mapper meta.RESTMapper, log logrus.FieldLogger, fn eventHandler) {
+	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			var eventObj coreV1.Event
+			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+			if err != nil {
+				log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+			}
+			_, err = cache.MetaNamespaceKeyFunc(obj)
+			if err != nil {
+				log.Errorf("Failed to get MetaNamespaceKey from event resource")
+				return
+			}
+
+			// Find involved object type
+			gvr, err := utils.GetResourceFromKind(mapper, eventObj.InvolvedObject.GroupVersionKind())
+			if err != nil {
+				log.Errorf("Failed to get involved object: %v", err)
+				return
+			}
+
+			gvrToString := utils.GVRToString(gvr)
+			if !i.includesSrcResource(gvrToString) {
+				return
+			}
+			sourceRoutes := sourceRoutes(routeTable, gvrToString, targetEvent)
+			fn(ctx, gvrToString, sourceRoutes)(obj, nil)
+		},
+	})
+
+}
+
+func (i Informer) canHandleRouted(target EventType) bool {
 	for _, e := range i.events {
 		if target == e {
 			return true
@@ -182,7 +215,18 @@ func (i Informer) canHandle(target EventType) bool {
 	return false
 }
 
+func (i Informer) includesSrcResource(resource string) bool {
+	for _, src := range i.srcResources {
+		if src == resource {
+			return true
+		}
+	}
+	return false
+}
+
 type SourcesRouter struct {
+	log       logrus.FieldLogger
+	mapper    meta.RESTMapper
 	table     map[string][]RoutedEvent
 	bindings  map[string]struct{}
 	informers map[string]Informer
@@ -266,60 +310,55 @@ func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) Indexable
 type registrationHandler func(resource string) cache.SharedIndexInformer
 type eventHandler func(ctx context.Context, resource string, routes []SourceRoutes) func(obj, oldObj interface{})
 
-func (r *SourcesRouter) RegisterRoutedInformers(handler registrationHandler) {
-	for resource := range r.table {
-		targetEvents := r.resourceEvents(resource)
-		informer := handler(resource)
+func (r *SourcesRouter) RegisterRoutedInformers(targetEvents []EventType, handler registrationHandler) {
+	resources := r.resourcesForEvents(targetEvents)
+	for _, resource := range resources {
 		r.informers[resource] = Informer{
-			informer: informer,
-			events:   targetEvents,
-			//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
+			informer: handler(resource),
+			events:   r.resourceEvents(resource),
 		}
 	}
 }
 
-func (r *SourcesRouter) RegisterMappedInformers(src EventType, dstResource string, dstEvents []EventType, handler registrationHandler) {
-	srcResources := r.resourcesForEvent(src)
+func (r *SourcesRouter) RegisterMappedInformers(srcEvent EventType, dstResource string, dstEvents []EventType, handler registrationHandler) {
+	srcResources := r.resourcesForEvents([]EventType{srcEvent})
 	if len(srcResources) == 0 {
 		return
 	}
 
-	informer := handler(dstResource)
 	r.informers[dstResource] = Informer{
-		informer:     informer,
+		informer:     handler(dstResource),
 		events:       dstEvents,
 		srcResources: srcResources,
-		srcEvents:    []EventType{src},
-		//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
+		srcEvent:     srcEvent,
 	}
-
 }
 
-//func (r *SourcesRouter) RegisterInformers(targetEvents []EventType, handler registrationHandler) {
-//	resources := r.resourcesForEvents(targetEvents)
-//	for resource := range resources {
-//		informer := handler(resource)
-//		r.informers[resource] = Informer{
-//			informer: informer,
-//			events:   targetEvents,
-//			//ResourceEventHandlerFuncs: cache.ResourceEventHandlerFuncs{},
-//		}
-//	}
-//}
-
-func (r *SourcesRouter) HandleEvent(ctx context.Context, target EventType, handlerFn eventHandler) {
+func (r *SourcesRouter) HandleRoutedEvent(ctx context.Context, target EventType, handlerFn eventHandler) {
 	for resource, informer := range r.informers {
-		if informer.canHandle(target) {
+		if informer.canHandleRouted(target) {
 			routes := r.sourceRoutes(resource, target)
-			informer.handle(target, handlerFn(ctx, resource, routes))
+			informer.handleRouted(target, handlerFn(ctx, resource, routes))
 		}
 	}
 }
 
-func (r *SourcesRouter) sourceRoutes(resource string, target EventType) []SourceRoutes {
+func (r *SourcesRouter) HandleMappedEvent(ctx context.Context, targetEvent EventType, handlerFn eventHandler) {
+	informer, ok := r.mappedInformer(targetEvent)
+	if !ok {
+		return
+	}
+	informer.handleMapped(ctx, targetEvent, r.table, r.mapper, r.log, handlerFn)
+}
+
+func (r *SourcesRouter) sourceRoutes(resource string, targetEvent EventType) []SourceRoutes {
+	return sourceRoutes(r.table, resource, targetEvent)
+}
+
+func sourceRoutes(routeTable map[string][]RoutedEvent, targetResource string, targetEvent EventType) []SourceRoutes {
 	var out []SourceRoutes
-	for _, routedEvent := range r.table[resource] {
-		if routedEvent.event == target {
+	for _, routedEvent := range routeTable[targetResource] {
+		if routedEvent.event == targetEvent {
 			out = append(out, routedEvent.routes...)
 		}
 	}
@@ -334,16 +373,28 @@ func (r *SourcesRouter) resourceEvents(resource string) []EventType {
 	return out
 }
 
-func (r *SourcesRouter) resourcesForEvent(target EventType) []string {
+func (r *SourcesRouter) resourcesForEvents(targets []EventType) []string {
 	var out []string
-	for resource, routedEvents := range r.table {
-		for _, routedEvent := range routedEvents {
-			if routedEvent.event == target {
-				out = append(out, resource)
+	for _, target := range targets {
+		for resource, routedEvents := range r.table {
+			for _, routedEvent := range routedEvents {
+				if routedEvent.event == target {
+					out = append(out, resource)
+					break
+				}
 			}
 		}
 	}
 	return out
+}
+
+func (r *SourcesRouter) mappedInformer(event EventType) (Informer, bool) {
+	for _, informer := range r.informers {
+		if informer.srcEvent == event {
+			return informer, true
+		}
+	}
+	return Informer{}, false
 }
 
 func flattenEvents(events []EventType) []EventType {
@@ -358,9 +409,11 @@ func flattenEvents(events []EventType) []EventType {
 	return out
 }
 
-func NewSourcesRouter() *SourcesRouter {
+func NewSourcesRouter(mapper meta.RESTMapper, log logrus.FieldLogger) *SourcesRouter {
 	return &SourcesRouter{
-		table: make(map[string][]RoutedEvent),
+		log:    log,
+		mapper: mapper,
+		table:  make(map[string][]RoutedEvent),
 		//informers: make(map[string]cache.SharedIndexInformer),
 	}
 }
