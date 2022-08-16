@@ -2,7 +2,6 @@ package sources
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -24,13 +23,17 @@ type Router struct {
 
 type Routes struct {
 	source     string
-	namespaces []string
+	namespaces config.Namespaces
 }
 
 type RoutedEvent struct {
 	event  config.EventType
 	routes []Routes
 }
+
+type registrationHandler func(resource string) cache.SharedIndexInformer
+
+type eventHandler func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{})
 
 func NewSourcesRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *Router {
 	return &Router{
@@ -57,7 +60,6 @@ func (r *Router) BuildTable(cfg *config.Config) *Router {
 
 	for resource, resourceEvents := range mergedEvents {
 		eventRoutes := mergeEventRoutes(resource, sources)
-		fmt.Printf("\n\nCOLLECTED_ROUTES: %+v\n\n", eventRoutes)
 		r.buildTable(resource, resourceEvents, eventRoutes)
 	}
 	r.log.Debugf("sources routing table: %+v", r.table)
@@ -85,7 +87,7 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
 			for _, e := range flattenEvents(r.Events) {
 				if resource == r.Name {
-					out[e] = append(out[e], Routes{source: srcGroupName, namespaces: r.Namespaces.Include})
+					out[e] = append(out[e], Routes{source: srcGroupName, namespaces: r.Namespaces})
 				}
 			}
 		}
@@ -117,10 +119,6 @@ func (r *Router) GetBoundSources(sources config.IndexableMap[config.Sources]) co
 	}
 	return out
 }
-
-type registrationHandler func(resource string) cache.SharedIndexInformer
-
-type eventHandler func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{})
 
 func (r *Router) RegisterRoutedInformers(targetEvents []config.EventType, handler registrationHandler) {
 	resources := r.resourcesForEvents(targetEvents)

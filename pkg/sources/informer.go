@@ -129,11 +129,9 @@ func sourcesForObjNamespace(ctx context.Context, routes []Routes, obj interface{
 	log.Debugf("handling events for target Namespace: %s in routes: %+v", targetNs, routes)
 
 	for _, route := range routes {
-		for _, ns := range route.namespaces {
-			if ns == targetNs || ns == "all" {
-				out = append(out, route.source)
-				break
-			}
+		if route.namespaces.IsAllowed(targetNs) {
+			out = append(out, route.source)
+			break
 		}
 	}
 
