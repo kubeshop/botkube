@@ -15,11 +15,10 @@ const (
 )
 
 // WithAllFilters returns new DefaultFilterEngine instance with all filters registered.
-func WithAllFilters(logger *logrus.Logger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, res []config.Resource) *DefaultFilterEngine {
+func WithAllFilters(logger *logrus.Logger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, _ []config.Resource) *DefaultFilterEngine {
 	filterEngine := New(logger.WithField(componentLogFieldKey, "Filter Engine"))
 	filterEngine.Register([]Filter{
 		filters.NewObjectAnnotationChecker(logger.WithField(filterLogFieldKey, "Object Annotation Checker"), dynamicCli, mapper),
-		filters.NewNamespaceChecker(logger.WithField(filterLogFieldKey, "Namespace Checker"), res),
 		filters.NewNodeEventsChecker(logger.WithField(filterLogFieldKey, "Node Events Checker")),
 	}...)
 
