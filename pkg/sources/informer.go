@@ -25,13 +25,13 @@ type Informer struct {
 	mappedEvent     config.EventType
 }
 
-func (i Informer) handleRouted(ctx context.Context, resource string, target config.EventType, sourceRoutes []Routes, fn eventHandler) {
+func (i Informer) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Routes, fn eventHandler) {
 	switch target {
 	case config.CreateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handleRouted - CreateEvent - resource: %s, sources: %+v", resource, sources)
+				i.log.Debugf("handleEvent - CreateEvent - resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources)(obj, nil)
 				}
@@ -41,7 +41,7 @@ func (i Informer) handleRouted(ctx context.Context, resource string, target conf
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handleRouted - DeleteEvent - resource: %s, sources: %+v", resource, sources)
+				i.log.Debugf("handleEvent - DeleteEvent - resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources)(obj, nil)
 				}

@@ -151,7 +151,7 @@ func run() error {
 		reporter,
 	)
 
-	router := sources.NewSourcesRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
+	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
 	commCfg := conf.Communications
 	var notifiers []controller.Notifier

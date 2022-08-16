@@ -35,7 +35,7 @@ type registrationHandler func(resource string) cache.SharedIndexInformer
 
 type eventHandler func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{})
 
-func NewSourcesRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *Router {
+func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *Router {
 	return &Router{
 		log:        log,
 		mapper:     mapper,
@@ -52,6 +52,16 @@ func (r *Router) AddAnySlackBindings(c config.IdentifiableMap[config.ChannelBind
 			r.bindings[source] = struct{}{}
 		}
 	}
+}
+
+func (r *Router) GetBoundSources(sources config.IndexableMap[config.Sources]) config.IndexableMap[config.Sources] {
+	out := make(config.IndexableMap[config.Sources])
+	for name, t := range sources {
+		if _, ok := r.bindings[name]; ok {
+			out[name] = t
+		}
+	}
+	return out
 }
 
 func (r *Router) BuildTable(cfg *config.Config) *Router {
@@ -110,17 +120,7 @@ func (r *Router) buildTable(resource string, events map[config.EventType]struct{
 	}
 }
 
-func (r *Router) GetBoundSources(sources config.IndexableMap[config.Sources]) config.IndexableMap[config.Sources] {
-	out := make(config.IndexableMap[config.Sources])
-	for name, t := range sources {
-		if _, ok := r.bindings[name]; ok {
-			out[name] = t
-		}
-	}
-	return out
-}
-
-func (r *Router) RegisterRoutedInformers(targetEvents []config.EventType, handler registrationHandler) {
+func (r *Router) RegisterInformers(targetEvents []config.EventType, handler registrationHandler) {
 	resources := r.resourcesForEvents(targetEvents)
 	for _, resource := range resources {
 		r.informers[resource] = Informer{
@@ -133,7 +133,7 @@ func (r *Router) RegisterRoutedInformers(targetEvents []config.EventType, handle
 	}
 }
 
-func (r *Router) RegisterMappedInformer(srcEvent config.EventType, dstEvent config.EventType, handler registrationHandler) {
+func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent config.EventType, handler registrationHandler) {
 	srcResources := r.resourcesForEvents([]config.EventType{srcEvent})
 	if len(srcResources) == 0 {
 		return
@@ -150,11 +150,11 @@ func (r *Router) RegisterMappedInformer(srcEvent config.EventType, dstEvent conf
 		dynamicCli:      r.dynamicCli}
 }
 
-func (r *Router) HandleRoutedEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
+func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
 	for resource, informer := range r.informers {
 		if informer.canHandleEvent(target.String()) {
 			sourceRoutes := r.sourceRoutes(resource, target)
-			informer.handleRouted(ctx, resource, target, sourceRoutes, handlerFn)
+			informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
 		}
 	}
 }
