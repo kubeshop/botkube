@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -75,7 +76,7 @@ type Controller struct {
 	recommFactory         RecommendationFactory
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
-	sourcesRouter         *config.SourcesRouter
+	sourcesRouter         *sources.Router
 
 	dynamicCli dynamic.Interface
 
@@ -87,6 +88,7 @@ type Controller struct {
 }
 
 // New create a new Controller instance.
+
 func New(log logrus.FieldLogger,
 	conf *config.Config,
 	notifiers []Notifier,
@@ -95,7 +97,7 @@ func New(log logrus.FieldLogger,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
-	router *config.SourcesRouter,
+	router *sources.Router,
 	reporter AnalyticsReporter,
 ) *Controller {
 	return &Controller{

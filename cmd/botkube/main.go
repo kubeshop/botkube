@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-github/v44/github"
 	"github.com/gorilla/mux"
+	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
@@ -150,7 +151,7 @@ func run() error {
 		reporter,
 	)
 
-	router := config.NewSourcesRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "SourcesRouter"))
+	router := sources.NewSourcesRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
 	commCfg := conf.Communications
 	var notifiers []controller.Notifier
