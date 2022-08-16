@@ -24,6 +24,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -138,6 +139,15 @@ type Config struct {
 
 type mergedEvents map[string]map[EventType]struct{}
 
+type SourcesRouter struct {
+	log        logrus.FieldLogger
+	mapper     meta.RESTMapper
+	dynamicCli dynamic.Interface
+	table      map[string][]RoutedEvent
+	bindings   map[string]struct{}
+	informers  map[string]Informer
+}
+
 type SourceRoutes struct {
 	source     string
 	namespaces []string
@@ -149,49 +159,66 @@ type RoutedEvent struct {
 }
 
 type Informer struct {
-	informer     cache.SharedIndexInformer
-	events       []EventType
-	srcResources []string
-	srcEvent     EventType
-
-	//cache.ResourceEventHandlerFuncs
+	informer        cache.SharedIndexInformer
+	log             logrus.FieldLogger
+	mapper          meta.RESTMapper
+	dynamicCli      dynamic.Interface
+	events          []EventType
+	mappedResources []string
+	mappedEvent     EventType
 }
 
-func (i Informer) handleRouted(target EventType, handlerFn func(obj interface{}, oldObj interface{})) {
+func (i Informer) handleRouted(ctx context.Context, resource string, target EventType, sourceRoutes []SourceRoutes, fn eventHandler) {
 	switch target {
 	case CreateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) { handlerFn(obj, nil) },
+			AddFunc: func(obj interface{}) {
+				if sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli); len(sources) > 0 {
+					fn(ctx, resource, sources)(obj, nil)
+				}
+			},
 		})
 	case DeleteEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			DeleteFunc: func(obj interface{}) { handlerFn(obj, nil) },
+			DeleteFunc: func(obj interface{}) {
+				if sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli); len(sources) > 0 {
+					fn(ctx, resource, sources)(obj, nil)
+				}
+			},
 		})
 	case UpdateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			UpdateFunc: handlerFn,
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				if sources := sourcesForObjNamespace(ctx, sourceRoutes, newObj, i.log, i.mapper, i.dynamicCli); len(sources) > 0 {
+					fn(ctx, resource, sources)(newObj, oldObj)
+				}
+			},
 		})
 	}
 }
 
-func (i Informer) handleMapped(ctx context.Context, targetEvent EventType, routeTable map[string][]RoutedEvent, mapper meta.RESTMapper, log logrus.FieldLogger, fn eventHandler) {
+func (i Informer) handleMapped(ctx context.Context, targetEvent EventType, routeTable map[string][]RoutedEvent, fn eventHandler) {
 	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
-				log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				i.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 			}
 			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
-				log.Errorf("Failed to get MetaNamespaceKey from event resource")
+				i.log.Errorf("Failed to get MetaNamespaceKey from event resource")
 				return
 			}
 
 			// Find involved object type
-			gvr, err := utils.GetResourceFromKind(mapper, eventObj.InvolvedObject.GroupVersionKind())
+			gvr, err := utils.GetResourceFromKind(i.mapper, eventObj.InvolvedObject.GroupVersionKind())
 			if err != nil {
-				log.Errorf("Failed to get involved object: %v", err)
+				i.log.Errorf("Failed to get involved object: %v", err)
+				return
+			}
+
+			if !i.canHandleEvent(eventObj.Type) {
 				return
 			}
 
@@ -199,16 +226,42 @@ func (i Informer) handleMapped(ctx context.Context, targetEvent EventType, route
 			if !i.includesSrcResource(gvrToString) {
 				return
 			}
+
 			sourceRoutes := sourceRoutes(routeTable, gvrToString, targetEvent)
-			fn(ctx, gvrToString, sourceRoutes)(obj, nil)
+			sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
+			if len(sources) == 0 {
+				return
+			}
+			fn(ctx, gvrToString, sources)(obj, nil)
 		},
 	})
-
 }
 
-func (i Informer) canHandleRouted(target EventType) bool {
+func sourcesForObjNamespace(ctx context.Context, routes []SourceRoutes, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) []string {
+	var out []string
+
+	objectMeta, err := utils.GetObjectMetaData(ctx, cli, mapper, obj)
+	if err != nil {
+		log.Errorf("while getting object metadata: %s", err.Error())
+		return []string{}
+	}
+
+	targetNs := objectMeta.Namespace
+	for _, route := range routes {
+		for _, ns := range route.namespaces {
+			if ns == targetNs || ns == "all" {
+				out = append(out, route.source)
+				break
+			}
+		}
+	}
+
+	return out
+}
+
+func (i Informer) canHandleEvent(target string) bool {
 	for _, e := range i.events {
-		if target == e {
+		if strings.ToLower(target) == e.String() {
 			return true
 		}
 	}
@@ -216,20 +269,12 @@ func (i Informer) canHandleRouted(target EventType) bool {
 }
 
 func (i Informer) includesSrcResource(resource string) bool {
-	for _, src := range i.srcResources {
+	for _, src := range i.mappedResources {
 		if src == resource {
 			return true
 		}
 	}
 	return false
-}
-
-type SourcesRouter struct {
-	log       logrus.FieldLogger
-	mapper    meta.RESTMapper
-	table     map[string][]RoutedEvent
-	bindings  map[string]struct{}
-	informers map[string]Informer
 }
 
 func (r *SourcesRouter) AddAnySlackBindings(c IdentifiableMap[ChannelBindingsByName]) {
@@ -308,47 +353,51 @@ func (r *SourcesRouter) GetBoundSources(sources IndexableMap[Sources]) Indexable
 }
 
 type registrationHandler func(resource string) cache.SharedIndexInformer
-type eventHandler func(ctx context.Context, resource string, routes []SourceRoutes) func(obj, oldObj interface{})
+type eventHandler func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{})
 
 func (r *SourcesRouter) RegisterRoutedInformers(targetEvents []EventType, handler registrationHandler) {
 	resources := r.resourcesForEvents(targetEvents)
 	for _, resource := range resources {
 		r.informers[resource] = Informer{
-			informer: handler(resource),
-			events:   r.resourceEvents(resource),
+			informer:   handler(resource),
+			events:     r.resourceEvents(resource),
+			log:        r.log,
+			mapper:     r.mapper,
+			dynamicCli: r.dynamicCli,
 		}
 	}
 }
 
-func (r *SourcesRouter) RegisterMappedInformers(srcEvent EventType, dstResource string, dstEvents []EventType, handler registrationHandler) {
+func (r *SourcesRouter) RegisterMappedInformer(srcEvent EventType, dstEvent EventType, handler registrationHandler) {
 	srcResources := r.resourcesForEvents([]EventType{srcEvent})
 	if len(srcResources) == 0 {
 		return
 	}
 
+	dstResource := "v1/events"
 	r.informers[dstResource] = Informer{
-		informer:     handler(dstResource),
-		events:       dstEvents,
-		srcResources: srcResources,
-		srcEvent:     srcEvent,
-	}
+		informer:        handler(dstResource),
+		events:          []EventType{dstEvent},
+		mappedResources: srcResources,
+		mappedEvent:     srcEvent,
+		log:             r.log,
+		mapper:          r.mapper,
+		dynamicCli:      r.dynamicCli}
 }
 
 func (r *SourcesRouter) HandleRoutedEvent(ctx context.Context, target EventType, handlerFn eventHandler) {
 	for resource, informer := range r.informers {
-		if informer.canHandleRouted(target) {
-			routes := r.sourceRoutes(resource, target)
-			informer.handleRouted(target, handlerFn(ctx, resource, routes))
+		if informer.canHandleEvent(target.String()) {
+			sourceRoutes := r.sourceRoutes(resource, target)
+			informer.handleRouted(ctx, resource, target, sourceRoutes, handlerFn)
 		}
 	}
 }
 
 func (r *SourcesRouter) HandleMappedEvent(ctx context.Context, targetEvent EventType, handlerFn eventHandler) {
-	informer, ok := r.mappedInformer(targetEvent)
-	if !ok {
-		return
+	if informer, ok := r.mappedInformer(targetEvent); ok {
+		informer.handleMapped(ctx, targetEvent, r.table, handlerFn)
 	}
-	informer.handleMapped(ctx, targetEvent, r.table, r.mapper, r.log, handlerFn)
 }
 
 func (r *SourcesRouter) sourceRoutes(resource string, targetEvent EventType) []SourceRoutes {
@@ -390,7 +439,7 @@ func (r *SourcesRouter) resourcesForEvents(targets []EventType) []string {
 
 func (r *SourcesRouter) mappedInformer(event EventType) (Informer, bool) {
 	for _, informer := range r.informers {
-		if informer.srcEvent == event {
+		if informer.mappedEvent == event {
 			return informer, true
 		}
 	}
@@ -409,12 +458,13 @@ func flattenEvents(events []EventType) []EventType {
 	return out
 }
 
-func NewSourcesRouter(mapper meta.RESTMapper, log logrus.FieldLogger) *SourcesRouter {
+func NewSourcesRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *SourcesRouter {
 	return &SourcesRouter{
-		log:    log,
-		mapper: mapper,
-		table:  make(map[string][]RoutedEvent),
-		//informers: make(map[string]cache.SharedIndexInformer),
+		log:        log,
+		mapper:     mapper,
+		dynamicCli: dynamicCli,
+		table:      make(map[string][]RoutedEvent),
+		informers:  make(map[string]Informer),
 	}
 }
 

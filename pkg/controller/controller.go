@@ -3,14 +3,11 @@ package controller
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -115,67 +112,62 @@ func New(log logrus.FieldLogger,
 	}
 }
 
-type eventSources struct {
-	event   config.EventType
-	sources []string
-}
-
-func pivotEventsAndSources(in config.IndexableMap[config.Sources]) map[string][]eventSources {
-	out := make(map[string][]eventSources)
-
-	// all unique events per resources
-	resourceEvents := map[string]map[config.EventType]struct{}{}
-	for _, srcGroupCfg := range in {
-		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range r.Events {
-				if _, ok := resourceEvents[r.Name]; !ok {
-					resourceEvents[r.Name] = map[config.EventType]struct{}{e: {}}
-				} else {
-					resourceEvents[r.Name][e] = struct{}{}
-				}
-			}
-		}
-	}
-
-	fmt.Printf("\n\nRESOURCE_EVENTS: %+v\n\n", resourceEvents)
-
-	for resourceName, uniqueEvents := range resourceEvents {
-
-		collectedSources := make(map[config.EventType][]string)
-
-		for srcGroupName, srcGroupCfg := range in {
-			for _, r := range srcGroupCfg.Kubernetes.Resources {
-
-				for _, e := range r.Events {
-					if resourceName == r.Name {
-						collectedSources[e] = append(collectedSources[e], srcGroupName)
-					}
-				}
-			}
-		}
-
-		fmt.Printf("\n\nCOLLECTED_SOURCES: %+v\n\n", collectedSources)
-
-		for evt := range uniqueEvents {
-			if _, ok := out[resourceName]; !ok {
-
-				out[resourceName] = []eventSources{{
-					event:   evt,
-					sources: collectedSources[evt],
-				}}
-
-			} else {
-				out[resourceName] = append(out[resourceName], eventSources{event: evt, sources: collectedSources[evt]})
-			}
-		}
-	}
-
-	return out
-}
-
 // Start creates new informer controllers to watch k8s resources
 func (c *Controller) Start(ctx context.Context) error {
-	c.initInformerMap()
+	//c.initInformerMap()
+	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
+
+	c.sourcesRouter.RegisterRoutedInformers([]config.EventType{
+		config.CreateEvent,
+		config.UpdateEvent,
+		config.DeleteEvent,
+	}, func(resource string) cache.SharedIndexInformer {
+		gvr, err := c.parseResourceArg(resource)
+		if err != nil {
+			c.log.Infof("Unable to parse resource: %s to register with informer\n", resource)
+		}
+		return c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
+	})
+
+	c.sourcesRouter.RegisterMappedInformer(
+		config.ErrorEvent,
+		config.WarningEvent,
+		func(resource string) cache.SharedIndexInformer {
+			gvr, err := c.parseResourceArg(resource)
+			if err != nil {
+				c.log.Infof("Unable to parse resource: %s to register with informer\n", resource)
+			}
+			return c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
+		})
+
+	c.sourcesRouter.HandleRoutedEvent(
+		context.Background(),
+		config.CreateEvent,
+		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
+			return func(obj, oldObj interface{}) {
+				c.log.Debugf("Processing add to resource: %q, event: %q, sources: %+v", resource, config.CreateEvent, sources)
+				c.sendEvent(ctx, obj, nil, resource, config.CreateEvent, sources)
+			}
+		})
+
+	c.sourcesRouter.HandleRoutedEvent(
+		context.Background(),
+		config.DeleteEvent,
+		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
+			return func(obj, oldObj interface{}) {
+				c.log.Debugf("Processing delete to resource: %q, event: %q, sources: %+v", resource, config.DeleteEvent, sources)
+				c.sendEvent(ctx, obj, nil, resource, config.DeleteEvent, sources)
+			}
+		})
+
+	c.sourcesRouter.HandleMappedEvent(
+		context.Background(),
+		config.ErrorEvent,
+		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
+			return func(obj, oldObj interface{}) {
+				c.sendEvent(ctx, obj, nil, resource, config.ErrorEvent, sources)
+			}
+		})
 
 	c.log.Info("Starting controller")
 	err := sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
@@ -184,70 +176,6 @@ func (c *Controller) Start(ctx context.Context) error {
 	}
 
 	c.startTime = time.Now()
-
-	pivots := pivotEventsAndSources(c.conf.Sources)
-	fmt.Printf("\n\nPIVOTS:\n%+v\n\n", pivots)
-
-	// Register informers for resource lifecycle events
-	if len(c.conf.Sources) > 0 {
-		for resource, pivot := range pivots {
-			if _, ok := c.resourceInformerMap[resource]; !ok {
-				continue
-			}
-			fmt.Println("PIVOT", pivot)
-			c.resourceInformerMap[resource].AddEventHandler(c.registerEventHandlers(ctx, resource, pivot))
-			c.log.Infof("Added informer for resource %q", resource)
-		}
-	}
-
-	// Register informers for k8s events
-	c.log.Infof("Registering Kubernetes events informer for types %q and %q", config.WarningEvent.String(), config.NormalEvent.String())
-	// Dynamic error handling
-	createEventsResourceAddHandler := func(cfg map[string][]eventSources) func(obj interface{}) {
-		return func(obj interface{}) {
-			var eventObj coreV1.Event
-			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
-			if err != nil {
-				c.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
-			}
-			_, err = cache.MetaNamespaceKeyFunc(obj)
-			if err != nil {
-				c.log.Errorf("Failed to get MetaNamespaceKey from event resource")
-				return
-			}
-
-			// Find involved object type
-			gvr, err := utils.GetResourceFromKind(c.mapper, eventObj.InvolvedObject.GroupVersionKind())
-			if err != nil {
-				c.log.Errorf("Failed to get involved object: %v", err)
-				return
-			}
-			gvrToString := utils.GVRToString(gvr)
-			var errorEventSources []string
-			eventSourcesList := cfg[gvrToString]
-			for _, es := range eventSourcesList {
-				if es.event == config.ErrorEvent {
-					errorEventSources = es.sources
-					break
-				}
-			}
-
-			switch strings.ToLower(eventObj.Type) {
-			// Send WarningEvent as ErrorEvents
-			case config.WarningEvent.String():
-				c.sendEvent(ctx, obj, nil, gvrToString, config.ErrorEvent, errorEventSources)
-			case config.NormalEvent.String():
-				// Send NormalEvent as Insignificant InfoEvent
-				c.sendEvent(ctx, obj, nil, gvrToString, config.InfoEvent, errorEventSources)
-			}
-		}
-	}
-	c.dynamicKubeInformerFactory.
-		ForResource(schema.GroupVersionResource{Version: "v1", Resource: "events"}).
-		Informer().
-		AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: createEventsResourceAddHandler(pivots),
-		})
 
 	stopCh := ctx.Done()
 
@@ -265,63 +193,12 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) registerEventHandlers(ctx context.Context, resource string, eventsWithSources []eventSources) (handlerFns cache.ResourceEventHandlerFuncs) {
-	makeCreateFunc := func(sources []string) func(obj interface{}) {
-		return func(obj interface{}) {
-			c.log.Debugf("Processing add to resource: %q, event: %q, event sources: %q", resource, config.CreateEvent, sources)
-			c.sendEvent(ctx, obj, nil, resource, config.CreateEvent, sources)
-		}
-	}
-
-	makeDeleteFunc := func(sources []string) func(obj interface{}) {
-		return func(obj interface{}) {
-			c.log.Debugf("Processing delete to resource: %q, event: %q, event sources: %q", resource, config.DeleteEvent, sources)
-			c.sendEvent(ctx, obj, nil, resource, config.DeleteEvent, sources)
-		}
-	}
-
-	for _, es := range eventsWithSources {
-		event := es.event
-		fmt.Println("event: ", event)
-		if event == config.AllEvent || event == config.CreateEvent {
-			handlerFns.AddFunc = makeCreateFunc(es.sources)
-		}
-
-		if event == config.AllEvent || event == config.UpdateEvent {
-			handlerFns.UpdateFunc = func(old, new interface{}) {
-				c.log.Debugf("Processing update to %q\n Object: %+v\n", resource, new)
-				c.sendEvent(ctx, new, old, resource, config.UpdateEvent, es.sources)
-			}
-		}
-
-		if event == config.AllEvent || event == config.DeleteEvent {
-			handlerFns.DeleteFunc = makeDeleteFunc(es.sources)
-		}
-	}
-	return handlerFns
-}
-
-//func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, source string, resource string, eventType config.EventType) {
-func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType, eventSources []string) {
+func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType, sources []string) {
 	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
 		c.log.Errorf("while getting object metadata: %s", err.Error())
 		return
-	}
-
-	switch eventType {
-	case config.InfoEvent:
-		// Skip if ErrorEvent is not configured for the resource
-		if !c.shouldSendEvent(objectMeta.Namespace, resource, config.ErrorEvent) {
-			c.log.Debugf("Ignoring %q to %s/%v in %q namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
-			return
-		}
-	default:
-		if !c.shouldSendEvent(objectMeta.Namespace, resource, eventType) {
-			c.log.Debugf("Ignoring %q to %s/%v in %q namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
-			return
-		}
 	}
 
 	c.log.Debugf("Processing %s to %s/%v in %s namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
@@ -342,52 +219,47 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Check for significant Update Events in objects
-	if eventType == config.UpdateEvent {
-		var updateMsg string
-		// Check if all namespaces allowed
-		updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: config.AllNamespaceIndicator}]
-		if !exist {
-			// Check if specified namespace is allowed
-			updateSetting, exist = c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
-		}
-		if exist {
-			// Calculate object diff as per the updateSettings
-			var oldUnstruct, newUnstruct *unstructured.Unstructured
-			var ok bool
-			if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-				c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
-			}
-			if newUnstruct, ok = obj.(*unstructured.Unstructured); !ok {
-				c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
-			}
-			updateMsg, err = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
-			if err != nil {
-				c.log.Errorf("while getting diff: %w", err)
-			}
-		}
 
-		// Send update notification only if fields in updateSetting are changed
-		if len(updateMsg) > 0 {
-			if updateSetting.IncludeDiff {
-				event.Messages = append(event.Messages, updateMsg)
-			}
-		} else {
-			// skipping least significant update
-			c.log.Debug("skipping least significant Update event")
-			event.Skip = true
-		}
-	}
+	//if eventType == config.UpdateEvent {
+	//	var updateMsg string
+	//	// Check if all namespaces allowed
+	//	updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: "all"}]
+	//	if !exist {
+	//		// Check if specified namespace is allowed
+	//		updateSetting, exist = c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
+	//	}
+	//	if exist {
+	//		// Calculate object diff as per the updateSettings
+	//		var oldUnstruct, newUnstruct *unstructured.Unstructured
+	//		var ok bool
+	//		if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
+	//			c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
+	//		}
+	//		if newUnstruct, ok = obj.(*unstructured.Unstructured); !ok {
+	//			c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
+	//		}
+	//		updateMsg, err = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
+	//		if err != nil {
+	//			c.log.Errorf("while getting diff: %w", err)
+	//		}
+	//	}
+	//
+	//	// Send update notification only if fields in updateSetting are changed
+	//	if len(updateMsg) > 0 {
+	//		if updateSetting.IncludeDiff {
+	//			event.Messages = append(event.Messages, updateMsg)
+	//		}
+	//	} else {
+	//		// skipping least significant update
+	//		c.log.Debug("skipping least significant Update event")
+	//		event.Skip = true
+	//	}
+	//}
 
 	// Filter events
 	event = c.filterEngine.Run(ctx, event)
 	if event.Skip {
 		c.log.Debugf("Skipping event: %#v", event)
-		return
-	}
-
-	// Skip unpromoted insignificant InfoEvents
-	if event.Type == config.InfoEvent {
-		c.log.Debugf("Skipping Insignificant InfoEvent: %#v", event)
 		return
 	}
 
@@ -398,13 +270,13 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 
 	// TODO: Get sources applicable for a given event https://github.com/kubeshop/botkube/issues/676
 	// temporary solution - get all sources
-	sources := c.conf.Sources
+	tempSources := c.conf.Sources
 	var sourceBindings []string
-	for key := range sources {
+	for key := range tempSources {
 		sourceBindings = append(sourceBindings, key)
 	}
 
-	err = c.recommFactory.NewForSources(sources, sourceBindings).Do(ctx, &event)
+	err = c.recommFactory.NewForSources(tempSources, sourceBindings).Do(ctx, &event)
 	if err != nil {
 		c.log.Errorf("while running recommendations: %w", err)
 	}
@@ -415,7 +287,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 		go func(n Notifier) {
 			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
 
-			err := n.SendEvent(ctx, event, eventSources)
+			err := n.SendEvent(ctx, event, sources)
 			if err != nil {
 				reportErr := c.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), anonymousEvent, err)
 				if reportErr != nil {
@@ -524,19 +396,39 @@ func (c *Controller) strToGVR(arg string) (schema.GroupVersionResource, error) {
 	}
 }
 
-func (c *Controller) shouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
-	eventMap := c.observedEventKindsMap
-	if eventMap == nil {
-		return false
-	}
+//func (c *Controller) shouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
+//	eventMap := c.observedEventKindsMap
+//	if eventMap == nil {
+//		return false
+//	}
+//
+//	if eventMap[EventKind{Resource: resource, Namespace: "all", EventType: eventType}] {
+//		return true
+//	}
+//
+//	if eventMap[EventKind{Resource: resource, Namespace: namespace, EventType: eventType}] {
+//		return true
+//	}
+//
+//	return false
+//}
 
-	if eventMap[EventKind{Resource: resource, Namespace: config.AllNamespaceIndicator, EventType: eventType}] {
-		return true
-	}
+// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/kubeshop/botkube/issues/589
 
-	if eventMap[EventKind{Resource: resource, Namespace: namespace, EventType: eventType}] {
-		return true
-	}
+// ShouldSendEvent exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+//func (c *Controller) ShouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
+//	return c.shouldSendEvent(namespace, resource, eventType)
+//}
 
-	return false
+// ObservedUpdateEventsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) ObservedUpdateEventsMap() map[KindNS]config.UpdateSetting {
+	return c.observedUpdateEventsMap
+}
+
+// SetObservedUpdateEventsMap exports Controller functionality for test purposes.
+// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
+func (c *Controller) SetObservedUpdateEventsMap(observedUpdateEventsMap map[KindNS]config.UpdateSetting) {
+	c.observedUpdateEventsMap = observedUpdateEventsMap
 }
