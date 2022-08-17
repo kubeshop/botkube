@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type Informer struct {
+type Registration struct {
 	informer        cache.SharedIndexInformer
 	log             logrus.FieldLogger
 	mapper          meta.RESTMapper
@@ -25,7 +25,7 @@ type Informer struct {
 	mappedEvent     config.EventType
 }
 
-func (i Informer) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Routes, fn eventHandler) {
+func (i Registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Routes, fn eventHandler) {
 	switch target {
 	case config.CreateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -58,7 +58,7 @@ func (i Informer) handleEvent(ctx context.Context, resource string, target confi
 	}
 }
 
-func (i Informer) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]RoutedEvent, fn eventHandler) {
+func (i Registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]RoutedEvent, fn eventHandler) {
 	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -98,7 +98,7 @@ func (i Informer) handleMapped(ctx context.Context, targetEvent config.EventType
 	})
 }
 
-func (i Informer) canHandleEvent(target string) bool {
+func (i Registration) canHandleEvent(target string) bool {
 	for _, e := range i.events {
 		if strings.ToLower(target) == e.String() {
 			return true
@@ -107,7 +107,7 @@ func (i Informer) canHandleEvent(target string) bool {
 	return false
 }
 
-func (i Informer) includesSrcResource(resource string) bool {
+func (i Registration) includesSrcResource(resource string) bool {
 	for _, src := range i.mappedResources {
 		if src == resource {
 			return true

@@ -13,12 +13,12 @@ import (
 type mergedEvents map[string]map[config.EventType]struct{}
 
 type Router struct {
-	log        logrus.FieldLogger
-	mapper     meta.RESTMapper
-	dynamicCli dynamic.Interface
-	table      map[string][]RoutedEvent
-	bindings   map[string]struct{}
-	informers  map[string]Informer
+	log           logrus.FieldLogger
+	mapper        meta.RESTMapper
+	dynamicCli    dynamic.Interface
+	table         map[string][]RoutedEvent
+	bindings      map[string]struct{}
+	registrations map[string]Registration
 }
 
 type Routes struct {
@@ -37,12 +37,12 @@ type eventHandler func(ctx context.Context, resource string, sources []string) f
 
 func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *Router {
 	return &Router{
-		log:        log,
-		mapper:     mapper,
-		dynamicCli: dynamicCli,
-		table:      make(map[string][]RoutedEvent),
-		bindings:   make(map[string]struct{}),
-		informers:  make(map[string]Informer),
+		log:           log,
+		mapper:        mapper,
+		dynamicCli:    dynamicCli,
+		table:         make(map[string][]RoutedEvent),
+		bindings:      make(map[string]struct{}),
+		registrations: make(map[string]Registration),
 	}
 }
 
@@ -123,7 +123,7 @@ func (r *Router) buildTable(resource string, events map[config.EventType]struct{
 func (r *Router) RegisterInformers(targetEvents []config.EventType, handler registrationHandler) {
 	resources := r.resourcesForEvents(targetEvents)
 	for _, resource := range resources {
-		r.informers[resource] = Informer{
+		r.registrations[resource] = Registration{
 			informer:   handler(resource),
 			events:     r.resourceEvents(resource),
 			log:        r.log,
@@ -140,7 +140,7 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 	}
 
 	dstResource := "v1/events"
-	r.informers[dstResource] = Informer{
+	r.registrations[dstResource] = Registration{
 		informer:        handler(dstResource),
 		events:          []config.EventType{dstEvent},
 		mappedResources: srcResources,
@@ -151,7 +151,7 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 }
 
 func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
-	for resource, informer := range r.informers {
+	for resource, informer := range r.registrations {
 		if informer.canHandleEvent(target.String()) {
 			sourceRoutes := r.sourceRoutes(resource, target)
 			informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
@@ -202,13 +202,13 @@ func (r *Router) resourcesForEvents(targets []config.EventType) []string {
 	return out
 }
 
-func (r *Router) mappedInformer(event config.EventType) (Informer, bool) {
-	for _, informer := range r.informers {
+func (r *Router) mappedInformer(event config.EventType) (Registration, bool) {
+	for _, informer := range r.registrations {
 		if informer.mappedEvent == event {
 			return informer, true
 		}
 	}
-	return Informer{}, false
+	return Registration{}, false
 }
 
 func flattenEvents(events []config.EventType) []config.EventType {
