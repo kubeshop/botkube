@@ -12,6 +12,16 @@ import (
 
 type mergedEvents map[string]map[config.EventType]struct{}
 
+type Route struct {
+	source     string
+	namespaces config.Namespaces
+}
+
+type RoutedEvent struct {
+	event  config.EventType
+	routes []Route
+}
+
 type Router struct {
 	log           logrus.FieldLogger
 	mapper        meta.RESTMapper
@@ -19,16 +29,6 @@ type Router struct {
 	table         map[string][]RoutedEvent
 	bindings      map[string]struct{}
 	registrations map[string]Registration
-}
-
-type Routes struct {
-	source     string
-	namespaces config.Namespaces
-}
-
-type RoutedEvent struct {
-	event  config.EventType
-	routes []Routes
 }
 
 type registrationHandler func(resource string) cache.SharedIndexInformer
@@ -91,13 +91,13 @@ func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEven
 	return out
 }
 
-func mergeEventRoutes(resource string, sources config.IndexableMap[config.Sources]) map[config.EventType][]Routes {
-	out := make(map[config.EventType][]Routes)
+func mergeEventRoutes(resource string, sources config.IndexableMap[config.Sources]) map[config.EventType][]Route {
+	out := make(map[config.EventType][]Route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
 			for _, e := range flattenEvents(r.Events) {
 				if resource == r.Name {
-					out[e] = append(out[e], Routes{source: srcGroupName, namespaces: r.Namespaces})
+					out[e] = append(out[e], Route{source: srcGroupName, namespaces: r.Namespaces})
 				}
 			}
 		}
@@ -105,7 +105,7 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 	return out
 }
 
-func (r *Router) buildTable(resource string, events map[config.EventType]struct{}, pairings map[config.EventType][]Routes) {
+func (r *Router) buildTable(resource string, events map[config.EventType]struct{}, pairings map[config.EventType][]Route) {
 	for evt := range events {
 		if _, ok := r.table[resource]; !ok {
 
@@ -165,12 +165,12 @@ func (r *Router) HandleMappedEvent(ctx context.Context, targetEvent config.Event
 	}
 }
 
-func (r *Router) sourceRoutes(resource string, targetEvent config.EventType) []Routes {
+func (r *Router) sourceRoutes(resource string, targetEvent config.EventType) []Route {
 	return sourceRoutes(r.table, resource, targetEvent)
 }
 
-func sourceRoutes(routeTable map[string][]RoutedEvent, targetResource string, targetEvent config.EventType) []Routes {
-	var out []Routes
+func sourceRoutes(routeTable map[string][]RoutedEvent, targetResource string, targetEvent config.EventType) []Route {
+	var out []Route
 	for _, routedEvent := range routeTable[targetResource] {
 		if routedEvent.event == targetEvent {
 			out = append(out, routedEvent.routes...)

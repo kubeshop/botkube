@@ -25,7 +25,7 @@ type Registration struct {
 	mappedEvent     config.EventType
 }
 
-func (i Registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Routes, fn eventHandler) {
+func (i Registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Route, fn eventHandler) {
 	switch target {
 	case config.CreateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -116,7 +116,7 @@ func (i Registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func sourcesForObjNamespace(ctx context.Context, routes []Routes, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) []string {
+func sourcesForObjNamespace(ctx context.Context, routes []Route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) []string {
 	var out []string
 
 	objectMeta, err := utils.GetObjectMetaData(ctx, cli, mapper, obj)
