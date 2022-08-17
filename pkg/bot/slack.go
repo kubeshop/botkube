@@ -3,6 +3,8 @@ package bot
 import (
 	"context"
 	"fmt"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 	"regexp"
 	"sync"
 
@@ -54,16 +56,16 @@ type slackMessage struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 
-	Event    *slack.MessageEvent
+	Event    *slackevents.AppMentionEvent
 	BotID    string
 	Request  string
 	Response string
-	RTM      *slack.RTM
+	client   *slack.Client
 }
 
 // NewSlack creates a new Slack instance.
 func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	client := slack.New(cfg.Token)
+	client := slack.New(cfg.Token, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -93,74 +95,68 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 	}, nil
 }
 
-// Start starts the Slack RTM connection and listens for messages
+// Start starts the Slack Websocket connection and listens for messages
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	rtm := b.client.NewRTM()
+	websocketClient := socketmode.New(b.client)
+
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
-		rtm.ManageConnection()
+		err := websocketClient.Run()
+		if err != nil {
+			b.log.Error(err)
+			b.reporter.ReportFatalError(err)
+		}
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
-			return rtm.Disconnect()
-		case msg, ok := <-rtm.IncomingEvents:
-			if !ok {
-				b.log.Info("Incoming events channel closed. Finishing...")
-				return nil
-			}
-
-			switch ev := msg.Data.(type) {
-			case *slack.ConnectedEvent:
+			return nil
+		case event := <-websocketClient.Events:
+			switch event.Type {
+			case socketmode.EventTypeConnecting:
+				b.log.Info("BotKube is connecting to Slack...")
+			case socketmode.EventTypeConnected:
 				err := b.reporter.ReportBotEnabled(b.IntegrationName())
 				if err != nil {
 					return fmt.Errorf("while reporting analytics: %w", err)
 				}
-
 				b.log.Info("BotKube connected to Slack!")
-
-			case *slack.MessageEvent:
-				// Skip if message posted by BotKube
-				if ev.User == b.botID {
-					continue
+			case socketmode.EventTypeEventsAPI:
+				eventsApiEvent := event.Data.(slackevents.EventsAPIEvent)
+				websocketClient.Ack(*event.Request)
+				if eventsApiEvent.Type == slackevents.CallbackEvent {
+					innerEvent := eventsApiEvent.InnerEvent
+					switch ev := innerEvent.Data.(type) {
+					case *slackevents.AppMentionEvent:
+						sm := slackMessage{
+							log:             b.log,
+							executorFactory: b.executorFactory,
+							Event:           ev,
+							BotID:           b.botID,
+							client:          b.client,
+						}
+						err := sm.HandleMessage(b)
+						if err != nil {
+							wrappedErr := fmt.Errorf("while handling message: %w", err)
+							b.log.Errorf(wrappedErr.Error())
+						}
+					}
 				}
-				sm := slackMessage{
-					log:             b.log,
-					executorFactory: b.executorFactory,
-					Event:           ev,
-					BotID:           b.botID,
-					RTM:             rtm,
-				}
-				err := sm.HandleMessage(b)
-				if err != nil {
-					wrappedErr := fmt.Errorf("while handling message: %w", err)
-					b.log.Errorf(wrappedErr.Error())
+				switch eventsApiEvent.Type {
+				case slackevents.CallbackEvent:
+
 				}
 
-			case *slack.RTMError:
-				b.log.Errorf("Slack RMT error: %+v", ev.Error())
-
-			case *slack.ConnectionErrorEvent:
-				b.log.Errorf("Slack connection error: %+v", ev.Error())
-
-			case *slack.IncomingEventError:
-				b.log.Errorf("Slack incoming event error: %+v", ev.Error())
-
-			case *slack.OutgoingErrorEvent:
-				b.log.Errorf("Slack outgoing event error: %+v", ev.Error())
-
-			case *slack.UnmarshallingErrorEvent:
-				b.log.Warningf("Slack unmarshalling error: %+v", ev.Error())
-
-			case *slack.RateLimitedError:
-				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
-
-			case *slack.InvalidAuthEvent:
-				return fmt.Errorf("invalid credentials")
+			case socketmode.EventTypeErrorBadMessage:
+				b.log.Info("Bad message")
+			case socketmode.EventTypeIncomingError:
+				b.log.Info("Incoming error")
+			case socketmode.EventTypeConnectionError:
+				b.log.Errorf("Slack connection error:")
 			}
 		}
 	}
@@ -250,7 +246,7 @@ func (sm *slackMessage) Send() error {
 			Content:  sm.Response,
 			Channels: []string{sm.Event.Channel},
 		}
-		_, err := sm.RTM.UploadFile(params)
+		_, err := sm.client.UploadFile(params)
 		if err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
@@ -260,11 +256,11 @@ func (sm *slackMessage) Send() error {
 	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
-	if sm.Event.ThreadTimestamp != "" {
-		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimestamp))
+	if sm.Event.EventTimeStamp != "" {
+		options = append(options, slack.MsgOptionTS(sm.Event.EventTimeStamp))
 	}
 
-	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
+	if _, _, err := sm.client.PostMessage(sm.Event.Channel, options...); err != nil {
 		return fmt.Errorf("while posting Slack message: %w", err)
 	}
 
