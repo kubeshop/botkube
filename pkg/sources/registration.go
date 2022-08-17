@@ -60,53 +60,6 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 	}
 }
 
-func qualifySourcesForUpdate(
-	ctx context.Context,
-	newObj, oldObj interface{},
-	routes []Route,
-	log logrus.FieldLogger,
-	mapper meta.RESTMapper,
-	cli dynamic.Interface,
-) ([]string, []string) {
-	var sources, diffs []string
-
-	candidates := sourcesForObjNamespace(ctx, routes, newObj, log, mapper, cli)
-
-	var oldUnstruct, newUnstruct *unstructured.Unstructured
-	var ok bool
-
-	if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast object to Unstructured.")
-	}
-
-	if newUnstruct, ok = newObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast object to Unstructured.")
-	}
-
-	log.Debugf("qualifySourcesForUpdate source candidates: %+v", qualifySourcesForUpdate)
-
-	for _, source := range candidates {
-		for _, r := range routes {
-			if r.source != source || !r.hasActionableUpdateSetting() {
-				continue
-			}
-
-			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, r.updateSetting)
-			if err != nil {
-				log.Errorf("while getting diff: %w", err)
-			}
-			log.Debugf("qualifySourcesForUpdate source: %s, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
-
-			if len(diff) > 0 && r.updateSetting.IncludeDiff {
-				sources = append(sources, source)
-				diffs = append(diffs, diff)
-			}
-		}
-	}
-
-	return sources, diffs
-}
-
 func (i Registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]Entry, fn eventHandler) {
 	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -184,4 +137,51 @@ func sourcesForObjNamespace(ctx context.Context, routes []Route, obj interface{}
 	}
 
 	return out
+}
+
+func qualifySourcesForUpdate(
+	ctx context.Context,
+	newObj, oldObj interface{},
+	routes []Route,
+	log logrus.FieldLogger,
+	mapper meta.RESTMapper,
+	cli dynamic.Interface,
+) ([]string, []string) {
+	var sources, diffs []string
+
+	candidates := sourcesForObjNamespace(ctx, routes, newObj, log, mapper, cli)
+
+	var oldUnstruct, newUnstruct *unstructured.Unstructured
+	var ok bool
+
+	if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
+		log.Error("Failed to typecast object to Unstructured.")
+	}
+
+	if newUnstruct, ok = newObj.(*unstructured.Unstructured); !ok {
+		log.Error("Failed to typecast object to Unstructured.")
+	}
+
+	log.Debugf("qualifySourcesForUpdate source candidates: %+v", qualifySourcesForUpdate)
+
+	for _, source := range candidates {
+		for _, r := range routes {
+			if r.source != source || !r.hasActionableUpdateSetting() {
+				continue
+			}
+
+			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, r.updateSetting)
+			if err != nil {
+				log.Errorf("while getting diff: %w", err)
+			}
+			log.Debugf("qualifySourcesForUpdate source: %s, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
+
+			if len(diff) > 0 && r.updateSetting.IncludeDiff {
+				sources = append(sources, source)
+				diffs = append(diffs, diff)
+			}
+		}
+	}
+
+	return sources, diffs
 }
