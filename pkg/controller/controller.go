@@ -144,29 +144,39 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.sourcesRouter.HandleEvent(
 		context.Background(),
 		config.CreateEvent,
-		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
-			return func(obj, oldObj interface{}) {
+		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
+			return func(obj interface{}) {
 				c.log.Debugf("Processing add to resource: %q, event: %q, sources: %+v", resource, config.CreateEvent, sources)
-				c.sendEvent(ctx, obj, nil, resource, config.CreateEvent, sources)
+				c.sendEvent(ctx, obj, resource, config.CreateEvent, sources, nil)
 			}
 		})
 
 	c.sourcesRouter.HandleEvent(
 		context.Background(),
 		config.DeleteEvent,
-		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
-			return func(obj, oldObj interface{}) {
+		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
+			return func(obj interface{}) {
 				c.log.Debugf("Processing delete to resource: %q, event: %q, sources: %+v", resource, config.DeleteEvent, sources)
-				c.sendEvent(ctx, obj, nil, resource, config.DeleteEvent, sources)
+				c.sendEvent(ctx, obj, resource, config.DeleteEvent, sources, nil)
+			}
+		})
+
+	c.sourcesRouter.HandleEvent(
+		context.Background(),
+		config.UpdateEvent,
+		func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{}) {
+			return func(obj interface{}) {
+				c.log.Debugf("Processing update to resource: %q, event: %q, sources: %+v\nobject: %+v", resource, config.UpdateEvent, sources, obj)
+				c.sendEvent(ctx, obj, resource, config.UpdateEvent, sources, updateDiffs)
 			}
 		})
 
 	c.sourcesRouter.HandleMappedEvent(
 		context.Background(),
 		config.ErrorEvent,
-		func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{}) {
-			return func(obj, oldObj interface{}) {
-				c.sendEvent(ctx, obj, nil, resource, config.ErrorEvent, sources)
+		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
+			return func(obj interface{}) {
+				c.sendEvent(ctx, obj, resource, config.ErrorEvent, sources, nil)
 			}
 		})
 
@@ -194,7 +204,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, resource string, eventType config.EventType, sources []string) {
+func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource string, eventType config.EventType, sources []string, updateDiffs []string) {
 	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
@@ -220,42 +230,18 @@ func (c *Controller) sendEvent(ctx context.Context, obj, oldObj interface{}, res
 	}
 
 	// Check for significant Update Events in objects
-
-	//if eventType == config.UpdateEvent {
-	//	var updateMsg string
-	//	// Check if all namespaces allowed
-	//	updateSetting, exist := c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: "all"}]
-	//	if !exist {
-	//		// Check if specified namespace is allowed
-	//		updateSetting, exist = c.observedUpdateEventsMap[KindNS{Resource: resource, Namespace: objectMeta.Namespace}]
-	//	}
-	//	if exist {
-	//		// Calculate object diff as per the updateSettings
-	//		var oldUnstruct, newUnstruct *unstructured.Unstructured
-	//		var ok bool
-	//		if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-	//			c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
-	//		}
-	//		if newUnstruct, ok = obj.(*unstructured.Unstructured); !ok {
-	//			c.log.Errorf("Failed to typecast object to Unstructured. Skipping event: %#v", event)
-	//		}
-	//		updateMsg, err = utils.Diff(oldUnstruct.Object, newUnstruct.Object, updateSetting)
-	//		if err != nil {
-	//			c.log.Errorf("while getting diff: %w", err)
-	//		}
-	//	}
-	//
-	//	// Send update notification only if fields in updateSetting are changed
-	//	if len(updateMsg) > 0 {
-	//		if updateSetting.IncludeDiff {
-	//			event.Messages = append(event.Messages, updateMsg)
-	//		}
-	//	} else {
-	//		// skipping least significant update
-	//		c.log.Debug("skipping least significant Update event")
-	//		event.Skip = true
-	//	}
-	//}
+	if eventType == config.UpdateEvent {
+		// Send update notification only if fields in updateSetting are changed
+		if len(updateDiffs) == 0 {
+			// skipping least significant update
+			c.log.Debug("skipping least significant Update event")
+			event.Skip = true
+		} else {
+			for _, diff := range updateDiffs {
+				event.Messages = append(event.Messages, diff)
+			}
+		}
+	}
 
 	// Filter events
 	event = c.filterEngine.Run(ctx, event)

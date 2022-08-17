@@ -33,7 +33,7 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
 				i.log.Debugf("handleEvent - CreateEvent - resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
-					fn(ctx, resource, sources)(obj, nil)
+					fn(ctx, resource, sources, nil)(obj)
 				}
 			},
 		})
@@ -43,22 +43,71 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
 				i.log.Debugf("handleEvent - DeleteEvent - resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
-					fn(ctx, resource, sources)(obj, nil)
+					fn(ctx, resource, sources, nil)(obj)
 				}
 			},
 		})
 	case config.UpdateEvent:
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				if sources := sourcesForObjNamespace(ctx, sourceRoutes, newObj, i.log, i.mapper, i.dynamicCli); len(sources) > 0 {
-					fn(ctx, resource, sources)(newObj, oldObj)
+				sources, diffs := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, i.log, i.mapper, i.dynamicCli)
+				i.log.Debugf("handleEvent - UpdateEvent - resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
+				if len(sources) > 0 {
+					fn(ctx, resource, sources, diffs)(newObj)
 				}
 			},
 		})
 	}
 }
 
-func (i Registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]RoutedEvent, fn eventHandler) {
+func qualifySourcesForUpdate(
+	ctx context.Context,
+	newObj, oldObj interface{},
+	routes []Route,
+	log logrus.FieldLogger,
+	mapper meta.RESTMapper,
+	cli dynamic.Interface,
+) ([]string, []string) {
+	var sources, diffs []string
+
+	candidates := sourcesForObjNamespace(ctx, routes, newObj, log, mapper, cli)
+
+	var oldUnstruct, newUnstruct *unstructured.Unstructured
+	var ok bool
+
+	if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
+		log.Error("Failed to typecast object to Unstructured.")
+	}
+
+	if newUnstruct, ok = newObj.(*unstructured.Unstructured); !ok {
+		log.Error("Failed to typecast object to Unstructured.")
+	}
+
+	log.Debugf("qualifySourcesForUpdate source candidates: %+v", qualifySourcesForUpdate)
+
+	for _, source := range candidates {
+		for _, r := range routes {
+			if r.source != source || !r.hasActionableUpdateSetting() {
+				continue
+			}
+
+			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, r.updateSetting)
+			if err != nil {
+				log.Errorf("while getting diff: %w", err)
+			}
+			log.Debugf("qualifySourcesForUpdate source: %s, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
+
+			if len(diff) > 0 && r.updateSetting.IncludeDiff {
+				sources = append(sources, source)
+				diffs = append(diffs, diff)
+			}
+		}
+	}
+
+	return sources, diffs
+}
+
+func (i Registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]Entry, fn eventHandler) {
 	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -93,7 +142,7 @@ func (i Registration) handleMapped(ctx context.Context, targetEvent config.Event
 			if len(sources) == 0 {
 				return
 			}
-			fn(ctx, gvrToString, sources)(obj, nil)
+			fn(ctx, gvrToString, sources, nil)(obj)
 		},
 	})
 }
@@ -131,7 +180,6 @@ func sourcesForObjNamespace(ctx context.Context, routes []Route, obj interface{}
 	for _, route := range routes {
 		if route.namespaces.IsAllowed(targetNs) {
 			out = append(out, route.source)
-			break
 		}
 	}
 

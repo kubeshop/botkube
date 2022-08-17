@@ -33,7 +33,7 @@ type Router struct {
 
 type registrationHandler func(resource string) cache.SharedIndexInformer
 
-type eventHandler func(ctx context.Context, resource string, sources []string) func(obj, oldObj interface{})
+type eventHandler func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{})
 
 func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.FieldLogger) *Router {
 	return &Router{
