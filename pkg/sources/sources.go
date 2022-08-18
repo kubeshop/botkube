@@ -13,11 +13,16 @@ import (
 type mergedEvents map[string]map[config.EventType]struct{}
 
 type Route struct {
-	source     string
-	namespaces config.Namespaces
+	source        string
+	namespaces    config.Namespaces
+	updateSetting config.UpdateSetting
 }
 
-type RoutedEvent struct {
+func (r Route) hasActionableUpdateSetting() bool {
+	return len(r.updateSetting.Fields) > 0
+}
+
+type Entry struct {
 	event  config.EventType
 	routes []Route
 }
@@ -26,7 +31,7 @@ type Router struct {
 	log           logrus.FieldLogger
 	mapper        meta.RESTMapper
 	dynamicCli    dynamic.Interface
-	table         map[string][]RoutedEvent
+	table         map[string][]Entry
 	bindings      map[string]struct{}
 	registrations map[string]Registration
 }
@@ -40,7 +45,7 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 		log:           log,
 		mapper:        mapper,
 		dynamicCli:    dynamicCli,
-		table:         make(map[string][]RoutedEvent),
+		table:         make(map[string][]Entry),
 		bindings:      make(map[string]struct{}),
 		registrations: make(map[string]Registration),
 	}
@@ -106,7 +111,16 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
 			for _, e := range flattenEvents(r.Events) {
-				if resource == r.Name {
+				switch {
+				case resource == r.Name && e == config.UpdateEvent:
+					out[e] = append(out[e], Route{
+						source:     srcGroupName,
+						namespaces: r.Namespaces,
+						updateSetting: config.UpdateSetting{
+							Fields:      r.UpdateSetting.Fields,
+							IncludeDiff: r.UpdateSetting.IncludeDiff,
+						}})
+				case resource == r.Name && e != config.UpdateEvent:
 					out[e] = append(out[e], Route{source: srcGroupName, namespaces: r.Namespaces})
 				}
 			}
@@ -119,7 +133,7 @@ func (r *Router) buildTable(resource string, events map[config.EventType]struct{
 	for evt := range events {
 		if _, ok := r.table[resource]; !ok {
 
-			r.table[resource] = []RoutedEvent{{
+			r.table[resource] = []Entry{{
 				event:  evt,
 				routes: routes[evt],
 			}}
@@ -179,7 +193,7 @@ func (r *Router) sourceRoutes(resource string, targetEvent config.EventType) []R
 	return sourceRoutes(r.table, resource, targetEvent)
 }
 
-func sourceRoutes(routeTable map[string][]RoutedEvent, targetResource string, targetEvent config.EventType) []Route {
+func sourceRoutes(routeTable map[string][]Entry, targetResource string, targetEvent config.EventType) []Route {
 	var out []Route
 	for _, routedEvent := range routeTable[targetResource] {
 		if routedEvent.event == targetEvent {

@@ -67,12 +67,6 @@ type Controller struct {
 
 	mapper                     meta.RESTMapper
 	dynamicKubeInformerFactory dynamicinformer.DynamicSharedInformerFactory
-<<<<<<< HEAD
-	resourceInformerMap        map[string]cache.SharedIndexInformer
-	observedEventKindsMap      map[EventKind]bool
-	observedUpdateEventsMap    map[KindNS]config.UpdateSetting
-=======
->>>>>>> c706f71 (Removed no longer used code and unnecessary unit tests.)
 }
 
 // New create a new Controller instance.
@@ -304,41 +298,4 @@ func (c *Controller) strToGVR(arg string) (schema.GroupVersionResource, error) {
 	default:
 		return schema.GroupVersionResource{}, fmt.Errorf("invalid string: expected 2 or 3 parts when split by %q", separator)
 	}
-}
-
-//func (c *Controller) shouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
-//	eventMap := c.observedEventKindsMap
-//	if eventMap == nil {
-//		return false
-//	}
-//
-//	if eventMap[EventKind{Resource: resource, Namespace: "all", EventType: eventType}] {
-//		return true
-//	}
-//
-//	if eventMap[EventKind{Resource: resource, Namespace: namespace, EventType: eventType}] {
-//		return true
-//	}
-//
-//	return false
-//}
-
-// TODO: These methods are used only for E2E test purposes. Remove them as a part of https://github.com/kubeshop/botkube/issues/589
-
-// ShouldSendEvent exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-//func (c *Controller) ShouldSendEvent(namespace string, resource string, eventType config.EventType) bool {
-//	return c.shouldSendEvent(namespace, resource, eventType)
-//}
-
-// ObservedUpdateEventsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) ObservedUpdateEventsMap() map[KindNS]config.UpdateSetting {
-	return c.observedUpdateEventsMap
-}
-
-// SetObservedUpdateEventsMap exports Controller functionality for test purposes.
-// Deprecated: This is a temporarily exposed part of internal functionality for testing purposes and shouldn't be used in production code.
-func (c *Controller) SetObservedUpdateEventsMap(observedUpdateEventsMap map[KindNS]config.UpdateSetting) {
-	c.observedUpdateEventsMap = observedUpdateEventsMap
 }
