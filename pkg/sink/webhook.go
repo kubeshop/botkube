@@ -70,7 +70,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 }
 
 // SendEvent sends event notification to Webhook url
-func (w *Webhook) SendEvent(ctx context.Context, event events.Event, sourceEvents []string) (err error) {
+func (w *Webhook) SendEvent(ctx context.Context, event events.Event, _ []string) (err error) {
 	jsonPayload := &WebhookPayload{
 		EventMeta: EventMeta{
 			Kind:      event.Kind,

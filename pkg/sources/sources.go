@@ -46,11 +46,21 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 	}
 }
 
-func (r *Router) AddAnySlackBindings(c config.IdentifiableMap[config.ChannelBindingsByName]) {
-	for _, name := range c {
-		for _, source := range name.Bindings.Sources {
-			r.bindings[source] = struct{}{}
-		}
+func (r *Router) AddAnyBindingsByName(c config.IdentifiableMap[config.ChannelBindingsByName]) {
+	for _, byName := range c {
+		r.AddAnyBindings(byName.Bindings)
+	}
+}
+
+func (r *Router) AddAnyBindingsById(c config.IdentifiableMap[config.ChannelBindingsByID]) {
+	for _, byID := range c {
+		r.AddAnyBindings(byID.Bindings)
+	}
+}
+
+func (r *Router) AddAnyBindings(b config.BotBindings) {
+	for _, source := range b.Sources {
+		r.bindings[source] = struct{}{}
 	}
 }
 
@@ -105,17 +115,17 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 	return out
 }
 
-func (r *Router) buildTable(resource string, events map[config.EventType]struct{}, pairings map[config.EventType][]Route) {
+func (r *Router) buildTable(resource string, events map[config.EventType]struct{}, routes map[config.EventType][]Route) {
 	for evt := range events {
 		if _, ok := r.table[resource]; !ok {
 
 			r.table[resource] = []RoutedEvent{{
 				event:  evt,
-				routes: pairings[evt],
+				routes: routes[evt],
 			}}
 
 		} else {
-			r.table[resource] = append(r.table[resource], RoutedEvent{event: evt, routes: pairings[evt]})
+			r.table[resource] = append(r.table[resource], Entry{event: evt, routes: routes[evt]})
 		}
 	}
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"sync"
 
+	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
@@ -290,17 +290,6 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-func intersect(this, that []string) bool {
-	for _, i := range this {
-		for _, j := range that {
-			if strings.ToLower(i) == strings.ToLower(j) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
@@ -312,10 +301,8 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 		switch {
 		case !cfg.notify:
 			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
-		case len(eventSources) == 0: // global k8s event
-			out = append(out, cfg.Identifier())
 		default:
-			if intersect(eventSources, cfg.Bindings.Sources) {
+			if utils.Intersect(eventSources, cfg.Bindings.Sources) {
 				out = append(out, cfg.Identifier())
 			}
 		}

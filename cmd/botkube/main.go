@@ -170,7 +170,7 @@ func run() error {
 				return reportFatalError("while creating Slack bot", err)
 			}
 			notifiers = append(notifiers, sb)
-			router.AddAnySlackBindings(commGroupCfg.Slack.Channels)
+			router.AddAnyBindingsByName(commGroupCfg.Slack.Channels)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return sb.Start(ctx)
@@ -183,6 +183,7 @@ func run() error {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
 			notifiers = append(notifiers, mb)
+			router.AddAnyBindingsByName(commGroupCfg.Mattermost.Channels)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return mb.Start(ctx)
@@ -195,6 +196,7 @@ func run() error {
 				return reportFatalError("while creating Teams bot", err)
 			}
 			notifiers = append(notifiers, tb)
+			router.AddAnyBindings(commGroupCfg.Teams.Bindings)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return tb.Start(ctx)
@@ -207,6 +209,7 @@ func run() error {
 				return reportFatalError("while creating Discord bot", err)
 			}
 			notifiers = append(notifiers, db)
+			router.AddAnyBindingsById(commGroupCfg.Discord.Channels)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return db.Start(ctx)

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/sirupsen/logrus"
 
@@ -322,7 +323,7 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 	attachment := b.formatAttachments(event)
 
 	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotify(event) {
+	for _, channelID := range b.getChannelsToNotify(event, eventSources) {
 		post := &model.Post{
 			Props: map[string]interface{}{
 				"attachments": attachment,
@@ -342,22 +343,23 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 	return errs.ErrorOrNil()
 }
 
-func (b *Mattermost) getChannelsToNotify(event events.Event) []string {
+func (b *Mattermost) getChannelsToNotify(event events.Event, eventSources []string) []string {
 	if event.Channel != "" {
 		return []string{event.Channel}
 	}
 
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
-	var channelsToNotify []string
-	for _, channelCfg := range b.getChannels() {
-		if !channelCfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
-			continue
+	var out []string
+	for _, cfg := range b.getChannels() {
+		switch {
+		case !cfg.notify:
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+		default:
+			if utils.Intersect(eventSources, cfg.Bindings.Sources) {
+				out = append(out, cfg.Identifier())
+			}
 		}
-
-		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
 	}
-	return channelsToNotify
+	return out
 }
 
 // SendMessage sends message to Mattermost channel

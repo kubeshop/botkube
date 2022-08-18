@@ -317,7 +317,7 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources 
 	card := b.formatMessage(event, b.Notification)
 
 	errs := multierror.New()
-	for _, convRef := range b.getConversationRefsToNotify() {
+	for _, convRef := range b.getConversationRefsToNotify(eventSources) {
 		err := b.sendProactiveMessage(ctx, convRef, card)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", convRef.ChannelID, err))
@@ -411,7 +411,7 @@ func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.Convers
 	return err
 }
 
-func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
+func (b *Teams) getConversationRefsToNotify(eventSources []string) []schema.ConversationReference {
 	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
 	var convRefsToNotify []schema.ConversationReference
 	for _, convConfig := range b.getConversations() {
@@ -423,6 +423,7 @@ func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
 		convRefsToNotify = append(convRefsToNotify, convConfig.ref)
 	}
 	return convRefsToNotify
+
 }
 
 func (b *Teams) getConversations() map[string]conversation {
