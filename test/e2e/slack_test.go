@@ -116,7 +116,6 @@ func TestSlack(t *testing.T) {
 		command := "filters list"
 		expectedMessage := codeBlock(heredoc.Doc(`
 			FILTER                  ENABLED DESCRIPTION
-			NamespaceChecker        true    Checks if event belongs to blocklisted namespaces and filter them.
 			NodeEventsChecker       true    Sends notifications on node level critical events.
 			ObjectAnnotationChecker true    Checks if annotations <http://botkube.io/*|botkube.io/*> present in object specs and filters them.`))
 
@@ -312,8 +311,6 @@ func TestSlack(t *testing.T) {
 					return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
 						strings.Contains(msg.Text, "local-path-provisioner") &&
 						strings.Contains(msg.Text, "coredns") &&
-						strings.Contains(msg.Text, "traefik") &&
-						strings.Contains(msg.Text, "metrics-server") &&
 						strings.Contains(msg.Text, "botkube")
 				}
 
