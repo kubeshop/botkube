@@ -281,7 +281,7 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 	return e.printDefaultMsg(e.platform)
 }
 
-//runInfoCommand to list allowed commands
+// runInfoCommand to list allowed commands
 func (e *DefaultExecutor) runInfoCommand(args []string) string {
 	if !e.isAuthChannel {
 		return ""

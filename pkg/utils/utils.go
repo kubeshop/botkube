@@ -113,7 +113,7 @@ func ExtractAnnotationsFromEvent(ctx context.Context, dynamicCli dynamic.Interfa
 	return annotations.GetAnnotations(), nil
 }
 
-//GetClusterNameFromKubectlCmd this will return cluster name from kubectl command
+// GetClusterNameFromKubectlCmd this will return cluster name from kubectl command
 func GetClusterNameFromKubectlCmd(cmd string) string {
 	r, _ := regexp.Compile(`--cluster-name[=|' ']([^\s]*)`)
 	//this gives 2 match with cluster name and without

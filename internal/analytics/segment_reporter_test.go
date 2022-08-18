@@ -3,7 +3,8 @@
 // to the golden file.
 //
 // To update golden files, run:
-//   go test ./internal/analytics/... -test.update-golden
+//
+//	go test ./internal/analytics/... -test.update-golden
 package analytics_test
 
 import (
