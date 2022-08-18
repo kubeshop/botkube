@@ -3,11 +3,12 @@ package sources
 import (
 	"context"
 
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type mergedEvents map[string]map[config.EventType]struct{}

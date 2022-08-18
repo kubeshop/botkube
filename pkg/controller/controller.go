@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,6 +19,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/recommendation"
+	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 

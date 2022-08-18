@@ -14,7 +14,6 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
-	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
@@ -22,6 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667

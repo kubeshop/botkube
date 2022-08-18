@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/go-github/v44/github"
 	"github.com/gorilla/mux"
-	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
@@ -37,6 +36,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
+	"github.com/kubeshop/botkube/pkg/sources"
 )
 
 const (

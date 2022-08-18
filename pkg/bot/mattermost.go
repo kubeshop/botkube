@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/sirupsen/logrus"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
