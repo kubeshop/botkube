@@ -14,6 +14,7 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/core"
 	coreActivity "github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
+	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
@@ -316,8 +317,17 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources 
 	b.log.Debugf(">> Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 
+	if !utils.Intersect(eventSources, b.bindings.Sources) {
+		b.log.Debugf(
+			"Event was not sent as bot source bindings: %+v do not overlap with the event's sources: %+v",
+			b.bindings.Sources,
+			eventSources,
+		)
+		return nil
+	}
+
 	errs := multierror.New()
-	for _, convRef := range b.getConversationRefsToNotify(eventSources) {
+	for _, convRef := range b.getConversationRefsToNotify() {
 		err := b.sendProactiveMessage(ctx, convRef, card)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", convRef.ChannelID, err))
@@ -411,7 +421,7 @@ func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.Convers
 	return err
 }
 
-func (b *Teams) getConversationRefsToNotify(eventSources []string) []schema.ConversationReference {
+func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
 	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
 	var convRefsToNotify []schema.ConversationReference
 	for _, convConfig := range b.getConversations() {
