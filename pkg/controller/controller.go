@@ -31,21 +31,6 @@ const (
 	finalMessageTimeout = 20 * time.Second
 )
 
-// EventKind defines a map key used for event filtering.
-// TODO: Do not export it when E2E tests are refactored (https://github.com/kubeshop/botkube/issues/589)
-type EventKind struct {
-	Resource  string
-	Namespace string
-	EventType config.EventType
-}
-
-// KindNS defines a map key used for update event filtering.
-// TODO: Do not export it when E2E tests are refactored (https://github.com/kubeshop/botkube/issues/589)
-type KindNS struct {
-	Resource  string
-	Namespace string
-}
-
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
@@ -82,9 +67,12 @@ type Controller struct {
 
 	mapper                     meta.RESTMapper
 	dynamicKubeInformerFactory dynamicinformer.DynamicSharedInformerFactory
+<<<<<<< HEAD
 	resourceInformerMap        map[string]cache.SharedIndexInformer
 	observedEventKindsMap      map[EventKind]bool
 	observedUpdateEventsMap    map[KindNS]config.UpdateSetting
+=======
+>>>>>>> c706f71 (Removed no longer used code and unnecessary unit tests.)
 }
 
 // New create a new Controller instance.
@@ -291,71 +279,6 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 		}(n)
 	}
 }
-
-//func (c *Controller) initInformerMap() {
-//	if len(c.conf.Sources) == 0 {
-//		return
-//	}
-//
-//	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
-//
-//	// Init maps
-//	c.resourceInformerMap = make(map[string]cache.SharedIndexInformer)
-//	c.observedEventKindsMap = make(map[EventKind]bool)
-//	c.observedUpdateEventsMap = make(map[KindNS]config.UpdateSetting)
-//
-//	for srcGroupName, srcGroupCfg := range c.conf.Sources {
-//		resources := srcGroupCfg.Kubernetes.Resources
-//
-//		for _, r := range resources {
-//			if _, ok := c.resourceInformerMap[r.Name]; ok {
-//				continue
-//			}
-//
-//			gvr, err := c.parseResourceArg(r.Name)
-//			if err != nil {
-//				c.log.Infof("Unable to parse resource: %s for source: %s\n", r.Name, srcGroupName)
-//				continue
-//			}
-//
-//			c.resourceInformerMap[r.Name] = c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
-//		}
-//
-//		// Allowed event kinds map and Allowed Update Events Map
-//		for _, r := range resources {
-//			allEvents := false
-//			for _, e := range r.Events {
-//				if e == config.AllEvent {
-//					allEvents = true
-//					break
-//				}
-//				for _, ns := range r.Namespaces.Include {
-//					c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: e}] = true
-//				}
-//				// AllowedUpdateEventsMap entry is created only for UpdateEvent
-//				if e == config.UpdateEvent {
-//					for _, ns := range r.Namespaces.Include {
-//						c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
-//					}
-//				}
-//			}
-//
-//			// For AllEvent type, add all events to map
-//			if allEvents {
-//				eventTypes := []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}
-//				for _, ev := range eventTypes {
-//					for _, ns := range r.Namespaces.Include {
-//						c.observedEventKindsMap[EventKind{Resource: r.Name, Namespace: ns, EventType: ev}] = true
-//						c.observedUpdateEventsMap[KindNS{Resource: r.Name, Namespace: ns}] = r.UpdateSetting
-//					}
-//				}
-//			}
-//		}
-//	}
-//
-//	c.log.Infof("Allowed Events: %+v", c.observedEventKindsMap)
-//	c.log.Infof("Allowed UpdateEvents: %+v", c.observedUpdateEventsMap)
-//}
 
 func (c *Controller) parseResourceArg(arg string) (schema.GroupVersionResource, error) {
 	gvr, err := c.strToGVR(arg)
