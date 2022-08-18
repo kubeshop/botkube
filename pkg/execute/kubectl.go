@@ -141,7 +141,9 @@ func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd
 }
 
 // TODO: This code was moved from:
-//   https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
+//
+//	https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
+//
 // Further refactoring in needed. For example, the cluster flag should be removed by an upper layer as it's strictly
 // as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
 func (e *Kubectl) getFinalArgs(args []string) []string {

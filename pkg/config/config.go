@@ -215,7 +215,7 @@ type Resource struct {
 	UpdateSetting UpdateSetting `yaml:"updateSetting"`
 }
 
-//UpdateSetting struct defines updateEvent fields specification
+// UpdateSetting struct defines updateEvent fields specification
 type UpdateSetting struct {
 	Fields      []string `yaml:"fields"`
 	IncludeDiff bool     `yaml:"includeDiff"`
