@@ -3,13 +3,13 @@ package bot
 import (
 	"context"
 	"fmt"
-	"github.com/slack-go/slack/slackevents"
-	"github.com/slack-go/slack/socketmode"
 	"regexp"
 	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -103,10 +103,12 @@ func (b *Slack) Start(ctx context.Context) error {
 
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
-		err := websocketClient.Run()
-		if err != nil {
-			b.log.Error(err)
-			b.reporter.ReportFatalError(err)
+		socketRunErr := websocketClient.Run()
+		if socketRunErr != nil {
+			reportErr := b.reporter.ReportFatalError(socketRunErr)
+			if reportErr != nil {
+				b.log.Errorf("while reporting socket error: %s", reportErr.Error())
+			}
 		}
 	}()
 
@@ -126,10 +128,10 @@ func (b *Slack) Start(ctx context.Context) error {
 				}
 				b.log.Info("BotKube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
-				eventsApiEvent := event.Data.(slackevents.EventsAPIEvent)
+				eventsAPIEvent := event.Data.(slackevents.EventsAPIEvent)
 				websocketClient.Ack(*event.Request)
-				if eventsApiEvent.Type == slackevents.CallbackEvent {
-					innerEvent := eventsApiEvent.InnerEvent
+				if eventsAPIEvent.Type == slackevents.CallbackEvent {
+					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
 						sm := slackMessage{
@@ -145,10 +147,6 @@ func (b *Slack) Start(ctx context.Context) error {
 							b.log.Errorf(wrappedErr.Error())
 						}
 					}
-				}
-				switch eventsApiEvent.Type {
-				case slackevents.CallbackEvent:
-
 				}
 
 			case socketmode.EventTypeErrorBadMessage:
