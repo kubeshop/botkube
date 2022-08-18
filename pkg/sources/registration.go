@@ -31,7 +31,7 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handleEvent - CreateEvent - resource: %s, sources: %+v", resource, sources)
+				i.log.Debugf("handle CreateEvent, resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, nil)(obj)
 				}
@@ -41,7 +41,7 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
 				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handleEvent - DeleteEvent - resource: %s, sources: %+v", resource, sources)
+				i.log.Debugf("handle DeleteEvent, resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, nil)(obj)
 				}
@@ -51,7 +51,7 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				sources, diffs := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handleEvent - UpdateEvent - resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
+				i.log.Debugf("handle UpdateEvent, resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, diffs)(newObj)
 				}
@@ -162,11 +162,17 @@ func qualifySourcesForUpdate(
 		log.Error("Failed to typecast object to Unstructured.")
 	}
 
-	log.Debugf("qualifySourcesForUpdate source candidates: %+v", qualifySourcesForUpdate)
+	log.Debugf("qualifySourcesForUpdate source candidates: %+v", candidates)
 
 	for _, source := range candidates {
 		for _, r := range routes {
-			if r.source != source || !r.hasActionableUpdateSetting() {
+			if r.source != source {
+				continue
+			}
+
+			if !r.hasActionableUpdateSetting() {
+				log.Debugf("Qualified for update: source: %s, with no updateSettings set", source)
+				sources = append(sources, source)
 				continue
 			}
 
@@ -174,11 +180,12 @@ func qualifySourcesForUpdate(
 			if err != nil {
 				log.Errorf("while getting diff: %w", err)
 			}
-			log.Debugf("qualifySourcesForUpdate source: %s, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
+			log.Debugf("About to qualify source: %s for update, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
 
 			if len(diff) > 0 && r.updateSetting.IncludeDiff {
 				sources = append(sources, source)
 				diffs = append(diffs, diff)
+				log.Debugf("Qualified for update: source: %s for update, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
 			}
 		}
 	}

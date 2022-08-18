@@ -213,15 +213,17 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 
 	// Check for significant Update Events in objects
 	if eventType == config.UpdateEvent {
-		// Send update notification only if fields in updateSetting are changed
-		if len(updateDiffs) == 0 {
+		switch {
+		case len(sources) == 0 && len(updateDiffs) == 0:
 			// skipping least significant update
 			c.log.Debug("skipping least significant Update event")
 			event.Skip = true
-		} else {
+		case len(updateDiffs) > 0:
 			for _, diff := range updateDiffs {
 				event.Messages = append(event.Messages, diff)
 			}
+		default:
+			// send event with no diff message
 		}
 	}
 
