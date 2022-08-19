@@ -433,7 +433,6 @@ func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
 		convRefsToNotify = append(convRefsToNotify, convConfig.ref)
 	}
 	return convRefsToNotify
-
 }
 
 func (b *Teams) getConversations() map[string]conversation {

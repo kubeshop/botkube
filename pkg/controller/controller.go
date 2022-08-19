@@ -70,7 +70,6 @@ type Controller struct {
 }
 
 // New create a new Controller instance.
-
 func New(log logrus.FieldLogger,
 	conf *config.Config,
 	notifiers []Notifier,
@@ -219,9 +218,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 			c.log.Debug("skipping least significant Update event")
 			event.Skip = true
 		case len(updateDiffs) > 0:
-			for _, diff := range updateDiffs {
-				event.Messages = append(event.Messages, diff)
-			}
+			event.Messages = append(event.Messages, updateDiffs...)
 		default:
 			// send event with no diff message
 		}

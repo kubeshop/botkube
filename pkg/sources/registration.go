@@ -16,7 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
-type Registration struct {
+type registration struct {
 	informer        cache.SharedIndexInformer
 	log             logrus.FieldLogger
 	mapper          meta.RESTMapper
@@ -26,33 +26,33 @@ type Registration struct {
 	mappedEvent     config.EventType
 }
 
-func (i Registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []Route, fn eventHandler) {
+func (r registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []route, fn eventHandler) {
 	switch target {
 	case config.CreateEvent:
-		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handle CreateEvent, resource: %s, sources: %+v", resource, sources)
+				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+				r.log.Debugf("handle CreateEvent, resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, nil)(obj)
 				}
 			},
 		})
 	case config.DeleteEvent:
-		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
-				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handle DeleteEvent, resource: %s, sources: %+v", resource, sources)
+				sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+				r.log.Debugf("handle DeleteEvent, resource: %s, sources: %+v", resource, sources)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, nil)(obj)
 				}
 			},
 		})
 	case config.UpdateEvent:
-		i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				sources, diffs := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, i.log, i.mapper, i.dynamicCli)
-				i.log.Debugf("handle UpdateEvent, resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
+				sources, diffs := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, r.log, r.mapper, r.dynamicCli)
+				r.log.Debugf("handle UpdateEvent, resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
 				if len(sources) > 0 {
 					fn(ctx, resource, sources, diffs)(newObj)
 				}
@@ -61,38 +61,38 @@ func (i Registration) handleEvent(ctx context.Context, resource string, target c
 	}
 }
 
-func (i Registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]Entry, fn eventHandler) {
-	i.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+func (r registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]entry, fn eventHandler) {
+	r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
-				i.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				r.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 			}
 			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {
-				i.log.Errorf("Failed to get MetaNamespaceKey from event resource")
+				r.log.Errorf("Failed to get MetaNamespaceKey from event resource")
 				return
 			}
 
 			// Find involved object type
-			gvr, err := utils.GetResourceFromKind(i.mapper, eventObj.InvolvedObject.GroupVersionKind())
+			gvr, err := utils.GetResourceFromKind(r.mapper, eventObj.InvolvedObject.GroupVersionKind())
 			if err != nil {
-				i.log.Errorf("Failed to get involved object: %v", err)
+				r.log.Errorf("Failed to get involved object: %v", err)
 				return
 			}
 
-			if !i.canHandleEvent(eventObj.Type) {
+			if !r.canHandleEvent(eventObj.Type) {
 				return
 			}
 
 			gvrToString := utils.GVRToString(gvr)
-			if !i.includesSrcResource(gvrToString) {
+			if !r.includesSrcResource(gvrToString) {
 				return
 			}
 
 			sourceRoutes := sourceRoutes(routeTable, gvrToString, targetEvent)
-			sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, i.log, i.mapper, i.dynamicCli)
+			sources := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 			if len(sources) == 0 {
 				return
 			}
@@ -101,8 +101,8 @@ func (i Registration) handleMapped(ctx context.Context, targetEvent config.Event
 	})
 }
 
-func (i Registration) canHandleEvent(target string) bool {
-	for _, e := range i.events {
+func (r registration) canHandleEvent(target string) bool {
+	for _, e := range r.events {
 		if strings.ToLower(target) == e.String() {
 			return true
 		}
@@ -110,8 +110,8 @@ func (i Registration) canHandleEvent(target string) bool {
 	return false
 }
 
-func (i Registration) includesSrcResource(resource string) bool {
-	for _, src := range i.mappedResources {
+func (r registration) includesSrcResource(resource string) bool {
+	for _, src := range r.mappedResources {
 		if src == resource {
 			return true
 		}
@@ -119,7 +119,7 @@ func (i Registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func sourcesForObjNamespace(ctx context.Context, routes []Route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) []string {
+func sourcesForObjNamespace(ctx context.Context, routes []route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) []string {
 	var out []string
 
 	objectMeta, err := utils.GetObjectMetaData(ctx, cli, mapper, obj)
@@ -143,7 +143,7 @@ func sourcesForObjNamespace(ctx context.Context, routes []Route, obj interface{}
 func qualifySourcesForUpdate(
 	ctx context.Context,
 	newObj, oldObj interface{},
-	routes []Route,
+	routes []route,
 	log logrus.FieldLogger,
 	mapper meta.RESTMapper,
 	cli dynamic.Interface,

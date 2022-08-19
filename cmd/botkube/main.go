@@ -166,7 +166,7 @@ func run() error {
 		router.AddAnyBindingsByName(commGroupCfg.Slack.Channels)
 		router.AddAnyBindingsByName(commGroupCfg.Mattermost.Channels)
 		router.AddAnyBindings(commGroupCfg.Teams.Bindings)
-		router.AddAnyBindingsById(commGroupCfg.Discord.Channels)
+		router.AddAnyBindingsByID(commGroupCfg.Discord.Channels)
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
