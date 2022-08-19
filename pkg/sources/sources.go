@@ -77,6 +77,14 @@ func (r *Router) AddAnyBindings(b config.BotBindings) {
 	}
 }
 
+// AddAnySinkBindings adds source bindings names
+// to dictate which source bindings the router should use.
+func (r *Router) AddAnySinkBindings(b config.SinkBindings) {
+	for _, source := range b.Sources {
+		r.bindings[source] = struct{}{}
+	}
+}
+
 // GetBoundSources returns the Sources the router uses
 // based on preconfigured source binding names.
 func (r *Router) GetBoundSources(sources config.IndexableMap[config.Sources]) config.IndexableMap[config.Sources] {

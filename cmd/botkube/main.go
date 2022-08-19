@@ -167,6 +167,10 @@ func run() error {
 		router.AddAnyBindingsByName(commGroupCfg.Mattermost.Channels)
 		router.AddAnyBindings(commGroupCfg.Teams.Bindings)
 		router.AddAnyBindingsByID(commGroupCfg.Discord.Channels)
+		for _, index := range commGroupCfg.Elasticsearch.Indices {
+			router.AddAnySinkBindings(index.Bindings)
+		}
+		router.AddAnySinkBindings(commGroupCfg.Webhook.Bindings)
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/olivere/elastic"
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
@@ -172,12 +173,15 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 }
 
 // SendEvent sends event notification to Elasticsearch
-func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, _ []string) (err error) {
+func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	errs := multierror.New()
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
 	for _, indexCfg := range e.indices {
+		if !utils.Intersect(indexCfg.Bindings.Sources, eventSources) {
+			continue
+		}
+
 		err := e.flushIndex(ctx, indexCfg, event)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))

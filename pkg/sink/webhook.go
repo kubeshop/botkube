@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
@@ -23,7 +24,8 @@ type Webhook struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
 
-	URL string
+	URL      string
+	Bindings config.SinkBindings
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -59,6 +61,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 		log:      log,
 		reporter: reporter,
 		URL:      c.URL,
+		Bindings: c.Bindings,
 	}
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
@@ -70,7 +73,12 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 }
 
 // SendEvent sends event notification to Webhook url
-func (w *Webhook) SendEvent(ctx context.Context, event events.Event, _ []string) (err error) {
+func (w *Webhook) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
+	if !utils.Intersect(w.Bindings.Sources, eventSources) {
+		w.log.Debugf("Event sources do not match Webhook sources, event: %+v, eventSources: %+v", event, eventSources)
+		return nil
+	}
+
 	jsonPayload := &WebhookPayload{
 		EventMeta: EventMeta{
 			Kind:      event.Kind,
