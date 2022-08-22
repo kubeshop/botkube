@@ -99,35 +99,61 @@ func New(log logrus.FieldLogger,
 func (c *Controller) Start(ctx context.Context) error {
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
-	c.sourcesRouter.RegisterInformers([]config.EventType{
+	err := c.sourcesRouter.RegisterInformers([]config.EventType{
 		config.CreateEvent,
 		config.UpdateEvent,
 		config.DeleteEvent,
-	}, func(resource string) cache.SharedIndexInformer {
+	}, func(resource string) (cache.SharedIndexInformer, error) {
 		gvr, err := c.parseResourceArg(resource)
 		if err != nil {
 			c.log.Infof("Unable to parse resource: %s to register with informer\n", resource)
+			return nil, err
 		}
-		return c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
+		return c.dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 	})
+	if err != nil {
+		c.log.WithFields(logrus.Fields{
+			"events": []config.EventType{
+				config.CreateEvent,
+				config.UpdateEvent,
+				config.DeleteEvent,
+			},
+			"error": err.Error(),
+		}).Errorf("Could not register informer.")
+		return err
+	}
 
-	c.sourcesRouter.MapWithEventsInformer(
+	err = c.sourcesRouter.MapWithEventsInformer(
 		config.ErrorEvent,
 		config.WarningEvent,
-		func(resource string) cache.SharedIndexInformer {
+		func(resource string) (cache.SharedIndexInformer, error) {
 			gvr, err := c.parseResourceArg(resource)
 			if err != nil {
 				c.log.Infof("Unable to parse resource: %s to register with informer\n", resource)
+				return nil, err
 			}
-			return c.dynamicKubeInformerFactory.ForResource(gvr).Informer()
+			return c.dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 		})
+	if err != nil {
+		c.log.WithFields(logrus.Fields{
+			"srcEvent": config.ErrorEvent,
+			"dstEvent": config.WarningEvent,
+			"error":    err.Error(),
+		}).Errorf("Could not map event with events informer.")
+		return err
+	}
 
 	c.sourcesRouter.HandleEvent(
 		context.Background(),
 		config.CreateEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
-				c.log.Debugf("Processing add to resource: %q, event: %q, sources: %+v", resource, config.CreateEvent, sources)
+				c.log.WithFields(logrus.Fields{
+					"resource": resource,
+					"sources":  sources,
+					"event":    config.CreateEvent,
+					"object":   obj,
+				}).Debugf("Processing K8s resource...")
 				c.sendEvent(ctx, obj, resource, config.CreateEvent, sources, nil)
 			}
 		})
@@ -137,7 +163,12 @@ func (c *Controller) Start(ctx context.Context) error {
 		config.DeleteEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
-				c.log.Debugf("Processing delete to resource: %q, event: %q, sources: %+v", resource, config.DeleteEvent, sources)
+				c.log.WithFields(logrus.Fields{
+					"resource": resource,
+					"sources":  sources,
+					"event":    config.DeleteEvent,
+					"object":   obj,
+				}).Debugf("Processing K8s resource...")
 				c.sendEvent(ctx, obj, resource, config.DeleteEvent, sources, nil)
 			}
 		})
@@ -147,7 +178,12 @@ func (c *Controller) Start(ctx context.Context) error {
 		config.UpdateEvent,
 		func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{}) {
 			return func(obj interface{}) {
-				c.log.Debugf("Processing update to resource: %q, event: %q, sources: %+v\nobject: %+v", resource, config.UpdateEvent, sources, obj)
+				c.log.WithFields(logrus.Fields{
+					"resource": resource,
+					"sources":  sources,
+					"event":    config.UpdateEvent,
+					"object":   obj,
+				}).Debugf("Processing K8s resource...")
 				c.sendEvent(ctx, obj, resource, config.UpdateEvent, sources, updateDiffs)
 			}
 		})
@@ -162,7 +198,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		})
 
 	c.log.Info("Starting controller")
-	err := sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	err = sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}

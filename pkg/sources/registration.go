@@ -33,7 +33,11 @@ func (r registration) handleEvent(ctx context.Context, resource string, target c
 			AddFunc: func(obj interface{}) {
 				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 				if err != nil {
-					r.log.Errorf("cannot calculate sources for observed resource %q in Add event handler: %s", resource, err.Error())
+					r.log.WithFields(logrus.Fields{
+						"eventHandler": config.CreateEvent,
+						"resource":     resource,
+						"error":        err.Error(),
+					}).Errorf("Cannot calculate sources for observed resource.")
 					return
 				}
 				r.log.Debugf("handle Create event, resource: %q, sources: %+v", resource, sources)
@@ -47,7 +51,11 @@ func (r registration) handleEvent(ctx context.Context, resource string, target c
 			DeleteFunc: func(obj interface{}) {
 				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 				if err != nil {
-					r.log.Errorf("cannot calculate sources for observed resource %q in Delete event handler: %s", resource, err.Error())
+					r.log.WithFields(logrus.Fields{
+						"eventHandler": config.DeleteEvent,
+						"resource":     resource,
+						"error":        err.Error(),
+					}).Errorf("Cannot calculate sources for observed resource.")
 					return
 				}
 				r.log.Debugf("handle Delete event, resource: %q, sources: %+v", resource, sources)
@@ -61,7 +69,12 @@ func (r registration) handleEvent(ctx context.Context, resource string, target c
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				sources, diffs, err := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, r.log, r.mapper, r.dynamicCli)
 				if err != nil {
-					r.log.Errorf("cannot qualify sources for observed resource %q in Update event handler: %s", resource, err.Error())
+					r.log.WithFields(logrus.Fields{
+						"eventHandler": config.UpdateEvent,
+						"resource":     resource,
+						"error":        err.Error(),
+					}).Errorf("Cannot qualify sources for observed resource.")
+					return
 				}
 				r.log.Debugf("handle Update event, resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
 				if len(sources) > 0 {
@@ -79,6 +92,7 @@ func (r registration) handleMapped(ctx context.Context, targetEvent config.Event
 			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
 				r.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
+				return
 			}
 			_, err = cache.MetaNamespaceKeyFunc(obj)
 			if err != nil {

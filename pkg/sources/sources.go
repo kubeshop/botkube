@@ -14,7 +14,7 @@ import (
 const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
-type registrationHandler func(resource string) cache.SharedIndexInformer
+type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
 type eventHandler func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{})
 
 type route struct {
@@ -116,17 +116,22 @@ func (r *Router) BuildTable(cfg *config.Config) *Router {
 }
 
 // RegisterInformers register informers for all the resources that match the target events.
-func (r *Router) RegisterInformers(targetEvents []config.EventType, handler registrationHandler) {
+func (r *Router) RegisterInformers(targetEvents []config.EventType, handler registrationHandler) error {
 	resources := r.resourcesForEvents(targetEvents)
 	for _, resource := range resources {
+		informer, err := handler(resource)
+		if err != nil {
+			return err
+		}
 		r.registrations[resource] = registration{
-			informer:   handler(resource),
+			informer:   informer,
 			events:     r.resourceEvents(resource),
 			log:        r.log,
 			mapper:     r.mapper,
 			dynamicCli: r.dynamicCli,
 		}
 	}
+	return nil
 }
 
 // MapWithEventsInformer allows resources to report on an event (srcEvent)
@@ -136,14 +141,18 @@ func (r *Router) RegisterInformers(targetEvents []config.EventType, handler regi
 // For example, you can report the "error" EventType for a resource
 // by having the router watch/interrogate the "warning" EventType
 // reported by the v1/events resource.
-func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent config.EventType, handler registrationHandler) {
+func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent config.EventType, handler registrationHandler) error {
 	srcResources := r.resourcesForEvents([]config.EventType{srcEvent})
 	if len(srcResources) == 0 {
-		return
+		return nil
 	}
 
+	informer, err := handler(eventsResource)
+	if err != nil {
+		return err
+	}
 	r.registrations[eventsResource] = registration{
-		informer:        handler(eventsResource),
+		informer:        informer,
 		events:          []config.EventType{dstEvent},
 		mappedResources: srcResources,
 		mappedEvent:     srcEvent,
@@ -151,6 +160,7 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 		mapper:          r.mapper,
 		dynamicCli:      r.dynamicCli,
 	}
+	return nil
 }
 
 // HandleEvent allows router clients to create handlers that are
