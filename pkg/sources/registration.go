@@ -103,7 +103,8 @@ func (r registration) handleMapped(ctx context.Context, targetEvent config.Event
 
 func (r registration) canHandleEvent(target string) bool {
 	for _, e := range r.events {
-		if strings.ToLower(target) == e.String() {
+
+		if strings.EqualFold(target, e.String()) {
 			return true
 		}
 	}
