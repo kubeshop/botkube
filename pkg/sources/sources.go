@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
 const eventsResource = "v1/events"
@@ -198,6 +199,14 @@ func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEven
 			for _, e := range flattenEvents(resource.Events) {
 				out[resource.Name][e] = struct{}{}
 			}
+		}
+
+		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
+		for resourceName, eventType := range resForRecomms {
+			if _, ok := out[resourceName]; !ok {
+				out[resourceName] = make(map[config.EventType]struct{})
+			}
+			out[resourceName][eventType] = struct{}{}
 		}
 	}
 	return out

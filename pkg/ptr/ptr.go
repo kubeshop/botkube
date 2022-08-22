@@ -12,3 +12,12 @@ func ToBool(in *bool) bool {
 func Bool(in bool) *bool {
 	return &in
 }
+
+// IsTrue returns true if the given pointer is not nil and its value is true.
+func IsTrue(in *bool) bool {
+	if in == nil {
+		return false
+	}
+
+	return *in
+}

@@ -39,6 +39,11 @@ type Event struct {
 	Warnings        []string
 }
 
+// HasRecommendationsOrWarnings returns true if event has recommendations or warnings.
+func (e *Event) HasRecommendationsOrWarnings() bool {
+	return len(e.Recommendations) > 0 || len(e.Warnings) > 0
+}
+
 // LevelMap is a map of event type to Level
 var LevelMap = map[config.EventType]config.Level{
 	config.CreateEvent:  config.Info,
