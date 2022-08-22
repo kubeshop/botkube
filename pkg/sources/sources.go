@@ -11,6 +11,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const eventsResource = "v1/events"
+
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) cache.SharedIndexInformer
 type eventHandler func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{})
@@ -105,7 +107,9 @@ func (r *Router) BuildTable(cfg *config.Config) *Router {
 
 	for resource, resourceEvents := range mergedEvents {
 		eventRoutes := mergeEventRoutes(resource, sources)
-		r.buildTable(resource, resourceEvents, eventRoutes)
+		for evt := range resourceEvents {
+			r.table[resource] = append(r.table[resource], entry{event: evt, routes: eventRoutes[evt]})
+		}
 	}
 	r.log.Debugf("sources routing table: %+v", r.table)
 	return r
@@ -138,25 +142,26 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 		return
 	}
 
-	dstResource := "v1/events"
-	r.registrations[dstResource] = registration{
-		informer:        handler(dstResource),
+	r.registrations[eventsResource] = registration{
+		informer:        handler(eventsResource),
 		events:          []config.EventType{dstEvent},
 		mappedResources: srcResources,
 		mappedEvent:     srcEvent,
 		log:             r.log,
 		mapper:          r.mapper,
-		dynamicCli:      r.dynamicCli}
+		dynamicCli:      r.dynamicCli,
+	}
 }
 
 // HandleEvent allows router clients to create handlers that are
 // triggered for a target event.
 func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
 	for resource, informer := range r.registrations {
-		if informer.canHandleEvent(target.String()) {
-			sourceRoutes := r.sourceRoutes(resource, target)
-			informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
+		if !informer.canHandleEvent(target.String()) {
+			continue
 		}
+		sourceRoutes := r.sourceRoutes(resource, target)
+		informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
 	}
 }
 
@@ -188,35 +193,22 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
 			for _, e := range flattenEvents(r.Events) {
-				switch {
-				case resource == r.Name && e == config.UpdateEvent:
-					out[e] = append(out[e], route{
-						source:     srcGroupName,
-						namespaces: r.Namespaces,
-						updateSetting: config.UpdateSetting{
-							Fields:      r.UpdateSetting.Fields,
-							IncludeDiff: r.UpdateSetting.IncludeDiff,
-						}})
-				case resource == r.Name && e != config.UpdateEvent:
-					out[e] = append(out[e], route{source: srcGroupName, namespaces: r.Namespaces})
+				if resource != r.Name {
+					continue
 				}
+
+				route := route{source: srcGroupName, namespaces: r.Namespaces}
+				if e == config.UpdateEvent {
+					route.updateSetting = config.UpdateSetting{
+						Fields:      r.UpdateSetting.Fields,
+						IncludeDiff: r.UpdateSetting.IncludeDiff,
+					}
+				}
+				out[e] = append(out[e], route)
 			}
 		}
 	}
 	return out
-}
-
-func (r *Router) buildTable(resource string, events map[config.EventType]struct{}, routes map[config.EventType][]route) {
-	for evt := range events {
-		if _, ok := r.table[resource]; !ok {
-			r.table[resource] = []entry{{
-				event:  evt,
-				routes: routes[evt],
-			}}
-		} else {
-			r.table[resource] = append(r.table[resource], entry{event: evt, routes: routes[evt]})
-		}
-	}
 }
 
 func (r *Router) sourceRoutes(resource string, targetEvent config.EventType) []route {

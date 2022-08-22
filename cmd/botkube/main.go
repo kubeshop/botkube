@@ -120,9 +120,7 @@ func run() error {
 	})
 
 	// Set up the filter engine
-	// TODO: Get all unique resources as a part of https://github.com/kubeshop/botkube/issues/676
-	res := conf.Sources.GetFirst().Kubernetes.Resources
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, res)
+	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
