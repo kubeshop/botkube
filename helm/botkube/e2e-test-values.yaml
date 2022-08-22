@@ -20,7 +20,7 @@ communications:
             executors:
               - kubectl-read-only
             sources:
-              - k8s-events
+              - k8s-updates
 
 sources:
   'k8s-events':
@@ -40,6 +40,15 @@ sources:
               - botkube
           events:
             - create
+  'k8s-updates':
+    kubernetes:
+      resources:
+        - name: v1/configmaps
+          namespaces:
+            include:
+              - botkube
+          events:
+            - update
 executors:
   'kubectl-read-only':
     kubectl:

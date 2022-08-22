@@ -341,7 +341,7 @@ func TestSlack(t *testing.T) {
 
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
-		t.Log("Expecting bot message...")
+		t.Log("Expecting bot message in first channel...")
 		assertionFn := func(msg slack.Message) bool {
 			return doesMessageContainExactlyOneAttachment(
 				msg,
@@ -350,7 +350,13 @@ func TestSlack(t *testing.T) {
 				fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
 			)
 		}
-		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
+		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		require.NoError(t, err)
+
+		t.Log("Expecting no bot message in second channel...")
+		expectedMessage := fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
+		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		err = slackTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap...")
@@ -360,7 +366,7 @@ func TestSlack(t *testing.T) {
 		cfgMap, err = cfgMapCli.Update(context.Background(), cfgMap, metav1.UpdateOptions{})
 		require.NoError(t, err)
 
-		t.Log("Expecting bot message...")
+		t.Log("Expecting bot message in all channels...")
 		assertionFn = func(msg slack.Message) bool {
 			return doesMessageContainExactlyOneAttachment(
 				msg,
@@ -374,7 +380,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Stopping notifier...")
 		command := "notifier stop"
-		expectedMessage := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
+		expectedMessage = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
 		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
@@ -450,7 +456,7 @@ func TestSlack(t *testing.T) {
 		require.NoError(t, err)
 		cfgMapAlreadyDeleted = true
 
-		t.Log("Expecting bot message...")
+		t.Log("Expecting bot message on first channel...")
 		assertionFn = func(msg slack.Message) bool {
 			return doesMessageContainExactlyOneAttachment(
 				msg,
@@ -459,7 +465,20 @@ func TestSlack(t *testing.T) {
 				fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
 			)
 		}
-		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
+		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		require.NoError(t, err)
+
+		t.Log("Ensuring bot didn't write anything new on second channel...")
+		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		assertionFn = func(msg slack.Message) bool {
+			return doesMessageContainExactlyOneAttachment(
+				msg,
+				"v1/configmaps updated",
+				"daa038",
+				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
+			)
+		}
+		err = slackTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
 		require.NoError(t, err)
 	})
 
