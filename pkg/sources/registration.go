@@ -157,11 +157,11 @@ func qualifySourcesForUpdate(
 	var ok bool
 
 	if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast object to Unstructured.")
+		log.Error("Failed to typecast old object to Unstructured.")
 	}
 
 	if newUnstruct, ok = newObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast object to Unstructured.")
+		log.Error("Failed to typecast new object to Unstructured.")
 	}
 
 	log.Debugf("qualifySourcesForUpdate source candidates: %+v", candidates)
