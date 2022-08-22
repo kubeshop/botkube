@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/olivere/elastic"
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
@@ -22,6 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 var _ Sink = &Elasticsearch{}

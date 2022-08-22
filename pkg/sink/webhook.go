@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kubeshop/botkube/pkg/utils"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second

@@ -3,10 +3,11 @@ package sources_test
 import (
 	"testing"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/sources"
 )
 
 func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
