@@ -15,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -134,13 +135,13 @@ func (b *Discord) Start(ctx context.Context) error {
 
 // SendEvent sends event notification to Discord ChannelID.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendEvent(_ context.Context, event events.Event) (err error) {
+func (b *Discord) SendEvent(_ context.Context, event events.Event, eventSources []string) (err error) {
 	b.log.Debugf(">> Sending to Discord: %+v", event)
 
 	msgToSend := b.formatMessage(event)
 
 	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotify() {
+	for _, channelID := range b.getChannelsToNotify(eventSources) {
 		msg := msgToSend // copy as the struct is modified when using Discord API client
 		if _, err := b.api.ChannelMessageSendComplex(channelID, &msg); err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
@@ -181,18 +182,19 @@ func (b *Discord) Type() config.IntegrationType {
 }
 
 // TODO: Support custom routing via annotations for Discord as well
-func (b *Discord) getChannelsToNotify() []string {
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
-	var channelsToNotify []string
-	for _, channelCfg := range b.getChannels() {
-		if !channelCfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
-			continue
+func (b *Discord) getChannelsToNotify(eventSources []string) []string {
+	var out []string
+	for _, cfg := range b.getChannels() {
+		switch {
+		case !cfg.notify:
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+		default:
+			if sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+				out = append(out, cfg.Identifier())
+			}
 		}
-
-		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
 	}
-	return channelsToNotify
+	return out
 }
 
 // NotificationsEnabled returns current notification status for a given channel ID.

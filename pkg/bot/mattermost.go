@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -317,12 +318,12 @@ func (b *Mattermost) listen(ctx context.Context) {
 }
 
 // SendEvent sends event notification to Mattermost
-func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
+func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf(">> Sending to Mattermost: %+v", event)
 	attachment := b.formatAttachments(event)
 
 	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotify(event) {
+	for _, channelID := range b.getChannelsToNotify(event, eventSources) {
 		post := &model.Post{
 			Props: map[string]interface{}{
 				"attachments": attachment,
@@ -342,22 +343,23 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event) error {
 	return errs.ErrorOrNil()
 }
 
-func (b *Mattermost) getChannelsToNotify(event events.Event) []string {
+func (b *Mattermost) getChannelsToNotify(event events.Event, eventSources []string) []string {
 	if event.Channel != "" {
 		return []string{event.Channel}
 	}
 
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
-	var channelsToNotify []string
-	for _, channelCfg := range b.getChannels() {
-		if !channelCfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
-			continue
+	var out []string
+	for _, cfg := range b.getChannels() {
+		switch {
+		case !cfg.notify:
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+		default:
+			if sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+				out = append(out, cfg.Identifier())
+			}
 		}
-
-		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
 	}
-	return channelsToNotify
+	return out
 }
 
 // SendMessage sends message to Mattermost channel

@@ -88,3 +88,7 @@ communications:
     webhook:
       enabled: false
       url: 'WEBHOOK_URL'                        # e.g https://example.com:80
+      bindings:
+        # -- Notification sources configuration for the webhook.
+        sources:
+          - k8s-events

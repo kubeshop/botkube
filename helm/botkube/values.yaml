@@ -461,6 +461,10 @@ communications:
       enabled: false
       # -- The Webhook URL, e.g.: https://example.com:80
       url: 'WEBHOOK_URL'
+      bindings:
+        # -- Notification sources configuration for the webhook.
+        sources:
+          - k8s-events
 
 ## Global BotKube configuration.
 settings:

@@ -21,6 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -312,9 +313,18 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 }
 
 // SendEvent sends event message via Bot interface
-func (b *Teams) SendEvent(ctx context.Context, event events.Event) error {
+func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf(">> Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
+
+	if !sliceutil.Intersect(eventSources, b.bindings.Sources) {
+		b.log.Debugf(
+			"Event was not sent as bot source bindings: %+v do not overlap with the event's sources: %+v",
+			b.bindings.Sources,
+			eventSources,
+		)
+		return nil
+	}
 
 	errs := multierror.New()
 	for _, convRef := range b.getConversationRefsToNotify() {

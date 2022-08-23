@@ -15,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -271,12 +272,12 @@ func (sm *slackMessage) Send() error {
 }
 
 // SendEvent sends event notification to slack
-func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
+func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf(">> Sending to Slack: %+v", event)
 	attachment := b.formatMessage(event)
 
 	errs := multierror.New()
-	for _, channelName := range b.getChannelsToNotify(event) {
+	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
@@ -289,23 +290,26 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event) error {
 	return errs.ErrorOrNil()
 }
 
-func (b *Slack) getChannelsToNotify(event events.Event) []string {
+func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}
 	}
 
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
-	var channelsToNotify []string
-	for _, channelCfg := range b.getChannels() {
-		if !channelCfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", channelCfg.Identifier())
+	var out []string
+	for _, cfg := range b.getChannels() {
+		if !cfg.notify {
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 			continue
 		}
 
-		channelsToNotify = append(channelsToNotify, channelCfg.Identifier())
+		if !sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+			continue
+		}
+
+		out = append(out, cfg.Identifier())
 	}
-	return channelsToNotify
+	return out
 }
 
 // SendMessage sends message to slack channel

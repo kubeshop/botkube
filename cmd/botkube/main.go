@@ -36,6 +36,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
+	"github.com/kubeshop/botkube/pkg/sources"
 )
 
 const (
@@ -119,9 +120,7 @@ func run() error {
 	})
 
 	// Set up the filter engine
-	// TODO: Get all unique resources as a part of https://github.com/kubeshop/botkube/issues/676
-	res := conf.Sources.GetFirst().Kubernetes.Resources
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, res)
+	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
@@ -150,6 +149,8 @@ func run() error {
 		reporter,
 	)
 
+	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
+
 	commCfg := conf.Communications
 	var notifiers []controller.Notifier
 
@@ -159,6 +160,15 @@ func run() error {
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
 	for commGroupName, commGroupCfg := range commCfg {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
+
+		router.AddAnyBindingsByName(commGroupCfg.Slack.Channels)
+		router.AddAnyBindingsByName(commGroupCfg.Mattermost.Channels)
+		router.AddAnyBindings(commGroupCfg.Teams.Bindings)
+		router.AddAnyBindingsByID(commGroupCfg.Discord.Channels)
+		for _, index := range commGroupCfg.Elasticsearch.Indices {
+			router.AddAnySinkBindings(index.Bindings)
+		}
+		router.AddAnySinkBindings(commGroupCfg.Webhook.Bindings)
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
@@ -270,6 +280,7 @@ func run() error {
 		dynamicCli,
 		mapper,
 		conf.Settings.InformersResyncPeriod,
+		router.BuildTable(conf),
 		reporter,
 	)
 
