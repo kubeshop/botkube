@@ -298,14 +298,16 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 
 	var out []string
 	for _, cfg := range b.getChannels() {
-		switch {
-		case !cfg.notify:
+		if !cfg.notify {
 			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
-		default:
-			if sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
-				out = append(out, cfg.Identifier())
-			}
+			continue
 		}
+
+		if !sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+			continue
+		}
+
+		out = append(out, cfg.Identifier())
 	}
 	return out
 }
