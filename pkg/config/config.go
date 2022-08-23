@@ -120,7 +120,7 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
-	Sources        IndexableMap[Sources]     `yaml:"sources" validate:"dive"`
+	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1"`
 
@@ -541,22 +541,6 @@ func normalizeConfigEnvName(name string) string {
 	}
 
 	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
-}
-
-// IndexableMap provides an option to construct an indexable map.
-type IndexableMap[T any] map[string]T
-
-// GetFirst returns the first map element.
-// It's not deterministic if map has more than one element.
-// TODO(remove): https://github.com/kubeshop/botkube/issues/596
-func (t IndexableMap[T]) GetFirst() T {
-	var empty T
-
-	for _, v := range t {
-		return v
-	}
-
-	return empty
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.

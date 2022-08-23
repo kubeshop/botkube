@@ -26,7 +26,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				"v1/pods": config.CreateEvent,
+				recommendation.PodResourceName(): config.CreateEvent,
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				"v1/pods": config.CreateEvent,
+				recommendation.PodResourceName(): config.CreateEvent,
 			},
 		},
 		{
@@ -48,7 +48,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				"networking.k8s.io/v1/ingress": config.CreateEvent,
+				recommendation.IngressResourceName(): config.CreateEvent,
 			},
 		},
 		{
@@ -59,7 +59,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				"networking.k8s.io/v1/ingress": config.CreateEvent,
+				recommendation.IngressResourceName(): config.CreateEvent,
 			},
 		},
 		{
@@ -73,8 +73,8 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				"v1/pods":                      config.CreateEvent,
-				"networking.k8s.io/v1/ingress": config.CreateEvent,
+				recommendation.PodResourceName():     config.CreateEvent,
+				recommendation.IngressResourceName(): config.CreateEvent,
 			},
 		},
 	}
@@ -127,7 +127,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "Different event",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource: "v1/pods",
+				Resource: recommendation.PodResourceName(),
 				Type:     config.UpdateEvent,
 			},
 			Expected: false,
@@ -136,7 +136,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User configured such event",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  "v1/pods",
+				Resource:  recommendation.PodResourceName(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -147,7 +147,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such resource",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  "networking.k8s.io/v1/ingress",
+				Resource:  recommendation.IngressResourceName(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -158,7 +158,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such event - different namespace",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  "v1/pods",
+				Resource:  recommendation.PodResourceName(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -169,7 +169,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such event - different events",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  "v1/pods",
+				Resource:  recommendation.PodResourceName(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -219,7 +219,7 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: "v1/pods",
+						Name: recommendation.PodResourceName(),
 						Namespaces: config.Namespaces{
 							Include: []string{".*"},
 						},
@@ -232,7 +232,7 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: "v1/pods",
+						Name: recommendation.PodResourceName(),
 						Namespaces: config.Namespaces{
 							Include: []string{"kube-system"},
 						},
@@ -245,7 +245,7 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: "v1/pods",
+						Name: recommendation.PodResourceName(),
 						Namespaces: config.Namespaces{
 							Include: []string{".*"},
 						},

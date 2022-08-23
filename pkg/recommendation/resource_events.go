@@ -8,7 +8,7 @@ import (
 
 const (
 	podsResourceName    = "v1/pods"
-	ingressResourceName = "networking.k8s.io/v1/ingress"
+	ingressResourceName = "networking.k8s.io/v1/ingresses"
 )
 
 // ResourceEventsForConfig returns the resource event map for a given source recommendations config.

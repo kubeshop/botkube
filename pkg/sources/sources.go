@@ -90,8 +90,8 @@ func (r *Router) AddAnySinkBindings(b config.SinkBindings) {
 
 // GetBoundSources returns the Sources the router uses
 // based on preconfigured source binding names.
-func (r *Router) GetBoundSources(sources config.IndexableMap[config.Sources]) config.IndexableMap[config.Sources] {
-	out := make(config.IndexableMap[config.Sources])
+func (r *Router) GetBoundSources(sources map[string]config.Sources) map[string]config.Sources {
+	out := make(map[string]config.Sources)
 	for name, t := range sources {
 		if _, ok := r.bindings[name]; ok {
 			out[name] = t
@@ -189,7 +189,7 @@ func (r *Router) GetSourceRoutes(resource string, targetEvent config.EventType) 
 	return sourceRoutes(r.table, resource, targetEvent)
 }
 
-func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEvents {
+func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 	out := map[string]map[config.EventType]struct{}{}
 	for _, srcGroupCfg := range sources {
 		for _, resource := range srcGroupCfg.Kubernetes.Resources {
@@ -201,6 +201,7 @@ func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEven
 			}
 		}
 
+		// add resource events related to recommendations
 		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
 		for resourceName, eventType := range resForRecomms {
 			if _, ok := out[resourceName]; !ok {
@@ -212,7 +213,7 @@ func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEven
 	return out
 }
 
-func mergeEventRoutes(resource string, sources config.IndexableMap[config.Sources]) map[config.EventType][]route {
+func mergeEventRoutes(resource string, sources map[string]config.Sources) map[config.EventType][]route {
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
@@ -231,8 +232,46 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 				out[e] = append(out[e], route)
 			}
 		}
+
+		// add routes related to recommendations
+		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
+		setEventRouteForRecommendationsIfShould(&out, resForRecomms, srcGroupName, resource)
 	}
+
 	return out
+}
+
+func setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceName string) {
+	if routeMap == nil {
+		return
+	}
+
+	eventType, ok := resForRecomms[resourceName]
+	if !ok {
+		// no recommendation for this resource
+		return
+	}
+
+	recommRoute := route{
+		source: srcGroupName,
+		namespaces: config.Namespaces{
+			Include: []string{config.AllNamespaceIndicator},
+		},
+	}
+
+	// Override route and get all these events for all namespaces.
+	// The events without recommendations will be filtered out when sending the event.
+	for i, r := range (*routeMap)[eventType] {
+		if r.source != srcGroupName {
+			continue
+		}
+
+		(*routeMap)[eventType][i] = recommRoute
+		return
+	}
+
+	// not found, append new route
+	(*routeMap)[eventType] = append((*routeMap)[eventType], recommRoute)
 }
 
 func sourceRoutes(routeTable map[string][]entry, targetResource string, targetEvent config.EventType) []route {

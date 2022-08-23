@@ -25,6 +25,13 @@ communications:
 sources:
   'k8s-events':
     kubernetes:
+      recommendations:
+        pod:
+          noLatestImageTag: true
+          labelsSet: true
+        ingress:
+          backendServiceValid: false
+          tlsSecretValid: false
       resources:
         - name: v1/configmaps
           namespaces:
@@ -34,12 +41,6 @@ sources:
             - create
             - update
             - delete
-        - name: v1/pods
-          namespaces:
-            include:
-              - botkube
-          events:
-            - create
   'k8s-updates':
     kubernetes:
       resources:
