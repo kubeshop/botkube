@@ -170,7 +170,7 @@ func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handl
 		if !informer.canHandleEvent(target.String()) {
 			continue
 		}
-		sourceRoutes := r.sourceRoutes(resource, target)
+		sourceRoutes := r.GetSourceRoutes(resource, target)
 		informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
 	}
 }
@@ -181,6 +181,11 @@ func (r *Router) HandleMappedEvent(ctx context.Context, targetEvent config.Event
 	if informer, ok := r.mappedInformer(targetEvent); ok {
 		informer.handleMapped(ctx, targetEvent, r.table, handlerFn)
 	}
+}
+
+// GetSourceRoutes returns all routes for a resource and target event
+func (r *Router) GetSourceRoutes(resource string, targetEvent config.EventType) []route {
+	return sourceRoutes(r.table, resource, targetEvent)
 }
 
 func mergeResourceEvents(sources config.IndexableMap[config.Sources]) mergedEvents {
@@ -219,10 +224,6 @@ func mergeEventRoutes(resource string, sources config.IndexableMap[config.Source
 		}
 	}
 	return out
-}
-
-func (r *Router) sourceRoutes(resource string, targetEvent config.EventType) []route {
-	return sourceRoutes(r.table, resource, targetEvent)
 }
 
 func sourceRoutes(routeTable map[string][]entry, targetResource string, targetEvent config.EventType) []route {

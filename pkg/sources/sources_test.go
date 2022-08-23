@@ -3,6 +3,7 @@ package sources_test
 import (
 	"testing"
 
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -49,4 +50,68 @@ func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
 
 	require.Len(t, boundSources, 2)
 	assert.NotContains(t, boundSources, "k8s-ignored")
+}
+
+func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
+	logger, _ := logtest.NewNullLogger()
+	hasRoutes := "apps/v1/deployments"
+	hasNoRoutes := "v1/pods"
+
+	router := sources.NewRouter(nil, nil, logger)
+	router.AddAnyBindings(config.BotBindings{
+		Sources: []string{"k8s-events"},
+	})
+
+	cfg := &config.Config{
+		Sources: config.IndexableMap[config.Sources]{
+			"k8s-events": config.Sources{
+				Kubernetes: config.KubernetesSource{
+					Resources: []config.Resource{
+						{
+							Name: hasRoutes,
+							Namespaces: config.Namespaces{
+								Include: []string{"default"},
+							},
+							Events: []config.EventType{
+								config.CreateEvent,
+								config.DeleteEvent,
+								config.UpdateEvent,
+								config.ErrorEvent,
+							},
+							UpdateSetting: config.UpdateSetting{
+								Fields:      []string{"status.availableReplicas"},
+								IncludeDiff: true,
+							},
+						},
+					},
+				},
+			},
+			"k8s-ignored": config.Sources{
+				Kubernetes: config.KubernetesSource{
+					Resources: []config.Resource{
+						{
+							Name: hasNoRoutes,
+							Namespaces: config.Namespaces{
+								Include: []string{"all"},
+							},
+							Events: []config.EventType{
+								config.ErrorEvent,
+							},
+							UpdateSetting: config.UpdateSetting{
+								Fields:      []string{""},
+								IncludeDiff: false,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	router = router.BuildTable(cfg)
+	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.CreateEvent), 1)
+	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.UpdateEvent), 1)
+	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.DeleteEvent), 1)
+	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.ErrorEvent), 1)
+	assert.Len(t, router.GetSourceRoutes(hasNoRoutes, config.ErrorEvent), 0)
 }
