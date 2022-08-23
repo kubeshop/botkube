@@ -16,7 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -354,7 +354,7 @@ func (b *Mattermost) getChannelsToNotify(event events.Event, eventSources []stri
 		case !cfg.notify:
 			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 		default:
-			if utils.Intersect(eventSources, cfg.Bindings.Sources) {
+			if sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
 				out = append(out, cfg.Identifier())
 			}
 		}

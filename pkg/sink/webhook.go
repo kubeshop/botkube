@@ -14,7 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
@@ -74,7 +74,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 
 // SendEvent sends event notification to Webhook url
 func (w *Webhook) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
-	if !utils.Intersect(w.Bindings.Sources, eventSources) {
+	if !sliceutil.Intersect(w.Bindings.Sources, eventSources) {
 		w.log.Debugf("Event sources do not match Webhook sources, event: %+v, eventSources: %+v", event, eventSources)
 		return nil
 	}

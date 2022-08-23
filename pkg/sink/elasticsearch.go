@@ -21,7 +21,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 var _ Sink = &Elasticsearch{}
@@ -178,7 +178,7 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, event
 
 	errs := multierror.New()
 	for _, indexCfg := range e.indices {
-		if !utils.Intersect(indexCfg.Bindings.Sources, eventSources) {
+		if !sliceutil.Intersect(indexCfg.Bindings.Sources, eventSources) {
 			continue
 		}
 
