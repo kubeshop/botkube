@@ -144,7 +144,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	}
 
 	c.sourcesRouter.HandleEvent(
-		context.Background(),
+		ctx,
 		config.CreateEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
@@ -159,7 +159,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		})
 
 	c.sourcesRouter.HandleEvent(
-		context.Background(),
+		ctx,
 		config.DeleteEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
@@ -174,7 +174,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		})
 
 	c.sourcesRouter.HandleEvent(
-		context.Background(),
+		ctx,
 		config.UpdateEvent,
 		func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{}) {
 			return func(obj interface{}) {
@@ -189,7 +189,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		})
 
 	c.sourcesRouter.HandleMappedEvent(
-		context.Background(),
+		ctx,
 		config.ErrorEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
