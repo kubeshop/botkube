@@ -115,6 +115,41 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 	assert.Len(t, router.GetSourceRoutes(hasNoRoutes, config.ErrorEvent), 0)
 }
 
+func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource(t *testing.T) {
+	logger, _ := logtest.NewNullLogger()
+	router := NewRouter(nil, nil, logger)
+	router.AddAnyBindings(config.BotBindings{
+		Sources: []string{"k8s-events"},
+	})
+
+	cfg := &config.Config{
+		Sources: map[string]config.Sources{
+			"k8s-events": {
+				Kubernetes: config.KubernetesSource{
+					Namespaces: config.Namespaces{
+						Include: []string{"botkube"},
+						Exclude: []string{"default"},
+					},
+					Resources: []config.Resource{
+						{
+							Name: "apps/v1/deployments",
+							Events: []config.EventType{
+								config.CreateEvent,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	router = router.BuildTable(cfg)
+	createRoutes := router.GetSourceRoutes("apps/v1/deployments", config.CreateEvent)
+	assert.Len(t, createRoutes, 1)
+	assert.ElementsMatch(t, []string{"botkube"}, createRoutes[0].namespaces.Include)
+	assert.ElementsMatch(t, []string{"default"}, createRoutes[0].namespaces.Exclude)
+}
+
 func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 	// given
 	resForRecomms := map[string]config.EventType{

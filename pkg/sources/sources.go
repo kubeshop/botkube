@@ -221,7 +221,8 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 					continue
 				}
 
-				route := route{source: srcGroupName, namespaces: r.Namespaces}
+				namespaces := determineNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces)
+				route := route{source: srcGroupName, namespaces: namespaces}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{
 						Fields:      r.UpdateSetting.Fields,
@@ -325,4 +326,11 @@ func flattenEvents(events []config.EventType) []config.EventType {
 		}
 	}
 	return out
+}
+
+func determineNamespaces(sourceNs, resourceNs config.Namespaces) config.Namespaces {
+	if resourceNs.IsConfigured() {
+		return resourceNs
+	}
+	return sourceNs
 }

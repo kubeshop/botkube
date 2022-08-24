@@ -242,6 +242,8 @@ sources:
                   updateSetting:
                     fields: []
                     includeDiff: false
+            namespaces:
+                include: []
 executors:
     kubectl-read-only:
         kubectl:
