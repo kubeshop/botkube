@@ -117,37 +117,81 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 
 func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
-	router := NewRouter(nil, nil, logger)
-	router.AddAnyBindings(config.BotBindings{
-		Sources: []string{"k8s-events"},
-	})
 
-	cfg := &config.Config{
-		Sources: map[string]config.Sources{
-			"k8s-events": {
-				Kubernetes: config.KubernetesSource{
-					Namespaces: config.Namespaces{
-						Include: []string{"botkube"},
-						Exclude: []string{"default"},
-					},
-					Resources: []config.Resource{
-						{
-							Name: "apps/v1/deployments",
-							Events: []config.EventType{
-								config.CreateEvent,
+	testCases := []struct {
+		Name     string
+		Input    *config.Config
+		Expected config.Namespaces
+	}{
+		{
+			Name: "Use sources Namespaces",
+			Input: &config.Config{
+				Sources: map[string]config.Sources{
+					"k8s-events": {
+						Kubernetes: config.KubernetesSource{
+							Namespaces: config.Namespaces{
+								Include: []string{"botkube"},
+								Exclude: []string{"default"},
+							},
+							Resources: []config.Resource{
+								{
+									Name: "apps/v1/deployments",
+									Events: []config.EventType{
+										config.CreateEvent,
+									},
+								},
 							},
 						},
 					},
 				},
 			},
+			Expected: config.Namespaces{
+				Include: []string{"botkube"},
+				Exclude: []string{"default"},
+			},
+		},
+		{
+			Name: "Override sources Namespaces",
+			Input: &config.Config{
+				Sources: map[string]config.Sources{
+					"k8s-events": {
+						Kubernetes: config.KubernetesSource{
+							Namespaces: config.Namespaces{
+								Include: []string{"botkube"},
+								Exclude: []string{"default"},
+							},
+							Resources: []config.Resource{
+								{
+									Name: "apps/v1/deployments",
+									Namespaces: config.Namespaces{
+										Include: []string{".*"},
+									},
+									Events: []config.EventType{
+										config.CreateEvent,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: config.Namespaces{
+				Include: []string{".*"},
+			},
 		},
 	}
 
-	router = router.BuildTable(cfg)
-	createRoutes := router.GetSourceRoutes("apps/v1/deployments", config.CreateEvent)
-	assert.Len(t, createRoutes, 1)
-	assert.ElementsMatch(t, []string{"botkube"}, createRoutes[0].namespaces.Include)
-	assert.ElementsMatch(t, []string{"default"}, createRoutes[0].namespaces.Exclude)
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			routes := NewRouter(nil, nil, logger).
+				AddAnyBindings(config.BotBindings{Sources: []string{"k8s-events"}}).
+				BuildTable(tc.Input).
+				GetSourceRoutes("apps/v1/deployments", config.CreateEvent)
+
+			assert.Len(t, routes, 1)
+			assert.Equal(t, tc.Expected, routes[0].namespaces)
+		})
+	}
 }
 
 func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {

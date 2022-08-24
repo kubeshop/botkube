@@ -58,34 +58,38 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 
 // AddAnyBindingsByName adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindingsByName(c config.IdentifiableMap[config.ChannelBindingsByName]) {
+func (r *Router) AddAnyBindingsByName(c config.IdentifiableMap[config.ChannelBindingsByName]) *Router {
 	for _, byName := range c {
 		r.AddAnyBindings(byName.Bindings)
 	}
+	return r
 }
 
 // AddAnyBindingsByID adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindingsByID(c config.IdentifiableMap[config.ChannelBindingsByID]) {
+func (r *Router) AddAnyBindingsByID(c config.IdentifiableMap[config.ChannelBindingsByID]) *Router {
 	for _, byID := range c {
 		r.AddAnyBindings(byID.Bindings)
 	}
+	return r
 }
 
 // AddAnyBindings adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindings(b config.BotBindings) {
+func (r *Router) AddAnyBindings(b config.BotBindings) *Router {
 	for _, source := range b.Sources {
 		r.bindings[source] = struct{}{}
 	}
+	return r
 }
 
 // AddAnySinkBindings adds source bindings names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnySinkBindings(b config.SinkBindings) {
+func (r *Router) AddAnySinkBindings(b config.SinkBindings) *Router {
 	for _, source := range b.Sources {
 		r.bindings[source] = struct{}{}
 	}
+	return r
 }
 
 // GetBoundSources returns the Sources the router uses
@@ -221,7 +225,7 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 					continue
 				}
 
-				namespaces := determineNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces)
+				namespaces := sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces)
 				route := route{source: srcGroupName, namespaces: namespaces}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{
@@ -328,7 +332,9 @@ func flattenEvents(events []config.EventType) []config.EventType {
 	return out
 }
 
-func determineNamespaces(sourceNs, resourceNs config.Namespaces) config.Namespaces {
+// sourceOrResourceNamespaces returns the kubernetes source namespaces
+// unless the resource namespaces are configured.
+func sourceOrResourceNamespaces(sourceNs, resourceNs config.Namespaces) config.Namespaces {
 	if resourceNs.IsConfigured() {
 		return resourceNs
 	}
