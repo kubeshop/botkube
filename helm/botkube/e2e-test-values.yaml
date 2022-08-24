@@ -25,6 +25,9 @@ communications:
 sources:
   'k8s-events':
     kubernetes:
+      namespaces:
+        include:
+          - botkube
       recommendations:
         pod:
           noLatestImageTag: true
@@ -34,15 +37,15 @@ sources:
           tlsSecretValid: false
       resources:
         - name: v1/configmaps
-          namespaces:
-            include:
-              - botkube
           events:
             - create
             - update
             - delete
   'k8s-updates':
     kubernetes:
+      namespaces:
+        include:
+          - default
       resources:
         - name: v1/configmaps
           namespaces:
