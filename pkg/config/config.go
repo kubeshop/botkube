@@ -170,6 +170,7 @@ type Sources struct {
 type KubernetesSource struct {
 	Recommendations Recommendations     `yaml:"recommendations"`
 	Resources       KubernetesResources `yaml:"resources" validate:"dive"`
+	Namespaces      Namespaces          `yaml:"namespaces"`
 }
 
 // KubernetesResources contains configuration for Kubernetes resources.
@@ -275,6 +276,11 @@ type Namespaces struct {
 	// It can also contain a regex expressions:
 	//  - "test-.*" - to specif all Namespaces with `test-` prefix.
 	Exclude []string `yaml:"exclude,omitempty"`
+}
+
+// IsConfigured checks whether the Namespace has any Include/Exclude configuration.
+func (n *Namespaces) IsConfigured() bool {
+	return len(n.Include) > 0 || len(n.Exclude) > 0
 }
 
 // IsAllowed checks if a given Namespace is allowed based on the config.
