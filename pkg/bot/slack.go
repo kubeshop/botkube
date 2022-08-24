@@ -18,6 +18,7 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -129,16 +130,16 @@ func (b *Slack) Start(ctx context.Context) error {
 			case socketmode.EventTypeEventsAPI:
 				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
 				if !ok {
-					b.log.Errorf("Invalid event %T", event.Data)
+					b.log.Errorf("Invalid event %+v\n", event.Data)
 					continue
 				}
 				websocketClient.Ack(*event.Request)
 				if eventsAPIEvent.Type == slackevents.CallbackEvent {
-					b.log.Debugf("Got callback event %w", eventsAPIEvent)
+					b.log.Debugf("Got callback event %s", utils.StructDumper().Sdump(eventsAPIEvent))
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
-						b.log.Debugf("Got app mention %w", innerEvent)
+						b.log.Debugf("Got app mention %s", utils.StructDumper().Sdump(innerEvent))
 						sm := slackMessage{
 							log:             b.log,
 							executorFactory: b.executorFactory,
@@ -152,11 +153,11 @@ func (b *Slack) Start(ctx context.Context) error {
 					}
 				}
 			case socketmode.EventTypeErrorBadMessage:
-				b.log.Errorf("Bad message: %w", event.Data)
+				b.log.Errorf("Bad message: %+v\n", event.Data)
 			case socketmode.EventTypeIncomingError:
-				b.log.Errorf("Incoming error: %w", event.Data)
+				b.log.Errorf("Incoming error: %+v\n", event.Data)
 			case socketmode.EventTypeConnectionError:
-				b.log.Errorf("Slack connection error: %w", event.Data)
+				b.log.Errorf("Slack connection error: %+v\n", event.Data)
 			}
 		}
 	}

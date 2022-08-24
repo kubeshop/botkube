@@ -45,7 +45,6 @@ type SlackConfig struct {
 	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
-	TesterBotToken           string
 	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
 }
 

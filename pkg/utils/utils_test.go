@@ -77,3 +77,39 @@ func TestRemoveHypelink(t *testing.T) {
 		}
 	}
 }
+
+func TestStructDump(t *testing.T) {
+	type Thread struct {
+		TimeStamp int64
+		Team      string
+	}
+	type Message struct {
+		Text    string
+		UserID  int
+		Threads []Thread
+	}
+
+	got := StructDumper().Sdump(Message{
+		Text:   "Hello, Botkube!",
+		UserID: 3,
+		Threads: []Thread{
+			{
+				TimeStamp: int64(2344442424),
+				Team:      "MetalHead",
+			},
+		},
+	})
+	expected := `utils.Message{
+  Text: "Hello, Botkube!",
+  UserID: 3,
+  Threads: []utils.Thread{
+    utils.Thread{
+      TimeStamp: 2344442424,
+      Team: "MetalHead",
+    },
+  },
+}`
+	if got != expected {
+		t.Errorf("expected: %s, got: %s", expected, got)
+	}
+}
