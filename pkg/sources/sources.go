@@ -107,7 +107,7 @@ func (r *Router) BuildTable(cfg *config.Config) *Router {
 	mergedEvents := mergeResourceEvents(sources)
 
 	for resource, resourceEvents := range mergedEvents {
-		eventRoutes := mergeEventRoutes(resource, sources)
+		eventRoutes := r.mergeEventRoutes(resource, sources)
 		for evt := range resourceEvents {
 			r.table[resource] = append(r.table[resource], entry{event: evt, routes: eventRoutes[evt]})
 		}
@@ -212,7 +212,7 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 	return out
 }
 
-func mergeEventRoutes(resource string, sources map[string]config.Sources) map[config.EventType][]route {
+func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sources) map[config.EventType][]route {
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
@@ -234,14 +234,15 @@ func mergeEventRoutes(resource string, sources map[string]config.Sources) map[co
 
 		// add routes related to recommendations
 		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
-		setEventRouteForRecommendationsIfShould(&out, resForRecomms, srcGroupName, resource)
+		r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, srcGroupName, resource)
 	}
 
 	return out
 }
 
-func setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceName string) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceName string) {
 	if routeMap == nil {
+		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
 	}
 

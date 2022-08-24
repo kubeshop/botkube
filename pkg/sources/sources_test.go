@@ -182,8 +182,10 @@ func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			r := &Router{}
+
 			// when
-			setEventRouteForRecommendationsIfShould(&tc.Input, resForRecomms, srcGroupName, resourceName)
+			r.setEventRouteForRecommendationsIfShould(&tc.Input, resForRecomms, srcGroupName, resourceName)
 
 			// then
 			assert.Equal(t, tc.Expected, tc.Input)
