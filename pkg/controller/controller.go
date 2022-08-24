@@ -279,7 +279,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 	}
 
 	if recommendation.ShouldIgnoreEvent(recCfg, c.conf.Sources, sources, event) {
-		c.log.Debugf("Skipping event because there are no recommendations: %#v", event)
+		c.log.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
 		return
 	}
 

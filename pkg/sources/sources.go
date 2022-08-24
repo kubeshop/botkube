@@ -201,7 +201,6 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 			}
 		}
 
-		// add resource events related to recommendations
 		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
 		for resourceName, eventType := range resForRecomms {
 			if _, ok := out[resourceName]; !ok {
@@ -246,9 +245,8 @@ func setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]ro
 		return
 	}
 
-	eventType, ok := resForRecomms[resourceName]
-	if !ok {
-		// no recommendation for this resource
+	eventType, found := resForRecomms[resourceName]
+	if !found {
 		return
 	}
 
