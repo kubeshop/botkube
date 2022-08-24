@@ -120,7 +120,7 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
-	Sources        IndexableMap[Sources]     `yaml:"sources" validate:"dive"`
+	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1"`
 
@@ -168,8 +168,28 @@ type Sources struct {
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Recommendations Recommendations `yaml:"recommendations"`
-	Resources       []Resource      `yaml:"resources" validate:"dive"`
+	Recommendations Recommendations     `yaml:"recommendations"`
+	Resources       KubernetesResources `yaml:"resources" validate:"dive"`
+}
+
+// KubernetesResources contains configuration for Kubernetes resources.
+type KubernetesResources []Resource
+
+// IsAllowed checks if a given resource event is allowed according to the configuration.
+func (r *KubernetesResources) IsAllowed(resourceName, namespace string, eventType EventType) bool {
+	if r == nil || len(*r) == 0 {
+		return false
+	}
+
+	for _, resource := range *r {
+		if resource.Name == resourceName &&
+			resource.Events.Contains(eventType) &&
+			resource.Namespaces.IsAllowed(namespace) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Recommendations contains configuration for various recommendation insights.
@@ -209,10 +229,33 @@ type Analytics struct {
 
 // Resource contains resources to watch
 type Resource struct {
-	Name          string        `yaml:"name"`
-	Namespaces    Namespaces    `yaml:"namespaces"`
-	Events        []EventType   `yaml:"events"`
-	UpdateSetting UpdateSetting `yaml:"updateSetting"`
+	Name          string                   `yaml:"name"`
+	Namespaces    Namespaces               `yaml:"namespaces"`
+	Events        KubernetesResourceEvents `yaml:"events"`
+	UpdateSetting UpdateSetting            `yaml:"updateSetting"`
+}
+
+// KubernetesResourceEvents contains events to watch for a resource.
+type KubernetesResourceEvents []EventType
+
+// Contains checks if event is contained in the events slice.
+// If the slice contains AllEvent, then the result is true.
+func (e *KubernetesResourceEvents) Contains(eventType EventType) bool {
+	if e == nil {
+		return false
+	}
+
+	for _, event := range *e {
+		if event == AllEvent {
+			return true
+		}
+
+		if event == eventType {
+			return true
+		}
+	}
+
+	return false
 }
 
 // UpdateSetting struct defines updateEvent fields specification
@@ -498,22 +541,6 @@ func normalizeConfigEnvName(name string) string {
 	}
 
 	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
-}
-
-// IndexableMap provides an option to construct an indexable map.
-type IndexableMap[T any] map[string]T
-
-// GetFirst returns the first map element.
-// It's not deterministic if map has more than one element.
-// TODO(remove): https://github.com/kubeshop/botkube/issues/596
-func (t IndexableMap[T]) GetFirst() T {
-	var empty T
-
-	for _, v := range t {
-		return v
-	}
-
-	return empty
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Recommendation performs checks for a given event.
@@ -34,10 +35,10 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 }
 
 // NewForSources merges recommendation options from multiple sources, and creates a new AggregatedRunner.
-func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) AggregatedRunner {
+func (f *Factory) NewForSources(sources map[string]config.Sources, mapKeyOrder []string) (AggregatedRunner, config.Recommendations) {
 	mergedCfg := f.mergeConfig(sources, mapKeyOrder)
 	recommendations := f.recommendationsForConfig(mergedCfg)
-	return newAggregatedRunner(f.logger, recommendations)
+	return newAggregatedRunner(f.logger, recommendations), mergedCfg
 }
 
 func (f *Factory) mergeConfig(sources map[string]config.Sources, mapKeyOrder []string) config.Recommendations {
@@ -68,29 +69,21 @@ func (f *Factory) mergeConfig(sources map[string]config.Sources, mapKeyOrder []s
 
 func (f *Factory) recommendationsForConfig(cfg config.Recommendations) []Recommendation {
 	var recommendations []Recommendation
-	if isTrue(cfg.Pod.LabelsSet) {
+	if ptr.IsTrue(cfg.Pod.LabelsSet) {
 		recommendations = append(recommendations, NewPodLabelsSet())
 	}
 
-	if isTrue(cfg.Pod.NoLatestImageTag) {
+	if ptr.IsTrue(cfg.Pod.NoLatestImageTag) {
 		recommendations = append(recommendations, NewPodNoLatestImageTag())
 	}
 
-	if isTrue(cfg.Ingress.BackendServiceValid) {
+	if ptr.IsTrue(cfg.Ingress.BackendServiceValid) {
 		recommendations = append(recommendations, NewIngressBackendServiceValid(f.dynamicCli))
 	}
 
-	if isTrue(cfg.Ingress.TLSSecretValid) {
+	if ptr.IsTrue(cfg.Ingress.TLSSecretValid) {
 		recommendations = append(recommendations, NewIngressTLSSecretValid(f.dynamicCli))
 	}
 
 	return recommendations
-}
-
-func isTrue(in *bool) bool {
-	if in == nil {
-		return false
-	}
-
-	return *in
 }

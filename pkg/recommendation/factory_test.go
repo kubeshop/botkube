@@ -64,18 +64,30 @@ func TestFactory_NewForSources(t *testing.T) {
 		"IngressBackendServiceValid",
 		"IngressTLSSecretValid",
 	}
+	expectedRecCfg := config.Recommendations{
+		Pod: config.PodRecommendations{
+			NoLatestImageTag: ptr.Bool(false),
+			LabelsSet:        ptr.Bool(true),
+		},
+		Ingress: config.IngressRecommendations{
+			BackendServiceValid: ptr.Bool(true),
+			TLSSecretValid:      ptr.Bool(true),
+		},
+	}
+
 	logger, _ := logtest.NewNullLogger()
 	factory := recommendation.NewFactory(logger, nil)
 
 	// when
-	res := factory.NewForSources(sources, mapKeyOrder)
-	actual := res.Recommendations()
+	recRunner, recCfg := factory.NewForSources(sources, mapKeyOrder)
+	actualRecomms := recRunner.Recommendations()
 
 	// then
-	require.Len(t, actual, len(expectedNames))
+	assert.Equal(t, expectedRecCfg, recCfg)
+	require.Len(t, actualRecomms, len(expectedNames))
 
 	var actualNames []string
-	for _, r := range actual {
+	for _, r := range actualRecomms {
 		actualNames = append(actualNames, r.Name())
 	}
 
