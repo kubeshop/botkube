@@ -100,7 +100,7 @@ sources:
         #  namespaces:             # Overrides 'source'.kubernetes.namespaces
         #    include:
         #      - ".*"
-            # exclude: []
+        #    exclude: []
           events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
             - create
             - delete
