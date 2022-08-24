@@ -91,7 +91,6 @@ sources:
         #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
         # exclude: []
 
-
       # -- Describes the Kubernetes resources you want to watch.
       # @default -- Watch all built-in K8s kinds.
       resources:
