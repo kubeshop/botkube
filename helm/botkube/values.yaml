@@ -62,7 +62,6 @@ sources:
 
     # -- Describes Kubernetes source configuration.
     kubernetes:
-
       # -- Describes configuration for various recommendation insights.
       recommendations:
         # -- Recommendations for Pod Kubernetes resource.
@@ -78,37 +77,41 @@ sources:
           # -- If true, notifies about Ingress resources with invalid TLS secret reference.
           tlsSecretValid: true
 
+      # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # These namespaces are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own namespaces object.
+      namespaces:
+        # Include contains a list of allowed Namespaces.
+        # It can also contain a regex expressions:
+        #  `- ".*"` - to specify all Namespaces.
+        include:
+          - ".*"
+        # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+        # It can also contain a regex expressions:
+        #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
+        # exclude: []
+
+
       # -- Describes the Kubernetes resources you want to watch.
       # @default -- Watch all built-in K8s kinds.
       resources:
         - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                                     # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-          namespaces:
-            # Include contains a list of allowed Namespaces.
-            # It can also contain a regex expressions:
-            #  `- ".*"` - to specify all Namespaces.
-            include:
-              - ".*"
-            # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
-            # It can also contain a regex expressions:
-            #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
+
+        #  namespaces:             # Overrides 'source'.kubernetes.namespaces
+        #    include:
+        #      - ".*"
             # exclude: []
           events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
             - create
             - delete
             - error
         - name: v1/services
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: apps/v1/deployments
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - update
@@ -120,9 +123,6 @@ sources:
               - spec.template.spec.containers[*].image
               - status.availableReplicas
         - name: apps/v1/statefulsets
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - update
@@ -134,59 +134,36 @@ sources:
               - spec.template.spec.containers[*].image
               - status.readyReplicas
         - name: networking.k8s.io/v1/ingresses
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: v1/nodes
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: v1/namespaces
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
           events:
             - create
             - delete
             - error
         - name: v1/persistentvolumes
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: v1/persistentvolumeclaims
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: v1/configmaps
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: apps/v1/daemonsets
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - update
@@ -198,9 +175,6 @@ sources:
               - spec.template.spec.containers[*].image
               - status.numberReady
         - name: batch/v1/jobs
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - update
@@ -212,35 +186,21 @@ sources:
               - spec.template.spec.containers[*].image
               - status.conditions[*].type
         - name: rbac.authorization.k8s.io/v1/roles
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: rbac.authorization.k8s.io/v1/rolebindings
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
           events:
             - create
             - delete
             - error
         - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
             - error
         - name: rbac.authorization.k8s.io/v1/clusterroles
-          namespaces:
-            include:
-              - ".*"
           events:
             - create
             - delete
