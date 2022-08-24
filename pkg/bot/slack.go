@@ -65,7 +65,7 @@ type slackMessage struct {
 
 // NewSlack creates a new Slack instance.
 func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	client := slack.New(cfg.Token, slack.OptionAppLevelToken(cfg.AppToken))
+	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -122,9 +122,8 @@ func (b *Slack) Start(ctx context.Context) error {
 			case socketmode.EventTypeConnecting:
 				b.log.Info("BotKube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
-				err := b.reporter.ReportBotEnabled(b.IntegrationName())
-				if err != nil {
-					return fmt.Errorf("while reporting analytics: %w", err)
+				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
+					return fmt.Errorf("report analytics error: %w", err)
 				}
 				b.log.Info("BotKube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
@@ -141,20 +140,17 @@ func (b *Slack) Start(ctx context.Context) error {
 							BotID:           b.botID,
 							client:          b.client,
 						}
-						err := sm.HandleMessage(b)
-						if err != nil {
-							wrappedErr := fmt.Errorf("while handling message: %w", err)
-							b.log.Errorf(wrappedErr.Error())
+						if err := sm.HandleMessage(b); err != nil {
+							b.log.Errorf("Message handling error: %w", err)
 						}
 					}
 				}
-
 			case socketmode.EventTypeErrorBadMessage:
-				b.log.Info("Bad message")
+				b.log.Errorf("Bad message: %w", event.Data)
 			case socketmode.EventTypeIncomingError:
-				b.log.Info("Incoming error")
+				b.log.Errorf("Incoming error: %w", event.Data)
 			case socketmode.EventTypeConnectionError:
-				b.log.Errorf("Slack connection error:")
+				b.log.Errorf("Slack connection error: %w", event.Data)
 			}
 		}
 	}
