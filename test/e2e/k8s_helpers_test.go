@@ -66,6 +66,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 	)
 
 	_, err = deployNsCli.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	fmt.Println(deployment)
 	require.NoError(t, err)
 
 	return restoreDeployEnvsFn

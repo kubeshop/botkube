@@ -18,7 +18,8 @@ import (
 // go test -run=TestLoadConfigSuccess ./pkg/config/... -test.update-golden
 func TestLoadConfigSuccess(t *testing.T) {
 	// given
-	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_TOKEN", "token-from-env")
+	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_BOT_TOKEN", "bot-token-from-env")
+	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_APP_TOKEN", "app-token-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")

@@ -36,7 +36,7 @@ type slackTester struct {
 }
 
 func newSlackTester(slackCfg SlackConfig) (*slackTester, error) {
-	slackCli := slack.New(slackCfg.TesterAppToken)
+	slackCli := slack.New(slackCfg.TesterBotToken, slack.OptionAppLevelToken(slackCfg.TesterAppToken))
 	_, err := slackCli.AuthTest()
 	if err != nil {
 		return nil, err

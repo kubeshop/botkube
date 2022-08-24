@@ -127,12 +127,18 @@ func (b *Slack) Start(ctx context.Context) error {
 				}
 				b.log.Info("BotKube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
-				eventsAPIEvent := event.Data.(slackevents.EventsAPIEvent)
+				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
+				if !ok {
+					b.log.Errorf("Invalid event %T", event.Data)
+					continue
+				}
 				websocketClient.Ack(*event.Request)
 				if eventsAPIEvent.Type == slackevents.CallbackEvent {
+					b.log.Debugf("Got callback event %w", eventsAPIEvent)
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
+						b.log.Debugf("Got app mention %w", innerEvent)
 						sm := slackMessage{
 							log:             b.log,
 							executorFactory: b.executorFactory,
@@ -250,8 +256,8 @@ func (sm *slackMessage) Send() error {
 	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
-	if sm.Event.EventTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(sm.Event.EventTimeStamp))
+	if sm.Event.ThreadTimeStamp != "" {
+		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimeStamp))
 	}
 
 	if _, _, err := sm.client.PostMessage(sm.Event.Channel, options...); err != nil {
