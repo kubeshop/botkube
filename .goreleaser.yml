@@ -49,6 +49,9 @@ archives:
 snapshot:
   name_template: "{{ .Tag }}"
 release:
+  # If set to true, will not auto-publish the release.
+  draft: true
+
   ids:
     - botkube
 changelog:
