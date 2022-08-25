@@ -104,7 +104,7 @@ func (b *Slack) Start(ctx context.Context) error {
 
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
-		socketRunErr := websocketClient.Run()
+		socketRunErr := websocketClient.RunContext(ctx)
 		if socketRunErr != nil {
 			reportErr := b.reporter.ReportFatalError(socketRunErr)
 			if reportErr != nil {
