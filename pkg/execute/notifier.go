@@ -141,6 +141,7 @@ func (e *NotifierExecutor) showControllerConfig() (string, error) {
 		old.Elasticsearch.Password = redactedSecretStr
 		old.Discord.Token = redactedSecretStr
 		old.Mattermost.Token = redactedSecretStr
+		old.Teams.AppPassword = redactedSecretStr
 
 		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
 		cfg.Communications[key] = old

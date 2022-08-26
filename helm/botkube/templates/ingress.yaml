@@ -30,7 +30,7 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: {{ include "botkube.fullname" . }}
+              name: {{ include "botkube.fullname" $ }}
               port:
                 number: {{ .teams.port }}
         {{- end }}

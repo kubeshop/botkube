@@ -400,7 +400,6 @@ type Teams struct {
 	BotName     string `yaml:"botName,omitempty"`
 	AppID       string `yaml:"appID,omitempty"`
 	AppPassword string `yaml:"appPassword,omitempty"`
-	Team        string `yaml:"team"`
 	Port        string `yaml:"port"`
 	MessagePath string `yaml:"messagePath,omitempty"`
 	// TODO: Be consistent with other communicators when MS Teams support multiple channels
