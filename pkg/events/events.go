@@ -33,7 +33,7 @@ type Event struct {
 	Action    string
 	Skip      bool `json:",omitempty"`
 	Resource  string
-	Object    interface{}
+	Object    interface{} `json:"-"`
 
 	Recommendations []string
 	Warnings        []string
