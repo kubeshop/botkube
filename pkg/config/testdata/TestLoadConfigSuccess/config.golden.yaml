@@ -326,7 +326,6 @@ communications:
             enabled: false
             appID: APPLICATION_ID
             appPassword: APPLICATION_PASSWORD
-            team: ""
             port: "3978"
             bindings:
                 sources:
