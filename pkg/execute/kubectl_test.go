@@ -364,10 +364,10 @@ func TestKubectlExecute(t *testing.T) {
 
 			wasKubectlExecuted := false
 
-			executor := NewKubectl(logger, cfg, merger, kcChecker, func(command string, args []string) (string, error) {
+			executor := NewKubectl(logger, cfg, merger, kcChecker, cmdCombinedFunc(func(command string, args []string) (string, error) {
 				wasKubectlExecuted = true
 				return "kubectl executed", nil
-			})
+			}))
 
 			// when
 			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
@@ -458,4 +458,11 @@ func fixCfgWithKubectlExecutor(t *testing.T, executor config.Kubectl) config.Con
 			},
 		},
 	}
+}
+
+// cmdCombinedFunc type is an adapter to allow the use of ordinary functions as command handlers.
+type cmdCombinedFunc func(command string, args []string) (string, error)
+
+func (f cmdCombinedFunc) RunCombinedOutput(command string, args []string) (string, error) {
+	return f(command, args)
 }
