@@ -1,13 +1,91 @@
 # Changelog
 
-## [v0.13.0-rc.1](https://github.com/kubeshop/botkube/tree/v0.13.0-rc.1) (2022-08-25)
+## [v0.13.0](https://github.com/kubeshop/botkube/tree/v0.13.0) (2022-08-29)
 
 > **Warning**
-> Before upgrading to v0.13.0 get familar with the below breaking changes list.
+> Before upgrading to v0.13.0 get familiar with the below breaking changes list.
 
 The v0.13.0 release has the following breaking changes:
 
+- Syntax for the `communications` property in BotKube Helm chart has changed.
+
+  <table>
+  <tr>
+  <td> Before v0.13.0 </td> <td> In v0.13.0 </td>
+  </tr>
+  <tr>
+  <td>
+
+    ```yaml
+    communications:
+      slack:
+      ...
+      mattermost:
+      ...
+    ```
+
+  </td>
+  <td>
+
+    ```yaml
+    communications:
+     {name}:
+       slack:
+       ....
+       mattermost:
+       ...
+    ```
+
+  </td>
+  </tr>
+  </table>
+
+  **REASON:** It enabled an option to define multiple communication settings for each provider and reference difference settings to each of them.
+
+- Syntax for the `resources` property in BotKube Helm chart has changed.
+
+  <table>
+  <tr>
+  <td> Before v0.13.0 </td> <td> In v0.13.0 </td>
+  </tr>
+  <tr>
+  <td>
+
+    ```yaml
+    config:
+      resources:
+        - name: v1/pods
+
+
+    ```
+
+  </td>
+  <td>
+
+    ```yaml
+    sources:
+     {sourceGroupName}:
+        - name: v1/pods
+     ......
+    communications:
+     {commName}:
+       slack:
+         channels:
+           {channelName}:
+             bindings:
+               sources:
+                 - {sourceGroupName}
+                 - ...
+    ```
+
+  </td>
+  </tr>
+  </table>
+
+  **REASON:** It enabled an option to define group of kubernetes resources in a way that you can reference one or more resource groups in `communications` section in the configurations.
+
 - Syntax for the `extraEnv` property in BotKube Helm chart has changed.
+
   <table>
   <tr>
   <td> Before v0.13.0 </td> <td> In v0.13.0 </td>
@@ -38,6 +116,7 @@ The v0.13.0 release has the following breaking changes:
    **REASON:** It enabled an option to define more complex environment variable source. For the syntax, see the [environment variable API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables) document.
 
 - Syntax for the `notiftype` property in BotKube Helm chart has changed to `notification.type`.
+
   <table>
   <tr>
   <td> Before v0.13.0 </td> <td> In v0.13.0 </td>
@@ -69,6 +148,7 @@ The v0.13.0 release has the following breaking changes:
    **REASON:** It enables an option to add more settings for notifications that are sent. For example, enable sending a related message in a thread, or editing a given message in place.
 
 - Syntax for the `clustername` property in BotKube Helm chart has changed to `clusterName`.
+
    **REASON:** Fix readability and improves consistency with defining environment variable name for this property.
 
 - Syntax for the `botid` property in BotKube Helm chart has changed to `botID`.
@@ -83,51 +163,11 @@ The v0.13.0 release has the following breaking changes:
 
    **REASON:** Get rid of hard-coded config file names. Enable an option to split individual settings into multiple configuration files. The priority will be given to the last (right-most) file specified. Read more at https://botkube.io/configuration/.
 
-
-[Full Changelog](https://github.com/kubeshop/botkube/compare/v0.12.4...v0.13.0-rc.1)
+[Full Changelog](https://github.com/kubeshop/botkube/compare/v0.13.0-rc.1...v0.13.0)
 
 **Implemented enhancements:**
 
-- Support Kubernetes event namespace filtering by another property for kubernetes source [\#697](https://github.com/kubeshop/botkube/issues/697)
-- Add ability to configure specific recommendations during BotKube installation/upgrade [\#684](https://github.com/kubeshop/botkube/issues/684)
-- Refactor the Namespace config to simplify usage [\#679](https://github.com/kubeshop/botkube/issues/679)
-- Support routing notifications to a given channel based on Kubernetes Sources [\#676](https://github.com/kubeshop/botkube/issues/676)
-- Add logic to handle communicator bindings in `kubectl` [\#668](https://github.com/kubeshop/botkube/issues/668)
-- Implement support for handling multiple communicators and multiple channels [\#666](https://github.com/kubeshop/botkube/issues/666)
-- Add support for namespace settings in `kubectl` executor [\#663](https://github.com/kubeshop/botkube/issues/663)
-- Add ability to enable notifications per communication platform [\#658](https://github.com/kubeshop/botkube/issues/658)
-- Update BotKube with a skeleton for the new configuration syntax [\#656](https://github.com/kubeshop/botkube/issues/656)
-- Resolve setting array values using environment variables [\#655](https://github.com/kubeshop/botkube/issues/655)
-- The `resource_config.yaml` and `comm_config.yaml` are merged into one, and can be provided multiple times. [\#643](https://github.com/kubeshop/botkube/issues/643)
-- Create a new Helm repository for Botkube [\#634](https://github.com/kubeshop/botkube/issues/634)
-- BotKube's new configuration proposal [\#628](https://github.com/kubeshop/botkube/issues/628)
-- Prepare integration tests based on local Kubernetes cluster [\#615](https://github.com/kubeshop/botkube/issues/615)
-- \[maintenance\] Deprecate master branch [\#613](https://github.com/kubeshop/botkube/issues/613)
-- Outdated Helm chart README.md [\#609](https://github.com/kubeshop/botkube/issues/609)
-- Support fine-grained configuration per channels for the same bot \(e.g. Slack\) [\#596](https://github.com/kubeshop/botkube/issues/596)
-- Build Docker image on PRs [\#590](https://github.com/kubeshop/botkube/issues/590)
-- Use `golangci-lint` and fix all found issues [\#588](https://github.com/kubeshop/botkube/issues/588)
-- Update all dependencies [\#587](https://github.com/kubeshop/botkube/issues/587)
-- Test and document release process for BotKube [\#586](https://github.com/kubeshop/botkube/issues/586)
-- Deprecate Mergify integration [\#585](https://github.com/kubeshop/botkube/issues/585)
-- \[feat\]: allow disabling event monitoring completely [\#570](https://github.com/kubeshop/botkube/issues/570)
-- Add ability to specify extra pod labels in helm chart [\#566](https://github.com/kubeshop/botkube/issues/566)
-- Allow the Chart to create extra manifest [\#561](https://github.com/kubeshop/botkube/issues/561)
-- \[CI\] Add image vulnerability scan job in CI [\#549](https://github.com/kubeshop/botkube/issues/549)
-- Provide multiple channels  [\#542](https://github.com/kubeshop/botkube/issues/542)
-- Support communications per resource group [\#508](https://github.com/kubeshop/botkube/issues/508)
-- Collect analytics [\#506](https://github.com/kubeshop/botkube/issues/506)
-- add some badges to the readme [\#502](https://github.com/kubeshop/botkube/issues/502)
-- Ability to set custom bot name for MS Teams [\#501](https://github.com/kubeshop/botkube/issues/501)
-- Define the channel at the namespace level  [\#486](https://github.com/kubeshop/botkube/issues/486)
-- \[FR\] Official entry for Botkube in Artifact Hub [\#481](https://github.com/kubeshop/botkube/issues/481)
-- Configure tokens and credentials from secrets/envs [\#480](https://github.com/kubeshop/botkube/issues/480)
-- Allow users to disable ANSI color in logging [\#477](https://github.com/kubeshop/botkube/issues/477)
-- Support using multiple Slack channels with different configuration [\#444](https://github.com/kubeshop/botkube/issues/444)
-- \[Refactor\] Refactor notifier to use Bot interface to send events [\#270](https://github.com/kubeshop/botkube/issues/270)
-- Publish release helm chart through release.sh [\#224](https://github.com/kubeshop/botkube/issues/224)
-- Exploration: Botkube integration with PagerDuty [\#149](https://github.com/kubeshop/botkube/issues/149)
-- i18n support  for botkube commands [\#36](https://github.com/kubeshop/botkube/issues/36)
+- Make more robust getting the k8s version [\#706](https://github.com/kubeshop/botkube/pull/706) ([mszostok](https://github.com/mszostok))
 - Support Kubernetes event namespace filtering by another property for kubernetes source. [\#698](https://github.com/kubeshop/botkube/pull/698) ([ezodude](https://github.com/ezodude))
 -  Handle recommendations even if no such resources are configured for notifications [\#696](https://github.com/kubeshop/botkube/pull/696) ([pkosiec](https://github.com/pkosiec))
 - Support routing notifications to a given channel based on Kubernetes Sources [\#691](https://github.com/kubeshop/botkube/pull/691) ([ezodude](https://github.com/ezodude))
@@ -173,20 +213,8 @@ The v0.13.0 release has the following breaking changes:
 
 **Fixed bugs:**
 
-- Change Slack unmarshalling error from error to warning level [\#619](https://github.com/kubeshop/botkube/issues/619)
-- BotKube Commands are not responding in Mattermost channel [\#618](https://github.com/kubeshop/botkube/issues/618)
-- MS Teams integration doesn't work with the latest develop [\#606](https://github.com/kubeshop/botkube/issues/606)
-- Helm `chart botkube/ingress.yaml` does not support `networking.k8s.io/v1` which is stable since Kubernetes 1.19 [\#599](https://github.com/kubeshop/botkube/issues/599)
-- Cannot provide custom ServiceAccount during installation, cannot set predictable name [\#598](https://github.com/kubeshop/botkube/issues/598)
-- Data race issues detected when running integration tests with `-race` flag [\#592](https://github.com/kubeshop/botkube/issues/592)
-- Unmarshalling error logs contain Slack user data [\#579](https://github.com/kubeshop/botkube/issues/579)
-- Configuration of Mattermost username is missing in the documentation [\#569](https://github.com/kubeshop/botkube/issues/569)
-- Kubectl commands slow response with message "Waited for \<x\>s due to client-side throttling, not priority and fairness" [\#564](https://github.com/kubeshop/botkube/issues/564)
-- \[BUG\] Failed to analyze an event whose lastTimestamp is null [\#548](https://github.com/kubeshop/botkube/issues/548)
-- \[BUG\] FATA\[2021-11-15T01:28:56Z\] stat /home/botkube/.kube/config: no such file or directory  [\#541](https://github.com/kubeshop/botkube/issues/541)
-- \[BUG\] Notifier not working with Microsoft Teams \(Skipping SendMessage\) [\#507](https://github.com/kubeshop/botkube/issues/507)
-- \[BUG\] prometheus servicemonitor selector mismatch with service labels [\#431](https://github.com/kubeshop/botkube/issues/431)
-- \[BUG\] Unable to get notifications when configmap chnaged on Kubernetes cluster [\#215](https://github.com/kubeshop/botkube/issues/215)
+- Fix ingress manifest [\#702](https://github.com/kubeshop/botkube/pull/702) ([mszostok](https://github.com/mszostok))
+- Ignore resource object when marshalling event to JSON [\#701](https://github.com/kubeshop/botkube/pull/701) ([pkosiec](https://github.com/pkosiec))
 - Generate only draft release, and process chart during release [\#699](https://github.com/kubeshop/botkube/pull/699) ([mszostok](https://github.com/mszostok))
 - Fix merging order for executor bindings [\#680](https://github.com/kubeshop/botkube/pull/680) ([pkosiec](https://github.com/pkosiec))
 - Return executors enabled only in a given channel [\#677](https://github.com/kubeshop/botkube/pull/677) ([mszostok](https://github.com/mszostok))
@@ -197,11 +225,91 @@ The v0.13.0 release has the following breaking changes:
 - Do not log full Slack event details in case of unmarshalling error [\#583](https://github.com/kubeshop/botkube/pull/583) ([pkosiec](https://github.com/pkosiec))
 - Fix writing cache for kubectl exec commands [\#581](https://github.com/kubeshop/botkube/pull/581) ([pkosiec](https://github.com/pkosiec))
 
-**Closed issues:**
+**Merged pull requests:**
 
-- Migrate from Git flow to lighter GitHub flow [\#630](https://github.com/kubeshop/botkube/issues/630)
-- Make community-related improvements around BotKube repositories  [\#594](https://github.com/kubeshop/botkube/issues/594)
-- Propogate context and remove global variables usage [\#220](https://github.com/kubeshop/botkube/issues/220)
+- Go 1.19 Upgrade [\#694](https://github.com/kubeshop/botkube/pull/694) ([huseyinbabal](https://github.com/huseyinbabal))
+- Add new code owner\(@huseyinbabal\) [\#688](https://github.com/kubeshop/botkube/pull/688) ([huseyinbabal](https://github.com/huseyinbabal))
+- Add new code owner [\#646](https://github.com/kubeshop/botkube/pull/646) ([ezodude](https://github.com/ezodude))
+- Revert "Add lark notification and bot support" [\#635](https://github.com/kubeshop/botkube/pull/635) ([pkosiec](https://github.com/pkosiec))
+- Change go mod name [\#633](https://github.com/kubeshop/botkube/pull/633) ([mszostok](https://github.com/mszostok))
+- First part of the housekeeping work around transfer [\#632](https://github.com/kubeshop/botkube/pull/632) ([mszostok](https://github.com/mszostok))
+- Decrease the unmarshall error severity from err to warn [\#629](https://github.com/kubeshop/botkube/pull/629) ([mszostok](https://github.com/mszostok))
+- Investigate analytics collection [\#625](https://github.com/kubeshop/botkube/pull/625) ([pkosiec](https://github.com/pkosiec))
+- Set event TimeStamp if K8s event Series is not nil [\#591](https://github.com/kubeshop/botkube/pull/591) ([PrasadG193](https://github.com/PrasadG193))
+- added project\_name field [\#576](https://github.com/kubeshop/botkube/pull/576) ([krunalhinguu](https://github.com/krunalhinguu))
+- Bump golang.org/x/crypto dep to fix CI build [\#574](https://github.com/kubeshop/botkube/pull/574) ([PrasadG193](https://github.com/PrasadG193))
+- fix: Failed to analyze an event whose lastTimestamp is null [\#573](https://github.com/kubeshop/botkube/pull/573) ([Lion916](https://github.com/Lion916))
+- Replace latest tag with v9.99.9-dev in builds [\#567](https://github.com/kubeshop/botkube/pull/567) ([PrasadG193](https://github.com/PrasadG193))
+- Feature: CI vulnerability scan [\#565](https://github.com/kubeshop/botkube/pull/565) ([AugustasV](https://github.com/AugustasV))
+- ci\(Mergify\): configuration update [\#563](https://github.com/kubeshop/botkube/pull/563) ([PrasadG193](https://github.com/PrasadG193))
+- perf: Use `strings.EqualFold` for string comparison [\#562](https://github.com/kubeshop/botkube/pull/562) ([iamrajiv](https://github.com/iamrajiv))
+- Ignore  error of type not found in resource [\#558](https://github.com/kubeshop/botkube/pull/558) ([Lion916](https://github.com/Lion916))
+- \[Test\] Do not log msg in tests [\#555](https://github.com/kubeshop/botkube/pull/555) ([PrasadG193](https://github.com/PrasadG193))
+- Upgrade github.com/gogo/protobuf dep [\#553](https://github.com/kubeshop/botkube/pull/553) ([PrasadG193](https://github.com/PrasadG193))
+- \[helm\] Set empty list as default value for extraEnv [\#540](https://github.com/kubeshop/botkube/pull/540) ([dennybaa](https://github.com/dennybaa))
+- Add lark notification and bot support [\#532](https://github.com/kubeshop/botkube/pull/532) ([lshmouse](https://github.com/lshmouse))
+- \[Feature\] Add the ability to specify a kubeconfig and disable service account token mounting in helm chart [\#493](https://github.com/kubeshop/botkube/pull/493) ([sudermanjr](https://github.com/sudermanjr))
+
+## [v0.13.0-rc.1](https://github.com/kubeshop/botkube/tree/v0.13.0-rc.1) (2022-08-25)
+
+[Full Changelog](https://github.com/kubeshop/botkube/compare/v0.12.4...v0.13.0-rc.1)
+
+**Implemented enhancements:**
+
+- Support Kubernetes event namespace filtering by another property for kubernetes source. [\#698](https://github.com/kubeshop/botkube/pull/698) ([ezodude](https://github.com/ezodude))
+-  Handle recommendations even if no such resources are configured for notifications [\#696](https://github.com/kubeshop/botkube/pull/696) ([pkosiec](https://github.com/pkosiec))
+- Support routing notifications to a given channel based on Kubernetes Sources [\#691](https://github.com/kubeshop/botkube/pull/691) ([ezodude](https://github.com/ezodude))
+- Merge recommendation configuration with override strategy [\#689](https://github.com/kubeshop/botkube/pull/689) ([pkosiec](https://github.com/pkosiec))
+- Add ability to configure specific recommendations during BotKube installation/upgrade [\#687](https://github.com/kubeshop/botkube/pull/687) ([pkosiec](https://github.com/pkosiec))
+- Support regex for namespace.include, replace 'all' with '.\*', rename ignore to exclude [\#686](https://github.com/kubeshop/botkube/pull/686) ([mszostok](https://github.com/mszostok))
+- Update Helm chart values description [\#678](https://github.com/kubeshop/botkube/pull/678) ([pkosiec](https://github.com/pkosiec))
+- Add logic to handle communicator bindings in kubectl [\#672](https://github.com/kubeshop/botkube/pull/672) ([mszostok](https://github.com/mszostok))
+- Handle multiple configurations for multiple bots and sinks [\#670](https://github.com/kubeshop/botkube/pull/670) ([pkosiec](https://github.com/pkosiec))
+- Fix image labels, remove not working go report badge [\#665](https://github.com/kubeshop/botkube/pull/665) ([mszostok](https://github.com/mszostok))
+- Add support for namespace settings in `kubectl` executor [\#664](https://github.com/kubeshop/botkube/pull/664) ([mszostok](https://github.com/mszostok))
+- Add ability to enable/disable notifications per bot [\#662](https://github.com/kubeshop/botkube/pull/662) ([pkosiec](https://github.com/pkosiec))
+- Add ability to specify extra pod labels in helm chart [\#661](https://github.com/kubeshop/botkube/pull/661) ([ezodude](https://github.com/ezodude))
+- Update BotKube to load the new configuration syntax [\#659](https://github.com/kubeshop/botkube/pull/659) ([mszostok](https://github.com/mszostok))
+- Get Go version from the go.mod file on CI [\#654](https://github.com/kubeshop/botkube/pull/654) ([mszostok](https://github.com/mszostok))
+- Add ability to set bot name for MS Teams [\#653](https://github.com/kubeshop/botkube/pull/653) ([pkosiec](https://github.com/pkosiec))
+- Change loading config settings [\#648](https://github.com/kubeshop/botkube/pull/648) ([mszostok](https://github.com/mszostok))
+- Add automatic Go imports formatting [\#645](https://github.com/kubeshop/botkube/pull/645) ([mszostok](https://github.com/mszostok))
+- Collect in-app usage analytics events [\#644](https://github.com/kubeshop/botkube/pull/644) ([pkosiec](https://github.com/pkosiec))
+- Hands free Helm Chart README.md [\#642](https://github.com/kubeshop/botkube/pull/642) ([mszostok](https://github.com/mszostok))
+- Update CodeQL, update docs [\#641](https://github.com/kubeshop/botkube/pull/641) ([mszostok](https://github.com/mszostok))
+- Implement analytics collection [\#640](https://github.com/kubeshop/botkube/pull/640) ([pkosiec](https://github.com/pkosiec))
+- Add community files [\#638](https://github.com/kubeshop/botkube/pull/638) ([mszostok](https://github.com/mszostok))
+- Remove last chart release, remove www from botkube's urls [\#637](https://github.com/kubeshop/botkube/pull/637) ([mszostok](https://github.com/mszostok))
+- Remove old integration tests that use fake K8s and Slack APIs [\#627](https://github.com/kubeshop/botkube/pull/627) ([pkosiec](https://github.com/pkosiec))
+- Add new configuration syntax proposal [\#626](https://github.com/kubeshop/botkube/pull/626) ([mszostok](https://github.com/mszostok))
+- Run E2E integration tests on pull requests and branch build [\#624](https://github.com/kubeshop/botkube/pull/624) ([pkosiec](https://github.com/pkosiec))
+- Add investigation doc about current syntax issues and possible fixes [\#623](https://github.com/kubeshop/botkube/pull/623) ([mszostok](https://github.com/mszostok))
+- Implement E2E tests against BotKube deployed on K8s and real Slack API [\#622](https://github.com/kubeshop/botkube/pull/622) ([pkosiec](https://github.com/pkosiec))
+- Allow users to disable ANSI color for logger [\#612](https://github.com/kubeshop/botkube/pull/612) ([sumit-tembe](https://github.com/sumit-tembe))
+- Add option to build&push image on PR automatically [\#611](https://github.com/kubeshop/botkube/pull/611) ([mszostok](https://github.com/mszostok))
+- Update Slack API dependency and remove workaround for stripping event details from logs [\#610](https://github.com/kubeshop/botkube/pull/610) ([pkosiec](https://github.com/pkosiec))
+- Enable Go caching to speed up CI [\#608](https://github.com/kubeshop/botkube/pull/608) ([mszostok](https://github.com/mszostok))
+- Remove global variables, pass context across all components and improve error handling [\#603](https://github.com/kubeshop/botkube/pull/603) ([pkosiec](https://github.com/pkosiec))
+- Add support for cfg via env vars and define external volumes [\#601](https://github.com/kubeshop/botkube/pull/601) ([mszostok](https://github.com/mszostok))
+- Update Mergify configuration [\#600](https://github.com/kubeshop/botkube/pull/600) ([pkosiec](https://github.com/pkosiec))
+- Add and describe opt to specify sensitive data via external secrets [\#597](https://github.com/kubeshop/botkube/pull/597) ([mszostok](https://github.com/mszostok))
+- Use `golangci-lint` and resolve all found issues [\#593](https://github.com/kubeshop/botkube/pull/593) ([pkosiec](https://github.com/pkosiec))
+- Update Go, Kubernetes and other dependencies [\#582](https://github.com/kubeshop/botkube/pull/582) ([pkosiec](https://github.com/pkosiec))
+- Make the release script cross-platform [\#580](https://github.com/kubeshop/botkube/pull/580) ([pkosiec](https://github.com/pkosiec))
+- Support extra K8s resources creation during Helm chart installation [\#578](https://github.com/kubeshop/botkube/pull/578) ([pkosiec](https://github.com/pkosiec))
+- Add affinity to BotKube Deployment in Helm chart [\#454](https://github.com/kubeshop/botkube/pull/454) ([igas](https://github.com/igas))
+
+**Fixed bugs:**
+
+- Generate only draft release, and process chart during release [\#699](https://github.com/kubeshop/botkube/pull/699) ([mszostok](https://github.com/mszostok))
+- Fix merging order for executor bindings [\#680](https://github.com/kubeshop/botkube/pull/680) ([pkosiec](https://github.com/pkosiec))
+- Return executors enabled only in a given channel [\#677](https://github.com/kubeshop/botkube/pull/677) ([mszostok](https://github.com/mszostok))
+- Fix bot name prefix check in Mattermost msg handling. [\#621](https://github.com/kubeshop/botkube/pull/621) ([sudhanshu456](https://github.com/sudhanshu456))
+- Fix ServiceMonitor selector [\#616](https://github.com/kubeshop/botkube/pull/616) ([pkosiec](https://github.com/pkosiec))
+- Fix MS Teams integration [\#607](https://github.com/kubeshop/botkube/pull/607) ([pkosiec](https://github.com/pkosiec))
+- Update Ingress definition, fix SA creation [\#602](https://github.com/kubeshop/botkube/pull/602) ([mszostok](https://github.com/mszostok))
+- Do not log full Slack event details in case of unmarshalling error [\#583](https://github.com/kubeshop/botkube/pull/583) ([pkosiec](https://github.com/pkosiec))
+- Fix writing cache for kubectl exec commands [\#581](https://github.com/kubeshop/botkube/pull/581) ([pkosiec](https://github.com/pkosiec))
 
 **Merged pull requests:**
 
