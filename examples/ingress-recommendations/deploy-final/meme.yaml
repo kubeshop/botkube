@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meme
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meme
+  template:
+    metadata:
+      labels:
+        app: meme
+    spec:
+      containers:
+        - name: meme
+          image: ghcr.io/kubeshop/botkube/examples/meme-service:v1.0.0
+          ports:
+            - containerPort: 9090
+          env:
+            - name: QUOTE_URL
+              value: "http://quote/"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: meme
+  labels:
+    app: meme
+spec:
+  selector:
+    app: meme
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9090
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: meme
+  labels:
+    app: meme  
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "example.botkube.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: meme
+            port:
+              number: 80
