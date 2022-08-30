@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: quote
+  template:
+    metadata:
+      labels:
+        component: quote
+    spec:
+      containers:
+        - name: quote
+          image: ghcr.io/kubeshop/botkube/examples/quote-service:v1.0.0
+          ports:
+            - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: quote
+  labels:
+    app: quote
+spec:
+  selector:
+    app: quote
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+
+
