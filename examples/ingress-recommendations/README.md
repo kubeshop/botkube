@@ -37,14 +37,17 @@ helm upgrade --install ingress-nginx ingress-nginx \
 1. Generate the certificate:
 
   ```bash
-  mkcert "*.botkube.local" botkube.local localhost 127.0.0.1 ::1
+  mkcert \
+    -cert-file botkube.tls.crt \
+    -key-file botkube.tls.key \
+    "*.botkube.local" botkube.local localhost 127.0.0.1 ::1
   ```
 
 1. Create Kubernetes secret:
 
   ```bash
-  CERT_CRT=$(echo -n "$(cat ./_wildcard.botkube.local+4.pem)" | base64)
-  CERT_KEY=$(echo -n "$(cat ./_wildcard.botkube.local+4-key.pem)" | base64)
+  CERT_CRT=$(echo -n "$(cat ./botkube.tls.crt)" | base64)
+  CERT_KEY=$(echo -n "$(cat ./botkube.tls.key)" | base64)
   cat > /tmp/secret.yaml << ENDOFFILE
   apiVersion: v1
   kind: Secret
@@ -72,7 +75,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
   grep -qF -- "$LINE_TO_APPEND" "${HOSTS_FILE}" || (echo "$LINE_TO_APPEND" | sudo tee -a "${HOSTS_FILE}" > /dev/null)
   ```
 
-1. Navigate to https://example.botkube.local/ - you should see 404 error, but the connection should be secured.
+1. Navigate to https://example.botkube.local/ in your browser. You should see 404 error page, but the connection should be secured.
 
 ### Deploy BotKube
 
@@ -91,7 +94,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
 
 ### Deploy example app
 
-Deploy the app with Terminal:
+Open your terminal and apply the manifest to deploy application as follows:
 
 ```
 kubectl apply -f ./examples/ingress-recommendations/deploy
@@ -103,7 +106,7 @@ In this scenario, we will expose the example application under the `https://exam
 
   See if the URL works: [https://example.botkube.local/meme](https://example.botkube.local/meme). You should still see 404 error.
 
-1. To expose the app, we need an Ingress resource. Create it with BotKube:
+1. To expose the app, we need an Ingress resource. Post the following command on Slack to create it with BotKube:
 
   ```
   @BotKube create ingress meme --class ngnix --rule example.botkube.local/*=meme:80
@@ -160,7 +163,7 @@ It works now! 🥳
 
 ## Cleanup
 
-From the terminal remove resources:
+Open your terminal and remove resources as follows:
 
   ```bash
   kubectl delete ingress meme
