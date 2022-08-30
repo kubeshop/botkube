@@ -1,0 +1,81 @@
+communications:
+  'default-group':
+    slack:
+      enabled: true
+      channels:
+        'default':
+          bindings:
+            executors:
+              - 'kubectl-example'
+              - 'kubectl-read-only'
+            sources:
+              - 'k8s-events'
+      notification:
+        type: short    
+
+sources:
+  'k8s-events':
+    kubernetes:
+      recommendations:
+        pod:
+          noLatestImageTag: true
+          labelsSet: true
+        ingress:
+          backendServiceValid: true
+          tlsSecretValid: true
+
+      resources:
+        - name: v1/services
+          namespaces:
+            include:
+              - "default"
+          events:
+            - create
+            - error
+        - name: apps/v1/deployments
+          namespaces:
+            include:
+              - "default"
+          events:
+            - create
+            - error
+        - name: networking.k8s.io/v1/ingresses
+          namespaces:
+            include:
+              - "default"
+          events:
+            - create
+            - delete
+            - error
+settings:
+  clusterName: example
+  configWatcher: true
+  upgradeNotifier: false
+
+executors:
+  'kubectl-example':
+    kubectl:
+      namespaces:
+        include: [".*"]
+      enabled: true
+      commands:
+        verbs: [ "expose", "delete", "create", "get", "describe" ]
+        resources: [ "deployments", "pods", "services", "ingresses" ]
+      defaultNamespace: default
+      restrictAccess: false
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "watch", "list"]
+    - apiGroups: [""]
+      resources: ["services"]
+      verbs: ["delete", "create"]
+    - apiGroups: ["networking.k8s.io"]
+      resources: ["ingresses"]
+      verbs: ["delete", "create", "get"]
+
+analytics:
+  disable: false
