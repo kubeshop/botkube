@@ -30,7 +30,7 @@ metadata:
 spec:
   selector:
     app: meme
-  type: NodePort
+  type: ClusterIP
   ports:
     - protocol: TCP
       port: 80

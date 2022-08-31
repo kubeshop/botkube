@@ -1,4 +1,4 @@
-# BotKube Use Case: Collaborative debugging Kubernetes resources via Slack
+# BotKube Use Case: Collaboratively debug Kubernetes resources via Slack
 
 This examples showcase debugging failing Pod with network issue. You will learn:
 
@@ -35,13 +35,13 @@ k3d cluster create svc-debug
    ```
 
    > **Note**
-   > Each channel need to exist and BotKube need to be invited.
+   > The channels must exist and the BotKube bot must be added to them.
 
 3. Add BotKube Helm chart:
 
    ```bash
    helm repo add botkube https://charts.botkube.io
-   helm repo update
+   helm repo update botkube
    ```
 
 4. Deploy BotKube:
@@ -67,71 +67,75 @@ kubectl apply -f ./examples/service-debugging/deploy
 ## Scenario
 
 In this scenario, we will learn how to react to the error event sent on Slack channel.
+1. Open the team Slack channel.
 
-1. You should see events sent by BotKube about created service:
-2. After a minute, you should see an error event:
+2. You should see new events sent by BotKube about created service:
 
-3. For now, we don't know too much about the error itself. To learn more, let's check the `meme` Pod logs:
+   ![](assets/create-events.png)
+
+3. After a minute, you should see an error event:
+
+4. For now, we don't know too much about the error itself. To learn more, let's check the `meme` Pod logs:
 
    ```
    @Botkube logs -l app=meme
    ```
 
-4. From the logs, we learnt that the `meme` Pod cannot call the `quote` Pod using defined Service URL. To be able to call the `quote` Pod we definitely need to have that Service defined. Let's see all Services:
+5. From the logs, we learnt that the `meme` Pod cannot call the `quote` Pod using defined Service URL. To be able to call the `quote` Pod we definitely need to have that Service defined. Let's see all Services:
 
    ```
    @Botkube get services
    ```
 
-
-5. We can see that the `quote` Service is there. So we need to dig deeper into the configuration. We need to describe Service to check if there are any endpoints:
+6. We can see that the `quote` Service is there. So we need to dig deeper into the configuration. We need to describe Service to check if there are any endpoints:
 
    ```
    @Botkube describe svc quote
    ```
-	 Now it gets interesting: there are no endpoints, which means there isn't a single Pod that is matched by the Service selectors.
+   Now it gets interesting: there are no endpoints, which means there isn't a single Pod that is matched by the Service selectors.
 
-6. We need to check whether that the `quote` Pod is up and running:
+7. We need to check whether the `quote` Pod is up and running:
 
    ```
    @Botube get pods
    ```
    💡 The `quote` Pod is up and running, so it might be a problem with incorrect labels.
 
-7. There is a nice `--show-lables` flag which allows us to check that easily:
+8. There is a handy `--show-lables` flag which allows us to check that easily:
 
    ```
    @Botube get po quote-{} --show-labels
    ```
 
-   We got it! The bug was found. The problem is with incorrect labels.
+   🎉 We got it! The bug was found. The problem is with incorrect labels.
 
-8. Add missing label to the quote Pod
-
-   ```
-   @Botube label pod quote-{} app=quote
-   ```
-	 We got an error. But that's yet another BotKube feature, which allows you to define executor permission per channel.
-
-5. Let's Switch to `#admin` channel.
-
-6. Add missing label to the `quote` Pod:
+9. Add missing label to the quote Pod
 
    ```
-   @Botube label pod quote-{} app=quote
+   @Botube label pod {quote_pod_name} app=quote
    ```
 
-7. Restart the `meme` Pod:
+   If you execute that command in team channel, you will get an error. But that's yet another BotKube feature, which allows you to define executor permission per channel.
 
-   ```
-   @Botkube delete po meme-{}
-   ```
+10. Let's Switch to the admin channel.
 
-8. Run `logs` to confirm that `http://quote/quote` is reachable now:
+11. Once again try to label to the `quote` Pod:
 
-   ```
-   @Botkube logs meme-{}
-   ```
+    ```
+    @Botube label pod {quote_pod_name} app=quote
+    ```
+
+12. Restart the `meme` Pod:
+
+    ```
+    @Botkube delete po -l app-meme
+    ```
+
+13. Run `logs` to confirm that `http://quote/quote` is reachable now:
+
+    ```
+    @Botkube logs -l app=meme
+    ```
 
 ### Summary
 
@@ -139,13 +143,13 @@ During the short demo, you can notice that:
 
 - You don't need to install and configure any tools locally
 - You don't need to repeat commands that were already executed by others
-	- and you don't need to discover the same thing by your own when it was already discussed by the teammates
+  - and you don't need to discover the same thing by your own when it was already discussed by the teammates
 - You don't need to switch context - switch between Slack and your terminal
 - You can define different `kubectl` permissions per channel
 
 ## Cleanup
 
-Remove whole cluster:
+Remove the `svc-debug` cluster:
 
 ```bash
 k3d cluster delete svc-debug
