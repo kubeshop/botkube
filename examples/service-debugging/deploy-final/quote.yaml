@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: quote
-          image: ghcr.io/kubeshop/botkube/examples/quote-service:v1.0.0
+          image: ghcr.io/kubeshop/botkube/examples/quote-service:v1.1.0
           ports:
             - containerPort: 8080
 ---

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: meme
-          image: ghcr.io/kubeshop/botkube/examples/meme-service:v1.0.0
+          image: ghcr.io/kubeshop/botkube/examples/meme-service:v1.1.0
           ports:
             - containerPort: 9090
           env:
