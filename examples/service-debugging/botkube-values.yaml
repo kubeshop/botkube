@@ -92,6 +92,7 @@ rbac:
     - apiGroups: [""]
       resources: ["pods"]
       verbs: ["patch"]
+
     # to be able to run `kubectl delete pod`
     - apiGroups: [""]
       resources: ["pods"]
