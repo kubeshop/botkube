@@ -70,7 +70,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 
 1. Open the team Slack channel.
 
-2. You should see new events sent by BotKube about created service:
+2. You should see new events sent by BotKube about the created service:
 
    ![](assets/create-events.png)
 
@@ -92,7 +92,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
    @Botkube get services
    ```
 
-6. We can see that the `quote` Service is there, so we need to dig deeper into the configuration. We need to describe Service to check if there are any endpoints:
+6. We can see that the `quote` Service is there, so we need to dig deeper into the configuration. Let's describe the Service to check if there are any endpoints:
 
    ```
    @Botkube describe svc quote
@@ -114,19 +114,19 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
    @Botkube get po {quote_pod_name} --show-labels
    ```
 
-   🎉 We got it! The bug was found. The problem is with incorrect labels. The `quote` Service matches only Pods with the `app=quote` label, which is missing on our Pod!
+   🎉 We got it! The bug was found. The problem is the incorrect labels. The `quote` Service only matches Pods with the `app=quote` label, this is missing from our Pod!
 
-9. Add missing label to the `quote` Pod:
+9. Add the missing label to the `quote` Pod:
 
    ```
    @Botkube label pod {quote_pod_name} app=quote
    ```
 
-   If you execute that command in team channel, you will get an error. But that's yet another BotKube feature, which allows you to define executor permission per channel.
+   If you execute that command in the team channel, you will get an error. This is yet another BotKube feature, it allows you to define executor permissions per channel.
 
 10. To be able to run the label command, you must switch to the admin channel.
 
-11. Once again, try to label to the `quote` Pod:
+11. Once again, try to add a label to the `quote` Pod:
 
     ```
     @Botkube label pod {quote_pod_name} app=quote
@@ -158,12 +158,12 @@ Hurray! We are up and running again! 🥳
 
 ### Summary
 
-During the short demo, you can notice that:
+During the short demo, you'll notice that:
 
 - You don't need to install and configure any tools locally
 - You don't need to repeat commands that were already executed by others
-  - and you don't need to discover the same thing by your own when it was already discussed by the teammates
-- You don't need to switch context - switch between Slack and your terminal
+  - and you don't need to discover the same thing by your own when it was already discussed by your teammates
+- You don't need to switch context - between Slack and your terminal
 - You can define different `kubectl` permissions per channel
 
 If you are very observant, you probably noticed that events were sent only to the team channel and not to the admin one. This is possible with a single BotKube instance. To learn more, check [Source and Executors Bindings](https://botkube.io/configuration/communication/#source-and-executor-bindings).
