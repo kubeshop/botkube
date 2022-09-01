@@ -1,6 +1,6 @@
 # BotKube Use Case: Collaboratively debug Kubernetes resources via Slack
 
-This example showcase debugging failing Pod with network issue. You will learn:
+This example showcases debugging a failing Pod with a network issue. You will learn:
 
 - how BotKube notifies you about errors
 - how to execute `kubectl` commands via `@Botkube`
