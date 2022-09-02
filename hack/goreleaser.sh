@@ -96,6 +96,7 @@ build() {
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
+    -e SLACK_APP_TOKEN="${SLACK_APP_TOKEN}" \
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }
 
@@ -107,6 +108,7 @@ build_single() {
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=${GORELEASER_CURRENT_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
+    -e SLACK_APP_TOKEN="${SLACK_APP_TOKEN}" \
     goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube -o "./botkube"
   docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
   rm "$PWD/botkube"

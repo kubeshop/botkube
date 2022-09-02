@@ -4,6 +4,7 @@ env:
   - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube{{ end }}
   - TEST_IMAGE_REPOSITORY={{ if index .Env "TEST_IMAGE_REPOSITORY"  }}{{ .Env.TEST_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-test{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
+  - SLACK_APP_TOKEN={{ if index .Env "SLACK_APP_TOKEN"  }}{{ .Env.SLACK_APP_TOKEN }}{{ else }}{{ end }}
 before:
   hooks:
     - go mod download
@@ -17,6 +18,7 @@ builds:
         -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
         -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
         -X github.com/kubeshop/botkube/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
+        -X github.com/kubeshop/botkube/pkg/bot.SlackAppLevelToken={{ .Env.SLACK_APP_TOKEN }}
     env:
       - CGO_ENABLED=0
     goos:

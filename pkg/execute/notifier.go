@@ -137,8 +137,7 @@ func (e *NotifierExecutor) showControllerConfig() (string, error) {
 	// hide sensitive info
 	// TODO: avoid printing sensitive data without need to resetting them manually (which is an error-prone approach)
 	for key, old := range cfg.Communications {
-		old.Slack.BotToken = redactedSecretStr
-		old.Slack.AppToken = redactedSecretStr
+		old.Slack.Token = redactedSecretStr
 		old.Elasticsearch.Password = redactedSecretStr
 		old.Discord.Token = redactedSecretStr
 		old.Mattermost.Token = redactedSecretStr

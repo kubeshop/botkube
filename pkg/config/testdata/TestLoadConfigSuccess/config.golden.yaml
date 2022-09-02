@@ -291,8 +291,7 @@ communications:
                             - kubectl-read-only
             notification:
                 type: short
-            botToken: bot-token-from-env
-            appToken: app-token-from-env
+            token: token-from-env
         mattermost:
             enabled: false
             botName: ""

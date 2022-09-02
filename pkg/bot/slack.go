@@ -38,6 +38,11 @@ var attachmentColor = map[config.Level]string{
 	config.Critical: "danger",
 }
 
+var (
+	// SlackAppLevelToken for Slack Socket Mode. It is set during application build.
+	SlackAppLevelToken string
+)
+
 // Slack listens for user's message, execute commands and sends back the response.
 type Slack struct {
 	log             logrus.FieldLogger
@@ -66,7 +71,7 @@ type slackMessage struct {
 
 // NewSlack creates a new Slack instance.
 func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+	client := slack.New(cfg.Token, slack.OptionAppLevelToken(SlackAppLevelToken))
 
 	authResp, err := client.AuthTest()
 	if err != nil {

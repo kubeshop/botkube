@@ -154,14 +154,12 @@ jobs:
 
       - name: Install BotKube
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN_V2 }}
-          SLACK_APP_TOKEN: ${{ secrets.SLACK_APP_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
-            --set communications.default-group.slack.botToken="${SLACK_BOT_TOKEN}" \
-            --set communications.default-group.slack.appToken="${SLACK_APP_TOKEN}" \
+            --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
             --set image.registry="${IMAGE_REGISTRY}" \
             --set image.repository="${IMAGE_REPOSITORY}" \
             --set image.tag="${IMAGE_TAG}" \
@@ -169,8 +167,7 @@ jobs:
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}" \
-            --set e2eTest.slack.botName="botkubev2"
+            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"

@@ -101,8 +101,6 @@ executors:
         resources: [ "deployments" ]
 
 settings:
-  log:
-    level: debug
   clusterName: sample
   upgradeNotifier: false
 

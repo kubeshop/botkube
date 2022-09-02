@@ -10,8 +10,7 @@ communications: # req 1 elm.
               - kubectl-read-only
             sources:
               - k8s-events
-      botToken: bot-token-from-env
-      appToken: app-token-from-env
+      token: 'SLACK_API_TOKEN'
       notification:
         type: short
 

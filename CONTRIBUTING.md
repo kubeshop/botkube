@@ -68,8 +68,7 @@ This section describes how to build and run the BotKube from the source code.
    helm install botkube --namespace botkube --create-namespace \
    --set communications.slack.enabled=true \
    --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
-   --set communications.slack.botToken=<SLACK_TOKEN_FOR_THE_BOT> \
-   --set communications.slack.appToken=<SLACK_TOKEN_FOR_THE_SLACK_APP> \
+   --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
    --set settings.clusterName=<CLUSTER_NAME> \
    --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
    --set image.registry=<image_registry e.g. docker.io> \

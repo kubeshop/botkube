@@ -348,13 +348,11 @@ type Communications struct {
 }
 
 // Slack configuration to authentication and send notifications
-// See available token types here https://api.slack.com/authentication/token-types
 type Slack struct {
 	Enabled      bool                                   `yaml:"enabled"`
 	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
-	BotToken     string                                 `yaml:"botToken,omitempty"`
-	AppToken     string                                 `yaml:"appToken,omitempty"`
+	Token        string                                 `yaml:"token,omitempty"`
 }
 
 // Elasticsearch config auth settings
