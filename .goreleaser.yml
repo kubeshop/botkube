@@ -44,6 +44,9 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
+    goarm:
+      - 7
 archives:
   - id: my-archive
     builds:
