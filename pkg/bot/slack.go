@@ -101,7 +101,7 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 	}, nil
 }
 
-// Start starts the Slack Websocket connection and listens for messages
+// Start starts the Slack WebSocket connection and listens for messages
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 

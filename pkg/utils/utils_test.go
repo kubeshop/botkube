@@ -2,6 +2,9 @@ package utils
 
 import (
 	"testing"
+
+	"github.com/MakeNowJust/heredoc"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetClusterNameFromKubectlCmd(t *testing.T) {
@@ -27,6 +30,7 @@ func TestGetClusterNameFromKubectlCmd(t *testing.T) {
 		if got != ts.expected {
 			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}
+		assert.Equal(t, ts.expected, got)
 	}
 }
 
@@ -49,9 +53,10 @@ func TestContains(t *testing.T) {
 	if got != expected {
 		t.Errorf("expected: %v, got: %v", expected, got)
 	}
+	assert.Equal(t, expected, got)
 }
 
-func TestRemoveHypelink(t *testing.T) {
+func TestRemoveHyperlink(t *testing.T) {
 	type test struct {
 		input    string
 		expected string
@@ -75,6 +80,7 @@ func TestRemoveHypelink(t *testing.T) {
 		if got != ts.expected {
 			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}
+		assert.Equal(t, ts.expected, got)
 	}
 }
 
@@ -99,17 +105,16 @@ func TestStructDump(t *testing.T) {
 			},
 		},
 	})
-	expected := `utils.Message{
-  Text: "Hello, Botkube!",
-  UserID: 3,
-  Threads: []utils.Thread{
-    utils.Thread{
-      TimeStamp: 2344442424,
-      Team: "MetalHead",
-    },
-  },
-}`
-	if got != expected {
-		t.Errorf("expected: %s, got: %s", expected, got)
-	}
+	expected := heredoc.Doc(`
+		utils.Message{
+		  Text: "Hello, Botkube!",
+		  UserID: 3,
+		  Threads: []utils.Thread{
+		    utils.Thread{
+		      TimeStamp: 2344442424,
+		      Team: "MetalHead",
+		    },
+		  },
+		}`)
+	assert.Equal(t, expected, got)
 }

@@ -81,7 +81,7 @@ jobs:
 
       - name: Install BotKube
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN_V2 }}
+          SLACK_BOT_TOKEN: ${{ secrets.SOCKET_SLACK_BOT_TOKEN }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
