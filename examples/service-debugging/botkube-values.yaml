@@ -1,0 +1,103 @@
+sources:
+  'k8s-events':
+    kubernetes:
+      recommendations:
+        pod:
+          noLatestImageTag: false
+          labelsSet: false
+        ingress:
+          backendServiceValid: false
+          tlsSecretValid: false
+
+      resources:
+        - name: v1/pods
+          namespaces:
+            include:
+              - ".*"
+          events:
+            - create
+            - delete
+            - error
+        - name: v1/services
+          namespaces:
+            include:
+              - ".*"
+          events:
+            - create
+            - delete
+            - error
+
+executors:
+  'kubectl-read-only':
+    kubectl:
+      namespaces:
+        include:
+          - ".*"
+      enabled: true
+      commands:
+        verbs: ["describe", "get", "logs"]
+        resources: ["pods","services"]
+      defaultNamespace: default
+      restrictAccess: false
+  'kubectl-admin':
+    kubectl:
+      namespaces:
+        include:
+          - ".*"
+      enabled: true
+      commands:
+        verbs: ["label", "delete"]
+        resources: ["deployments", "pods"]
+      defaultNamespace: default
+      restrictAccess: false
+
+communications:
+  'default-group':
+    slack:
+      enabled: true
+      channels:
+        'team':
+          name: 'gophers'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+        'admin':
+          name: 'admin'
+          bindings:
+            executors:
+              - kubectl-read-only
+              - kubectl-admin
+
+      token: 'SLACK_API_TOKEN'
+      notification:
+        type: short
+
+settings:
+  clusterName: gke-stage
+  configWatcher: false
+  upgradeNotifier: false
+
+# -- Role Based Access for BotKube Pod.
+# [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
+rbac:
+  create: true
+  rules:
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "watch", "list"]
+
+    # to be able to run `kubectl label pod`
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["patch"]
+
+    # to be able to run `kubectl delete pod`
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["delete"]
+
+serviceAccount:
+  create: true
+
