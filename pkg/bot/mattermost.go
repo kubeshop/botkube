@@ -91,11 +91,20 @@ func NewMattermost(log logrus.FieldLogger, cfg config.Mattermost, executorFactor
 	client := model.NewAPIv4Client(cfg.URL)
 	client.SetOAuthToken(cfg.Token)
 
-	botTeam, resp := client.GetTeamByName(cfg.Team, "")
+	botTeams, resp := client.SearchTeams(&model.TeamSearch{
+		Term: cfg.Team,
+	})
 	if resp.Error != nil {
 		return nil, fmt.Errorf("while getting team by name: %w", resp.Error)
 	}
 
+	if len(botTeams) == 0 {
+		return nil, fmt.Errorf("team: %s not found", cfg.Team)
+	}
+	botTeam := botTeams[0]
+	// In Mattermost v7.0+, what we see in MM Console is `display_name` of team.
+	// We need `name` of team to make rest of the business logic work.
+	cfg.Team = botTeam.Name
 	channelsByIDCfg, err := mattermostChannelsCfgFrom(client, botTeam.Id, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
