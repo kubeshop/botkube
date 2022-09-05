@@ -2,6 +2,7 @@ package execute
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -68,7 +69,7 @@ type DefaultExecutor struct {
 	filterEngine      filterengine.FilterEngine
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
-	runCmdFn          CommandRunnerFunc
+	cmdRunner         CommandSeparateOutputRunner
 	notifierExecutor  *NotifierExecutor
 	notifierHandler   NotifierHandler
 	bindings          []string
@@ -79,9 +80,6 @@ type DefaultExecutor struct {
 	kubectlExecutor   *Kubectl
 	merger            *kubectl.Merger
 }
-
-// CommandRunnerFunc is a function which runs arbitrary commands
-type CommandRunnerFunc func(command string, args []string) (string, error)
 
 // NotifierAction creates custom type for notifier actions
 type NotifierAction string
@@ -325,20 +323,49 @@ func (e *DefaultExecutor) makeFiltersList() string {
 	return buf.String()
 }
 
+type kubectlVersionOutput struct {
+	Server struct {
+		GitVersion string `json:"gitVersion"`
+	} `json:"serverVersion"`
+}
+
+func (e *DefaultExecutor) findK8sVersion() (string, error) {
+	args := []string{"-c", fmt.Sprintf("%s version --output=json", kubectlBinary)}
+	stdout, stderr, err := e.cmdRunner.RunSeparateOutput("sh", args)
+	e.log.Debugf("Raw kubectl version output: %q", stdout)
+	if err != nil {
+		return "", fmt.Errorf("unable to execute kubectl version: %w [%q]", err, stderr)
+	}
+
+	var out kubectlVersionOutput
+	err = json.Unmarshal([]byte(stdout), &out)
+	if err != nil {
+		return "", err
+	}
+	if out.Server.GitVersion == "" {
+		return "", fmt.Errorf("unable to unmarshal server git version from %q", stdout)
+	}
+
+	ver := out.Server.GitVersion
+	if stderr != "" {
+		ver += "\n" + stderr
+	}
+
+	return ver, nil
+}
 func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
-	args := []string{"-c", fmt.Sprintf("%s version --short=true | grep Server", kubectlBinary)}
-	// Returns "Server Version: xxxx"
-	k8sVersion, err := e.runCmdFn("sh", args)
+	k8sVersion, err := e.findK8sVersion()
 	if err != nil {
 		e.log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
-		k8sVersion = "Server Version: Unknown\n"
+		k8sVersion = "Unknown"
 	}
 
 	botkubeVersion := version.Short()
 	if len(botkubeVersion) == 0 {
 		botkubeVersion = "Unknown"
 	}
-	return fmt.Sprintf("K8s %sBotKube version: %s", k8sVersion, botkubeVersion)
+
+	return fmt.Sprintf("K8s Server Version: %s\nBotKube version: %s", k8sVersion, botkubeVersion)
 }
 
 func (e *DefaultExecutor) runVersionCommand(args []string, clusterName string) string {

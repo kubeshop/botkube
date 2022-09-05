@@ -141,7 +141,7 @@ func run() error {
 	// Create executor factor
 	executorFactory := execute.NewExecutorFactory(
 		logger.WithField(componentLogFieldKey, "Executor"),
-		execute.DefaultCommandRunnerFunc,
+		&execute.OSCommand{},
 		*conf,
 		filterEngine,
 		kubectl.NewChecker(resourceNameNormalizerFunc),

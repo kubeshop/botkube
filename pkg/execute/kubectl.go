@@ -29,18 +29,18 @@ type Kubectl struct {
 	cfg config.Config
 
 	kcChecker *kubectl.Checker
-	runCmdFn  CommandRunnerFunc
+	cmdRunner CommandCombinedOutputRunner
 	merger    *kubectl.Merger
 }
 
 // NewKubectl creates a new instance of Kubectl.
-func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merger, kcChecker *kubectl.Checker, fn CommandRunnerFunc) *Kubectl {
+func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merger, kcChecker *kubectl.Checker, fn CommandCombinedOutputRunner) *Kubectl {
 	return &Kubectl{
 		log:       log,
 		cfg:       cfg,
 		merger:    merger,
 		kcChecker: kcChecker,
-		runCmdFn:  fn,
+		cmdRunner: fn,
 	}
 }
 
@@ -121,7 +121,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	}
 
 	finalArgs := e.getFinalArgs(args)
-	out, err := e.runCmdFn(kubectlBinary, finalArgs)
+	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
 	if err != nil {
 		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), nil
 	}

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meme
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meme
+  template:
+    metadata:
+      labels:
+        app: meme
+    spec:
+      containers:
+        - name: meme
+          image: ghcr.io/kubeshop/botkube/examples/meme-service:v1.0.0
+          ports:
+            - containerPort: 9090
+          env:
+            - name: QUOTE_URL
+              value: "http://quote/"

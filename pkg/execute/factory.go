@@ -11,7 +11,7 @@ import (
 // DefaultExecutorFactory facilitates creation of the Executor instances.
 type DefaultExecutorFactory struct {
 	log               logrus.FieldLogger
-	runCmdFn          CommandRunnerFunc
+	cmdRunner         CommandSeparateOutputRunner
 	cfg               config.Config
 	filterEngine      filterengine.FilterEngine
 	analyticsReporter AnalyticsReporter
@@ -32,10 +32,10 @@ type AnalyticsReporter interface {
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
-func NewExecutorFactory(log logrus.FieldLogger, runCmdFn CommandRunnerFunc, cfg config.Config, filterEngine filterengine.FilterEngine, kcChecker *kubectl.Checker, merger *kubectl.Merger, analyticsReporter AnalyticsReporter) *DefaultExecutorFactory {
+func NewExecutorFactory(log logrus.FieldLogger, cmdRunner CommandRunner, cfg config.Config, filterEngine filterengine.FilterEngine, kcChecker *kubectl.Checker, merger *kubectl.Merger, analyticsReporter AnalyticsReporter) *DefaultExecutorFactory {
 	return &DefaultExecutorFactory{
 		log:               log,
-		runCmdFn:          runCmdFn,
+		cmdRunner:         cmdRunner,
 		cfg:               cfg,
 		filterEngine:      filterEngine,
 		analyticsReporter: analyticsReporter,
@@ -50,7 +50,7 @@ func NewExecutorFactory(log logrus.FieldLogger, runCmdFn CommandRunnerFunc, cfg 
 			cfg,
 			merger,
 			kcChecker,
-			runCmdFn,
+			cmdRunner,
 		),
 	}
 }
@@ -59,7 +59,7 @@ func NewExecutorFactory(log logrus.FieldLogger, runCmdFn CommandRunnerFunc, cfg 
 func (f *DefaultExecutorFactory) NewDefault(platform config.CommPlatformIntegration, notifierHandler NotifierHandler, isAuthChannel bool, conversationID string, bindings []string, message string) Executor {
 	return &DefaultExecutor{
 		log:               f.log,
-		runCmdFn:          f.runCmdFn,
+		cmdRunner:         f.cmdRunner,
 		cfg:               f.cfg,
 		analyticsReporter: f.analyticsReporter,
 		kubectlExecutor:   f.kubectlExecutor,

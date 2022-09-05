@@ -108,7 +108,7 @@ build_single() {
     -e GORELEASER_CURRENT_TAG=${GORELEASER_CURRENT_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
     goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube -o "./botkube"
-  docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
+  docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
   rm "$PWD/botkube"
 }
 

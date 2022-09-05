@@ -1,0 +1,32 @@
+controller:
+  image:
+    digest: ""
+  resources:
+    requests:
+      cpu: 50m
+      # it needs more memory than should: https://github.com/kubernetes/ingress-nginx/issues/5697
+      memory: 150Mi
+    limits:
+      cpu: 100m
+      memory: 300Mi
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  hostPort:
+    enabled: true
+  terminationGracePeriodSeconds: 0
+  service:
+    type: NodePort
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      effect: "NoSchedule"
+  publishService:
+    enabled: false
+  extraArgs:
+    publish-status-address: localhost
+    default-ssl-certificate: ingress-nginx/default-ssl-cert
+  config:
+    ssl-redirect: "true"
+    force-ssl-redirect: "true" # To enable HTTPS redirect with default SSL certificate
