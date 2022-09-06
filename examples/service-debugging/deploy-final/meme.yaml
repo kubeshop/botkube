@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meme
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meme
+  template:
+    metadata:
+      labels:
+        app: meme
+    spec:
+      containers:
+        - name: meme
+          image: ghcr.io/kubeshop/botkube/examples/meme-service:v1.1.0
+          ports:
+            - containerPort: 9090
+          env:
+            - name: QUOTE_URL
+              value: "http://quote/"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: meme
+  labels:
+    app: meme
+spec:
+  selector:
+    app: meme
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9090
