@@ -106,6 +106,13 @@ settings:
 
 extraAnnotations:
   botkube.io/disable: "true"
+
+## Parameters for anonymous analytics collection.
+analytics:
+  # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
+  # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
+  disable: true
+
 e2eTest:
   slack:
     testerAppToken: "" # Provide a valid token for BotKube tester app
