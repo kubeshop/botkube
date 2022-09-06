@@ -1,3 +1,9 @@
+## Parameters for anonymous analytics collection.
+analytics:
+  # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
+  # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
+  disable: true
+
 communications:
   'default-group':
     slack:
@@ -19,6 +25,30 @@ communications:
           bindings:
             executors:
               - kubectl-read-only
+            sources:
+              - k8s-updates
+    discord:
+      enabled: false # Tests will override this temporarily
+      token: "" # Provide a valid token for BotKube app
+      botID: "" # Provide a valid Application Client ID for BotKube app
+      channels:
+        'default':
+          id: "" # Tests will override this channel ID temporarily
+          bindings:
+            executors:
+              - kubectl-read-only
+              - kubectl-wait-cmd
+              - kubectl-exec-cmd
+              - kubectl-allow-all
+            sources:
+              - k8s-events
+        'secondary':
+          id: "" # Tests will override this channel ID temporarily
+          bindings:
+            # -- Executors configuration for a given channel.
+            executors:
+              - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
             sources:
               - k8s-updates
 
@@ -103,6 +133,9 @@ executors:
 settings:
   clusterName: sample
   upgradeNotifier: false
+  log:
+    level: debug
+    disableColors: false
 
 extraAnnotations:
   botkube.io/disable: "true"
@@ -113,4 +146,9 @@ analytics:
 e2eTest:
   slack:
     testerAppToken: "" # Provide a valid token for BotKube tester app
+    additionalContextMessage: "" # Optional additional context
+  discord:
+    testerAppToken: "" # Provide a valid token for BotKube tester app
+    testerAppBotID: "" # Provide a valid token for BotKube tester app
+    guildID: ""
     additionalContextMessage: "" # Optional additional context

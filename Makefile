@@ -60,11 +60,11 @@ container-image-single: pre-build
 	@./hack/goreleaser.sh build_single
 	@echo "Single target docker image build successful"
 
-# Build the test image
-container-image-test-single: pre-build
+# Build the e2e test image
+container-image-single-e2e: pre-build
 	@echo "Building single target docker image for e2e test"
-	@./hack/goreleaser.sh build_test_single
-	@echo "Single target docker image build for e2e test successful"
+	@./hack/goreleaser.sh build_single_e2e
+	@echo "Single target docker image build for e2e tests successful"
 
 # Publish release using goreleaser
 gorelease:

@@ -114,7 +114,7 @@ build_single() {
   rm "$PWD/botkube"
 }
 
-build_test_single() {
+build_single_e2e(){
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
   docker run --rm --privileged \
     -v "$PWD":/go/src/github.com/kubeshop/botkube \
@@ -156,8 +156,8 @@ case "${1}" in
   build_single)
     build_single
     ;;
-  build_test_single)
-    build_test_single
+  build_single_e2e)
+    build_single_e2e
     ;;
   release)
     release

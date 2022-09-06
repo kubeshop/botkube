@@ -647,3 +647,16 @@ e2eTest:
     additionalContextMessage: ""
     # -- Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled.
     messageWaitTimeout: 1m
+  discord:
+    # -- Name of the BotKube bot to interact with during the e2e tests.
+    botName: "botkube"
+    # -- Name of the BotKube Tester bot that sends messages during the e2e tests.
+    testerName: "botkube_tester"
+    # -- Discord tester application token that interacts with BotKube bot.
+    testerAppToken: ""
+    # -- Discord tester application bot ID that interacts with BotKube tester bot.
+    testerAppBotID: ""
+    # -- Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from.
+    additionalContextMessage: ""
+    # -- Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled.
+    messageWaitTimeout: 1m
