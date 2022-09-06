@@ -1,0 +1,32 @@
+name: Code freeze
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        type: string
+        description: Branch, commit, or commit SHA
+        required: true
+        default: main
+      version:
+        type: string
+        description: Version of the next release
+        required: true
+        default: main
+
+jobs:
+  code-freeze:
+    name: Create release/${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.from }}
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Create a release branch
+        run: |
+          git checkout -b release/${{ inputs.version }}
+
+      - name : Push new branch
+        run: git push origin release/${{ inputs.version }}
