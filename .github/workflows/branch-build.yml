@@ -89,7 +89,6 @@ jobs:
             --set image.registry="${IMAGE_REGISTRY}" \
             --set image.repository="${IMAGE_REPOSITORY}" \
             --set image.tag="${IMAGE_TAG}" \
-            --set analytics.disable="true" \
             --set e2eTest.image.registry="${IMAGE_REGISTRY}" \
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
