@@ -106,6 +106,10 @@ settings:
 
 extraAnnotations:
   botkube.io/disable: "true"
+
+analytics:
+  disable: true
+
 e2eTest:
   slack:
     testerAppToken: "" # Provide a valid token for BotKube tester app
