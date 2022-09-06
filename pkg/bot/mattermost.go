@@ -2,13 +2,14 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
@@ -91,11 +92,11 @@ func NewMattermost(log logrus.FieldLogger, cfg config.Mattermost, executorFactor
 	client := model.NewAPIv4Client(cfg.URL)
 	client.SetOAuthToken(cfg.Token)
 
-	botTeams, resp := client.SearchTeams(&model.TeamSearch{
+	botTeams, _, err := client.SearchTeams(&model.TeamSearch{
 		Term: cfg.Team,
 	})
-	if resp.Error != nil {
-		return nil, fmt.Errorf("while getting team by name: %w", resp.Error)
+	if err != nil {
+		return nil, fmt.Errorf("while getting team by name: %w", err)
 	}
 
 	if len(botTeams) == 0 {
@@ -150,7 +151,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 			b.log.Info("Shutdown requested. Finishing...")
 			return nil
 		default:
-			var appErr *model.AppError
+			var appErr error
 			b.wsClient, appErr = model.NewWebSocketClient4(b.webSocketURL, b.apiClient.AuthToken)
 			if appErr != nil {
 				return fmt.Errorf("while creating WebSocket connection: %w", appErr)
@@ -201,7 +202,11 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 
 // Check incoming message and take action
 func (mm *mattermostMessage) handleMessage(b *Mattermost) {
-	post := model.PostFromJson(strings.NewReader(mm.Event.Data["post"].(string)))
+	post, err := postFromEvent(mm.Event)
+	if err != nil {
+		b.log.Error(err)
+		return
+	}
 
 	// Handle message only if starts with mention
 	trimmedMsg, found := b.findAndTrimBotMention(post.Message)
@@ -211,7 +216,7 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 	}
 	mm.Request = trimmedMsg
 
-	channelID := mm.Event.Broadcast.ChannelId
+	channelID := mm.Event.GetBroadcast().ChannelId
 	channel, exists := b.getChannels()[channelID]
 	mm.IsAuthChannel = exists
 
@@ -225,7 +230,7 @@ func (mm mattermostMessage) sendMessage() {
 	mm.log.Debugf("Mattermost incoming Request: %s", mm.Request)
 	mm.log.Debugf("Mattermost Response: %s", mm.Response)
 	post := &model.Post{}
-	post.ChannelId = mm.Event.Broadcast.ChannelId
+	post.ChannelId = mm.Event.GetBroadcast().ChannelId
 
 	if len(mm.Response) == 0 {
 		mm.log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
@@ -233,49 +238,49 @@ func (mm mattermostMessage) sendMessage() {
 	}
 	// Create file if message is too large
 	if len(mm.Response) >= 3990 {
-		res, resp := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.Broadcast.ChannelId, mm.Request)
-		if resp.Error != nil {
-			mm.log.Error("Error occurred while uploading file. Error: ", resp.Error)
+		res, _, err := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.GetBroadcast().ChannelId, mm.Request)
+		if err != nil {
+			mm.log.Error("Error occurred while uploading file. Error: ", err)
 		}
 		post.FileIds = []string{res.FileInfos[0].Id}
 	} else {
 		post.Message = formatx.CodeBlock(mm.Response)
 	}
 
-	if _, resp := mm.APIClient.CreatePost(post); resp.Error != nil {
-		mm.log.Error("Failed to send message. Error: ", resp.Error)
+	if _, _, err := mm.APIClient.CreatePost(post); err != nil {
+		mm.log.Error("Failed to send message. Error: ", err)
 	}
 }
 
 // Check if Mattermost server is reachable
 func (b *Mattermost) checkServerConnection() error {
 	// Check api connection
-	if _, resp := b.apiClient.GetOldClientConfig(""); resp.Error != nil {
-		return resp.Error
+	if _, _, err := b.apiClient.GetOldClientConfig(""); err != nil {
+		return err
 	}
 
 	// Get channel list
-	_, resp := b.apiClient.GetTeamByName(b.teamName, "")
-	if resp.Error != nil {
-		return resp.Error
+	_, _, err := b.apiClient.GetTeamByName(b.teamName, "")
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 // Check if team exists in Mattermost
 func (b *Mattermost) getTeam() *model.Team {
-	botTeam, resp := b.apiClient.GetTeamByName(b.teamName, "")
-	if resp.Error != nil {
-		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.teamName, resp.Error)
+	botTeam, _, err := b.apiClient.GetTeamByName(b.teamName, "")
+	if err != nil {
+		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.teamName, err)
 	}
 	return botTeam
 }
 
 // Check if BotKube user exists in Mattermost
 func (b *Mattermost) getUser() *model.User {
-	users, resp := b.apiClient.AutocompleteUsersInTeam(b.getTeam().Id, b.botName, 1, "")
-	if resp.Error != nil {
-		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.botName, resp.Error)
+	users, _, err := b.apiClient.AutocompleteUsersInTeam(b.getTeam().Id, b.botName, 1, "")
+	if err != nil {
+		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.botName, err)
 	}
 	return users.Users[0]
 }
@@ -303,12 +308,15 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			if event.EventType() != model.WEBSOCKET_EVENT_POSTED {
+			if event.EventType() != model.WebsocketEventPosted {
 				// ignore
 				continue
 			}
 
-			post := model.PostFromJson(strings.NewReader(event.GetData()["post"].(string)))
+			post, err := postFromEvent(event)
+			if err != nil {
+				continue
+			}
 
 			// Skip if message posted by BotKube or doesn't start with mention
 			if post.UserId == b.getUser().Id {
@@ -340,9 +348,9 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 			ChannelId: channelID,
 		}
 
-		_, resp := b.apiClient.CreatePost(post)
-		if resp.Error != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelID, resp.Error))
+		_, _, err := b.apiClient.CreatePost(post)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelID, err))
 			continue
 		}
 
@@ -381,8 +389,8 @@ func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
 			ChannelId: channelID,
 			Message:   msg,
 		}
-		if _, resp := b.apiClient.CreatePost(post); resp.Error != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while creating a post: %w", resp.Error))
+		if _, _, err := b.apiClient.CreatePost(post); err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while creating a post: %w", err))
 		}
 
 		b.log.Debugf("Message successfully sent to channel %q", channelID)
@@ -413,9 +421,9 @@ func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
 func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for _, channCfg := range channelsCfg {
-		fetchedChannel, resp := client.GetChannelByName(channCfg.Identifier(), teamID, "")
-		if resp.Error != nil {
-			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, resp.Error)
+		fetchedChannel, _, err := client.GetChannelByName(channCfg.Identifier(), teamID, "")
+		if err != nil {
+			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, err)
 		}
 
 		res[fetchedChannel.Id] = channelConfigByID{
@@ -437,4 +445,12 @@ func mattermostBotMentionRegex(botName string) (*regexp.Regexp, error) {
 	}
 
 	return botMentionRegex, nil
+}
+
+func postFromEvent(event *model.WebSocketEvent) (*model.Post, error) {
+	var post *model.Post
+	if err := json.NewDecoder(strings.NewReader(event.GetData()["post"].(string))).Decode(&post); err != nil {
+		return nil, fmt.Errorf("while getting post from event: %w", err)
+	}
+	return post, nil
 }
