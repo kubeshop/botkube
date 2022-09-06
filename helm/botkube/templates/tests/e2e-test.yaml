@@ -36,16 +36,34 @@ spec:
           value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"
         - name: DEPLOYMENT_ENVS_SECONDARY_SLACK_CHANNEL_ID_NAME
           value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_SECONDARY_NAME"
+        - name: DEPLOYMENT_ENVS_DISCORD_ENABLED_NAME
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_ENABLED"
+        - name: DEPLOYMENT_ENVS_DEFAULT_DISCORD_CHANNEL_ID_NAME
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"
+        - name: DEPLOYMENT_ENVS_SECONDARY_DISCORD_CHANNEL_ID_NAME
+          value: "BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"
         - name: CLUSTER_NAME
           value: "{{ .Values.settings.clusterName }}"
         - name: SLACK_BOT_NAME
           value: "{{ .Values.e2eTest.slack.botName }}"
+        - name: DISCORD_BOT_NAME
+          value: "{{ .Values.e2eTest.discord.botName }}"
         - name: SLACK_TESTER_NAME
           value: "{{ .Values.e2eTest.slack.testerName }}"
+        - name: DISCORD_TESTER_NAME
+          value: "{{ .Values.e2eTest.discord.testerName }}"
         - name: SLACK_ADDITIONAL_CONTEXT_MESSAGE
           value: "{{ .Values.e2eTest.slack.additionalContextMessage }}"
+        - name: DISCORD_ADDITIONAL_CONTEXT_MESSAGE
+          value: "{{ .Values.e2eTest.discord.additionalContextMessage }}"
         - name: SLACK_TESTER_APP_TOKEN
           value: "{{ .Values.e2eTest.slack.testerAppToken }}"
+        - name: DISCORD_TESTER_APP_TOKEN
+          value: "{{ .Values.e2eTest.discord.testerAppToken }}"
+        - name: DISCORD_GUILD_ID
+          value: "{{ .Values.e2eTest.discord.guildID }}"
         - name: SLACK_MESSAGE_WAIT_TIMEOUT
           value: "{{ .Values.e2eTest.slack.messageWaitTimeout }}"
+        - name: DISCORD_MESSAGE_WAIT_TIMEOUT
+          value: "{{ .Values.e2eTest.discord.messageWaitTimeout }}"
   restartPolicy: Never
