@@ -12,7 +12,6 @@ on:
         type: string
         description: Version of the next release
         required: true
-        default: main
 
 jobs:
   code-freeze:
