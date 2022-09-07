@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - release/*
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
 
 jobs:
   next-rc:
@@ -12,6 +15,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GH_TOKEN }}
+
       - name: Tag the next release candidate
         id: next-rc
         run: |
