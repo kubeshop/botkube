@@ -37,17 +37,21 @@ type MessageAssertion func(content string) bool
 type AttachmentAssertion func(title, color, msg string) bool
 
 type slackTester struct {
-	cli          *slack.Client
-	cfg          SlackConfig
-	botUserID    string
-	testerUserID string
+	cli           *slack.Client
+	cfg           SlackConfig
+	botUserID     string
+	testerUserID  string
+	channel       *slack.Channel
+	secondChannel *slack.Channel
 }
 
 type discordTester struct {
-	cli          *discordgo.Session
-	cfg          DiscordConfig
-	botUserID    string
-	testerUserID string
+	cli           *discordgo.Session
+	cfg           DiscordConfig
+	botUserID     string
+	testerUserID  string
+	channel       *discordgo.Channel
+	secondChannel *discordgo.Channel
 }
 
 func newSlackTester(slackCfg SlackConfig) (*slackTester, error) {
@@ -66,6 +70,19 @@ func (s *slackTester) InitUsers(t *testing.T) {
 	s.testerUserID = s.FindUserID(t, s.cfg.TesterName)
 }
 
+func (s *slackTester) InitChannels(t *testing.T) []func() {
+	channel, cleanupChannelFn := s.createChannel(t)
+	s.channel = channel
+
+	secondChannel, cleanupSecondChannelFn := s.createChannel(t)
+	s.secondChannel = secondChannel
+
+	return []func(){
+		func() { cleanupChannelFn(t) },
+		func() { cleanupSecondChannelFn(t) },
+	}
+}
+
 func newDiscordTester(discordCfg DiscordConfig) (*discordTester, error) {
 	discordCli, err := discordgo.New("Bot " + discordCfg.TesterAppToken)
 	if err != nil {
@@ -80,7 +97,20 @@ func (d *discordTester) InitUsers(t *testing.T) {
 	d.testerUserID = d.FindUserID(t, d.cfg.TesterName)
 }
 
-func (d *discordTester) CreateChannel(t *testing.T) (*discordgo.Channel, func(t *testing.T)) {
+func (d *discordTester) InitChannels(t *testing.T) []func() {
+	channel, cleanupChannelFn := d.createChannel(t)
+	d.channel = channel
+
+	secondChannel, cleanupSecondChannelFn := d.createChannel(t)
+	d.secondChannel = secondChannel
+
+	return []func(){
+		func() { cleanupChannelFn(t) },
+		func() { cleanupSecondChannelFn(t) },
+	}
+}
+
+func (d *discordTester) createChannel(t *testing.T) (*discordgo.Channel, func(t *testing.T)) {
 	t.Helper()
 	randomID := uuid.New()
 	channelName := fmt.Sprintf("%s-%s", channelNamePrefix, randomID.String())
@@ -275,7 +305,7 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 	return errs.ErrorOrNil()
 }
 
-func (s *slackTester) CreateChannel(t *testing.T) (*slack.Channel, func(t *testing.T)) {
+func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testing.T)) {
 	t.Helper()
 	randomID := uuid.New()
 	channelName := fmt.Sprintf("%s-%s", channelNamePrefix, randomID.String())
