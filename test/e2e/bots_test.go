@@ -58,7 +58,7 @@ type DiscordConfig struct {
 	AdditionalContextMessage string `envconfig:"optional"`
 	GuildID                  string
 	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=15s"`
 }
 
 const (
@@ -84,8 +84,9 @@ func TestSlack(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Setting up test Slack setup...")
-	botUserID := slackTester.FindUserIDForBot(t)
-	testerUserID := slackTester.FindUserIDForTester(t)
+	slackTester.InitUsers(t)
+	//botUserID := slackTester.FindUserIDForBot(t)
+	//testerUserID := slackTester.FindUserIDForTester(t)
 
 	channel, cleanupChannelFn := slackTester.CreateChannel(t)
 	t.Cleanup(func() { cleanupChannelFn(t) })
@@ -98,7 +99,7 @@ func TestSlack(t *testing.T) {
 	}
 	for _, currentChannel := range channels {
 		slackTester.PostInitialMessage(t, currentChannel.Name)
-		slackTester.InviteBotToChannel(t, botUserID, currentChannel.ID)
+		slackTester.InviteBotToChannel(t, currentChannel.ID)
 	}
 
 	t.Log("Patching Deployment with test env variables...")
@@ -111,7 +112,7 @@ func TestSlack(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message on channel...")
-	err = slackTester.WaitForMessagePostedRecentlyEqual(botUserID, channel.ID, fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
+	err = slackTester.WaitForMessagePostedRecentlyEqual(slackTester.botUserID, channel.ID, fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)
 
 	t.Log("Running actual test cases")
@@ -121,7 +122,7 @@ func TestSlack(t *testing.T) {
 		expectedMessage := fmt.Sprintf("pong from cluster '%s'", appCfg.ClusterName)
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
-		err := slackTester.WaitForLastMessageContains(botUserID, channel.ID, expectedMessage)
+		err := slackTester.WaitForLastMessageContains(slackTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -133,7 +134,7 @@ func TestSlack(t *testing.T) {
 			ObjectAnnotationChecker true    Checks if annotations <http://botkube.io/*|botkube.io/*> present in object specs and filters them.`))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
-		err := slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err := slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -195,7 +196,7 @@ func TestSlack(t *testing.T) {
 
 		t.Run("With default cluster", func(t *testing.T) {
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err := slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err := slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -203,7 +204,7 @@ func TestSlack(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -214,7 +215,7 @@ func TestSlack(t *testing.T) {
 			t.Log("Ensuring bot didn't write anything new...")
 			time.Sleep(appCfg.Slack.MessageWaitTimeout)
 			// Same expected message as before
-			err = slackTester.WaitForLastMessageContains(testerUserID, channel.ID, command)
+			err = slackTester.WaitForLastMessageContains(slackTester.testerUserID, channel.ID, command)
 			assert.NoError(t, err)
 		})
 	})
@@ -222,26 +223,26 @@ func TestSlack(t *testing.T) {
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-			assertionFn := func(msg slack.Message) bool {
-				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-					strings.Contains(msg.Text, "botkube")
+			assertionFn := func(msg string) bool {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					strings.Contains(msg, "botkube")
 			}
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+			err = slackTester.WaitForMessagePosted(slackTester.botUserID, channel.ID, 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
-			assertionFn := func(msg slack.Message) bool {
-				return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-					strings.Contains(msg.Text, "kube-root-ca.crt") &&
-					strings.Contains(msg.Text, "botkube-global-config")
+			assertionFn := func(msg string) bool {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					strings.Contains(msg, "kube-root-ca.crt") &&
+					strings.Contains(msg, "botkube-global-config")
 			}
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+			err = slackTester.WaitForMessagePosted(slackTester.botUserID, channel.ID, 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
@@ -250,7 +251,7 @@ func TestSlack(t *testing.T) {
 			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -259,7 +260,7 @@ func TestSlack(t *testing.T) {
 			expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -274,7 +275,7 @@ func TestSlack(t *testing.T) {
 				exit status 1`, appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -283,20 +284,20 @@ func TestSlack(t *testing.T) {
 			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
 			slackTester.PostMessageToBot(t, channel.Name, command)
-			err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
 				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-				assertionFn := func(msg slack.Message) bool {
-					return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-						strings.Contains(msg.Text, "deployment.apps/botkube condition met")
+				assertionFn := func(msg string) bool {
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg, "deployment.apps/botkube condition met")
 				}
 
 				slackTester.PostMessageToBot(t, channel.Name, command)
-				err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				err = slackTester.WaitForMessagePosted(slackTester.botUserID, channel.ID, 1, assertionFn)
 				assert.NoError(t, err)
 			})
 
@@ -305,7 +306,7 @@ func TestSlack(t *testing.T) {
 				expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
 
 				slackTester.PostMessageToBot(t, channel.Name, command)
-				err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 				assert.NoError(t, err)
 			})
 
@@ -314,21 +315,21 @@ func TestSlack(t *testing.T) {
 				expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
 				slackTester.PostMessageToBot(t, channel.Name, command)
-				err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 				assert.NoError(t, err)
 			})
 
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
 				command := "get deploy -A"
-				assertionFn := func(msg slack.Message) bool {
-					return strings.Contains(msg.Text, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-						strings.Contains(msg.Text, "local-path-provisioner") &&
-						strings.Contains(msg.Text, "coredns") &&
-						strings.Contains(msg.Text, "botkube")
+				assertionFn := func(msg string) bool {
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg, "local-path-provisioner") &&
+						strings.Contains(msg, "coredns") &&
+						strings.Contains(msg, "botkube")
 				}
 
 				slackTester.PostMessageToBot(t, channel.Name, command)
-				err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				err = slackTester.WaitForMessagePosted(slackTester.botUserID, channel.ID, 1, assertionFn)
 				assert.NoError(t, err)
 			})
 		})
@@ -355,21 +356,18 @@ func TestSlack(t *testing.T) {
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		assertionFn := func(msg slack.Message) bool {
-			return doesSlackMessageContainExactlyOneAttachment(
-				msg,
-				"v1/configmaps created",
-				"2eb886",
-				fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachAssertionFn := func(title, color, msg string) bool {
+			return title == "v1/configmaps created" &&
+				color == "2eb886" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagePostedWithAttachment(slackTester.botUserID, channel.ID, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Expecting no bot message in second channel...")
 		expectedMessage := fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		err = slackTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, secondChannel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap...")
@@ -380,15 +378,12 @@ func TestSlack(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
-		assertionFn = func(msg slack.Message) bool {
-			return doesSlackMessageContainExactlyOneAttachment(
-				msg,
-				"v1/configmaps updated",
-				"daa038",
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachAssertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "daa038" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = slackTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
+		err = slackTester.WaitForMessagesPostedOnChannelsWithAttachment(slackTester.botUserID, channelIDs, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier...")
@@ -396,21 +391,21 @@ func TestSlack(t *testing.T) {
 		expectedMessage = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 
 		slackTester.PostMessageToBot(t, channel.Name, command)
-		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
 		command = "notifier status"
 		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, secondChannel.Name, command)
-		err = slackTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, secondChannel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from first channel...")
 		command = "notifier status"
 		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, channel.Name, command)
-		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Updating ConfigMap once again...")
@@ -423,25 +418,22 @@ func TestSlack(t *testing.T) {
 		t.Log("Ensuring bot didn't write anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
-		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message on second channel...")
-		assertionFn = func(msg slack.Message) bool {
-			return doesSlackMessageContainExactlyOneAttachment(
-				msg,
-				"v1/configmaps updated",
-				"daa038",
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachAssertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "daa038" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagePostedWithAttachment(slackTester.botUserID, secondChannel.ID, attachAssertionFn)
 
 		t.Log("Starting notifier")
 		command = "notifier start"
 		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		slackTester.PostMessageToBot(t, channel.Name, command)
-		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Creating and deleting ignored ConfigMap")
@@ -461,7 +453,7 @@ func TestSlack(t *testing.T) {
 
 		t.Log("Ensuring bot didn't write anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		err = slackTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = slackTester.WaitForLastMessageEqual(slackTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
@@ -470,28 +462,22 @@ func TestSlack(t *testing.T) {
 		cfgMapAlreadyDeleted = true
 
 		t.Log("Expecting bot message on first channel...")
-		assertionFn = func(msg slack.Message) bool {
-			return doesSlackMessageContainExactlyOneAttachment(
-				msg,
-				"v1/configmaps deleted",
-				"a30200",
-				fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachAssertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps deleted" &&
+				color == "a30200" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagePostedWithAttachment(slackTester.botUserID, channel.ID, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't write anything new on second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		assertionFn = func(msg slack.Message) bool {
-			return doesSlackMessageContainExactlyOneAttachment(
-				msg,
-				"v1/configmaps updated",
-				"daa038",
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachAssertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "daa038" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagePostedWithAttachment(slackTester.botUserID, secondChannel.ID, attachAssertionFn)
 		require.NoError(t, err)
 	})
 
@@ -517,25 +503,13 @@ func TestSlack(t *testing.T) {
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot message...")
-		assertionFn := func(msg slack.Message) bool {
-			if len(msg.Attachments) != 1 {
-				return false
-			}
-
-			attachment := msg.Attachments[0]
-			title := attachment.Title
-
-			if len(attachment.Fields) != 1 {
-				return false
-			}
-
-			fieldMessage := attachment.Fields[0].Value
+		assertionFn := func(title, color, msg string) bool {
 			return title == "v1/pods created" &&
-				strings.Contains(fieldMessage, "Recommendations:") &&
-				strings.Contains(fieldMessage, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
-				strings.Contains(fieldMessage, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
+				strings.Contains(msg, "Recommendations:") &&
+				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
+				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
 		}
-		err = slackTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = slackTester.WaitForMessagePostedWithAttachment(slackTester.botUserID, channel.ID, assertionFn)
 		require.NoError(t, err)
 	})
 }
@@ -556,10 +530,8 @@ func TestDiscord(t *testing.T) {
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 
-	t.Log("Setting up test Slack setup...")
-	botUserID := discordTester.FindUserIDForBot(t)
-	testerUserID := discordTester.FindUserIDForTester(t)
-	t.Logf("Just loaded botUserID...: %+v", botUserID)
+	t.Log("Setting up test Discord setup...")
+	discordTester.InitUsers(t)
 
 	channel, cleanupChannelFn := discordTester.CreateChannel(t)
 	t.Cleanup(func() { cleanupChannelFn(t) })
@@ -573,7 +545,7 @@ func TestDiscord(t *testing.T) {
 
 	for _, currentChannel := range channels {
 		discordTester.PostInitialMessage(t, currentChannel.ID)
-		discordTester.InviteBotToChannel(t, botUserID, currentChannel.ID)
+		discordTester.InviteBotToChannel(t, currentChannel.ID)
 	}
 
 	t.Log("Patching Deployment with test env variables...")
@@ -586,7 +558,7 @@ func TestDiscord(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message on channel from user")
-	err = discordTester.WaitForMessagePostedRecentlyEqual(botUserID, channel.ID, fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
+	err = discordTester.WaitForMessagePostedRecentlyEqual(discordTester.botUserID, channel.ID, fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)
 
 	t.Log("Running actual test cases")
@@ -596,8 +568,8 @@ func TestDiscord(t *testing.T) {
 		expectedMessage := fmt.Sprintf("pong from cluster '%s'", appCfg.ClusterName)
 
 		//discordTester.PostMessageToBot(t, channel.ID, command)
-		discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-		err := discordTester.WaitForLastMessageContains(botUserID, channel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, channel.ID, command)
+		err := discordTester.WaitForLastMessageContains(discordTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -608,8 +580,8 @@ func TestDiscord(t *testing.T) {
 			NodeEventsChecker       true    Sends notifications on node level critical events.
 			ObjectAnnotationChecker true    Checks if annotations botkube.io/* present in object specs and filters them.`))
 
-		discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-		err := discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, channel.ID, command)
+		err := discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -670,27 +642,27 @@ func TestDiscord(t *testing.T) {
 				      restrictAccess: false`))
 
 		t.Run("With default cluster", func(t *testing.T) {
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err := discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err := discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("With custom cluster name", func(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "commands list --cluster-name non-existing"
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
+			discordTester.PostMessageToBot(t, channel.ID, command)
 			t.Log("Ensuring bot didn't write anything new...")
 			time.Sleep(appCfg.Discord.MessageWaitTimeout)
 			// Same expected message as before
-			err = discordTester.WaitForLastMessageContains(testerUserID, channel.ID, command)
+			err = discordTester.WaitForLastMessageContains(discordTester.testerUserID, channel.ID, command)
 			assert.NoError(t, err)
 		})
 	})
@@ -698,26 +670,26 @@ func TestDiscord(t *testing.T) {
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-			assertionFn := func(msg *discordgo.Message) bool {
-				return strings.Contains(msg.Content, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-					strings.Contains(msg.Content, "botkube")
+			assertionFn := func(msg string) bool {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					strings.Contains(msg, "botkube")
 			}
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForMessagePosted(discordTester.botUserID, channel.ID, 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
-			assertionFn := func(msg *discordgo.Message) bool {
-				return strings.Contains(msg.Content, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-					strings.Contains(msg.Content, "kube-root-ca.crt") &&
-					strings.Contains(msg.Content, "botkube-global-config")
+			assertionFn := func(msg string) bool {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					strings.Contains(msg, "kube-root-ca.crt") &&
+					strings.Contains(msg, "botkube-global-config")
 			}
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForMessagePosted(discordTester.botUserID, channel.ID, 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
@@ -725,8 +697,8 @@ func TestDiscord(t *testing.T) {
 			command := "get ingress"
 			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -734,8 +706,8 @@ func TestDiscord(t *testing.T) {
 			command := "unknown"
 			expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -743,8 +715,8 @@ func TestDiscord(t *testing.T) {
 			command := "get"
 			expectedMessage := codeBlock(fmt.Sprintf("Cluster: %s\nYou must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1", appCfg.ClusterName))
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -752,21 +724,21 @@ func TestDiscord(t *testing.T) {
 			command := "get po --namespace team-b"
 			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
-			discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-			err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+			discordTester.PostMessageToBot(t, channel.ID, command)
+			err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
 				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-				assertionFn := func(msg *discordgo.Message) bool {
-					return strings.Contains(msg.Content, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-						strings.Contains(msg.Content, "deployment.apps/botkube condition met")
+				assertionFn := func(msg string) bool {
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg, "deployment.apps/botkube condition met")
 				}
 
-				discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-				err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				discordTester.PostMessageToBot(t, channel.ID, command)
+				err = discordTester.WaitForMessagePosted(discordTester.botUserID, channel.ID, 1, assertionFn)
 				assert.NoError(t, err)
 			})
 
@@ -774,8 +746,8 @@ func TestDiscord(t *testing.T) {
 				command := "exec"
 				expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
 
-				discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-				err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				discordTester.PostMessageToBot(t, channel.ID, command)
+				err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 				assert.NoError(t, err)
 			})
 
@@ -783,22 +755,22 @@ func TestDiscord(t *testing.T) {
 				command := "get pods -A"
 				expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 
-				discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-				err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+				discordTester.PostMessageToBot(t, channel.ID, command)
+				err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 				assert.NoError(t, err)
 			})
 
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
 				command := "get deploy -A"
-				assertionFn := func(msg *discordgo.Message) bool {
-					return strings.Contains(msg.Content, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
-						strings.Contains(msg.Content, "local-path-provisioner") &&
-						strings.Contains(msg.Content, "coredns") &&
-						strings.Contains(msg.Content, "botkube")
+				assertionFn := func(msg string) bool {
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+						strings.Contains(msg, "local-path-provisioner") &&
+						strings.Contains(msg, "coredns") &&
+						strings.Contains(msg, "botkube")
 				}
 
-				discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-				err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+				discordTester.PostMessageToBot(t, channel.ID, command)
+				err = discordTester.WaitForMessagePosted(discordTester.botUserID, channel.ID, 1, assertionFn)
 				assert.NoError(t, err)
 			})
 		})
@@ -825,21 +797,18 @@ func TestDiscord(t *testing.T) {
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		assertionFn := func(msg *discordgo.Message) bool {
-			return doesDiscordMessageContainExactlyOneEmbed(
-				msg,
-				"v1/configmaps created",
-				8311585,
-				fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		assertionFn := func(title, color, msg string) bool {
+			return title == "v1/configmaps created" &&
+				color == "8311585" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = discordTester.WaitForMessagePostedWithAttachment(discordTester.botUserID, channel.ID, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Expecting no bot message in second channel...")
 		expectedMessage := fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
 		time.Sleep(appCfg.Discord.MessageWaitTimeout)
-		err = discordTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, secondChannel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap...")
@@ -850,37 +819,34 @@ func TestDiscord(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
-		assertionFn = func(msg *discordgo.Message) bool {
-			return doesDiscordMessageContainExactlyOneEmbed(
-				msg,
-				"v1/configmaps updated",
-				16312092,
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		assertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "16312092" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = discordTester.WaitForMessagesPostedOnChannels(botUserID, channelIDs, 1, assertionFn)
+		err = discordTester.WaitForMessagesPostedOnChannelsWithAttachment(discordTester.botUserID, channelIDs, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier...")
 		command := "notifier stop"
 		expectedMessage = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 
-		discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-		err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, channel.ID, command)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
 		command = "notifier status"
 		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
-		discordTester.PostMessageToBot(t, botUserID, secondChannel.ID, command)
-		err = discordTester.WaitForLastMessageEqual(botUserID, secondChannel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, secondChannel.ID, command)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, secondChannel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from first channel...")
 		command = "notifier status"
 		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
-		discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-		err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, channel.ID, command)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Updating ConfigMap once again...")
@@ -893,26 +859,23 @@ func TestDiscord(t *testing.T) {
 		t.Log("Ensuring bot didn't write anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
-		err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message on second channel...")
-		assertionFn = func(msg *discordgo.Message) bool {
-			return doesDiscordMessageContainExactlyOneEmbed(
-				msg,
-				"v1/configmaps updated",
-				16312092,
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		attachmentAssertionFn := func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "16312092" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = discordTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
+		err = discordTester.WaitForMessagePostedWithAttachment(discordTester.botUserID, secondChannel.ID, attachmentAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Starting notifier")
 		command = "notifier start"
 		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
-		discordTester.PostMessageToBot(t, botUserID, channel.ID, command)
-		err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		discordTester.PostMessageToBot(t, channel.ID, command)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Creating and deleting ignored ConfigMap")
@@ -932,7 +895,7 @@ func TestDiscord(t *testing.T) {
 
 		t.Log("Ensuring bot didn't write anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		err = discordTester.WaitForLastMessageEqual(botUserID, channel.ID, expectedMessage)
+		err = discordTester.WaitForLastMessageEqual(discordTester.botUserID, channel.ID, expectedMessage)
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
@@ -941,28 +904,22 @@ func TestDiscord(t *testing.T) {
 		cfgMapAlreadyDeleted = true
 
 		t.Log("Expecting bot message on first channel...")
-		assertionFn = func(msg *discordgo.Message) bool {
-			return doesDiscordMessageContainExactlyOneEmbed(
-				msg,
-				"v1/configmaps deleted",
-				13632027,
-				fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		assertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps deleted" &&
+				color == "13632027" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = discordTester.WaitForMessagePostedWithAttachment(discordTester.botUserID, channel.ID, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't write anything new on second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		assertionFn = func(msg *discordgo.Message) bool {
-			return doesDiscordMessageContainExactlyOneEmbed(
-				msg,
-				"v1/configmaps updated",
-				16312092,
-				fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName),
-			)
+		assertionFn = func(title, color, msg string) bool {
+			return title == "v1/configmaps updated" &&
+				color == "16312092" &&
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
-		err = discordTester.WaitForMessagePosted(botUserID, secondChannel.ID, 1, assertionFn)
+		err = discordTester.WaitForMessagePostedWithAttachment(discordTester.botUserID, secondChannel.ID, assertionFn)
 		require.NoError(t, err)
 	})
 
@@ -988,58 +945,19 @@ func TestDiscord(t *testing.T) {
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot message...")
-		assertionFn := func(msg *discordgo.Message) bool {
-			if len(msg.Embeds) != 1 {
-				return false
-			}
-
-			embed := msg.Embeds[0]
-			title := embed.Title
-			fieldMessage := embed.Description
-
+		assertionFn := func(title, _, msg string) bool {
 			return title == "v1/pods created" &&
-				strings.Contains(fieldMessage, "Recommendations:") &&
-				strings.Contains(fieldMessage, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
-				strings.Contains(fieldMessage, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
+				strings.Contains(msg, "Recommendations:") &&
+				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
+				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
 		}
-		err = discordTester.WaitForMessagePosted(botUserID, channel.ID, 1, assertionFn)
+		err = discordTester.WaitForMessagePostedWithAttachment(discordTester.botUserID, channel.ID, assertionFn)
 		require.NoError(t, err)
 	})
 }
 
 func codeBlock(in string) string {
 	return fmt.Sprintf("```\n%s\n```", in)
-}
-
-func doesSlackMessageContainExactlyOneAttachment(msg slack.Message, expectedTitle, expectedColor, expectedFieldMessage string) bool {
-	if len(msg.Attachments) != 1 {
-		return false
-	}
-
-	attachment := msg.Attachments[0]
-	title := attachment.Title
-	color := attachment.Color
-
-	if len(attachment.Fields) != 1 {
-		return false
-	}
-
-	fieldMessage := attachment.Fields[0].Value
-
-	return title == expectedTitle &&
-		color == expectedColor &&
-		fieldMessage == expectedFieldMessage
-}
-
-func doesDiscordMessageContainExactlyOneEmbed(msg *discordgo.Message, expectedTitle string, expectedColor int, expectedFieldMessage string) bool {
-	if len(msg.Embeds) != 1 {
-		return false
-	}
-
-	embed := msg.Embeds[0]
-	return embed.Title == expectedTitle &&
-		embed.Color == expectedColor &&
-		embed.Description == expectedFieldMessage
 }
 
 func cleanupCreatedCfgMapIfShould(t *testing.T, cfgMapCli corev1.ConfigMapInterface, name string, cfgMapAlreadyDeleted *bool) {
