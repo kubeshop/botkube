@@ -1,0 +1,51 @@
+name: Build
+on:
+  pull_request:
+  push:
+    branches:
+      - release/*
+      - main
+    tags:
+      - *
+
+env:
+  HELM_VERSION: v3.9.0
+  GOLANGCI_LINT_VERSION: v1.48.0
+  GOLANGCI_LINT_TIMEOUT: 5m
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.from }}
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=${{ env.GOLANGCI_LINT_TIMEOUT }}
+      - name: Verify Go modules
+        run: go mod verify
+        if: always()
+      - name: Run Go import formatting
+        run: make go-import-fmt
+        if: always()
+      - name: Detect git changes
+        if: always()
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo -e '❌ \033[0;31m. Run 'make lint-fix'.\033[0m'
+            git diff --color
+            exit 1
+          else
+            echo '✔ No issues detected. Have a nice day :-)'
+          fi
+
