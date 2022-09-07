@@ -20,7 +20,7 @@ jobs:
         run: |
           git config user.name "${{ env.git-user }}"
           git config user.email ${{ env.git-email }}
-          
+
       - name: Tag the next release candidate
         id: next-rc
         run: |
@@ -46,16 +46,16 @@ jobs:
           git push --tags
           
       - name: Create a pull request
-        if: ${{ !endsWith(steps.tag-next-rc.outputs.new-rc-version, 'rc.1') }}
+        if: ${{ !endsWith(steps.next-rc.outputs.new-rc-version, 'rc.1') }}
         env:
           GITHUB_TOKEN: ${{ secrets.gh-token }}
         run: |
-          git checkout -b backport/${{ steps.tag-next-rc.outputs.new-rc-version }}
-          git push origin backport/${{ steps.tag-next-rc.outputs.new-rc-version }}
+          git checkout -b backport/${{ steps.next-rc.outputs.new-rc-version }}
+          git push origin backport/${{ steps.next-rc.outputs.new-rc-version }}
 
           gh pr create \
-            --title "${{ steps.tag-next-rc.outputs.commit-msg }} [backport of: ${{ steps.tag-next-rc.outputs.new-rc-version }}"]  \
-             --head "backport/${{ steps.tag-next-rc.outputs.new-rc-version }}" \
+            --title "${{ steps.next-rc.outputs.commit-msg }} [backport of: ${{ steps.next-rc.outputs.new-rc-version }}"]  \
+             --head "backport/${{ steps.next-rc.outputs.new-rc-version }}" \
              --base main \
              --label release-automation \
              --body "This Pull Request is created by release automation to backport a task to main branch. Feel free to review and merge it."
