@@ -6,7 +6,7 @@ on:
       - release/*
       - main
     tags:
-      - *
+      - '*'
 
 env:
   HELM_VERSION: v3.9.0
