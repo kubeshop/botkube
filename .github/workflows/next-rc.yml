@@ -1,0 +1,52 @@
+name: Prepare next release candidate
+
+on:
+  push:
+    branches:
+      - release/*
+
+jobs:
+  next-rc:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Tag the next release candidate
+        id: next-rc
+        run: |
+          COMMIT_MSG=$(git show -s --format=%s)
+          CURRENT_BRANCH=$(git branch --show-current)
+          BASE_TAG=$(echo ${CURRENT_BRANCH##*/})
+          REMOTE_TAG=$(git ls-remote --tags origin $BASE_TAG)
+          if [ -n "$REMOTE_TAG" ]; then
+              echo "${BASE_TAG} is already in remote, exiting..."
+              exit 1
+          fi
+          
+          LATEST_RELEASE_TAG=$(git ls-remote --tags origin | grep "refs/tags/${BASE_TAG}" | grep -v "\^{}" | awk -F \. '{print $4}' | sort -nr | head -1)
+          NEW_RELEASE_REVISION=$(( $LATEST_RELEASE_TAG + 1 ))
+          NEW_RELEASE_VERSION="${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
+          echo "Latest release-candidate tag found: ${BASE_TAG}-rc.${LATEST_RELEASE_TAG}, creating: ${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
+
+          echo ::set-output name=release-version::$BASE_TAG
+          echo ::set-output name=new-rc-version::$NEW_RELEASE_VERSION
+          echo ::set-output name=commit-msg::$COMMIT_MSG
+
+          git tag -a $NEW_RELEASE_VERSION -m "${NEW_RELEASE_VERSION}"
+          git push --tags
+          
+      - name: Create a pull request
+        if: ${{ !endsWith(steps.tag-next-rc.outputs.new-rc-version, 'rc.1') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.gh-token }}
+        run: |
+          git checkout -b backport/${{ steps.tag-next-rc.outputs.new-rc-version }}
+          git push origin backport/${{ steps.tag-next-rc.outputs.new-rc-version }}
+
+          gh pr create \
+            --title "${{ steps.tag-next-rc.outputs.commit-msg }} [backport of: ${{ steps.tag-next-rc.outputs.new-rc-version }}"]  \
+             --head "backport/${{ steps.tag-next-rc.outputs.new-rc-version }}" \
+             --base main \
+             --label release-automation \
+             --body "This Pull Request is created by release automation to backport a task to main branch. Feel free to review and merge it."
