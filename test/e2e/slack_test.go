@@ -20,6 +20,8 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 )
 
@@ -45,7 +47,7 @@ type SlackConfig struct {
 	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
 }
 
 const (
@@ -98,6 +100,8 @@ func TestSlack(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message on channel...")
+	err = slackTester.WaitForInteractiveMessagePostedRecentlyEqual(botUserID, channel.ID, interactive.Help(config.SlackCommPlatformIntegration, appCfg.ClusterName, fmt.Sprintf("<@%s>", botUserID)))
+	require.NoError(t, err)
 	err = slackTester.WaitForMessagePostedRecentlyEqual(botUserID, channel.ID, fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)
 

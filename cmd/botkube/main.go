@@ -28,6 +28,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -152,7 +153,10 @@ func run() error {
 	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
 	commCfg := conf.Communications
-	var notifiers []controller.Notifier
+	var (
+		notifiers []controller.Notifier
+		bots      []interactive.Bot
+	)
 
 	// TODO: Current limitation: Communication platform config should be separate inside every group:
 	//    For example, if in both communication groups there's a Slack configuration pointing to the same workspace,
@@ -177,6 +181,7 @@ func run() error {
 				return reportFatalError("while creating Slack bot", err)
 			}
 			notifiers = append(notifiers, sb)
+			bots = append(bots, sb)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return sb.Start(ctx)
@@ -189,6 +194,7 @@ func run() error {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
 			notifiers = append(notifiers, mb)
+			bots = append(bots, mb)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return mb.Start(ctx)
@@ -201,6 +207,7 @@ func run() error {
 				return reportFatalError("while creating Teams bot", err)
 			}
 			notifiers = append(notifiers, tb)
+			bots = append(bots, tb)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return tb.Start(ctx)
@@ -213,6 +220,7 @@ func run() error {
 				return reportFatalError("while creating Discord bot", err)
 			}
 			notifiers = append(notifiers, db)
+			bots = append(bots, db)
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
 				return db.Start(ctx)
@@ -236,6 +244,12 @@ func run() error {
 
 			notifiers = append(notifiers, wh)
 		}
+	}
+
+	// Send help message
+	err = interactive.SendHelp(ctx, conf.Settings.ClusterName, bots)
+	if err != nil {
+		return fmt.Errorf("while sending initial help message: %w", err)
 	}
 
 	// Start upgrade checker

@@ -276,6 +276,11 @@ func (dm *discordMessage) Send() {
 	}
 }
 
+// BotName returns the Bot name.
+func (b *Discord) BotName() string {
+	return fmt.Sprintf("<@%s>", b.botID)
+}
+
 func (b *Discord) getChannels() map[string]channelConfigByID {
 	b.channelsMutex.RLock()
 	defer b.channelsMutex.RUnlock()

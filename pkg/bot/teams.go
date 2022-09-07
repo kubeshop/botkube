@@ -67,7 +67,7 @@ type Teams struct {
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
 
-	BotName      string
+	botName      string
 	AppID        string
 	AppPassword  string
 	MessagePath  string
@@ -100,7 +100,7 @@ func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, exec
 		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
-		BotName:         cfg.BotName,
+		botName:         cfg.BotName,
 		ClusterName:     clusterName,
 		AppID:           cfg.AppID,
 		AppPassword:     cfg.AppPassword,
@@ -406,6 +406,11 @@ func (b *Teams) SetNotificationsEnabled(enabled bool, ref schema.ConversationRef
 	return nil
 }
 
+// BotName returns the Bot name.
+func (b *Teams) BotName() string {
+	return fmt.Sprintf("<at>%s</at>", b.botName)
+}
+
 func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.ConversationReference, card map[string]interface{}) error {
 	err := b.Adapter.ProactiveMessage(ctx, convRef, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
@@ -494,8 +499,8 @@ func (n *teamsNotificationManager) SetNotificationsEnabled(_ string, enabled boo
 	return n.b.SetNotificationsEnabled(enabled, n.ref)
 }
 
-func teamsBotMentionRegex(BotName string) (*regexp.Regexp, error) {
-	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, BotName))
+func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, botName))
 	if err != nil {
 		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
 	}

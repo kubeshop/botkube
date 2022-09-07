@@ -15,7 +15,7 @@ const (
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
-	IntegrationName() config.CommPlatformIntegration
+	BotName() string
 	controller.Notifier
 }
 

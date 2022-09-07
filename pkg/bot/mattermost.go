@@ -398,6 +398,11 @@ func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
 	return errs.ErrorOrNil()
 }
 
+// BotName returns the Bot name.
+func (b *Mattermost) BotName() string {
+	return fmt.Sprintf("@%s", b.botName)
+}
+
 func (b *Mattermost) findAndTrimBotMention(msg string) (string, bool) {
 	if !b.botMentionRegex.MatchString(msg) {
 		return "", false
