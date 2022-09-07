@@ -19,6 +19,9 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
