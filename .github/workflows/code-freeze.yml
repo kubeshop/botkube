@@ -27,10 +27,13 @@ jobs:
           ref: ${{ inputs.from }}
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Create a release branch
+      - name: Set git 'user.name' and 'user.email'
         run: |
           git config user.name "${{ env.git-user }}"
-          git config user.email "${{ env.git-email }}"
+          git config user.email ${{ env.git-email }}
+
+      - name: Create a release branch
+        run: |
           git checkout -b release/${{ inputs.version }}
 
       - name : Push new branch
