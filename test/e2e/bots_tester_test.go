@@ -36,13 +36,96 @@ var structDumper = litter.Options{
 type MessageAssertion func(content string) bool
 type AttachmentAssertion func(title, color, msg string) bool
 
+type Channel interface {
+	ID() string
+	Name() string
+	Identifier() string
+}
+
+type SlackChannel struct {
+	*slack.Channel
+}
+
+func (s *SlackChannel) ID() string {
+	return s.Channel.ID
+}
+func (s *SlackChannel) Name() string {
+	return s.Channel.Name
+}
+func (s *SlackChannel) Identifier() string {
+	return s.Channel.Name
+}
+
+type DiscordChannel struct {
+	*discordgo.Channel
+}
+
+func (s *DiscordChannel) ID() string {
+	return s.Channel.ID
+}
+func (s *DiscordChannel) Name() string {
+	return s.Channel.Name
+}
+func (s *DiscordChannel) Identifier() string {
+	return s.Channel.ID
+}
+
+// BotType to instrument
+type BotType string
+
+const (
+	// CreateEvent when resource is created
+	SlackBot BotType = "slack"
+	// UpdateEvent when resource is updated
+	DiscordBot BotType = "discord"
+)
+
+type BotDriver interface {
+	Type() BotType
+	InitUsers(t *testing.T)
+	InitChannels(t *testing.T) []func()
+	PostInitialMessage(t *testing.T, channel string)
+	PostMessageToBot(t *testing.T, channel, command string)
+	InviteBotToChannel(t *testing.T, channel string)
+	WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error
+	WaitForLastMessageContains(userID, channel, expectedMsgSubstring string) error
+	WaitForLastMessageEqual(userID, channel, expectedMsg string) error
+	WaitForMessagePosted(userID, channel string, limitMessages int, assertFn MessageAssertion) error
+	WaitForMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
+	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
+	Channel() Channel
+	SecondChannel() Channel
+	BotUserID() string
+	TesterUserID() string
+}
+
 type slackTester struct {
 	cli           *slack.Client
 	cfg           SlackConfig
 	botUserID     string
 	testerUserID  string
-	channel       *slack.Channel
-	secondChannel *slack.Channel
+	channel       Channel
+	secondChannel Channel
+}
+
+func (s *slackTester) Type() BotType {
+	return SlackBot
+}
+
+func (s *slackTester) BotUserID() string {
+	return s.botUserID
+}
+
+func (s *slackTester) TesterUserID() string {
+	return s.testerUserID
+}
+
+func (s *slackTester) Channel() Channel {
+	return s.channel
+}
+
+func (s *slackTester) SecondChannel() Channel {
+	return s.secondChannel
 }
 
 type discordTester struct {
@@ -50,11 +133,31 @@ type discordTester struct {
 	cfg           DiscordConfig
 	botUserID     string
 	testerUserID  string
-	channel       *discordgo.Channel
-	secondChannel *discordgo.Channel
+	channel       Channel
+	secondChannel Channel
 }
 
-func newSlackTester(slackCfg SlackConfig) (*slackTester, error) {
+func (d *discordTester) Type() BotType {
+	return DiscordBot
+}
+
+func (d *discordTester) BotUserID() string {
+	return d.botUserID
+}
+
+func (d *discordTester) TesterUserID() string {
+	return d.testerUserID
+}
+
+func (d *discordTester) Channel() Channel {
+	return d.channel
+}
+
+func (d *discordTester) SecondChannel() Channel {
+	return d.secondChannel
+}
+
+func newSlackTester(slackCfg SlackConfig) (BotDriver, error) {
 	slackCli := slack.New(slackCfg.TesterAppToken)
 	_, err := slackCli.AuthTest()
 	if err != nil {
@@ -66,16 +169,16 @@ func newSlackTester(slackCfg SlackConfig) (*slackTester, error) {
 
 func (s *slackTester) InitUsers(t *testing.T) {
 	t.Helper()
-	s.botUserID = s.FindUserID(t, s.cfg.BotName)
-	s.testerUserID = s.FindUserID(t, s.cfg.TesterName)
+	s.botUserID = s.findUserID(t, s.cfg.BotName)
+	s.testerUserID = s.findUserID(t, s.cfg.TesterName)
 }
 
 func (s *slackTester) InitChannels(t *testing.T) []func() {
 	channel, cleanupChannelFn := s.createChannel(t)
-	s.channel = channel
+	s.channel = &SlackChannel{Channel: channel}
 
 	secondChannel, cleanupSecondChannelFn := s.createChannel(t)
-	s.secondChannel = secondChannel
+	s.secondChannel = &SlackChannel{Channel: secondChannel}
 
 	return []func(){
 		func() { cleanupChannelFn(t) },
@@ -83,7 +186,7 @@ func (s *slackTester) InitChannels(t *testing.T) []func() {
 	}
 }
 
-func newDiscordTester(discordCfg DiscordConfig) (*discordTester, error) {
+func newDiscordTester(discordCfg DiscordConfig) (BotDriver, error) {
 	discordCli, err := discordgo.New("Bot " + discordCfg.TesterAppToken)
 	if err != nil {
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
@@ -93,16 +196,16 @@ func newDiscordTester(discordCfg DiscordConfig) (*discordTester, error) {
 
 func (d *discordTester) InitUsers(t *testing.T) {
 	t.Helper()
-	d.botUserID = d.FindUserID(t, d.cfg.BotName)
-	d.testerUserID = d.FindUserID(t, d.cfg.TesterName)
+	d.botUserID = d.findUserID(t, d.cfg.BotName)
+	d.testerUserID = d.findUserID(t, d.cfg.TesterName)
 }
 
 func (d *discordTester) InitChannels(t *testing.T) []func() {
 	channel, cleanupChannelFn := d.createChannel(t)
-	d.channel = channel
+	d.channel = &DiscordChannel{Channel: channel}
 
 	secondChannel, cleanupSecondChannelFn := d.createChannel(t)
-	d.secondChannel = secondChannel
+	d.secondChannel = &DiscordChannel{Channel: secondChannel}
 
 	return []func(){
 		func() { cleanupChannelFn(t) },
@@ -151,15 +254,7 @@ func (d *discordTester) PostMessageToBot(t *testing.T, channel, command string) 
 	require.NoError(t, err)
 }
 
-func (d *discordTester) FindUserIDForBot(t *testing.T) string {
-	return d.FindUserID(t, d.cfg.BotName)
-}
-
-func (d *discordTester) FindUserIDForTester(t *testing.T) string {
-	return d.FindUserID(t, d.cfg.TesterName)
-}
-
-func (d *discordTester) FindUserID(t *testing.T, name string) string {
+func (d *discordTester) findUserID(t *testing.T, name string) string {
 	t.Log("Getting users...")
 	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 5)
 	require.NoError(t, err)
@@ -349,15 +444,7 @@ func (s *slackTester) PostMessageToBot(t *testing.T, channel, command string) {
 	require.NoError(t, err)
 }
 
-func (s *slackTester) FindUserIDForBot(t *testing.T) string {
-	return s.FindUserID(t, s.cfg.BotName)
-}
-
-func (s *slackTester) FindUserIDForTester(t *testing.T) string {
-	return s.FindUserID(t, s.cfg.TesterName)
-}
-
-func (s *slackTester) FindUserID(t *testing.T, name string) string {
+func (s *slackTester) findUserID(t *testing.T, name string) string {
 	t.Log("Getting users...")
 	res, err := s.cli.GetUsers()
 	require.NoError(t, err)

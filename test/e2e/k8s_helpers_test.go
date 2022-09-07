@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -21,7 +19,7 @@ import (
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 )
 
-func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, slackChannels map[string]*slack.Channel, discordChannels map[string]*discordgo.Channel) func(t *testing.T) {
+func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, botType BotType, channels map[string]Channel) func(t *testing.T) {
 	t.Helper()
 
 	deployment, err := deployNsCli.Get(context.Background(), appCfg.Deployment.Name, metav1.GetOptions{})
@@ -53,21 +51,21 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 
 	var newEnvs []v1.EnvVar
 
-	if len(slackChannels) > 0 {
+	if len(channels) > 0 && botType == SlackBot {
 		slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: slackEnabledEnvName, Value: strconv.FormatBool(true)})
 
-		for envName, slackChannel := range slackChannels {
-			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: slackChannel.Name})
+		for envName, channel := range channels {
+			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: channel.Identifier()})
 		}
 	}
 
-	if len(discordChannels) > 0 {
+	if len(channels) > 0 && botType == DiscordBot {
 		discordEnabledEnvName := appCfg.Deployment.Envs.DiscordEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: discordEnabledEnvName, Value: strconv.FormatBool(true)})
 
-		for envName, discordChannel := range discordChannels {
-			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: discordChannel.ID})
+		for envName, channels := range channels {
+			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: channels.Identifier()})
 		}
 	}
 
