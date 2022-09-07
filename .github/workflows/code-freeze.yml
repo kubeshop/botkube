@@ -13,6 +13,10 @@ on:
         description: Version of the next release
         required: true
 
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
 jobs:
   code-freeze:
     name: Create release/${{ inputs.version }}
@@ -25,6 +29,8 @@ jobs:
 
       - name: Create a release branch
         run: |
+          git config user.name "${{ env.git-user }}"
+          git config user.email "${{ env.git-email }}"
           git checkout -b release/${{ inputs.version }}
 
       - name : Push new branch
