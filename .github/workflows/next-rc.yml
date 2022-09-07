@@ -48,7 +48,7 @@ jobs:
       - name: Create a pull request
         if: ${{ !endsWith(steps.next-rc.outputs.new-rc-version, 'rc.1') }}
         env:
-          GITHUB_TOKEN: ${{ secrets.gh-token }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git checkout -b backport/${{ steps.next-rc.outputs.new-rc-version }}
           git push origin backport/${{ steps.next-rc.outputs.new-rc-version }}

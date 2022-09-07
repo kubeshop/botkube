@@ -1,0 +1,25 @@
+name: Release
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
