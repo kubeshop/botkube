@@ -5,7 +5,6 @@ import (
 )
 
 // Message represents a generic message with interactive buttons.
-// NOTE: for now it's unknown how this will be consumed by other communication platforms and API may change in the near future.
 type Message struct {
 	Base
 	Sections []Section

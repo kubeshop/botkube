@@ -54,6 +54,10 @@ func (d *discordTester) Type() DriverType {
 	return DiscordBot
 }
 
+func (d *discordTester) BotName() string {
+	return "@BotKube"
+}
+
 func (d *discordTester) BotUserID() string {
 	return d.botUserID
 }
@@ -244,6 +248,12 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 
 func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, _ interactive.Message) error {
 	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
+		return true
+	})
+}
+
+func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, _ interactive.Message) error {
+	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return true
 	})
 }

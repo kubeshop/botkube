@@ -57,7 +57,9 @@ type BotDriver interface {
 	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
 	Channel() Channel
 	SecondChannel() Channel
+	BotName() string
 	BotUserID() string
 	TesterUserID() string
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.Message) error
+	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.Message) error
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
-	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/kubeshop/botkube/pkg/utils"
@@ -271,19 +270,21 @@ func (b *Slack) handleMessage(event slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(event slackMessage, req string, resp string) error {
+func (b *Slack) send(event slackMessage, req string, resp interactive.Message) error {
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	if resp == "" {
+	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, resp)
+
+	if len(plaintext) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 	// Upload message as a file if too long
-	if len(resp) >= 3990 {
+	if len(plaintext) >= 3990 {
 		params := slack.FileUploadParameters{
 			Filename: req,
 			Title:    req,
-			Content:  resp,
+			Content:  plaintext,
 			Channels: []string{event.Channel},
 		}
 		_, err := b.client.UploadFile(params)
@@ -294,7 +295,7 @@ func (b *Slack) send(event slackMessage, req string, resp string) error {
 	}
 
 	options := []slack.MsgOption{
-		slack.MsgOptionText(formatx.CodeBlock(resp), false),
+		b.renderer.RenderInteractiveMessage(resp),
 	}
 
 	//if the message is from thread then add an option to return the response to the thread
@@ -350,25 +351,8 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 	return out
 }
 
-// SendMessage sends message to slack channel
-func (b *Slack) SendMessage(ctx context.Context, msg string) error {
-	errs := multierror.New()
-	for _, channel := range b.getChannels() {
-		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
-			continue
-		}
-		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
-	}
-
-	return errs.ErrorOrNil()
-}
-
-// SendInteractiveMessage sends message with interactive sections to Slack channels.
-func (b *Slack) SendInteractiveMessage(ctx context.Context, msg interactive.Message) error {
+// SendMessage sends message with interactive sections to Slack channels.
+func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name

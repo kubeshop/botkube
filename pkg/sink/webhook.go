@@ -10,6 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/format"
@@ -109,7 +110,7 @@ func (w *Webhook) SendEvent(ctx context.Context, event events.Event, eventSource
 }
 
 // SendMessage is no-op
-func (w *Webhook) SendMessage(_ context.Context, _ string) error {
+func (w *Webhook) SendMessage(_ context.Context, _ interactive.Message) error {
 	return nil
 }
 

@@ -177,6 +177,10 @@ func (f *fakeNotifierHandler) SetNotificationsEnabled(convID string, enabled boo
 	return nil
 }
 
+func (f *fakeNotifierHandler) BotName() string {
+	return "fake"
+}
+
 type fakeAnalyticsReporter struct{}
 
 func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
