@@ -19,7 +19,7 @@ import (
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 )
 
-func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, botType BotType, channels map[string]Channel) func(t *testing.T) {
+func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, driverType DriverType, channels map[string]Channel) func(t *testing.T) {
 	t.Helper()
 
 	deployment, err := deployNsCli.Get(context.Background(), appCfg.Deployment.Name, metav1.GetOptions{})
@@ -51,7 +51,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 
 	var newEnvs []v1.EnvVar
 
-	if len(channels) > 0 && botType == SlackBot {
+	if len(channels) > 0 && driverType == SlackBot {
 		slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: slackEnabledEnvName, Value: strconv.FormatBool(true)})
 
@@ -60,7 +60,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		}
 	}
 
-	if len(channels) > 0 && botType == DiscordBot {
+	if len(channels) > 0 && driverType == DiscordBot {
 		discordEnabledEnvName := appCfg.Deployment.Envs.DiscordEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: discordEnabledEnvName, Value: strconv.FormatBool(true)})
 

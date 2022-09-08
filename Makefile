@@ -1,7 +1,7 @@
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status container-image test test-integration build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images
+.PHONY: release git-tag check-git-status container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images
 
 # Show this help.
 help:
@@ -40,8 +40,11 @@ go-import-fmt:
 test: system-check
 	@go test -v  -race ./...
 
-test-integration: system-check
-	@go test -v -tags=integration -race -count=1 ./test/...
+test-integration-slack: system-check
+	@go test -v -tags=integration -race -count=1 ./test/... -run "TestSlack"
+
+test-integration-discord: system-check
+	@go test -v -tags=integration -race -count=1 ./test/... -run "TestDiscord"
 
 # Build the binary
 build: pre-build

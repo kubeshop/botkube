@@ -107,19 +107,19 @@ func TestDiscord(t *testing.T) {
 	)
 }
 
-func newBotDriver(cfg Config, driverType BotType) (BotDriver, error) {
+func newBotDriver(cfg Config, driverType DriverType) (BotDriver, error) {
 	switch driverType {
 	case SlackBot:
-		return newSlackTester(cfg.Slack)
+		return newSlackDriver(cfg.Slack)
 	case DiscordBot:
-		return newDiscordTester(cfg.Discord)
+		return newDiscordDriver(cfg.Discord)
 	}
 	return nil, nil
 }
 
 func runBotTest(t *testing.T,
 	appCfg Config,
-	driverType BotType,
+	driverType DriverType,
 	annotation,
 	invalidCmdTemplate,
 	deployEnvChannelIDName,
