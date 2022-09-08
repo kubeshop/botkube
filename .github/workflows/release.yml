@@ -5,7 +5,7 @@ on:
       - '*'
 
 jobs:
-  check:
+  release:
     runs-on: ubuntu-22.04
     steps:
       - name: Git checkout
@@ -30,3 +30,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+          IMAGE_REGISTRY: $GITHUB_REPOSITORY_OWNER/botkube
+          TEST_IMAGE_REGISTRY: $GITHUB_REPOSITORY_OWNER/botkube-test
