@@ -22,6 +22,11 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: Prepare GoReleaser Env
+        run: |
+          echo "IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube" >> $GITHUB_ENV 
+          echo "TEST_IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube-test" >> $GITHUB_ENV 
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
@@ -30,5 +35,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
-          IMAGE_REGISTRY: $GITHUB_REPOSITORY_OWNER/botkube
-          TEST_IMAGE_REGISTRY: $GITHUB_REPOSITORY_OWNER/botkube-test
