@@ -59,13 +59,13 @@ type buttonBuilder struct {
 	botName string
 }
 
-// DescriptionCmd returns button command where description and command are the same.
-func (b *buttonBuilder) DescriptionCmd(name, cmd string) Button {
-	return b.Cmd(name, cmd, cmd)
+// ForCommandWithDescCmd returns button command where description and command are the same.
+func (b *buttonBuilder) ForCommandWithDescCmd(name, cmd string) Button {
+	return b.commandWithDesc(name, cmd, cmd)
 }
 
-// ButtonCmd returns button command where description and command are the same.
-func (b *buttonBuilder) ButtonCmd(name, cmd string) Button {
+// ForCommand returns button command without description.
+func (b *buttonBuilder) ForCommand(name, cmd string) Button {
 	cmd = fmt.Sprintf("%s %s", b.botName, cmd)
 	return Button{
 		Name:    name,
@@ -73,16 +73,15 @@ func (b *buttonBuilder) ButtonCmd(name, cmd string) Button {
 	}
 }
 
-// URL returns link button.
-func (b *buttonBuilder) URL(name, url string) Button {
+// ForURL returns link button.
+func (b *buttonBuilder) ForURL(name, url string) Button {
 	return Button{
 		Name: name,
 		URL:  url,
 	}
 }
 
-// Cmd returns button command with a given description and command.
-func (b *buttonBuilder) Cmd(name, cmd, desc string) Button {
+func (b *buttonBuilder) commandWithDesc(name, cmd, desc string) Button {
 	cmd = fmt.Sprintf("%s %s", b.botName, cmd)
 	desc = fmt.Sprintf("%s %s", b.botName, desc)
 	return Button{

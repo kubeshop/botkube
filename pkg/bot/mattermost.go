@@ -336,7 +336,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 
 // SendEvent sends event notification to Mattermost
 func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSources []string) error {
-	b.log.Debugf(">> Sending to Mattermost: %+v", event)
+	b.log.Debugf("Sending to Mattermost: %+v", event)
 	attachment := b.formatAttachments(event)
 
 	errs := multierror.New()
@@ -384,7 +384,7 @@ func (b *Mattermost) SendMessage(_ context.Context, msg string) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
 		post := &model.Post{
 			ChannelId: channelID,
 			Message:   msg,

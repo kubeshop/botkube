@@ -165,7 +165,7 @@ func (b *Slack) Start(ctx context.Context) error {
 					b.log.Debugf("Got block action %s", utils.StructDumper().Sdump(callback.ActionCallback.BlockActions))
 
 					if len(callback.ActionCallback.BlockActions) != 1 {
-						fmt.Println("ignoring as too many actions selected")
+						b.log.Debug("Ignoring callback as the number of actions is different from 1")
 						continue
 					}
 
@@ -303,7 +303,7 @@ func (b *Slack) send(event slackMessage, req string, resp string) error {
 
 // SendEvent sends event notification to slack
 func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
-	b.log.Debugf(">> Sending to Slack: %+v", event)
+	b.log.Debugf("Sending to Slack: %+v", event)
 	attachment := b.renderer.RenderEventMessage(event)
 
 	errs := multierror.New()
@@ -347,7 +347,7 @@ func (b *Slack) SendMessage(ctx context.Context, msg string) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
@@ -364,7 +364,7 @@ func (b *Slack) SendInteractiveMessage(ctx context.Context, msg interactive.Mess
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
 
 		message := b.renderer.RenderInteractiveMessage(msg)
 

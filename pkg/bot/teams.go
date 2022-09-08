@@ -314,7 +314,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
-	b.log.Debugf(">> Sending to Teams: %+v", event)
+	b.log.Debugf("Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 
 	if !sliceutil.Intersect(eventSources, b.bindings.Sources) {
@@ -346,7 +346,7 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 				return turn.SendActivity(coreActivity.MsgOptionText(msg))

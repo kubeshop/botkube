@@ -1,7 +1,6 @@
 package interactive
 
 import (
-	"context"
 	"fmt"
 
 	"golang.org/x/text/cases"
@@ -9,29 +8,6 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 )
-
-// SendHelp sends the help message to all interactive bots.
-func SendHelp(ctx context.Context, clusterName string, notifiers []Bot) error {
-	for _, notifier := range notifiers {
-		quickstart := Help(notifier.IntegrationName(), clusterName, notifier.BotName())
-		switch n := notifier.(type) {
-		case Interactive:
-			err := n.SendInteractiveMessage(ctx, quickstart)
-			if err != nil {
-				return fmt.Errorf("while sending interactive message for %s: %w", notifier.IntegrationName(), err)
-			}
-		default:
-			// TODO: https://github.com/kubeshop/botkube/issues/683
-			// support sending plain text for other communicators
-			//err = notifier.SendMessage(ctx, plaintext)
-			//if err != nil {
-			//	return fmt.Errorf("while sending plaintext message for %s: %w", notifier.IntegrationName(), err)
-			//}
-		}
-	}
-
-	return nil
-}
 
 // Body holds message body fields.
 type Body struct {
@@ -62,7 +38,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: "Check the status of connected Kubernetes cluster(s)",
 				},
 				Buttons: []Button{
-					btnBuilder.DescriptionCmd("Check status", "ping"),
+					btnBuilder.ForCommandWithDescCmd("Check status", "ping"),
 				},
 			},
 			{
@@ -71,9 +47,9 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(platform))),
 				},
 				Buttons: []Button{
-					btnBuilder.DescriptionCmd("Run commands", "get services"),
-					btnBuilder.DescriptionCmd("Run commands", "get pods"),
-					btnBuilder.DescriptionCmd("Run commands", "get deployments"),
+					btnBuilder.ForCommandWithDescCmd("Run commands", "get services"),
+					btnBuilder.ForCommandWithDescCmd("Run commands", "get pods"),
+					btnBuilder.ForCommandWithDescCmd("Run commands", "get deployments"),
 				},
 			},
 			{
@@ -81,7 +57,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: "To list all supported kubectl commands",
 				},
 				Buttons: []Button{
-					btnBuilder.DescriptionCmd("List commands", "commands list"),
+					btnBuilder.ForCommandWithDescCmd("List commands", "commands list"),
 				},
 			},
 			{
@@ -92,9 +68,9 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					},
 				},
 				Buttons: []Button{
-					btnBuilder.ButtonCmd("Start notifications", "notifier start"),
-					btnBuilder.ButtonCmd("Stop notifications", "notifier stop"),
-					btnBuilder.ButtonCmd("Get status", "notifier status"),
+					btnBuilder.ForCommand("Start notifications", "notifier start"),
+					btnBuilder.ForCommand("Stop notifications", "notifier stop"),
+					btnBuilder.ForCommand("Get status", "notifier status"),
 				},
 			},
 			{
@@ -107,9 +83,9 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Buttons: []Button{
-					btnBuilder.URL("Read our docs", "https://botkube.io"),
-					btnBuilder.URL("Join our Slack", "https://join.botkube.io"),
-					btnBuilder.URL("Follow us on Twitter", "https://twitter.com/botkube_io"),
+					btnBuilder.ForURL("Read our docs", "https://botkube.io"),
+					btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
+					btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 				},
 			},
 		},

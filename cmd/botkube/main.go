@@ -155,7 +155,7 @@ func run() error {
 	commCfg := conf.Communications
 	var (
 		notifiers []controller.Notifier
-		bots      []interactive.Bot
+		bots      []bot.Bot
 	)
 
 	// TODO: Current limitation: Communication platform config should be separate inside every group:
@@ -247,7 +247,7 @@ func run() error {
 	}
 
 	// Send help message
-	err = interactive.SendHelp(ctx, conf.Settings.ClusterName, bots)
+	err = sendHelp(ctx, conf.Settings.ClusterName, bots)
 	if err != nil {
 		return fmt.Errorf("while sending initial help message: %w", err)
 	}
@@ -390,4 +390,22 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) fu
 
 		return wrappedErr
 	}
+}
+
+// sendHelp sends the help message to all interactive bots.
+func sendHelp(ctx context.Context, clusterName string, notifiers []bot.Bot) error {
+	type Interactive interface {
+		SendInteractiveMessage(context.Context, interactive.Message) error
+	}
+	for _, notifier := range notifiers {
+		help := interactive.Help(notifier.IntegrationName(), clusterName, notifier.BotName())
+		switch n := notifier.(type) {
+		case Interactive:
+			err := n.SendInteractiveMessage(ctx, help)
+			if err != nil {
+				return fmt.Errorf("while sending interactive message for %s: %w", notifier.IntegrationName(), err)
+			}
+		}
+	}
+	return nil
 }
