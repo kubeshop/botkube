@@ -20,14 +20,14 @@ Created on 2022-09-07 by Paweł Kosiec ([@pkosiec](https://github.com/pkosiec))
   * [2. Restart app every time and post an updated message](#2-restart-app-every-time-and-post-an-updated-message)
   * [3. Distinguish two types of commands and restart if necessary](#3-distinguish-two-types-of-commands-and-restart-if-necessary)
   * [Rejected: Reload config dynamically](#rejected-reload-config-dynamically)
-- [Consequences](#consequences)
+- [Decision](#decision)
 
 <!-- tocstop -->
 
 ## Goal
 
 - Make configuration done with `@BotKube` commands persistent.
-Read configuration both from installation/upgrade config (ConfigMap) and also commands.
+- Read configuration both from installation/upgrade config (ConfigMap) and also commands.
 
 ## Current approach
 
@@ -59,7 +59,7 @@ So there are 3 messages in total when reloading the configuration.
 While I was considering different approaches, I wanted to make sure we have a single source of truth for our config - a ConfigMap. The idea is that every `@BotKube` command that saves some state (e.g. `@BotKube notifier stop`), writes the state to the same ConfigMap. If we're using ConfigMap, the concurrent write already resolved by Kubernetes itself (`resourceVersion`).
 
 - As it is right now, BotKube always loads the configuration during it start from the files (including mounted ConfigMap).
-- `@BotKube` commands results in Kubernetes API calls which modify ConfigMap with config. 
+- `@BotKube` commands results in Kubernetes API calls which modify ConfigMap with config.
 - As the ConfigMap is mounted, Config Watcher detects the change.
 
 To support Helm upgrade and `@BotKube` commands, I modified the Helm chart to make it work.
@@ -298,7 +298,7 @@ data:
       slack:
         channels:
           'default':
-            notifications:
+            notification:
               disabled: true # notifier start/stop for a given channel
             sources: # notification presets
               - foo
@@ -325,12 +325,12 @@ communications:
     slack:
       enabled: false
       token: token
+      notification: # existing property - later we can rename it to `notifications`
+        type: short
       channels:
         'default':
           name: botkube-test
-          notification:
-            type: short # deprecated, should be moved to `notifications`
-          notifications:
+          notification: # later we can rename it to `notifications`
             disabled: true
           sources: # presets
             - foo 
@@ -348,7 +348,7 @@ Once user changes the configuration with `@BotKube` commands, config watcher det
 
 > "Configuration has been updated. Apply it with the `@BotKube reload` command."
 
-The `@BotKube reload` is executed manually to apply new configuration, which would result in the app restart. This would 
+The `@BotKube reload` is executed manually to apply new configuration, which would result in the app restart.
 
 We don't need to change the "goodbye" and "hello" messages.
 
@@ -360,7 +360,7 @@ Cons:
 - UX is not great, as user needs to execute the command manually
 - Current `notifier start/stop` commands won't apply the change instantly, but the reload will be needed
 
-### 2. Restart app every time and post an updated message 
+### 2. Restart app every time and post an updated message
 
 Every command, even `notifier start/stop` restarts the app. But we don't post "config change detected", "goodbye" and "hello" messages.
 
@@ -389,10 +389,10 @@ Cons:
 
 This is a variation of the previous approach. We could distinguish two types of commands:
 - commands that don't restart BotKube, e.g. `notifier start/stop`
-  - they save the state in runtime config and another ConfigMap, which is not monitored by Config Watcher, but still loaded during BotKube startup.
+    - they save the state in runtime config and another ConfigMap, which is not monitored by Config Watcher, but still loaded during BotKube startup.
 - commands that restart BotKube instantly, such as commands for notification presets
-  - they post "Reloading configuration..." message and restart the app.
-  
+    - they post "Reloading configuration..." message and restart the app.
+
 Initially, the "goodbye" and "welcome" messages could be kept as they are. Later we can combine it with option 2.
 
 Pros:
@@ -409,10 +409,13 @@ It would complicate the code though (as we would need to have another level of a
 
 Doing a diff and restarting just some updated components (e.g. just Slack Bot or whole source router) doesn't sound like something we'd like to implement and maintain, as it'll bring too much complexity into our code, and, in a result, unpredictability in the behavior.
 
-## Consequences
+## Decision
 
-TBD - once we decide on the approach.
-
-
-
-
+After team discussion (@ezodude, @huseyinbabal, @mszostok) we agree as follows:
+- We'll choose the option no 3.
+    - In the first implementation every BotKube restart related to configuration change will post "goodbye" and "hello" messages. This will be implemented as a part of [#704](https://github.com/kubeshop/botkube/issues/704).
+    - If we have time as a part of this task, we will also implement the scope of 2:
+        - Modify ConfigWatcher - save config
+        - Read config in controller and post custom message (`BotKube configuration for cluster "dev" has been reloaded 👍`)
+        - Clear welcome message after posting it
+- We may still implement the `@BotKube reload` command from the [1. Dedicated command for manual restart](#1-dedicated-command-for-manual-restart) section later, to support operation use cases (e.g. update configuration during maintenance window). This will be defined as a follow-up task to see how big the community demand is.
