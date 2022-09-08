@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
@@ -19,6 +18,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 )
 
 type Config struct {
@@ -551,7 +552,6 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), assertionFn)
 		require.NoError(t, err)
 	})
-
 }
 
 func codeBlock(in string) string {

@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 type slackChannel struct {
