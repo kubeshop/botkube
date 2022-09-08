@@ -53,7 +53,7 @@ type SlackConfig struct {
 
 type DiscordConfig struct {
 	BotName                  string `envconfig:"default=botkube"`
-	TesterName               string `envconfig:"default=tester"`
+	TesterName               string `envconfig:"default=botkube_tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	GuildID                  string
 	TesterAppToken           string
