@@ -21,7 +21,7 @@ jobs:
           git config user.name "${{ env.git-user }}"
           git config user.email ${{ env.git-email }}
 
-      - name: Tag the next release candidate
+      - name: Prepare the next release candidate
         id: next-rc
         run: |
           COMMIT_MSG=$(git show -s --format=%s)
@@ -56,6 +56,11 @@ jobs:
             git commit -am "[skip-ci] Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ steps.next-rc.outputs.new-rc-version }}"
             git push origin ${{ steps.next-rc.outputs.branch }}
           fi
+
+      - name: Tag & Push the next release candidate
+        run: |
+          git tag -a ${{ steps.next-rc.outputs.new-rc-version }} -m "${{ steps.next-rc.outputs.new-rc-version }}
+          git push --tags
 
       - name: Create a pull request
         if: ${{ !endsWith(steps.next-rc.outputs.new-rc-version, 'rc.1') }}
