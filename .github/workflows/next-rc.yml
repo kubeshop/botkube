@@ -43,9 +43,6 @@ jobs:
           echo ::set-output name=commit-msg::$COMMIT_MSG
           echo ::set-output name=branch::$CURRENT_BRANCH
 
-          git tag -a $NEW_RELEASE_VERSION -m "${NEW_RELEASE_VERSION}"
-          git push --tags
-
       - name: Update Chart YAML Files
         if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
         run: |
