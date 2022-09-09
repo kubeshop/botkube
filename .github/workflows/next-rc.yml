@@ -10,6 +10,7 @@ env:
 
 jobs:
   next-rc:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -52,7 +53,7 @@ jobs:
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ steps.next-rc.outputs.new-rc-version }}/g" {} +
           if [[ $(git diff --stat) != '' ]]; then
-            git commit -am "Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ steps.next-rc.outputs.new-rc-version }}"
+            git commit -am "[skip-ci] Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ steps.next-rc.outputs.new-rc-version }}"
             git push origin ${{ steps.next-rc.outputs.branch }}
           fi
 
