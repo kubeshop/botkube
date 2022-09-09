@@ -70,6 +70,9 @@ changelog:
       order: 1
     - title: ':sparkle: Others'
       order: 999
+  filters:
+    exclude:
+      - '^[skip-ci]'
 dockers:
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
