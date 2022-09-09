@@ -7,7 +7,7 @@ on:
 env:
   GIT_USER: github-actions[bot]
   GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-  HELM_DOCS_VERSION: v1.11.0
+  HELM_DOCS_VERSION: 1.11.0
 
 jobs:
   next-rc:
