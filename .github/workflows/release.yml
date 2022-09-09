@@ -58,5 +58,5 @@ jobs:
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ github.ref_name }}/g" {} +
           if [[ $(git diff --stat) != '' ]]; then
             git commit -am "Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ github.ref_name }}"
-            git push origin release/${{ github.ref_name }}"
+            git push origin release/${{ github.ref_name }}
           fi
