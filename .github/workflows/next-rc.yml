@@ -59,7 +59,7 @@ jobs:
 
       - name: Tag & Push the next release candidate
         run: |
-          git tag -a ${{ steps.next-rc.outputs.new-rc-version }} -m "${{ steps.next-rc.outputs.new-rc-version }}
+          git tag -a ${{ steps.next-rc.outputs.new-rc-version }} -m "${{ steps.next-rc.outputs.new-rc-version }}"
           git push --tags
 
       - name: Create a pull request
