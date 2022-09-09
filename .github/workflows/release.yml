@@ -17,6 +17,9 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
