@@ -4,6 +4,10 @@ on:
     tags:
       - '*'
 
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
 jobs:
   release:
     runs-on: ubuntu-22.04
@@ -12,6 +16,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GH_TOKEN }}
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.git-user }}"
+          git config user.email ${{ env.git-email }}
 
 #      - name: Setup Go
 #        uses: actions/setup-go@v3
@@ -48,4 +56,7 @@ jobs:
           HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ github.ref_name }}/g" {} +
-          git diff .
+          if [[ $(git diff --stat) != '' ]]; then
+            git commit -am "Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ github.ref_name }}"
+            git push origin release/${{ github.ref_name }}"
+          fi
