@@ -49,6 +49,7 @@ jobs:
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' botkube/Chart.yaml)
           echo "will replace $CHART_CURRENT_VERSION with ${{ github.ref_name }}" 
           ls -al
+          find . -type f -name "*.yaml" -print0
           find . -type f -name "*.yaml" -print0 | xargs -0 sed -i '' -e "s/${CHART_CURRENT_VERSION}/${{ github.ref_name }}/g"
           cd ${{ github.workspace }}
           git diff
