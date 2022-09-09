@@ -44,18 +44,26 @@ jobs:
           echo ::set-output name=commit-msg::$COMMIT_MSG
           echo ::set-output name=branch::$CURRENT_BRANCH
 
-      - name: Update Chart YAML Files
+      - name: Update Chart Version in YAML Files
         run: |
           HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ steps.next-rc.outputs.new-rc-version }}/g" {} +
-          if [[ $(git diff --stat) != '' ]]; then
-            git commit -am "[skip-ci] Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ steps.next-rc.outputs.new-rc-version }}"
-            git push origin ${{ steps.next-rc.outputs.branch }}
-          fi
+
+      - name: Process Helm Docs
+        uses: addnab/docker-run-action@v3
+        with:
+          image: jnorwood/helm-docs:v1.11.0
+          options: -v ${{ github.workspace }}/helm/botkube:/helm-docs"
+          run: |
+            sh ci/helm-docs.sh -l debug -f ./values.yaml -t ./README.tpl.md --sort-values-order file
 
       - name: Tag & Push the next release candidate
         run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            git commit -am "[skip-ci] Helm chart update for ${{ steps.next-rc.outputs.new-rc-version }}"
+            git push origin ${{ steps.next-rc.outputs.branch }}
+          fi
           git tag -a ${{ steps.next-rc.outputs.new-rc-version }} -m "${{ steps.next-rc.outputs.new-rc-version }}"
           git push --tags
 
