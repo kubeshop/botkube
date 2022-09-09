@@ -51,6 +51,14 @@ jobs:
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ steps.next-rc.outputs.new-rc-version }}/g" {} +
 
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.2.1
+
+      - name: Run chart-testing
+        working-directory: ${{ github.workspace }}/helm
+        run: |
+          ct lint --all --chart-dirs . --config ./ct/lint-cfg.yaml --lint-conf ./ct/lint-rules.yaml
+
       - name: Install helm-docs
         run: |
           cd /tmp
