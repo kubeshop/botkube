@@ -5,8 +5,9 @@ on:
     branches:
       - release/*
 env:
-  git-user: github-actions[bot]
-  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+  GIT_USER: github-actions[bot]
+  GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+  HELM_DOCS_VERSION: v1.11.0
 
 jobs:
   next-rc:
@@ -19,8 +20,8 @@ jobs:
 
       - name: Set git 'user.name' and 'user.email'
         run: |
-          git config user.name "${{ env.git-user }}"
-          git config user.email ${{ env.git-email }}
+          git config user.name "${{ env.GIT_USER }}"
+          git config user.email ${{ env.GIT_EMAIL }}
 
       - name: Prepare the next release candidate
         id: next-rc
@@ -50,13 +51,17 @@ jobs:
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ steps.next-rc.outputs.new-rc-version }}/g" {} +
 
+      - name: Install helm-docs
+        run: |
+          cd /tmp
+          wget https://github.com/norwoodj/helm-docs/releases/download/v${{env.HELM_DOCS_VERSION}}/helm-docs_${{env.HELM_DOCS_VERSION}}_Linux_x86_64.tar.gz
+          tar -xvf helm-docs_${{env.HELM_DOCS_VERSION}}_Linux_x86_64.tar.gz
+          sudo mv helm-docs /usr/local/sbin
+
       - name: Process Helm Docs
-        uses: addnab/docker-run-action@v3
-        with:
-          image: jnorwood/helm-docs:v1.11.0
-          options: -v ${{ github.workspace }}/helm/botkube:/helm-docs"
-          run: |
-            sh helm-docs -l debug -f ./values.yaml -t ./README.tpl.md --sort-values-order file
+        working-directory: ${{ github.workspace }}/helm/botkube
+        run: |
+          helm-docs -l debug -f ./values.yaml -t ./README.tpl.md --sort-values-order file
 
       - name: Tag & Push the next release candidate
         run: |
