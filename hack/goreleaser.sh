@@ -122,8 +122,8 @@ build_single_e2e(){
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=${GORELEASER_CURRENT_TAG} \
     goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube-test -o "./botkube-e2e.test"
-  docker build -f "$PWD/build/test.Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" --build-arg TEST_NAME=botkube-e2e.test .
-  rm "$PWD/botkube-test"
+  docker build -f "$PWD/build/test.Dockerfile" --build-arg=TEST_NAME=botkube-e2e.test --platform "${IMAGE_PLATFORM}" -t "${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
+  rm "$PWD/botkube-e2e.test"
 }
 
 release() {

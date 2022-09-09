@@ -20,8 +20,6 @@ spec:
       env:
         - name: CONFIG_PATH
           value: "/config/"
-        - name: ADDITIONAL_CONTEXT_MESSAGE
-          value: "{{ .Values.e2eTest.additionalContextMessage }}"
         - name: DEPLOYMENT_NAME
           value: "{{ include "botkube.fullname" . }}"
         - name: DEPLOYMENT_NAMESPACE

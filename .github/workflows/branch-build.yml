@@ -82,7 +82,11 @@ jobs:
       - name: Install BotKube
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SOCKET_SLACK_BOT_TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
@@ -95,7 +99,9 @@ jobs:
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
             --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}" \
-            --set e2eTest.slack.botName="botkubev2"
+            --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
+            --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
+            --set e2eTest.discord.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
