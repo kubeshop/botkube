@@ -10,7 +10,6 @@ env:
 
 jobs:
   next-rc:
-    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -48,6 +47,7 @@ jobs:
           git push --tags
 
       - name: Update Chart YAML Files
+        if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
         run: |
           HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
