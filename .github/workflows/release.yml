@@ -16,10 +16,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GH_TOKEN }}
-      - name: Set git 'user.name' and 'user.email'
-        run: |
-          git config user.name "${{ env.git-user }}"
-          git config user.email ${{ env.git-email }}
 
 #      - name: Setup Go
 #        uses: actions/setup-go@v3
@@ -51,12 +47,3 @@ jobs:
 #          IMAGE_TAG: ${{ github.ref_name }}
 #          ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
 
-      - name: Update Chart YAML Files
-        run: |
-          HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
-          CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ github.ref_name }}/g" {} +
-          if [[ $(git diff --stat) != '' ]]; then
-            git commit -am "Helm version: ${CHART_CURRENT_VERSION} is replaced with ${{ github.ref_name }}"
-            git push origin release/${{ github.ref_name }}
-          fi
