@@ -60,7 +60,7 @@ release:
   ids:
     - botkube
 changelog:
-  skip: true
+  skip: false
 dockers:
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
