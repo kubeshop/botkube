@@ -5,50 +5,48 @@ env:
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
   - TEST_IMAGE_REPOSITORY={{ if index .Env "TEST_IMAGE_REPOSITORY"  }}{{ .Env.TEST_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-test{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
-  - SLACK_APP_TOKEN={{ if index .Env "SLACK_APP_TOKEN"  }}{{ .Env.SLACK_APP_TOKEN }}{{ else }}{{ end }}
 before:
   hooks:
     - go mod download
-builds:
-  - id: botkube
-    binary: botkube
-    main: cmd/botkube/main.go
-    ldflags: &ldflags
-      - -s -w
-        -X github.com/kubeshop/botkube/pkg/version.Version={{ .Env.IMAGE_TAG }}
-        -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
-        -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
-        -X github.com/kubeshop/botkube/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
-        -X github.com/kubeshop/botkube/pkg/bot.SlackAppLevelToken={{ .Env.SLACK_APP_TOKEN }}
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm
-      - arm64
-    goarm:
-      - 7
-  - id: botkube-test
-    command: test
-    binary: botkube-e2e.test
-    main: ./test/e2e/
-    no_main_check: true
-    tags:
-      - integration
-    flags:
-      - -c
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm
-      - arm64
-    goarm:
-      - 7
+#builds:
+#  - id: botkube
+#    binary: botkube
+#    main: cmd/botkube/main.go
+#    ldflags: &ldflags
+#      - -s -w
+#        -X github.com/kubeshop/botkube/pkg/version.Version={{ .Env.IMAGE_TAG }}
+#        -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
+#        -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
+#        -X github.com/kubeshop/botkube/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
+#    env:
+#      - CGO_ENABLED=0
+#    goos:
+#      - linux
+#    goarch:
+#      - amd64
+#      - arm
+#      - arm64
+#    goarm:
+#      - 7
+#  - id: botkube-test
+#    command: test
+#    binary: botkube-e2e.test
+#    main: ./test/e2e/
+#    no_main_check: true
+#    tags:
+#      - integration
+#    flags:
+#      - -c
+#    env:
+#      - CGO_ENABLED=0
+#    goos:
+#      - linux
+#    goarch:
+#      - amd64
+#      - arm
+#      - arm64
+#    goarm:
+#      - 7
 archives:
   - id: my-archive
     builds:
@@ -76,64 +74,64 @@ changelog:
   filters:
     exclude:
       - "^.*\\[skip-ci\\].*$"
-dockers:
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-    use: buildx
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-    use: buildx
-    goarch: arm64
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-    use: buildx
-    goarch: arm
-    goarm: 7
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-    use: buildx
-    ids:
-      - botkube-test
-    dockerfile: "build/test.Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=TEST_NAME=botkube-e2e.test"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-    use: buildx
-    ids:
-      - botkube-test
-    dockerfile: "build/test.Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--build-arg=TEST_NAME=botkube-e2e.test"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-    use: buildx
-    ids:
-      - botkube-test
-    dockerfile: "build/test.Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm"
-      - "--build-arg=TEST_NAME=botkube-e2e.test"
-docker_manifests:
-  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
-    image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#dockers:
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#    use: buildx
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/amd64"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#    use: buildx
+#    goarch: arm64
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm64"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#    use: buildx
+#    goarch: arm
+#    goarm: 7
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#    use: buildx
+#    ids:
+#      - botkube-test
+#    dockerfile: "build/test.Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/amd64"
+#      - "--build-arg=TEST_NAME=botkube-e2e.test"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#    use: buildx
+#    ids:
+#      - botkube-test
+#    dockerfile: "build/test.Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm64"
+#      - "--build-arg=TEST_NAME=botkube-e2e.test"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#    use: buildx
+#    ids:
+#      - botkube-test
+#    dockerfile: "build/test.Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm"
+#      - "--build-arg=TEST_NAME=botkube-e2e.test"
+#docker_manifests:
+#  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+#    image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
