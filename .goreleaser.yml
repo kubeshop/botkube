@@ -64,13 +64,13 @@ release:
 changelog:
   skip: false
   groups:
-    - title: ':rocket: Features'
+    - title: 'Features'
       regexp: "^.*feat[(\\w)]*:+.*$"
       order: 0
-    - title: ':bug: Bug fixes'
+    - title: 'Bug fixes'
       regexp: "^.*fix[(\\w)]*:+.*$"
       order: 1
-    - title: ':sparkle: Others'
+    - title: 'Others'
       order: 999
   filters:
     exclude:
