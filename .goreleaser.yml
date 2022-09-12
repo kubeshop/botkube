@@ -63,7 +63,7 @@ release:
     - botkube
 changelog:
   skip: false
-  use: git
+  use: github
   groups:
     - title: ':rocket: Features'
       regexp: "^.*feat[(\\w)]*:+.*$"
