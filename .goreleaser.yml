@@ -64,17 +64,17 @@ release:
 changelog:
   skip: false
   groups:
-    - title: 'Features'
+    - title: ':rocket: Features'
       regexp: "^.*feat[(\\w)]*:+.*$"
       order: 0
-    - title: 'Bug fixes'
+    - title: ':bug: Bug fixes'
       regexp: "^.*fix[(\\w)]*:+.*$"
       order: 1
-    - title: 'Others'
+    - title: ':sparkle: Others'
       order: 999
   filters:
     exclude:
-      - '^[skip-ci]'
+      - "^.*skip\-ci.*$"
 dockers:
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
