@@ -1,6 +1,6 @@
 # BotKube
 
-![Version: 1.33.0-rc.5](https://img.shields.io/badge/Version-1.33.0--rc.5-informational?style=flat-square) ![AppVersion: 1.33.0-rc.5](https://img.shields.io/badge/AppVersion-1.33.0--rc.5-informational?style=flat-square)
+![Version: 1.33.0-rc.6](https://img.shields.io/badge/Version-1.33.0--rc.6-informational?style=flat-square) ![AppVersion: 1.33.0-rc.6](https://img.shields.io/badge/AppVersion-1.33.0--rc.6-informational?style=flat-square)
 
 Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
