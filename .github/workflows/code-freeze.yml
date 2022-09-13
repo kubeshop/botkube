@@ -46,6 +46,7 @@ jobs:
           if git show-ref --quiet "refs/heads/${{ inputs.from }}"; then 
             echo "${{ inputs.from }} is a branch, will find latest tag..."
             git checkout ${{ inputs.from }}
+            git fetch --dry-run
             PREV_VERSION=$(git describe --abbrev=0)
             echo "The latest tag on ${{ inputs.from }} is ${PREV_VERSION}"
           fi
