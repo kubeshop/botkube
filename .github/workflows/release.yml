@@ -42,6 +42,13 @@ jobs:
           echo "IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube" >> $GITHUB_ENV 
           echo "TEST_IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube-test" >> $GITHUB_ENV 
 
+      - name: Extract Previous Version
+        id: prev-version
+        run: |
+          BASE_TAG=$(echo "${{ github.ref_name }}" | awk -F- '{print $1}')
+          PREV_VERSION=$(git log --pretty=format:"%N" --show-notes="release/${BASE_TAG}" | awk NF | awk '{ print $2}')
+          echo ::set-output name=previous-version::$PREV_VERSION
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
@@ -50,4 +57,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+
+      - name: Generate Changelog
+        id: generate-changelog
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          sinceTag: ${{ steps.prev-version.outputs.previous-version }}
+          dueTag: ${{ github.ref_name }}
+
+      - name: Update Changelog
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ github.ref_name }}
+          release-notes: ${{ steps.generate-changelog.outputs.changelog }}
 
