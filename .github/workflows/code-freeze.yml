@@ -51,3 +51,4 @@ jobs:
             echo "The latest tag on ${{ inputs.from }} is ${PREV_VERSION}"
           fi
           git notes --ref release/${{ inputs.version }} add -m "previous-version: ${PREV_VERSION}"
+          git push origin 'refs/notes/*'
