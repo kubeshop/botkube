@@ -55,7 +55,7 @@ snapshot:
   name_template: "{{ .Env.IMAGE_TAG }}"
 release:
   # If set to true, will not auto-publish the release.
-  draft: true
+  draft: false
 
   ids:
     - botkube
