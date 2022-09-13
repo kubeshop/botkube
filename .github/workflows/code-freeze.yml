@@ -38,3 +38,15 @@ jobs:
 
       - name : Push new branch
         run: git push origin release/${{ inputs.version }}
+
+      - name: Add note for previous version
+        run: |
+          git fetch --all
+          PREV_VERSION=${{ inputs.from }}
+          if git show-ref --quiet "refs/heads/${{ inputs.from }}"; then 
+            echo "${{ inputs.from }} is a branch, will find latest tag..."
+            git checkout ${{ inputs.from }}
+            PREV_VERSION=$(git describe --abbrev=0)
+            echo "The latest tag on ${{ inputs.from }} is ${PREV_VERSION}"
+          fi
+          git notes --ref release/${{ inputs.version }} add -m "previous-version: ${PREV_VERSION}"
