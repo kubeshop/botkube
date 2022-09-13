@@ -26,6 +26,7 @@ jobs:
         with:
           ref: ${{ inputs.from }}
           token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
 
       - name: Set git 'user.name' and 'user.email'
         run: |
@@ -46,7 +47,6 @@ jobs:
           if git show-ref --quiet "refs/heads/${{ inputs.from }}"; then 
             echo "${{ inputs.from }} is a branch, will find latest tag..."
             git checkout ${{ inputs.from }}
-            git fetch --dry-run
             PREV_VERSION=$(git describe --tags --abbrev=0)
             echo "The latest tag on ${{ inputs.from }} is ${PREV_VERSION}"
           fi
