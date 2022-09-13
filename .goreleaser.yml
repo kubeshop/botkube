@@ -61,6 +61,7 @@ release:
     - botkube
 changelog:
   skip: false
+  use: github
   groups:
     - title: 'Features'
       regexp: "^.*feat[(\\w)]*:+.*$"
@@ -73,6 +74,7 @@ changelog:
   filters:
     exclude:
       - "^.*\\[skip-ci\\].*$"
+      - "^Merge pull request"
 #dockers:
 #  - image_templates:
 #      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
