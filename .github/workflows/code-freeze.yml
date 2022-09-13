@@ -47,7 +47,7 @@ jobs:
             echo "${{ inputs.from }} is a branch, will find latest tag..."
             git checkout ${{ inputs.from }}
             git fetch --dry-run
-            PREV_VERSION=$(git describe --abbrev=0)
+            PREV_VERSION=$(git describe --tags --abbrev=0)
             echo "The latest tag on ${{ inputs.from }} is ${PREV_VERSION}"
           fi
           git notes --ref release/${{ inputs.version }} add -m "previous-version: ${PREV_VERSION}"
