@@ -53,8 +53,8 @@ jobs:
     needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
-      base-version: ${{ needs.jobs.next-rc.outputs.release-version }}
-      next-version: ${{ needs.jobs.next-rc.outputs.new-rc-version }}
+      base-version: ${{ needs.next-rc.outputs.release-version }}
+      next-version: ${{ needs.next-rc.outputs.new-rc-version }}
     secrets:
       gh-token: ${{ secrets.GH_TOKEN }}
 
@@ -63,16 +63,16 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Create a pull request
-        if: ${{ !endsWith(needs.jobs.next-rc.outputs.new-rc-version, 'rc.1') }}
+        if: ${{ !endsWith(needs.next-rc.outputs.new-rc-version, 'rc.1') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git checkout -b backport/${{ needs.jobs.next-rc.outputs.new-rc-version }}
-          git push origin backport/${{ needs.jobs.next-rc.outputs.new-rc-version }}
+          git checkout -b backport/${{ needs.next-rc.outputs.new-rc-version }}
+          git push origin backport/${{ needs.next-rc.outputs.new-rc-version }}
 
           gh pr create \
-            --title "${{ needs.jobs.next-rc.outputs.commit-msg }} [backport of: ${{ needs.jobs.next-rc.outputs.new-rc-version }}"]  \
-             --head "backport/${{ needs.jobs.next-rc.outputs.new-rc-version }}" \
+            --title "${{ needs.next-rc.outputs.commit-msg }} [backport of: ${{ needs.next-rc.outputs.new-rc-version }}"]  \
+             --head "backport/${{ needs.next-rc.outputs.new-rc-version }}" \
              --base main \
              --label release-automation \
              --body "This Pull Request is created by release automation to backport a task to main branch. Feel free to review and merge it."
