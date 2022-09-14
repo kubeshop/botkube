@@ -67,9 +67,9 @@ jobs:
           sinceTag: ${{ steps.prev-version.outputs.previous-version }}
           dueTag: ${{ github.ref_name }}
 
-      - name: Update Changelog
-        uses: stefanzweifel/changelog-updater-action@v1
+      - uses: meeDamian/github-release@2.0
         with:
-          latest-version: ${{ github.ref_name }}
-          release-notes: ${{ steps.generate-changelog.outputs.changelog }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+          name: ${{ steps.generate-changelog.outputs.changelog }}
 
