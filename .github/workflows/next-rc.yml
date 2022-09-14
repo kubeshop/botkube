@@ -62,6 +62,15 @@ jobs:
     needs: process-chart
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.GIT_USER }}"
+          git config user.email ${{ env.GIT_EMAIL }}
+
       - name: Create a pull request
         if: ${{ !endsWith(needs.next-rc.outputs.new-rc-version, 'rc.1') }}
         env:
