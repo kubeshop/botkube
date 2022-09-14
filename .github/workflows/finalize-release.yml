@@ -1,4 +1,4 @@
-name: Code freeze
+name: Finalize release
 
 on:
   workflow_dispatch:

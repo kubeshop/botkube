@@ -1,4 +1,4 @@
-name: Process Chart
+name: Process chart
 
 env:
   git-user: github-actions[bot]
