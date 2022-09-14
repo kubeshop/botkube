@@ -61,7 +61,7 @@ jobs:
 
   backport-pr:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
-    needs: process-chart
+    needs: [next-rc, process-chart]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
