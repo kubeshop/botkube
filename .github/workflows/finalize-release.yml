@@ -14,7 +14,6 @@ env:
 
 jobs:
   process-chart:
-    needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
       base-version: ${{ inputs.version }}
@@ -24,6 +23,7 @@ jobs:
       gh-token: ${{ secrets.GH_TOKEN }}
 
   finalize-release:
+    needs: process-chart
     name: Finalize release ${{ inputs.version }}
     runs-on: ubuntu-22.04
     steps:
