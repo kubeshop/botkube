@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Create a pull request
-        if: ${{ !endsWith(jobs.next-rc.outputs.new-rc-version, 'rc.1') }}
+        if: ${{ !endsWith(needs.jobs.next-rc.outputs.new-rc-version, 'rc.1') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
