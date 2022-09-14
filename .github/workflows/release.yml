@@ -72,4 +72,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
           name: ${{ steps.generate-changelog.outputs.changelog }}
+          allow_override: true
 
