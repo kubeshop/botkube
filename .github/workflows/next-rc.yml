@@ -55,6 +55,8 @@ jobs:
     with:
       base-version: ${{ needs.jobs.next-rc.outputs.release-version }}
       next-version: ${{ needs.jobs.next-rc.outputs.new-rc-version }}
+    secrets:
+      gh-token: ${{ secrets.GH_TOKEN }}
 
   backport-pr:
     needs: process-chart

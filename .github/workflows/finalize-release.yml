@@ -13,6 +13,16 @@ env:
   git-email: 41898282+github-actions[bot]@users.noreply.github.com
 
 jobs:
+  process-chart:
+    needs: next-rc
+    uses: ./.github/workflows/process-chart.yml
+    with:
+      base-version: ${{ inputs.version }}
+      next-version: ${{ inputs.version }}
+      skip-tagging: true
+    secrets:
+      gh-token: ${{ secrets.GH_TOKEN }}
+
   finalize-release:
     name: Finalize release ${{ inputs.version }}
     runs-on: ubuntu-22.04
@@ -27,13 +37,6 @@ jobs:
         run: |
           git config user.name "${{ env.git-user }}"
           git config user.email ${{ env.git-email }}
-
-      - name: Process Chart
-        uses: ./.github/workflows/process-chart.yml
-        with:
-          base-version: ${{ inputs.version }}
-          next-version: ${{ inputs.version }}
-          skip-tagging: true
 
       - name: Push Tags (Patch Release)
         if: ${{ !endsWith(inputs.version, '.0') }}

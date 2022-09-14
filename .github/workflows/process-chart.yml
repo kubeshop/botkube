@@ -21,6 +21,10 @@ on:
         description: To skip tagging after processing chart
         required: false
         default: false
+    secrets:
+      gh-token:
+        description: Github access token
+        required: true
 
 jobs:
   process-chart:
@@ -30,7 +34,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: release/${{ inputs.base-version }}
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.gh-token }}
           fetch-depth: 0
 
       - name: Set git 'user.name' and 'user.email'
