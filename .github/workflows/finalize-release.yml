@@ -33,3 +33,24 @@ jobs:
         with:
           base-version: ${{ inputs.version }}
           next-version: ${{ inputs.version }}
+          skip-tagging: true
+
+      - name: Push Tags (Patch Release)
+        if: ${{ !endsWith(inputs.version, '.0') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git tag -a ${{ inputs.version }} -m "${{ inputs.version }}"
+          git push --tags
+
+      - name: Create a pull request (Minor Release)
+        if: ${{ endsWith(inputs.version, '.0') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh pr create \
+            --title "${{ inputs.version }} Release"  \
+             --head "release/${{ inputs.version }}" \
+             --base main \
+             --label release-automation \
+             --body "This Pull Request is created by release automation to finalize ${{ inputs.version }} release and merge it to main branch. Feel free to review and merge it to generate release."
