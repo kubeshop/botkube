@@ -68,6 +68,7 @@ jobs:
           dueTag: ${{ github.ref_name }}
           stripHeaders: true
           stripGeneratorNotice: true
+          compareLink: false
 
       - uses: meeDamian/github-release@2.0
         with:
