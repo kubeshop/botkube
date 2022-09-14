@@ -1,0 +1,35 @@
+name: Code freeze
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Version of the release to finalize
+        required: true
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  finalize-release:
+    name: Finalize release ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: release/${{ inputs.from }}
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.git-user }}"
+          git config user.email ${{ env.git-email }}
+
+      - name: Process Chart
+        uses: ./.github/workflows/process-chart.yml
+        with:
+          base-version: ${{ inputs.version }}
+          next-version: ${{ inputs.version }}
