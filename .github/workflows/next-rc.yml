@@ -81,7 +81,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "testessss : ${{ needs.process-chart.outputs.new-version }}"
           git checkout -b backport/${{ needs.process-chart.outputs.new-version }}
           git push origin backport/${{ needs.process-chart.outputs.new-version }}
 
