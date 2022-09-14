@@ -66,6 +66,9 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           sinceTag: ${{ steps.prev-version.outputs.previous-version }}
           dueTag: ${{ github.ref_name }}
+          stripHeaders: true
+          stripGeneratorNotice: true
+          unreleased: false
 
       - uses: meeDamian/github-release@2.0
         with:
