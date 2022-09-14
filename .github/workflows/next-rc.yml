@@ -50,6 +50,7 @@ jobs:
           echo ::set-output name=branch::$CURRENT_BRANCH
 
   process-chart:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
@@ -59,6 +60,7 @@ jobs:
       gh-token: ${{ secrets.GH_TOKEN }}
 
   backport-pr:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     needs: process-chart
     runs-on: ubuntu-22.04
     steps:
