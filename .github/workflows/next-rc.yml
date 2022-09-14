@@ -9,6 +9,9 @@ env:
   GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   HELM_DOCS_VERSION: 1.11.0
 
+concurrency:
+  group: next-rc
+
 jobs:
   next-rc:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
@@ -61,7 +64,7 @@ jobs:
 
   backport-pr:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
-    needs: [next-rc, process-chart]
+    needs: process-chart
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
