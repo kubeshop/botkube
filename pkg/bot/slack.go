@@ -8,6 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -16,6 +18,7 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
+	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -34,6 +37,11 @@ var attachmentColor = map[config.Level]string{
 	config.Error:    "danger",
 	config.Critical: "danger",
 }
+
+var (
+	// SlackAppLevelToken for Slack Socket Mode. It is set during application build.
+	SlackAppLevelToken string
+)
 
 // Slack listens for user's message, execute commands and sends back the response.
 type Slack struct {
@@ -54,16 +62,16 @@ type slackMessage struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 
-	Event    *slack.MessageEvent
+	Event    *slackevents.AppMentionEvent
 	BotID    string
 	Request  string
 	Response string
-	RTM      *slack.RTM
+	client   *slack.Client
 }
 
 // NewSlack creates a new Slack instance.
 func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	client := slack.New(cfg.Token)
+	client := slack.New(cfg.Token, slack.OptionAppLevelToken(SlackAppLevelToken))
 
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -93,74 +101,68 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 	}, nil
 }
 
-// Start starts the Slack RTM connection and listens for messages
+// Start starts the Slack WebSocket connection and listens for messages
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	rtm := b.client.NewRTM()
+	websocketClient := socketmode.New(b.client)
+
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
-		rtm.ManageConnection()
+		socketRunErr := websocketClient.RunContext(ctx)
+		if socketRunErr != nil {
+			reportErr := b.reporter.ReportFatalError(socketRunErr)
+			if reportErr != nil {
+				b.log.Errorf("while reporting socket error: %s", reportErr.Error())
+			}
+		}
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
-			return rtm.Disconnect()
-		case msg, ok := <-rtm.IncomingEvents:
-			if !ok {
-				b.log.Info("Incoming events channel closed. Finishing...")
-				return nil
-			}
-
-			switch ev := msg.Data.(type) {
-			case *slack.ConnectedEvent:
-				err := b.reporter.ReportBotEnabled(b.IntegrationName())
-				if err != nil {
-					return fmt.Errorf("while reporting analytics: %w", err)
+			return nil
+		case event := <-websocketClient.Events:
+			switch event.Type {
+			case socketmode.EventTypeConnecting:
+				b.log.Info("BotKube is connecting to Slack...")
+			case socketmode.EventTypeConnected:
+				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
+					return fmt.Errorf("report analytics error: %w", err)
 				}
-
 				b.log.Info("BotKube connected to Slack!")
-
-			case *slack.MessageEvent:
-				// Skip if message posted by BotKube
-				if ev.User == b.botID {
+			case socketmode.EventTypeEventsAPI:
+				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
+				if !ok {
+					b.log.Errorf("Invalid event %+v\n", event.Data)
 					continue
 				}
-				sm := slackMessage{
-					log:             b.log,
-					executorFactory: b.executorFactory,
-					Event:           ev,
-					BotID:           b.botID,
-					RTM:             rtm,
+				websocketClient.Ack(*event.Request)
+				if eventsAPIEvent.Type == slackevents.CallbackEvent {
+					b.log.Debugf("Got callback event %s", utils.StructDumper().Sdump(eventsAPIEvent))
+					innerEvent := eventsAPIEvent.InnerEvent
+					switch ev := innerEvent.Data.(type) {
+					case *slackevents.AppMentionEvent:
+						b.log.Debugf("Got app mention %s", utils.StructDumper().Sdump(innerEvent))
+						sm := slackMessage{
+							log:             b.log,
+							executorFactory: b.executorFactory,
+							Event:           ev,
+							BotID:           b.botID,
+							client:          b.client,
+						}
+						if err := sm.HandleMessage(b); err != nil {
+							b.log.Errorf("Message handling error: %w", err)
+						}
+					}
 				}
-				err := sm.HandleMessage(b)
-				if err != nil {
-					wrappedErr := fmt.Errorf("while handling message: %w", err)
-					b.log.Errorf(wrappedErr.Error())
-				}
-
-			case *slack.RTMError:
-				b.log.Errorf("Slack RMT error: %+v", ev.Error())
-
-			case *slack.ConnectionErrorEvent:
-				b.log.Errorf("Slack connection error: %+v", ev.Error())
-
-			case *slack.IncomingEventError:
-				b.log.Errorf("Slack incoming event error: %+v", ev.Error())
-
-			case *slack.OutgoingErrorEvent:
-				b.log.Errorf("Slack outgoing event error: %+v", ev.Error())
-
-			case *slack.UnmarshallingErrorEvent:
-				b.log.Warningf("Slack unmarshalling error: %+v", ev.Error())
-
-			case *slack.RateLimitedError:
-				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
-
-			case *slack.InvalidAuthEvent:
-				return fmt.Errorf("invalid credentials")
+			case socketmode.EventTypeErrorBadMessage:
+				b.log.Errorf("Bad message: %+v\n", event.Data)
+			case socketmode.EventTypeIncomingError:
+				b.log.Errorf("Incoming error: %+v\n", event.Data)
+			case socketmode.EventTypeConnectionError:
+				b.log.Errorf("Slack connection error: %+v\n", event.Data)
 			}
 		}
 	}
@@ -250,7 +252,7 @@ func (sm *slackMessage) Send() error {
 			Content:  sm.Response,
 			Channels: []string{sm.Event.Channel},
 		}
-		_, err := sm.RTM.UploadFile(params)
+		_, err := sm.client.UploadFile(params)
 		if err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
@@ -260,11 +262,11 @@ func (sm *slackMessage) Send() error {
 	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
-	if sm.Event.ThreadTimestamp != "" {
-		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimestamp))
+	if sm.Event.ThreadTimeStamp != "" {
+		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimeStamp))
 	}
 
-	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
+	if _, _, err := sm.client.PostMessage(sm.Event.Channel, options...); err != nil {
 		return fmt.Errorf("while posting Slack message: %w", err)
 	}
 
