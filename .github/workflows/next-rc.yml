@@ -77,17 +77,17 @@ jobs:
           git config user.email ${{ env.GIT_EMAIL }}
 
       - name: Create a pull request
-        if: ${{ !endsWith(needs.next-rc.outputs.new-rc-version, 'rc.1') }}
+        if: ${{ !endsWith(needs.process-chart.outputs.new-version, 'rc.1') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "testessss : ${{ needs.next-rc.outputs.new-rc-version }}"
-          git checkout -b backport/${{ needs.next-rc.outputs.new-rc-version }}
-          git push origin backport/${{ needs.next-rc.outputs.new-rc-version }}
+          echo "testessss : ${{ needs.process-chart.outputs.new-version }}"
+          git checkout -b backport/${{ needs.process-chart.outputs.new-version }}
+          git push origin backport/${{ needs.process-chart.outputs.new-version }}
 
           gh pr create \
-            --title "${{ needs.next-rc.outputs.commit-msg }} [backport of: ${{ needs.next-rc.outputs.new-rc-version }}"]  \
-             --head "backport/${{ needs.next-rc.outputs.new-rc-version }}" \
+            --title "${{ needs.next-rc.outputs.commit-msg }} [backport of: ${{ needs.process-chart.outputs.new-version }}"]  \
+             --head "backport/${{ needs.process-chart.outputs.new-version }}" \
              --base main \
              --label release-automation \
              --body "This Pull Request is created by release automation to backport a task to main branch. Feel free to review and merge it."

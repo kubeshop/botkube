@@ -21,6 +21,10 @@ on:
         description: To skip tagging after processing chart
         required: false
         default: false
+    outputs:
+      new-version:
+        description: New version for chart
+        value: ${{ jobs.process-chart.outputs.new-version }}
     secrets:
       gh-token:
         description: Github access token
@@ -30,6 +34,8 @@ jobs:
   process-chart:
     name: Process & Push Chart Updates
     runs-on: ubuntu-22.04
+    outputs:
+      new-version: ${{ inputs.next-version }}
     steps:
       - uses: actions/checkout@v3
         with:
