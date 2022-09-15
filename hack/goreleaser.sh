@@ -41,7 +41,7 @@ save_images() {
   fi
 
   export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
-  goreleaser release --rm-dist --snapshot --skip-publish
+  goreleaser release --rm-dist --snapshot --skip-publish --debug
 
   mkdir -p "${IMAGE_SAVE_LOAD_DIR}"
 
