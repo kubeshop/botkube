@@ -67,7 +67,7 @@ type Teams struct {
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
 
-	BotName      string
+	botName      string
 	AppID        string
 	AppPassword  string
 	MessagePath  string
@@ -100,7 +100,7 @@ func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, exec
 		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
-		BotName:         cfg.BotName,
+		botName:         cfg.BotName,
 		ClusterName:     clusterName,
 		AppID:           cfg.AppID,
 		AppPassword:     cfg.AppPassword,
@@ -314,7 +314,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 
 // SendEvent sends event message via Bot interface
 func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
-	b.log.Debugf(">> Sending to Teams: %+v", event)
+	b.log.Debugf("Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 
 	if !sliceutil.Intersect(eventSources, b.bindings.Sources) {
@@ -346,7 +346,7 @@ func (b *Teams) SendMessage(ctx context.Context, msg string) error {
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 				return turn.SendActivity(coreActivity.MsgOptionText(msg))
@@ -404,6 +404,11 @@ func (b *Teams) SetNotificationsEnabled(enabled bool, ref schema.ConversationRef
 	b.setConversations(conversations)
 
 	return nil
+}
+
+// BotName returns the Bot name.
+func (b *Teams) BotName() string {
+	return fmt.Sprintf("<at>%s</at>", b.botName)
 }
 
 func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.ConversationReference, card map[string]interface{}) error {
@@ -494,8 +499,8 @@ func (n *teamsNotificationManager) SetNotificationsEnabled(_ string, enabled boo
 	return n.b.SetNotificationsEnabled(enabled, n.ref)
 }
 
-func teamsBotMentionRegex(BotName string) (*regexp.Regexp, error) {
-	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, BotName))
+func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, botName))
 	if err != nil {
 		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
 	}

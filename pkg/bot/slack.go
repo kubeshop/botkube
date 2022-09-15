@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ import (
 	"github.com/slack-go/slack/socketmode"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -50,23 +52,17 @@ type Slack struct {
 	reporter        FatalErrorAnalyticsReporter
 	botID           string
 	client          *slack.Client
-	notification    config.Notification
 	channelsMutex   sync.RWMutex
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
+	renderer        *SlackRenderer
 }
 
-// slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-
-	Event    *slackevents.AppMentionEvent
-	BotID    string
-	Request  string
-	Response string
-	client   *slack.Client
+	Text            string
+	Channel         string
+	ThreadTimeStamp string
 }
 
 // NewSlack creates a new Slack instance.
@@ -95,8 +91,8 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 		reporter:        reporter,
 		botID:           botID,
 		client:          client,
-		notification:    cfg.Notification,
 		channels:        channels,
+		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
 	}, nil
 }
@@ -145,17 +141,48 @@ func (b *Slack) Start(ctx context.Context) error {
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
 						b.log.Debugf("Got app mention %s", utils.StructDumper().Sdump(innerEvent))
-						sm := slackMessage{
-							log:             b.log,
-							executorFactory: b.executorFactory,
-							Event:           ev,
-							BotID:           b.botID,
-							client:          b.client,
+						msg := slackMessage{
+							Text:            ev.Text,
+							Channel:         ev.Channel,
+							ThreadTimeStamp: ev.ThreadTimeStamp,
 						}
-						if err := sm.HandleMessage(b); err != nil {
+						if err := b.handleMessage(msg); err != nil {
 							b.log.Errorf("Message handling error: %w", err)
 						}
 					}
+				}
+			case socketmode.EventTypeInteractive:
+				callback, ok := event.Data.(slack.InteractionCallback)
+				if !ok {
+					b.log.Errorf("Invalid event %+v\n", event.Data)
+					continue
+				}
+
+				websocketClient.Ack(*event.Request)
+
+				switch callback.Type {
+				case slack.InteractionTypeBlockActions:
+					b.log.Debugf("Got block action %s", utils.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+
+					if len(callback.ActionCallback.BlockActions) != 1 {
+						b.log.Debug("Ignoring callback as the number of actions is different from 1")
+						continue
+					}
+
+					act := callback.ActionCallback.BlockActions[0]
+					if strings.HasPrefix(act.ActionID, "url:") {
+						continue // skip the url actions
+					}
+					msg := slackMessage{
+						Text:            act.Value,
+						Channel:         callback.Channel.ID,
+						ThreadTimeStamp: callback.MessageTs,
+					}
+					if err := b.handleMessage(msg); err != nil {
+						b.log.Errorf("Message handling error: %w", err)
+					}
+				default:
+					b.log.Debugf("get unhandled event %s", callback.Type)
 				}
 			case socketmode.EventTypeErrorBadMessage:
 				b.log.Errorf("Bad message: %+v\n", event.Data)
@@ -207,30 +234,28 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 	return nil
 }
 
-func (sm *slackMessage) HandleMessage(b *Slack) error {
+func (b *Slack) handleMessage(event slackMessage) error {
 	// Handle message only if starts with mention
-	trimmedMsg, found := b.findAndTrimBotMention(sm.Event.Text)
+	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
 	}
-	sm.Request = trimmedMsg
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately BotKube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
-	channelID := sm.Event.Channel
-	info, err := b.client.GetConversationInfo(channelID, true)
+	info, err := b.client.GetConversationInfo(event.Channel, true)
 	if err != nil {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
 
 	channel, isAuthChannel := b.getChannels()[info.Name]
 
-	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, sm.Request)
-	sm.Response = e.Execute()
-	err = sm.Send()
+	e := b.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
+	response := e.Execute()
+	err = b.send(event, request, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -238,35 +263,38 @@ func (sm *slackMessage) HandleMessage(b *Slack) error {
 	return nil
 }
 
-func (sm *slackMessage) Send() error {
-	sm.log.Debugf("Slack incoming Request: %s", sm.Request)
-	sm.log.Debugf("Slack Response: %s", sm.Response)
-	if len(sm.Response) == 0 {
-		return fmt.Errorf("while reading Slack response: empty response for request %q", sm.Request)
+func (b *Slack) send(event slackMessage, req string, resp string) error {
+	b.log.Debugf("Slack incoming Request: %s", req)
+	b.log.Debugf("Slack Response: %s", resp)
+
+	if resp == "" {
+		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 	// Upload message as a file if too long
-	if len(sm.Response) >= 3990 {
+	if len(resp) >= 3990 {
 		params := slack.FileUploadParameters{
-			Filename: sm.Request,
-			Title:    sm.Request,
-			Content:  sm.Response,
-			Channels: []string{sm.Event.Channel},
+			Filename: req,
+			Title:    req,
+			Content:  resp,
+			Channels: []string{event.Channel},
 		}
-		_, err := sm.client.UploadFile(params)
+		_, err := b.client.UploadFile(params)
 		if err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
 		return nil
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
-
-	//if the message is from thread then add an option to return the response to the thread
-	if sm.Event.ThreadTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimeStamp))
+	options := []slack.MsgOption{
+		slack.MsgOptionText(formatx.CodeBlock(resp), false),
 	}
 
-	if _, _, err := sm.client.PostMessage(sm.Event.Channel, options...); err != nil {
+	//if the message is from thread then add an option to return the response to the thread
+	if event.ThreadTimeStamp != "" {
+		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	}
+
+	if _, _, err := b.client.PostMessage(event.Channel, options...); err != nil {
 		return fmt.Errorf("while posting Slack message: %w", err)
 	}
 
@@ -275,8 +303,8 @@ func (sm *slackMessage) Send() error {
 
 // SendEvent sends event notification to slack
 func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
-	b.log.Debugf(">> Sending to Slack: %+v", event)
-	attachment := b.formatMessage(event)
+	b.log.Debugf("Sending to Slack: %+v", event)
+	attachment := b.renderer.RenderEventMessage(event)
 
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
@@ -319,16 +347,41 @@ func (b *Slack) SendMessage(ctx context.Context, msg string) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
+		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
 	}
 
 	return errs.ErrorOrNil()
+}
+
+// SendInteractiveMessage sends message with interactive sections to Slack channels.
+func (b *Slack) SendInteractiveMessage(ctx context.Context, msg interactive.Message) error {
+	errs := multierror.New()
+	for _, channel := range b.getChannels() {
+		channelName := channel.Name
+		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
+
+		message := b.renderer.RenderInteractiveMessage(msg)
+
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, message)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// BotName returns the Bot name.
+func (b *Slack) BotName() string {
+	return fmt.Sprintf("<@%s>", b.botID)
 }
 
 func (b *Slack) getChannels() map[string]channelConfigByName {

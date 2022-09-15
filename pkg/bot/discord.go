@@ -136,7 +136,7 @@ func (b *Discord) Start(ctx context.Context) error {
 // SendEvent sends event notification to Discord ChannelID.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
 func (b *Discord) SendEvent(_ context.Context, event events.Event, eventSources []string) (err error) {
-	b.log.Debugf(">> Sending to Discord: %+v", event)
+	b.log.Debugf("Sending to Discord: %+v", event)
 
 	msgToSend := b.formatMessage(event)
 
@@ -160,7 +160,7 @@ func (b *Discord) SendMessage(_ context.Context, msg string) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		b.log.Debugf(">> Sending message to channel %q: %+v", channelID, msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
 		if _, err := b.api.ChannelMessageSend(channelID, msg); err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
 			continue
@@ -274,6 +274,11 @@ func (dm *discordMessage) Send() {
 	if _, err := dm.Session.ChannelMessageSend(dm.Event.ChannelID, format.CodeBlock(dm.Response)); err != nil {
 		dm.log.Error("Error in sending message:", err)
 	}
+}
+
+// BotName returns the Bot name.
+func (b *Discord) BotName() string {
+	return fmt.Sprintf("<@%s>", b.botID)
 }
 
 func (b *Discord) getChannels() map[string]channelConfigByID {

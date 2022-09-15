@@ -175,7 +175,7 @@ jobs:
             --set e2eTest.slack.botName="botkubev2" \
             --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
             --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
-            --set e2eTest.discord.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+            --set e2eTest.discord.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
