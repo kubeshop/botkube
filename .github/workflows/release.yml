@@ -3,11 +3,6 @@ on:
   push:
     tags:
       - '*'
-  pull_request:
-    branches:
-      - automate-release
-    types:
-      - closed
 
 env:
   git-user: github-actions[bot]
@@ -50,15 +45,7 @@ jobs:
       - name: Extract Previous Version
         id: prev-version
         run: |
-          if [[ "${{ github.event.name }}" == "push" ]]; then
-            BASE_TAG=$(echo "${{ github.ref_name }}" | awk -F- '{print $1}')
-          else 
-            if [[ "${{ github.head_ref }}" =~ ^release/.* ]]; then
-              echo "${{ github.head_ref }} is not a release branch, exiting..."
-              exit 0
-            fi
-            BASE_TAG=$(echo "${{ github.head_ref }}" | awk -F/ '{print $2}')
-          fi
+          BASE_TAG=$(echo "${{ github.ref_name }}" | awk -F- '{print $1}')
           git fetch origin "refs/notes/*:refs/notes/*"
           PREV_VERSION=$(git log --pretty=format:"%N" --show-notes="release/${BASE_TAG}" | awk NF | awk '{ print $2}')
           echo ::set-output name=previous-version::$PREV_VERSION
