@@ -74,7 +74,7 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 		appToken = cfg.AppToken
 	}
 	client := slack.New(botToken, slack.OptionAppLevelToken(appToken))
-
+	log.Infof("token: %s app token: %s", botToken, appToken)
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
