@@ -8,7 +8,7 @@ on:
 env:
   HELM_VERSION: v3.9.0
   K3D_VERSION: v5.4.3
-  INTEGRATION_TESTS_TIMEOUT: 10m
+  INTEGRATION_TESTS_TIMEOUT: 30m
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
   TEST_IMAGE_REPOSITORY: "kubeshop/botkube-test"
@@ -98,6 +98,7 @@ jobs:
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
+            --set e2eTest.slack.botName="botkubev2" \
             --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}" \
             --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
             --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
