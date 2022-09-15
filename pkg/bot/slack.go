@@ -67,7 +67,13 @@ type slackMessage struct {
 
 // NewSlack creates a new Slack instance.
 func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	client := slack.New(cfg.Token, slack.OptionAppLevelToken(SlackAppLevelToken))
+	botToken := cfg.Token
+	appToken := SlackAppLevelToken
+	if cfg.BotToken != "" && cfg.AppToken != "" {
+		botToken = cfg.BotToken
+		appToken = cfg.AppToken
+	}
+	client := slack.New(botToken, slack.OptionAppLevelToken(appToken))
 
 	authResp, err := client.AuthTest()
 	if err != nil {

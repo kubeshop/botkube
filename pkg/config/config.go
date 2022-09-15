@@ -353,6 +353,8 @@ type Slack struct {
 	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required,eq=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 	Token        string                                 `yaml:"token,omitempty"`
+	BotToken     string                                 `yaml:"botToken,omitempty"`
+	AppToken     string                                 `yaml:"appToken,omitempty"`
 }
 
 // Elasticsearch config auth settings
