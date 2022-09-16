@@ -130,9 +130,6 @@ executors:
 settings:
   clusterName: sample
   upgradeNotifier: false
-  log:
-    level: debug
-    disableColors: false
 
 extraAnnotations:
   botkube.io/disable: "true"
