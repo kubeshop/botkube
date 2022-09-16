@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/execute"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -272,7 +273,15 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 		return ""
 	}
 
-	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, trimmedMsg)
+	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
+		CommGroupName:   b.commGroupName,
+		Platform:        b.IntegrationName(),
+		NotifierHandler: newTeamsNotifMgrForActivity(b, ref),
+		IsAuthChannel:   true,
+		ConversationID:  ref.ChannelID,
+		Bindings:        b.bindings.Executors,
+		Message:         trimmedMsg,
+	})
 	return b.convertInteractiveMessage(e.Execute())
 }
 

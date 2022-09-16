@@ -177,6 +177,7 @@ func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement 
 		Text:     slack.NewTextBlockObject(slack.PlainTextType, btn.Name, true, false),
 		Value:    btn.Command,
 		ActionID: b.genBtnActionID(btn),
+		Style:    btn.Style,
 
 		// NOTE: We'll still receive an interaction payload and will need to send an acknowledgement response.
 		URL: btn.URL,

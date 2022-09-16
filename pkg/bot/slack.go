@@ -63,6 +63,7 @@ type slackMessage struct {
 	Text            string
 	Channel         string
 	ThreadTimeStamp string
+	User            string
 }
 
 // NewSlack creates a new Slack instance.
@@ -152,6 +153,7 @@ func (b *Slack) Start(ctx context.Context) error {
 							Text:            ev.Text,
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
+							User:            ev.User,
 						}
 						if err := b.handleMessage(msg); err != nil {
 							b.log.Errorf("Message handling error: %w", err)
@@ -260,7 +262,16 @@ func (b *Slack) handleMessage(event slackMessage) error {
 
 	channel, isAuthChannel := b.getChannels()[info.Name]
 
-	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
+	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
+		CommGroupName:   b.commGroupName,
+		Platform:        b.IntegrationName(),
+		NotifierHandler: b,
+		IsAuthChannel:   isAuthChannel,
+		ConversationID:  info.Name,
+		Bindings:        channel.Bindings.Executors,
+		Message:         request,
+		User:            event.User,
+	})
 	response := e.Execute()
 	err = b.send(event, request, response)
 	if err != nil {
@@ -303,8 +314,14 @@ func (b *Slack) send(event slackMessage, req string, resp interactive.Message) e
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
 
-	if _, _, err := b.client.PostMessage(event.Channel, options...); err != nil {
-		return fmt.Errorf("while posting Slack message: %w", err)
+	if resp.OnlyVisibleForYou {
+		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
+			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
+		}
+	} else {
+		if _, _, err := b.client.PostMessage(event.Channel, options...); err != nil {
+			return fmt.Errorf("while posting Slack message: %w", err)
+		}
 	}
 
 	return nil

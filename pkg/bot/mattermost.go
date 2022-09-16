@@ -16,7 +16,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
-	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -223,7 +222,15 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 	channel, exists := b.getChannels()[channelID]
 	mm.IsAuthChannel = exists
 
-	e := mm.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, mm.IsAuthChannel, channelID, channel.Bindings.Executors, mm.Request)
+	e := mm.executorFactory.NewDefault(execute.NewDefaultInput{
+		CommGroupName:   b.commGroupName,
+		Platform:        b.IntegrationName(),
+		NotifierHandler: b,
+		IsAuthChannel:   mm.IsAuthChannel,
+		ConversationID:  channelID,
+		Bindings:        channel.Bindings.Executors,
+		Message:         mm.Request,
+	})
 	out := interactive.MessageToMarkdown(interactive.MDLineFmt, e.Execute())
 	mm.Response = out
 	mm.sendMessage()
@@ -248,7 +255,7 @@ func (mm mattermostMessage) sendMessage() {
 		}
 		post.FileIds = []string{res.FileInfos[0].Id}
 	} else {
-		post.Message = formatx.CodeBlock(mm.Response)
+		post.Message = mm.Response
 	}
 
 	if _, _, err := mm.APIClient.CreatePost(post); err != nil {

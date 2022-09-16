@@ -78,8 +78,19 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 	}
 }
 
+type NewDefaultInput struct {
+	CommGroupName   string
+	Platform        config.CommPlatformIntegration
+	NotifierHandler NotifierHandler
+	IsAuthChannel   bool
+	ConversationID  string
+	Bindings        []string
+	Message         string
+	User            string
+}
+
 // NewDefault creates new Default Executor.
-func (f *DefaultExecutorFactory) NewDefault(commGroupName string, platform config.CommPlatformIntegration, notifierHandler NotifierHandler, isAuthChannel bool, conversationID string, bindings []string, message string) Executor {
+func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 	return &DefaultExecutor{
 		log:               f.log,
 		cmdRunner:         f.cmdRunner,
@@ -90,12 +101,13 @@ func (f *DefaultExecutorFactory) NewDefault(commGroupName string, platform confi
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
-		notifierHandler:   notifierHandler,
-		isAuthChannel:     isAuthChannel,
-		bindings:          bindings,
-		message:           message,
-		platform:          platform,
-		conversationID:    conversationID,
-		commGroupName:     commGroupName,
+		notifierHandler:   cfg.NotifierHandler,
+		isAuthChannel:     cfg.IsAuthChannel,
+		bindings:          cfg.Bindings,
+		message:           cfg.Message,
+		platform:          cfg.Platform,
+		conversationID:    cfg.ConversationID,
+		user:              cfg.User,
+		commGroupName:     cfg.CommGroupName,
 	}
 }

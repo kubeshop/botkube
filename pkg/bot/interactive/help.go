@@ -2,6 +2,7 @@ package interactive
 
 import (
 	"fmt"
+	"github.com/slack-go/slack"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -79,6 +80,14 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Body: Body{
 						Plaintext: "You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters",
 					},
+				},
+			},
+			{
+				Base: Base{
+					Description: "Angry? Amazed?",
+				},
+				Buttons: []Button{
+					btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube_io", slack.StylePrimary),
 				},
 			},
 			{
