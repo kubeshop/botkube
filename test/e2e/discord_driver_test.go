@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -174,6 +175,10 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 	return nil
 }
 
+func (d *discordTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+	return d.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
+}
+
 func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
@@ -233,6 +238,12 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 	}
 
 	return errs.ErrorOrNil()
+}
+
+func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, _ interactive.Message) error {
+	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
+		return true
+	})
 }
 
 func (d *discordTester) findUserID(t *testing.T, name string) string {

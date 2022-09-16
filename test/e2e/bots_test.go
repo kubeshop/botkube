@@ -50,7 +50,7 @@ type SlackConfig struct {
 	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=35s"`
 }
 
 type DiscordConfig struct {
@@ -59,7 +59,7 @@ type DiscordConfig struct {
 	AdditionalContextMessage string `envconfig:"optional"`
 	GuildID                  string
 	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=10s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
 }
 
 const (
@@ -165,7 +165,10 @@ func runBotTest(t *testing.T,
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message on channel...")
-	err = slackTester.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), interactive.Help(config.SlackCommPlatformIntegration, appCfg.ClusterName, fmt.Sprintf("<@%s>", botDriver.BotUserID())))
+	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
+		botDriver.Channel().ID(),
+		interactive.Help(config.CommPlatformIntegration(SlackBot), appCfg.ClusterName, fmt.Sprintf("<@%s>", botDriver.BotUserID())),
+	)
 	require.NoError(t, err)
 	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)

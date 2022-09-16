@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/sanity-io/litter"
 )
 
@@ -50,10 +51,12 @@ type BotDriver interface {
 	WaitForLastMessageContains(userID, channel, expectedMsgSubstring string) error
 	WaitForLastMessageEqual(userID, channel, expectedMsg string) error
 	WaitForMessagePosted(userID, channel string, limitMessages int, assertFn MessageAssertion) error
+	WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error
 	WaitForMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
 	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
 	Channel() Channel
 	SecondChannel() Channel
 	BotUserID() string
 	TesterUserID() string
+	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.Message) error
 }
