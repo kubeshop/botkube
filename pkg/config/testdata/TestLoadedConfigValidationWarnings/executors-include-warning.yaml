@@ -2,6 +2,7 @@ communications: # req 1 elm.
   'default-group':
     slack:
       enabled: false
+      token: 'TOKEN'
 
 executors:
   'kubectl-read-only':

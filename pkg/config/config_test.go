@@ -18,7 +18,7 @@ import (
 // go test -run=TestLoadConfigSuccess ./pkg/config/... -test.update-golden
 func TestLoadConfigSuccess(t *testing.T) {
 	// given
-	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_TOKEN", "token-from-env")
+	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SLACK_TOKEN", "xoxb-token-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
@@ -163,6 +163,63 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 					* Key: 'Config.Communications' Communications must contain at least 1 item`),
 			configFiles: []string{
 				testdataFile(t, "empty-executors-communications.yaml"),
+			},
+		},
+		{
+			name: "token and app token specified together",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.AppToken' AppToken and Token fields are mutually exclusive
+					* Key: 'Config.Communications[default-workspace].Slack.BotToken' BotToken and AppToken must be specified together`),
+			configFiles: []string{
+				testdataFile(t, "app-token.yaml"),
+			},
+		},
+		{
+			name: "token and bot token specified together",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.BotToken' BotToken and Token fields are mutually exclusive
+					* Key: 'Config.Communications[default-workspace].Slack.AppToken' AppToken and BotToken must be specified together`),
+			configFiles: []string{
+				testdataFile(t, "bot-token.yaml"),
+			},
+		},
+		{
+			name: "All tokens specified",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.BotToken' BotToken and Token fields are mutually exclusive
+					* Key: 'Config.Communications[default-workspace].Slack.AppToken' AppToken and Token fields are mutually exclusive`),
+			configFiles: []string{
+				testdataFile(t, "all-token.yaml"),
+			},
+		},
+		{
+			name: "App token only",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.BotToken' BotToken and AppToken must be specified together`),
+			configFiles: []string{
+				testdataFile(t, "app-token-only.yaml"),
+			},
+		},
+		{
+			name: "Bot token only",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.AppToken' AppToken and BotToken must be specified together`),
+			configFiles: []string{
+				testdataFile(t, "bot-token-only.yaml"),
+			},
+		},
+		{
+			name: "no tokens",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.Token' Token is a required field`),
+			configFiles: []string{
+				testdataFile(t, "no-token.yaml"),
 			},
 		},
 	}

@@ -31,7 +31,6 @@ env:
   TEST_IMAGE_REPOSITORY: "kubeshop/pr/botkube-test"
   IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
-  SLACK_APP_TOKEN: ${{ secrets.SLACK_APP_TOKEN }}
 
 jobs:
 
