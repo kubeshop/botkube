@@ -21,6 +21,8 @@ communications:
               - k8s-events
         'secondary':
           name: "" # Tests will override this temporarily
+          notification:
+            disabled: true
           bindings:
             executors:
               - kubectl-read-only
@@ -128,6 +130,11 @@ executors:
       commands:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]
+
+filters:
+  kubernetes:
+    objectAnnotationChecker: true
+    nodeEventsChecker: false
 
 settings:
   clusterName: sample

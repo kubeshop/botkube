@@ -223,6 +223,16 @@ sources:
             - delete
             - error
 
+# Filter settings for various sources.
+# Currently, all filters are globally enabled or disabled.
+# You can enable or disable filters with `@BotKube filters` commands.
+filters:
+  kubernetes:
+    # If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+    objectAnnotationChecker: true
+    # If true, filters out Node-related events that are not important.
+    nodeEventsChecker: true
+
 # Setting to support multiple clusters
 settings:
   # Cluster name to differentiate incoming messages

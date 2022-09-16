@@ -284,6 +284,8 @@ communications:
             channels:
                 alias:
                     name: SLACK_CHANNEL
+                    notification:
+                        disabled: false
                     bindings:
                         sources:
                             - k8s-events
@@ -301,6 +303,8 @@ communications:
             channels:
                 alias:
                     name: MATTERMOST_CHANNEL
+                    notification:
+                        disabled: true
                     bindings:
                         sources:
                             - k8s-events
@@ -315,6 +319,8 @@ communications:
             channels:
                 alias:
                     id: DISCORD_CHANNEL_ID
+                    notification:
+                        disabled: false
                     bindings:
                         sources:
                             - k8s-events
@@ -359,6 +365,10 @@ communications:
                     bindings:
                         sources:
                             - k8s-events
+filters:
+    kubernetes:
+        objectAnnotationChecker: true
+        nodeEventsChecker: false
 analytics:
     installationID: 00000000-1410-1994-0966-000000000042
     disable: true

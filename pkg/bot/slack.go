@@ -56,6 +56,7 @@ type Slack struct {
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
+	commGroupName   string
 	renderer        *SlackRenderer
 }
 
@@ -66,7 +67,7 @@ type slackMessage struct {
 }
 
 // NewSlack creates a new Slack instance.
-func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
+func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
 	botToken := cfg.Token
 	appToken := SlackAppLevelToken
 	if cfg.BotToken != "" && cfg.AppToken != "" {
@@ -98,6 +99,7 @@ func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory Executor
 		botID:           botID,
 		client:          client,
 		channels:        channels,
+		commGroupName:   commGroupName,
 		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
 	}, nil
@@ -259,7 +261,7 @@ func (b *Slack) handleMessage(event slackMessage) error {
 
 	channel, isAuthChannel := b.getChannels()[info.Name]
 
-	e := b.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
+	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
 	response := e.Execute()
 	err = b.send(event, request, response)
 	if err != nil {
@@ -335,7 +337,7 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 	var out []string
 	for _, cfg := range b.getChannels() {
 		if !cfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 			continue
 		}
 
@@ -415,7 +417,7 @@ func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBi
 	for _, channCfg := range channelsCfg {
 		channels[channCfg.Identifier()] = channelConfigByName{
 			ChannelBindingsByName: channCfg,
-			notify:                defaultNotifyValue,
+			notify:                !channCfg.Notification.Disabled,
 		}
 	}
 

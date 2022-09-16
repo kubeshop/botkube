@@ -221,6 +221,17 @@ sources:
        #     fields:
        #       - status.phase
 
+# -- Filter settings for various sources.
+# Currently, all filters are globally enabled or disabled.
+# You can enable or disable filters with `@BotKube filters` commands.
+# @default -- See the `values.yaml` file for full object.
+filters:
+  kubernetes:
+    # -- If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+    objectAnnotationChecker: true
+    # -- If true, filters out Node-related events that are not important.
+    nodeEventsChecker: true
+
 # -- Map of executors. Executor contains configuration for running `kubectl` commands.
 # The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
 # Key name is used as a binding reference.
@@ -282,6 +293,9 @@ communications:
         'default':
           # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
           name: 'SLACK_CHANNEL'
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             # -- Executors configuration for a given channel.
             executors:
@@ -321,6 +335,9 @@ communications:
           # -- The Mattermost channel name for receiving BotKube alerts.
           # The BotKube user needs to be added to it.
           name: 'MATTERMOST_CHANNEL'
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             # -- Executors configuration for a given channel.
             executors:
@@ -351,9 +368,6 @@ communications:
           - k8s-events
       # -- The path in endpoint URL provided while registering BotKube to MS Teams.
       messagePath: "/bots/teams"
-      notification:
-        # -- Configures notification type that are sent. Possible values: `short`, `long`.
-        type: short
       # -- The Service port for bot endpoint on BotKube container.
       port: 3978
 
@@ -373,6 +387,9 @@ communications:
           # -- Discord channel ID for receiving BotKube alerts.
           # The BotKube user needs to be added to it.
           id: 'DISCORD_CHANNEL_ID'
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             # -- Executors configuration for a given channel.
             executors:

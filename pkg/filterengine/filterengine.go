@@ -10,35 +10,35 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 )
 
-// DefaultFilterEngine is a default implementation of the Filter Engine
+// DefaultFilterEngine is a default implementation of the Filter Engine.
 type DefaultFilterEngine struct {
 	log logrus.FieldLogger
 
 	filters map[string]RegisteredFilter
 }
 
-// FilterEngine has methods to register and run filters
+// FilterEngine has methods to register and run filters.
 type FilterEngine interface {
 	Run(context.Context, events.Event) events.Event
-	Register(...Filter)
+	Register(...RegisteredFilter)
 	RegisteredFilters() []RegisteredFilter
 	SetFilter(string, bool) error
 }
 
-// RegisteredFilter contains details about registered filter
+// RegisteredFilter contains details about registered filter.
 type RegisteredFilter struct {
 	Enabled bool
 	Filter
 }
 
-// Filter has method to run filter
+// Filter defines an event filter.
 type Filter interface {
 	Run(context.Context, *events.Event) error
 	Name() string
 	Describe() string
 }
 
-// New creates new DefaultFilterEngine instance.
+// New creates new DefaultFilterEngine instance..
 func New(log logrus.FieldLogger) *DefaultFilterEngine {
 	return &DefaultFilterEngine{
 		log:     log,
@@ -46,7 +46,7 @@ func New(log logrus.FieldLogger) *DefaultFilterEngine {
 	}
 }
 
-// Run runs the registered filters always iterating over a slice of filters with sorted keys
+// Run runs the registered filters always iterating over a slice of filters with sorted keys.
 func (f *DefaultFilterEngine) Run(ctx context.Context, event events.Event) events.Event {
 	f.log.Debug("Running registered filters")
 	filters := f.RegisteredFilters()
@@ -66,19 +66,16 @@ func (f *DefaultFilterEngine) Run(ctx context.Context, event events.Event) event
 	return event
 }
 
-// Register filter(s) to engine
-func (f *DefaultFilterEngine) Register(filters ...Filter) {
+// Register filter(s) to engine.
+func (f *DefaultFilterEngine) Register(filters ...RegisteredFilter) {
 	for _, filter := range filters {
-		f.log.Infof("Registering filter %q", filter.Name())
-		f.filters[filter.Name()] = RegisteredFilter{
-			Filter:  filter,
-			Enabled: true,
-		}
+		f.log.Infof("Registering filter %q (enabled: %t)...", filter.Name(), filter.Enabled)
+		f.filters[filter.Name()] = filter
 	}
 }
 
-// RegisteredFilters returns sorted slice of registered filters
-func (f DefaultFilterEngine) RegisteredFilters() []RegisteredFilter {
+// RegisteredFilters returns sorted slice of registered filters.
+func (f *DefaultFilterEngine) RegisteredFilters() []RegisteredFilter {
 	var keys []string
 	for key := range f.filters {
 		keys = append(keys, key)
@@ -93,7 +90,7 @@ func (f DefaultFilterEngine) RegisteredFilters() []RegisteredFilter {
 	return registeredFilters
 }
 
-// SetFilter sets filter value in FilterMap to enable or disable filter
+// SetFilter sets filter value in FilterMap to enable or disable filter.
 func (f *DefaultFilterEngine) SetFilter(name string, flag bool) error {
 	// Find filter struct name
 	filter, ok := f.filters[name]

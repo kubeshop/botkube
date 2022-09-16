@@ -17,3 +17,6 @@ data:
 
     sources:
       {{- .Values.sources | toYaml | nindent 6 }}
+
+    filters:
+      {{- .Values.filters | toYaml | nindent 6 }}

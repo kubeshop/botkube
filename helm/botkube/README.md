@@ -41,112 +41,117 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [sources.k8s-events.kubernetes.recommendations.ingress.tlsSecretValid](./values.yaml#L78) | bool | `true` | If true, notifies about Ingress resources with invalid TLS secret reference. |
 | [sources.k8s-events.kubernetes.namespaces](./values.yaml#L83) | object | `{"include":[".*"]}` | Describes namespaces for every Kubernetes resources you want to watch or exclude. These namespaces are applied to every resource specified in the resources list. However, every specified resource can override this by using its own namespaces object. |
 | [sources.k8s-events.kubernetes.resources](./values.yaml#L96) | list | Watch all built-in K8s kinds. | Describes the Kubernetes resources you want to watch. |
-| [executors](./values.yaml#L230) | object | See the `values.yaml` file for full object. | Map of executors. Executor contains configuration for running `kubectl` commands. The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names. Key name is used as a binding reference.   |
-| [executors.kubectl-read-only.kubectl.namespaces.include](./values.yaml#L238) | list | `[".*"]` | List of allowed Kubernetes Namespaces for command execution. It can also contain a regex expressions:  `- ".*"` - to specify all Namespaces. |
-| [executors.kubectl-read-only.kubectl.namespaces.exclude](./values.yaml#L243) | list | `[]` | List of ignored Kubernetes Namespace. It can also contain a regex expressions:  `- "test-.*"` - to specify all Namespaces. |
-| [executors.kubectl-read-only.kubectl.enabled](./values.yaml#L245) | bool | `false` | If true, enables `kubectl` commands execution. |
-| [executors.kubectl-read-only.kubectl.commands.verbs](./values.yaml#L249) | list | `["api-resources","api-versions","cluster-info","describe","diff","explain","get","logs","top","auth"]` | Configures which `kubectl` methods are allowed. |
-| [executors.kubectl-read-only.kubectl.commands.resources](./values.yaml#L251) | list | `["deployments","pods","namespaces","daemonsets","statefulsets","storageclasses","nodes","configmaps"]` | Configures which K8s resource are allowed. |
-| [executors.kubectl-read-only.kubectl.defaultNamespace](./values.yaml#L253) | string | `"default"` | Configures the default Namespace for executing BotKube `kubectl` commands. If not set, uses the 'default'. |
-| [executors.kubectl-read-only.kubectl.restrictAccess](./values.yaml#L255) | bool | `false` | If true, enables commands execution from configured channel only. |
-| [existingCommunicationsSecretName](./values.yaml#L265) | string | `""` | Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.  |
-| [communications](./values.yaml#L272) | object | See the `values.yaml` file for full object. | Map of communication groups. Communication group contains settings for multiple communication platforms. The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.   |
-| [communications.default-group.slack.enabled](./values.yaml#L277) | bool | `false` | If true, enables Slack bot. |
-| [communications.default-group.slack.channels](./values.yaml#L281) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"name":"SLACK_CHANNEL"}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
-| [communications.default-group.slack.channels.default.name](./values.yaml#L284) | string | `"SLACK_CHANNEL"` | Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in. |
-| [communications.default-group.slack.channels.default.bindings.executors](./values.yaml#L287) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
-| [communications.default-group.slack.channels.default.bindings.sources](./values.yaml#L290) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
-| [communications.default-group.slack.token](./values.yaml#L293) | string | `""` | Slack token. |
-| [communications.default-group.slack.botToken](./values.yaml#L296) | string | `""` | Slack bot token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
-| [communications.default-group.slack.appToken](./values.yaml#L299) | string | `""` | Slack app-level token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
-| [communications.default-group.slack.notification.type](./values.yaml#L302) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
-| [communications.default-group.mattermost.enabled](./values.yaml#L307) | bool | `false` | If true, enables Mattermost bot. |
-| [communications.default-group.mattermost.botName](./values.yaml#L309) | string | `"BotKube"` | User in Mattermost which belongs the specified Personal Access token. |
-| [communications.default-group.mattermost.url](./values.yaml#L311) | string | `"MATTERMOST_SERVER_URL"` | The URL (including http/https schema) where Mattermost is running. e.g https://example.com:9243 |
-| [communications.default-group.mattermost.token](./values.yaml#L313) | string | `"MATTERMOST_TOKEN"` | Personal Access token generated by BotKube user. |
-| [communications.default-group.mattermost.team](./values.yaml#L315) | string | `"MATTERMOST_TEAM"` | The Mattermost Team name where BotKube is added. |
-| [communications.default-group.mattermost.channels](./values.yaml#L319) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"name":"MATTERMOST_CHANNEL"}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
-| [communications.default-group.mattermost.channels.default.name](./values.yaml#L323) | string | `"MATTERMOST_CHANNEL"` | The Mattermost channel name for receiving BotKube alerts. The BotKube user needs to be added to it. |
-| [communications.default-group.mattermost.channels.default.bindings.executors](./values.yaml#L326) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
-| [communications.default-group.mattermost.channels.default.bindings.sources](./values.yaml#L329) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
-| [communications.default-group.mattermost.notification.type](./values.yaml#L333) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
-| [communications.default-group.teams.enabled](./values.yaml#L338) | bool | `false` | If true, enables MS Teams bot. |
-| [communications.default-group.teams.botName](./values.yaml#L340) | string | `"BotKube"` | The Bot name set while registering Bot to MS Teams. |
-| [communications.default-group.teams.appID](./values.yaml#L342) | string | `"APPLICATION_ID"` | The BotKube application ID generated while registering Bot to MS Teams. |
-| [communications.default-group.teams.appPassword](./values.yaml#L344) | string | `"APPLICATION_PASSWORD"` | The BotKube application password generated while registering Bot to MS Teams. |
-| [communications.default-group.teams.bindings.executors](./values.yaml#L347) | list | `["kubectl-read-only"]` | Executor bindings apply to all MS Teams channels where BotKube has access to. |
-| [communications.default-group.teams.bindings.sources](./values.yaml#L350) | list | `["k8s-events"]` | Source bindings apply to all channels which have notification turned on with `@BotKube notifier start` command. |
-| [communications.default-group.teams.messagePath](./values.yaml#L353) | string | `"/bots/teams"` | The path in endpoint URL provided while registering BotKube to MS Teams. |
-| [communications.default-group.teams.notification.type](./values.yaml#L356) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
-| [communications.default-group.teams.port](./values.yaml#L358) | int | `3978` | The Service port for bot endpoint on BotKube container. |
-| [communications.default-group.discord.enabled](./values.yaml#L363) | bool | `false` | If true, enables Discord bot. |
-| [communications.default-group.discord.token](./values.yaml#L365) | string | `"DISCORD_TOKEN"` | BotKube Bot Token. |
-| [communications.default-group.discord.botID](./values.yaml#L367) | string | `"DISCORD_BOT_ID"` | BotKube Application Client ID. |
-| [communications.default-group.discord.channels](./values.yaml#L371) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"id":"DISCORD_CHANNEL_ID"}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
-| [communications.default-group.discord.channels.default.id](./values.yaml#L375) | string | `"DISCORD_CHANNEL_ID"` | Discord channel ID for receiving BotKube alerts. The BotKube user needs to be added to it. |
-| [communications.default-group.discord.channels.default.bindings.executors](./values.yaml#L378) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
-| [communications.default-group.discord.channels.default.bindings.sources](./values.yaml#L381) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
-| [communications.default-group.discord.notification.type](./values.yaml#L385) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
-| [communications.default-group.elasticsearch.enabled](./values.yaml#L390) | bool | `false` | If true, enables Elasticsearch. |
-| [communications.default-group.elasticsearch.awsSigning.enabled](./values.yaml#L394) | bool | `false` | If true, enables awsSigning using IAM for Elasticsearch hosted on AWS. Make sure AWS environment variables are set. [Ref doc](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). |
-| [communications.default-group.elasticsearch.awsSigning.awsRegion](./values.yaml#L396) | string | `"us-east-1"` | AWS region where Elasticsearch is deployed. |
-| [communications.default-group.elasticsearch.awsSigning.roleArn](./values.yaml#L398) | string | `""` | AWS IAM Role arn to assume for credentials, use this only if you don't want to use the EC2 instance role or not running on AWS instance. |
-| [communications.default-group.elasticsearch.server](./values.yaml#L400) | string | `"ELASTICSEARCH_ADDRESS"` | The server URL, e.g https://example.com:9243 |
-| [communications.default-group.elasticsearch.username](./values.yaml#L402) | string | `"ELASTICSEARCH_USERNAME"` | Basic Auth username. |
-| [communications.default-group.elasticsearch.password](./values.yaml#L404) | string | `"ELASTICSEARCH_PASSWORD"` | Basic Auth password. |
-| [communications.default-group.elasticsearch.skipTLSVerify](./values.yaml#L407) | bool | `false` | If true, skips the verification of TLS certificate of the Elastic nodes. It's useful for clusters with self-signed certificates. |
-| [communications.default-group.elasticsearch.indices](./values.yaml#L411) | object | `{"default":{"bindings":{"sources":["k8s-events"]},"name":"botkube","replicas":0,"shards":1,"type":"botkube-event"}}` | Map of configured indices. The `indices` property name is an alias for a given configuration.   |
-| [communications.default-group.elasticsearch.indices.default.name](./values.yaml#L414) | string | `"botkube"` | Configures Elasticsearch index settings. |
-| [communications.default-group.elasticsearch.indices.default.bindings.sources](./values.yaml#L420) | list | `["k8s-events"]` | Notification sources configuration for a given index. |
-| [communications.default-group.webhook.enabled](./values.yaml#L426) | bool | `false` | If true, enables Webhook. |
-| [communications.default-group.webhook.url](./values.yaml#L428) | string | `"WEBHOOK_URL"` | The Webhook URL, e.g.: https://example.com:80 |
-| [communications.default-group.webhook.bindings.sources](./values.yaml#L431) | list | `["k8s-events"]` | Notification sources configuration for the webhook. |
-| [settings.clusterName](./values.yaml#L437) | string | `"not-configured"` | Cluster name to differentiate incoming messages. |
-| [settings.configWatcher](./values.yaml#L439) | bool | `true` | If true, restarts the BotKube Pod on config changes. |
-| [settings.upgradeNotifier](./values.yaml#L441) | bool | `true` | If true, notifies about new BotKube releases. |
-| [settings.log.level](./values.yaml#L445) | string | `"info"` | Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`. |
-| [settings.log.disableColors](./values.yaml#L447) | bool | `false` | If true, disable ANSI colors in logging. |
-| [ssl.enabled](./values.yaml#L452) | bool | `false` | If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`. |
-| [ssl.existingSecretName](./values.yaml#L458) | string | `""` | Using existing SSL Secret. It MUST be in `botkube` Namespace.  |
-| [ssl.cert](./values.yaml#L461) | string | `""` | SSL Certificate file e.g certs/my-cert.crt. |
-| [service](./values.yaml#L464) | object | `{"name":"metrics","port":2112,"targetPort":2112}` | Configures Service settings for ServiceMonitor CR. |
-| [ingress](./values.yaml#L471) | object | `{"annotations":{"kubernetes.io/ingress.class":"nginx"},"create":false,"host":"HOST","tls":{"enabled":false,"secretName":""}}` | Configures Ingress settings that exposes MS Teams endpoint. [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource). |
-| [serviceMonitor](./values.yaml#L482) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
-| [deployment.annotations](./values.yaml#L492) | object | `{}` | Extra annotations to pass to the BotKube Deployment. |
-| [extraAnnotations](./values.yaml#L499) | object | `{}` | Extra annotations to pass to the BotKube Pod. |
-| [extraLabels](./values.yaml#L501) | object | `{}` | Extra labels to pass to the BotKube Pod. |
-| [priorityClassName](./values.yaml#L503) | string | `""` | Priority class name for the BotKube Pod. |
-| [nameOverride](./values.yaml#L506) | string | `""` | Fully override "botkube.name" template. |
-| [fullnameOverride](./values.yaml#L508) | string | `""` | Fully override "botkube.fullname" template. |
-| [resources](./values.yaml#L514) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
-| [extraEnv](./values.yaml#L526) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
-| [extraVolumes](./values.yaml#L538) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
-| [extraVolumeMounts](./values.yaml#L553) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
-| [nodeSelector](./values.yaml#L571) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
-| [tolerations](./values.yaml#L575) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
-| [affinity](./values.yaml#L579) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
-| [rbac](./values.yaml#L583) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
-| [serviceAccount.create](./values.yaml#L592) | bool | `true` | If true, a ServiceAccount is automatically created. |
-| [serviceAccount.name](./values.yaml#L595) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
-| [serviceAccount.annotations](./values.yaml#L597) | object | `{}` | Extra annotations for the ServiceAccount. |
-| [extraObjects](./values.yaml#L600) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
-| [analytics.disable](./values.yaml#L628) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
-| [e2eTest.image.registry](./values.yaml#L634) | string | `"ghcr.io"` | Test runner image registry. |
-| [e2eTest.image.repository](./values.yaml#L636) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
-| [e2eTest.image.pullPolicy](./values.yaml#L638) | string | `"IfNotPresent"` | Test runner image pull policy. |
-| [e2eTest.image.tag](./values.yaml#L640) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
-| [e2eTest.deployment](./values.yaml#L642) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
-| [e2eTest.slack.botName](./values.yaml#L647) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.slack.testerName](./values.yaml#L649) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.slack.testerAppToken](./values.yaml#L651) | string | `""` | Slack tester application token that interacts with BotKube bot. |
-| [e2eTest.slack.additionalContextMessage](./values.yaml#L653) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.slack.messageWaitTimeout](./values.yaml#L655) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
-| [e2eTest.discord.botName](./values.yaml#L658) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.discord.testerName](./values.yaml#L660) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.discord.guildID](./values.yaml#L662) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
-| [e2eTest.discord.testerAppToken](./values.yaml#L664) | string | `""` | Discord tester application token that interacts with BotKube bot. |
-| [e2eTest.discord.additionalContextMessage](./values.yaml#L666) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.discord.messageWaitTimeout](./values.yaml#L668) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [filters](./values.yaml#L228) | object | See the `values.yaml` file for full object. | Filter settings for various sources. Currently, all filters are globally enabled or disabled. You can enable or disable filters with `@BotKube filters` commands. |
+| [filters.kubernetes.objectAnnotationChecker](./values.yaml#L231) | bool | `true` | If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations. |
+| [filters.kubernetes.nodeEventsChecker](./values.yaml#L233) | bool | `true` | If true, filters out Node-related events that are not important. |
+| [executors](./values.yaml#L241) | object | See the `values.yaml` file for full object. | Map of executors. Executor contains configuration for running `kubectl` commands. The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names. Key name is used as a binding reference.   |
+| [executors.kubectl-read-only.kubectl.namespaces.include](./values.yaml#L249) | list | `[".*"]` | List of allowed Kubernetes Namespaces for command execution. It can also contain a regex expressions:  `- ".*"` - to specify all Namespaces. |
+| [executors.kubectl-read-only.kubectl.namespaces.exclude](./values.yaml#L254) | list | `[]` | List of ignored Kubernetes Namespace. It can also contain a regex expressions:  `- "test-.*"` - to specify all Namespaces. |
+| [executors.kubectl-read-only.kubectl.enabled](./values.yaml#L256) | bool | `false` | If true, enables `kubectl` commands execution. |
+| [executors.kubectl-read-only.kubectl.commands.verbs](./values.yaml#L260) | list | `["api-resources","api-versions","cluster-info","describe","diff","explain","get","logs","top","auth"]` | Configures which `kubectl` methods are allowed. |
+| [executors.kubectl-read-only.kubectl.commands.resources](./values.yaml#L262) | list | `["deployments","pods","namespaces","daemonsets","statefulsets","storageclasses","nodes","configmaps"]` | Configures which K8s resource are allowed. |
+| [executors.kubectl-read-only.kubectl.defaultNamespace](./values.yaml#L264) | string | `"default"` | Configures the default Namespace for executing BotKube `kubectl` commands. If not set, uses the 'default'. |
+| [executors.kubectl-read-only.kubectl.restrictAccess](./values.yaml#L266) | bool | `false` | If true, enables commands execution from configured channel only. |
+| [existingCommunicationsSecretName](./values.yaml#L276) | string | `""` | Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.  |
+| [communications](./values.yaml#L283) | object | See the `values.yaml` file for full object. | Map of communication groups. Communication group contains settings for multiple communication platforms. The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.   |
+| [communications.default-group.slack.enabled](./values.yaml#L288) | bool | `false` | If true, enables Slack bot. |
+| [communications.default-group.slack.channels](./values.yaml#L292) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"name":"SLACK_CHANNEL","notification":{"disabled":false}}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
+| [communications.default-group.slack.channels.default.name](./values.yaml#L295) | string | `"SLACK_CHANNEL"` | Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in. |
+| [communications.default-group.slack.channels.default.notification.disabled](./values.yaml#L298) | bool | `false` | If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime. |
+| [communications.default-group.slack.channels.default.bindings.executors](./values.yaml#L301) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
+| [communications.default-group.slack.channels.default.bindings.sources](./values.yaml#L304) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
+| [communications.default-group.slack.token](./values.yaml#L307) | string | `""` | Slack token. |
+| [communications.default-group.slack.botToken](./values.yaml#L310) | string | `""` | Slack bot token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
+| [communications.default-group.slack.appToken](./values.yaml#L313) | string | `""` | Slack app-level token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
+| [communications.default-group.slack.notification.type](./values.yaml#L316) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
+| [communications.default-group.mattermost.enabled](./values.yaml#L321) | bool | `false` | If true, enables Mattermost bot. |
+| [communications.default-group.mattermost.botName](./values.yaml#L323) | string | `"BotKube"` | User in Mattermost which belongs the specified Personal Access token. |
+| [communications.default-group.mattermost.url](./values.yaml#L325) | string | `"MATTERMOST_SERVER_URL"` | The URL (including http/https schema) where Mattermost is running. e.g https://example.com:9243 |
+| [communications.default-group.mattermost.token](./values.yaml#L327) | string | `"MATTERMOST_TOKEN"` | Personal Access token generated by BotKube user. |
+| [communications.default-group.mattermost.team](./values.yaml#L329) | string | `"MATTERMOST_TEAM"` | The Mattermost Team name where BotKube is added. |
+| [communications.default-group.mattermost.channels](./values.yaml#L333) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"name":"MATTERMOST_CHANNEL","notification":{"disabled":false}}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
+| [communications.default-group.mattermost.channels.default.name](./values.yaml#L337) | string | `"MATTERMOST_CHANNEL"` | The Mattermost channel name for receiving BotKube alerts. The BotKube user needs to be added to it. |
+| [communications.default-group.mattermost.channels.default.notification.disabled](./values.yaml#L340) | bool | `false` | If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime. |
+| [communications.default-group.mattermost.channels.default.bindings.executors](./values.yaml#L343) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
+| [communications.default-group.mattermost.channels.default.bindings.sources](./values.yaml#L346) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
+| [communications.default-group.mattermost.notification.type](./values.yaml#L350) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
+| [communications.default-group.teams.enabled](./values.yaml#L355) | bool | `false` | If true, enables MS Teams bot. |
+| [communications.default-group.teams.botName](./values.yaml#L357) | string | `"BotKube"` | The Bot name set while registering Bot to MS Teams. |
+| [communications.default-group.teams.appID](./values.yaml#L359) | string | `"APPLICATION_ID"` | The BotKube application ID generated while registering Bot to MS Teams. |
+| [communications.default-group.teams.appPassword](./values.yaml#L361) | string | `"APPLICATION_PASSWORD"` | The BotKube application password generated while registering Bot to MS Teams. |
+| [communications.default-group.teams.bindings.executors](./values.yaml#L364) | list | `["kubectl-read-only"]` | Executor bindings apply to all MS Teams channels where BotKube has access to. |
+| [communications.default-group.teams.bindings.sources](./values.yaml#L367) | list | `["k8s-events"]` | Source bindings apply to all channels which have notification turned on with `@BotKube notifier start` command. |
+| [communications.default-group.teams.messagePath](./values.yaml#L370) | string | `"/bots/teams"` | The path in endpoint URL provided while registering BotKube to MS Teams. |
+| [communications.default-group.teams.port](./values.yaml#L372) | int | `3978` | The Service port for bot endpoint on BotKube container. |
+| [communications.default-group.discord.enabled](./values.yaml#L377) | bool | `false` | If true, enables Discord bot. |
+| [communications.default-group.discord.token](./values.yaml#L379) | string | `"DISCORD_TOKEN"` | BotKube Bot Token. |
+| [communications.default-group.discord.botID](./values.yaml#L381) | string | `"DISCORD_BOT_ID"` | BotKube Application Client ID. |
+| [communications.default-group.discord.channels](./values.yaml#L385) | object | `{"default":{"bindings":{"executors":["kubectl-read-only"],"sources":["k8s-events"]},"id":"DISCORD_CHANNEL_ID","notification":{"disabled":false}}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
+| [communications.default-group.discord.channels.default.id](./values.yaml#L389) | string | `"DISCORD_CHANNEL_ID"` | Discord channel ID for receiving BotKube alerts. The BotKube user needs to be added to it. |
+| [communications.default-group.discord.channels.default.notification.disabled](./values.yaml#L392) | bool | `false` | If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime. |
+| [communications.default-group.discord.channels.default.bindings.executors](./values.yaml#L395) | list | `["kubectl-read-only"]` | Executors configuration for a given channel. |
+| [communications.default-group.discord.channels.default.bindings.sources](./values.yaml#L398) | list | `["k8s-events"]` | Notification sources configuration for a given channel. |
+| [communications.default-group.discord.notification.type](./values.yaml#L402) | string | `"short"` | Configures notification type that are sent. Possible values: `short`, `long`. |
+| [communications.default-group.elasticsearch.enabled](./values.yaml#L407) | bool | `false` | If true, enables Elasticsearch. |
+| [communications.default-group.elasticsearch.awsSigning.enabled](./values.yaml#L411) | bool | `false` | If true, enables awsSigning using IAM for Elasticsearch hosted on AWS. Make sure AWS environment variables are set. [Ref doc](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). |
+| [communications.default-group.elasticsearch.awsSigning.awsRegion](./values.yaml#L413) | string | `"us-east-1"` | AWS region where Elasticsearch is deployed. |
+| [communications.default-group.elasticsearch.awsSigning.roleArn](./values.yaml#L415) | string | `""` | AWS IAM Role arn to assume for credentials, use this only if you don't want to use the EC2 instance role or not running on AWS instance. |
+| [communications.default-group.elasticsearch.server](./values.yaml#L417) | string | `"ELASTICSEARCH_ADDRESS"` | The server URL, e.g https://example.com:9243 |
+| [communications.default-group.elasticsearch.username](./values.yaml#L419) | string | `"ELASTICSEARCH_USERNAME"` | Basic Auth username. |
+| [communications.default-group.elasticsearch.password](./values.yaml#L421) | string | `"ELASTICSEARCH_PASSWORD"` | Basic Auth password. |
+| [communications.default-group.elasticsearch.skipTLSVerify](./values.yaml#L424) | bool | `false` | If true, skips the verification of TLS certificate of the Elastic nodes. It's useful for clusters with self-signed certificates. |
+| [communications.default-group.elasticsearch.indices](./values.yaml#L428) | object | `{"default":{"bindings":{"sources":["k8s-events"]},"name":"botkube","replicas":0,"shards":1,"type":"botkube-event"}}` | Map of configured indices. The `indices` property name is an alias for a given configuration.   |
+| [communications.default-group.elasticsearch.indices.default.name](./values.yaml#L431) | string | `"botkube"` | Configures Elasticsearch index settings. |
+| [communications.default-group.elasticsearch.indices.default.bindings.sources](./values.yaml#L437) | list | `["k8s-events"]` | Notification sources configuration for a given index. |
+| [communications.default-group.webhook.enabled](./values.yaml#L443) | bool | `false` | If true, enables Webhook. |
+| [communications.default-group.webhook.url](./values.yaml#L445) | string | `"WEBHOOK_URL"` | The Webhook URL, e.g.: https://example.com:80 |
+| [communications.default-group.webhook.bindings.sources](./values.yaml#L448) | list | `["k8s-events"]` | Notification sources configuration for the webhook. |
+| [settings.clusterName](./values.yaml#L454) | string | `"not-configured"` | Cluster name to differentiate incoming messages. |
+| [settings.configWatcher](./values.yaml#L456) | bool | `true` | If true, restarts the BotKube Pod on config changes. |
+| [settings.upgradeNotifier](./values.yaml#L458) | bool | `true` | If true, notifies about new BotKube releases. |
+| [settings.log.level](./values.yaml#L462) | string | `"info"` | Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`. |
+| [settings.log.disableColors](./values.yaml#L464) | bool | `false` | If true, disable ANSI colors in logging. |
+| [ssl.enabled](./values.yaml#L469) | bool | `false` | If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`. |
+| [ssl.existingSecretName](./values.yaml#L475) | string | `""` | Using existing SSL Secret. It MUST be in `botkube` Namespace.  |
+| [ssl.cert](./values.yaml#L478) | string | `""` | SSL Certificate file e.g certs/my-cert.crt. |
+| [service](./values.yaml#L481) | object | `{"name":"metrics","port":2112,"targetPort":2112}` | Configures Service settings for ServiceMonitor CR. |
+| [ingress](./values.yaml#L488) | object | `{"annotations":{"kubernetes.io/ingress.class":"nginx"},"create":false,"host":"HOST","tls":{"enabled":false,"secretName":""}}` | Configures Ingress settings that exposes MS Teams endpoint. [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource). |
+| [serviceMonitor](./values.yaml#L499) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
+| [deployment.annotations](./values.yaml#L509) | object | `{}` | Extra annotations to pass to the BotKube Deployment. |
+| [extraAnnotations](./values.yaml#L516) | object | `{}` | Extra annotations to pass to the BotKube Pod. |
+| [extraLabels](./values.yaml#L518) | object | `{}` | Extra labels to pass to the BotKube Pod. |
+| [priorityClassName](./values.yaml#L520) | string | `""` | Priority class name for the BotKube Pod. |
+| [nameOverride](./values.yaml#L523) | string | `""` | Fully override "botkube.name" template. |
+| [fullnameOverride](./values.yaml#L525) | string | `""` | Fully override "botkube.fullname" template. |
+| [resources](./values.yaml#L531) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
+| [extraEnv](./values.yaml#L543) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
+| [extraVolumes](./values.yaml#L555) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
+| [extraVolumeMounts](./values.yaml#L570) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
+| [nodeSelector](./values.yaml#L588) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
+| [tolerations](./values.yaml#L592) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
+| [affinity](./values.yaml#L596) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
+| [rbac](./values.yaml#L600) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
+| [serviceAccount.create](./values.yaml#L609) | bool | `true` | If true, a ServiceAccount is automatically created. |
+| [serviceAccount.name](./values.yaml#L612) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
+| [serviceAccount.annotations](./values.yaml#L614) | object | `{}` | Extra annotations for the ServiceAccount. |
+| [extraObjects](./values.yaml#L617) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
+| [analytics.disable](./values.yaml#L645) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
+| [e2eTest.image.registry](./values.yaml#L651) | string | `"ghcr.io"` | Test runner image registry. |
+| [e2eTest.image.repository](./values.yaml#L653) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
+| [e2eTest.image.pullPolicy](./values.yaml#L655) | string | `"IfNotPresent"` | Test runner image pull policy. |
+| [e2eTest.image.tag](./values.yaml#L657) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
+| [e2eTest.deployment](./values.yaml#L659) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
+| [e2eTest.slack.botName](./values.yaml#L664) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.slack.testerName](./values.yaml#L666) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.slack.testerAppToken](./values.yaml#L668) | string | `""` | Slack tester application token that interacts with BotKube bot. |
+| [e2eTest.slack.additionalContextMessage](./values.yaml#L670) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.slack.messageWaitTimeout](./values.yaml#L672) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [e2eTest.discord.botName](./values.yaml#L675) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.discord.testerName](./values.yaml#L677) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.discord.guildID](./values.yaml#L679) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
+| [e2eTest.discord.testerAppToken](./values.yaml#L681) | string | `""` | Discord tester application token that interacts with BotKube bot. |
+| [e2eTest.discord.additionalContextMessage](./values.yaml#L683) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.discord.messageWaitTimeout](./values.yaml#L685) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
 
 ### AWS IRSA on EKS support
 

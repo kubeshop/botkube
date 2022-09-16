@@ -62,7 +62,7 @@ func (f *ObjectAnnotationChecker) Name() string {
 
 // Describe describes the filter.
 func (f *ObjectAnnotationChecker) Describe() string {
-	return "Checks if annotations botkube.io/* present in object specs and filters them."
+	return "Filters or reroutes events based on botkube.io/* Kubernetes resource annotations."
 }
 
 // isObjectNotifDisabled checks annotation botkube.io/disable.
