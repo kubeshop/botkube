@@ -6,21 +6,16 @@ Basically, our testers listen to events sent from BotKube in a test cluster. And
 
 On Kubernetes, the E2E tests are self-contained. They just require a BotKube installation on a cluster as highlighted in the instructions below. 
 
-## Prerequisites
+## General prerequisites
 
 - Kubernetes cluster (e.g. local one created with `k3d`)
 
-### Slack
+## Testing Slack
+
+### Prerequisites
 
 - BotKube bot app configured for a Slack workspace according to the [instruction](https://botkube.io/docs/installation/slack/)
 - BotKube tester app configured according to the [instruction](#configure-tester-slack-application)
-
-### Discord
-
-- A Discord server available, [create one if required](https://support.discord.com/hc/en-us/articles/204849977-How-do-I-create-a-server-).
-- BotKube bot app configured for a Discord server according to the [instruction](https://botkube.io/docs/installation/discord/#install-botkube-to-the-discord-server)
-  > **NOTE:** Please name the app `botkube` and skip step 11 as it's not required.
-- BotKube tester bot app configured according to the [instruction](#configure-tester-discord-bot-application)
 
 ### Configure Tester Slack application
 
@@ -61,6 +56,15 @@ On Kubernetes, the E2E tests are self-contained. They just require a BotKube ins
    export SLACK_TESTER_APP_TOKEN="{BotKube tester app token}
    ```
 
+## Testing Discord
+
+### Prerequisites
+
+- A Discord server available, [create one if required](https://support.discord.com/hc/en-us/articles/204849977-How-do-I-create-a-server-).
+- BotKube bot app configured for a Discord server according to the [instruction](https://botkube.io/docs/installation/discord/#install-botkube-to-the-discord-server)
+  > **NOTE:** Please name the app `botkube` and skip step 11 as it's not required.
+- BotKube tester bot app configured according to the [instruction](#configure-tester-discord-bot-application)
+
 ### Configure Tester Discord bot application
 
 > **NOTE:** This is something you need to do only once. Once the tester app is configured, you can use its token for running integration tests as many times as you want.
@@ -97,6 +101,10 @@ On Kubernetes, the E2E tests are self-contained. They just require a BotKube ins
 
 ## Install BotKube
 
+Use environment vars for the specific platform (Slack or Discord or both) when running your E2E tests.
+
+For example, if you're only running Discord tests, you can omit env var prefixed with `SLACK_..`.
+
 1. Export required environment variables:
 
     ```bash
@@ -126,10 +134,19 @@ On Kubernetes, the E2E tests are self-contained. They just require a BotKube ins
     #
     # Optional: environment variables for running integration tests LOCALLY using make:
     #
-    export SLACK_TESTER_NAME="{Name of BotKube tester app}" # WARNING: tester name defaults to `tester` when a name is not provided for local test runs! 
+    export SLACK_TESTER_NAME="{Name of BotKube SLACK tester app}" # WARNING: tester name defaults to `tester` when a name is not provided for local test runs! 
+    export DISCORD_TESTER_NAME="{Name of BotKube DISCORD tester app}" # WARNING: tester name defaults to `tester` when a name is not provided for local test runs! 
     ```
 
 2. Install BotKube using Helm chart:
+   
+   Again, you can omit a platform your E2E tests by only adding `--set` directives for the target platform.
+   
+   For example, if you're only intending to test SLACK, remove:
+   - `--set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}"`
+   - `--set communications.default-group.discord.botID="${DISCORD_BOT_ID}"`
+   - `--set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}"`
+   - `--set e2eTest.discord.guildID="${DISCORD_GUILD_ID}"` 
 
     ```bash
     helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
@@ -150,7 +167,7 @@ On Kubernetes, the E2E tests are self-contained. They just require a BotKube ins
 
 ## Run tests locally
 
-1. Ensure these environment variables are exported:
+1. Ensure the environment variables for your target platforms are exported:
 
     ```bash
     export SLACK_TESTER_APP_TOKEN="{BotKube Slack tester app token}" # WARNING: Token for Tester, not the BotKube Slack bot!
