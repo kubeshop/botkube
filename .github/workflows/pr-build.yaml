@@ -25,7 +25,7 @@ env:
   HELM_VERSION: v3.9.0
   K3D_VERSION: v5.4.3
   PR_NUMBER: ${{ github.event.pull_request.number }}
-  INTEGRATION_TESTS_TIMEOUT: 10m
+  INTEGRATION_TESTS_TIMEOUT: 30m
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/pr/botkube"
   TEST_IMAGE_REPOSITORY: "kubeshop/pr/botkube-test"
@@ -157,7 +157,11 @@ jobs:
       - name: Install BotKube
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SOCKET_SLACK_BOT_TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
@@ -170,7 +174,10 @@ jobs:
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
             --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}" \
-            --set e2eTest.slack.botName="botkubev2"
+            --set e2eTest.slack.botName="botkubev2" \
+            --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
+            --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
+            --set e2eTest.discord.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
       - name: Run tests
         run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"

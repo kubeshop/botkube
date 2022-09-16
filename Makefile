@@ -1,7 +1,7 @@
 TAG=$(shell cut -d'=' -f2- .release)
 
 .DEFAULT_GOAL := build
-.PHONY: release git-tag check-git-status container-image test test-integration build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images
+.PHONY: release git-tag check-git-status container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images
 
 # Show this help.
 help:
@@ -40,8 +40,11 @@ go-import-fmt:
 test: system-check
 	@go test -v  -race ./...
 
-test-integration: system-check
-	@go test -v -tags=integration -race -count=1 ./test/...
+test-integration-slack: system-check
+	@go test -v -tags=integration -race -count=1 ./test/... -run "TestSlack"
+
+test-integration-discord: system-check
+	@go test -v -tags=integration -race -count=1 ./test/... -run "TestDiscord"
 
 # Build the binary
 build: pre-build
@@ -60,11 +63,11 @@ container-image-single: pre-build
 	@./hack/goreleaser.sh build_single
 	@echo "Single target docker image build successful"
 
-# Build the test image
-container-image-test-single: pre-build
+# Build the e2e test image
+container-image-single-e2e: pre-build
 	@echo "Building single target docker image for e2e test"
-	@./hack/goreleaser.sh build_test_single
-	@echo "Single target docker image build for e2e test successful"
+	@./hack/goreleaser.sh build_single_e2e
+	@echo "Single target docker image build for e2e tests successful"
 
 # Publish release using goreleaser
 gorelease:

@@ -1,3 +1,6 @@
+analytics:
+  disable: true
+
 communications:
   'default-group':
     slack:
@@ -19,6 +22,30 @@ communications:
           bindings:
             executors:
               - kubectl-read-only
+            sources:
+              - k8s-updates
+    discord:
+      enabled: false # Tests will override this temporarily
+      token: "" # Provide a valid token for BotKube app
+      botID: "" # Provide a valid Application Client ID for BotKube app
+      channels:
+        'default':
+          id: "" # Tests will override this channel ID temporarily
+          bindings:
+            executors:
+              - kubectl-read-only
+              - kubectl-wait-cmd
+              - kubectl-exec-cmd
+              - kubectl-allow-all
+            sources:
+              - k8s-events
+        'secondary':
+          id: "" # Tests will override this channel ID temporarily
+          bindings:
+            # -- Executors configuration for a given channel.
+            executors:
+              - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
             sources:
               - k8s-updates
 
@@ -107,10 +134,11 @@ settings:
 extraAnnotations:
   botkube.io/disable: "true"
 
-analytics:
-  disable: true
-
 e2eTest:
   slack:
+    testerAppToken: "" # Provide a valid token for BotKube tester app
+    additionalContextMessage: "" # Optional additional context
+  discord:
+    guildID: "" # Provide the Guild ID (discord server ID) used to run e2e tests
     testerAppToken: "" # Provide a valid token for BotKube tester app
     additionalContextMessage: "" # Optional additional context
