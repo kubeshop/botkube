@@ -365,7 +365,7 @@ type Elasticsearch struct {
 	Server        string              `yaml:"server"`
 	SkipTLSVerify bool                `yaml:"skipTLSVerify"`
 	AWSSigning    AWSSigning          `yaml:"awsSigning"`
-	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required_if=Enabled true,omitempty,eq=1"`
+	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required_if=Enabled true,omitempty,min=1"`
 }
 
 // AWSSigning contains AWS configurations
@@ -392,7 +392,7 @@ type Mattermost struct {
 	URL          string                                 `yaml:"url"`
 	Token        string                                 `yaml:"token"`
 	Team         string                                 `yaml:"team"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,eq=1"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 }
 
@@ -415,7 +415,7 @@ type Discord struct {
 	Enabled      bool                                 `yaml:"enabled"`
 	Token        string                               `yaml:"token"`
 	BotID        string                               `yaml:"botID"`
-	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,eq=1"`
+	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
 	Notification Notification                         `yaml:"notification,omitempty"`
 }
 
