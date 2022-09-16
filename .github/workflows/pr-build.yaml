@@ -63,6 +63,8 @@ jobs:
       - name: Save
         run: |
           make save-images
+        env:
+          SLACK_APP_TOKEN: ${{ secrets.SLACK_APP_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
