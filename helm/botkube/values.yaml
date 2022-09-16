@@ -290,13 +290,13 @@ communications:
             sources:
               - k8s-events
       # -- Slack token.
-      token: 'SLACK_API_TOKEN'
+      token: ''
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
-      botToken: 'SLACK_BOT_TOKEN'
+      botToken: ''
       # -- Slack app-level token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
-      appToken: 'SLACK_APP_TOKEN'
+      appToken: ''
       notification:
         # -- Configures notification type that are sent. Possible values: `short`, `long`.
         type: short
