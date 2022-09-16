@@ -350,7 +350,7 @@ type Communications struct {
 // Slack configuration to authentication and send notifications
 type Slack struct {
 	Enabled      bool                                   `yaml:"enabled"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,eq=1"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 	Token        string                                 `yaml:"token,omitempty"`
 	BotToken     string                                 `yaml:"botToken,omitempty"`
