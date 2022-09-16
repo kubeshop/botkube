@@ -6,8 +6,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/sanity-io/litter"
+
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 const recentMessagesLimit = 5
