@@ -5,5 +5,9 @@ settings:
     disableColors: "false"
   informersResyncPeriod: "30m"
 
+  systemConfigMap:
+    name: botkube-system
+    namespace: botkube
+
 analytics:
   disable: false

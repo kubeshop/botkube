@@ -463,6 +463,10 @@ settings:
     # -- If true, disable ANSI colors in logging.
     disableColors: false
 
+  # -- BotKube's system ConfigMap where internal data is stored.
+  systemConfigMap:
+    name: botkube-system
+
 ## For using custom SSL certificates.
 ssl:
   # -- If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`.

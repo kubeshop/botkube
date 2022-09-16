@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -159,7 +160,7 @@ func run() error {
 	commCfg := conf.Communications
 	var (
 		notifiers []controller.Notifier
-		bots      []bot.Bot
+		bots      = map[string]bot.Bot{}
 	)
 
 	// TODO: Current limitation: Communication platform config should be separate inside every group:
@@ -169,14 +170,16 @@ func run() error {
 	for commGroupName, commGroupCfg := range commCfg {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
 
-		router.AddAnyBindingsByName(commGroupCfg.Slack.Channels)
-		router.AddAnyBindingsByName(commGroupCfg.Mattermost.Channels)
-		router.AddAnyBindings(commGroupCfg.Teams.Bindings)
-		router.AddAnyBindingsByID(commGroupCfg.Discord.Channels)
-		for _, index := range commGroupCfg.Elasticsearch.Indices {
-			router.AddAnySinkBindings(index.Bindings)
+		router.AddCommunicationsBindings(commGroupCfg)
+
+		scheduleBot := func(in bot.Bot) {
+			notifiers = append(notifiers, in)
+			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
+			errGroup.Go(func() error {
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				return in.Start(ctx)
+			})
 		}
-		router.AddAnySinkBindings(commGroupCfg.Webhook.Bindings)
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
@@ -184,12 +187,7 @@ func run() error {
 			if err != nil {
 				return reportFatalError("while creating Slack bot", err)
 			}
-			notifiers = append(notifiers, sb)
-			bots = append(bots, sb)
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
-				return sb.Start(ctx)
-			})
+			scheduleBot(sb)
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
@@ -197,12 +195,7 @@ func run() error {
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
-			notifiers = append(notifiers, mb)
-			bots = append(bots, mb)
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
-				return mb.Start(ctx)
-			})
+			scheduleBot(mb)
 		}
 
 		if commGroupCfg.Teams.Enabled {
@@ -210,12 +203,7 @@ func run() error {
 			if err != nil {
 				return reportFatalError("while creating Teams bot", err)
 			}
-			notifiers = append(notifiers, tb)
-			bots = append(bots, tb)
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
-				return tb.Start(ctx)
-			})
+			scheduleBot(tb)
 		}
 
 		if commGroupCfg.Discord.Enabled {
@@ -223,12 +211,7 @@ func run() error {
 			if err != nil {
 				return reportFatalError("while creating Discord bot", err)
 			}
-			notifiers = append(notifiers, db)
-			bots = append(bots, db)
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
-				return db.Start(ctx)
-			})
+			scheduleBot(db)
 		}
 
 		// Run sinks
@@ -251,7 +234,8 @@ func run() error {
 	}
 
 	// Send help message
-	err = sendHelp(ctx, conf.Settings.ClusterName, bots)
+	helpDB := storage.NewForHelp(conf.Settings.SystemConfigMap.Namespace, conf.Settings.SystemConfigMap.Name, k8sCli)
+	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, bots)
 	if err != nil {
 		return fmt.Errorf("while sending initial help message: %w", err)
 	}
@@ -397,14 +381,26 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) fu
 }
 
 // sendHelp sends the help message to all interactive bots.
-func sendHelp(ctx context.Context, clusterName string, notifiers []bot.Bot) error {
-	for _, notifier := range notifiers {
+func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifiers map[string]bot.Bot) error {
+	alreadySentHelp, err := s.GetSentHelpDetails(ctx)
+	if err != nil {
+		return fmt.Errorf("while getting the help data: %w", err)
+	}
+
+	var sent []string
+
+	for key, notifier := range notifiers {
+		if alreadySentHelp[key] {
+			continue
+		}
+
 		help := interactive.Help(notifier.IntegrationName(), clusterName, notifier.BotName())
 		err := notifier.SendMessage(ctx, help)
 		if err != nil {
 			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)
 		}
+		sent = append(sent, key)
 	}
 
-	return nil
+	return s.MarkHelpAsSent(ctx, sent)
 }

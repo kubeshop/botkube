@@ -77,6 +77,8 @@ spec:
             - name: BOTKUBE_SETTINGS_KUBECONFIG
               value: "/.kube/config"
             {{- end }}
+            - name: BOTKUBE_SETTINGS_SYSTEM__CONFIG__MAP_NAMESPACE
+              value: "{{.Release.Namespace}}"
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}

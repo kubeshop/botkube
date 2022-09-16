@@ -95,6 +95,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				    clusterName: foo
 				    configWatcher: false
 				    upgradeNotifier: false
+				    systemConfigMap: {}
 				    metricsPort: ""
 				    log:
 				        level: ""

@@ -466,17 +466,23 @@ type Commands struct {
 
 // Settings contains BotKube's related configuration.
 type Settings struct {
-	ClusterName     string `yaml:"clusterName"`
-	ConfigWatcher   bool   `yaml:"configWatcher"`
-	UpgradeNotifier bool   `yaml:"upgradeNotifier"`
-
-	MetricsPort string `yaml:"metricsPort"`
-	Log         struct {
+	ClusterName     string          `yaml:"clusterName"`
+	ConfigWatcher   bool            `yaml:"configWatcher"`
+	UpgradeNotifier bool            `yaml:"upgradeNotifier"`
+	SystemConfigMap SystemConfigMap `yaml:"systemConfigMap"`
+	MetricsPort     string          `yaml:"metricsPort"`
+	Log             struct {
 		Level         string `yaml:"level"`
 		DisableColors bool   `yaml:"disableColors"`
 	} `yaml:"log"`
 	InformersResyncPeriod time.Duration `yaml:"informersResyncPeriod"`
 	Kubeconfig            string        `yaml:"kubeconfig"`
+}
+
+// SystemConfigMap holds the configuration for BotKube system config map "storage".
+type SystemConfigMap struct {
+	Name      string `yaml:"name,omitempty"`
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 func (eventType EventType) String() string {
