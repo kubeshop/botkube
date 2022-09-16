@@ -123,7 +123,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		if e.isAuthChannel {
 			return interactive.Message{
 				Base: interactive.Base{
-					Header: unsupportedCmdMsg,
+					Description: unsupportedCmdMsg,
 				},
 			}
 		}
@@ -133,7 +133,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	response := func(in string) interactive.Message {
 		return interactive.Message{
 			Base: interactive.Base{
-				Header: fmt.Sprintf("`%s` on `%s`", strings.TrimSpace(command), clusterName),
+				Description: fmt.Sprintf("`%s` on `%s`", strings.TrimSpace(command), clusterName),
 				Body: interactive.Body{
 					CodeBlock: in,
 				},

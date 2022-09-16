@@ -63,19 +63,22 @@ type DiscordConfig struct {
 }
 
 const (
-	channelNamePrefix       = "test"
-	welcomeText             = "Let the tests begin 🤞"
-	pollInterval            = time.Second
-	slackAnnotation         = "<http://botkube.io/*|botkube.io/*>"
-	discordAnnotation       = "botkube.io/*"
-	slackInvalidCmdTemplate = `Cluster: %s
+	channelNamePrefix = "test"
+	welcomeText       = "Let the tests begin 🤞"
+	pollInterval      = time.Second
+	slackAnnotation   = "<http://botkube.io/*|botkube.io/*>"
+	discordAnnotation = "botkube.io/*"
+	discordInvalidCmd = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
+)
+
+var (
+	slackInvalidCmd = heredoc.Doc(`
 				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
 
 				error: Required resource not specified.
 				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
-				exit status 1`
-	discordInvalidCmdTemplate = "Cluster: %s\nYou must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
+				exit status 1`)
 )
 
 func TestSlack(t *testing.T) {
@@ -88,7 +91,7 @@ func TestSlack(t *testing.T) {
 		appCfg,
 		SlackBot,
 		slackAnnotation,
-		slackInvalidCmdTemplate,
+		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
 	)
@@ -107,7 +110,7 @@ func TestDiscord(t *testing.T) {
 		appCfg,
 		DiscordBot,
 		discordAnnotation,
-		discordInvalidCmdTemplate,
+		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
 	)
@@ -349,7 +352,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "get"
-			expectedBody := codeBlock(heredoc.Docf(invalidCmdTemplate, appCfg.ClusterName))
+			expectedBody := codeBlock(invalidCmdTemplate)
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
