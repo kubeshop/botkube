@@ -1,0 +1,15 @@
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      enabled: true
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+
+      token: 'xoxb-SLACK_API_TOKEN'
+      appToken: 'xapp-SLACK_API_TOKEN'

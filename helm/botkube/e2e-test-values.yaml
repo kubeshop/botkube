@@ -6,6 +6,8 @@ communications:
     slack:
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for BotKube app
+      botToken: "" #  Provide a botToken for custom slack app
+      appToken: "" #  Provide an appToken for custom slack app
       channels:
         'default':
           name: "" # Tests will override this temporarily

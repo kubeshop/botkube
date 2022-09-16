@@ -14,7 +14,9 @@ communications:
               - 'kubectl-read-only'
             sources:
               - 'k8s-events'
-      token: 'SLACK_API_TOKEN'
+      token: "" # SLACK_API_TOKEN
+      botToken: "" # SLACK_BOT_TOKEN
+      appToken: "" # SLACK_APP_TOKEN
       notification:
         type: short                             # Change notification type short/long you want to receive. Type is optional and default is short.
 

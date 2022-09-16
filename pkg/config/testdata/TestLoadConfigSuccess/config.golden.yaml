@@ -291,7 +291,7 @@ communications:
                             - kubectl-read-only
             notification:
                 type: short
-            token: token-from-env
+            token: xoxb-token-from-env
         mattermost:
             enabled: false
             botName: ""
