@@ -16,9 +16,9 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -226,15 +226,8 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, fmt.Errorf("while unmarshalling activity context: %w", err)
 			}
 
-			msgWithoutPrefix := b.trimBotMention(consentCtx.Command)
-
-			ref, err := b.getConversationReferenceFrom(activity)
-			if err != nil {
-				return schema.Activity{}, fmt.Errorf("while getting conversation reference: %w", err)
-			}
-
-			e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, activity.ChannelID, b.bindings.Executors, msgWithoutPrefix)
-			out := e.Execute()
+			activity.Text = consentCtx.Command
+			resp := b.processMessage(activity)
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
 			if err != nil {
@@ -243,7 +236,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			b.log.Debugf("Incoming MSTeams Activity: %s", actJSON)
 
 			// upload file
-			err = b.putRequest(uploadInfo.UploadURL, []byte(out))
+			err = b.putRequest(uploadInfo.UploadURL, []byte(resp))
 			if err != nil {
 				return schema.Activity{}, fmt.Errorf("while uploading file: %w", err)
 			}
@@ -280,7 +273,16 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	}
 
 	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, trimmedMsg)
-	return format.CodeBlock(e.Execute())
+	return b.convertInteractiveMessage(e.Execute())
+}
+
+func (b *Teams) convertInteractiveMessage(in interactive.Message) string {
+	if in.HasSections() {
+		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
+		// with `<br>` tags instead  ¯\_(ツ)_/¯
+		return interactive.MessageToMarkdown(interactive.MSTeamsLineFmt, in)
+	}
+	return interactive.MessageToMarkdown(interactive.MDLineFmt, in)
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -341,16 +343,17 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-// SendMessage sends message to MsTeams
-func (b *Teams) SendMessage(ctx context.Context, msg string) error {
+// SendMessage sends message to MS Teams.
+func (b *Teams) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
+		plaintext := b.convertInteractiveMessage(msg)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-				return turn.SendActivity(coreActivity.MsgOptionText(msg))
+				return turn.SendActivity(coreActivity.MsgOptionText(plaintext))
 			},
 		})
 		if err != nil {
@@ -409,7 +412,7 @@ func (b *Teams) SetNotificationsEnabled(enabled bool, ref schema.ConversationRef
 
 // BotName returns the Bot name.
 func (b *Teams) BotName() string {
-	return fmt.Sprintf("<at>%s</at>", b.botName)
+	return fmt.Sprintf("@%s", b.botName)
 }
 
 func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.ConversationReference, card map[string]interface{}) error {
@@ -498,6 +501,11 @@ func (n *teamsNotificationManager) NotificationsEnabled(channelID string) bool {
 // SetNotificationsEnabled sets a new notification status for a given channel ID.
 func (n *teamsNotificationManager) SetNotificationsEnabled(_ string, enabled bool) error {
 	return n.b.SetNotificationsEnabled(enabled, n.ref)
+}
+
+// BotName returns the Bot name.
+func (n *teamsNotificationManager) BotName() string {
+	return n.b.BotName()
 }
 
 func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {

@@ -15,8 +15,6 @@ const (
 	notifierStopMsgFmt          = "Sure! I won't send you notifications from cluster '%s' here."
 	notifierStatusMsgFmt        = "Notifications from cluster '%s' are %s here."
 	notifierNotConfiguredMsgFmt = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
-
-	notifierCmdFirstArg = "notifier"
 )
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.
@@ -26,6 +24,8 @@ type NotifierHandler interface {
 
 	// SetNotificationsEnabled sets a new notification status for a given conversation ID.
 	SetNotificationsEnabled(conversationID string, enabled bool) error
+
+	BotName() string
 }
 
 var (
@@ -53,19 +53,6 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager C
 		cfgManager:        cfgManager,
 		analyticsReporter: analyticsReporter,
 	}
-}
-
-// CanHandle returns true if the arguments can be handled by this executor.
-func (e *NotifierExecutor) CanHandle(args []string) bool {
-	if len(args) == 0 {
-		return false
-	}
-
-	if args[0] != notifierCmdFirstArg {
-		return false
-	}
-
-	return true
 }
 
 // Do executes a given Notifier command based on args.

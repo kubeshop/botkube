@@ -28,7 +28,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Header:      "Using multiple instances",
 					Description: fmt.Sprintf("If you are running multiple BotKube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", clusterName),
 					Body: Body{
-						CodeBlock: fmt.Sprintf("--cluster-name=%q", clusterName),
+						CodeBlock: fmt.Sprintf("--cluster-name=%q\n", clusterName),
 					},
 				},
 			},
@@ -47,9 +47,9 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(platform))),
 				},
 				Buttons: []Button{
-					btnBuilder.ForCommandWithDescCmd("Run commands", "get services"),
-					btnBuilder.ForCommandWithDescCmd("Run commands", "get pods"),
-					btnBuilder.ForCommandWithDescCmd("Run commands", "get deployments"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "get services"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "get pods"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "get deployments"),
 				},
 			},
 			{
@@ -64,7 +64,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 				Base: Base{
 					Header: "Manage incoming notifications",
 					Body: Body{
-						CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]", botName),
+						CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]\n", botName),
 					},
 				},
 				Buttons: []Button{

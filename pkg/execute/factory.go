@@ -3,6 +3,7 @@ package execute
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -35,7 +36,7 @@ type DefaultExecutorFactoryParams struct {
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute() string
+	Execute() interactive.Message
 }
 
 // ConfigPersistenceManager manages persistence of the configuration.

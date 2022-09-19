@@ -63,19 +63,22 @@ type DiscordConfig struct {
 }
 
 const (
-	channelNamePrefix       = "test"
-	welcomeText             = "Let the tests begin 🤞"
-	pollInterval            = time.Second
-	slackAnnotation         = "<http://botkube.io/*|botkube.io/*>"
-	discordAnnotation       = "botkube.io/*"
-	slackInvalidCmdTemplate = `Cluster: %s
+	channelNamePrefix = "test"
+	welcomeText       = "Let the tests begin 🤞"
+	pollInterval      = time.Second
+	slackAnnotation   = "<http://botkube.io/*|botkube.io/*>"
+	discordAnnotation = "botkube.io/*"
+	discordInvalidCmd = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
+)
+
+var (
+	slackInvalidCmd = heredoc.Doc(`
 				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
 
 				error: Required resource not specified.
 				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
-				exit status 1`
-	discordInvalidCmdTemplate = "Cluster: %s\nYou must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
+				exit status 1`)
 )
 
 func TestSlack(t *testing.T) {
@@ -88,7 +91,7 @@ func TestSlack(t *testing.T) {
 		appCfg,
 		SlackBot,
 		slackAnnotation,
-		slackInvalidCmdTemplate,
+		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
 	)
@@ -107,7 +110,7 @@ func TestDiscord(t *testing.T) {
 		appCfg,
 		DiscordBot,
 		discordAnnotation,
-		discordInvalidCmdTemplate,
+		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
 	)
@@ -170,7 +173,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for Bot message in channel...")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
-		interactive.Help(config.CommPlatformIntegration(SlackBot), appCfg.ClusterName, fmt.Sprintf("<@%s>", botDriver.BotUserID())),
+		interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()),
 	)
 	require.NoError(t, err)
 	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
@@ -178,21 +181,38 @@ func runBotTest(t *testing.T,
 
 	t.Log("Running actual test cases")
 
+	cmdHeader := func(command string) string {
+		return fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)
+	}
 	t.Run("Ping", func(t *testing.T) {
 		command := "ping"
-		expectedMessage := fmt.Sprintf("pong from cluster '%s'", appCfg.ClusterName)
+		expectedMessage := fmt.Sprintf("`ping` on `%s`\n```\npong", appCfg.ClusterName)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
+	t.Run("Help", func(t *testing.T) {
+		command := "help"
+		expectedMessage := interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName())
+
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
+			botDriver.Channel().ID(),
+			expectedMessage,
+		)
+
+		assert.NoError(t, err)
+	})
+
 	t.Run("Filters list", func(t *testing.T) {
 		command := "filters list"
-		expectedMessage := codeBlock(heredoc.Doc(fmt.Sprintf(`
+		expectedBody := codeBlock(heredoc.Doc(fmt.Sprintf(`
 			FILTER                  ENABLED DESCRIPTION
 			NodeEventsChecker       false   Sends notifications on node level critical events.
 			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation)))
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -201,7 +221,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Commands list", func(t *testing.T) {
 		command := "commands list"
-		expectedMessage := codeBlock(heredoc.Doc(`
+		expectedBody := codeBlock(heredoc.Doc(`
 			Enabled executors:
 			  kubectl:
 			    kubectl-allow-all:
@@ -254,6 +274,7 @@ func runBotTest(t *testing.T,
 			          - wait
 			        resources: []
 			      restrictAccess: false`))
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -263,6 +284,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("With custom cluster name", func(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -271,6 +293,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "commands list --cluster-name non-existing"
+			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			t.Log("Ensuring bot didn't post anything new...")
@@ -285,7 +308,7 @@ func runBotTest(t *testing.T,
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) bool {
-				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "botkube")
 			}
 
@@ -297,7 +320,7 @@ func runBotTest(t *testing.T,
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) bool {
-				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
 					strings.Contains(msg, "botkube-global-config")
 			}
@@ -309,7 +332,8 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get ingress"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -318,7 +342,8 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify unknown command", func(t *testing.T) {
 			command := "unknown"
-			expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
+			expectedBody := codeBlock("Command not supported. Please use 'help' to see supported commands.")
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -327,7 +352,8 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "get"
-			expectedMessage := codeBlock(heredoc.Docf(invalidCmdTemplate, appCfg.ClusterName))
+			expectedBody := codeBlock(invalidCmdTemplate)
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -336,7 +362,8 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "get po --namespace team-b"
-			expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -347,7 +374,7 @@ func runBotTest(t *testing.T,
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
 				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 				assertionFn := func(msg string) bool {
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "deployment.apps/botkube condition met")
 				}
 
@@ -358,7 +385,8 @@ func runBotTest(t *testing.T,
 
 			t.Run("Exec (the 3rd binding which is disabled)", func(t *testing.T) {
 				command := "exec"
-				expectedMessage := codeBlock("Command not supported. Please run /botkubehelp to see supported commands.")
+				expectedBody := codeBlock("Command not supported. Please use 'help' to see supported commands.")
+				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 				err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -367,7 +395,8 @@ func runBotTest(t *testing.T,
 
 			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
 				command := "get pods -A"
-				expectedMessage := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 				err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -377,7 +406,7 @@ func runBotTest(t *testing.T,
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
 				command := "get deploy -A"
 				assertionFn := func(msg string) bool {
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("Cluster: %s", appCfg.ClusterName))) &&
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "local-path-provisioner") &&
 						strings.Contains(msg, "coredns") &&
 						strings.Contains(msg, "botkube")
@@ -393,14 +422,18 @@ func runBotTest(t *testing.T,
 	t.Run("Multi-channel notifications", func(t *testing.T) {
 		t.Log("Getting notifier status from second channel...")
 		command := "notifier status"
-		expectedMessage := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Starting notifier in second channel...")
 		command = "notifier start"
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
@@ -433,7 +466,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
@@ -455,7 +488,8 @@ func runBotTest(t *testing.T,
 
 		t.Log("Stopping notifier in first channel...")
 		command = "notifier stop"
-		expectedMessage = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -463,14 +497,18 @@ func runBotTest(t *testing.T,
 
 		t.Log("Getting notifier status from second channel...")
 		command = "notifier status"
-		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from first channel...")
 		command = "notifier status"
-		expectedMessage = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
@@ -497,7 +535,9 @@ func runBotTest(t *testing.T,
 
 		t.Log("Starting notifier in first channel")
 		command = "notifier start"
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		require.NoError(t, err)

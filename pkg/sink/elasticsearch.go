@@ -18,6 +18,7 @@ import (
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -195,7 +196,7 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, event
 }
 
 // SendMessage is no-op
-func (e *Elasticsearch) SendMessage(_ context.Context, _ string) error {
+func (e *Elasticsearch) SendMessage(_ context.Context, _ interactive.Message) error {
 	return nil
 }
 

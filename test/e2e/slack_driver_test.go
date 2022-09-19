@@ -76,6 +76,10 @@ func (s *slackTester) Type() DriverType {
 	return SlackBot
 }
 
+func (s *slackTester) BotName() string {
+	return fmt.Sprintf("<@%s>", s.BotUserID())
+}
+
 func (s *slackTester) BotUserID() string {
 	return s.botUserID
 }
@@ -281,9 +285,15 @@ func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID strin
 }
 
 func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
-	//expectedBlocks := bot.NewSlackRenderer(config.Notification{}).RenderAsSlackBlocks(msg)
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer(config.Notification{}).RenderAsSlackBlocks(msg))
 	return s.WaitForInteractiveMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
+		return strings.EqualFold(msg, printedBlocks)
+	})
+}
+
+func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
+	printedBlocks := sPrintBlocks(bot.NewSlackRenderer(config.Notification{}).RenderAsSlackBlocks(msg))
+	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(msg, printedBlocks)
 	})
 }

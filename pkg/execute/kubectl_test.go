@@ -114,7 +114,7 @@ func TestKubectlExecute(t *testing.T) {
 				},
 			},
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should forbid execution if namespace is not allowed in config",
@@ -224,7 +224,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should allow execution if verb, resource, and a given namespace are allowed",
@@ -242,7 +242,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should allow execution from not authorized channel if restrictions are disabled",
@@ -261,7 +261,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should allow execution from not authorized channel if restrictions are disabled",
@@ -280,7 +280,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should allow execution for all Namespaces",
@@ -298,7 +298,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Should forbid execution for all Namespaces",
@@ -334,7 +334,7 @@ func TestKubectlExecute(t *testing.T) {
 			},
 
 			expKubectlExecuted: true,
-			expOutMsg:          "Cluster: test\nkubectl executed",
+			expOutMsg:          "kubectl executed",
 		},
 		{
 			name: "Known limitation (since v0.12.4): Return error if flag is added before resource name",

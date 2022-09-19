@@ -23,6 +23,22 @@ const (
 	kubectlDefaultNamespace            = "default"
 )
 
+// resourcelessCommands holds all commands that don't specify resources directly. For example:
+// - kubectl logs foo
+// - kubectl cluster-info
+var resourcelessCommands = map[string]struct{}{
+	"exec":         {},
+	"logs":         {},
+	"attach":       {},
+	"auth":         {},
+	"api-versions": {},
+	"cluster-info": {},
+	"cordon":       {},
+	"drain":        {},
+	"uncordon":     {},
+	"run":          {},
+}
+
 // Kubectl executes kubectl commands using local binary.
 type Kubectl struct {
 	log logrus.FieldLogger
@@ -104,9 +120,8 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 		return fmt.Sprintf(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName), nil
 	}
 
-	// Some commands don't have resources specified directly in command. For example:
-	// - kubectl logs foo
-	if !validDebugCommands[verb] && resource != "" {
+	_, isResourceless := resourcelessCommands[verb]
+	if !isResourceless && resource != "" {
 		if !e.validResourceName(resource) {
 			return kubectlFlagAfterVerbMsg, nil
 		}
@@ -123,10 +138,10 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
 	if err != nil {
-		return fmt.Sprintf("Cluster: %s\n%s%s", clusterName, out, err.Error()), nil
+		return fmt.Sprintf("%s%s", out, err.Error()), nil
 	}
 
-	return fmt.Sprintf("Cluster: %s\n%s", clusterName, out), nil
+	return out, nil
 }
 
 // omitIfIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.

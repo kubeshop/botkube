@@ -148,7 +148,7 @@ func findEnv(env []v1.EnvVar, name string) (v1.EnvVar, bool) {
 // those duplicates are left intact in the result.
 // If a variable is both added and removed, the removal takes precedence.
 func updateEnv(existing []v1.EnvVar, env []v1.EnvVar, remove []string) []v1.EnvVar {
-	out := []v1.EnvVar{}
+	var out []v1.EnvVar
 	covered := sets.NewString(remove...)
 	for _, e := range existing {
 		if covered.Has(e.Name) {

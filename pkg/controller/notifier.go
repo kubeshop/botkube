@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 )
@@ -17,7 +18,7 @@ type Notifier interface {
 	// SendMessage is used for notifying about BotKube start/stop listening, possible BotKube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
 	// TODO: Consider option per channel to turn on/off "announcements" (BotKube start/stop/upgrade notify/config change.
-	SendMessage(context.Context, string) error
+	SendMessage(context.Context, interactive.Message) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration
@@ -33,7 +34,13 @@ func sendMessageToNotifiers(ctx context.Context, notifiers []Notifier, msg strin
 
 	// Send message over notifiers
 	for _, n := range notifiers {
-		err := n.SendMessage(ctx, msg)
+		err := n.SendMessage(ctx, interactive.Message{
+			Base: interactive.Base{
+				Body: interactive.Body{
+					Plaintext: msg,
+				},
+			},
+		})
 		if err != nil {
 			return fmt.Errorf("while sending message: %w", err)
 		}
