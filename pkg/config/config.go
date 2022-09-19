@@ -367,6 +367,7 @@ type ChannelNotification struct {
 // Communications channels to send events to
 type Communications struct {
 	Slack         Slack         `yaml:"slack"`
+	SocketSlack   SocketSlack   `yaml:"socketSlack"`
 	Mattermost    Mattermost    `yaml:"mattermost"`
 	Discord       Discord       `yaml:"discord"`
 	Teams         Teams         `yaml:"teams"`
@@ -380,6 +381,13 @@ type Slack struct {
 	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 	Token        string                                 `yaml:"token,omitempty"`
+}
+
+// SocketSlack configuration to authentication and send notifications
+type SocketSlack struct {
+	Enabled      bool                                   `yaml:"enabled"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Notification Notification                           `yaml:"notification,omitempty"`
 	BotToken     string                                 `yaml:"botToken,omitempty"`
 	AppToken     string                                 `yaml:"appToken,omitempty"`
 }

@@ -302,6 +302,28 @@ communications:
               - k8s-recommendation-events
       # -- Slack token.
       token: ''
+      notification:
+        # -- Configures notification type that are sent. Possible values: `short`, `long`.
+        type: short
+
+    ## Settings for Slack with Socket Mode.
+    socketSlack:
+      # -- If true, enables Slack bot.
+      enabled: false
+      # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
+      #
+      ## Format: channels.<alias>
+      channels:
+        'default':
+          # -- Slack channel name without '#' prefix where you have added BotKube and want to receive notifications in.
+          name: 'SLACK_CHANNEL'
+          bindings:
+            # -- Executors configuration for a given channel.
+            executors:
+              - kubectl-read-only
+            # -- Notification sources configuration for a given channel.
+            sources:
+              - k8s-events
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
@@ -311,7 +333,6 @@ communications:
       notification:
         # -- Configures notification type that are sent. Possible values: `short`, `long`.
         type: short
-
     ## Settings for Mattermost.
     mattermost:
       # -- If true, enables Mattermost bot.

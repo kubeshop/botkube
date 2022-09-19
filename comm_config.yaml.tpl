@@ -18,6 +18,20 @@ communications:
             sources:
               - 'k8s-events'
       token: "" # SLACK_API_TOKEN
+      notification:
+        type: short                             # Change notification type short/long you want to receive. Type is optional and default is short.
+
+    # Settings for Slack with Socket Mode
+    socketSlack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - 'kubectl-read-only'
+            sources:
+              - 'k8s-events'
       botToken: "" # SLACK_BOT_TOKEN
       appToken: "" # SLACK_APP_TOKEN
       notification:

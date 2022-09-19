@@ -4,22 +4,18 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
-	"github.com/slack-go/slack/socketmode"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -39,11 +35,6 @@ var attachmentColor = map[config.Level]string{
 	config.Critical: "danger",
 }
 
-var (
-	// SlackAppLevelToken for Slack Socket Mode. It is set during application build.
-	SlackAppLevelToken string
-)
-
 // Slack listens for user's message, execute commands and sends back the response.
 type Slack struct {
 	log             logrus.FieldLogger
@@ -51,31 +42,30 @@ type Slack struct {
 	reporter        FatalErrorAnalyticsReporter
 	botID           string
 	client          *slack.Client
+	notification    config.Notification
 	channelsMutex   sync.RWMutex
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
-	commGroupName   string
 	renderer        *SlackRenderer
 }
 
+// slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
-	Text            string
-	Channel         string
-	ThreadTimeStamp string
-	User            string
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+
+	Event    *slack.MessageEvent
+	BotID    string
+	Request  string
+	Response string
+	RTM      *slack.RTM
 }
 
 // NewSlack creates a new Slack instance.
-func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
-	botToken := cfg.Token
-	appToken := SlackAppLevelToken
-	if cfg.BotToken != "" && cfg.AppToken != "" {
-		log.Info("Using custom bot and app tokens")
-		botToken = cfg.BotToken
-		appToken = cfg.AppToken
-	}
-	client := slack.New(botToken, slack.OptionAppLevelToken(appToken))
+func NewSlack(log logrus.FieldLogger, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
+	client := slack.New(cfg.Token)
+
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
@@ -98,107 +88,81 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		reporter:        reporter,
 		botID:           botID,
 		client:          client,
+		notification:    cfg.Notification,
 		channels:        channels,
-		commGroupName:   commGroupName,
 		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
 	}, nil
 }
 
-// Start starts the Slack WebSocket connection and listens for messages
+// Start starts the Slack RTM connection and listens for messages
 func (b *Slack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	websocketClient := socketmode.New(b.client)
-
+	rtm := b.client.NewRTM()
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
-		socketRunErr := websocketClient.RunContext(ctx)
-		if socketRunErr != nil {
-			reportErr := b.reporter.ReportFatalError(socketRunErr)
-			if reportErr != nil {
-				b.log.Errorf("while reporting socket error: %s", reportErr.Error())
-			}
-		}
+		rtm.ManageConnection()
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
-			return nil
-		case event := <-websocketClient.Events:
-			switch event.Type {
-			case socketmode.EventTypeConnecting:
-				b.log.Info("BotKube is connecting to Slack...")
-			case socketmode.EventTypeConnected:
-				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
-					return fmt.Errorf("report analytics error: %w", err)
+			return rtm.Disconnect()
+		case msg, ok := <-rtm.IncomingEvents:
+			if !ok {
+				b.log.Info("Incoming events channel closed. Finishing...")
+				return nil
+			}
+
+			switch ev := msg.Data.(type) {
+			case *slack.ConnectedEvent:
+				err := b.reporter.ReportBotEnabled(b.IntegrationName())
+				if err != nil {
+					return fmt.Errorf("while reporting analytics: %w", err)
 				}
+
 				b.log.Info("BotKube connected to Slack!")
-			case socketmode.EventTypeEventsAPI:
-				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
-				if !ok {
-					b.log.Errorf("Invalid event %+v\n", event.Data)
+
+			case *slack.MessageEvent:
+				// Skip if message posted by BotKube
+				if ev.User == b.botID {
 					continue
 				}
-				websocketClient.Ack(*event.Request)
-				if eventsAPIEvent.Type == slackevents.CallbackEvent {
-					b.log.Debugf("Got callback event %s", utils.StructDumper().Sdump(eventsAPIEvent))
-					innerEvent := eventsAPIEvent.InnerEvent
-					switch ev := innerEvent.Data.(type) {
-					case *slackevents.AppMentionEvent:
-						b.log.Debugf("Got app mention %s", utils.StructDumper().Sdump(innerEvent))
-						msg := slackMessage{
-							Text:            ev.Text,
-							Channel:         ev.Channel,
-							ThreadTimeStamp: ev.ThreadTimeStamp,
-							User:            ev.User,
-						}
-						if err := b.handleMessage(msg); err != nil {
-							b.log.Errorf("Message handling error: %w", err)
-						}
-					}
+				sm := slackMessage{
+					log:             b.log,
+					executorFactory: b.executorFactory,
+					Event:           ev,
+					BotID:           b.botID,
+					RTM:             rtm,
 				}
-			case socketmode.EventTypeInteractive:
-				callback, ok := event.Data.(slack.InteractionCallback)
-				if !ok {
-					b.log.Errorf("Invalid event %+v\n", event.Data)
-					continue
+				err := sm.HandleMessage(b)
+				if err != nil {
+					wrappedErr := fmt.Errorf("while handling message: %w", err)
+					b.log.Errorf(wrappedErr.Error())
 				}
 
-				websocketClient.Ack(*event.Request)
+			case *slack.RTMError:
+				b.log.Errorf("Slack RMT error: %+v", ev.Error())
 
-				switch callback.Type {
-				case slack.InteractionTypeBlockActions:
-					b.log.Debugf("Got block action %s", utils.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+			case *slack.ConnectionErrorEvent:
+				b.log.Errorf("Slack connection error: %+v", ev.Error())
 
-					if len(callback.ActionCallback.BlockActions) != 1 {
-						b.log.Debug("Ignoring callback as the number of actions is different from 1")
-						continue
-					}
+			case *slack.IncomingEventError:
+				b.log.Errorf("Slack incoming event error: %+v", ev.Error())
 
-					act := callback.ActionCallback.BlockActions[0]
-					if strings.HasPrefix(act.ActionID, "url:") {
-						continue // skip the url actions
-					}
-					msg := slackMessage{
-						Text:            act.Value,
-						Channel:         callback.Channel.ID,
-						ThreadTimeStamp: callback.MessageTs,
-					}
-					if err := b.handleMessage(msg); err != nil {
-						b.log.Errorf("Message handling error: %w", err)
-					}
-				default:
-					b.log.Debugf("get unhandled event %s", callback.Type)
-				}
-			case socketmode.EventTypeErrorBadMessage:
-				b.log.Errorf("Bad message: %+v\n", event.Data)
-			case socketmode.EventTypeIncomingError:
-				b.log.Errorf("Incoming error: %+v\n", event.Data)
-			case socketmode.EventTypeConnectionError:
-				b.log.Errorf("Slack connection error: %+v\n", event.Data)
+			case *slack.OutgoingErrorEvent:
+				b.log.Errorf("Slack outgoing event error: %+v", ev.Error())
+
+			case *slack.UnmarshallingErrorEvent:
+				b.log.Warningf("Slack unmarshalling error: %+v", ev.Error())
+
+			case *slack.RateLimitedError:
+				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
+
+			case *slack.InvalidAuthEvent:
+				return fmt.Errorf("invalid credentials")
 			}
 		}
 	}
@@ -243,36 +207,30 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 	return nil
 }
 
-func (b *Slack) handleMessage(event slackMessage) error {
+func (sm *slackMessage) HandleMessage(b *Slack) error {
 	// Handle message only if starts with mention
-	request, found := b.findAndTrimBotMention(event.Text)
+	trimmedMsg, found := b.findAndTrimBotMention(sm.Event.Text)
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
 	}
+	sm.Request = trimmedMsg
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately BotKube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
-	info, err := b.client.GetConversationInfo(event.Channel, true)
+	channelID := sm.Event.Channel
+	info, err := b.client.GetConversationInfo(channelID, true)
 	if err != nil {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
 
 	channel, isAuthChannel := b.getChannels()[info.Name]
 
-	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
-		Platform:        b.IntegrationName(),
-		NotifierHandler: b,
-		IsAuthChannel:   isAuthChannel,
-		ConversationID:  info.Name,
-		Bindings:        channel.Bindings.Executors,
-		Message:         request,
-	})
-	response := e.Execute()
-	err = b.send(event, request, response)
+	e := sm.executorFactory.NewDefault(b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, sm.Request)
+	sm.Response = e.Execute()
+	err = sm.Send()
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -280,47 +238,36 @@ func (b *Slack) handleMessage(event slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(event slackMessage, req string, resp interactive.Message) error {
-	b.log.Debugf("Slack incoming Request: %s", req)
-	b.log.Debugf("Slack Response: %s", resp)
-
-	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, resp)
-
-	if len(plaintext) == 0 {
-		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
+func (sm *slackMessage) Send() error {
+	sm.log.Debugf("Slack incoming Request: %s", sm.Request)
+	sm.log.Debugf("Slack Response: %s", sm.Response)
+	if len(sm.Response) == 0 {
+		return fmt.Errorf("while reading Slack response: empty response for request %q", sm.Request)
 	}
 	// Upload message as a file if too long
-	if len(plaintext) >= 3990 {
+	if len(sm.Response) >= 3990 {
 		params := slack.FileUploadParameters{
-			Filename: req,
-			Title:    req,
-			Content:  plaintext,
-			Channels: []string{event.Channel},
+			Filename: sm.Request,
+			Title:    sm.Request,
+			Content:  sm.Response,
+			Channels: []string{sm.Event.Channel},
 		}
-		_, err := b.client.UploadFile(params)
+		_, err := sm.RTM.UploadFile(params)
 		if err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
 		return nil
 	}
 
-	options := []slack.MsgOption{
-		b.renderer.RenderInteractiveMessage(resp),
-	}
+	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(sm.Response), false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
-	if event.ThreadTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	if sm.Event.ThreadTimestamp != "" {
+		options = append(options, slack.MsgOptionTS(sm.Event.ThreadTimestamp))
 	}
 
-	if resp.OnlyVisibleForYou {
-		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
-			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
-		}
-	} else {
-		if _, _, err := b.client.PostMessage(event.Channel, options...); err != nil {
-			return fmt.Errorf("while posting Slack message: %w", err)
-		}
+	if _, _, err := sm.RTM.PostMessage(sm.Event.Channel, options...); err != nil {
+		return fmt.Errorf("while posting Slack message: %w", err)
 	}
 
 	return nil
@@ -354,7 +301,7 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 	var out []string
 	for _, cfg := range b.getChannels() {
 		if !cfg.notify {
-			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 			continue
 		}
 
@@ -367,21 +314,18 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 	return out
 }
 
-// SendMessage sends message with interactive sections to Slack channels.
-func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
+// SendMessage sends message to slack channel
+func (b *Slack) SendMessage(ctx context.Context, msg string) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
-
-		message := b.renderer.RenderInteractiveMessage(msg)
-
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, message)
+		b.log.Debugf(">> Sending message to channel %q: %+v", channelName, msg)
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionText(msg, false), slack.MsgOptionAsUser(true))
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
+		b.log.Debugf("Message successfully sent to channel %b at %b", channelID, timestamp)
 	}
 
 	return errs.ErrorOrNil()
@@ -410,25 +354,4 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
-}
-
-func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
-	channels := make(map[string]channelConfigByName)
-	for _, channCfg := range channelsCfg {
-		channels[channCfg.Identifier()] = channelConfigByName{
-			ChannelBindingsByName: channCfg,
-			notify:                !channCfg.Notification.Disabled,
-		}
-	}
-
-	return channels
-}
-
-func slackBotMentionRegex(botID string) (*regexp.Regexp, error) {
-	botMentionRegex, err := regexp.Compile(fmt.Sprintf(slackBotMentionPrefixFmt, botID))
-	if err != nil {
-		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
-	}
-
-	return botMentionRegex, nil
 }
