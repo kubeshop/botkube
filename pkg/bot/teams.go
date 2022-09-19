@@ -63,6 +63,7 @@ type Teams struct {
 	//channels map[string][ChannelBindingsByName]
 	bindings           config.BotBindings
 	conversationsMutex sync.RWMutex
+	commGroupName      string
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
@@ -82,7 +83,7 @@ type consentContext struct {
 }
 
 // NewTeams creates a new Teams instance.
-func NewTeams(log logrus.FieldLogger, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Teams, error) {
+func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Teams, error) {
 	botMentionRegex, err := teamsBotMentionRegex(cfg.BotName)
 	if err != nil {
 		return nil, err
@@ -232,7 +233,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 				return schema.Activity{}, fmt.Errorf("while getting conversation reference: %w", err)
 			}
 
-			e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, activity.ChannelID, b.bindings.Executors, msgWithoutPrefix)
+			e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, activity.ChannelID, b.bindings.Executors, msgWithoutPrefix)
 			out := e.Execute()
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
@@ -278,7 +279,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 		return ""
 	}
 
-	e := b.executorFactory.NewDefault(b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, trimmedMsg)
+	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), newTeamsNotifMgrForActivity(b, ref), true, ref.ChannelID, b.bindings.Executors, trimmedMsg)
 	return format.CodeBlock(e.Execute())
 }
 

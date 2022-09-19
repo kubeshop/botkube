@@ -79,6 +79,8 @@ type DefaultExecutor struct {
 	conversationID    string
 	kubectlExecutor   *Kubectl
 	merger            *kubectl.Merger
+	cfgManager        ConfigPersistenceManager
+	commGroupName     string
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -178,7 +180,7 @@ func (e *DefaultExecutor) Execute() string {
 		return out
 	}
 	if e.notifierExecutor.CanHandle(args) {
-		res, err := e.notifierExecutor.Do(args, e.platform, e.conversationID, clusterName, e.notifierHandler)
+		res, err := e.notifierExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, clusterName, e.notifierHandler)
 		if err != nil {
 			if errors.Is(err, errInvalidNotifierCommand) {
 				return incompleteCmdMsg
@@ -227,7 +229,7 @@ func (e *DefaultExecutor) printDefaultMsg(p config.CommPlatformIntegration) stri
 	return unsupportedCmdMsg
 }
 
-// TODO: Have a separate cli which runs bot commands
+// TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
 // runFilterCommand to list, enable or disable filters
 func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, isAuthChannel bool) string {
 	if !isAuthChannel {
@@ -254,25 +256,43 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 
 	// Enable filter
 	case FilterEnable.String():
+		const enabled = true
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
 		}
-		e.log.Debug("Enable filters", args[2])
-		if err := e.filterEngine.SetFilter(args[2], true); err != nil {
+		filterName := args[2]
+		e.log.Debug("Enabling filter...", filterName)
+		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
 			return err.Error()
 		}
-		return fmt.Sprintf(filterEnabled, args[2], clusterName)
+
+		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+		}
+
+		return fmt.Sprintf(filterEnabled, filterName, clusterName)
 
 	// Disable filter
 	case FilterDisable.String():
+		const enabled = false
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
 		}
-		e.log.Debug("Disabled filters", args[2])
-		if err := e.filterEngine.SetFilter(args[2], false); err != nil {
+		filterName := args[2]
+		e.log.Debug("Disabling filter...", filterName)
+		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
 			return err.Error()
 		}
-		return fmt.Sprintf(filterDisabled, args[2], clusterName)
+
+		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+		}
+
+		return fmt.Sprintf(filterDisabled, filterName, clusterName)
 	}
 
 	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information

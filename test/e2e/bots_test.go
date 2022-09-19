@@ -167,7 +167,7 @@ func runBotTest(t *testing.T,
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 	require.NoError(t, err)
 
-	t.Log("Waiting for Bot message on channel...")
+	t.Log("Waiting for Bot message in channel...")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
 		interactive.Help(config.CommPlatformIntegration(SlackBot), appCfg.ClusterName, fmt.Sprintf("<@%s>", botDriver.BotUserID())),
@@ -191,8 +191,8 @@ func runBotTest(t *testing.T,
 		command := "filters list"
 		expectedMessage := codeBlock(heredoc.Doc(fmt.Sprintf(`
 			FILTER                  ENABLED DESCRIPTION
-			NodeEventsChecker       true    Sends notifications on node level critical events.
-			ObjectAnnotationChecker true    Checks if annotations %s present in object specs and filters them.`, annotation)))
+			NodeEventsChecker       false   Sends notifications on node level critical events.
+			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation)))
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -273,7 +273,7 @@ func runBotTest(t *testing.T,
 			command := "commands list --cluster-name non-existing"
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			t.Log("Ensuring bot didn't write anything new...")
+			t.Log("Ensuring bot didn't post anything new...")
 			time.Sleep(appCfg.Slack.MessageWaitTimeout)
 			// Same expected message as before
 			err = botDriver.WaitForLastMessageContains(botDriver.TesterUserID(), botDriver.Channel().ID(), command)
@@ -391,6 +391,20 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
+		t.Log("Getting notifier status from second channel...")
+		command := "notifier status"
+		expectedMessage := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+		assert.NoError(t, err)
+
+		t.Log("Starting notifier in second channel...")
+		command = "notifier start"
+		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+		require.NoError(t, err)
+
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
 		var channelIDs []string
 		for _, channel := range channels {
@@ -418,8 +432,8 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 
-		t.Log("Expecting no bot message in second channel...")
-		expectedMessage := fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
+		t.Log("Ensuring bot didn't post anything new in second channel...")
+		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
@@ -439,8 +453,8 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForMessagesPostedOnChannelsWithAttachment(botDriver.BotUserID(), channelIDs, attachAssertionFn)
 		require.NoError(t, err)
 
-		t.Log("Stopping notifier...")
-		command := "notifier stop"
+		t.Log("Stopping notifier in first channel...")
+		command = "notifier stop"
 		expectedMessage = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -468,20 +482,20 @@ func runBotTest(t *testing.T,
 		_, err = cfgMapCli.Update(context.Background(), cfgMap, metav1.UpdateOptions{})
 		require.NoError(t, err)
 
-		t.Log("Ensuring bot didn't write anything new on first channel...")
+		t.Log("Ensuring bot didn't post anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		require.NoError(t, err)
 
-		t.Log("Expecting bot message on second channel...")
+		t.Log("Expecting bot message in second channel...")
 		attachAssertionFn = func(title, _, msg string) bool {
 			return title == "v1/configmaps updated" &&
 				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 
-		t.Log("Starting notifier")
+		t.Log("Starting notifier in first channel")
 		command = "notifier start"
 		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -503,7 +517,7 @@ func runBotTest(t *testing.T,
 		err = cfgMapCli.Delete(context.Background(), ignoredCfgMap.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 
-		t.Log("Ensuring bot didn't write anything new...")
+		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		require.NoError(t, err)
@@ -521,7 +535,7 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 
-		t.Log("Ensuring bot didn't write anything new on second channel...")
+		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		attachAssertionFn = func(title, _, msg string) bool {
 			return title == "v1/configmaps updated" &&

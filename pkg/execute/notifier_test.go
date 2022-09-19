@@ -15,6 +15,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 	// given
 	log, _ := logtest.NewNullLogger()
 	platform := config.SlackCommPlatformIntegration
+	commGroupName := "comm-group"
 	clusterName := "cluster-name"
 	statusArgs := []string{"notifier", "status"}
 	cfg := config.Config{
@@ -83,6 +84,10 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				sources: {}
 				executors: {}
 				communications: {}
+				filters:
+				    kubernetes:
+				        objectAnnotationChecker: false
+				        nodeEventsChecker: false
 				analytics:
 				    installationID: ""
 				    disable: false
@@ -118,12 +123,12 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, cfg, &fakeAnalyticsReporter{})
+			e := NewNotifierExecutor(log, cfg, &fakeCfgPersistenceManager{}, &fakeAnalyticsReporter{})
 
 			// execute command
 
 			// when
-			actual, err := e.Do(tc.InputArgs, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
+			actual, err := e.Do(tc.InputArgs, commGroupName, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
 
 			// then
 
@@ -141,7 +146,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			// get status after executing a given command
 
 			// when
-			actual, err = e.Do(statusArgs, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
+			actual, err = e.Do(statusArgs, commGroupName, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, tc.ExpectedStatusAfter, actual)
@@ -174,6 +179,20 @@ func (f *fakeNotifierHandler) SetNotificationsEnabled(convID string, enabled boo
 
 type fakeAnalyticsReporter struct{}
 
-func (f fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
+func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
+	return nil
+}
+
+type fakeCfgPersistenceManager struct{}
+
+func (f *fakeCfgPersistenceManager) PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error {
+	return nil
+}
+
+func (f *fakeCfgPersistenceManager) PersistNotificationsEnabled(commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error {
+	return nil
+}
+
+func (f *fakeCfgPersistenceManager) PersistFilterEnabled(name string, enabled bool) error {
 	return nil
 }

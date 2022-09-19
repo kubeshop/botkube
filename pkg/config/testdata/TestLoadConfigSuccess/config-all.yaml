@@ -22,6 +22,8 @@ communications: # req 1 elm.
       channels:
         'alias':
           name: 'MATTERMOST_CHANNEL'
+          notification:
+            disabled: true
           bindings:
             executors:
               - kubectl-read-only
@@ -297,3 +299,8 @@ sources:
             - create
             - delete
             - error
+
+filters:
+  kubernetes:
+    objectAnnotationChecker: true
+    nodeEventsChecker: false

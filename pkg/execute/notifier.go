@@ -39,14 +39,20 @@ var (
 type NotifierExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
+	cfgManager        ConfigPersistenceManager
 
 	// Used for deprecated showControllerConfig function.
 	cfg config.Config
 }
 
 // NewNotifierExecutor creates a new instance of NotifierExecutor.
-func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, analyticsReporter AnalyticsReporter) *NotifierExecutor {
-	return &NotifierExecutor{log: log, cfg: cfg, analyticsReporter: analyticsReporter}
+func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager ConfigPersistenceManager, analyticsReporter AnalyticsReporter) *NotifierExecutor {
+	return &NotifierExecutor{
+		log:               log,
+		cfg:               cfg,
+		cfgManager:        cfgManager,
+		analyticsReporter: analyticsReporter,
+	}
 }
 
 // CanHandle returns true if the arguments can be handled by this executor.
@@ -63,7 +69,7 @@ func (e *NotifierExecutor) CanHandle(args []string) bool {
 }
 
 // Do executes a given Notifier command based on args.
-func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegration, conversationID string, clusterName string, handler NotifierHandler) (string, error) {
+func (e *NotifierExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversationID string, clusterName string, handler NotifierHandler) (string, error) {
 	if len(args) != 2 {
 		return "", errInvalidNotifierCommand
 	}
@@ -84,24 +90,36 @@ func (e *NotifierExecutor) Do(args []string, platform config.CommPlatformIntegra
 
 	switch NotifierAction(cmdVerb) {
 	case Start:
-		err := handler.SetNotificationsEnabled(conversationID, true)
+		const enabled = true
+		err := handler.SetNotificationsEnabled(conversationID, enabled)
 		if err != nil {
 			if errors.Is(err, ErrNotificationsNotConfigured) {
 				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
 			}
 
-			return "", fmt.Errorf("while setting notifications to true: %w", err)
+			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
+		}
+
+		err = e.cfgManager.PersistNotificationsEnabled(commGroupName, platform, conversationID, enabled)
+		if err != nil {
+			return "", fmt.Errorf("while persisting configuration: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStartMsgFmt, clusterName), nil
 	case Stop:
-		err := handler.SetNotificationsEnabled(conversationID, false)
+		const enabled = false
+		err := handler.SetNotificationsEnabled(conversationID, enabled)
 		if err != nil {
 			if errors.Is(err, ErrNotificationsNotConfigured) {
 				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
 			}
 
-			return "", fmt.Errorf("while setting notifications to false: %w", err)
+			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
+		}
+
+		err = e.cfgManager.PersistNotificationsEnabled(commGroupName, platform, conversationID, enabled)
+		if err != nil {
+			return "", fmt.Errorf("while persisting configuration: %w", err)
 		}
 
 		return fmt.Sprintf(notifierStopMsgFmt, clusterName), nil

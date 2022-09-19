@@ -108,11 +108,11 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 	}
 
 	router = router.BuildTable(cfg)
-	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.CreateEvent), 1)
-	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.UpdateEvent), 1)
-	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.DeleteEvent), 1)
-	assert.Len(t, router.GetSourceRoutes(hasRoutes, config.ErrorEvent), 1)
-	assert.Len(t, router.GetSourceRoutes(hasNoRoutes, config.ErrorEvent), 0)
+	assert.Len(t, router.getSourceRoutes(hasRoutes, config.CreateEvent), 1)
+	assert.Len(t, router.getSourceRoutes(hasRoutes, config.UpdateEvent), 1)
+	assert.Len(t, router.getSourceRoutes(hasRoutes, config.DeleteEvent), 1)
+	assert.Len(t, router.getSourceRoutes(hasRoutes, config.ErrorEvent), 1)
+	assert.Len(t, router.getSourceRoutes(hasNoRoutes, config.ErrorEvent), 0)
 }
 
 func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource(t *testing.T) {
@@ -186,7 +186,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 			routes := NewRouter(nil, nil, logger).
 				AddAnyBindings(config.BotBindings{Sources: []string{"k8s-events"}}).
 				BuildTable(tc.Input).
-				GetSourceRoutes("apps/v1/deployments", config.CreateEvent)
+				getSourceRoutes("apps/v1/deployments", config.CreateEvent)
 
 			assert.Len(t, routes, 1)
 			assert.Equal(t, tc.Expected, routes[0].namespaces)

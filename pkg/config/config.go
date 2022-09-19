@@ -123,6 +123,7 @@ type Config struct {
 	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
+	Filters        Filters                   `yaml:"filters"`
 
 	Analytics Analytics `yaml:"analytics"`
 	Settings  Settings  `yaml:"settings"`
@@ -130,8 +131,9 @@ type Config struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name     string      `yaml:"name"`
-	Bindings BotBindings `yaml:"bindings"`
+	Name         string              `yaml:"name"`
+	Notification ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings     BotBindings         `yaml:"bindings"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
@@ -141,8 +143,9 @@ func (c ChannelBindingsByName) Identifier() string {
 
 // ChannelBindingsByID contains configuration bindings per channel.
 type ChannelBindingsByID struct {
-	ID       string      `yaml:"id"`
-	Bindings BotBindings `yaml:"bindings"`
+	ID           string              `yaml:"id"`
+	Notification ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings     BotBindings         `yaml:"bindings"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
@@ -220,6 +223,20 @@ type IngressRecommendations struct {
 // Executors contains executors configuration parameters.
 type Executors struct {
 	Kubectl Kubectl `yaml:"kubectl"`
+}
+
+// Filters contains configuration for built-in filters.
+type Filters struct {
+	Kubernetes KubernetesFilters `yaml:"kubernetes"`
+}
+
+// KubernetesFilters contains configuration for Kubernetes-related filters.
+type KubernetesFilters struct {
+	// ObjectAnnotationChecker enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+	ObjectAnnotationChecker bool `yaml:"objectAnnotationChecker"`
+
+	// NodeEventsChecker filters out Node-related events that are not important.
+	NodeEventsChecker bool `yaml:"nodeEventsChecker"`
 }
 
 // Analytics contains configuration parameters for analytics collection.
@@ -335,6 +352,11 @@ func (n *Namespaces) IsAllowed(givenNs string) bool {
 // Notification holds notification configuration.
 type Notification struct {
 	Type NotificationType
+}
+
+// ChannelNotification contains notification configuration for a given platform.
+type ChannelNotification struct {
+	Disabled bool `yaml:"disabled"`
 }
 
 // Communications channels to send events to

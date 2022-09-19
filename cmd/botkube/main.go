@@ -121,7 +121,7 @@ func run() error {
 	})
 
 	// Set up the filter engine
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper)
+	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf.Filters)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
@@ -140,14 +140,18 @@ func run() error {
 	}
 
 	// Create executor factor
+	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), k8sCli)
 	executorFactory := execute.NewExecutorFactory(
-		logger.WithField(componentLogFieldKey, "Executor"),
-		&execute.OSCommand{},
-		*conf,
-		filterEngine,
-		kubectl.NewChecker(resourceNameNormalizerFunc),
-		kcMerger,
-		reporter,
+		execute.DefaultExecutorFactoryParams{
+			Log:               logger.WithField(componentLogFieldKey, "Executor"),
+			CmdRunner:         &execute.OSCommand{},
+			Cfg:               *conf,
+			FilterEngine:      filterEngine,
+			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
+			Merger:            kcMerger,
+			CfgManager:        cfgManager,
+			AnalyticsReporter: reporter,
+		},
 	)
 
 	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
@@ -176,7 +180,7 @@ func run() error {
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
-			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupCfg.Slack, executorFactory, reporter)
+			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupName, commGroupCfg.Slack, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Slack bot", err)
 			}
@@ -189,7 +193,7 @@ func run() error {
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupCfg.Mattermost, executorFactory, reporter)
+			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
@@ -202,7 +206,7 @@ func run() error {
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupName, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Teams bot", err)
 			}
@@ -215,7 +219,7 @@ func run() error {
 		}
 
 		if commGroupCfg.Discord.Enabled {
-			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupCfg.Discord, executorFactory, reporter)
+			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupName, commGroupCfg.Discord, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Discord bot", err)
 			}

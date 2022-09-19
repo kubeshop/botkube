@@ -9,6 +9,9 @@ communications:
       channels:
         'alias':
           name: 'SLACK_CHANNEL'
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             executors:
               - 'kubectl-read-only'
@@ -30,6 +33,9 @@ communications:
       channels:
         'alias':
           name: 'MATTERMOST_CHANNEL'            # Mattermost Channel for receiving BotKube alerts:
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             executors:
               - kubectl-read-only
@@ -56,6 +62,9 @@ communications:
       channels:
         'alias':
           id: 'DISCORD_CHANNEL_ID'            # Discord Channel id for receiving BotKube alerts:
+          notification:
+            # -- If true, the notifications are not sent to the channel. They can be enabled with `@BotKube` command anytime.
+            disabled: false
           bindings:
             executors:
               - kubectl-read-only
