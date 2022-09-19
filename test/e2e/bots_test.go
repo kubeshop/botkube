@@ -466,7 +466,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
