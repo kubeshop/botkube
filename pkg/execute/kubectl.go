@@ -23,20 +23,20 @@ const (
 	kubectlDefaultNamespace            = "default"
 )
 
-// resourceLessCommands holds all commands that don't specify resources directly. For example:
+// resourcelessCommands holds all commands that don't specify resources directly. For example:
 // - kubectl logs foo
 // - kubectl cluster-info
-var resourceLessCommands = map[string]bool{
-	"exec":         true,
-	"logs":         true,
-	"attach":       true,
-	"auth":         true,
-	"api-versions": true,
-	"cluster-info": true,
-	"cordon":       true,
-	"drain":        true,
-	"uncordon":     true,
-	"run":          true,
+var resourcelessCommands = map[string]struct{}{
+	"exec":         {},
+	"logs":         {},
+	"attach":       {},
+	"auth":         {},
+	"api-versions": {},
+	"cluster-info": {},
+	"cordon":       {},
+	"drain":        {},
+	"uncordon":     {},
+	"run":          {},
 }
 
 // Kubectl executes kubectl commands using local binary.
@@ -120,7 +120,8 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 		return fmt.Sprintf(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName), nil
 	}
 
-	if !resourceLessCommands[verb] && resource != "" {
+	_, isResourceless := resourcelessCommands[verb]
+	if !isResourceless && resource != "" {
 		if !e.validResourceName(resource) {
 			return kubectlFlagAfterVerbMsg, nil
 		}

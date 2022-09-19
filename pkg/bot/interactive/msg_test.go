@@ -14,11 +14,11 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 		lineFmt func(msg string) string
 	}{
 		{
-			name:    "render with Markdown new lines",
+			name:    "render with MS Teams new lines",
 			lineFmt: MSTeamsLineFmt,
 		},
 		{
-			name:    "render with MS Teams new lines",
+			name:    "render with Markdown new lines",
 			lineFmt: MDLineFmt,
 		},
 	}
