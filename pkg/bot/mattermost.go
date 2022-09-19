@@ -228,10 +228,13 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
-		IsAuthChannel:   mm.IsAuthChannel,
-		ConversationID:  channelID,
-		Bindings:        channel.Bindings.Executors,
-		Message:         mm.Request,
+		Conversation: execute.Conversation{
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  mm.IsAuthChannel,
+		},
+		Message: mm.Request,
 	})
 	out := interactive.MessageToMarkdown(b.mdFormatter, e.Execute())
 	mm.Response = out
@@ -439,7 +442,7 @@ func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
 
 func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
-	for _, channCfg := range channelsCfg {
+	for channAlias, channCfg := range channelsCfg {
 		fetchedChannel, _, err := client.GetChannelByName(channCfg.Identifier(), teamID, "")
 		if err != nil {
 			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, err)
@@ -450,6 +453,7 @@ func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg
 				ID:       fetchedChannel.Id,
 				Bindings: channCfg.Bindings,
 			},
+			alias:  channAlias,
 			notify: !channCfg.Notification.Disabled,
 		}
 	}

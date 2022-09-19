@@ -495,6 +495,20 @@ settings:
   systemConfigMap:
     name: botkube-system
 
+  # -- Persistent config contains ConfigMap where persisted configuration is stored.
+  # The persistent configuration is evaluated from both chart upgrade and BotKube commands used in runtime.
+  persistentConfig:
+    startup:
+      configMap:
+        name: botkube-startup-config
+        annotations: {}
+      fileName: "__startup_state.yaml"
+    runtime:
+      configMap:
+        name: botkube-runtime-config
+        annotations: {}
+      fileName: "_runtime_state.yaml"
+
 ## For using custom SSL certificates.
 ssl:
   # -- If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`.

@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -35,7 +36,7 @@ func (e EditResource) Key() string {
 
 // BindingsStorage provides functionality to persist source binding for a given channel.
 type BindingsStorage interface {
-	PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
+	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
 }
 
 // EditExecutor provides functionality to run all BotKube edit related commands.
@@ -68,7 +69,7 @@ func NewEditExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 }
 
 // Do executes a given edit command based on args.
-func (e *EditExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversationID, userID, botName string) (interactive.Message, error) {
+func (e *EditExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if len(args) < 2 {
@@ -91,7 +92,7 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	cmds := executorsRunner{
 		SourceBindings.Key(): func() (interactive.Message, error) {
-			return e.editSourceBindingHandler(cmdArgs, commGroupName, platform, conversationID, userID, botName)
+			return e.editSourceBindingHandler(cmdArgs, commGroupName, platform, conversation.ID, userID, botName)
 		},
 	}
 
@@ -140,7 +141,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 		return e.generateUnknownMessage(unknown), nil
 	}
 
-	err = e.cfgManager.PersistSourceBindings(commGroupName, platform, conversationID, sourceBindings)
+	err = e.cfgManager.PersistSourceBindings(context.Background(), commGroupName, platform, conversationID, sourceBindings)
 	if err != nil {
 		return empty, fmt.Errorf("while persisting source bindings configuration: %w", err)
 	}

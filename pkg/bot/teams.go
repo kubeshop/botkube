@@ -283,10 +283,13 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: newTeamsNotifMgrForActivity(b, ref),
-		IsAuthChannel:   true,
-		ConversationID:  ref.ChannelID,
-		Bindings:        b.bindings.Executors,
-		Message:         trimmedMsg,
+		Conversation: execute.Conversation{
+			Alias:            "",
+			IsAuthenticated:  true,
+			ID:               ref.ChannelID,
+			ExecutorBindings: b.bindings.Executors,
+		},
+		Message: trimmedMsg,
 	})
 	return b.convertInteractiveMessage(e.Execute())
 }
