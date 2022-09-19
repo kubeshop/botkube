@@ -262,7 +262,7 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string, is
 		}
 		filterName := args[2]
 		e.log.Debug("Enabling filter...", filterName)
-		if err := e.filterEngine.SetFilter(filterName, true); err != nil {
+		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
 			return err.Error()
 		}
 

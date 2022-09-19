@@ -21,6 +21,18 @@ type DefaultExecutorFactory struct {
 	cfgManager        ConfigPersistenceManager
 }
 
+// DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
+type DefaultExecutorFactoryParams struct {
+	Log               logrus.FieldLogger
+	CmdRunner         CommandRunner
+	Cfg               config.Config
+	FilterEngine      filterengine.FilterEngine
+	KcChecker         *kubectl.Checker
+	Merger            *kubectl.Merger
+	CfgManager        ConfigPersistenceManager
+	AnalyticsReporter AnalyticsReporter
+}
+
 // Executor is an interface for processes to execute commands
 type Executor interface {
 	Execute() string
@@ -40,27 +52,27 @@ type AnalyticsReporter interface {
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
-func NewExecutorFactory(log logrus.FieldLogger, cmdRunner CommandRunner, cfg config.Config, filterEngine filterengine.FilterEngine, kcChecker *kubectl.Checker, merger *kubectl.Merger, cfgManager ConfigPersistenceManager, analyticsReporter AnalyticsReporter) *DefaultExecutorFactory {
+func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFactory {
 	return &DefaultExecutorFactory{
-		log:               log,
-		cmdRunner:         cmdRunner,
-		cfg:               cfg,
-		filterEngine:      filterEngine,
-		analyticsReporter: analyticsReporter,
+		log:               params.Log,
+		cmdRunner:         params.CmdRunner,
+		cfg:               params.Cfg,
+		filterEngine:      params.FilterEngine,
+		analyticsReporter: params.AnalyticsReporter,
 		notifierExecutor: NewNotifierExecutor(
-			log.WithField("component", "Notifier Executor"),
-			cfg,
-			cfgManager,
-			analyticsReporter,
+			params.Log.WithField("component", "Notifier Executor"),
+			params.Cfg,
+			params.CfgManager,
+			params.AnalyticsReporter,
 		),
-		merger:     merger,
-		cfgManager: cfgManager,
+		merger:     params.Merger,
+		cfgManager: params.CfgManager,
 		kubectlExecutor: NewKubectl(
-			log.WithField("component", "Kubectl Executor"),
-			cfg,
-			merger,
-			kcChecker,
-			cmdRunner,
+			params.Log.WithField("component", "Kubectl Executor"),
+			params.Cfg,
+			params.Merger,
+			params.KcChecker,
+			params.CmdRunner,
 		),
 	}
 }

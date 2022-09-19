@@ -142,14 +142,16 @@ func run() error {
 	// Create executor factor
 	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), k8sCli)
 	executorFactory := execute.NewExecutorFactory(
-		logger.WithField(componentLogFieldKey, "Executor"),
-		&execute.OSCommand{},
-		*conf,
-		filterEngine,
-		kubectl.NewChecker(resourceNameNormalizerFunc),
-		kcMerger,
-		cfgManager,
-		reporter,
+		execute.DefaultExecutorFactoryParams{
+			Log:               logger.WithField(componentLogFieldKey, "Executor"),
+			CmdRunner:         &execute.OSCommand{},
+			Cfg:               *conf,
+			FilterEngine:      filterEngine,
+			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
+			Merger:            kcMerger,
+			CfgManager:        cfgManager,
+			AnalyticsReporter: reporter,
+		},
 	)
 
 	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
