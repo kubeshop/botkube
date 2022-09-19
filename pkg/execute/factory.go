@@ -46,6 +46,13 @@ type ConfigPersistenceManager interface {
 	PersistFilterEnabled(name string, enabled bool) error
 }
 
+// ConfigPersistenceManager manages persistence of the configuration.
+type ConfigPersistenceManager interface {
+	PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
+	PersistNotificationsEnabled(commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error
+	PersistFilterEnabled(name string, enabled bool) error
+}
+
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
