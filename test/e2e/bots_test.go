@@ -422,14 +422,18 @@ func runBotTest(t *testing.T,
 	t.Run("Multi-channel notifications", func(t *testing.T) {
 		t.Log("Getting notifier status from second channel...")
 		command := "notifier status"
-		expectedMessage := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Starting notifier in second channel...")
 		command = "notifier start"
-		expectedMessage = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
@@ -484,7 +488,7 @@ func runBotTest(t *testing.T,
 
 		t.Log("Stopping notifier in first channel...")
 		command = "notifier stop"
-		expectedBody := codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
+		expectedBody = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
