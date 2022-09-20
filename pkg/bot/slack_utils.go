@@ -2,8 +2,9 @@ package bot
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"regexp"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
@@ -11,7 +12,7 @@ func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBi
 	for _, channCfg := range channelsCfg {
 		channels[channCfg.Identifier()] = channelConfigByName{
 			ChannelBindingsByName: channCfg,
-			notify:                defaultNotifyValue,
+			notify:                !channCfg.Notification.Disabled,
 		}
 	}
 

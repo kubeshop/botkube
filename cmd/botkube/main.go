@@ -191,9 +191,9 @@ func run() error {
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupCfg.SocketSlack, executorFactory, reporter)
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, reporter)
 			if err != nil {
-				return reportFatalError("while creating Socket Slack bot", err)
+				return reportFatalError("while creating SocketSlack bot", err)
 			}
 			notifiers = append(notifiers, sb)
 			bots = append(bots, sb)
