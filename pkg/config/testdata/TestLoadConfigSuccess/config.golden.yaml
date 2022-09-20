@@ -376,6 +376,9 @@ settings:
     clusterName: cluster-name-from-env
     configWatcher: true
     upgradeNotifier: true
+    systemConfigMap:
+        name: botkube-system
+        namespace: botkube
     metricsPort: "1313"
     log:
         level: error
