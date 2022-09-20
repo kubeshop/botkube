@@ -78,6 +78,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 	}
 }
 
+// NewDefaultInput an input for NewDefault
 type NewDefaultInput struct {
 	CommGroupName   string
 	Platform        config.CommPlatformIntegration

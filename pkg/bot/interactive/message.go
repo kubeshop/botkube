@@ -2,6 +2,7 @@ package interactive
 
 import (
 	"fmt"
+
 	"github.com/slack-go/slack"
 )
 

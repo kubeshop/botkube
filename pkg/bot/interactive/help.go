@@ -2,8 +2,8 @@ package interactive
 
 import (
 	"fmt"
-	"github.com/slack-go/slack"
 
+	"github.com/slack-go/slack"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
