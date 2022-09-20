@@ -54,7 +54,7 @@ func ShouldIgnoreEvent(recCfg config.Recommendations, sources map[string]config.
 		}
 
 		// sources are appended, so we need to check the first source that has a given resource with event
-		if source.Kubernetes.Resources.IsAllowed(event.Resource, event.Namespace, event.Type) {
+		if source.Kubernetes.IsAllowed(event.Resource, event.Namespace, event.Type) {
 			return false
 		}
 	}

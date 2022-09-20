@@ -58,8 +58,7 @@ kubeconfig:
 #
 ## Format: sources.<alias>
 sources:
-  'k8s-events':
-
+  'k8s-recommendation-events':
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes configuration for various recommendation insights.
@@ -77,10 +76,13 @@ sources:
           # -- If true, notifies about Ingress resources with invalid TLS secret reference.
           tlsSecretValid: true
 
+  'k8s-all-events':
+    # -- Describes Kubernetes source configuration.
+    kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own namespaces object.
-      namespaces:
+      namespaces: &k8s-events-namespaces
         # Include contains a list of allowed Namespaces.
         # It can also contain a regex expressions:
         #  `- ".*"` - to specify all Namespaces.
@@ -91,8 +93,16 @@ sources:
         #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
         # exclude: []
 
+      # -- Describes events for every Kubernetes resources you want to watch or exclude.
+      # These events are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own events object.
+      events:
+        - create
+        - delete
+        - error
+
       # -- Describes the Kubernetes resources you want to watch.
-      # @default -- Watch all built-in K8s kinds.
+      # @default -- See the `values.yaml` file for full object.
       resources:
         - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                                     # resource name should be plural (e.g apps/v1/deployments, v1/pods)
@@ -101,69 +111,19 @@ sources:
         #    include:
         #      - ".*"
         #    exclude: []
-          events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
-            - create
-            - delete
-            - error
         - name: v1/services
-          events:
-            - create
-            - delete
-            - error
-        - name: apps/v1/deployments
-          events:
-            - create
-            - update
-            - delete
-            - error
-          updateSetting:
-            includeDiff: true
-            fields:
-              - spec.template.spec.containers[*].image
-              - status.availableReplicas
-        - name: apps/v1/statefulsets
-          events:
-            - create
-            - update
-            - delete
-            - error
-          updateSetting:
-            includeDiff: true
-            fields:
-              - spec.template.spec.containers[*].image
-              - status.readyReplicas
         - name: networking.k8s.io/v1/ingresses
-          events:
-            - create
-            - delete
-            - error
         - name: v1/nodes
-          events:
-            - create
-            - delete
-            - error
         - name: v1/namespaces
-          events:
-            - create
-            - delete
-            - error
         - name: v1/persistentvolumes
-          events:
-            - create
-            - delete
-            - error
         - name: v1/persistentvolumeclaims
-          events:
-            - create
-            - delete
-            - error
         - name: v1/configmaps
-          events:
-            - create
-            - delete
-            - error
+        - name: rbac.authorization.k8s.io/v1/roles
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterroles
         - name: apps/v1/daemonsets
-          events:
+          events: # Overrides 'source'.kubernetes.events
             - create
             - update
             - delete
@@ -174,7 +134,7 @@ sources:
               - spec.template.spec.containers[*].image
               - status.numberReady
         - name: batch/v1/jobs
-          events:
+          events: # Overrides 'source'.kubernetes.events
             - create
             - update
             - delete
@@ -184,26 +144,28 @@ sources:
             fields:
               - spec.template.spec.containers[*].image
               - status.conditions[*].type
-        - name: rbac.authorization.k8s.io/v1/roles
-          events:
+        - name: apps/v1/deployments
+          events: # Overrides 'source'.kubernetes.events
             - create
+            - update
             - delete
             - error
-        - name: rbac.authorization.k8s.io/v1/rolebindings
-          events:
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.availableReplicas
+        - name: apps/v1/statefulsets
+          events: # Overrides 'source'.kubernetes.events
             - create
+            - update
             - delete
             - error
-        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-          events:
-            - create
-            - delete
-            - error
-        - name: rbac.authorization.k8s.io/v1/clusterroles
-          events:
-            - create
-            - delete
-            - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.readyReplicas
        ## Custom resource example
        # - name: velero.io/v1/backups
        #   namespaces:
@@ -220,6 +182,40 @@ sources:
        #     includeDiff: true
        #     fields:
        #       - status.phase
+
+  'k8s-err-events':
+    # -- Describes Kubernetes source configuration.
+    kubernetes:
+      # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # These namespaces are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own namespaces object.
+      namespaces: *k8s-events-namespaces
+
+      # -- Describes events for every Kubernetes resources you want to watch or exclude.
+      # These events are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own events object.
+      events:
+        - error
+
+      # -- Describes the Kubernetes resources you want to watch.
+      # @default -- See the `values.yaml` file for full object.
+      resources:
+        - name: v1/pods
+        - name: v1/services
+        - name: networking.k8s.io/v1/ingresses
+        - name: v1/nodes
+        - name: v1/namespaces
+        - name: v1/persistentvolumes
+        - name: v1/persistentvolumeclaims
+        - name: v1/configmaps
+        - name: rbac.authorization.k8s.io/v1/roles
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterroles
+        - name: apps/v1/deployments
+        - name: apps/v1/statefulsets
+        - name: apps/v1/daemonsets
+        - name: batch/v1/jobs
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
@@ -302,7 +298,8 @@ communications:
               - kubectl-read-only
             # -- Notification sources configuration for a given channel.
             sources:
-              - k8s-events
+              - k8s-err-events
+              - k8s-recommendation-events
       # -- Slack token.
       token: ''
       # -- Slack bot token for your own Slack app.
@@ -344,7 +341,8 @@ communications:
               - kubectl-read-only
             # -- Notification sources configuration for a given channel.
             sources:
-              - k8s-events
+              - k8s-err-events
+              - k8s-recommendation-events
       notification:
         # -- Configures notification type that are sent. Possible values: `short`, `long`.
         type: short
@@ -365,7 +363,8 @@ communications:
           - kubectl-read-only
         # -- Source bindings apply to all channels which have notification turned on with `@BotKube notifier start` command.
         sources:
-          - k8s-events
+          - k8s-err-events
+          - k8s-recommendation-events
       # -- The path in endpoint URL provided while registering BotKube to MS Teams.
       messagePath: "/bots/teams"
       # -- The Service port for bot endpoint on BotKube container.
@@ -396,7 +395,8 @@ communications:
               - kubectl-read-only
             # -- Notification sources configuration for a given channel.
             sources:
-              - k8s-events
+              - k8s-err-events
+              - k8s-recommendation-events
       notification:
         # -- Configures notification type that are sent. Possible values: `short`, `long`.
         type: short
@@ -435,7 +435,8 @@ communications:
           bindings:
             # -- Notification sources configuration for a given index.
             sources:
-              - k8s-events
+              - k8s-err-events
+              - k8s-recommendation-events
 
     ## Settings for Webhook.
     webhook:
@@ -446,7 +447,7 @@ communications:
       bindings:
         # -- Notification sources configuration for the webhook.
         sources:
-          - k8s-events
+          - k8s-err-events
 
 ## Global BotKube configuration.
 settings:

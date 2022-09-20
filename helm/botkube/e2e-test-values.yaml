@@ -66,23 +66,28 @@ sources:
         ingress:
           backendServiceValid: false
           tlsSecretValid: false
+      events:
+        - create
+        - update
+        - delete
       resources:
         - name: v1/configmaps
-          events:
-            - create
-            - update
-            - delete
+
   'k8s-updates':
     kubernetes:
       namespaces:
         include:
           - default
+      events:
+        - create
+        - update
+        - delete
       resources:
         - name: v1/configmaps
           namespaces:
             include:
               - botkube
-          events:
+          events: # overrides top level `events` entry
             - update
 executors:
   'kubectl-read-only':

@@ -98,23 +98,16 @@ sources:
         ingress:
           backendServiceValid: true
           tlsSecretValid: false
-
-      # TODO: https://github.com/kubeshop/botkube/issues/596
+      events:
+        - create
+        - delete
+        - error
       # New 'namespace' property.
       # It can be overridden in the nested level.
-      # namespace:
-      #   include: [ ".*" ]
+      namespace:
+        include: [ ".*" ]
       resources:
         - name: v1/pods
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              - # example [x,y,secret-ns-*]
-          events:
-            - create
-            - delete
-            - error
         - name: v1/services
           namespaces:
             include:
