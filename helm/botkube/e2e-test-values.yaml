@@ -45,6 +45,8 @@ communications:
               - k8s-events
         'secondary':
           id: "" # Tests will override this channel ID temporarily
+          notification:
+            disabled: true
           bindings:
             # -- Executors configuration for a given channel.
             executors:

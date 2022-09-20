@@ -82,6 +82,7 @@ var (
 )
 
 func TestSlack(t *testing.T) {
+	t.Skip("Skipping Slack tests.")
 	t.Log("Loading configuration...")
 	var appCfg Config
 	err := envconfig.Init(&appCfg)
@@ -98,9 +99,6 @@ func TestSlack(t *testing.T) {
 }
 
 func TestDiscord(t *testing.T) {
-	// TODO: Fix it as a part https://github.com/kubeshop/botkube/issues/307
-	t.Skip("Test disabled temporarily as it keeps failing on CI.")
-
 	t.Log("Loading configuration...")
 	var appCfg Config
 	err := envconfig.Init(&appCfg)
