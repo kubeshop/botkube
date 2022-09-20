@@ -94,5 +94,5 @@ func replaceEmoijTagsWithActualOne(content string) string {
 }
 
 func mdHeader(msg string) string {
-	return fmt.Sprintf("**%s**", msg)
+	return fmt.Sprintf("*%s*", msg)
 }

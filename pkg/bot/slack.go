@@ -14,7 +14,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
-	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -231,7 +230,8 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 
 	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
 	response := e.Execute()
-	err = b.send(msg, request, response)
+	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, response)
+	err = b.send(msg, request, plaintext)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -239,21 +239,19 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(msg slackMessage, req string, resp interactive.Message) error {
+func (b *Slack) send(msg slackMessage, req string, resp string) error {
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, resp)
-
-	if len(plaintext) == 0 {
+	if len(resp) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 	// Upload message as a file if too long
-	if len(plaintext) >= 3990 {
+	if len(resp) >= 3990 {
 		params := slack.FileUploadParameters{
 			Filename: req,
 			Title:    req,
-			Content:  plaintext,
+			Content:  resp,
 			Channels: []string{msg.Event.Channel},
 		}
 		_, err := msg.RTM.UploadFile(params)
@@ -263,7 +261,7 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message) err
 		return nil
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(formatx.CodeBlock(plaintext), false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(resp, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.Event.ThreadTimestamp != "" {
@@ -321,13 +319,12 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
+	message := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
 		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
-
-		message := b.renderer.RenderInteractiveMessage(msg)
-
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, message)
+		var options = []slack.MsgOption{slack.MsgOptionText(message, false)}
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
 			continue
