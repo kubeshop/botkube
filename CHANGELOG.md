@@ -40,7 +40,7 @@ The v0.13.0 release has the following breaking changes:
   </tr>
   </table>
 
-  **REASON:** It enabled an option to define multiple communication settings for each provider and reference difference settings to each of them.
+  **REASON:** It enabled an option to define multiple communication settings for each provider and reference different settings in each of them.
 
 - Syntax for the `resources` property in BotKube Helm chart has changed.
 
