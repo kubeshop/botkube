@@ -18,6 +18,7 @@ type DefaultExecutorFactory struct {
 	analyticsReporter AnalyticsReporter
 	notifierExecutor  *NotifierExecutor
 	kubectlExecutor   *Kubectl
+	editExecutor      *EditExecutor
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 }
@@ -66,6 +67,11 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.CfgManager,
 			params.AnalyticsReporter,
 		),
+		editExecutor: NewEditExecutor(
+			params.Log.WithField("component", "Notifier Executor"),
+			params.AnalyticsReporter,
+			params.CfgManager,
+		),
 		merger:     params.Merger,
 		cfgManager: params.CfgManager,
 		kubectlExecutor: NewKubectl(
@@ -98,6 +104,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		analyticsReporter: f.analyticsReporter,
 		kubectlExecutor:   f.kubectlExecutor,
 		notifierExecutor:  f.notifierExecutor,
+		editExecutor:      f.editExecutor,
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,

@@ -22,6 +22,10 @@ import (
 var (
 	kubectlBinary = "/usr/local/bin/kubectl"
 )
+var (
+	errInvalidCommand     = errors.New("invalid command")
+	errUnsupportedCommand = errors.New("unsupported command")
+)
 
 const (
 	unsupportedCmdMsg = "Command not supported. Please use 'help' to see supported commands."
@@ -42,6 +46,8 @@ type DefaultExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cmdRunner         CommandSeparateOutputRunner
+	kubectlExecutor   *Kubectl
+	editExecutor      *EditExecutor
 	notifierExecutor  *NotifierExecutor
 	notifierHandler   NotifierHandler
 	bindings          []string
@@ -49,7 +55,6 @@ type DefaultExecutor struct {
 	isAuthChannel     bool
 	platform          config.CommPlatformIntegration
 	conversationID    string
-	kubectlExecutor   *Kubectl
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
@@ -172,61 +177,57 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty
 	}
 
-	type runner func() interactive.Message
-	cmds := map[string]runner{
-		"help": func() interactive.Message {
-			return interactive.Help(e.platform, clusterName, e.notifierHandler.BotName())
+	cmds := executorsRunner{
+		"help": func() (interactive.Message, error) {
+			return interactive.Help(e.platform, clusterName, e.notifierHandler.BotName()), nil
 		},
-		"ping": func() interactive.Message {
+		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res))
+			return response(fmt.Sprintf("pong\n\n%s", res)), nil
 		},
-		"version": func() interactive.Message {
-			return response(e.runVersionCommand("version"))
+		"version": func() (interactive.Message, error) {
+			return response(e.runVersionCommand("version")), nil
 		},
-		"filters": func() interactive.Message {
-			return response(e.runFilterCommand(args, clusterName))
+		"filters": func() (interactive.Message, error) {
+			res, err := e.runFilterCommand(args, clusterName)
+			return response(res), err
 		},
-		"commands": func() interactive.Message {
-			return response(e.runInfoCommand(args))
+		"commands": func() (interactive.Message, error) {
+			return response(e.runInfoCommand(args)), nil
 		},
-		"notifier": func() interactive.Message {
+		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, clusterName, e.notifierHandler)
-			switch {
-			case err == nil:
-			case errors.Is(err, errInvalidNotifierCommand):
-				return response(incompleteCmdMsg)
-			case errors.Is(err, errUnsupportedCommand):
-				return response(unsupportedCmdMsg)
-			default:
-				// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-				e.log.Errorf("while executing notifier command: %s", err.Error())
-				return empty
-			}
-
-			return response(res)
+			return response(res), err
+		},
+		"edit": func() (interactive.Message, error) {
+			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, "Anonymous")
 		},
 		"feedback": func() interactive.Message {
 			return interactive.Feedback(e.notifierHandler.BotName())
 		},
 	}
 
-	handler, found := cmds[args[0]]
-	if found {
-		return handler()
+	msg, err := cmds.SelectAndRun(args[0])
+	switch {
+	case err == nil:
+	case errors.Is(err, errInvalidCommand):
+		return response(incompleteCmdMsg)
+	case errors.Is(err, errUnsupportedCommand):
+		return response(unsupportedCmdMsg)
+	default:
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while executing notifier command: %s", err.Error())
+		return empty
 	}
 
-	if e.isAuthChannel {
-		return response(unsupportedCmdMsg)
-	}
-	return empty
+	return msg
 }
 
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
 // runFilterCommand to list, enable or disable filters
-func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) string {
+func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) (string, error) {
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return "", errInvalidCommand
 	}
 
 	var cmdVerb = args[1]
@@ -241,18 +242,18 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) st
 	switch args[1] {
 	case FilterList.String():
 		e.log.Debug("List filters")
-		return e.makeFiltersList()
+		return e.makeFiltersList(), nil
 
 	// Enable filter
 	case FilterEnable.String():
 		const enabled = true
 		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
+			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
 		}
 		filterName := args[2]
 		e.log.Debug("Enabling filter...", filterName)
 		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error()
+			return err.Error(), nil
 		}
 
 		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
@@ -261,18 +262,18 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) st
 			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 		}
 
-		return fmt.Sprintf(filterEnabled, filterName, clusterName)
+		return fmt.Sprintf(filterEnabled, filterName, clusterName), nil
 
 	// Disable filter
 	case FilterDisable.String():
 		const enabled = false
 		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
+			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
 		}
 		filterName := args[2]
 		e.log.Debug("Disabling filter...", filterName)
 		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error()
+			return err.Error(), nil
 		}
 
 		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
@@ -281,11 +282,11 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) st
 			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 		}
 
-		return fmt.Sprintf(filterDisabled, filterName, clusterName)
+		return fmt.Sprintf(filterDisabled, filterName, clusterName), nil
 	}
 
 	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return unsupportedCmdMsg
+	return "", errUnsupportedCommand
 }
 
 // runInfoCommand to list allowed commands
