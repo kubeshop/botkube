@@ -82,7 +82,6 @@ var (
 )
 
 func TestSlack(t *testing.T) {
-	t.Skip("Skipping Slack tests.")
 	t.Log("Loading configuration...")
 	var appCfg Config
 	err := envconfig.Init(&appCfg)
