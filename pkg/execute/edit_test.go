@@ -97,6 +97,55 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 	}
 }
 
+func TestSourceBindingsErrors(t *testing.T) {
+	const (
+		groupName      = "testing-source-bindings"
+		platform       = config.SlackCommPlatformIntegration
+		conversationID = "random"
+		userID         = "Joe"
+	)
+	tests := []struct {
+		name    string
+		command string
+		expErr  error
+	}{
+		{
+			name:    "Wrong resource name",
+			command: `edit Source Bindings "bar,xyz"`,
+
+			expErr: errUnsupportedCommand,
+		},
+		{
+			name:    "Typo in resource name",
+			command: `edit SourceBindnigs bar,xyz`,
+
+			expErr: errUnsupportedCommand,
+		},
+		{
+			name:    "Missing source list",
+			command: `edit sourceBindings`,
+
+			expErr: errInvalidCommand,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			log, _ := logtest.NewNullLogger()
+
+			args := strings.Fields(strings.TrimSpace(tc.command))
+			executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil)
+
+			// when
+			msg, err := executor.Do(args, groupName, platform, conversationID, userID)
+
+			// then
+			assert.ErrorIs(t, err, tc.expErr)
+			assert.Empty(t, msg)
+		})
+	}
+}
+
 type fakeBindingsStorage struct {
 	commGroupName  string
 	platform       config.CommPlatformIntegration
