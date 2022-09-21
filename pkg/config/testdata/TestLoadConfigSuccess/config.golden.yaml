@@ -241,7 +241,8 @@ sources:
                     fields: []
                     includeDiff: false
             namespaces:
-                include: []
+                include:
+                    - .*
 executors:
     kubectl-read-only:
         kubectl:

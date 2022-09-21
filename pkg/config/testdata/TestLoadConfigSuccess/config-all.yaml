@@ -104,7 +104,7 @@ sources:
         - error
       # New 'namespace' property.
       # It can be overridden in the nested level.
-      namespace:
+      namespaces:
         include: [ ".*" ]
       resources:
         - name: v1/pods

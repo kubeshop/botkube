@@ -448,6 +448,7 @@ communications:
         # -- Notification sources configuration for the webhook.
         sources:
           - k8s-err-events
+          - k8s-recommendation-events
 
 ## Global BotKube configuration.
 settings:
