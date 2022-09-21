@@ -65,15 +65,26 @@ jobs:
           github-token: "${{ secrets.GH_TOKEN }}"
           script: |
             try {
-              await github.rest.repos.createRelease({
+              const releaseNotes = await github.rest.repos.generateReleaseNotes({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: "${{ github.ref_name }}",
+                previous_tag_name: "${{ steps.prev-version.outputs.previous-version }}" 
+              });
+              const release = await github.rest.repos.getReleaseByTag({
+                tag: "${{ github.ref_name }}",
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              await github.rest.repos.updateRelease({
+                release_id: release.data.id,
                 draft: false,
-                generate_release_notes: true,
-                name: ${{ github.ref_name }},
+                name: "${{ github.ref_name }}",
                 owner: context.repo.owner,
                 prerelease: true,
                 repo: context.repo.repo,
-                tag_name: ${{ github.ref_name }},
-                previous_tag_name: ${{ steps.prev-version.outputs.previous-version }} 
+                tag_name: "${{ github.ref_name }}",
+                body: releaseNotes.data.body
               });
             } catch (error) {
               core.setFailed(error.message);
