@@ -51,6 +51,122 @@ func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
 	assert.NotContains(t, boundSources, "k8s-ignored")
 }
 
+func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
+	const hasRoutes = "apps/v1/deployments"
+	logger, _ := logtest.NewNullLogger()
+
+	tests := []struct {
+		name     string
+		givenCfg config.Config
+	}{
+		{
+			name: "Events defined on resource level",
+			givenCfg: config.Config{
+				Sources: map[string]config.Sources{
+					"k8s-events": {
+						Kubernetes: config.KubernetesSource{
+							Resources: []config.Resource{
+								{
+									Name: hasRoutes,
+									Namespaces: config.Namespaces{
+										Include: []string{"default"},
+									},
+									Events: []config.EventType{
+										config.CreateEvent,
+										config.DeleteEvent,
+										config.UpdateEvent,
+										config.ErrorEvent,
+									},
+									UpdateSetting: config.UpdateSetting{
+										Fields:      []string{"status.availableReplicas"},
+										IncludeDiff: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Events defined on top-level",
+			givenCfg: config.Config{
+				Sources: map[string]config.Sources{
+					"k8s-events": {
+						Kubernetes: config.KubernetesSource{
+							Events: []config.EventType{
+								config.CreateEvent,
+								config.DeleteEvent,
+								config.UpdateEvent,
+								config.ErrorEvent,
+							},
+							Resources: []config.Resource{
+								{
+									Name: hasRoutes,
+									Namespaces: config.Namespaces{
+										Include: []string{"default"},
+									},
+									UpdateSetting: config.UpdateSetting{
+										Fields:      []string{"status.availableReplicas"},
+										IncludeDiff: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Events defined on top-level but override by resource once",
+			givenCfg: config.Config{
+				Sources: map[string]config.Sources{
+					"k8s-events": {
+						Kubernetes: config.KubernetesSource{
+							Events: []config.EventType{
+								config.CreateEvent,
+								config.ErrorEvent,
+							},
+							Resources: []config.Resource{
+								{
+									Name: hasRoutes,
+									Namespaces: config.Namespaces{
+										Include: []string{"default"},
+									},
+									Events: []config.EventType{
+										config.CreateEvent,
+										config.DeleteEvent,
+										config.UpdateEvent,
+										config.ErrorEvent,
+									},
+									UpdateSetting: config.UpdateSetting{
+										Fields:      []string{"status.availableReplicas"},
+										IncludeDiff: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router := NewRouter(nil, nil, logger)
+			router.AddAnyBindings(config.BotBindings{
+				Sources: []string{"k8s-events"},
+			})
+
+			router = router.BuildTable(&tc.givenCfg)
+			assert.Len(t, router.getSourceRoutes(hasRoutes, config.CreateEvent), 1)
+			assert.Len(t, router.getSourceRoutes(hasRoutes, config.UpdateEvent), 1)
+			assert.Len(t, router.getSourceRoutes(hasRoutes, config.DeleteEvent), 1)
+			assert.Len(t, router.getSourceRoutes(hasRoutes, config.ErrorEvent), 1)
+		})
+	}
+}
+
 func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
 	hasRoutes := "apps/v1/deployments"

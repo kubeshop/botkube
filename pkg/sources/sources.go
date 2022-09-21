@@ -212,7 +212,7 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 			if _, ok := out[resource.Name]; !ok {
 				out[resource.Name] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEvents(resource.Events) {
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, resource.Events) {
 				out[resource.Name][e] = struct{}{}
 			}
 		}
@@ -232,7 +232,7 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEvents(r.Events) {
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, r.Events) {
 				if resource != r.Name {
 					continue
 				}
@@ -332,9 +332,14 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEvents(events []config.EventType) []config.EventType {
+func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEvents) []config.EventType {
+	checkEvents := globalEvents
+	if len(resourceEvents) > 0 {
+		checkEvents = resourceEvents
+	}
+
 	var out []config.EventType
-	for _, event := range events {
+	for _, event := range checkEvents {
 		if event == config.AllEvent {
 			out = append(out, []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}...)
 		} else {
