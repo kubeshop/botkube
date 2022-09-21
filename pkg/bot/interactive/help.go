@@ -3,7 +3,6 @@ package interactive
 import (
 	"fmt"
 
-	"github.com/slack-go/slack"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
@@ -87,7 +86,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: "Angry? Amazed?",
 				},
 				Buttons: []Button{
-					btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube_io", slack.StylePrimary),
+					btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube.io", ButtonStylePrimary),
 				},
 			},
 			{

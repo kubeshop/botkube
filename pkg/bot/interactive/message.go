@@ -2,8 +2,15 @@ package interactive
 
 import (
 	"fmt"
+)
 
-	"github.com/slack-go/slack"
+// ButtonStyle is a style of Button element.
+type ButtonStyle string
+
+const (
+	ButtonStyleDefault ButtonStyle = ""
+	ButtonStylePrimary ButtonStyle = "primary"
+	ButtonStyleDanger  ButtonStyle = "danger"
 )
 
 // Message represents a generic message with interactive buttons.
@@ -54,7 +61,7 @@ type Button struct {
 	Name        string
 	Command     string
 	URL         string
-	Style       slack.Style
+	Style       ButtonStyle
 }
 
 // buttonBuilder provides a simplified way to construct a Button model.
@@ -67,8 +74,8 @@ func (b *buttonBuilder) ForCommandWithDescCmd(name, cmd string) Button {
 	return b.commandWithDesc(name, cmd, cmd)
 }
 
-func (b *buttonBuilder) DescriptionURL(name, cmd string, url string, btnType ...slack.Style) Button {
-	bt := slack.StyleDefault
+func (b *buttonBuilder) DescriptionURL(name, cmd string, url string, btnType ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
 	if len(btnType) > 0 {
 		bt = btnType[0]
 	}
@@ -91,8 +98,8 @@ func (b *buttonBuilder) ForCommand(name, cmd string) Button {
 }
 
 // ForURL returns link button.
-func (b *buttonBuilder) ForURL(name, url string, btnType ...slack.Style) Button {
-	bt := slack.StyleDefault
+func (b *buttonBuilder) ForURL(name, url string, btnType ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
 	if len(btnType) > 0 {
 		bt = btnType[0]
 	}

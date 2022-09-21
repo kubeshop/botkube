@@ -1,7 +1,5 @@
 package interactive
 
-import "github.com/slack-go/slack"
-
 // Feedback generates Message structure.
 func Feedback(botName string) Message {
 	btnBuilder := buttonBuilder{botName: botName}
@@ -14,7 +12,7 @@ func Feedback(botName string) Message {
 					},
 				},
 				Buttons: []Button{
-					btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", slack.StylePrimary),
+					btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", ButtonStylePrimary),
 				},
 			},
 		},
