@@ -62,6 +62,9 @@ jobs:
       - name: Generate Changelog
         id: generate-changelog
         uses: mikepenz/release-changelog-builder-action@v3.3.1
+        with:
+          fromTag: ${{ steps.prev-version.outputs.previous-version }}
+          toTag: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
