@@ -87,7 +87,6 @@ type NewDefaultInput struct {
 	ConversationID  string
 	Bindings        []string
 	Message         string
-	User            string
 }
 
 // NewDefault creates new Default Executor.
@@ -108,7 +107,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		message:           cfg.Message,
 		platform:          cfg.Platform,
 		conversationID:    cfg.ConversationID,
-		user:              cfg.User,
 		commGroupName:     cfg.CommGroupName,
 	}
 }

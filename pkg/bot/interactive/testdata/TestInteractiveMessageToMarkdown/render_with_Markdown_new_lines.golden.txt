@@ -31,7 +31,7 @@ To list all supported kubectl commands
 You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters
 
 Angry? Amazed?
-Give feedback: https://feedback.botkube_io
+Give feedback: https://feedback.botkube.io
 
 Read our docs: https://botkube.io
 Join our Slack: https://join.botkube.io

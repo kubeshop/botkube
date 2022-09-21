@@ -270,7 +270,6 @@ func (b *Slack) handleMessage(event slackMessage) error {
 		ConversationID:  info.Name,
 		Bindings:        channel.Bindings.Executors,
 		Message:         request,
-		User:            event.User,
 	})
 	response := e.Execute()
 	err = b.send(event, request, response)
