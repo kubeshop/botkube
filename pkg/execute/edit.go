@@ -3,9 +3,12 @@ package execute
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/dustin/go-humanize/english"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -69,12 +72,15 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	cmds := executorsRunner{
 		SourceBindings.Key(): func() (interactive.Message, error) {
-			sourceBindings := e.normalizeSourceItems(cmdArgs)
+			sourceBindings, err := e.normalizeSourceItems(cmdArgs)
+			if err != nil {
+				return empty, fmt.Errorf("while normalizing source args: %w", err)
+			}
 			if len(sourceBindings) == 0 {
 				return empty, errInvalidCommand
 			}
 
-			err := e.cfgManager.PersistSourceBindings(commGroupName, platform, conversationID, sourceBindings)
+			err = e.cfgManager.PersistSourceBindings(commGroupName, platform, conversationID, sourceBindings)
 			if err != nil {
 				return empty, fmt.Errorf("while persisting source bindings configuration: %w", err)
 			}
@@ -96,11 +102,14 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 	return msg, nil
 }
 
-func (*EditExecutor) normalizeSourceItems(args []string) []string {
+func (*EditExecutor) normalizeSourceItems(args []string) ([]string, error) {
 	var out []string
 	for _, item := range args {
 		// Case: "foo,baz,bar"
-		item = strings.Trim(item, `"`)
+		item, err := removeQuotationMarks(item)
+		if err != nil {
+			return nil, err
+		}
 
 		// Case: foo, baz, bar
 		item = strings.ReplaceAll(item, " ", "")
@@ -122,5 +131,14 @@ func (*EditExecutor) normalizeSourceItems(args []string) []string {
 		}
 	}
 
-	return out
+	return out, nil
+}
+
+func isQuotationMark(r rune) bool {
+	return unicode.Is(unicode.Quotation_Mark, r)
+}
+
+func removeQuotationMarks(in string) (string, error) {
+	result, _, err := transform.String(runes.Remove(runes.Predicate(isQuotationMark)), in)
+	return result, err
 }
