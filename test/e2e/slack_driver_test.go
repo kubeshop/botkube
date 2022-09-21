@@ -309,8 +309,5 @@ func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testi
 func (s *slackTester) trimNewLine(msg string) string {
 	// There is always a `\n` on Slack messages due to Markdown formatting.
 	// That should be replaced for RTM
-	if strings.HasSuffix(msg, "\n") {
-		return strings.TrimSuffix(msg, "\n")
-	}
-	return msg
+	return strings.TrimSuffix(msg, "\n")
 }
