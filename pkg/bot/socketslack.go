@@ -42,6 +42,7 @@ type SocketSlack struct {
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
 	renderer        *SlackRenderer
+	mdFormatter     interactive.MDFormatter
 }
 
 type socketSlackMessage struct {
@@ -69,6 +70,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
+	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
 		log:             log,
 		executorFactory: executorFactory,
@@ -79,6 +81,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		commGroupName:   commGroupName,
 		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
+		mdFormatter:     mdFormatter,
 	}, nil
 }
 
@@ -252,7 +255,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, resp)
+	plaintext := interactive.MessageToMarkdown(b.mdFormatter, resp)
 
 	if len(plaintext) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)

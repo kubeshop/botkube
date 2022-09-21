@@ -1,4 +1,4 @@
-BotKube is now active for "testing" cluster 🚀<br><br>**Using multiple instances**<br>If you are running multiple BotKube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.<br>```
+BotKube is now active for "testing" cluster :rocket:<br><br>**Using multiple instances**<br>If you are running multiple BotKube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.<br>```
 --cluster-name="testing"
 ```<br><br>**Ping your cluster**<br>Check the status of connected Kubernetes cluster(s)<br>  - `@BotKube ping`<br><br>**Run kubectl commands**<br>You can run kubectl commands directly from Platform!<br>  - `@BotKube get services`<br>  - `@BotKube get pods`<br>  - `@BotKube get deployments`<br><br>To list all supported kubectl commands<br>  - `@BotKube commands list`<br><br>**Manage incoming notifications**<br>```
 @BotKube notifier [start|stop|status]

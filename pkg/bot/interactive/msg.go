@@ -17,11 +17,13 @@ func DefaultMDHeaderFormatter(msg string) string {
 	return fmt.Sprintf("**%s**", msg)
 }
 
+// MDFormatter represents the capability of Markdown Formatter
 type MDFormatter struct {
 	lineFormatter   func(msg string) string
 	headerFormatter func(msg string) string
 }
 
+// NewMDFormatter is for initializing custom Markdown formatter
 func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFormatter {
 	return MDFormatter{
 		lineFormatter:   lineFormatter,
@@ -29,6 +31,7 @@ func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFo
 	}
 }
 
+// DefaultMDFormatter is for initializing built-in Markdown formatter
 func DefaultMDFormatter() MDFormatter {
 	return MDFormatter{
 		lineFormatter:   DefaultMDLineFormatter,

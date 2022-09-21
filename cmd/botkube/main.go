@@ -195,12 +195,7 @@ func run() error {
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
-			notifiers = append(notifiers, sb)
-			bots = append(bots, sb)
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
-				return sb.Start(ctx)
-			})
+			scheduleBot(sb)
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
