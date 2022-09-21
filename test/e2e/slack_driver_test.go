@@ -56,7 +56,10 @@ func newSlackDriver(slackCfg SlackConfig) (BotDriver, error) {
 func (s *slackTester) InitUsers(t *testing.T) {
 	t.Helper()
 	s.botUserID = s.findUserID(t, s.cfg.BotName)
+	assert.NotEmpty(t, s.botUserID, "could not find slack botUserID with name: %s", s.cfg.BotName)
+
 	s.testerUserID = s.findUserID(t, s.cfg.TesterName)
+	assert.NotEmpty(t, s.testerUserID, "could not find slack testerUserID with name: %s", s.cfg.TesterName)
 }
 
 func (s *slackTester) InitChannels(t *testing.T) []func() {

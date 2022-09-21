@@ -77,10 +77,10 @@ func (d *discordTester) SecondChannel() Channel {
 func (d *discordTester) InitUsers(t *testing.T) {
 	t.Helper()
 	d.botUserID = d.findUserID(t, d.cfg.BotName)
-	assert.NotEmpty(t, d.botUserID, "could not find botUserID with name: %s", d.cfg.BotName)
+	assert.NotEmpty(t, d.botUserID, "could not find discord botUserID with name: %s", d.cfg.BotName)
 
 	d.testerUserID = d.findUserID(t, d.cfg.TesterName)
-	assert.NotEmpty(t, d.testerUserID, "could not find testerUserID with name: %s", d.cfg.TesterName)
+	assert.NotEmpty(t, d.testerUserID, "could not find discord testerUserID with name: %s", d.cfg.TesterName)
 }
 
 func (d *discordTester) InitChannels(t *testing.T) []func() {
