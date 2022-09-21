@@ -53,7 +53,6 @@ type DefaultExecutor struct {
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
-	user              string
 }
 
 // NotifierAction creates custom type for notifier actions

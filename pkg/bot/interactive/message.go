@@ -7,6 +7,7 @@ import (
 // ButtonStyle is a style of Button element.
 type ButtonStyle string
 
+// Represents a general button styles.
 const (
 	ButtonStyleDefault ButtonStyle = ""
 	ButtonStylePrimary ButtonStyle = "primary"
