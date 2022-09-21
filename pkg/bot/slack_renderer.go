@@ -177,6 +177,7 @@ func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement 
 		Text:     slack.NewTextBlockObject(slack.PlainTextType, btn.Name, true, false),
 		Value:    btn.Command,
 		ActionID: b.genBtnActionID(btn),
+		Style:    convertToSlackStyle(btn.Style),
 
 		// NOTE: We'll still receive an interaction payload and will need to send an acknowledgement response.
 		URL: btn.URL,
@@ -249,4 +250,16 @@ func (b *SlackRenderer) shortNotification(event events.Event) slack.Attachment {
 		},
 		Footer: "BotKube",
 	}
+}
+
+func convertToSlackStyle(in interactive.ButtonStyle) slack.Style {
+	switch in {
+	case interactive.ButtonStyleDefault:
+		return slack.StyleDefault
+	case interactive.ButtonStylePrimary:
+		return slack.StylePrimary
+	case interactive.ButtonStyleDanger:
+		return slack.StyleDanger
+	}
+	return slack.StyleDefault
 }

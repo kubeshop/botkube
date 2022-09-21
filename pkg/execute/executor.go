@@ -206,6 +206,9 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 
 			return response(res)
 		},
+		"feedback": func() interactive.Message {
+			return interactive.Feedback(e.notifierHandler.BotName())
+		},
 	}
 
 	handler, found := cmds[args[0]]

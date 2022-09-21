@@ -231,7 +231,15 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 
 	channel, isAuthChannel := b.getChannels()[dm.Event.ChannelID]
 
-	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, isAuthChannel, channel.Identifier(), channel.Bindings.Executors, req)
+	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
+		CommGroupName:   b.commGroupName,
+		Platform:        b.IntegrationName(),
+		NotifierHandler: b,
+		IsAuthChannel:   isAuthChannel,
+		ConversationID:  channel.Identifier(),
+		Bindings:        channel.Bindings.Executors,
+		Message:         req,
+	})
 
 	out := e.Execute()
 	resp := interactive.MessageToMarkdown(interactive.MDLineFmt, out)
