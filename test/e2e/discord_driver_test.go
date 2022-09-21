@@ -40,6 +40,7 @@ type discordTester struct {
 	testerUserID  string
 	channel       Channel
 	secondChannel Channel
+	mdFormatter   interactive.MDFormatter
 }
 
 func newDiscordDriver(discordCfg DiscordConfig) (BotDriver, error) {
@@ -47,7 +48,7 @@ func newDiscordDriver(discordCfg DiscordConfig) (BotDriver, error) {
 	if err != nil {
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
 	}
-	return &discordTester{cli: discordCli, cfg: discordCfg}, nil
+	return &discordTester{cli: discordCli, cfg: discordCfg, mdFormatter: interactive.DefaultMDFormatter()}, nil
 }
 
 func (d *discordTester) Type() DriverType {
@@ -250,14 +251,14 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 }
 
 func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
-	markdown := strings.TrimSpace(interactive.MessageToMarkdown(interactive.MDLineFmt, msg))
+	markdown := strings.TrimSpace(interactive.MessageToMarkdown(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
 		return strings.EqualFold(markdown, msg)
 	})
 }
 
 func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
-	markdown := strings.TrimSpace(interactive.MessageToMarkdown(interactive.MDLineFmt, msg))
+	markdown := strings.TrimSpace(interactive.MessageToMarkdown(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(markdown, msg)
 	})

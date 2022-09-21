@@ -49,6 +49,7 @@ type Slack struct {
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
 	renderer        *SlackRenderer
+	mdFormatter     interactive.MDFormatter
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -83,6 +84,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
+	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
 	return &Slack{
 		log:             log,
 		executorFactory: executorFactory,
@@ -94,6 +96,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		commGroupName:   commGroupName,
 		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
+		mdFormatter:     mdFormatter,
 	}, nil
 }
 
@@ -230,7 +233,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 
 	e := b.executorFactory.NewDefault(b.commGroupName, b.IntegrationName(), b, isAuthChannel, info.Name, channel.Bindings.Executors, request)
 	response := e.Execute()
-	plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, response)
+	plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
 	err = b.send(msg, request, plaintext)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
@@ -319,11 +322,11 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
-	message := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
+	message := interactive.MessageToMarkdown(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
 		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
-		var options = []slack.MsgOption{slack.MsgOptionText(message, false)}
+		var options = []slack.MsgOption{slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true)}
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
@@ -358,4 +361,8 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
+func mdHeaderFormatter(msg string) string {
+	return fmt.Sprintf("*%s*", msg)
 }

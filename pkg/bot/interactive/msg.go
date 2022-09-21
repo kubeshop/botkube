@@ -2,37 +2,49 @@ package interactive
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-// mdEmojiTag finds the emoji tags
-var mdEmojiTag = regexp.MustCompile(`:(\w+):`)
-
-// MSTeamsLineFmt represents new line formatting for MS Teams.
-// Unfortunately, it's different from all others integrations.
-func MSTeamsLineFmt(msg string) string {
-	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
-	msg = replaceEmoijTagsWithActualOne(msg)
-	return fmt.Sprintf("%s<br>", msg)
-}
-
-// MDLineFmt represents a Markdown new line formatting.
-func MDLineFmt(msg string) string {
+// DefaultMDLineFormatter represents a Markdown new line formatting.
+func DefaultMDLineFormatter(msg string) string {
 	return fmt.Sprintf("%s\n", msg)
 }
 
+// DefaultMDHeaderFormatter represents a Markdown header formatting.
+func DefaultMDHeaderFormatter(msg string) string {
+	return fmt.Sprintf("**%s**", msg)
+}
+
+type MDFormatter struct {
+	lineFormatter   func(msg string) string
+	headerFormatter func(msg string) string
+}
+
+func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFormatter {
+	return MDFormatter{
+		lineFormatter:   lineFormatter,
+		headerFormatter: headerFormatter,
+	}
+}
+
+func DefaultMDFormatter() MDFormatter {
+	return MDFormatter{
+		lineFormatter:   DefaultMDLineFormatter,
+		headerFormatter: DefaultMDHeaderFormatter,
+	}
+}
+
 // MessageToMarkdown returns interactive message as a plaintext with Markdown syntax.
-func MessageToMarkdown(lineFmt func(msg string) string, msg Message) string {
+func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 	var out strings.Builder
 	addLine := func(in string) {
-		out.WriteString(lineFmt(in))
+		out.WriteString(mdFormatter.lineFormatter(in))
 	}
 
 	if msg.Header != "" {
-		addLine(mdHeader(msg.Header))
+		addLine(mdFormatter.headerFormatter(msg.Header))
 	}
 	if msg.Description != "" {
 		addLine(msg.Description)
@@ -50,7 +62,7 @@ func MessageToMarkdown(lineFmt func(msg string) string, msg Message) string {
 		addLine("") // padding between sections
 
 		if section.Header != "" {
-			addLine(mdHeader(section.Header))
+			addLine(mdFormatter.headerFormatter(section.Header))
 		}
 		if section.Description != "" {
 			addLine(section.Description)
@@ -79,20 +91,4 @@ func MessageToMarkdown(lineFmt func(msg string) string, msg Message) string {
 	}
 
 	return out.String()
-}
-
-// emojiMapping holds mapping between emoji tags and actual ones.
-var emojiMapping = map[string]string{
-	":rocket:": "🚀",
-}
-
-// replaceEmoijTagsWithActualOne replaces the emoji tag with actual emoji.
-func replaceEmoijTagsWithActualOne(content string) string {
-	return mdEmojiTag.ReplaceAllStringFunc(content, func(s string) string {
-		return emojiMapping[s]
-	})
-}
-
-func mdHeader(msg string) string {
-	return fmt.Sprintf("*%s*", msg)
 }

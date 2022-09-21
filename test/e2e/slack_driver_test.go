@@ -22,13 +22,6 @@ type SlackChannel struct {
 	*slack.Channel
 }
 
-type dumper struct {
-}
-
-func (dumper) Errorf(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
-}
-
 func (s *SlackChannel) ID() string {
 	return s.Channel.ID
 }
@@ -46,6 +39,7 @@ type slackTester struct {
 	testerUserID  string
 	channel       Channel
 	secondChannel Channel
+	mdFormatter   interactive.MDFormatter
 }
 
 func newSlackDriver(slackCfg SlackConfig) (BotDriver, error) {
@@ -54,8 +48,10 @@ func newSlackDriver(slackCfg SlackConfig) (BotDriver, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return &slackTester{cli: slackCli, cfg: slackCfg}, nil
+	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, func(msg string) string {
+		return fmt.Sprintf("*%s*", msg)
+	})
+	return &slackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter}, nil
 }
 
 func (s *slackTester) InitUsers(t *testing.T) {
@@ -131,19 +127,19 @@ func (s *slackTester) InviteBotToChannel(t *testing.T, channelID string) {
 
 func (s *slackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
-		return strings.EqualFold(msg, expectedMsg)
+		return strings.EqualFold(s.trimNewLine(msg), expectedMsg)
 	})
 }
 
 func (s *slackTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.Contains(msg, expectedMsgSubstring)
+		return strings.Contains(s.trimNewLine(msg), expectedMsgSubstring)
 	})
 }
 
 func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return msg == expectedMsg
+		return s.trimNewLine(msg) == expectedMsg
 	})
 }
 
@@ -255,16 +251,17 @@ func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID strin
 // TODO: This contains an implementation for socket mode slack apps. Once needed, you can see the already implemented
 // functions here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
 func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
-	renderedMsg := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
+	renderedMsg := interactive.MessageToMarkdown(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
-		return strings.EqualFold(msg, renderedMsg)
+		// Slack encloses URLs with `<` and `>`, since we need to remove them before assertion
+		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
 	})
 }
 
 func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
-	renderedMsg := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
+	renderedMsg := interactive.MessageToMarkdown(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.EqualFold(msg, renderedMsg)
+		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
 	})
 }
 
@@ -307,4 +304,13 @@ func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testi
 	}
 
 	return channel, cleanupFn
+}
+
+func (s *slackTester) trimNewLine(msg string) string {
+	// There is always a `\n` on Slack messages due to Markdown formatting.
+	// That should be replaced for RTM
+	if strings.HasSuffix(msg, "\n") {
+		return strings.TrimSuffix(msg, "\n")
+	}
+	return msg
 }

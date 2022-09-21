@@ -19,6 +19,8 @@ communications:
               - k8s-events
         'secondary':
           name: "" # Tests will override this temporarily
+          notification:
+            disabled: true
           bindings:
             executors:
               - kubectl-read-only
