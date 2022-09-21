@@ -59,19 +59,23 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
 
-      - name: Generate Changelog
-        id: generate-changelog
-        uses: mikepenz/release-changelog-builder-action@v3.3.1
+      - name: "Create release"
+        uses: "actions/github-script@v6"
         with:
-          fromTag: ${{ steps.prev-version.outputs.previous-version }}
-          toTag: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - uses: meeDamian/github-release@2.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-          body: ${{ steps.generate-changelog.outputs.changelog }}
-          allow_override: true
+          github-token: "${{ secrets.GH_TOKEN }}"
+          script: |
+            try {
+              await github.rest.repos.createRelease({
+                draft: false,
+                generate_release_notes: true,
+                name: ${{ github.ref_name }},
+                owner: context.repo.owner,
+                prerelease: true,
+                repo: context.repo.repo,
+                tag_name: ${{ github.ref_name }},
+                previous_tag_name: ${{ steps.prev-version.outputs.previous-version }} 
+              });
+            } catch (error) {
+              core.setFailed(error.message);
+            }
 
