@@ -171,23 +171,28 @@ type Sources struct {
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Recommendations Recommendations     `yaml:"recommendations"`
-	Resources       KubernetesResources `yaml:"resources" validate:"dive"`
-	Namespaces      Namespaces          `yaml:"namespaces"`
+	Recommendations Recommendations          `yaml:"recommendations"`
+	Events          KubernetesResourceEvents `yaml:"events"`
+	Resources       []Resource               `yaml:"resources" validate:"dive"`
+	Namespaces      Namespaces               `yaml:"namespaces"`
 }
 
-// KubernetesResources contains configuration for Kubernetes resources.
-type KubernetesResources []Resource
-
 // IsAllowed checks if a given resource event is allowed according to the configuration.
-func (r *KubernetesResources) IsAllowed(resourceName, namespace string, eventType EventType) bool {
-	if r == nil || len(*r) == 0 {
+func (r *KubernetesSource) IsAllowed(resourceName, namespace string, eventType EventType) bool {
+	if r == nil || len(r.Resources) == 0 {
 		return false
 	}
 
-	for _, resource := range *r {
+	isEventAllowed := func(resourceEvents KubernetesResourceEvents) bool {
+		if len(resourceEvents) > 0 { // if resource overrides the global events, use them
+			return resourceEvents.Contains(eventType)
+		}
+		return r.Events.Contains(eventType) // check global events
+	}
+
+	for _, resource := range r.Resources {
 		if resource.Name == resourceName &&
-			resource.Events.Contains(eventType) &&
+			isEventAllowed(resource.Events) &&
 			resource.Namespaces.IsAllowed(namespace) {
 			return true
 		}

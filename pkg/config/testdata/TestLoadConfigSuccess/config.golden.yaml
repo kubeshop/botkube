@@ -8,17 +8,15 @@ sources:
                 pod:
                     noLatestImageTag: false
                     labelsSet: true
+            events:
+                - create
+                - delete
+                - error
             resources:
                 - name: v1/pods
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  events: []
                   updateSetting:
                     fields: []
                     includeDiff: false
@@ -243,7 +241,8 @@ sources:
                     fields: []
                     includeDiff: false
             namespaces:
-                include: []
+                include:
+                    - .*
 executors:
     kubectl-read-only:
         kubectl:
