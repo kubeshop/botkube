@@ -61,14 +61,9 @@ jobs:
 
       - name: Generate Changelog
         id: generate-changelog
-        uses: heinrichreimer/github-changelog-generator-action@v2.3
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-          sinceTag: ${{ steps.prev-version.outputs.previous-version }}
-          dueTag: ${{ github.ref_name }}
-          stripHeaders: true
-          stripGeneratorNotice: true
-          compareLink: false
+        uses: mikepenz/release-changelog-builder-action@v3.3.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - uses: meeDamian/github-release@2.0
         with:
