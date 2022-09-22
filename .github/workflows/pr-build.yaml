@@ -63,8 +63,6 @@ jobs:
       - name: Save
         run: |
           make save-images
-        env:
-          SLACK_APP_TOKEN: ${{ secrets.SLACK_APP_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -156,7 +154,7 @@ jobs:
 
       - name: Install BotKube
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SOCKET_SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
@@ -176,7 +174,6 @@ jobs:
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
             --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}" \
-            --set e2eTest.slack.botName="botkubev2" \
             --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
             --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
             --set e2eTest.discord.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"

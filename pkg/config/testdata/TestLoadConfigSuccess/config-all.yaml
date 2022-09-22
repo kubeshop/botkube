@@ -13,6 +13,22 @@ communications: # req 1 elm.
       token: 'SLACK_API_TOKEN'
       notification:
         type: short
+    socketSlack:
+      enabled: true
+      channels:
+        alias:
+          name: SLACK_CHANNEL
+          notification:
+            disabled: false
+          bindings:
+            sources:
+              - k8s-events
+            executors:
+              - kubectl-read-only
+      notification:
+        type: short
+      botToken: 'SLACK_BOT_TOKEN'
+      appToken: 'SLACK_APP_TOKEN'
 
     mattermost:
       enabled: false

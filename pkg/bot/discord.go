@@ -54,6 +54,7 @@ type Discord struct {
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
+	mdFormatter     interactive.MDFormatter
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -85,6 +86,7 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		commGroupName:   commGroupName,
 		channels:        channelsCfg,
 		botMentionRegex: botMentionRegex,
+		mdFormatter:     interactive.DefaultMDFormatter(),
 	}, nil
 }
 
@@ -152,7 +154,7 @@ func (b *Discord) SendMessage(_ context.Context, msg interactive.Message) error 
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
+		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %s", channelID, plaintext)
 
 		if _, err := b.api.ChannelMessageSend(channelID, plaintext); err != nil {
@@ -242,7 +244,7 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 	})
 
 	out := e.Execute()
-	resp := interactive.MessageToMarkdown(interactive.MDLineFmt, out)
+	resp := interactive.MessageToMarkdown(b.mdFormatter, out)
 	err := b.send(dm.Event, req, resp)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)

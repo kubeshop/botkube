@@ -293,6 +293,22 @@ communications:
             notification:
                 type: short
             token: xoxb-token-from-env
+        socketSlack:
+            enabled: true
+            channels:
+                alias:
+                    name: SLACK_CHANNEL
+                    notification:
+                        disabled: false
+                    bindings:
+                        sources:
+                            - k8s-events
+                        executors:
+                            - kubectl-read-only
+            notification:
+                type: short
+            botToken: xoxb-token-from-env
+            appToken: xapp-token-from-env
         mattermost:
             enabled: false
             botName: ""

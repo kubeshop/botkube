@@ -11,7 +11,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
-const recentMessagesLimit = 5
+const recentMessagesLimit = 6
 
 // structDumper provides an option to print the struct in more readable way.
 var structDumper = litter.Options{
