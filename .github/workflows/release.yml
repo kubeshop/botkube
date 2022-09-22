@@ -59,10 +59,10 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
 
-      - name: "Create release"
-        uses: "actions/github-script@v6"
+      - name: Create release
+        uses: actions/github-script@v6
         with:
-          github-token: "${{ secrets.GH_TOKEN }}"
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             try {
               const releaseNotes = await github.rest.repos.generateReleaseNotes({
@@ -89,4 +89,3 @@ jobs:
             } catch (error) {
               core.setFailed(error.message);
             }
-
