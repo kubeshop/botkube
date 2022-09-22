@@ -58,6 +58,7 @@ type Mattermost struct {
 	channels        map[string]channelConfigByID
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
+	mdFormatter     interactive.MDFormatter
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -125,6 +126,7 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 		commGroupName:   commGroupName,
 		channels:        channelsByIDCfg,
 		botMentionRegex: botMentionRegex,
+		mdFormatter:     interactive.DefaultMDFormatter(),
 	}, nil
 }
 
@@ -231,7 +233,7 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		Bindings:        channel.Bindings.Executors,
 		Message:         mm.Request,
 	})
-	out := interactive.MessageToMarkdown(interactive.MDLineFmt, e.Execute())
+	out := interactive.MessageToMarkdown(b.mdFormatter, e.Execute())
 	mm.Response = out
 	mm.sendMessage()
 }
@@ -395,7 +397,7 @@ func (b *Mattermost) SendMessage(_ context.Context, msg interactive.Message) err
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(interactive.MDLineFmt, msg)
+		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
 		post := &model.Post{
 			ChannelId: channelID,

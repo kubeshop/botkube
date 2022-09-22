@@ -50,6 +50,9 @@ var _ Bot = &Teams{}
 
 const teamsBotMentionPrefixFmt = "^<at>%s</at>"
 
+// mdEmojiTag finds the emoji tags
+var mdEmojiTag = regexp.MustCompile(`:(\w+):`)
+
 type conversation struct {
 	ref    schema.ConversationReference
 	notify bool
@@ -68,6 +71,7 @@ type Teams struct {
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
+	mdFormatter        interactive.MDFormatter
 
 	botName      string
 	AppID        string
@@ -98,6 +102,7 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 	if msgPath == "" {
 		msgPath = "/"
 	}
+	mdFormatter := interactive.NewMDFormatter(mdLineFormatter, interactive.DefaultMDHeaderFormatter)
 	return &Teams{
 		log:             log,
 		executorFactory: executorFactory,
@@ -112,6 +117,7 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		Port:            port,
 		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
+		mdFormatter:     mdFormatter,
 	}, nil
 }
 
@@ -289,9 +295,9 @@ func (b *Teams) convertInteractiveMessage(in interactive.Message) string {
 	if in.HasSections() {
 		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
 		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		return interactive.MessageToMarkdown(interactive.MSTeamsLineFmt, in)
+		return interactive.MessageToMarkdown(b.mdFormatter, in)
 	}
-	return interactive.MessageToMarkdown(interactive.MDLineFmt, in)
+	return interactive.MessageToMarkdown(b.mdFormatter, in)
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -524,4 +530,24 @@ func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
 	}
 
 	return botMentionRegex, nil
+}
+
+// MSTeamsLineFmt represents new line formatting for MS Teams.
+// Unfortunately, it's different from all others integrations.
+func mdLineFormatter(msg string) string {
+	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
+	msg = replaceEmojiTagsWithActualOne(msg)
+	return fmt.Sprintf("%s<br>", msg)
+}
+
+// replaceEmojiTagsWithActualOne replaces the emoji tag with actual emoji.
+func replaceEmojiTagsWithActualOne(content string) string {
+	return mdEmojiTag.ReplaceAllStringFunc(content, func(s string) string {
+		return emojiMapping[s]
+	})
+}
+
+// emojiMapping holds mapping between emoji tags and actual ones.
+var emojiMapping = map[string]string{
+	":rocket:": "🚀",
 }

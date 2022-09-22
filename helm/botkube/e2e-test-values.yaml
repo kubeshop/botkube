@@ -3,9 +3,31 @@ analytics:
 
 communications:
   'default-group':
-    slack:
+    slack: # Configuration for the Slack app with RTM support
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for BotKube app
+      channels:
+        'default':
+          name: "" # Tests will override this temporarily
+          bindings:
+            executors:
+              - kubectl-read-only
+              - kubectl-wait-cmd
+              - kubectl-exec-cmd
+              - kubectl-allow-all
+            sources:
+              - k8s-events
+        'secondary':
+          name: "" # Tests will override this temporarily
+          notification:
+            disabled: true
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-updates
+    socketSlack: # Configuration for the Slack app with Socket Mode support
+      enabled: false # Tests will override this temporarily
       botToken: "" #  Provide a botToken for custom slack app
       appToken: "" #  Provide an appToken for custom slack app
       channels:

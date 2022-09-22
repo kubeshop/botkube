@@ -190,6 +190,14 @@ func run() error {
 			scheduleBot(sb)
 		}
 
+		if commGroupCfg.SocketSlack.Enabled {
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating SocketSlack bot", err)
+			}
+			scheduleBot(sb)
+		}
+
 		if commGroupCfg.Mattermost.Enabled {
 			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
 			if err != nil {

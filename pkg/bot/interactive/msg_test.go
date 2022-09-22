@@ -9,17 +9,30 @@ import (
 
 // go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToMarkdown(t *testing.T) {
+	formatterForCustomNewLines := MDFormatter{
+		lineFormatter: func(msg string) string {
+			return fmt.Sprintf("%s<br>", msg)
+		},
+		headerFormatter: DefaultMDHeaderFormatter,
+	}
+
+	formatterForCustomHeaders := MDFormatter{
+		lineFormatter: DefaultMDLineFormatter,
+		headerFormatter: func(msg string) string {
+			return fmt.Sprintf("*%s*", msg)
+		},
+	}
 	tests := []struct {
-		name    string
-		lineFmt func(msg string) string
+		name        string
+		mdFormatter MDFormatter
 	}{
 		{
-			name:    "render with MS Teams new lines",
-			lineFmt: MSTeamsLineFmt,
+			name:        "render with custom new lines and default headers",
+			mdFormatter: formatterForCustomNewLines,
 		},
 		{
-			name:    "render with Markdown new lines",
-			lineFmt: MDLineFmt,
+			name:        "render with custom headers and default new lines",
+			mdFormatter: formatterForCustomHeaders,
 		},
 	}
 	for _, tc := range tests {
@@ -28,7 +41,7 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 			given := Help("platform", "testing", "@BotKube")
 
 			// when
-			out := MessageToMarkdown(tc.lineFmt, given)
+			out := MessageToMarkdown(tc.mdFormatter, given)
 
 			// then
 			golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))
