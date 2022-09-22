@@ -241,6 +241,7 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 		ConversationID:  channel.Identifier(),
 		Bindings:        channel.Bindings.Executors,
 		Message:         req,
+		User:            fmt.Sprintf("<@%s>", dm.Event.Author.ID),
 	})
 
 	out := e.Execute()

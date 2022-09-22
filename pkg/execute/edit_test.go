@@ -214,6 +214,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		Base: interactive.Base{
 			Header: "Adjust notifications",
 		},
+		OnlyVisibleForYou: true,
 		Sections: []interactive.Section{
 			{
 				MultiSelect: interactive.MultiSelect{

@@ -117,7 +117,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 			Base: interactive.Base{
 				Header: "Adjust notifications",
 			},
-
+			OnlyVisibleForYou: true,
 			Sections: []interactive.Section{
 				{
 					MultiSelect: interactive.MultiSelect{
@@ -145,6 +145,9 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 	}
 
 	sourceList := english.OxfordWordSeries(e.mapToDisplayNames(sourceBindings), "and")
+	if userID == "" {
+		userID = "Anonymous"
+	}
 	return interactive.Message{
 		Base: interactive.Base{
 			Description: fmt.Sprintf(editedSourcesMsgFmt, userID, sourceList),
@@ -166,6 +169,14 @@ func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform c
 	switch platform {
 	case config.SlackCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].Slack.Channels
+		for _, channel := range channels {
+			if channel.Identifier() != conversationID {
+				continue
+			}
+			return e.mapToOptions(channel.Bindings.Sources)
+		}
+	case config.SocketSlackCommPlatformIntegration:
+		channels := e.cfg.Communications[commGroupName].SocketSlack.Channels
 		for _, channel := range channels {
 			if channel.Identifier() != conversationID {
 				continue

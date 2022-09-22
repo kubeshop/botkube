@@ -58,6 +58,7 @@ type DefaultExecutor struct {
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
+	user              string
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -200,7 +201,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return response(res), err
 		},
 		"edit": func() (interactive.Message, error) {
-			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, "Anonymous", e.notifierHandler.BotName())
+			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, e.user, e.notifierHandler.BotName())
 		},
 		"feedback": func() (interactive.Message, error) {
 			return interactive.Feedback(e.notifierHandler.BotName()), nil

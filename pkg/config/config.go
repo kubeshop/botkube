@@ -81,6 +81,9 @@ const (
 	// SlackCommPlatformIntegration defines Slack integration.
 	SlackCommPlatformIntegration CommPlatformIntegration = "slack"
 
+	// SocketSlackCommPlatformIntegration defines Slack integration.
+	SocketSlackCommPlatformIntegration CommPlatformIntegration = "socketSlack"
+
 	// MattermostCommPlatformIntegration defines Mattermost integration.
 	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
 

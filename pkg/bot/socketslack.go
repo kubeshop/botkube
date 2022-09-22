@@ -169,6 +169,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						Channel:         callback.Channel.ID,
 						ThreadTimeStamp: callback.MessageTs,
 						TriggerID:       callback.TriggerID,
+						User:            callback.User.ID,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -183,6 +184,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							msg := socketSlackMessage{
 								Text:    resolveBlockActionCommand(act),
 								Channel: callback.View.PrivateMetadata,
+								User:    callback.User.ID,
 							}
 
 							if err := b.handleMessage(msg); err != nil {
@@ -211,7 +213,7 @@ func (b *SocketSlack) Type() config.IntegrationType {
 
 // IntegrationName describes the notifier integration name.
 func (b *SocketSlack) IntegrationName() config.CommPlatformIntegration {
-	return config.SlackCommPlatformIntegration
+	return config.SocketSlackCommPlatformIntegration
 }
 
 // NotificationsEnabled returns current notification status for a given channel name.
@@ -270,6 +272,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		ConversationID:  info.Name,
 		Bindings:        channel.Bindings.Executors,
 		Message:         request,
+		User:            fmt.Sprintf("<@%s>", event.User),
 	})
 	response := e.Execute()
 	err = b.send(event, request, response, response.OnlyVisibleForYou)

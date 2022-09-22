@@ -94,6 +94,7 @@ type NewDefaultInput struct {
 	ConversationID  string
 	Bindings        []string
 	Message         string
+	User            string
 }
 
 // NewDefault creates new Default Executor.
@@ -109,6 +110,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
+		user:              cfg.User,
 		notifierHandler:   cfg.NotifierHandler,
 		isAuthChannel:     cfg.IsAuthChannel,
 		bindings:          cfg.Bindings,
