@@ -33,10 +33,7 @@ func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFo
 
 // DefaultMDFormatter is for initializing built-in Markdown formatter
 func DefaultMDFormatter() MDFormatter {
-	return MDFormatter{
-		lineFormatter:   DefaultMDLineFormatter,
-		headerFormatter: DefaultMDHeaderFormatter,
-	}
+	return NewMDFormatter(DefaultMDLineFormatter, DefaultMDHeaderFormatter)
 }
 
 // MessageToMarkdown returns interactive message as a plaintext with Markdown syntax.

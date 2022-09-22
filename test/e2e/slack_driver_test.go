@@ -184,9 +184,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *slackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
-	// TODO: This is not supported for Slack RTM. Once we introduce socket mode e2e tests,
-	// will refer here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
-	return nil
+	return s.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
 func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
