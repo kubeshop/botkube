@@ -92,16 +92,12 @@ jobs:
           token: ${{ secrets.gh-token }}
 
       - name: Publish Chart
-        working-directory: ${{ github.workspace }}/chart
         run: |
-          git clone -b gh-pages "https://github.com/$GITHUB_REPOSITORY_OWNER/botkube.git" /tmp/botkube-charts
-          helm package -d /tmp/botkube-charts ./helm/botkube
-          cd /tmp/botkube-charts
+          helm package -d ${{ github.workspace }}/chart ./helm/botkube
+          cd ${{ github.workspace }}/chart
           helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ./index.yaml .
           git add .
           git commit -m "${{ inputs.next-version }} BotKube Helm chart release"
           git push
-          cd -
-          rm -rf /tmp/botkube-charts
         env:
           GITHUB_TOKEN: ${{ secrets.gh-token }}
