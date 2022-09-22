@@ -80,7 +80,7 @@ jobs:
 
       - name: Install BotKube
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SOCKET_SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
