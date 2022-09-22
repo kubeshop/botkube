@@ -100,7 +100,7 @@ func (b *Discord) Start(ctx context.Context) error {
 			Event: m,
 		}
 		if err := b.handleMessage(msg); err != nil {
-			b.log.Errorf("Message handling error: %w", err)
+			b.log.Errorf("Message handling error: %s", err.Error())
 		}
 	})
 

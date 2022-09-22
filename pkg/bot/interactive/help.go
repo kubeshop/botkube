@@ -9,12 +9,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-// Body holds message body fields.
-type Body struct {
-	CodeBlock string
-	Plaintext string
-}
-
 // Help represent a help message with interactive sections.
 func Help(platform config.CommPlatformIntegration, clusterName, botName string) Message {
 	btnBuilder := buttonBuilder{botName: botName}
@@ -34,8 +28,30 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
+					Header: "Manage incoming notifications",
+					Body: Body{
+						CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]\n", botName),
+					},
+				},
+				Buttons: []Button{
+					btnBuilder.ForCommand("Start notifications", "notifier start"),
+					btnBuilder.ForCommand("Stop notifications", "notifier stop"),
+					btnBuilder.ForCommand("Get status", "notifier status"),
+				},
+			},
+			{
+				Base: Base{
+					Header:      "Notification types",
+					Description: "By default, BotKube will notify only about cluster errors and recommendations.",
+				},
+				Buttons: []Button{
+					btnBuilder.ForCommandWithDescCmd("Adjust notifications", "edit SourceBindings", ButtonStylePrimary),
+				},
+			},
+			{
+				Base: Base{
 					Header:      "Ping your cluster",
-					Description: "Check the status of connected Kubernetes cluster(s)",
+					Description: "Check the status of connected Kubernetes cluster(s).",
 				},
 				Buttons: []Button{
 					btnBuilder.ForCommandWithDescCmd("Check status", "ping"),
@@ -58,19 +74,6 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 				},
 				Buttons: []Button{
 					btnBuilder.ForCommandWithDescCmd("List commands", "commands list"),
-				},
-			},
-			{
-				Base: Base{
-					Header: "Manage incoming notifications",
-					Body: Body{
-						CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]\n", botName),
-					},
-				},
-				Buttons: []Button{
-					btnBuilder.ForCommand("Start notifications", "notifier start"),
-					btnBuilder.ForCommand("Stop notifications", "notifier stop"),
-					btnBuilder.ForCommand("Get status", "notifier status"),
 				},
 			},
 			{

@@ -71,6 +71,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.Log.WithField("component", "Notifier Executor"),
 			params.AnalyticsReporter,
 			params.CfgManager,
+			params.Cfg,
 		),
 		merger:     params.Merger,
 		cfgManager: params.CfgManager,

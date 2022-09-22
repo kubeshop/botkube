@@ -59,6 +59,7 @@ kubeconfig:
 ## Format: sources.<alias>
 sources:
   'k8s-recommendation-events':
+    displayName: "Kubernetes Recommendations"
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes configuration for various recommendation insights.
@@ -77,6 +78,7 @@ sources:
           tlsSecretValid: true
 
   'k8s-all-events':
+    displayName: "Kubernetes Info"
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -184,6 +186,8 @@ sources:
        #       - status.phase
 
   'k8s-err-events':
+    displayName: "Kubernetes Errors"
+
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.

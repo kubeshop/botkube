@@ -200,10 +200,10 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return response(res), err
 		},
 		"edit": func() (interactive.Message, error) {
-			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, "Anonymous")
+			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, "Anonymous", e.notifierHandler.BotName())
 		},
-		"feedback": func() interactive.Message {
-			return interactive.Feedback(e.notifierHandler.BotName())
+		"feedback": func() (interactive.Message, error) {
+			return interactive.Feedback(e.notifierHandler.BotName()), nil
 		},
 	}
 
