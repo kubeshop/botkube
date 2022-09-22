@@ -40,14 +40,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          path: main
           ref: release/${{ inputs.base-version }}
           token: ${{ secrets.gh-token }}
           fetch-depth: 0
 
       - name: Set git 'user.name' and 'user.email'
         run: |
-          git config --global user.name "${{ env.git-user }}"
-          git config --global user.email ${{ env.git-email }}
+          git config user.name "${{ env.git-user }}"
+          git config user.email ${{ env.git-email }}
 
       - name: Update Chart Version in YAML Files
         run: |
@@ -84,9 +85,16 @@ jobs:
           git tag -a ${{ inputs.next-version }} -m "${{ inputs.next-version }}"
           git push --tags
 
+      - name: Checkout to gh-pages for Helm
+        uses: actions/checkout@v3
+        with:
+          path: chart
+          ref: gh-pages
+          token: ${{ secrets.gh-token }}
+
       - name: Publish Chart
         run: |
-          git clone -b gh-pages "https://github.com/kubeshop/botkube.git" /tmp/botkube-charts
+          git clone -b gh-pages "https://github.com/$GITHUB_REPOSITORY_OWNER/botkube.git" /tmp/botkube-charts
           helm package -d /tmp/botkube-charts ./helm/botkube
           cd /tmp/botkube-charts
           helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ./index.yaml .
