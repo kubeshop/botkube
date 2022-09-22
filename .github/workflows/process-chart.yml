@@ -46,8 +46,8 @@ jobs:
 
       - name: Set git 'user.name' and 'user.email'
         run: |
-          git config user.name "${{ env.git-user }}"
-          git config user.email ${{ env.git-email }}
+          git config --global user.name "${{ env.git-user }}"
+          git config --global user.email ${{ env.git-email }}
 
       - name: Update Chart Version in YAML Files
         run: |
