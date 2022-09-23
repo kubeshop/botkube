@@ -3,6 +3,7 @@ package execute
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -73,7 +74,7 @@ func (e *NotifierExecutor) Do(args []string, commGroupName string, platform conf
 		}
 	}()
 
-	switch NotifierAction(cmdVerb) {
+	switch NotifierAction(strings.ToLower(cmdVerb)) {
 	case Start:
 		const enabled = true
 		err := handler.SetNotificationsEnabled(conversationID, enabled)

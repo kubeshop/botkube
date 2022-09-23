@@ -256,6 +256,9 @@ func (*EditExecutor) normalizeSourceItems(args []string) ([]string, error) {
 		// Case: foo, baz, bar
 		item = strings.ReplaceAll(item, " ", "")
 
+		// Case: `foo`, `baz`, bar
+		item = strings.ReplaceAll(item, "`", "")
+
 		// Case: foo, baz
 		//       bar
 		item = strings.ReplaceAll(item, "\n", "")

@@ -56,6 +56,13 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
+			name:    "Should resolve quoted and code items separated by comma",
+			command: "edit sourcebindings “`bar`,xyz ”",
+
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.",
+			sourceBindings: []string{"bar", "xyz"},
+		},
+		{
 			name:    "Should resolve list which is separated by comma and ends with whitespace",
 			command: `edit sourceBindings bar,xyz `,
 

@@ -7,6 +7,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const slackBotMentionPrefixFmt = "^<@%s>"
+
 func slackChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
 	channels := make(map[string]channelConfigByName)
 	for _, channCfg := range channelsCfg {
