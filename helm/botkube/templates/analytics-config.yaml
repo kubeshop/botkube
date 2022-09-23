@@ -11,12 +11,15 @@ metadata:
 data:
   {{- $previous := lookup "v1" "ConfigMap" .Release.Namespace $cfgMapName }}
   {{- if $previous }}
+  {{- $previousAnalytics := index $previous.data "analytics.yaml" | fromYaml }}
   analytics.yaml: |
-    {{- index $previous.data "analytics.yaml" | nindent 4 }}
-  {{- else }}
+    analytics:
+      installationID: {{ $previousAnalytics.analytics.installationID }}
+      disable: {{ .Values.analytics.disable }}
+    {{- else }}
   analytics.yaml: |
     analytics:
       disable: {{ .Values.analytics.disable }}
       # anonymous unique UUID generated during chart installation
-      installationID: "{{- uuidv4 -}}"
+      installationID: "{{- .Values.analytics.installationID | default uuidv4 -}}"
   {{ end }}
