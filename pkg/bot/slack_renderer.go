@@ -46,10 +46,28 @@ func (b *SlackRenderer) RenderEventMessage(event events.Event) slack.Attachment 
 	return attachment
 }
 
+// RenderModal returns a modal request view based on a given message.
+func (b *SlackRenderer) RenderModal(msg interactive.Message) slack.ModalViewRequest {
+	title := msg.Header
+	msg.Header = ""
+	return slack.ModalViewRequest{
+		Type:          "modal",
+		CallbackID:    "modal-id",
+		Title:         b.plainTextBlock(title),
+		Submit:        b.plainTextBlock("Select"),
+		Close:         b.plainTextBlock("Cancel"),
+		NotifyOnClose: false,
+		Blocks: slack.Blocks{
+			BlockSet: b.RenderAsSlackBlocks(msg),
+		},
+	}
+}
+
 // RenderInteractiveMessage returns Slack message based on the input msg.
 func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.MsgOption {
 	if msg.HasSections() {
-		return slack.MsgOptionBlocks(b.RenderAsSlackBlocks(msg)...)
+		blocks := b.RenderAsSlackBlocks(msg)
+		return slack.MsgOptionBlocks(blocks...)
 	}
 	return b.renderAsSimpleTextSection(msg)
 }
@@ -125,6 +143,10 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 	}
 
 	out = append(out, b.renderButtons(in.Buttons)...)
+	if in.MultiSelect.AreOptionsDefined() {
+		sec := b.renderMultiselectWithDescription(in.MultiSelect)
+		out = append(out, sec)
+	}
 
 	return out
 }
@@ -171,6 +193,30 @@ func (b *SlackRenderer) renderButtonsWithDescription(in interactive.Buttons) []s
 	return out
 }
 
+func (b *SlackRenderer) renderMultiselectWithDescription(in interactive.MultiSelect) slack.Block {
+	placeholder := slack.NewTextBlockObject(slack.PlainTextType, in.Name, false, false)
+	multiSelect := slack.NewOptionsMultiSelectBlockElement("multi_static_select", placeholder, in.Command)
+
+	for _, opt := range in.Options {
+		multiSelect.Options = append(multiSelect.Options, slack.NewOptionBlockObject(opt.Value, b.plainTextBlock(opt.Name), nil))
+	}
+
+	for _, opt := range in.InitialOptions {
+		multiSelect.InitialOptions = append(multiSelect.InitialOptions, slack.NewOptionBlockObject(opt.Value, b.plainTextBlock(opt.Name), nil))
+	}
+
+	desc := in.Description.Plaintext
+	if in.Description.CodeBlock != "" {
+		desc = formatx.AdaptiveCodeBlock(in.Description.CodeBlock)
+	}
+
+	return slack.NewSectionBlock(
+		slack.NewTextBlockObject(slack.MarkdownType, desc, false, false),
+		nil,
+		slack.NewAccessory(multiSelect),
+	)
+}
+
 func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement {
 	return &slack.ButtonBlockElement{
 		Type:     slack.METButton,
@@ -191,12 +237,16 @@ func (b *SlackRenderer) genBtnActionID(btn interactive.Button) string {
 	return "url:" + btn.URL
 }
 
-func (b *SlackRenderer) mdTextSection(in string, args ...any) *slack.SectionBlock {
+func (*SlackRenderer) mdTextSection(in string, args ...any) *slack.SectionBlock {
 	msg := fmt.Sprintf(in, args...)
 	return slack.NewSectionBlock(
 		slack.NewTextBlockObject(slack.MarkdownType, msg, false, false),
 		nil, nil,
 	)
+}
+
+func (*SlackRenderer) plainTextBlock(msg string) *slack.TextBlockObject {
+	return slack.NewTextBlockObject(slack.PlainTextType, msg, false, false)
 }
 
 func (b *SlackRenderer) longNotification(event events.Event) slack.Attachment {

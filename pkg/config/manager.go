@@ -19,6 +19,15 @@ func NewManager(log logrus.FieldLogger, k8sCli kubernetes.Interface) *Persistenc
 // PersistSourceBindings persists source bindings configuration for a given channel in a given platform.
 func (m *PersistenceManager) PersistSourceBindings(commGroupName string, platform CommPlatformIntegration, channelName string, sourceBindings []string) error {
 	// TODO: Implement this as a part of https://github.com/kubeshop/botkube/issues/704
+	m.log.WithFields(
+		logrus.Fields{
+			"commGroupName":  commGroupName,
+			"platform":       platform,
+			"channelName":    channelName,
+			"sourceBindings": sourceBindings,
+		},
+	).Info("PersistSourceBindings called")
+
 	return nil
 }
 

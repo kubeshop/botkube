@@ -81,6 +81,9 @@ const (
 	// SlackCommPlatformIntegration defines Slack integration.
 	SlackCommPlatformIntegration CommPlatformIntegration = "slack"
 
+	// SocketSlackCommPlatformIntegration defines Slack integration.
+	SocketSlackCommPlatformIntegration CommPlatformIntegration = "socketSlack"
+
 	// MattermostCommPlatformIntegration defines Mattermost integration.
 	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
 
@@ -166,7 +169,8 @@ type SinkBindings struct {
 
 // Sources contains configuration for BotKube app sources.
 type Sources struct {
-	Kubernetes KubernetesSource `yaml:"kubernetes"`
+	DisplayName string           `yaml:"displayName"`
+	Kubernetes  KubernetesSource `yaml:"kubernetes"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.

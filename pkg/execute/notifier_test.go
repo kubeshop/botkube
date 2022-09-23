@@ -113,12 +113,12 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		{
 			Name:                 "Invalid command 1",
 			InputArgs:            []string{"notifier"},
-			ExpectedErrorMessage: "invalid notifier command",
+			ExpectedErrorMessage: "invalid command",
 		},
 		{
 			Name:                 "Invalid command 2",
 			InputArgs:            []string{"notifier", "stop", "stop", "stop", "please", "stop!!!!1111111oneoneone"},
-			ExpectedErrorMessage: "invalid notifier command",
+			ExpectedErrorMessage: "invalid command",
 		},
 	}
 
@@ -180,24 +180,4 @@ func (f *fakeNotifierHandler) SetNotificationsEnabled(convID string, enabled boo
 
 func (f *fakeNotifierHandler) BotName() string {
 	return "fake"
-}
-
-type fakeAnalyticsReporter struct{}
-
-func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
-	return nil
-}
-
-type fakeCfgPersistenceManager struct{}
-
-func (f *fakeCfgPersistenceManager) PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error {
-	return nil
-}
-
-func (f *fakeCfgPersistenceManager) PersistNotificationsEnabled(commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error {
-	return nil
-}
-
-func (f *fakeCfgPersistenceManager) PersistFilterEnabled(name string, enabled bool) error {
-	return nil
 }

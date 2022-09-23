@@ -3,6 +3,7 @@ package execute
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -29,8 +30,6 @@ type NotifierHandler interface {
 }
 
 var (
-	errInvalidNotifierCommand = errors.New("invalid notifier command")
-	errUnsupportedCommand     = errors.New("unsupported command")
 	// ErrNotificationsNotConfigured describes an error when user wants to toggle on/off the notifications for not configured channel.
 	ErrNotificationsNotConfigured = errors.New("notifications not configured for this channel")
 )
@@ -58,7 +57,7 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager C
 // Do executes a given Notifier command based on args.
 func (e *NotifierExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversationID string, clusterName string, handler NotifierHandler) (string, error) {
 	if len(args) != 2 {
-		return "", errInvalidNotifierCommand
+		return "", errInvalidCommand
 	}
 
 	var cmdVerb = args[1]
@@ -75,7 +74,7 @@ func (e *NotifierExecutor) Do(args []string, commGroupName string, platform conf
 		}
 	}()
 
-	switch NotifierAction(cmdVerb) {
+	switch NotifierAction(strings.ToLower(cmdVerb)) {
 	case Start:
 		const enabled = true
 		err := handler.SetNotificationsEnabled(conversationID, enabled)

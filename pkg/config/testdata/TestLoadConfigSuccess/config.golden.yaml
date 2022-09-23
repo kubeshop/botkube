@@ -1,5 +1,6 @@
 sources:
     k8s-events:
+        displayName: ""
         kubernetes:
             recommendations:
                 ingress:
