@@ -2,7 +2,7 @@
 	{
 		"type": "track",
 		"messageId": "0",
-		"anonymousId": "installation-id",
+		"anonymousId": "cluster-id",
 		"event": "Fatal error",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {

@@ -690,11 +690,6 @@ analytics:
   # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
   disable: false
 
-  # - Optional anonymous ID for a given BotKube installation.
-  #
-  # @default -- UUID generated during installation.
-  installationID: ""
-
 ## Parameters for the test container with E2E tests.
 e2eTest:
   image:

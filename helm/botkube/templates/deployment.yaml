@@ -72,7 +72,7 @@ spec:
               mountPath: "/.kube/cache"
           env:
             - name: BOTKUBE_CONFIG_PATHS
-              value: "/config/analytics.yaml,/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
+              value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
             - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
@@ -98,8 +98,6 @@ spec:
             sources:
             - configMap:
                 name: {{ include "botkube.fullname" . }}-global-config
-            - configMap:
-                name: {{ include "botkube.fullname" . }}-analytics-config
             - secret:
                 name: {{ include "botkube.CommunicationsSecretName" . }}
             - configMap:

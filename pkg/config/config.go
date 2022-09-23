@@ -267,8 +267,7 @@ func (f *KubernetesFilters) SetEnabled(name string, enabled bool) error {
 
 // Analytics contains configuration parameters for analytics collection.
 type Analytics struct {
-	InstallationID string `yaml:"installationID"`
-	Disable        bool   `yaml:"disable"`
+	Disable bool `yaml:"disable"`
 }
 
 // Resource contains resources to watch

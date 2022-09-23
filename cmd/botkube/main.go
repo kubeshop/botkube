@@ -109,7 +109,7 @@ func run() error {
 	if err != nil {
 		return reportFatalError("while creating K8s clientset", err)
 	}
-	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, conf.Analytics.InstallationID)
+	err = reporter.RegisterCurrentIdentity(ctx, k8sCli)
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}

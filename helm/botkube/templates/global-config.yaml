@@ -20,3 +20,6 @@ data:
 
     filters:
       {{- .Values.filters | toYaml | nindent 6 }}
+
+    analytics:
+      disable: {{ .Values.analytics.disable }}
