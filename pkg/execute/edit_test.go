@@ -145,7 +145,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":X: The something-else source was not found in configuration.",
+					Description: ":exclamation: The something-else source was not found in configuration.",
 				},
 			},
 		},
@@ -156,7 +156,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":X: The something-else and other sources were not found in configuration.",
+					Description: ":exclamation: The something-else and other sources were not found in configuration.",
 				},
 			},
 		},
@@ -180,7 +180,6 @@ func TestSourceBindingsErrors(t *testing.T) {
 }
 
 func TestSourceBindingsMultiSelectMessage(t *testing.T) {
-	t.Skip()
 	// given
 	log, _ := logtest.NewNullLogger()
 
@@ -224,11 +223,11 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 					},
 					Command: "BotKube edit SourceBindings",
 					Options: []interactive.OptionItem{
-						{Name: "BAZ", Value: "baz"},
 						{Name: "BAR", Value: "bar"},
-						{Name: "XYZ", Value: "xyz"},
+						{Name: "BAZ", Value: "baz"},
 						{Name: "FIZ", Value: "fiz"},
 						{Name: "FOO", Value: "foo"},
+						{Name: "XYZ", Value: "xyz"},
 					},
 					InitialOptions: []interactive.OptionItem{
 						{Name: "BAR", Value: "bar"},
@@ -248,6 +247,65 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 	// then
 	assert.NoError(t, err)
 	assert.Equal(t, expMsg, gotMsg)
+}
+
+func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T) {
+	// given
+	log, _ := logtest.NewNullLogger()
+
+	args := strings.Fields(strings.TrimSpace(`edit SourceBindings`))
+	cfg := config.Config{
+		Sources: map[string]config.Sources{
+			"bar": {DisplayName: "BAR"},
+			"xyz": {DisplayName: "XYZ"},
+		},
+		Communications: map[string]config.Communications{
+			groupName: {
+				Slack: config.Slack{
+					Channels: config.IdentifiableMap[config.ChannelBindingsByName]{
+						conversationID: config.ChannelBindingsByName{
+							Name: conversationID,
+							Bindings: config.BotBindings{
+								Sources: []string{"unknown", "source", "test"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expMsg := interactive.Message{
+		Type: interactive.Popup,
+		Base: interactive.Base{
+			Header: "Adjust notifications",
+		},
+		OnlyVisibleForYou: true,
+		Sections: []interactive.Section{
+			{
+				MultiSelect: interactive.MultiSelect{
+					Name: "Adjust notifications",
+					Description: interactive.Body{
+						Plaintext: "Select notification sources.",
+					},
+					Command: "BotKube edit SourceBindings",
+					Options: []interactive.OptionItem{
+						{Name: "BAR", Value: "bar"},
+						{Name: "XYZ", Value: "xyz"},
+					},
+				},
+			},
+		},
+	}
+
+	executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
+
+	// when
+	gotMsg, err := executor.Do(args, groupName, platform, conversationID, userID, botName)
+
+	// then
+	assert.NoError(t, err)
+	assert.EqualValues(t, expMsg, gotMsg)
 }
 
 type fakeBindingsStorage struct {

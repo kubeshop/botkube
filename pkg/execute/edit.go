@@ -2,6 +2,7 @@ package execute
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -16,7 +17,7 @@ import (
 
 const (
 	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages."
-	unknownSourcesMsgFmt = ":X: The %s %s not found in configuration."
+	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration."
 )
 
 // EditResource defines the name of editable resource
@@ -216,8 +217,12 @@ func (e *EditExecutor) mapToDisplayNames(in []string) []string {
 func (e *EditExecutor) mapToOptions(in []string) []interactive.OptionItem {
 	var options []interactive.OptionItem
 	for _, key := range in {
+		displayName, found := e.sources[key]
+		if !found {
+			continue
+		}
 		options = append(options, interactive.OptionItem{
-			Name:  e.sources[key],
+			Name:  displayName,
 			Value: key,
 		})
 	}
@@ -232,6 +237,10 @@ func (e *EditExecutor) allOptions() []interactive.OptionItem {
 			Value: key,
 		})
 	}
+	sort.Slice(options, func(i, j int) bool {
+		return options[i].Value < options[j].Value
+	})
+
 	return options
 }
 
