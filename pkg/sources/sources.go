@@ -282,6 +282,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 			continue
 		}
 
+		recommRoute.namespaces = r.namespaces
 		(*routeMap)[eventType][i] = recommRoute
 		return
 	}
