@@ -63,7 +63,7 @@ jobs:
           git config user.email ${{ env.git-email }}
 
       - name: Create a release branch
-        if: ${{ !contains(needs.workflow-metadata.outputs.ref, env.main-branch ) }}
+        if: ${{ contains(needs.workflow-metadata.outputs.ref, env.main-branch ) }}
         run: |
           git checkout -b release-${{ needs.workflow-metadata.outputs.base-version }}
           git push origin release-${{ needs.workflow-metadata.outputs.base-version }}
@@ -71,8 +71,7 @@ jobs:
       - name: Add note for previous version
         run: |
           git fetch --all
-          PREV_VERSION=''
-          if [[ $PREV_VERSION == ${{ env.main-branch }} ]]; then
+          if [[ ${{ needs.workflow-metadata.outputs.ref }} == ${{ env.main-branch }} ]]; then
             PREV_VERSION=$(git for-each-ref --sort=-creatordate --format '%(refname)' refs/tags | grep -E "\.0$" | awk -F'refs/tags/' '{ print $2 }'| head -1)
             echo "The latest tag on ${{ env.main-branch }} is ${PREV_VERSION}"
           else
