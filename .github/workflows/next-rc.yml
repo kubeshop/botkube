@@ -19,6 +19,7 @@ jobs:
       release-version: ${{ steps.next-rc.outputs.release-version }}
       new-rc-version: ${{ steps.next-rc.outputs.new-rc-version }}
       commit-msg: ${{ steps.next-rc.outputs.commit-msg }}
+      branch: ${{ steps.next-rc.outputs.branch }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -58,7 +59,7 @@ jobs:
     needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
-      base-version: ${{ needs.next-rc.outputs.branch }}
+      release-branch: ${{ needs.next-rc.outputs.branch }}
       next-version: ${{ needs.next-rc.outputs.new-rc-version }}
     secrets:
       gh-token: ${{ secrets.GH_TOKEN }}
