@@ -29,7 +29,7 @@ jobs:
     needs: [extract-metadata]
     uses: ./.github/workflows/process-chart.yml
     with:
-      base-version: ${{ needs.extract-metadata.outputs.base-version }}
+      release-branch: release-${{ needs.extract-metadata.outputs.base-version }}
       next-version: ${{ inputs.version }}
       skip-tagging: true
     secrets:
