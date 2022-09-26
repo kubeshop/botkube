@@ -43,10 +43,10 @@ builds:
       - linux
     goarch:
       - amd64
-#      - arm
-#      - arm64
-#    goarm:
-#      - 7
+      - arm
+      - arm64
+    goarm:
+      - 7
 archives:
   - id: my-archive
     builds:
@@ -55,7 +55,7 @@ snapshot:
   name_template: "{{ .Env.IMAGE_TAG }}"
 release:
   # If set to true, will not auto-publish the release.
-  draft: false
+  draft: true
   prerelease: auto
   ids:
     - botkube
@@ -120,6 +120,8 @@ docker_manifests:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+    image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.TEST_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"

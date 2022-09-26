@@ -1,11 +1,11 @@
-name: Code freeze
+name: Cut a new release branch
 
 on:
   workflow_dispatch:
     inputs:
       from:
         type: string
-        description: Branch, commit, or commit SHA
+        description: Branch, commit, or tag
         required: true
         default: main
       version:
@@ -18,7 +18,7 @@ env:
   git-email: 41898282+github-actions[bot]@users.noreply.github.com
 
 jobs:
-  code-freeze:
+  new-release-branch:
     name: Create release/${{ inputs.version }}
     runs-on: ubuntu-22.04
     steps:

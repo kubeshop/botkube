@@ -44,4 +44,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git tag -a ${{ inputs.version }} -m "${{ inputs.version }}"
-          git push --tags
+          git push origin ${{ inputs.version }}

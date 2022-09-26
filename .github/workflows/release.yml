@@ -78,7 +78,6 @@ jobs:
               });
               await github.rest.repos.updateRelease({
                 release_id: release.data.id,
-                draft: false,
                 name: "${{ github.ref_name }}",
                 owner: context.repo.owner,
                 prerelease: true,

@@ -1,11 +1,7 @@
 name: CI
 on:
   push:
-    branches:
-      - dummy
   pull_request:
-    branches:
-      - dummy
 env:
   HELM_VERSION: v3.9.0
   GOLANGCI_LINT_VERSION: v1.48.0
