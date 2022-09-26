@@ -4,7 +4,7 @@ env:
   git-user: github-actions[bot]
   git-email: 41898282+github-actions[bot]@users.noreply.github.com
   HELM_DOCS_VERSION: 1.11.0
-  CHART_REPOSITORY: https://huseyinbabal.github.io/charts
+  CHART_REPOSITORY: https://charts.botkube.io/
 
 on:
   workflow_call:
