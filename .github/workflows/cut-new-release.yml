@@ -92,5 +92,9 @@ jobs:
           echo "Adding new note: previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
           git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} add -m "previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
           git push origin 'refs/notes/*'
-          git commit --allow-empty -m "Trigger next rc build for ${{ inputs.version }}" 
-          git push origin release-${{ needs.workflow-metadata.outputs.base-version }} --force
+          
+          # Since we don't push by branch creation for patch releases
+          if [[ ${{ needs.workflow-metadata.outputs.ref }} != ${{ env.main-branch }} ]]; then
+            git commit --allow-empty -m "Trigger next rc build for ${{ inputs.version }}" 
+            git push origin release-${{ needs.workflow-metadata.outputs.base-version }} --force
+          fi
