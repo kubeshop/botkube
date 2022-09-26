@@ -32,6 +32,7 @@ jobs:
           git config user.email ${{ env.GIT_EMAIL }}
 
       - name: Prepare the next release candidate
+        shell: bash
         id: next-rc
         run: |
           COMMIT_MSG=$(git show -s --format=%s)
