@@ -86,7 +86,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
-					Description: "Angry? Amazed?",
+					Header: "Angry? Amazed?",
 				},
 				Buttons: []Button{
 					btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube.io", ButtonStylePrimary),
