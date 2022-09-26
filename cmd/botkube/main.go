@@ -141,7 +141,7 @@ func run() error {
 	}
 
 	// Create executor factor
-	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), k8sCli)
+	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, k8sCli)
 	executorFactory := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
@@ -268,7 +268,7 @@ func run() error {
 	if conf.Settings.ConfigWatcher {
 		cfgWatcher := controller.NewConfigWatcher(
 			logger.WithField(componentLogFieldKey, "Config Watcher"),
-			confDetails.LoadedCfgFilesPaths,
+			confDetails.CfgFilesToWatch,
 			conf.Settings.ClusterName,
 			notifiers,
 		)

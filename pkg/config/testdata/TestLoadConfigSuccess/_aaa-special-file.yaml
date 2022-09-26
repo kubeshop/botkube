@@ -1,0 +1,12 @@
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      channels:
+        'alias':
+          notification:
+            disabled: true
+
+filters:
+  kubernetes:
+    objectAnnotationChecker: false
+    nodeEventsChecker: true

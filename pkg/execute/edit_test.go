@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -13,11 +14,14 @@ import (
 )
 
 const (
-	groupName      = "testing-source-bindings"
-	platform       = config.SlackCommPlatformIntegration
-	conversationID = "random"
-	userID         = "Joe"
-	botName        = "BotKube"
+	groupName = "testing-source-bindings"
+	platform  = config.SlackCommPlatformIntegration
+	userID    = "Joe"
+	botName   = "BotKube"
+)
+
+var (
+	conversation = Conversation{ID: "id", Alias: "alias"}
 )
 
 func TestSourceBindingsHappyPath(t *testing.T) {
@@ -52,49 +56,49 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			name:    "Should resolve quoted list which is separated by comma",
 			command: `edit SourceBindings "bar,xyz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve quoted and code items separated by comma",
 			command: "edit sourcebindings “`bar`,xyz ”",
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma and ends with whitespace",
 			command: `edit sourceBindings bar,xyz `,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma but has a lot of whitespaces",
 			command: `edit sourcebindings bar,       xyz, `,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma, has a lot of whitespaces and some items are quoted",
 			command: `edit SourceBindings bar       xyz, "baz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR, XYZ, and BAZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR, XYZ, and BAZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"bar", "xyz", "baz"},
 		},
 		{
 			name:    "Should resolve list with unicode quotes",
 			command: `edit SourceBindings “foo,bar”`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO and BAR messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO and BAR messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"foo", "bar"},
 		},
 		{
 			name:    "Should resolve list which has mixed formatting for different items, all at once",
 			command: `edit SourceBindings foo baz "bar,xyz" "fiz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO, BAZ, BAR, XYZ, and FIZ messages.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO, BAZ, BAR, XYZ, and FIZ messages. Expect BotKube restart soon...",
 			sourceBindings: []string{"foo", "baz", "bar", "xyz", "fiz"},
 		},
 	}
@@ -113,7 +117,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 				},
 			}
 			// when
-			msg, err := executor.Do(args, groupName, platform, conversationID, userID, botName)
+			msg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
 
 			// then
 			require.NoError(t, err)
@@ -121,7 +125,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			assert.Equal(t, tc.sourceBindings, fakeStorage.sourceBindings)
 			assert.Equal(t, groupName, fakeStorage.commGroupName)
 			assert.Equal(t, platform, fakeStorage.platform)
-			assert.Equal(t, conversationID, fakeStorage.channelName)
+			assert.Equal(t, conversation.Alias, fakeStorage.channelAlias)
 		})
 	}
 }
@@ -177,7 +181,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, config.Config{})
 
 			// when
-			msg, err := executor.Do(args, groupName, platform, conversationID, userID, botName)
+			msg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
 
 			// then
 			assert.ErrorIs(t, err, tc.expErr)
@@ -203,8 +207,8 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 			groupName: {
 				Slack: config.Slack{
 					Channels: config.IdentifiableMap[config.ChannelBindingsByName]{
-						conversationID: config.ChannelBindingsByName{
-							Name: conversationID,
+						conversation.ID: config.ChannelBindingsByName{
+							Name: conversation.ID,
 							Bindings: config.BotBindings{
 								Sources: []string{"bar", "fiz", "baz"},
 							},
@@ -249,7 +253,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 	executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
 
 	// when
-	gotMsg, err := executor.Do(args, groupName, platform, conversationID, userID, botName)
+	gotMsg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
 
 	// then
 	assert.NoError(t, err)
@@ -270,8 +274,8 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 			groupName: {
 				Slack: config.Slack{
 					Channels: config.IdentifiableMap[config.ChannelBindingsByName]{
-						conversationID: config.ChannelBindingsByName{
-							Name: conversationID,
+						conversation.ID: config.ChannelBindingsByName{
+							Name: conversation.ID,
 							Bindings: config.BotBindings{
 								Sources: []string{"unknown", "source", "test"},
 							},
@@ -308,7 +312,7 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 	executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
 
 	// when
-	gotMsg, err := executor.Do(args, groupName, platform, conversationID, userID, botName)
+	gotMsg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
 
 	// then
 	assert.NoError(t, err)
@@ -318,14 +322,14 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 type fakeBindingsStorage struct {
 	commGroupName  string
 	platform       config.CommPlatformIntegration
-	channelName    string
+	channelAlias   string
 	sourceBindings []string
 }
 
-func (f *fakeBindingsStorage) PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error {
+func (f *fakeBindingsStorage) PersistSourceBindings(_ context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
 	f.commGroupName = commGroupName
 	f.platform = platform
-	f.channelName = channelName
+	f.channelAlias = channelAlias
 	f.sourceBindings = sourceBindings
 	return nil
 }
