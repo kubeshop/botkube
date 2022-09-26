@@ -84,5 +84,9 @@ jobs:
             PREV_VERSION=$((PATCH_VERSION - 1))
           fi
           git fetch origin "refs/notes/*:refs/notes/*"
+          echo "Pruning previous notes in release-${{ needs.workflow-metadata.outputs.base-version }}"
+          NOTE_COMMIT=$(git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} list | awk '{print $2}')
+          git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} remove ${NOTE_COMMIT} || true
+          echo "Adding new note 'previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"'
           git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} add -m "previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
           git push origin 'refs/notes/*'
