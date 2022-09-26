@@ -56,7 +56,7 @@ jobs:
           CHART_DEV_VERSION="v9.99.9-dev"
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ inputs.next-version }}/g" {} +
           # TODO: values.yml is updated also other workflows that adds v9.99.9-dev, for now we replace them also, in the future we can remove below line. 
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHAR_DEV_VERSION}/${{ inputs.next-version }}/g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${{ inputs.next-version }}/g" {} +
 
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.2.1
