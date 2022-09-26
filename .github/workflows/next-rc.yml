@@ -40,7 +40,7 @@ jobs:
           CURRENT_BRANCH=$(git branch --show-current)
           git fetch --all
           git fetch origin "refs/notes/*:refs/notes/*"
-          BASE_TAG=$(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}" | awk NF | awk -F',' '{ print $2 }' | awk -F':' '{ print $2 }')
+          BASE_TAG=$(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}" | awk NF | awk -F',' '{ print $2 }' | awk -F': ' '{ print $2 }')
           echo "Base tag for branch: $CURRENT_BRANCH is $BASE_TAG"
           REMOTE_TAG=$(git ls-remote --tags origin $BASE_TAG)
           echo "Remote tag is $REMOTE_TAG for base tag: $BASE_TAG"
