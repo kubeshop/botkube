@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         type: string
-        description: Version of the release to finalize
+        description: Version of the release to finalize (e.g. v0.15.0)
         required: true
 
 env:
