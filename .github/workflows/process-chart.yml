@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: release/${{ inputs.base-version }}
+          ref: ${{ inputs.base-version }}
           token: ${{ secrets.gh-token }}
           fetch-depth: 0
 
@@ -79,7 +79,7 @@ jobs:
         run: |
           if [[ $(git diff --stat) != '' ]]; then
             git commit -am "[skip-ci] Helm chart update for ${{ inputs.next-version }}"
-            git push origin release/${{ inputs.base-version }}
+            git push origin ${{ inputs.base-version }}
           fi
           git tag -a ${{ inputs.next-version }} -m "${{ inputs.next-version }}"
           git push --tags

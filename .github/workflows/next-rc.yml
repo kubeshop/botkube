@@ -58,7 +58,7 @@ jobs:
     needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
-      base-version: ${{ needs.next-rc.outputs.release-version }}
+      base-version: ${{ needs.next-rc.outputs.branch }}
       next-version: ${{ needs.next-rc.outputs.new-rc-version }}
     secrets:
       gh-token: ${{ secrets.GH_TOKEN }}

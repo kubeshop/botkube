@@ -13,10 +13,23 @@ env:
   git-email: 41898282+github-actions[bot]@users.noreply.github.com
 
 jobs:
+  extract-metadata:
+    name: Extract release metadata for ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    outputs:
+      base-version: ${{ steps.extract.outputs.base-version}}
+    steps:
+      - name: Extract
+        id: extract
+        run: |
+          BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
+          echo ::set-output name=base-version::$BASE_VERSION
+
   process-chart:
+    needs: [extract-metadata]
     uses: ./.github/workflows/process-chart.yml
     with:
-      base-version: ${{ inputs.version }}
+      base-version: ${{ needs.extract-metadata.outputs.base-version }}
       next-version: ${{ inputs.version }}
       skip-tagging: true
     secrets:
