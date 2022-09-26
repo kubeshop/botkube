@@ -36,8 +36,11 @@ jobs:
             # Find release branch from provided version. This resolves '0.14' from 'v0.14.0|1|2...'
             BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
             echo "Finding branch: release-${BASE_VERSION}..." 
-            if git show-ref --quiet "refs/heads/release-${BASE_VERSION}"; then
-              echo "release-${BASE_VERSION} iss found, now REF=release-${BASE_VERSION}"
+            branch_exists=$(git ls-remote --heads origin release-${BASE_VERSION}) 
+            if [[ -z ${branch_exists} ]]; then
+              echo "release-${BASE_VERSION} is not found." 
+            else 
+              echo "release-${BASE_VERSION} is found, now REF=release-${BASE_VERSION}"
               REF=$(echo "release-${BASE_VERSION}") 
             fi 
             echo ::set-output name=ref::$REF
