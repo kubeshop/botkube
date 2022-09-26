@@ -49,6 +49,7 @@ jobs:
   release-branch:
     name: Prepare ${{ inputs.version }}
     runs-on: ubuntu-22.04
+    needs: [workflow-metadata]
     steps:
       - uses: actions/checkout@v3
         with:
