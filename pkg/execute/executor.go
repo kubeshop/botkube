@@ -166,14 +166,12 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		verb := e.kubectlExecutor.GetVerb(args)
-		message := e.kubectlExecutor.GetCommandWithoutAlias(e.message)
-		//TODO When we deprecate using executor without alias then we should add to analytics the executor name
-		err := e.analyticsReporter.ReportCommand(e.platform, verb)
+		cmdPrefix := e.kubectlExecutor.GetCommandPrefix(args)
+		err := e.analyticsReporter.ReportCommand(e.platform, cmdPrefix)
 		if err != nil {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, message, e.conversation.IsAuthenticated)
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())

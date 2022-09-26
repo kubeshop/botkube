@@ -24,6 +24,8 @@ const (
 	kubectlDefaultNamespace            = "default"
 )
 
+var kubectlAlias = []string{"kubectl", "kc", "k"}
+
 // resourcelessCommands holds all commands that don't specify resources directly. For example:
 // - kubectl logs foo
 // - kubectl cluster-info
@@ -53,18 +55,13 @@ type Kubectl struct {
 
 // NewKubectl creates a new instance of Kubectl.
 func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merger, kcChecker *kubectl.Checker, fn CommandCombinedOutputRunner) *Kubectl {
-	var kcAlias []string
-	kcAlias = append(kcAlias, "kubectl")
-	kcAlias = append(kcAlias, "kc")
-	kcAlias = append(kcAlias, "k")
-
 	return &Kubectl{
 		log:       log,
 		cfg:       cfg,
 		merger:    merger,
 		kcChecker: kcChecker,
 		cmdRunner: fn,
-		alias:     kcAlias,
+		alias:     kubectlAlias,
 	}
 }
 
@@ -91,8 +88,21 @@ func (e *Kubectl) GetVerb(args []string) string {
 		return ""
 	}
 
-	if slices.Contains(e.alias, args[0]) {
+	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
 		return args[1]
+	}
+
+	return args[0]
+}
+
+// GetCommandPrefix gets verb command with k8s alias prefix.
+func (e *Kubectl) GetCommandPrefix(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
+		return fmt.Sprintf("{%s} %s", args[0], args[1])
 	}
 
 	return args[0]
@@ -101,7 +111,7 @@ func (e *Kubectl) GetVerb(args []string) string {
 // GetCommandWithoutAlias gets command without k8s alias.
 func (e *Kubectl) GetCommandWithoutAlias(msg string) string {
 	msgParts := strings.Fields(strings.TrimSpace(msg))
-	if slices.Contains(e.alias, msgParts[0]) {
+	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
 		return strings.Join(msgParts[1:], " ")
 	}
 
@@ -113,7 +123,9 @@ func (e *Kubectl) GetCommandWithoutAlias(msg string) string {
 // This method should be called ONLY if:
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
-func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool) (string, error) {
+func (e *Kubectl) Execute(bindings []string, message string, isAuthChannel bool) (string, error) {
+	command := e.GetCommandWithoutAlias(message)
+
 	log := e.log.WithFields(logrus.Fields{
 		"isAuthChannel": isAuthChannel,
 		"command":       command,
@@ -124,7 +136,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	var (
 		args        = strings.Fields(strings.TrimSpace(command))
 		clusterName = e.cfg.Settings.ClusterName
-		verb        = e.GetVerb(args)
+		verb        = args[0]
 		resource    = e.getResourceName(args)
 	)
 
@@ -191,7 +203,7 @@ func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd s
 //	https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
 //
 // Further refactoring in needed. For example, the cluster flag should be removed by an upper layer
-// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
+// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.).
 func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string
