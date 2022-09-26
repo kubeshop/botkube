@@ -228,11 +228,14 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
-		IsAuthChannel:   isAuthChannel,
-		ConversationID:  info.Name,
-		Bindings:        channel.Bindings.Executors,
-		Message:         request,
-		User:            fmt.Sprintf("<@%s>", msg.User),
+		Conversation: execute.Conversation{
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  isAuthChannel,
+		},
+		Message: request,
+		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute()
 	plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
@@ -333,14 +336,14 @@ func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error 
 	message := interactive.MessageToMarkdown(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
+		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)
 		var options = []slack.MsgOption{slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true)}
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q (alias: %q): %w", channelName, channel.alias, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
+		b.log.Debugf("Message successfully sent to channel %q (alias: %q) at %q", channelID, channel.alias, timestamp)
 	}
 
 	return errs.ErrorOrNil()

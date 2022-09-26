@@ -60,7 +60,9 @@ func (w *ConfigWatcher) Do(ctx context.Context, cancelFunc context.CancelFunc) (
 					return fmt.Errorf("unexpected file watch end")
 				}
 
-				log.WithField("configPath", ev.Name).Infof("Config updated. Sending last message before exit...")
+				currentLogg := log.WithField("event", ev.String())
+
+				currentLogg.Info("Config updated. Sending last message before exit...")
 				err := sendMessageToNotifiers(ctx, w.notifiers, fmt.Sprintf(configUpdateMsg, w.clusterName))
 				if err != nil {
 					wrappedErr := fmt.Errorf("while sending message to notifiers: %w", err)
@@ -69,7 +71,7 @@ func (w *ConfigWatcher) Do(ctx context.Context, cancelFunc context.CancelFunc) (
 					return wrappedErr
 				}
 
-				log.Infof("Cancelling the context...")
+				currentLogg.Infof("Cancelling the context...")
 				cancelFunc()
 				return nil
 			case err, ok := <-watcher.Errors:

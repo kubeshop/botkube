@@ -124,47 +124,48 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [settings.log.level](./values.yaml#L490) | string | `"info"` | Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`. |
 | [settings.log.disableColors](./values.yaml#L492) | bool | `false` | If true, disable ANSI colors in logging. |
 | [settings.systemConfigMap](./values.yaml#L495) | object | `{"name":"botkube-system"}` | BotKube's system ConfigMap where internal data is stored. |
-| [ssl.enabled](./values.yaml#L501) | bool | `false` | If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`. |
-| [ssl.existingSecretName](./values.yaml#L507) | string | `""` | Using existing SSL Secret. It MUST be in `botkube` Namespace.  |
-| [ssl.cert](./values.yaml#L510) | string | `""` | SSL Certificate file e.g certs/my-cert.crt. |
-| [service](./values.yaml#L513) | object | `{"name":"metrics","port":2112,"targetPort":2112}` | Configures Service settings for ServiceMonitor CR. |
-| [ingress](./values.yaml#L520) | object | `{"annotations":{"kubernetes.io/ingress.class":"nginx"},"create":false,"host":"HOST","tls":{"enabled":false,"secretName":""}}` | Configures Ingress settings that exposes MS Teams endpoint. [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource). |
-| [serviceMonitor](./values.yaml#L531) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
-| [deployment.annotations](./values.yaml#L541) | object | `{}` | Extra annotations to pass to the BotKube Deployment. |
-| [extraAnnotations](./values.yaml#L548) | object | `{}` | Extra annotations to pass to the BotKube Pod. |
-| [extraLabels](./values.yaml#L550) | object | `{}` | Extra labels to pass to the BotKube Pod. |
-| [priorityClassName](./values.yaml#L552) | string | `""` | Priority class name for the BotKube Pod. |
-| [nameOverride](./values.yaml#L555) | string | `""` | Fully override "botkube.name" template. |
-| [fullnameOverride](./values.yaml#L557) | string | `""` | Fully override "botkube.fullname" template. |
-| [resources](./values.yaml#L563) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
-| [extraEnv](./values.yaml#L575) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
-| [extraVolumes](./values.yaml#L587) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
-| [extraVolumeMounts](./values.yaml#L602) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
-| [nodeSelector](./values.yaml#L620) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
-| [tolerations](./values.yaml#L624) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
-| [affinity](./values.yaml#L628) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
-| [rbac](./values.yaml#L632) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
-| [serviceAccount.create](./values.yaml#L641) | bool | `true` | If true, a ServiceAccount is automatically created. |
-| [serviceAccount.name](./values.yaml#L644) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
-| [serviceAccount.annotations](./values.yaml#L646) | object | `{}` | Extra annotations for the ServiceAccount. |
-| [extraObjects](./values.yaml#L649) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
-| [analytics.disable](./values.yaml#L677) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
-| [e2eTest.image.registry](./values.yaml#L683) | string | `"ghcr.io"` | Test runner image registry. |
-| [e2eTest.image.repository](./values.yaml#L685) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
-| [e2eTest.image.pullPolicy](./values.yaml#L687) | string | `"IfNotPresent"` | Test runner image pull policy. |
-| [e2eTest.image.tag](./values.yaml#L689) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
-| [e2eTest.deployment](./values.yaml#L691) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
-| [e2eTest.slack.botName](./values.yaml#L696) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.slack.testerName](./values.yaml#L698) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.slack.testerAppToken](./values.yaml#L700) | string | `""` | Slack tester application token that interacts with BotKube bot. |
-| [e2eTest.slack.additionalContextMessage](./values.yaml#L702) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.slack.messageWaitTimeout](./values.yaml#L704) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
-| [e2eTest.discord.botName](./values.yaml#L707) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.discord.testerName](./values.yaml#L709) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.discord.guildID](./values.yaml#L711) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
-| [e2eTest.discord.testerAppToken](./values.yaml#L713) | string | `""` | Discord tester application token that interacts with BotKube bot. |
-| [e2eTest.discord.additionalContextMessage](./values.yaml#L715) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.discord.messageWaitTimeout](./values.yaml#L717) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [settings.persistentConfig](./values.yaml#L500) | object | `{"runtime":{"configMap":{"annotations":{},"name":"botkube-runtime-config"},"fileName":"_runtime_state.yaml"},"startup":{"configMap":{"annotations":{},"name":"botkube-startup-config"},"fileName":"__startup_state.yaml"}}` | Persistent config contains ConfigMap where persisted configuration is stored. The persistent configuration is evaluated from both chart upgrade and BotKube commands used in runtime. |
+| [ssl.enabled](./values.yaml#L515) | bool | `false` | If true, specify cert path in `config.ssl.cert` property or K8s Secret in `config.ssl.existingSecretName`. |
+| [ssl.existingSecretName](./values.yaml#L521) | string | `""` | Using existing SSL Secret. It MUST be in `botkube` Namespace.  |
+| [ssl.cert](./values.yaml#L524) | string | `""` | SSL Certificate file e.g certs/my-cert.crt. |
+| [service](./values.yaml#L527) | object | `{"name":"metrics","port":2112,"targetPort":2112}` | Configures Service settings for ServiceMonitor CR. |
+| [ingress](./values.yaml#L534) | object | `{"annotations":{"kubernetes.io/ingress.class":"nginx"},"create":false,"host":"HOST","tls":{"enabled":false,"secretName":""}}` | Configures Ingress settings that exposes MS Teams endpoint. [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource). |
+| [serviceMonitor](./values.yaml#L545) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
+| [deployment.annotations](./values.yaml#L555) | object | `{}` | Extra annotations to pass to the BotKube Deployment. |
+| [extraAnnotations](./values.yaml#L562) | object | `{}` | Extra annotations to pass to the BotKube Pod. |
+| [extraLabels](./values.yaml#L564) | object | `{}` | Extra labels to pass to the BotKube Pod. |
+| [priorityClassName](./values.yaml#L566) | string | `""` | Priority class name for the BotKube Pod. |
+| [nameOverride](./values.yaml#L569) | string | `""` | Fully override "botkube.name" template. |
+| [fullnameOverride](./values.yaml#L571) | string | `""` | Fully override "botkube.fullname" template. |
+| [resources](./values.yaml#L577) | object | `{}` | The BotKube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious choice for the user. This also increases chances charts run on environments with little resources, such as Minikube. [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/) |
+| [extraEnv](./values.yaml#L589) | list | `[]` | Extra environment variables to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables). |
+| [extraVolumes](./values.yaml#L601) | list | `[]` | Extra volumes to pass to the BotKube container. Mount it later with extraVolumeMounts. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume). |
+| [extraVolumeMounts](./values.yaml#L616) | list | `[]` | Extra volume mounts to pass to the BotKube container. [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1). |
+| [nodeSelector](./values.yaml#L634) | object | `{}` | Node labels for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/). |
+| [tolerations](./values.yaml#L638) | list | `[]` | Tolerations for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/). |
+| [affinity](./values.yaml#L642) | object | `{}` | Affinity for BotKube Pod assignment. [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). |
+| [rbac](./values.yaml#L646) | object | `{"create":true,"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["get","watch","list"]}]}` | Role Based Access for BotKube Pod. [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/). |
+| [serviceAccount.create](./values.yaml#L655) | bool | `true` | If true, a ServiceAccount is automatically created. |
+| [serviceAccount.name](./values.yaml#L658) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
+| [serviceAccount.annotations](./values.yaml#L660) | object | `{}` | Extra annotations for the ServiceAccount. |
+| [extraObjects](./values.yaml#L663) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
+| [analytics.disable](./values.yaml#L691) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
+| [e2eTest.image.registry](./values.yaml#L697) | string | `"ghcr.io"` | Test runner image registry. |
+| [e2eTest.image.repository](./values.yaml#L699) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
+| [e2eTest.image.pullPolicy](./values.yaml#L701) | string | `"IfNotPresent"` | Test runner image pull policy. |
+| [e2eTest.image.tag](./values.yaml#L703) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
+| [e2eTest.deployment](./values.yaml#L705) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
+| [e2eTest.slack.botName](./values.yaml#L710) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.slack.testerName](./values.yaml#L712) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.slack.testerAppToken](./values.yaml#L714) | string | `""` | Slack tester application token that interacts with BotKube bot. |
+| [e2eTest.slack.additionalContextMessage](./values.yaml#L716) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.slack.messageWaitTimeout](./values.yaml#L718) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [e2eTest.discord.botName](./values.yaml#L721) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.discord.testerName](./values.yaml#L723) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.discord.guildID](./values.yaml#L725) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
+| [e2eTest.discord.testerAppToken](./values.yaml#L727) | string | `""` | Discord tester application token that interacts with BotKube bot. |
+| [e2eTest.discord.additionalContextMessage](./values.yaml#L729) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.discord.messageWaitTimeout](./values.yaml#L731) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
 
 ### AWS IRSA on EKS support
 

@@ -40,11 +40,13 @@ type FatalErrorAnalyticsReporter interface {
 type channelConfigByID struct {
 	config.ChannelBindingsByID
 
+	alias  string
 	notify bool
 }
 
 type channelConfigByName struct {
 	config.ChannelBindingsByName
 
+	alias  string
 	notify bool
 }

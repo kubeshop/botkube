@@ -237,11 +237,14 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
-		IsAuthChannel:   isAuthChannel,
-		ConversationID:  channel.Identifier(),
-		Bindings:        channel.Bindings.Executors,
-		Message:         req,
-		User:            fmt.Sprintf("<@%s>", dm.Event.Author.ID),
+		Conversation: execute.Conversation{
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  isAuthChannel,
+		},
+		Message: req,
+		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),
 	})
 
 	out := e.Execute()
@@ -316,9 +319,10 @@ func (b *Discord) findAndTrimBotMention(msg string) (string, bool) {
 
 func discordChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) map[string]channelConfigByID {
 	res := make(map[string]channelConfigByID)
-	for _, channCfg := range channelsCfg {
+	for channAlias, channCfg := range channelsCfg {
 		res[channCfg.Identifier()] = channelConfigByID{
 			ChannelBindingsByID: channCfg,
+			alias:               channAlias,
 			notify:              !channCfg.Notification.Disabled,
 		}
 	}

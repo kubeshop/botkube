@@ -1,6 +1,8 @@
 package execute
 
 import (
+	"context"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -42,9 +44,9 @@ type Executor interface {
 
 // ConfigPersistenceManager manages persistence of the configuration.
 type ConfigPersistenceManager interface {
-	PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
-	PersistNotificationsEnabled(commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error
-	PersistFilterEnabled(name string, enabled bool) error
+	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
+	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
+	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
@@ -85,14 +87,20 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 	}
 }
 
+// Conversation contains details about the conversation.
+type Conversation struct {
+	Alias            string
+	ID               string
+	ExecutorBindings []string
+	IsAuthenticated  bool
+}
+
 // NewDefaultInput an input for NewDefault
 type NewDefaultInput struct {
 	CommGroupName   string
 	Platform        config.CommPlatformIntegration
 	NotifierHandler NotifierHandler
-	IsAuthChannel   bool
-	ConversationID  string
-	Bindings        []string
+	Conversation    Conversation
 	Message         string
 	User            string
 }
@@ -112,11 +120,9 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		cfgManager:        f.cfgManager,
 		user:              cfg.User,
 		notifierHandler:   cfg.NotifierHandler,
-		isAuthChannel:     cfg.IsAuthChannel,
-		bindings:          cfg.Bindings,
+		conversation:      cfg.Conversation,
 		message:           cfg.Message,
 		platform:          cfg.Platform,
-		conversationID:    cfg.ConversationID,
 		commGroupName:     cfg.CommGroupName,
 	}
 }

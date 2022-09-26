@@ -25,10 +25,12 @@ var defaultConfiguration []byte
 var configPathsFlag []string
 
 const (
-	configEnvVariablePrefix = "BOTKUBE_"
-	configDelimiter         = "."
-	camelCaseDelimiter      = "__"
-	nestedFieldDelimiter    = "_"
+	configEnvVariablePrefix            = "BOTKUBE_"
+	configDelimiter                    = "."
+	camelCaseDelimiter                 = "__"
+	nestedFieldDelimiter               = "_"
+	specialConfigFileNamePrefix        = "_"
+	specialIgnoredConfigFileNamePrefix = "__"
 )
 
 const (
@@ -248,6 +250,21 @@ type KubernetesFilters struct {
 	NodeEventsChecker bool `yaml:"nodeEventsChecker"`
 }
 
+// SetEnabled enables or disables a given filter.
+func (f *KubernetesFilters) SetEnabled(name string, enabled bool) error {
+	if name == "ObjectAnnotationChecker" {
+		f.ObjectAnnotationChecker = enabled
+		return nil
+	}
+
+	if name == "NodeEventsChecker" {
+		f.NodeEventsChecker = enabled
+		return nil
+	}
+
+	return fmt.Errorf("Filter with name %q not found", name)
+}
+
 // Analytics contains configuration parameters for analytics collection.
 type Analytics struct {
 	InstallationID string `yaml:"installationID"`
@@ -368,7 +385,7 @@ type ChannelNotification struct {
 	Disabled bool `yaml:"disabled"`
 }
 
-// Communications channels to send events to
+// Communications contains communication platforms that are supported.
 type Communications struct {
 	Slack         Slack         `yaml:"slack"`
 	SocketSlack   SocketSlack   `yaml:"socketSlack"`
@@ -483,12 +500,13 @@ type Commands struct {
 
 // Settings contains BotKube's related configuration.
 type Settings struct {
-	ClusterName     string          `yaml:"clusterName"`
-	ConfigWatcher   bool            `yaml:"configWatcher"`
-	UpgradeNotifier bool            `yaml:"upgradeNotifier"`
-	SystemConfigMap SystemConfigMap `yaml:"systemConfigMap"`
-	MetricsPort     string          `yaml:"metricsPort"`
-	Log             struct {
+	ClusterName      string           `yaml:"clusterName"`
+	ConfigWatcher    bool             `yaml:"configWatcher"`
+	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`
+	SystemConfigMap  K8sConfigMapRef  `yaml:"systemConfigMap"`
+	PersistentConfig PersistentConfig `yaml:"persistentConfig"`
+	MetricsPort      string           `yaml:"metricsPort"`
+	Log              struct {
 		Level         string `yaml:"level"`
 		DisableColors bool   `yaml:"disableColors"`
 	} `yaml:"log"`
@@ -496,8 +514,20 @@ type Settings struct {
 	Kubeconfig            string        `yaml:"kubeconfig"`
 }
 
-// SystemConfigMap holds the configuration for BotKube system config map "storage".
-type SystemConfigMap struct {
+// PersistentConfig contains configuration for persistent storage.
+type PersistentConfig struct {
+	Startup PartialPersistentConfig `yaml:"startup"`
+	Runtime PartialPersistentConfig `yaml:"runtime"`
+}
+
+// PartialPersistentConfig contains configuration for persistent storage of a given type.
+type PartialPersistentConfig struct {
+	FileName  string          `yaml:"fileName"`
+	ConfigMap K8sConfigMapRef `yaml:"configMap"`
+}
+
+// K8sConfigMapRef holds the configuration for a ConfigMap.
+type K8sConfigMapRef struct {
 	Name      string `yaml:"name,omitempty"`
 	Namespace string `yaml:"namespace,omitempty"`
 }
@@ -511,8 +541,8 @@ type PathsGetter func() []string
 
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
-	LoadedCfgFilesPaths []string
-	ValidateWarnings    error
+	CfgFilesToWatch  []string
+	ValidateWarnings error
 }
 
 // LoadWithDefaults loads new configuration from files and environment variables.
@@ -526,6 +556,7 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	// merge with user conf files
+	configPaths = sortCfgFiles(configPaths)
 	for _, path := range configPaths {
 		if err := k.Load(file.Provider(filepath.Clean(path)), koanfyaml.Parser()); err != nil {
 			return nil, LoadWithDefaultsDetails{}, err
@@ -557,8 +588,8 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	return &cfg, LoadWithDefaultsDetails{
-		LoadedCfgFilesPaths: configPaths,
-		ValidateWarnings:    result.Warnings.ErrorOrNil(),
+		CfgFilesToWatch:  getCfgFilesToWatch(configPaths),
+		ValidateWarnings: result.Warnings.ErrorOrNil(),
 	}, nil
 }
 
@@ -593,6 +624,40 @@ func normalizeConfigEnvName(name string) string {
 	}
 
 	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
+}
+
+// sortCfgFiles sorts the config files so that the files that has specialConfigFileNamePrefix are moved to the end of the slice.
+func sortCfgFiles(paths []string) []string {
+	var ordinaryCfgFiles []string
+	var specialCfgFiles []string
+	for _, path := range paths {
+		_, filename := filepath.Split(path)
+
+		if strings.HasPrefix(filename, specialConfigFileNamePrefix) {
+			specialCfgFiles = append(specialCfgFiles, path)
+			continue
+		}
+
+		ordinaryCfgFiles = append(ordinaryCfgFiles, path)
+	}
+
+	return append(ordinaryCfgFiles, specialCfgFiles...)
+}
+
+// getCfgFilesToWatch excludes the files that has specialIgnoredConfigFileNamePrefix from the paths.
+func getCfgFilesToWatch(paths []string) []string {
+	var filesToWatch []string
+	for _, path := range paths {
+		_, filename := filepath.Split(path)
+
+		if strings.HasPrefix(filename, specialIgnoredConfigFileNamePrefix) {
+			continue
+		}
+
+		filesToWatch = append(filesToWatch, path)
+	}
+
+	return filesToWatch
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.
