@@ -52,7 +52,6 @@ func (b *SlackRenderer) RenderModal(msg interactive.Message) slack.ModalViewRequ
 	msg.Header = ""
 	return slack.ModalViewRequest{
 		Type:          "modal",
-		CallbackID:    "modal-id",
 		Title:         b.plainTextBlock(title),
 		Submit:        b.plainTextBlock("Select"),
 		Close:         b.plainTextBlock("Cancel"),

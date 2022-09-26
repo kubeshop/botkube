@@ -164,9 +164,20 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					if act == nil || strings.HasPrefix(act.ActionID, "url:") {
 						continue // skip the url actions
 					}
+
+					channelID := callback.Channel.ID
+					if channelID == "" && callback.View.ID != "" {
+						// TODO: add support when we will need to handle button clicks from active modal.
+						//
+						// The request is coming from active modal, currently we don't support that.
+						// We process that only when the modal is submitted (see slack.InteractionTypeViewSubmission action type).
+						b.log.Debug("Ignoring callback as its source is an active modal")
+						continue
+					}
+
 					msg := socketSlackMessage{
 						Text:            resolveBlockActionCommand(*act),
-						Channel:         callback.Channel.ID,
+						Channel:         channelID,
 						ThreadTimeStamp: callback.MessageTs,
 						TriggerID:       callback.TriggerID,
 						User:            callback.User.ID,

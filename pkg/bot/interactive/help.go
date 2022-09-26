@@ -59,7 +59,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
-					Header:      "Run kubectl commands",
+					Header:      "Run kubectl commands (if enabled)",
 					Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(platform))),
 				},
 				Buttons: []Button{
