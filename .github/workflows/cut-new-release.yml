@@ -1,0 +1,82 @@
+name: Cut a new release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Version of the next release (e.g. v0.15.0)
+        required: true
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  workflow-metadata:
+    name: Extract workflow metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      ref: ${{ steps.extract.outputs.ref }}
+      base-version: ${{ steps.extract.outputs.base-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Extract
+        id: extract
+        run: |
+          REF='main'
+          BASE_VERSION=''
+          # Valid version format
+          if [[ "${{ inputs.version }}" =~ ^v([0-9])\.([0-9])\.([0-9])$ ]]; then
+            # Find release branch from provided version. This resolves '0.14' from 'v0.14.0|1|2...'
+            BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--'
+            RELEASE_BRANCH="release-${
+            if git show-ref --quiet "refs/heads/release-${{ BASE_VERSION }}"; then
+              REF=$(echo "release-${BASE_VERSION}") 
+            fi 
+          else
+            # Fail entire job if it is not a valid format
+            echo "${{ inputs.version }} is not a valid version format. Use something like 'v0.14.0'"
+            exit 1
+          fi
+          echo ::set-output name=ref::$REF
+          echo ::set-output name=base-version::$BASE_VERSION
+
+  release-branch:
+    name: Prepare ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.workflow-metadata.outputs.ref }}
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.git-user }}"
+          git config user.email ${{ env.git-email }}
+
+      - name: Create a release branch
+        if: ${{ !contains(needs.workflow-metadata.outputs.ref, 'main') }}
+        run: |
+          git checkout -b release-${{ needs.workflow-metadata.outputs.base-version }}
+          git push origin release-${{ needs.workflow-metadata.outputs.base-version }}
+
+      - name: Add note for previous version
+        run: |
+          git fetch --all
+          PREV_VERSION=''
+          if [[ $PREV_VERSION == 'main' ]]; then
+            PREV_VERSION=$(git for-each-ref --sort=-creatordate --format '%(refname)' refs/tags | grep -E "\.0$" | awk -F'refs/tags/' '{ print $2 }'| head -1)
+            echo "The latest tag on main is ${PREV_VERSION}"
+          else
+            PATCH_VERSION=$(echo ${{ inputs.version }} | awk -F'.' '{ print $3 }')
+            PREV_VERSION=$((PATCH_VERSION - 1))
+          fi
+          git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} add -m "previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
+          git push origin 'refs/notes/*'

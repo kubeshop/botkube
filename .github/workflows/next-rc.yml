@@ -3,7 +3,7 @@ name: Prepare next release candidate
 on:
   push:
     branches:
-      - release/*
+      - release-*
 env:
   GIT_USER: github-actions[bot]
   GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
