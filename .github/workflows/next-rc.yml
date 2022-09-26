@@ -38,7 +38,9 @@ jobs:
           CURRENT_BRANCH=$(git branch --show-current)
           git fetch origin "refs/notes/*:refs/notes/*"
           BASE_TAG=$(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}" | awk -F',' '{ print $2 }' | awk NF | awk '{ print $2 }')
+          echo "Base tag for branch: $CURRENT_BRANCH is $BASE_TAG"
           REMOTE_TAG=$(git ls-remote --tags origin $BASE_TAG)
+          echo "Remote tag is $REMOTE_TAG for base tag: $BASE_TAG"
           if [ -n "$REMOTE_TAG" ]; then
               echo "${BASE_TAG} is already in remote, exiting..."
               exit 1
