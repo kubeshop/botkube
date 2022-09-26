@@ -92,5 +92,5 @@ jobs:
           echo "Adding new note: previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
           git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} add -m "previous-version: ${PREV_VERSION},current-version: ${{ inputs.version }}"
           git push origin 'refs/notes/*'
-          git commit -m --allow-empty -m "Trigger next rc build for ${{ inputs.version }}" 
+          git commit --allow-empty -m "Trigger next rc build for ${{ inputs.version }}" 
           git push origin release-${{ needs.workflow-metadata.outputs.base-version }} --force
