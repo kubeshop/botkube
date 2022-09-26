@@ -34,8 +34,7 @@ jobs:
           # Valid version format
           if [[ "${{ inputs.version }}" =~ ^v([0-9])\.([0-9])\.([0-9])$ ]]; then
             # Find release branch from provided version. This resolves '0.14' from 'v0.14.0|1|2...'
-            BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--'
-            RELEASE_BRANCH="release-${
+            BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
             if git show-ref --quiet "refs/heads/release-${{ BASE_VERSION }}"; then
               REF=$(echo "release-${BASE_VERSION}") 
             fi 
