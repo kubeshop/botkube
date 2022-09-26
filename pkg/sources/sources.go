@@ -59,6 +59,7 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 // AddCommunicationsBindings adds source binding from a given communications
 func (r *Router) AddCommunicationsBindings(c config.Communications) {
 	r.AddAnyBindingsByName(c.Slack.Channels)
+	r.AddAnyBindingsByName(c.SocketSlack.Channels)
 	r.AddAnyBindingsByName(c.Mattermost.Channels)
 	r.AddAnyBindings(c.Teams.Bindings)
 	r.AddAnyBindingsByID(c.Discord.Channels)
@@ -282,6 +283,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 			continue
 		}
 
+		recommRoute.namespaces = r.namespaces
 		(*routeMap)[eventType][i] = recommRoute
 		return
 	}

@@ -363,7 +363,8 @@ func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 					{
 						source: "foo",
 						namespaces: config.Namespaces{
-							Include: []string{config.AllNamespaceIndicator},
+							Include: []string{"foo", "bar"},
+							Exclude: []string{"default"},
 						},
 					},
 					{
