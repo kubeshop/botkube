@@ -37,6 +37,7 @@ jobs:
         run: |
           COMMIT_MSG=$(git show -s --format=%s)
           CURRENT_BRANCH=$(git branch --show-current)
+          git fetch --all
           git fetch origin "refs/notes/*:refs/notes/*"
           BASE_TAG=$(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}" | awk -F',' '{ print $2 }' | awk NF | awk '{ print $2 }')
           echo "Base tag for branch: $CURRENT_BRANCH is $BASE_TAG"
