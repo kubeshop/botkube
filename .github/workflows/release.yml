@@ -60,6 +60,18 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
 
+      - name: Extract Tag name
+        id: draft-release-tag-name
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          export URL=$(gh api \
+          -H "Accept: application/vnd.github+json" \
+          /repos/$GITHUB_REPOSITORY/releases --jq '.[] | select(.tag_name == "${{ github.ref_name }}") | .html_url')
+          export TAG="${URL##*/}"
+          echo "Found tag: $TAG"
+          echo ::set-output name=tag::$TAG
+
       - name: Create release
         uses: actions/github-script@v6
         with:
@@ -69,16 +81,17 @@ jobs:
               const releaseNotes = await github.rest.repos.generateReleaseNotes({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag_name: "${{ github.ref_name }}",
-                previous_tag_name: "${{ steps.prev-version.outputs.previous-version }}" 
+                tag_name: "${{ steps.draft-release-tag-name.outputs.tag }}",
+                previous_tag_name: "${{ steps.prev-version.outputs.previous-version }}"
               });
               const release = await github.rest.repos.getReleaseByTag({
-                tag: "${{ github.ref_name }}",
+                tag: "${{ steps.draft-release-tag-name.outputs.tag }}",
                 owner: context.repo.owner,
                 repo: context.repo.repo,
               });
               await github.rest.repos.updateRelease({
                 release_id: release.data.id,
+                draft: false,
                 name: "${{ github.ref_name }}",
                 owner: context.repo.owner,
                 prerelease: true,
