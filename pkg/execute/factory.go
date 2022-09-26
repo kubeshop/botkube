@@ -44,8 +44,8 @@ type Executor interface {
 
 // ConfigPersistenceManager manages persistence of the configuration.
 type ConfigPersistenceManager interface {
-	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
-	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error
+	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
+	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 }
 

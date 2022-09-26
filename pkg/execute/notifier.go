@@ -92,7 +92,7 @@ func (e *NotifierExecutor) Do(ctx context.Context, args []string, commGroupName 
 		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
 		if err != nil {
 			if err == config.ErrUnsupportedPlatform {
-				e.log.Warn(notifierPersistenceNotSupportedFmt, platform)
+				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
 				return successMessage, nil
 			}
 
@@ -115,7 +115,7 @@ func (e *NotifierExecutor) Do(ctx context.Context, args []string, commGroupName 
 		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
 		if err != nil {
 			if err == config.ErrUnsupportedPlatform {
-				e.log.Warn(notifierPersistenceNotSupportedFmt, platform)
+				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
 				return successMessage, nil
 			}
 

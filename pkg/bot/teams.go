@@ -113,6 +113,7 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		AppPassword:     cfg.AppPassword,
 		Notification:    cfg.Notification,
 		bindings:        cfg.Bindings,
+		commGroupName:   commGroupName,
 		MessagePath:     msgPath,
 		Port:            port,
 		conversations:   make(map[string]conversation),

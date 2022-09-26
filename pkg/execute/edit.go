@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages."
+	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube restart soon..."
 	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration."
 )
 
@@ -36,7 +36,7 @@ func (e EditResource) Key() string {
 
 // BindingsStorage provides functionality to persist source binding for a given channel.
 type BindingsStorage interface {
-	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error
+	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 }
 
 // EditExecutor provides functionality to run all BotKube edit related commands.
@@ -92,7 +92,7 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	cmds := executorsRunner{
 		SourceBindings.Key(): func() (interactive.Message, error) {
-			return e.editSourceBindingHandler(cmdArgs, commGroupName, platform, conversation.ID, userID, botName)
+			return e.editSourceBindingHandler(cmdArgs, commGroupName, platform, conversation, userID, botName)
 		},
 	}
 
@@ -104,7 +104,7 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 	return msg, nil
 }
 
-func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversationID, userID, botName string) (interactive.Message, error) {
+func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	sourceBindings, err := e.normalizeSourceItems(cmdArgs)
@@ -113,7 +113,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 	}
 
 	if len(sourceBindings) == 0 {
-		selectedOptions := e.currentlySelectedOptions(commGroupName, platform, conversationID)
+		selectedOptions := e.currentlySelectedOptions(commGroupName, platform, conversation.ID)
 		return interactive.Message{
 			Type: interactive.Popup,
 			Base: interactive.Base{
@@ -141,7 +141,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 		return e.generateUnknownMessage(unknown), nil
 	}
 
-	err = e.cfgManager.PersistSourceBindings(context.Background(), commGroupName, platform, conversationID, sourceBindings)
+	err = e.cfgManager.PersistSourceBindings(context.Background(), commGroupName, platform, conversation.Alias, sourceBindings)
 	if err != nil {
 		return empty, fmt.Errorf("while persisting source bindings configuration: %w", err)
 	}
