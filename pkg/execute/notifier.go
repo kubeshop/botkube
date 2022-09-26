@@ -1,8 +1,10 @@
 package execute
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -11,10 +13,11 @@ import (
 )
 
 const (
-	notifierStartMsgFmt         = "Brace yourselves, incoming notifications from cluster '%s'."
-	notifierStopMsgFmt          = "Sure! I won't send you notifications from cluster '%s' here."
-	notifierStatusMsgFmt        = "Notifications from cluster '%s' are %s here."
-	notifierNotConfiguredMsgFmt = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
+	notifierStartMsgFmt                = "Brace yourselves, incoming notifications from cluster '%s'."
+	notifierStopMsgFmt                 = "Sure! I won't send you notifications from cluster '%s' here."
+	notifierStatusMsgFmt               = "Notifications from cluster '%s' are %s here."
+	notifierNotConfiguredMsgFmt        = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
+	notifierPersistenceNotSupportedFmt = "Platform %q doesn't support persistence for notifications. When BotKube Pod restarts, default notification settings will be applied for this platform."
 )
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.
@@ -29,8 +32,6 @@ type NotifierHandler interface {
 }
 
 var (
-	errInvalidNotifierCommand = errors.New("invalid notifier command")
-	errUnsupportedCommand     = errors.New("unsupported command")
 	// ErrNotificationsNotConfigured describes an error when user wants to toggle on/off the notifications for not configured channel.
 	ErrNotificationsNotConfigured = errors.New("notifications not configured for this channel")
 )
@@ -56,9 +57,9 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager C
 }
 
 // Do executes a given Notifier command based on args.
-func (e *NotifierExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversationID string, clusterName string, handler NotifierHandler) (string, error) {
+func (e *NotifierExecutor) Do(ctx context.Context, args []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, clusterName string, handler NotifierHandler) (string, error) {
 	if len(args) != 2 {
-		return "", errInvalidNotifierCommand
+		return "", errInvalidCommand
 	}
 
 	var cmdVerb = args[1]
@@ -75,43 +76,55 @@ func (e *NotifierExecutor) Do(args []string, commGroupName string, platform conf
 		}
 	}()
 
-	switch NotifierAction(cmdVerb) {
+	switch NotifierAction(strings.ToLower(cmdVerb)) {
 	case Start:
 		const enabled = true
-		err := handler.SetNotificationsEnabled(conversationID, enabled)
+		err := handler.SetNotificationsEnabled(conversation.ID, enabled)
 		if err != nil {
 			if errors.Is(err, ErrNotificationsNotConfigured) {
-				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
+				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversation.ID, clusterName), nil
 			}
 
 			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
 		}
 
-		err = e.cfgManager.PersistNotificationsEnabled(commGroupName, platform, conversationID, enabled)
+		successMessage := fmt.Sprintf(notifierStartMsgFmt, clusterName)
+		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
 		if err != nil {
+			if err == config.ErrUnsupportedPlatform {
+				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
+				return successMessage, nil
+			}
+
 			return "", fmt.Errorf("while persisting configuration: %w", err)
 		}
 
-		return fmt.Sprintf(notifierStartMsgFmt, clusterName), nil
+		return successMessage, nil
 	case Stop:
 		const enabled = false
-		err := handler.SetNotificationsEnabled(conversationID, enabled)
+		err := handler.SetNotificationsEnabled(conversation.ID, enabled)
 		if err != nil {
 			if errors.Is(err, ErrNotificationsNotConfigured) {
-				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversationID, clusterName), nil
+				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversation.ID, clusterName), nil
 			}
 
 			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
 		}
 
-		err = e.cfgManager.PersistNotificationsEnabled(commGroupName, platform, conversationID, enabled)
+		successMessage := fmt.Sprintf(notifierStopMsgFmt, clusterName)
+		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
 		if err != nil {
+			if err == config.ErrUnsupportedPlatform {
+				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
+				return successMessage, nil
+			}
+
 			return "", fmt.Errorf("while persisting configuration: %w", err)
 		}
 
-		return fmt.Sprintf(notifierStopMsgFmt, clusterName), nil
+		return successMessage, nil
 	case Status:
-		enabled := handler.NotificationsEnabled(conversationID)
+		enabled := handler.NotificationsEnabled(conversation.ID)
 
 		enabledStr := "enabled"
 		if !enabled {

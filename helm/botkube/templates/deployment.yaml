@@ -54,6 +54,8 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: "/config"
+            - name: startup-config
+              mountPath: "/startup-config"
           {{- with .Values.extraVolumeMounts }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -70,7 +72,7 @@ spec:
               mountPath: "/.kube/cache"
           env:
             - name: BOTKUBE_CONFIG_PATHS
-              value: "/config/analytics.yaml,/config/global_config.yaml,/config/comm_config.yaml"
+              value: "/config/analytics.yaml,/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
             - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
@@ -78,6 +80,10 @@ spec:
               value: "/.kube/config"
             {{- end }}
             - name: BOTKUBE_SETTINGS_SYSTEM__CONFIG__MAP_NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_PERSISTENT__CONFIG_RUNTIME_CONFIG__MAP_NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_PERSISTENT__CONFIG_STARTUP_CONFIG__MAP_NAMESPACE
               value: "{{.Release.Namespace}}"
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
@@ -96,6 +102,13 @@ spec:
                 name: {{ include "botkube.fullname" . }}-analytics-config
             - secret:
                 name: {{ include "botkube.CommunicationsSecretName" . }}
+            - configMap:
+                name: {{ .Values.settings.persistentConfig.runtime.configMap.name }}
+        # Startup ConfigMap need to be mounted separately to avoid triggering Config Watcher.
+        # When using `projected.sources`, each file is removed and added when any ConfigMap/Secret changes.
+        - name: startup-config
+          configMap:
+            name: {{ .Values.settings.persistentConfig.startup.configMap.name }}
       {{- with .Values.extraVolumes }}
         {{ toYaml . | nindent 8 }}
       {{- end }}

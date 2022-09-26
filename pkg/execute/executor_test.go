@@ -142,8 +142,10 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 			// given
 			executors := fixExecutorsConfig(t, tc.executorsConfig)
 			executor := &DefaultExecutor{
-				merger:   kubectl.NewMerger(executors),
-				bindings: tc.bindings,
+				merger: kubectl.NewMerger(executors),
+				conversation: Conversation{
+					ExecutorBindings: tc.bindings,
+				},
 			}
 
 			// when

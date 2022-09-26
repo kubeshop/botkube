@@ -1,5 +1,6 @@
 sources:
     k8s-events:
+        displayName: ""
         kubernetes:
             recommendations:
                 ingress:
@@ -284,7 +285,7 @@ communications:
                 alias:
                     name: SLACK_CHANNEL
                     notification:
-                        disabled: false
+                        disabled: true
                     bindings:
                         sources:
                             - k8s-events
@@ -382,8 +383,8 @@ communications:
                             - k8s-events
 filters:
     kubernetes:
-        objectAnnotationChecker: true
-        nodeEventsChecker: false
+        objectAnnotationChecker: false
+        nodeEventsChecker: true
 analytics:
     installationID: 00000000-1410-1994-0966-000000000042
     disable: true
@@ -394,6 +395,15 @@ settings:
     systemConfigMap:
         name: botkube-system
         namespace: botkube
+    persistentConfig:
+        startup:
+            fileName: __startup_state.yaml
+            configMap:
+                name: startup-config
+        runtime:
+            fileName: _runtime_state.yaml
+            configMap:
+                name: runtime-config
     metricsPort: "1313"
     log:
         level: error

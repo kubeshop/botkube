@@ -7,6 +7,44 @@ import (
 	"gotest.tools/v3/golden"
 )
 
+// go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
+func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
+	// given
+	message := Message{
+		Base: Base{
+			Header: "Adjust notifications",
+		},
+
+		Sections: []Section{
+			{
+				MultiSelect: MultiSelect{
+					Name: "Adjust notifications",
+					Description: Body{
+						Plaintext: "Select notification sources",
+					},
+					Command: "@BotKube edit SourceBindings",
+					Options: []OptionItem{
+						{
+							Name:  "K8s all events",
+							Value: "k8s-all-events",
+						},
+						{
+							Name:  "K8s recommendations",
+							Value: "k8s-recommendations",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// when
+	out := MessageToMarkdown(DefaultMDFormatter(), message)
+
+	// then
+	golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))
+}
+
 // go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToMarkdown(t *testing.T) {
 	formatterForCustomNewLines := MDFormatter{

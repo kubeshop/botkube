@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"context"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -15,6 +16,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 	// given
 	log, _ := logtest.NewNullLogger()
 	platform := config.SlackCommPlatformIntegration
+	channelAlias := "alias"
 	commGroupName := "comm-group"
 	clusterName := "cluster-name"
 	statusArgs := []string{"notifier", "status"}
@@ -28,15 +30,15 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		Name                 string
 		InputArgs            []string
 		InputNotifierHandler NotifierHandler
-		ConversationID       string
+		Conversation         Conversation
 		ExpectedResult       string
 		ExpectedStatusAfter  string
 		ExpectedErrorMessage string
 	}{
 		{
-			Name:           "Start",
-			InputArgs:      []string{"notifier", "start"},
-			ConversationID: "conv-id",
+			Name:         "Start",
+			InputArgs:    []string{"notifier", "start"},
+			Conversation: Conversation{Alias: channelAlias, ID: "conv-id"},
 			InputNotifierHandler: &fakeNotifierHandler{
 				conf: map[string]bool{"conv-id": false},
 			},
@@ -44,9 +46,9 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are enabled here.`,
 		},
 		{
-			Name:           "Start for non-configured channel",
-			InputArgs:      []string{"notifier", "start"},
-			ConversationID: "non-existing",
+			Name:         "Start for non-configured channel",
+			InputArgs:    []string{"notifier", "start"},
+			Conversation: Conversation{Alias: channelAlias, ID: "non-existing"},
 			InputNotifierHandler: &fakeNotifierHandler{
 				conf: map[string]bool{"conv-id": false},
 			},
@@ -54,9 +56,9 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},
 		{
-			Name:           "Stop",
-			ConversationID: "conv-id",
-			InputArgs:      []string{"notifier", "stop"},
+			Name:         "Stop",
+			Conversation: Conversation{Alias: channelAlias, ID: "conv-id"},
+			InputArgs:    []string{"notifier", "stop"},
 			InputNotifierHandler: &fakeNotifierHandler{
 				conf: map[string]bool{"conv-id": true},
 			},
@@ -64,9 +66,9 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},
 		{
-			Name:           "Stop for non-configured channel",
-			ConversationID: "non-existing",
-			InputArgs:      []string{"notifier", "stop"},
+			Name:         "Stop for non-configured channel",
+			Conversation: Conversation{Alias: channelAlias, ID: "non-existing"},
+			InputArgs:    []string{"notifier", "stop"},
 			InputNotifierHandler: &fakeNotifierHandler{conf: map[string]bool{
 				"conv-id": true,
 			}},
@@ -75,7 +77,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		},
 		{
 			Name:                 "Show config",
-			ConversationID:       "conv-id",
+			Conversation:         Conversation{Alias: channelAlias, ID: "conv-id"},
 			InputArgs:            []string{"notifier", "showconfig"},
 			InputNotifierHandler: &fakeNotifierHandler{},
 			ExpectedResult: heredoc.Doc(`
@@ -96,6 +98,13 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				    configWatcher: false
 				    upgradeNotifier: false
 				    systemConfigMap: {}
+				    persistentConfig:
+				        startup:
+				            fileName: ""
+				            configMap: {}
+				        runtime:
+				            fileName: ""
+				            configMap: {}
 				    metricsPort: ""
 				    log:
 				        level: ""
@@ -113,23 +122,23 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 		{
 			Name:                 "Invalid command 1",
 			InputArgs:            []string{"notifier"},
-			ExpectedErrorMessage: "invalid notifier command",
+			ExpectedErrorMessage: "invalid command",
 		},
 		{
 			Name:                 "Invalid command 2",
 			InputArgs:            []string{"notifier", "stop", "stop", "stop", "please", "stop!!!!1111111oneoneone"},
-			ExpectedErrorMessage: "invalid notifier command",
+			ExpectedErrorMessage: "invalid command",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, cfg, &fakeCfgPersistenceManager{}, &fakeAnalyticsReporter{})
+			e := NewNotifierExecutor(log, cfg, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, &fakeAnalyticsReporter{})
 
 			// execute command
 
 			// when
-			actual, err := e.Do(tc.InputArgs, commGroupName, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
+			actual, err := e.Do(context.Background(), tc.InputArgs, commGroupName, platform, tc.Conversation, clusterName, tc.InputNotifierHandler)
 
 			// then
 
@@ -147,7 +156,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			// get status after executing a given command
 
 			// when
-			actual, err = e.Do(statusArgs, commGroupName, platform, tc.ConversationID, clusterName, tc.InputNotifierHandler)
+			actual, err = e.Do(context.Background(), statusArgs, commGroupName, platform, tc.Conversation, clusterName, tc.InputNotifierHandler)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, tc.ExpectedStatusAfter, actual)
@@ -180,24 +189,4 @@ func (f *fakeNotifierHandler) SetNotificationsEnabled(convID string, enabled boo
 
 func (f *fakeNotifierHandler) BotName() string {
 	return "fake"
-}
-
-type fakeAnalyticsReporter struct{}
-
-func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string) error {
-	return nil
-}
-
-type fakeCfgPersistenceManager struct{}
-
-func (f *fakeCfgPersistenceManager) PersistSourceBindings(commGroupName string, platform config.CommPlatformIntegration, channelName string, sourceBindings []string) error {
-	return nil
-}
-
-func (f *fakeCfgPersistenceManager) PersistNotificationsEnabled(commGroupName string, platform config.CommPlatformIntegration, channelName string, enabled bool) error {
-	return nil
-}
-
-func (f *fakeCfgPersistenceManager) PersistFilterEnabled(name string, enabled bool) error {
-	return nil
 }

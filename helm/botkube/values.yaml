@@ -59,6 +59,7 @@ kubeconfig:
 ## Format: sources.<alias>
 sources:
   'k8s-recommendation-events':
+    displayName: "Kubernetes Recommendations"
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes configuration for various recommendation insights.
@@ -77,6 +78,7 @@ sources:
           tlsSecretValid: true
 
   'k8s-all-events':
+    displayName: "Kubernetes Info"
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -184,6 +186,8 @@ sources:
        #       - status.phase
 
   'k8s-err-events':
+    displayName: "Kubernetes Errors"
+
     # -- Describes Kubernetes source configuration.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -323,7 +327,8 @@ communications:
               - kubectl-read-only
             # -- Notification sources configuration for a given channel.
             sources:
-              - k8s-events
+              - k8s-err-events
+              - k8s-recommendation-events
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
@@ -489,6 +494,20 @@ settings:
   # -- BotKube's system ConfigMap where internal data is stored.
   systemConfigMap:
     name: botkube-system
+
+  # -- Persistent config contains ConfigMap where persisted configuration is stored.
+  # The persistent configuration is evaluated from both chart upgrade and BotKube commands used in runtime.
+  persistentConfig:
+    startup:
+      configMap:
+        name: botkube-startup-config
+        annotations: {}
+      fileName: "__startup_state.yaml"
+    runtime:
+      configMap:
+        name: botkube-runtime-config
+        annotations: {}
+      fileName: "_runtime_state.yaml"
 
 ## For using custom SSL certificates.
 ssl:

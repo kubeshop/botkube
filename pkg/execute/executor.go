@@ -2,6 +2,7 @@ package execute
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,12 +23,17 @@ import (
 var (
 	kubectlBinary = "/usr/local/bin/kubectl"
 )
+var (
+	errInvalidCommand     = errors.New("invalid command")
+	errUnsupportedCommand = errors.New("unsupported command")
+)
 
 const (
-	unsupportedCmdMsg = "Command not supported. Please use 'help' to see supported commands."
-	filterNameMissing = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
-	filterEnabled     = "I have enabled '%s' filter on '%s' cluster."
-	filterDisabled    = "Done. I won't run '%s' filter on '%s' cluster."
+	unsupportedCmdMsg   = "Command not supported. Please use 'help' to see supported commands."
+	filterNameMissing   = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	filterEnabled       = "I have enabled '%s' filter on '%s' cluster."
+	filterDisabled      = "Done. I won't run '%s' filter on '%s' cluster."
+	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
 
 	// incompleteCmdMsg incomplete command response message
 	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
@@ -42,17 +48,17 @@ type DefaultExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cmdRunner         CommandSeparateOutputRunner
+	kubectlExecutor   *Kubectl
+	editExecutor      *EditExecutor
 	notifierExecutor  *NotifierExecutor
 	notifierHandler   NotifierHandler
-	bindings          []string
 	message           string
-	isAuthChannel     bool
 	platform          config.CommPlatformIntegration
-	conversationID    string
-	kubectlExecutor   *Kubectl
+	conversation      Conversation
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
+	user              string
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -110,6 +116,8 @@ func (action FiltersAction) String() string {
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() interactive.Message {
+	// TODO: Pass context from bots to this method
+	ctx := context.Background()
 	// Remove hyperlink if it got added automatically
 	command := utils.RemoveHyperlink(e.message)
 
@@ -120,7 +128,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		empty         = interactive.Message{}
 	)
 	if len(args) == 0 {
-		if e.isAuthChannel {
+		if e.conversation.IsAuthenticated {
 			return interactive.Message{
 				Base: interactive.Base{
 					Description: unsupportedCmdMsg,
@@ -149,7 +157,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(e.bindings, args) {
+	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
 		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
 		// The length of the slice was already checked before
 		// See the DefaultExecutor.Execute() logic.
@@ -158,7 +166,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		if err != nil {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
-		out, err := e.kubectlExecutor.Execute(e.bindings, e.message, e.isAuthChannel)
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -168,65 +176,62 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	// commands below are executed only if the channel is authorized
-	if !e.isAuthChannel {
+	if !e.conversation.IsAuthenticated {
 		return empty
 	}
 
-	type runner func() interactive.Message
-	cmds := map[string]runner{
-		"help": func() interactive.Message {
-			return interactive.Help(e.platform, clusterName, e.notifierHandler.BotName())
+	cmds := executorsRunner{
+		"help": func() (interactive.Message, error) {
+			return interactive.Help(e.platform, clusterName, e.notifierHandler.BotName()), nil
 		},
-		"ping": func() interactive.Message {
+		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res))
+			return response(fmt.Sprintf("pong\n\n%s", res)), nil
 		},
-		"version": func() interactive.Message {
-			return response(e.runVersionCommand("version"))
+		"version": func() (interactive.Message, error) {
+			return response(e.runVersionCommand("version")), nil
 		},
-		"filters": func() interactive.Message {
-			return response(e.runFilterCommand(args, clusterName))
+		"filters": func() (interactive.Message, error) {
+			res, err := e.runFilterCommand(ctx, args, clusterName)
+			return response(res), err
 		},
-		"commands": func() interactive.Message {
-			return response(e.runInfoCommand(args))
+		"commands": func() (interactive.Message, error) {
+			res, err := e.runInfoCommand(args)
+			return response(res), err
 		},
-		"notifier": func() interactive.Message {
-			res, err := e.notifierExecutor.Do(args, e.commGroupName, e.platform, e.conversationID, clusterName, e.notifierHandler)
-			switch {
-			case err == nil:
-			case errors.Is(err, errInvalidNotifierCommand):
-				return response(incompleteCmdMsg)
-			case errors.Is(err, errUnsupportedCommand):
-				return response(unsupportedCmdMsg)
-			default:
-				// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-				e.log.Errorf("while executing notifier command: %s", err.Error())
-				return empty
-			}
-
-			return response(res)
+		"notifier": func() (interactive.Message, error) {
+			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
+			return response(res), err
 		},
-		"feedback": func() interactive.Message {
-			return interactive.Feedback(e.notifierHandler.BotName())
+		"edit": func() (interactive.Message, error) {
+			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, e.notifierHandler.BotName())
+		},
+		"feedback": func() (interactive.Message, error) {
+			return interactive.Feedback(e.notifierHandler.BotName()), nil
 		},
 	}
 
-	handler, found := cmds[args[0]]
-	if found {
-		return handler()
-	}
-
-	if e.isAuthChannel {
+	msg, err := cmds.SelectAndRun(args[0])
+	switch {
+	case err == nil:
+	case errors.Is(err, errInvalidCommand):
+		return response(incompleteCmdMsg)
+	case errors.Is(err, errUnsupportedCommand):
 		return response(unsupportedCmdMsg)
+	default:
+		e.log.Errorf("while executing command %q: %s", command, err.Error())
+		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
+		return response(internalErrorMsg)
 	}
-	return empty
+
+	return msg
 }
 
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
 // runFilterCommand to list, enable or disable filters
-func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) string {
+func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, clusterName string) (string, error) {
 	if len(args) < 2 {
-		return incompleteCmdMsg
+		return "", errInvalidCommand
 	}
 
 	var cmdVerb = args[1]
@@ -241,57 +246,55 @@ func (e *DefaultExecutor) runFilterCommand(args []string, clusterName string) st
 	switch args[1] {
 	case FilterList.String():
 		e.log.Debug("List filters")
-		return e.makeFiltersList()
+		return e.makeFiltersList(), nil
 
 	// Enable filter
 	case FilterEnable.String():
 		const enabled = true
 		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
+			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
 		}
 		filterName := args[2]
 		e.log.Debug("Enabling filter...", filterName)
 		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error()
+			return err.Error(), nil
 		}
 
-		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
+		err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
 		if err != nil {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+			return "", fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 		}
 
-		return fmt.Sprintf(filterEnabled, filterName, clusterName)
+		return fmt.Sprintf(filterEnabled, filterName, clusterName), nil
 
 	// Disable filter
 	case FilterDisable.String():
 		const enabled = false
 		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList())
+			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
 		}
 		filterName := args[2]
 		e.log.Debug("Disabling filter...", filterName)
 		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error()
+			return err.Error(), nil
 		}
 
-		err := e.cfgManager.PersistFilterEnabled(filterName, enabled)
+		err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
 		if err != nil {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+			return "", fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 		}
 
-		return fmt.Sprintf(filterDisabled, filterName, clusterName)
+		return fmt.Sprintf(filterDisabled, filterName, clusterName), nil
 	}
 
 	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return unsupportedCmdMsg
+	return "", errUnsupportedCommand
 }
 
 // runInfoCommand to list allowed commands
-func (e *DefaultExecutor) runInfoCommand(args []string) string {
+func (e *DefaultExecutor) runInfoCommand(args []string) (string, error) {
 	if len(args) > 1 && args[1] != string(infoList) {
-		return incompleteCmdMsg
+		return "", errInvalidCommand
 	}
 
 	err := e.analyticsReporter.ReportCommand(e.platform, strings.Join(args, " "))
@@ -301,11 +304,10 @@ func (e *DefaultExecutor) runInfoCommand(args []string) string {
 
 	enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
 	if err != nil {
-		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-		e.log.Errorf("while rendering namespace config: %s", err.Error())
+		return "", fmt.Errorf("while rendering namespace config: %s", err.Error())
 	}
 
-	return enabledKubectls
+	return enabledKubectls, nil
 }
 
 // Use tabwriter to display string in tabular form
@@ -380,7 +382,7 @@ func (e *DefaultExecutor) runVersionCommand(cmd string) string {
 func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) {
 	type kubectlCollection map[string]config.Kubectl
 
-	enabledKubectls := e.merger.GetAllEnabled(e.bindings)
+	enabledKubectls := e.merger.GetAllEnabled(e.conversation.ExecutorBindings)
 	out := map[string]map[string]kubectlCollection{
 		"Enabled executors": {
 			"kubectl": enabledKubectls,

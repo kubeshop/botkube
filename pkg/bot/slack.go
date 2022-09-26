@@ -25,8 +25,6 @@ import (
 
 var _ Bot = &Slack{}
 
-const slackBotMentionPrefixFmt = "^<@%s>"
-
 var attachmentColor = map[config.Level]string{
 	config.Info:     "good",
 	config.Warn:     "warning",
@@ -54,15 +52,10 @@ type Slack struct {
 
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-
-	Event    *slack.MessageEvent
-	BotID    string
-	Request  string
-	Response string
-	RTM      *slack.RTM
-	User     string
+	Text            string
+	Channel         string
+	ThreadTimeStamp string
+	User            string
 }
 
 // NewSlack creates a new Slack instance.
@@ -137,11 +130,9 @@ func (b *Slack) Start(ctx context.Context) error {
 					continue
 				}
 				sm := slackMessage{
-					log:             b.log,
-					executorFactory: b.executorFactory,
-					Event:           ev,
-					BotID:           b.botID,
-					RTM:             rtm,
+					Text:            ev.Text,
+					Channel:         ev.Channel,
+					ThreadTimeStamp: ev.ThreadTimestamp,
 					User:            ev.User,
 				}
 				err := b.handleMessage(sm)
@@ -216,7 +207,7 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 
 func (b *Slack) handleMessage(msg slackMessage) error {
 	// Handle message only if starts with mention
-	request, found := b.findAndTrimBotMention(msg.Event.Text)
+	request, found := b.findAndTrimBotMention(msg.Text)
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
@@ -226,7 +217,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately BotKube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
-	info, err := b.client.GetConversationInfo(msg.Event.Channel, true)
+	info, err := b.client.GetConversationInfo(msg.Channel, true)
 	if err != nil {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
@@ -237,10 +228,14 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
-		IsAuthChannel:   isAuthChannel,
-		ConversationID:  info.Name,
-		Bindings:        channel.Bindings.Executors,
-		Message:         request,
+		Conversation: execute.Conversation{
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  isAuthChannel,
+		},
+		Message: request,
+		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute()
 	plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
@@ -265,9 +260,9 @@ func (b *Slack) send(msg slackMessage, req string, resp string, onlyVisibleToUse
 			Filename: req,
 			Title:    req,
 			Content:  resp,
-			Channels: []string{msg.Event.Channel},
+			Channels: []string{msg.Channel},
 		}
-		_, err := msg.RTM.UploadFile(params)
+		_, err := b.client.UploadFile(params)
 		if err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
@@ -277,16 +272,16 @@ func (b *Slack) send(msg slackMessage, req string, resp string, onlyVisibleToUse
 	var options = []slack.MsgOption{slack.MsgOptionText(resp, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
-	if msg.Event.ThreadTimestamp != "" {
-		options = append(options, slack.MsgOptionTS(msg.Event.ThreadTimestamp))
+	if msg.ThreadTimeStamp != "" {
+		options = append(options, slack.MsgOptionTS(msg.ThreadTimeStamp))
 	}
 
 	if onlyVisibleToUser {
-		if _, err := msg.RTM.PostEphemeral(msg.Event.Channel, msg.User, options...); err != nil {
+		if _, err := b.client.PostEphemeral(msg.Channel, msg.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
 	} else {
-		if _, _, err := msg.RTM.PostMessage(msg.Event.Channel, options...); err != nil {
+		if _, _, err := b.client.PostMessage(msg.Channel, options...); err != nil {
 			return fmt.Errorf("while posting Slack message: %w", err)
 		}
 	}
@@ -341,14 +336,14 @@ func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error 
 	message := interactive.MessageToMarkdown(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
+		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)
 		var options = []slack.MsgOption{slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true)}
 		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q (alias: %q): %w", channelName, channel.alias, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q at %q", channelID, timestamp)
+		b.log.Debugf("Message successfully sent to channel %q (alias: %q) at %q", channelID, channel.alias, timestamp)
 	}
 
 	return errs.ErrorOrNil()

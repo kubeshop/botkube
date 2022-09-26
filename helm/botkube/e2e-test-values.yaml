@@ -168,6 +168,15 @@ filters:
 settings:
   clusterName: sample
   upgradeNotifier: false
+  persistentConfig:
+    runtime:
+      configMap:
+        annotations:
+          botkube.io/disable: "true"
+    startup:
+      configMap:
+        annotations:
+          botkube.io/disable: "true"
 
 extraAnnotations:
   botkube.io/disable: "true"

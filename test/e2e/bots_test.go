@@ -40,6 +40,9 @@ type Config struct {
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
 		}
 	}
+	ConfigMap struct {
+		Namespace string `envconfig:"default=botkube"`
+	}
 	ClusterName string `envconfig:"default=sample"`
 	Slack       SlackConfig
 	Discord     DiscordConfig

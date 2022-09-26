@@ -78,6 +78,25 @@ func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 			addLine(formatx.CodeBlock(section.Body.CodeBlock))
 		}
 
+		if section.MultiSelect.AreOptionsDefined() {
+			ms := section.MultiSelect
+
+			if ms.Description.Plaintext != "" {
+				addLine(ms.Description.Plaintext)
+			}
+
+			if ms.Description.CodeBlock != "" {
+				addLine(formatx.AdaptiveCodeBlock(ms.Description.CodeBlock))
+			}
+
+			addLine("") // new line
+			addLine("Available options:")
+
+			for _, opt := range ms.Options {
+				addLine(fmt.Sprintf(" - %s", formatx.AdaptiveCodeBlock(opt.Value)))
+			}
+		}
+
 		for _, btn := range section.Buttons {
 			if btn.URL != "" {
 				addLine(fmt.Sprintf("%s: %s", btn.Name, btn.URL))

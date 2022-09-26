@@ -6,3 +6,13 @@ settings:
   configWatcher: true
   # Set false to disable upgrade notification
   upgradeNotifier: true
+
+  persistentConfig:
+    startup:
+      configMap:
+        name: startup-config
+      fileName: "__startup_state.yaml"
+    runtime:
+      configMap:
+        name: runtime-config
+      fileName: "_runtime_state.yaml"
