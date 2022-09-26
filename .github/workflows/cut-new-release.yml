@@ -28,9 +28,9 @@ jobs:
 
       - name: Extract
         id: extract
+        shell: bash
         run: |
           REF=$(echo "${{ env.main-branch }}")
-          BASE_VERSION=""
           # Valid version format
           if [[ "${{ inputs.version }}" =~ ^v([0-9])\.([0-9])\.([0-9])$ ]]; then
             # Find release branch from provided version. This resolves '0.14' from 'v0.14.0|1|2...'
@@ -38,13 +38,13 @@ jobs:
             if git show-ref --quiet "refs/heads/release-${{ BASE_VERSION }}"; then
               REF=$(echo "release-${BASE_VERSION}") 
             fi 
+            echo ::set-output name=ref::$REF
+            echo ::set-output name=base-version::$BASE_VERSION
           else
             # Fail entire job if it is not a valid format
             echo "${{ inputs.version }} is not a valid version format. Use something like 'v0.14.0'"
             exit 1
           fi
-          echo ::set-output name=ref::$REF
-          echo ::set-output name=base-version::$BASE_VERSION
 
   release-branch:
     name: Prepare ${{ inputs.version }}
