@@ -52,7 +52,7 @@ data:
       {{- end }}
     {{- end }}
 ---
-{{- $startupStateCfgMap := .Values.settings.persistentConfig.startup.configMap.name -}}
+{{ $startupStateCfgMap := .Values.settings.persistentConfig.startup.configMap.name -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -70,6 +70,7 @@ data:
   {{- $prevStartupCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $startupStateCfgMap | default dict }}
   {{- $prevStartupFile := index ( $prevStartupCfgMap.data | default dict ) .Values.settings.persistentConfig.startup.fileName | default "" | fromYaml -}}
   {{- $mergedStartupCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.communications )) (mustDeepCopy .Values.communications) }}
+  {{- $mergedStartupFilters := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.filters )) (mustDeepCopy (default (dict) .Values.filters)) }}
   # This file has a special prefix to:
   # - load it as the last config file during BotKube startup,
   # - ignore it by Config Watcher.
@@ -92,5 +93,5 @@ data:
       {{- end }}
     {{- end }}
     filters:
-      {{- .Values.filters | toYaml | nindent 6 }}
-{{/*  {{ end }}*/}}
+      {{- $mergedStartupFilters | toYaml | nindent 6 }}
+
