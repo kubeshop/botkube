@@ -47,7 +47,8 @@ jobs:
         run: |
           BASE_TAG=$(echo "${{ github.ref_name }}" | awk -F- '{print $1}')
           git fetch origin "refs/notes/*:refs/notes/*"
-          PREV_VERSION=$(echo $(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}") | awk -F',' '{ print $1 }' | awk NF | awk '{ print $2 }') 
+          BASE_VERSION=$(echo "${BASE_TAG}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
+          PREV_VERSION=$(echo $(git log --pretty=format:"%N" --show-notes="release-${BASE_VERSION}") | awk -F',' '{ print $1 }' | awk NF | awk '{ print $2 }') 
           echo ::set-output name=previous-version::$PREV_VERSION
 
       - name: Run GoReleaser
