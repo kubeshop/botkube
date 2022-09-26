@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: release/${{ inputs.version }}
+          ref: release-${{ needs.extract-metadata.outputs.base-version }}
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
