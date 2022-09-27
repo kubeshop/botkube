@@ -68,7 +68,6 @@ type mattermostMessage struct {
 
 	Event         *model.WebSocketEvent
 	APIClient     *model.Client4
-	Response      string
 	Request       string
 	IsAuthChannel bool
 }
@@ -237,8 +236,6 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		Message: mm.Request,
 	})
 	response := e.Execute()
-	out := interactive.MessageToMarkdown(b.mdFormatter, response)
-	mm.Response = out
 	mm.sendMessage(b, response)
 }
 
