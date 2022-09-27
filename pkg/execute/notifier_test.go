@@ -91,7 +91,6 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				        objectAnnotationChecker: false
 				        nodeEventsChecker: false
 				analytics:
-				    installationID: ""
 				    disable: false
 				settings:
 				    clusterName: foo

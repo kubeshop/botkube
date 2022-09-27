@@ -22,7 +22,7 @@ By default, BotKube will notify only about cluster errors and recommendations.
 Check the status of connected Kubernetes cluster(s).
   - `@BotKube ping`
 
-*Run kubectl commands*
+*Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
   - `@BotKube get services`
   - `@BotKube get pods`
@@ -34,9 +34,9 @@ To list all supported kubectl commands
 *Filters (advanced)*
 You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters
 
-Angry? Amazed?
+*Angry? Amazed?*
 Give feedback: https://feedback.botkube.io
 
-Read our docs: https://botkube.io
+Read our docs: https://botkube.io/docs
 Join our Slack: https://join.botkube.io
 Follow us on Twitter: https://twitter.com/botkube_io

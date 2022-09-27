@@ -43,8 +43,8 @@ func NewSegmentReporter(log logrus.FieldLogger, cli segment.Client) *SegmentRepo
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
-func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, installationID string) error {
-	currentIdentity, err := r.load(ctx, k8sCli, installationID)
+func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface) error {
+	currentIdentity, err := r.load(ctx, k8sCli)
 	if err != nil {
 		return fmt.Errorf("while loading current identity: %w", err)
 	}
@@ -115,7 +115,7 @@ func (r *SegmentReporter) ReportFatalError(err error) error {
 
 	var anonymousID string
 	if r.identity != nil {
-		anonymousID = r.identity.Installation.ID
+		anonymousID = r.identity.ID
 	} else {
 		anonymousID = unknownIdentityID
 		properties["unknownIdentity"] = true
@@ -146,7 +146,7 @@ func (r *SegmentReporter) reportEvent(event string, properties map[string]interf
 	}
 
 	err := r.cli.Enqueue(segment.Track{
-		AnonymousId: r.identity.Installation.ID,
+		AnonymousId: r.identity.ID,
 		Event:       event,
 		Properties:  properties,
 	})
@@ -159,27 +159,18 @@ func (r *SegmentReporter) reportEvent(event string, properties map[string]interf
 
 func (r *SegmentReporter) registerIdentity(identity Identity) error {
 	err := r.cli.Enqueue(segment.Identify{
-		AnonymousId: identity.Installation.ID,
-		Traits:      identity.Installation.TraitsMap(),
+		AnonymousId: identity.ID,
+		Traits:      identity.TraitsMap(),
 	})
 	if err != nil {
 		return fmt.Errorf("while enqueuing identify message: %w", err)
-	}
-
-	err = r.cli.Enqueue(segment.Group{
-		AnonymousId: identity.Installation.ID,
-		GroupId:     identity.Cluster.ID,
-		Traits:      identity.Cluster.TraitsMap(),
-	})
-	if err != nil {
-		return fmt.Errorf("while enqueuing group message: %w", err)
 	}
 
 	r.identity = &identity
 	return nil
 }
 
-func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface, installationID string) (Identity, error) {
+func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface) (Identity, error) {
 	k8sServerVersion, err := k8sCli.Discovery().ServerVersion()
 	if err != nil {
 		return Identity{}, fmt.Errorf("while getting K8s server version: %w", err)
@@ -194,14 +185,9 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface,
 	}
 
 	return Identity{
-		Cluster: ClusterIdentity{
-			ID:                clusterID,
-			KubernetesVersion: *k8sServerVersion,
-		},
-		Installation: InstallationIdentity{
-			ID:             installationID,
-			BotKubeVersion: version.Info(),
-		},
+		ID:                clusterID,
+		KubernetesVersion: *k8sServerVersion,
+		BotKubeVersion:    version.Info(),
 	}, nil
 }
 

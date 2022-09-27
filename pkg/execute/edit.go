@@ -18,7 +18,7 @@ import (
 
 const (
 	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube restart soon..."
-	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration."
+	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
 
 // EditResource defines the name of editable resource
@@ -158,7 +158,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 }
 
 func (e *EditExecutor) generateUnknownMessage(unknown []string) interactive.Message {
-	list := english.OxfordWordSeries(unknown, "and")
+	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.Message{
 		Base: interactive.Base{
@@ -290,6 +290,13 @@ func (e *EditExecutor) getUnknownInputSourceBindings(sources []string) []string 
 		out = append(out, item)
 	}
 	return out
+}
+
+func (*EditExecutor) quoteEachItem(in []string) []string {
+	for idx := range in {
+		in[idx] = fmt.Sprintf("'%s'", in[idx])
+	}
+	return in
 }
 
 func isQuotationMark(r rune) bool {

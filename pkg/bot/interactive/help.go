@@ -59,7 +59,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
-					Header:      "Run kubectl commands",
+					Header:      "Run kubectl commands (if enabled)",
 					Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(platform))),
 				},
 				Buttons: []Button{
@@ -86,7 +86,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
-					Description: "Angry? Amazed?",
+					Header: "Angry? Amazed?",
 				},
 				Buttons: []Button{
 					btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube.io", ButtonStylePrimary),
@@ -94,7 +94,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Buttons: []Button{
-					btnBuilder.ForURL("Read our docs", "https://botkube.io"),
+					btnBuilder.ForURL("Read our docs", "https://botkube.io/docs"),
 					btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
 					btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 				},
