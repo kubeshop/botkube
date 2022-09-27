@@ -409,6 +409,22 @@ func TestKubectlCanHandle(t *testing.T) {
 			expCanHandle: true,
 		},
 		{
+			name:    "Should allow for known verb with k8s prefix",
+			command: "kubectl get pod --cluster-name test",
+			kubectlCfg: config.Kubectl{
+				Enabled: true,
+				Namespaces: config.Namespaces{
+					Include: []string{"team-a"},
+				},
+				Commands: config.Commands{
+					Verbs:     []string{"get"},
+					Resources: []string{"pod"},
+				},
+			},
+
+			expCanHandle: true,
+		},
+		{
 			name:    "Should forbid if verbs is unknown",
 			command: "get pod --cluster-name test",
 			kubectlCfg: config.Kubectl{
@@ -439,6 +455,167 @@ func TestKubectlCanHandle(t *testing.T) {
 
 			// then
 			assert.Equal(t, tc.expCanHandle, canHandle)
+		})
+	}
+}
+
+func TestKubectlGetVerb(t *testing.T) {
+	tests := []struct {
+		name         string
+		command      string
+		expectedVerb string
+	}{
+		{
+			name:         "Should get proper verb without k8s prefix",
+			command:      "get pods --cluster-name test",
+			expectedVerb: "get",
+		},
+		{
+			name:         "Should get proper verb with k8s prefix kubectl",
+			command:      "kubectl get pods --cluster-name test",
+			expectedVerb: "get",
+		},
+		{
+			name:         "Should get proper verb with k8s prefix kc",
+			command:      "kc get pods --cluster-name test",
+			expectedVerb: "get",
+		},
+		{
+			name:         "Should get proper verb with k8s prefix k",
+			command:      "k get pods --cluster-name test",
+			expectedVerb: "get",
+		},
+	}
+	logger, _ := logtest.NewNullLogger()
+	kubectlCfg := config.Kubectl{
+		Enabled: true,
+		Namespaces: config.Namespaces{
+			Include: []string{"team-a"},
+		},
+		Commands: config.Commands{
+			Verbs:     []string{"get"},
+			Resources: []string{"pod"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
+			merger := kubectl.NewMerger(cfg.Executors)
+			kcChecker := kubectl.NewChecker(nil)
+			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+
+			args := strings.Fields(tc.command)
+			verb := executor.GetVerb(args)
+
+			assert.Equal(t, tc.expectedVerb, verb)
+		})
+	}
+}
+
+func TestKubectlGetCommandPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		command  string
+		expected string
+	}{
+		{
+			name:     "Should get proper command without k8s prefix",
+			command:  "get pods --cluster-name test",
+			expected: "get",
+		},
+		{
+			name:     "Should get proper command with k8s prefix kubectl",
+			command:  "kubectl get pods --cluster-name test",
+			expected: "{kubectl} get",
+		},
+		{
+			name:     "Should get proper command with k8s prefix kc",
+			command:  "kc get pods --cluster-name test",
+			expected: "{kc} get",
+		},
+		{
+			name:     "Should get proper command with k8s prefix k",
+			command:  "k get pods --cluster-name test",
+			expected: "{k} get",
+		},
+	}
+	logger, _ := logtest.NewNullLogger()
+	kubectlCfg := config.Kubectl{
+		Enabled: true,
+		Namespaces: config.Namespaces{
+			Include: []string{"team-a"},
+		},
+		Commands: config.Commands{
+			Verbs:     []string{"get"},
+			Resources: []string{"pod"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
+			merger := kubectl.NewMerger(cfg.Executors)
+			kcChecker := kubectl.NewChecker(nil)
+			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+
+			args := strings.Fields(tc.command)
+			verb := executor.GetCommandPrefix(args)
+
+			assert.Equal(t, tc.expected, verb)
+		})
+	}
+}
+
+func TestKubectlGetCommandWithoutAlias(t *testing.T) {
+	tests := []struct {
+		name     string
+		command  string
+		expected string
+	}{
+		{
+			name:     "Should get proper command without k8s prefix",
+			command:  "get pods --cluster-name test",
+			expected: "get pods --cluster-name test",
+		},
+		{
+			name:     "Should get proper command with k8s prefix kubectl",
+			command:  "kubectl get pods --cluster-name test",
+			expected: "get pods --cluster-name test",
+		},
+		{
+			name:     "Should get proper verb with k8s prefix kc",
+			command:  "kc get pods --cluster-name test",
+			expected: "get pods --cluster-name test",
+		},
+		{
+			name:     "Should get proper verb with k8s prefix k",
+			command:  "k get pods --cluster-name test",
+			expected: "get pods --cluster-name test",
+		},
+	}
+	logger, _ := logtest.NewNullLogger()
+	kubectlCfg := config.Kubectl{
+		Enabled: true,
+		Namespaces: config.Namespaces{
+			Include: []string{"team-a"},
+		},
+		Commands: config.Commands{
+			Verbs:     []string{"get"},
+			Resources: []string{"pod"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
+			merger := kubectl.NewMerger(cfg.Executors)
+			kcChecker := kubectl.NewChecker(nil)
+			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+
+			verb := executor.GetCommandWithoutAlias(tc.command)
+
+			assert.Equal(t, tc.expected, verb)
 		})
 	}
 }
