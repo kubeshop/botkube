@@ -15,6 +15,8 @@ metadata:
     {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate # RollingUpdate doesn't work with SocketSlack integration as it requires a single connection to Slack API.
   selector:
     matchLabels:
       component: controller
@@ -85,6 +87,10 @@ spec:
               value: "{{.Release.Namespace}}"
             - name: BOTKUBE_SETTINGS_PERSISTENT__CONFIG_STARTUP_CONFIG__MAP_NAMESPACE
               value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAME
+              value: "{{ include "botkube.fullname" . }}"
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}

@@ -482,6 +482,12 @@ settings:
   clusterName: not-configured
   # -- If true, restarts the BotKube Pod on config changes.
   configWatcher: true
+
+  # -- Server configuration which exposes functionality related to the app lifecycle.
+  lifecycleServer:
+    enabled: true
+    port: 2113
+    serviceName: botkube-lifecycle
   # -- If true, notifies about new BotKube releases.
   upgradeNotifier: true
   ## BotKube logging settings.

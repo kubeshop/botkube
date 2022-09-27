@@ -502,15 +502,22 @@ type Settings struct {
 	ClusterName      string           `yaml:"clusterName"`
 	ConfigWatcher    bool             `yaml:"configWatcher"`
 	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`
-	SystemConfigMap  K8sConfigMapRef  `yaml:"systemConfigMap"`
+	SystemConfigMap  K8sResourceRef   `yaml:"systemConfigMap"`
 	PersistentConfig PersistentConfig `yaml:"persistentConfig"`
 	MetricsPort      string           `yaml:"metricsPort"`
+	LifecycleServer  LifecycleServer  `yaml:"lifecycleServer"`
 	Log              struct {
 		Level         string `yaml:"level"`
 		DisableColors bool   `yaml:"disableColors"`
 	} `yaml:"log"`
 	InformersResyncPeriod time.Duration `yaml:"informersResyncPeriod"`
 	Kubeconfig            string        `yaml:"kubeconfig"`
+}
+
+type LifecycleServer struct {
+	Enabled    bool           `yaml:"enabled"`
+	Port       int            `yaml:"port"` // String for consistency
+	Deployment K8sResourceRef `yaml:"deployment"`
 }
 
 // PersistentConfig contains configuration for persistent storage.
@@ -521,12 +528,12 @@ type PersistentConfig struct {
 
 // PartialPersistentConfig contains configuration for persistent storage of a given type.
 type PartialPersistentConfig struct {
-	FileName  string          `yaml:"fileName"`
-	ConfigMap K8sConfigMapRef `yaml:"configMap"`
+	FileName  string         `yaml:"fileName"`
+	ConfigMap K8sResourceRef `yaml:"configMap"`
 }
 
-// K8sConfigMapRef holds the configuration for a ConfigMap.
-type K8sConfigMapRef struct {
+// K8sResourceRef holds the configuration for a Kubernetes resource.
+type K8sResourceRef struct {
 	Name      string `yaml:"name,omitempty"`
 	Namespace string `yaml:"namespace,omitempty"`
 }

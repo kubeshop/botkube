@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -112,6 +113,15 @@ func run() error {
 	err = reporter.RegisterCurrentIdentity(ctx, k8sCli)
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
+	}
+
+	// Lifecycle server
+	if conf.Settings.LifecycleServer.Enabled {
+		lifecycleSrv := lifecycle.NewServer(logger.WithField(componentLogFieldKey, "Lifecycle server"), k8sCli, conf.Settings.LifecycleServer)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return lifecycleSrv.Serve(ctx)
+		})
 	}
 
 	// Prometheus metrics
