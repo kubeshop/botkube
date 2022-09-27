@@ -39,6 +39,10 @@ const (
 	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
 
 	anonymizedInvalidVerb = "{invalid verb}"
+
+	// Currently we support only `kubectl, so we
+	// override the message to human-readable command name.
+	humanReadableCommandListName = "Available kubectl commands"
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -138,12 +142,16 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty // this prevents all bots on all clusters to answer something
 	}
 
-	response := func(in string) interactive.Message {
+	response := func(msg, overrideCommand string) interactive.Message {
+		cmd := fmt.Sprintf("`%s`", strings.TrimSpace(command))
+		if overrideCommand != "" {
+			cmd = overrideCommand
+		}
 		return interactive.Message{
 			Base: interactive.Base{
-				Description: fmt.Sprintf("`%s` on `%s`", strings.TrimSpace(command), clusterName),
+				Description: fmt.Sprintf("%s on `%s`", cmd, clusterName),
 				Body: interactive.Body{
-					CodeBlock: in,
+					CodeBlock: msg,
 				},
 			},
 		}
@@ -172,7 +180,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(out)
+		return response(out, "")
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -186,22 +194,22 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res)), nil
+			return response(fmt.Sprintf("pong\n\n%s", res), ""), nil
 		},
 		"version": func() (interactive.Message, error) {
-			return response(e.runVersionCommand("version")), nil
+			return response(e.runVersionCommand("version"), ""), nil
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(res), err
+			return response(res, ""), err
 		},
 		"commands": func() (interactive.Message, error) {
 			res, err := e.runInfoCommand(args)
-			return response(res), err
+			return response(res, humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return response(res), err
+			return response(res, ""), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, e.notifierHandler.BotName())
@@ -215,13 +223,13 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return response(incompleteCmdMsg)
+		return response(incompleteCmdMsg, "")
 	case errors.Is(err, errUnsupportedCommand):
-		return response(unsupportedCmdMsg)
+		return response(unsupportedCmdMsg, "")
 	default:
 		e.log.Errorf("while executing command %q: %s", command, err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return response(internalErrorMsg)
+		return response(internalErrorMsg, "")
 	}
 
 	return msg

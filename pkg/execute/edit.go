@@ -18,7 +18,7 @@ import (
 
 const (
 	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube restart soon..."
-	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration."
+	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
 
 // EditResource defines the name of editable resource
