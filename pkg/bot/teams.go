@@ -173,8 +173,8 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 
 	err = b.Adapter.ProcessActivity(ctx, activity, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			resp := b.processMessage(turn.Activity)
-			if len(resp) >= maxMessageSize {
+			n, resp := b.processMessage(turn.Activity)
+			if n >= maxMessageSize {
 				if turn.Activity.Conversation.ConversationType == convTypePersonal {
 					// send file upload request
 					attachments := []schema.Attachment{
@@ -235,7 +235,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			activity.Text = consentCtx.Command
-			resp := b.processMessage(activity)
+			_, resp := b.processMessage(activity)
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
 			if err != nil {
@@ -269,7 +269,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (b *Teams) processMessage(activity schema.Activity) string {
+func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 	trimmedMsg := b.trimBotMention(activity.Text)
 
 	// Multicluster is not supported for Teams
@@ -277,7 +277,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	ref, err := b.getConversationReferenceFrom(activity)
 	if err != nil {
 		b.log.Errorf("while getting conversation reference: %s", err.Error())
-		return ""
+		return 0, ""
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
@@ -295,13 +295,14 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	return b.convertInteractiveMessage(e.Execute())
 }
 
-func (b *Teams) convertInteractiveMessage(in interactive.Message) string {
-	if in.HasSections() {
-		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
-		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		return interactive.MessageToMarkdown(b.mdFormatter, in)
+func (b *Teams) convertInteractiveMessage(in interactive.Message) (int, string) {
+	out := interactive.MessageToMarkdown(b.mdFormatter, in)
+	actualLength := len(out)
+
+	if actualLength >= maxMessageSize {
+		return actualLength, interactive.MessageToPlaintext(in, interactive.NewlineFormatter)
 	}
-	return interactive.MessageToMarkdown(b.mdFormatter, in)
+	return actualLength, out
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -368,7 +369,7 @@ func (b *Teams) SendMessage(ctx context.Context, msg interactive.Message) error 
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		plaintext := b.convertInteractiveMessage(msg)
+		_, plaintext := b.convertInteractiveMessage(msg)
 		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
