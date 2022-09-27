@@ -67,12 +67,6 @@ jobs:
           git config user.name "${{ env.git-user }}"
           git config user.email ${{ env.git-email }}
 
-      - name: Create a release branch
-        if: ${{ contains(needs.workflow-metadata.outputs.ref, env.main-branch ) }}
-        run: |
-          git checkout -b release-${{ needs.workflow-metadata.outputs.base-version }}
-          git push origin release-${{ needs.workflow-metadata.outputs.base-version }}
-
       - name: Add note for previous version
         run: |
           git fetch --all
@@ -98,3 +92,8 @@ jobs:
             git commit --allow-empty -m "Trigger next rc build for ${{ inputs.version }}" 
             git push origin release-${{ needs.workflow-metadata.outputs.base-version }} --force
           fi
+      - name: Create a release branch
+        if: ${{ contains(needs.workflow-metadata.outputs.ref, env.main-branch ) }}
+        run: |
+          git checkout -b release-${{ needs.workflow-metadata.outputs.base-version }}
+          git push origin release-${{ needs.workflow-metadata.outputs.base-version }}
