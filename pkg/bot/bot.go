@@ -2,9 +2,9 @@ package bot
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/notifier"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 )
 
@@ -12,7 +12,7 @@ import (
 type Bot interface {
 	Start(ctx context.Context) error
 	BotName() string
-	controller.Notifier
+	notifier.Notifier
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.

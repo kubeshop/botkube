@@ -1,4 +1,4 @@
-package controller
+package notifier
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type Notifier interface {
 
 	// SendMessage is used for notifying about BotKube start/stop listening, possible BotKube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
-	// TODO: Consider option per channel to turn on/off "announcements" (BotKube start/stop/upgrade notify/config change.
+	// TODO: Consider option per channel to turn on/off "announcements" (BotKube start/stop/upgrade, notify/config change).
 	SendMessage(context.Context, interactive.Message) error
 
 	// IntegrationName returns a name of a given communication platform.
@@ -27,7 +27,7 @@ type Notifier interface {
 	Type() config.IntegrationType
 }
 
-func sendMessageToNotifiers(ctx context.Context, notifiers []Notifier, msg string) error {
+func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string) error {
 	if msg == "" {
 		return fmt.Errorf("message cannot be empty")
 	}

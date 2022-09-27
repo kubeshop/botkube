@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"log"
 	"net/http"
 	"os"
@@ -115,15 +116,6 @@ func run() error {
 		return reportFatalError("while registering current identity", err)
 	}
 
-	// Lifecycle server
-	if conf.Settings.LifecycleServer.Enabled {
-		lifecycleSrv := lifecycle.NewServer(logger.WithField(componentLogFieldKey, "Lifecycle server"), k8sCli, conf.Settings.LifecycleServer)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return lifecycleSrv.Serve(ctx)
-		})
-	}
-
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
 	errGroup.Go(func() error {
@@ -169,7 +161,7 @@ func run() error {
 
 	commCfg := conf.Communications
 	var (
-		notifiers []controller.Notifier
+		notifiers []notifier.Notifier
 		bots      = map[string]bot.Bot{}
 	)
 
@@ -249,6 +241,23 @@ func run() error {
 
 			notifiers = append(notifiers, wh)
 		}
+	}
+
+	// Lifecycle server
+	if conf.Settings.LifecycleServer.Enabled {
+		lifecycleSrv := lifecycle.NewServer(
+			logger.WithField(componentLogFieldKey, "Lifecycle server"),
+			k8sCli,
+			conf.Settings.LifecycleServer,
+			conf.Settings.ClusterName,
+			func(msg string) error {
+				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+			},
+		)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return lifecycleSrv.Serve(ctx)
+		})
 	}
 
 	// Send help message
