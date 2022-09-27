@@ -238,7 +238,6 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute()
-	//plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
 	err = b.send(msg, request, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
