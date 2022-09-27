@@ -386,7 +386,6 @@ filters:
         objectAnnotationChecker: false
         nodeEventsChecker: true
 analytics:
-    installationID: 00000000-1410-1994-0966-000000000042
     disable: true
 settings:
     clusterName: cluster-name-from-env

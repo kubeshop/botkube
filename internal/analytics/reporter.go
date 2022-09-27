@@ -11,7 +11,7 @@ import (
 // Reporter defines an analytics reporter implementation.
 type Reporter interface {
 	// RegisterCurrentIdentity loads the current anonymous identity and registers it.
-	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, cfgDir string) error
+	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface) error
 
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 	ReportCommand(platform config.CommPlatformIntegration, command string) error
