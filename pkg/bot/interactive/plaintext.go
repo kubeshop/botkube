@@ -31,6 +31,10 @@ func MessageToPlaintext(msg Message, newlineFormatter func(in string) string) st
 			addLine(section.Header)
 		}
 
+		if section.Description != "" {
+			addLine(section.Description)
+		}
+
 		if section.Body.Plaintext != "" {
 			addLine(section.Body.Plaintext)
 		}
