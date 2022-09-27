@@ -376,7 +376,7 @@ func sendMessageWithFileUpload(channel string, resp interactive.Message, client 
 		slack.MsgOptionAsUser(true),
 	}
 	if _, _, err := client.PostMessage(channel, uploadMsgOpts...); err != nil {
-		return fmt.Errorf("while posting Slack message: %w", err)
+		return fmt.Errorf("while posting attachment message: %w", err)
 	}
 
 	params := slack.FileUploadParameters{

@@ -236,33 +236,51 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		},
 		Message: mm.Request,
 	})
-	out := interactive.MessageToMarkdown(b.mdFormatter, e.Execute())
+	response := e.Execute()
+	out := interactive.MessageToMarkdown(b.mdFormatter, response)
 	mm.Response = out
-	mm.sendMessage()
+	mm.sendMessage(b, response)
 }
 
 // Send messages to Mattermost
-func (mm mattermostMessage) sendMessage() {
+func (mm mattermostMessage) sendMessage(b *Mattermost, resp interactive.Message) {
 	mm.log.Debugf("Mattermost incoming Request: %s", mm.Request)
-	mm.log.Debugf("Mattermost Response: %s", mm.Response)
-	post := &model.Post{}
-	post.ChannelId = mm.Event.GetBroadcast().ChannelId
+	mm.log.Debugf("Mattermost Response: %s", resp)
 
-	if len(mm.Response) == 0 {
+	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
+
+	if len(markdown) == 0 {
 		mm.log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
 		return
 	}
+
 	// Create file if message is too large
-	if len(mm.Response) >= 3990 {
-		res, _, err := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.GetBroadcast().ChannelId, mm.Request)
+	if len(markdown) >= 3990 {
+		uploadResponse, _, err := mm.APIClient.UploadFileAsRequestBody(
+			[]byte(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
+			mm.Event.GetBroadcast().ChannelId,
+			mm.Request,
+		)
 		if err != nil {
 			mm.log.Error("Error occurred while uploading file. Error: ", err)
+			return
 		}
-		post.FileIds = []string{res.FileInfos[0].Id}
-	} else {
-		post.Message = mm.Response
+
+		post := &model.Post{}
+		post.ChannelId = mm.Event.GetBroadcast().ChannelId
+		post.Message = resp.Description
+		post.FileIds = []string{uploadResponse.FileInfos[0].Id}
+
+		if _, _, err := mm.APIClient.CreatePost(post); err != nil {
+			mm.log.Error("Failed to send attachment message. Error: ", err)
+			return
+		}
+		return
 	}
 
+	post := &model.Post{}
+	post.ChannelId = mm.Event.GetBroadcast().ChannelId
+	post.Message = markdown
 	if _, _, err := mm.APIClient.CreatePost(post); err != nil {
 		mm.log.Error("Failed to send message. Error: ", err)
 	}
