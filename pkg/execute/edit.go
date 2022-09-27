@@ -158,7 +158,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 }
 
 func (e *EditExecutor) generateUnknownMessage(unknown []string) interactive.Message {
-	list := english.OxfordWordSeries(unknown, "and")
+	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.Message{
 		Base: interactive.Base{
@@ -290,6 +290,13 @@ func (e *EditExecutor) getUnknownInputSourceBindings(sources []string) []string 
 		out = append(out, item)
 	}
 	return out
+}
+
+func (*EditExecutor) quoteEachItem(in []string) []string {
+	for idx := range in {
+		in[idx] = fmt.Sprintf("'%s'", in[idx])
+	}
+	return in
 }
 
 func isQuotationMark(r rune) bool {
