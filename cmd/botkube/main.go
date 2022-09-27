@@ -58,6 +58,7 @@ func main() {
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
 func run() error {
 	// Load configuration
+	fmt.Println("simulate change v0.52.0")
 	config.RegisterFlags(pflag.CommandLine)
 	conf, confDetails, err := config.LoadWithDefaults(config.FromEnvOrFlag)
 	if err != nil {
