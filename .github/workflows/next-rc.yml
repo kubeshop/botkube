@@ -48,12 +48,14 @@ jobs:
               echo "${BASE_TAG} is already in remote, exiting..."
               exit 1
           fi
-          
+          echo "Finding latest release candidate for $BASE_TAG..." 
           LATEST_RELEASE_TAG=$(git ls-remote --tags origin | grep "refs/tags/${BASE_TAG}" | grep -v "\^{}" | awk -F \. '{print $4}' | sort -nr | head -1)
           if [ -z "$LATEST_RELEASE_TAG" ]; then
             LATEST_RELEASE_TAG=0  
           fi
+          echo "Final release candidate for $BASE_TAG is $LATEST_RELEASE_TAG."
           NEW_RELEASE_REVISION=$(( $LATEST_RELEASE_TAG + 1 ))
+          echo "New release candidate revision for $BASE_TAG is $NEW_RELEASE_REVISION."
           NEW_RELEASE_VERSION="${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
           echo "Latest release-candidate tag found: ${BASE_TAG}-rc.${LATEST_RELEASE_TAG}, creating: ${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
 
