@@ -19,7 +19,7 @@ const (
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
 
 	typedCommand  = "typed"
-	buttonCommand = "button"
+	buttonCommand = "buttonClick"
 )
 
 var (
@@ -62,21 +62,15 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string) error {
+func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string, isInteractiveOrigin bool) error {
+	origin := typedCommand
+	if isInteractiveOrigin {
+		origin = buttonCommand
+	}
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": platform,
 		"command":  command,
-		"origin":   typedCommand,
-	})
-}
-
-// ReportButtonCommand reports that user triggered a command using button.
-// The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportButtonCommand(platform config.CommPlatformIntegration, command string) error {
-	return r.reportEvent("Interactive block", map[string]interface{}{
-		"platform": platform,
-		"command":  command,
-		"origin":   buttonCommand,
+		"origin":   origin,
 	})
 }
 

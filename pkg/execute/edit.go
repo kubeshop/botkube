@@ -85,7 +85,7 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", cmdName, cmdVerb)
-		err := e.analyticsReporter.ReportCommand(platform, cmdToReport)
+		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.IsInteractiveOrigin)
 		if err != nil {
 			e.log.Errorf("while reporting edit command: %s", err.Error())
 		}

@@ -7,6 +7,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "notifier stop",
+			"origin": "typed",
 			"platform": "discord"
 		}
 	},
@@ -18,6 +19,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "get",
+			"origin": "typed",
 			"platform": "slack"
 		}
 	},
@@ -29,6 +31,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "notifier start",
+			"origin": "buttonClick",
 			"platform": "teams"
 		}
 	}
