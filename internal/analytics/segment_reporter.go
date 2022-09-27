@@ -17,6 +17,9 @@ import (
 const (
 	kubeSystemNSName  = "kube-system"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
+
+	typedCommand  = "typed"
+	buttonCommand = "button"
 )
 
 var (
@@ -63,6 +66,17 @@ func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration,
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": platform,
 		"command":  command,
+		"origin":   typedCommand,
+	})
+}
+
+// ReportButtonCommand reports that user triggered a command using button.
+// The RegisterCurrentIdentity needs to be called first.
+func (r *SegmentReporter) ReportButtonCommand(platform config.CommPlatformIntegration, command string) error {
+	return r.reportEvent("Interactive block", map[string]interface{}{
+		"platform": platform,
+		"command":  command,
+		"origin":   buttonCommand,
 	})
 }
 

@@ -46,11 +46,12 @@ type SocketSlack struct {
 }
 
 type socketSlackMessage struct {
-	Text            string
-	Channel         string
-	ThreadTimeStamp string
-	User            string
-	TriggerID       string
+	Text                string
+	Channel             string
+	ThreadTimeStamp     string
+	User                string
+	TriggerID           string
+	IsInteractiveOrigin bool
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
@@ -176,11 +177,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					}
 
 					msg := socketSlackMessage{
-						Text:            resolveBlockActionCommand(*act),
-						Channel:         channelID,
-						ThreadTimeStamp: callback.MessageTs,
-						TriggerID:       callback.TriggerID,
-						User:            callback.User.ID,
+						Text:                resolveBlockActionCommand(*act),
+						Channel:             channelID,
+						ThreadTimeStamp:     callback.MessageTs,
+						TriggerID:           callback.TriggerID,
+						User:                callback.User.ID,
+						IsInteractiveOrigin: true,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -193,9 +195,10 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:    resolveBlockActionCommand(act),
-								Channel: callback.View.PrivateMetadata,
-								User:    callback.User.ID,
+								Text:                resolveBlockActionCommand(act),
+								Channel:             callback.View.PrivateMetadata,
+								User:                callback.User.ID,
+								IsInteractiveOrigin: true,
 							}
 
 							if err := b.handleMessage(msg); err != nil {
@@ -280,10 +283,11 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
-			Alias:            channel.alias,
-			ID:               channel.Identifier(),
-			ExecutorBindings: channel.Bindings.Executors,
-			IsAuthenticated:  isAuthChannel,
+			Alias:               channel.alias,
+			ID:                  channel.Identifier(),
+			ExecutorBindings:    channel.Bindings.Executors,
+			IsAuthenticated:     isAuthChannel,
+			IsInteractiveOrigin: event.IsInteractiveOrigin,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),

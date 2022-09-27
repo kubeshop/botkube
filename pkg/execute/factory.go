@@ -49,10 +49,15 @@ type ConfigPersistenceManager interface {
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 }
 
+type AnalyticsReportFunc func(platform config.CommPlatformIntegration, command string) error
+
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 	ReportCommand(platform config.CommPlatformIntegration, command string) error
+
+	// ReportButtonCommand reports that user triggered a command using button. The command should be anonymized before using this method.
+	ReportButtonCommand(platform config.CommPlatformIntegration, command string) error
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -89,10 +94,11 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 
 // Conversation contains details about the conversation.
 type Conversation struct {
-	Alias            string
-	ID               string
-	ExecutorBindings []string
-	IsAuthenticated  bool
+	Alias               string
+	ID                  string
+	ExecutorBindings    []string
+	IsAuthenticated     bool
+	IsInteractiveOrigin bool
 }
 
 // NewDefaultInput an input for NewDefault
@@ -107,22 +113,27 @@ type NewDefaultInput struct {
 
 // NewDefault creates new Default Executor.
 func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
+	var reportFunc AnalyticsReportFunc = f.analyticsReporter.ReportCommand
+	if cfg.Conversation.IsInteractiveOrigin {
+		reportFunc = f.analyticsReporter.ReportButtonCommand
+	}
+
 	return &DefaultExecutor{
-		log:               f.log,
-		cmdRunner:         f.cmdRunner,
-		cfg:               f.cfg,
-		analyticsReporter: f.analyticsReporter,
-		kubectlExecutor:   f.kubectlExecutor,
-		notifierExecutor:  f.notifierExecutor,
-		editExecutor:      f.editExecutor,
-		filterEngine:      f.filterEngine,
-		merger:            f.merger,
-		cfgManager:        f.cfgManager,
-		user:              cfg.User,
-		notifierHandler:   cfg.NotifierHandler,
-		conversation:      cfg.Conversation,
-		message:           cfg.Message,
-		platform:          cfg.Platform,
-		commGroupName:     cfg.CommGroupName,
+		log:                    f.log,
+		cmdRunner:              f.cmdRunner,
+		cfg:                    f.cfg,
+		reportAnalyticsCommand: reportFunc,
+		kubectlExecutor:        f.kubectlExecutor,
+		notifierExecutor:       f.notifierExecutor,
+		editExecutor:           f.editExecutor,
+		filterEngine:           f.filterEngine,
+		merger:                 f.merger,
+		cfgManager:             f.cfgManager,
+		user:                   cfg.User,
+		notifierHandler:        cfg.NotifierHandler,
+		conversation:           cfg.Conversation,
+		message:                cfg.Message,
+		platform:               cfg.Platform,
+		commGroupName:          cfg.CommGroupName,
 	}
 }
