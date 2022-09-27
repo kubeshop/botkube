@@ -251,36 +251,18 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	plaintext := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
 
-	if len(plaintext) == 0 {
+	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
+
 	// Upload message as a file if too long
-	if len(plaintext) >= 3990 {
-
-		uploadMsgOpts := []slack.MsgOption{
-			slack.MsgOptionText(resp.Description, false),
-			slack.MsgOptionAsUser(true),
-		}
-		if _, _, err := b.client.PostMessage(msg.Channel, uploadMsgOpts...); err != nil {
-			return fmt.Errorf("while posting Slack message: %w", err)
-		}
-
-		params := slack.FileUploadParameters{
-			Filename: "Response.txt",
-			Title:    "Response.txt",
-			Content:  interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-			Channels: []string{msg.Channel},
-		}
-		_, err := b.client.UploadFile(params)
-		if err != nil {
-			return fmt.Errorf("while uploading file: %w", err)
-		}
-		return nil
+	if len(markdown) >= 3990 {
+		return sendMessageWithFileUpload(msg.Channel, resp, b.client)
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(plaintext, false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.ThreadTimeStamp != "" {
@@ -387,4 +369,28 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 
 func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
+}
+
+func sendMessageWithFileUpload(channel string, resp interactive.Message, client *slack.Client) error {
+	uploadMsgOpts := []slack.MsgOption{
+		slack.MsgOptionText(resp.Description, false),
+		slack.MsgOptionAsUser(true),
+	}
+	if _, _, err := client.PostMessage(channel, uploadMsgOpts...); err != nil {
+		return fmt.Errorf("while posting Slack message: %w", err)
+	}
+
+	params := slack.FileUploadParameters{
+		Filename: "Response.txt",
+		Title:    "Response.txt",
+		Content:  interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels: []string{channel},
+	}
+
+	_, err := client.UploadFile(params)
+	if err != nil {
+		return fmt.Errorf("while uploading file: %w", err)
+	}
+
+	return nil
 }
