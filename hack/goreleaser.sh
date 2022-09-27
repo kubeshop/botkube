@@ -14,6 +14,23 @@ prepare() {
   docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 }
 
+release_snapshot() {
+  prepare
+  export GORELEASER_CURRENT_TAG=v9.99.9-dev
+  goreleaser release --rm-dist --snapshot --skip-publish
+  # Push images
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
+  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  # Create manifest
+  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
+    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+}
+
 save_images() {
   prepare
 
@@ -112,10 +129,7 @@ usage() {
 Usage: ${0} [build|release|release_snapshot]
 Where,
   build: Builds project with goreleaser without pushing images.
-  save_images: Generates docker images
-  load_and_push_images: Pushes generated docker images to remote
-  build_single: Builds project and generates only platform specific binaries
-  build_single_e2e: Builds test project to be used in end-to-end tests
+  release_snapshot: Builds project without publishing release. It builds and pushes BotKube image with v9.99.9-dev image tag.
 EOM
     exit 1
 }
@@ -130,6 +144,9 @@ case "${1}" in
     ;;
   build_single_e2e)
     build_single_e2e
+    ;;
+  release_snapshot)
+    release_snapshot
     ;;
   save_images)
     save_images

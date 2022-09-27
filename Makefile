@@ -46,6 +46,10 @@ container-image-single-e2e: pre-build
 	@./hack/goreleaser.sh build_single_e2e
 	@echo "Single target docker image build for e2e tests successful"
 
+# Build project and push dev images with v9.99.9-dev tag
+release-snapshot:
+	@./hack/goreleaser.sh release_snapshot
+
 # Build project and save images with IMAGE_TAG tag
 save-images:
 	@./hack/goreleaser.sh save_images
@@ -68,3 +72,7 @@ system-check:
 
 # Pre-build checks
 pre-build: system-check
+
+# Run chart lint & helm-docs
+process-chart:
+	@./hack/process-chart.sh

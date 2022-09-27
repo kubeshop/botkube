@@ -81,7 +81,7 @@ jobs:
             echo "The latest tag on ${{ env.main-branch }} is ${PREV_VERSION}"
           else
             PATCH_VERSION=$(echo ${{ inputs.version }} | awk -F'.' '{ print $3 }')
-            PREV_VERSION="v${{ needs.workflow-metadata.outputs.base-version }}.$((PATCH_VERSION - 1))"
+            PREV_VERSION=$(echo "v${{ needs.workflow-metadata.outputs.base-version }}.$((PATCH_VERSION - 1))")
           fi
           git fetch origin "refs/notes/*:refs/notes/*"
           NOTE_COMMIT=$(git notes --ref release-${{ needs.workflow-metadata.outputs.base-version }} list | awk '{print $2}')
