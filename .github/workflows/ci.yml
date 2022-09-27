@@ -8,6 +8,7 @@ env:
   GOLANGCI_LINT_TIMEOUT: 5m
 jobs:
   lint-go:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     name: Lint Go code
     steps:
@@ -41,6 +42,7 @@ jobs:
           fi
 
   test:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     name: Run tests
     steps:
@@ -55,6 +57,7 @@ jobs:
         run: make test
 
   build:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     needs:
       - lint-go
@@ -72,6 +75,7 @@ jobs:
         run: make
 
   scan-repo:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     name: Scan repository for vulnerabilities
     steps:

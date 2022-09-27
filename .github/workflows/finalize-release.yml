@@ -1,0 +1,60 @@
+name: Finalize release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Version of the release to finalize (e.g. v0.15.0)
+        required: true
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  extract-metadata:
+    name: Extract release metadata for ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    outputs:
+      base-version: ${{ steps.extract.outputs.base-version}}
+    steps:
+      - name: Extract
+        id: extract
+        run: |
+          BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
+          echo ::set-output name=base-version::$BASE_VERSION
+
+  process-chart:
+    needs: [extract-metadata]
+    uses: ./.github/workflows/process-chart.yml
+    with:
+      release-branch: release-${{ needs.extract-metadata.outputs.base-version }}
+      next-version: ${{ inputs.version }}
+      skip-tagging: true
+    secrets:
+      gh-token: ${{ secrets.GH_TOKEN }}
+
+  finalize-release:
+    needs: process-chart
+    name: Finalize release ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: release-${{ needs.extract-metadata.outputs.base-version }}
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.git-user }}"
+          git config user.email ${{ env.git-email }}
+
+      - name: Push Tags (Patch Release)
+        if: ${{ !endsWith(inputs.version, '.0') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git tag -a ${{ inputs.version }} -m "${{ inputs.version }}"
+          git push origin ${{ inputs.version }}
