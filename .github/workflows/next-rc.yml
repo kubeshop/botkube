@@ -36,6 +36,7 @@ jobs:
         shell: bash
         id: next-rc
         run: |
+          set -x
           COMMIT_MSG=$(git show -s --format=%s)
           CURRENT_BRANCH=$(git branch --show-current)
           git fetch --all
