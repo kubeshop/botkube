@@ -36,7 +36,7 @@ jobs:
       gh-token: ${{ secrets.GH_TOKEN }}
 
   finalize-release:
-    needs: process-chart
+    needs: [process-chart, extract-metadata]
     name: Finalize release ${{ inputs.version }}
     runs-on: ubuntu-22.04
     steps:

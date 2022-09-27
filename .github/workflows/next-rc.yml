@@ -45,8 +45,8 @@ jobs:
           REMOTE_TAG=$(git ls-remote --tags origin $BASE_TAG)
           echo "Remote tag is $REMOTE_TAG for base tag: $BASE_TAG"
           if [ -n "$REMOTE_TAG" ]; then
-              echo "${BASE_TAG} is already in remote, exiting..."
-              exit 1
+              echo "${BASE_TAG} is already in remote, maybe you may want to create a patch release for ${BASE_TAG}..."
+              exit 0
           fi
           echo "Finding latest release candidate for $BASE_TAG..." 
           LATEST_RELEASE_TAG=$(git ls-remote --tags origin | grep "refs/tags/${BASE_TAG}" | grep -v "\^{}" | awk -F \. '{print $4}' | sort -nr | head -1) || true
@@ -73,32 +73,3 @@ jobs:
       next-version: ${{ needs.next-rc.outputs.new-rc-version }}
     secrets:
       gh-token: ${{ secrets.GH_TOKEN }}
-
-  backport-pr:
-    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
-    needs: process-chart
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Set git 'user.name' and 'user.email'
-        run: |
-          git config user.name "${{ env.GIT_USER }}"
-          git config user.email ${{ env.GIT_EMAIL }}
-
-      - name: Create a pull request
-        if: ${{ !endsWith(needs.process-chart.outputs.new-version, 'rc.1') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          git checkout -b backport/${{ needs.process-chart.outputs.new-version }}
-          git push origin backport/${{ needs.process-chart.outputs.new-version }}
-
-          gh pr create \
-            --title "${{ needs.next-rc.outputs.commit-msg }} [backport of: ${{ needs.process-chart.outputs.new-version }}"]  \
-             --head "backport/${{ needs.process-chart.outputs.new-version }}" \
-             --base main \
-             --label release-automation \
-             --body "This Pull Request is created by release automation to backport a task to main branch. Feel free to review and merge it."
