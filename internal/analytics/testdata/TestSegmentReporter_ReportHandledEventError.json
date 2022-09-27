@@ -2,7 +2,7 @@
 	{
 		"type": "track",
 		"messageId": "0",
-		"anonymousId": "installation-id",
+		"anonymousId": "cluster-id",
 		"event": "Event handled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
@@ -19,7 +19,7 @@
 	{
 		"type": "track",
 		"messageId": "1",
-		"anonymousId": "installation-id",
+		"anonymousId": "cluster-id",
 		"event": "Event handled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {

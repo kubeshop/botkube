@@ -1,7 +1,8 @@
+{{- $runtimeStateCfgMap := .Values.settings.persistentConfig.runtime.configMap.name -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.settings.persistentConfig.runtime.configMap.name }}
+  name: {{ $runtimeStateCfgMap }}
   annotations:
 {{- if .Values.settings.persistentConfig.runtime.configMap.annotations }}
 {{ toYaml .Values.settings.persistentConfig.runtime.configMap.annotations | indent 4 }}
@@ -12,10 +13,13 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
+  {{- $prevRuntimeCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $runtimeStateCfgMap | default dict }}
+  {{- $prevRuntimeFile := index ( $prevRuntimeCfgMap.data | default dict ) .Values.settings.persistentConfig.runtime.fileName | default "" | fromYaml -}}
+  {{- $mergedRuntimeCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevRuntimeFile.communications )) (mustDeepCopy .Values.communications) }}
   # This file has a special prefix to load it as the last config file during BotKube startup.
   {{ .Values.settings.persistentConfig.runtime.fileName }}: |
     communications:
-    {{- range $commGroupName,$commGroup := .Values.communications }}
+    {{- range $commGroupName,$commGroup := $mergedRuntimeCommunications }}
       {{$commGroupName}}:
       {{- range $commPlatformName,$commPlatform := $commGroup }}
         {{- /* Bots */ -}}
@@ -48,10 +52,11 @@ data:
       {{- end }}
     {{- end }}
 ---
+{{ $startupStateCfgMap := .Values.settings.persistentConfig.startup.configMap.name -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.settings.persistentConfig.startup.configMap.name }}
+  name: {{ $startupStateCfgMap }}
   annotations:
 {{- if .Values.settings.persistentConfig.startup.configMap.annotations }}
 {{ toYaml .Values.settings.persistentConfig.startup.configMap.annotations | indent 4 }}
@@ -62,12 +67,16 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
+  {{- $prevStartupCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $startupStateCfgMap | default dict }}
+  {{- $prevStartupFile := index ( $prevStartupCfgMap.data | default dict ) .Values.settings.persistentConfig.startup.fileName | default "" | fromYaml -}}
+  {{- $mergedStartupCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.communications )) (mustDeepCopy .Values.communications) }}
+  {{- $mergedStartupFilters := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.filters )) (mustDeepCopy (default (dict) .Values.filters)) }}
   # This file has a special prefix to:
   # - load it as the last config file during BotKube startup,
   # - ignore it by Config Watcher.
   {{ .Values.settings.persistentConfig.startup.fileName }}: |
     communications:
-    {{- range $commGroupName,$commGroup := .Values.communications }}
+    {{- range $commGroupName,$commGroup := $mergedStartupCommunications }}
       {{$commGroupName}}:
       {{- range $commPlatformName,$commPlatform := $commGroup -}}
         {{- if $commPlatform.channels }}
@@ -84,5 +93,5 @@ data:
       {{- end }}
     {{- end }}
     filters:
-      {{- .Values.filters | toYaml | nindent 6 }}
-{{/*  {{ end }}*/}}
+      {{- $mergedStartupFilters | toYaml | nindent 6 }}
+

@@ -32,7 +32,6 @@ import (
 
 func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 	// given
-	const installationID = "ff68560b-44e8-4b0d-880b-aaaaaaaaaaaa"
 	kubeSystemNs := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kube-system",
@@ -45,18 +44,17 @@ func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 	fakeDisco, ok := k8sCli.Discovery().(*fakediscovery.FakeDiscovery)
 	require.True(t, ok)
 
-	fakeDisco.FakedServerVersion = &fakeIdentity.Cluster.KubernetesVersion
+	fakeDisco.FakedServerVersion = &fakeIdentity.KubernetesVersion
 
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(nil)
 
 	// when
-	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli, installationID)
+	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli)
 	require.NoError(t, err)
 
 	// then
 	identity := segmentReporter.Identity()
-	assert.Equal(t, installationID, identity.Installation.ID)
-	assert.Equal(t, string(kubeSystemNs.UID), identity.Cluster.ID)
+	assert.Equal(t, string(kubeSystemNs.UID), identity.ID)
 
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
 }
@@ -210,27 +208,22 @@ func compareMessagesAgainstGoldenFile(t *testing.T, actualMessages []segment.Mes
 
 func fixIdentity() *analytics.Identity {
 	return &analytics.Identity{
-		Cluster: analytics.ClusterIdentity{
-			ID: "cluster-id",
-			KubernetesVersion: k8sVersion.Info{
-				Major:        "k8s-major",
-				Minor:        "k8s-minor",
-				GitVersion:   "k8s-git-version",
-				GitCommit:    "k8s-git-commit",
-				GitTreeState: "k8s-git-tree-state",
-				BuildDate:    "k8s-build-date",
-				GoVersion:    "k8s-go-version",
-				Compiler:     "k8s-compiler",
-				Platform:     "k8s-platform",
-			},
+		ID: "cluster-id",
+		KubernetesVersion: k8sVersion.Info{
+			Major:        "k8s-major",
+			Minor:        "k8s-minor",
+			GitVersion:   "k8s-git-version",
+			GitCommit:    "k8s-git-commit",
+			GitTreeState: "k8s-git-tree-state",
+			BuildDate:    "k8s-build-date",
+			GoVersion:    "k8s-go-version",
+			Compiler:     "k8s-compiler",
+			Platform:     "k8s-platform",
 		},
-		Installation: analytics.InstallationIdentity{
-			ID: "installation-id",
-			BotKubeVersion: version.Details{
-				Version:     "botkube-version",
-				GitCommitID: "botkube-git-commit-id",
-				BuildDate:   "botkube-build-date",
-			},
+		BotKubeVersion: version.Details{
+			Version:     "botkube-version",
+			GitCommitID: "botkube-git-commit-id",
+			BuildDate:   "botkube-build-date",
 		},
 	}
 }
