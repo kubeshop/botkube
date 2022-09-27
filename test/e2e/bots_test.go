@@ -274,7 +274,7 @@ func runBotTest(t *testing.T,
 			          - wait
 			        resources: []
 			      restrictAccess: false`))
-		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -284,7 +284,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("With custom cluster name", func(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
-			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -293,7 +293,6 @@ func runBotTest(t *testing.T,
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "commands list --cluster-name non-existing"
-			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			t.Log("Ensuring bot didn't post anything new...")
