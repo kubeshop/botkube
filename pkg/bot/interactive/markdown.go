@@ -7,40 +7,30 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-// DefaultMDLineFormatter represents a Markdown new line formatting.
-func DefaultMDLineFormatter(msg string) string {
-	return fmt.Sprintf("%s\n", msg)
-}
-
-// DefaultMDHeaderFormatter represents a Markdown header formatting.
-func DefaultMDHeaderFormatter(msg string) string {
-	return fmt.Sprintf("**%s**", msg)
-}
-
 // MDFormatter represents the capability of Markdown Formatter
 type MDFormatter struct {
-	lineFormatter   func(msg string) string
-	headerFormatter func(msg string) string
+	newlineFormatter func(msg string) string
+	headerFormatter  func(msg string) string
 }
 
 // NewMDFormatter is for initializing custom Markdown formatter
-func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFormatter {
+func NewMDFormatter(newlineFormatter, headerFormatter func(msg string) string) MDFormatter {
 	return MDFormatter{
-		lineFormatter:   lineFormatter,
-		headerFormatter: headerFormatter,
+		newlineFormatter: newlineFormatter,
+		headerFormatter:  headerFormatter,
 	}
 }
 
 // DefaultMDFormatter is for initializing built-in Markdown formatter
 func DefaultMDFormatter() MDFormatter {
-	return NewMDFormatter(DefaultMDLineFormatter, DefaultMDHeaderFormatter)
+	return NewMDFormatter(NewlineFormatter, MdHeaderFormatter)
 }
 
 // MessageToMarkdown returns interactive message as a plaintext with Markdown syntax.
 func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 	var out strings.Builder
 	addLine := func(in string) {
-		out.WriteString(mdFormatter.lineFormatter(in))
+		out.WriteString(mdFormatter.newlineFormatter(in))
 	}
 
 	if msg.Header != "" {

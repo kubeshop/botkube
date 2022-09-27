@@ -102,7 +102,7 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 	if msgPath == "" {
 		msgPath = "/"
 	}
-	mdFormatter := interactive.NewMDFormatter(mdLineFormatter, interactive.DefaultMDHeaderFormatter)
+	mdFormatter := interactive.NewMDFormatter(mdLineFormatter, interactive.MdHeaderFormatter)
 	return &Teams{
 		log:             log,
 		executorFactory: executorFactory,

@@ -78,7 +78,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &Slack{
 		log:             log,
 		executorFactory: executorFactory,
@@ -238,8 +238,8 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute()
-	plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
-	err = b.send(msg, request, plaintext, response.OnlyVisibleForYou)
+	//plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
+	err = b.send(msg, request, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -247,19 +247,30 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(msg slackMessage, req string, resp string, onlyVisibleToUser bool) error {
+func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onlyVisibleToUser bool) error {
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	if len(resp) == 0 {
+	plaintext := interactive.MessageToMarkdown(b.mdFormatter, resp)
+
+	if len(plaintext) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 	// Upload message as a file if too long
-	if len(resp) >= 3990 {
+	if len(plaintext) >= 3990 {
+
+		uploadMsgOpts := []slack.MsgOption{
+			slack.MsgOptionText(resp.Description, false),
+			slack.MsgOptionAsUser(true),
+		}
+		if _, _, err := b.client.PostMessage(msg.Channel, uploadMsgOpts...); err != nil {
+			return fmt.Errorf("while posting Slack message: %w", err)
+		}
+
 		params := slack.FileUploadParameters{
-			Filename: req,
-			Title:    req,
-			Content:  resp,
+			Filename: "Response.txt",
+			Title:    "Response.txt",
+			Content:  interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
 			Channels: []string{msg.Channel},
 		}
 		_, err := b.client.UploadFile(params)
@@ -269,7 +280,7 @@ func (b *Slack) send(msg slackMessage, req string, resp string, onlyVisibleToUse
 		return nil
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(resp, false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(plaintext, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.ThreadTimeStamp != "" {

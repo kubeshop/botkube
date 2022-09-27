@@ -72,7 +72,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
 		log:             log,
 		executorFactory: executorFactory,

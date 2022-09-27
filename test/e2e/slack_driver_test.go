@@ -48,7 +48,7 @@ func newSlackDriver(slackCfg SlackConfig) (BotDriver, error) {
 	if err != nil {
 		return nil, err
 	}
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, func(msg string) string {
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, func(msg string) string {
 		return fmt.Sprintf("*%s*", msg)
 	})
 	return &slackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter}, nil

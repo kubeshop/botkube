@@ -48,14 +48,14 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 // go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToMarkdown(t *testing.T) {
 	formatterForCustomNewLines := MDFormatter{
-		lineFormatter: func(msg string) string {
+		newlineFormatter: func(msg string) string {
 			return fmt.Sprintf("%s<br>", msg)
 		},
-		headerFormatter: DefaultMDHeaderFormatter,
+		headerFormatter: MdHeaderFormatter,
 	}
 
 	formatterForCustomHeaders := MDFormatter{
-		lineFormatter: DefaultMDLineFormatter,
+		newlineFormatter: NewlineFormatter,
 		headerFormatter: func(msg string) string {
 			return fmt.Sprintf("*%s*", msg)
 		},
