@@ -13,7 +13,7 @@ import (
 func NewServer(log logrus.FieldLogger, k8sCli kubernetes.Interface, cfg config.LifecycleServer) *httpsrv.Server {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	router := mux.NewRouter()
-	restartHandler := newRestartHandler(log, k8sCli, cfg)
-	router.HandleFunc("/restart", restartHandler)
+	reloadHandler := newReloadHandler(log, k8sCli, cfg)
+	router.HandleFunc("/reload", reloadHandler)
 	return httpsrv.New(log, addr, router)
 }

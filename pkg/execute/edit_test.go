@@ -56,49 +56,49 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			name:    "Should resolve quoted list which is separated by comma",
 			command: `edit SourceBindings "bar,xyz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve quoted and code items separated by comma",
 			command: "edit sourcebindings “`bar`,xyz ”",
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma and ends with whitespace",
 			command: `edit sourceBindings bar,xyz `,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma but has a lot of whitespaces",
 			command: `edit sourcebindings bar,       xyz, `,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
 			name:    "Should resolve list which is separated by comma, has a lot of whitespaces and some items are quoted",
 			command: `edit SourceBindings bar       xyz, "baz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR, XYZ, and BAZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR, XYZ, and BAZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"bar", "xyz", "baz"},
 		},
 		{
 			name:    "Should resolve list with unicode quotes",
 			command: `edit SourceBindings “foo,bar”`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO and BAR messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO and BAR messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"foo", "bar"},
 		},
 		{
 			name:    "Should resolve list which has mixed formatting for different items, all at once",
 			command: `edit SourceBindings foo baz "bar,xyz" "fiz"`,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO, BAZ, BAR, XYZ, and FIZ messages. Expect BotKube restart soon...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO, BAZ, BAR, XYZ, and FIZ messages. Expect BotKube reload soon...",
 			sourceBindings: []string{"foo", "baz", "bar", "xyz", "fiz"},
 		},
 	}

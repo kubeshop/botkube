@@ -274,20 +274,6 @@ func run() error {
 		})
 	}
 
-	// Start Config Watcher
-	if conf.Settings.ConfigWatcher {
-		cfgWatcher := controller.NewConfigWatcher(
-			logger.WithField(componentLogFieldKey, "Config Watcher"),
-			confDetails.CfgFilesToWatch,
-			conf.Settings.ClusterName,
-			notifiers,
-		)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return cfgWatcher.Do(ctx, cancelCtxFn)
-		})
-	}
-
 	recommFactory := recommendation.NewFactory(logger.WithField(componentLogFieldKey, "Recommendations"), dynamicCli)
 
 	// Create and start controller

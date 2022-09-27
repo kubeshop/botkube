@@ -98,7 +98,35 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
+        {{- if .Values.settings.configWatcher }}
+        - name: cfg-watcher
+          image: pkosiec/botkube-test:k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kiwigrid/k8s-sidecar/pull/217
+          env:
+            - name: FOLDER
+              value: "/tmp/"
+            - name: RESOURCE
+              value: "both"
+            - name: LOG_LEVEL
+              value: "DEBUG"
+            - name: LABEL
+              value: "botkube.io/config-watch"
+            - name: LABEL_VALUE
+              value: "true"
+            - name: REQ_URL
+              value: "http://{{ include "botkube.fullname" . }}:{{.Values.settings.lifecycleServer.port}}/reload"
+            - name: REQ_IGNORE_INITIAL_EVENT
+              value: "true"
+            - name: REQ_METHOD
+              value: "POST"
+            - name: IGNORE_ALREADY_PROCESSED
+              value: "true"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp/
+        {{- end }}
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: config-volume
           projected:
             sources:

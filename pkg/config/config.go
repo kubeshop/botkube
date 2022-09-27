@@ -547,7 +547,6 @@ type PathsGetter func() []string
 
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
-	CfgFilesToWatch  []string
 	ValidateWarnings error
 }
 
@@ -594,7 +593,6 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	return &cfg, LoadWithDefaultsDetails{
-		CfgFilesToWatch:  getCfgFilesToWatch(configPaths),
 		ValidateWarnings: result.Warnings.ErrorOrNil(),
 	}, nil
 }
@@ -648,22 +646,6 @@ func sortCfgFiles(paths []string) []string {
 	}
 
 	return append(ordinaryCfgFiles, specialCfgFiles...)
-}
-
-// getCfgFilesToWatch excludes the files that has specialIgnoredConfigFileNamePrefix from the paths.
-func getCfgFilesToWatch(paths []string) []string {
-	var filesToWatch []string
-	for _, path := range paths {
-		_, filename := filepath.Split(path)
-
-		if strings.HasPrefix(filename, specialIgnoredConfigFileNamePrefix) {
-			continue
-		}
-
-		filesToWatch = append(filesToWatch, path)
-	}
-
-	return filesToWatch
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.

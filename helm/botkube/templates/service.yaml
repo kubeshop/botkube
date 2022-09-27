@@ -13,7 +13,7 @@ spec:
   type: ClusterIP
   ports:
   {{- if .Values.settings.lifecycleServer.enabled }}
-    - name: {{ .Values.settings.lifecycleServer.serviceName }}
+    - name: "lifecycle"
       port: {{ .Values.settings.lifecycleServer.port }}
       targetPort: {{ .Values.settings.lifecycleServer.port }}
   {{- end }}

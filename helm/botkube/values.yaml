@@ -267,6 +267,7 @@ executors:
 
 
 # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
+# To reload BotKube once it changes, add label `botkube.io/config-watch: "true"`.
 ## Secret format:
 ##  stringData:
 ##    comm_config.yaml: |
@@ -487,7 +488,6 @@ settings:
   lifecycleServer:
     enabled: true
     port: 2113
-    serviceName: botkube-lifecycle
   # -- If true, notifies about new BotKube releases.
   upgradeNotifier: true
   ## BotKube logging settings.
@@ -508,7 +508,7 @@ settings:
       configMap:
         name: botkube-startup-config
         annotations: {}
-      fileName: "__startup_state.yaml"
+      fileName: "_startup_state.yaml"
     runtime:
       configMap:
         name: botkube-runtime-config

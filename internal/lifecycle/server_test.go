@@ -2,6 +2,6 @@ package lifecycle
 
 import "testing"
 
-func TestNewRestartHandler(t *testing.T) {
+func TestNewReloadHandler(t *testing.T) {
 	t.Fail()
 }

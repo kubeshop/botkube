@@ -270,42 +270,18 @@ func TestIsNamespaceAllowed(t *testing.T) {
 	}
 }
 
-func TestGetCfgFilesToWatch(t *testing.T) {
-	tests := map[string]struct {
-		input    []string
-		expected []string
-	}{
-		"No special files": {
-			input:    []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/__bar/baz.yaml"},
-			expected: []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/__bar/baz.yaml"},
-		},
-		"Special files should be ignored": {
-			input:    []string{"_test.yaml", "config.yaml", "__foo.yaml", ".bar.yaml", "/bar/__baz.yaml", "/baz/_qux.yaml"},
-			expected: []string{"_test.yaml", "config.yaml", ".bar.yaml", "/baz/_qux.yaml"},
-		},
-	}
-
-	for name, test := range tests {
-		name, test := name, test
-		t.Run(name, func(t *testing.T) {
-			actual := config.GetCfgFilesToWatch(test.input)
-			assert.Equal(t, test.expected, actual)
-		})
-	}
-}
-
 func TestSortCfgFiles(t *testing.T) {
 	tests := map[string]struct {
 		input    []string
 		expected []string
 	}{
 		"No special files": {
-			input:    []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/__bar/baz.yaml"},
-			expected: []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/__bar/baz.yaml"},
+			input:    []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/_bar/baz.yaml"},
+			expected: []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/_bar/baz.yaml"},
 		},
 		"Special files": {
-			input:    []string{"_test.yaml", "config.yaml", "_foo.yaml", "__foo.yaml", ".bar.yaml", "/bar/__baz.yaml", "/bar/_baz.yaml"},
-			expected: []string{"config.yaml", ".bar.yaml", "_test.yaml", "_foo.yaml", "__foo.yaml", "/bar/__baz.yaml", "/bar/_baz.yaml"},
+			input:    []string{"_test.yaml", "config.yaml", "_foo.yaml", ".bar.yaml", "/bar/_baz.yaml"},
+			expected: []string{"config.yaml", ".bar.yaml", "_test.yaml", "_foo.yaml", "/bar/_baz.yaml"},
 		},
 	}
 
