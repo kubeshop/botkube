@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	controllerStartMsg = "And now my watch begins for cluster '%s'! :crossed_swords:"
+	controllerStartMsg = "My watch begins for cluster '%s'! :crossed_swords:"
 	controllerStopMsg  = "My watch has ended for cluster '%s'. See you soon! :crossed_fingers:"
 
 	finalMessageTimeout = 20 * time.Second
