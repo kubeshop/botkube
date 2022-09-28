@@ -187,6 +187,52 @@ func (s *slackTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 	return s.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
+func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
+	var fetchedMessages []slack.Message
+	var lastErr error
+	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
+			ChannelID: channelID, Limit: 1,
+		})
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+
+		fetchedMessages = historyRes.Messages
+		for _, msg := range historyRes.Messages {
+			if msg.User != userID {
+				continue
+			}
+
+			if len(msg.Files) != 1 {
+				return false, nil
+			}
+
+			upload := msg.Files[0]
+			if !assertFn(upload.Title, upload.Mimetype) {
+				// different message
+				return false, nil
+			}
+
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if lastErr == nil {
+		lastErr = errors.New("message assertion function returned false")
+	}
+	if err != nil {
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error

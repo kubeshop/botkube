@@ -24,6 +24,7 @@ var structDumper = litter.Options{
 
 type MessageAssertion func(content string) bool
 type AttachmentAssertion func(title, color, msg string) bool
+type FileUploadAssertion func(title, mimetype string) bool
 
 type Channel interface {
 	ID() string
@@ -53,6 +54,7 @@ type BotDriver interface {
 	WaitForLastMessageEqual(userID, channel, expectedMsg string) error
 	WaitForMessagePosted(userID, channel string, limitMessages int, assertFn MessageAssertion) error
 	WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error
+	WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error
 	WaitForMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
 	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
 	Channel() Channel
