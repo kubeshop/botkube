@@ -292,16 +292,17 @@ func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 		},
 		Message: trimmedMsg,
 	})
-	return b.convertInteractiveMessage(e.Execute())
+	return b.convertInteractiveMessage(e.Execute(), false)
 }
 
-func (b *Teams) convertInteractiveMessage(in interactive.Message) (int, string) {
+func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown bool) (int, string) {
 	out := interactive.MessageToMarkdown(b.mdFormatter, in)
 	actualLength := len(out)
 
-	if actualLength >= maxMessageSize {
+	if !forceMarkdown && actualLength >= maxMessageSize {
 		return actualLength, interactive.MessageToPlaintext(in, interactive.NewlineFormatter)
 	}
+
 	return actualLength, out
 }
 
@@ -369,11 +370,11 @@ func (b *Teams) SendMessage(ctx context.Context, msg interactive.Message) error 
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		_, plaintext := b.convertInteractiveMessage(msg)
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
+		_, converted := b.convertInteractiveMessage(msg, true)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, converted)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-				return turn.SendActivity(coreActivity.MsgOptionText(plaintext))
+				return turn.SendActivity(coreActivity.MsgOptionText(converted))
 			},
 		})
 		if err != nil {
