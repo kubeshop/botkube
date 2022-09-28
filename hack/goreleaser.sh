@@ -100,15 +100,15 @@ build() {
 }
 
 build_single() {
-  export GORELEASER_CURRENT_TAG=v9.99.9-dev
+  export IMAGE_TAG=v9.99.9-dev
   docker run --rm --privileged \
     -v "$PWD":/go/src/github.com/kubeshop/botkube \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -w /go/src/github.com/kubeshop/botkube \
-    -e GORELEASER_CURRENT_TAG=${GORELEASER_CURRENT_TAG} \
+    -e IMAGE_TAG=${IMAGE_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
     goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube -o "./botkube"
-  docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
+  docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
   rm "$PWD/botkube"
 }
 
