@@ -289,7 +289,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
 	response := e.Execute()
-	err = b.send(event, request, response, response.OnlyVisibleForYou)
+	err = b.send(event, request, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -297,7 +297,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 	return nil
 }
 
-func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactive.Message, onlyVisibleToUser bool) error {
+func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactive.Message) error {
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
@@ -341,7 +341,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
 
-	if onlyVisibleToUser {
+	if resp.OnlyVisibleForYou && event.User != "" {
 		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
