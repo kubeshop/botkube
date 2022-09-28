@@ -499,7 +499,9 @@ type Commands struct {
 
 // CfgWatcher describes configuration for watching the configuration.
 type CfgWatcher struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled            bool          `yaml:"enabled"`
+	InitialSyncTimeout time.Duration `yaml:"initialSyncTimeout"`
+	TmpDir             string        `yaml:"tmpDir"`
 }
 
 // Settings contains BotKube's related configuration.

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"log"
 	"net/http"
 	"os"
@@ -258,6 +259,22 @@ func run() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return lifecycleSrv.Serve(ctx)
 		})
+	}
+
+	if conf.ConfigWatcher.Enabled {
+		err := config.WaitForWatcherSync(
+			ctx,
+			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),
+			conf.ConfigWatcher,
+		)
+		if err != nil {
+			if err != wait.ErrWaitTimeout {
+				return reportFatalError("while waiting for Config Watcher sync", err)
+			}
+
+			// non-blocking error, move forward
+			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running BotKube...")
+		}
 	}
 
 	// Send help message

@@ -72,6 +72,8 @@ spec:
           {{ end }}
             - name: cache
               mountPath: "/.kube/cache"
+            - name: cfg-watcher-tmp
+              mountPath: {{ .Values.configWatcher.tmpDir }}
           env:
             - name: BOTKUBE_CONFIG_PATHS
               value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
@@ -104,11 +106,13 @@ spec:
           imagePullPolicy: "{{ .Values.configWatcher.image.pullPolicy }}"
           env:
             - name: FOLDER
-              value: "/tmp/"
+              value: {{ .Values.configWatcher.tmpDir }}
             - name: RESOURCE
               value: "both"
             - name: LOG_LEVEL
               value: "DEBUG"
+            - name: NAMESPACE
+              value: "{{.Release.Namespace}}"
             - name: LABEL
               value: "botkube.io/config-watch"
             - name: LABEL_VALUE
@@ -122,11 +126,11 @@ spec:
             - name: IGNORE_ALREADY_PROCESSED
               value: "true"
           volumeMounts:
-            - name: tmp
-              mountPath: /tmp/
+            - name: cfg-watcher-tmp
+              mountPath: {{ .Values.configWatcher.tmpDir }}
         {{- end }}
       volumes:
-        - name: tmp
+        - name: cfg-watcher-tmp
           emptyDir: {}
         - name: config-volume
           projected:
