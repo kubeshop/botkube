@@ -65,7 +65,7 @@ jobs:
           echo ::set-output name=branch::$CURRENT_BRANCH
 
   process-chart:
-    if: ${{ (!contains(github.event.commits[0].message, '[skip-ci]')) && (needs.next-rc.outputs.new-rc-version != "") }}
+    if: ${{ (!contains(github.event.commits[0].message, '[skip-ci]')) && (needs.next-rc.outputs.new-rc-version != '') }}
     needs: next-rc
     uses: ./.github/workflows/process-chart.yml
     with:
