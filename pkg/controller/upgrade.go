@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/notifier"
 	"time"
 
 	"github.com/google/go-github/v44/github"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 

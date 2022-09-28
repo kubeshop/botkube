@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	editedSourcesMsgFmt  = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube reload soon..."
-	unknownSourcesMsgFmt = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
+	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube reload soon..."
+	editedSourcesMsgWithoutReloadFmt = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes."
+	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
 
 // EditResource defines the name of editable resource
@@ -150,11 +151,20 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 	if userID == "" {
 		userID = "Anonymous"
 	}
+
 	return interactive.Message{
 		Base: interactive.Base{
-			Description: fmt.Sprintf(editedSourcesMsgFmt, userID, sourceList),
+			Description: e.getEditedSourceBindingsMsg(userID, sourceList),
 		},
 	}, nil
+}
+
+func (e *EditExecutor) getEditedSourceBindingsMsg(userID, sourceList string) string {
+	if !e.cfg.ConfigWatcher.Enabled {
+		return fmt.Sprintf(editedSourcesMsgWithoutReloadFmt, userID, sourceList)
+	}
+
+	return fmt.Sprintf(editedSourcesMsgFmt, userID, sourceList)
 }
 
 func (e *EditExecutor) generateUnknownMessage(unknown []string) interactive.Message {

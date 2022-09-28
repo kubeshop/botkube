@@ -27,6 +27,7 @@ type Notifier interface {
 	Type() config.IntegrationType
 }
 
+// SendPlaintextMessage sends a plaintext message to specified providers.
 func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string) error {
 	if msg == "" {
 		return fmt.Errorf("message cannot be empty")

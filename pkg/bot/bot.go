@@ -2,10 +2,10 @@ package bot
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/notifier"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.

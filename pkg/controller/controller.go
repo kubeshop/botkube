@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/notifier"
 	"strings"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/kubeshop/botkube/pkg/utils"
@@ -198,16 +198,16 @@ func (c *Controller) Start(ctx context.Context) error {
 			}
 		})
 
-	c.startTime = time.Now()
-	stopCh := ctx.Done()
-
-	c.dynamicKubeInformerFactory.Start(stopCh)
-
 	c.log.Info("Sending welcome message...")
 	err = notifier.SendPlaintextMessage(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}
+
+	c.startTime = time.Now()
+
+	stopCh := ctx.Done()
+	c.dynamicKubeInformerFactory.Start(stopCh)
 
 	<-stopCh
 

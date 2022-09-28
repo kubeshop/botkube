@@ -98,9 +98,10 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
-        {{- if .Values.settings.configWatcher }}
+        {{- if .Values.configWatcher.enabled }}
         - name: cfg-watcher
-          image: pkosiec/botkube-test:k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kiwigrid/k8s-sidecar/pull/217
+          image: "{{ .Values.configWatcher.image.registry }}/{{ .Values.configWatcher.image.repository }}:{{ .Values.configWatcher.image.tag }}"
+          imagePullPolicy: "{{ .Values.configWatcher.image.pullPolicy }}"
           env:
             - name: FOLDER
               value: "/tmp/"

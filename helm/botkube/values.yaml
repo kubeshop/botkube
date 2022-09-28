@@ -481,8 +481,6 @@ communications:
 settings:
   # -- Cluster name to differentiate incoming messages.
   clusterName: not-configured
-  # -- If true, restarts the BotKube Pod on config changes.
-  configWatcher: true
 
   # -- Server configuration which exposes functionality related to the app lifecycle.
   lifecycleServer:
@@ -695,6 +693,20 @@ analytics:
   # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
   # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
   disable: false
+
+## Parameters for the config watcher container.
+configWatcher:
+  # -- If true, restarts the BotKube Pod on config changes.
+  enabled: true
+  image:
+    # -- Config watcher image registry.
+    registry: ghcr.io
+    # -- Config watcher image repository.
+    repository: kubeshop/k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kubeshop/k8s-sidecar/pull/1
+    # -- Config watcher image tag.
+    tag: ignore-initial-events
+    # -- Config watcher image pull policy.
+    pullPolicy: IfNotPresent
 
 ## Parameters for the test container with E2E tests.
 e2eTest:

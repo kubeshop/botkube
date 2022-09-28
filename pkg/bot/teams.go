@@ -553,5 +553,9 @@ func replaceEmojiTagsWithActualOne(content string) string {
 
 // emojiMapping holds mapping between emoji tags and actual ones.
 var emojiMapping = map[string]string{
-	":rocket:": "🚀",
+	":rocket:":                  "🚀",
+	":white_check_mark:":        "✅",
+	":arrows_counterclockwise:": "🔄",
+	":crossed_fingers:":         "🤞",
+	":exclamation:":             "❗",
 }

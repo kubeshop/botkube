@@ -25,12 +25,11 @@ var defaultConfiguration []byte
 var configPathsFlag []string
 
 const (
-	configEnvVariablePrefix            = "BOTKUBE_"
-	configDelimiter                    = "."
-	camelCaseDelimiter                 = "__"
-	nestedFieldDelimiter               = "_"
-	specialConfigFileNamePrefix        = "_"
-	specialIgnoredConfigFileNamePrefix = "__"
+	configEnvVariablePrefix     = "BOTKUBE_"
+	configDelimiter             = "."
+	camelCaseDelimiter          = "__"
+	nestedFieldDelimiter        = "_"
+	specialConfigFileNamePrefix = "_"
 )
 
 const (
@@ -130,8 +129,9 @@ type Config struct {
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
 	Filters        Filters                   `yaml:"filters"`
 
-	Analytics Analytics `yaml:"analytics"`
-	Settings  Settings  `yaml:"settings"`
+	Analytics     Analytics  `yaml:"analytics"`
+	Settings      Settings   `yaml:"settings"`
+	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -497,10 +497,14 @@ type Commands struct {
 	Resources []string `yaml:"resources"`
 }
 
+// CfgWatcher describes configuration for watching the configuration.
+type CfgWatcher struct {
+	Enabled bool `yaml:"enabled"`
+}
+
 // Settings contains BotKube's related configuration.
 type Settings struct {
 	ClusterName      string           `yaml:"clusterName"`
-	ConfigWatcher    bool             `yaml:"configWatcher"`
 	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`
 	SystemConfigMap  K8sResourceRef   `yaml:"systemConfigMap"`
 	PersistentConfig PersistentConfig `yaml:"persistentConfig"`
@@ -514,6 +518,7 @@ type Settings struct {
 	Kubeconfig            string        `yaml:"kubeconfig"`
 }
 
+// LifecycleServer contains configuration for the server with app lifecycle methods.
 type LifecycleServer struct {
 	Enabled    bool           `yaml:"enabled"`
 	Port       int            `yaml:"port"` // String for consistency

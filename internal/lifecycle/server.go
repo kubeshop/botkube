@@ -2,13 +2,14 @@ package lifecycle
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
-	"time"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
@@ -16,11 +17,13 @@ import (
 
 const (
 	k8sDeploymentRestartPatchFmt = `{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`
-	reloadMsgFmt                 = "Configuration reload requested for cluster '%s'. I shall halt my watch till I read it."
+	reloadMsgFmt                 = ":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec..."
 )
 
+// SendMessageFn defines a function which sends a given message.
 type SendMessageFn func(msg string) error
 
+// NewServer creates a new httpsrv.Server that exposes lifecycle methods as HTTP endpoints.
 func NewServer(log logrus.FieldLogger, k8sCli kubernetes.Interface, cfg config.LifecycleServer, clusterName string, sendMsgFn SendMessageFn) *httpsrv.Server {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	router := mux.NewRouter()
@@ -58,6 +61,9 @@ func newReloadHandler(log logrus.FieldLogger, k8sCli kubernetes.Interface, deplo
 		}
 
 		writer.WriteHeader(http.StatusOK)
-		writer.Write([]byte(fmt.Sprintf(`Deployment "%s/%s" restarted successfully.`, deploy.Namespace, deploy.Name)))
+		_, err = writer.Write([]byte(fmt.Sprintf(`Deployment "%s/%s" restarted successfully.`, deploy.Namespace, deploy.Name)))
+		if err != nil {
+			log.Errorf("while writing success response: %s", err.Error())
+		}
 	}
 }
