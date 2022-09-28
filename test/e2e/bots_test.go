@@ -416,6 +416,28 @@ func runBotTest(t *testing.T,
 				assert.NoError(t, err)
 			})
 		})
+
+		k8sPrefixTests := []string{"kubectl", "kc", "k"}
+		for _, prefix := range k8sPrefixTests {
+			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
+				command := fmt.Sprintf("%s get pods", prefix)
+				assertionFn := func(msg string) bool {
+					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
+					containAllColumn := true
+					for _, cn := range headerColumnNames {
+						if !strings.Contains(msg, cn) {
+							containAllColumn = false
+						}
+					}
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+						containAllColumn
+				}
+
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				assert.NoError(t, err)
+			})
+		}
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
