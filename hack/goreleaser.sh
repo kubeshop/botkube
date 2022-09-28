@@ -124,24 +124,12 @@ build_single_e2e(){
   rm "$PWD/botkube-e2e.test"
 }
 
-release() {
-  prepare
-  if [ -z ${GITHUB_TOKEN} ]
-  then
-    echo "Missing GITHUB_TOKEN."
-    exit 1
-  fi
-  goreleaser release --parallelism=1 --rm-dist
-}
-
-
 usage() {
     cat <<EOM
 Usage: ${0} [build|release|release_snapshot]
 Where,
   build: Builds project with goreleaser without pushing images.
   release_snapshot: Builds project without publishing release. It builds and pushes BotKube image with v9.99.9-dev image tag.
-  release: Makes and published release to GitHub
 EOM
     exit 1
 }
@@ -156,9 +144,6 @@ case "${1}" in
     ;;
   build_single_e2e)
     build_single_e2e
-    ;;
-  release)
-    release
     ;;
   release_snapshot)
     release_snapshot

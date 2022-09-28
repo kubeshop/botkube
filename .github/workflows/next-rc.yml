@@ -1,0 +1,75 @@
+name: Prepare next release candidate
+
+on:
+  push:
+    branches:
+      - release-*
+env:
+  GIT_USER: github-actions[bot]
+  GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+  HELM_DOCS_VERSION: 1.11.0
+
+concurrency:
+  group: next-rc
+
+jobs:
+  next-rc:
+    if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
+    outputs:
+      release-version: ${{ steps.next-rc.outputs.release-version }}
+      new-rc-version: ${{ steps.next-rc.outputs.new-rc-version }}
+      commit-msg: ${{ steps.next-rc.outputs.commit-msg }}
+      branch: ${{ steps.next-rc.outputs.branch }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config user.name "${{ env.GIT_USER }}"
+          git config user.email ${{ env.GIT_EMAIL }}
+
+      - name: Prepare the next release candidate
+        shell: bash
+        id: next-rc
+        run: |
+          COMMIT_MSG=$(git show -s --format=%s)
+          CURRENT_BRANCH=$(git branch --show-current)
+          git fetch --all
+          git fetch origin "refs/notes/*:refs/notes/*"
+          BASE_TAG=$(git log --pretty=format:"%N" --show-notes="${CURRENT_BRANCH}" | awk NF | awk -F',' '{ print $2 }' | awk -F': ' '{ print $2 }')
+          echo "Base tag for branch: $CURRENT_BRANCH is $BASE_TAG"
+          REMOTE_TAG=$(git ls-remote --tags origin $BASE_TAG)
+          echo "Remote tag is $REMOTE_TAG for base tag: $BASE_TAG"
+          if [ -n "$REMOTE_TAG" ]; then
+              echo "${BASE_TAG} is already in remote, maybe you may want to create a patch release for ${BASE_TAG}..."
+              exit 0
+          fi
+          echo "Finding latest release candidate for $BASE_TAG..." 
+          LATEST_RELEASE_TAG=$(git ls-remote --tags origin | grep "refs/tags/${BASE_TAG}" | grep -v "\^{}" | awk -F \. '{print $4}' | sort -nr | head -1) || true
+          if [ -z "$LATEST_RELEASE_TAG" ]; then
+            LATEST_RELEASE_TAG=0  
+          fi
+          echo "Final release candidate for $BASE_TAG is $LATEST_RELEASE_TAG."
+          NEW_RELEASE_REVISION=$(( $LATEST_RELEASE_TAG + 1 ))
+          echo "New release candidate revision for $BASE_TAG is $NEW_RELEASE_REVISION."
+          NEW_RELEASE_VERSION="${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
+          echo "Latest release-candidate tag found: ${BASE_TAG}-rc.${LATEST_RELEASE_TAG}, creating: ${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
+
+          echo ::set-output name=release-version::$BASE_TAG
+          echo ::set-output name=new-rc-version::$NEW_RELEASE_VERSION
+          echo ::set-output name=commit-msg::$COMMIT_MSG
+          echo ::set-output name=branch::$CURRENT_BRANCH
+
+  process-chart:
+    if: ${{ (!contains(github.event.commits[0].message, '[skip-ci]')) && (needs.next-rc.outputs.new-rc-version != '') }}
+    needs: next-rc
+    uses: ./.github/workflows/process-chart.yml
+    with:
+      release-branch: ${{ needs.next-rc.outputs.branch }}
+      next-version: ${{ needs.next-rc.outputs.new-rc-version }}
+    secrets:
+      gh-token: ${{ secrets.GH_TOKEN }}

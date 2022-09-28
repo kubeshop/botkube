@@ -1,0 +1,35 @@
+name: Finalize release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Version of the release to finalize (e.g. v0.15.0)
+        required: true
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  extract-metadata:
+    name: Extract release metadata for ${{ inputs.version }}
+    runs-on: ubuntu-22.04
+    outputs:
+      base-version: ${{ steps.extract.outputs.base-version}}
+    steps:
+      - name: Extract
+        id: extract
+        run: |
+          BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
+          echo ::set-output name=base-version::$BASE_VERSION
+
+  process-chart:
+    needs: [extract-metadata]
+    uses: ./.github/workflows/process-chart.yml
+    with:
+      release-branch: release-${{ needs.extract-metadata.outputs.base-version }}
+      next-version: ${{ inputs.version }}
+    secrets:
+      gh-token: ${{ secrets.GH_TOKEN }}

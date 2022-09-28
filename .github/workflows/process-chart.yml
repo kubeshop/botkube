@@ -1,0 +1,101 @@
+name: Process chart
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+  HELM_DOCS_VERSION: 1.11.0
+  CHART_REPOSITORY: https://charts.botkube.io/
+
+on:
+  workflow_call:
+    inputs:
+      release-branch:
+        type: string
+        description: Base branch for release
+        required: true
+      next-version:
+        type: string
+        description: Next version in Chart files
+        required: true
+    outputs:
+      new-version:
+        description: New version for chart
+        value: ${{ jobs.process-chart.outputs.new-version }}
+    secrets:
+      gh-token:
+        description: Github access token
+        required: true
+
+jobs:
+  process-chart:
+    name: Process & Push Chart Updates
+    runs-on: ubuntu-22.04
+    outputs:
+      new-version: ${{ inputs.next-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.release-branch }}
+          token: ${{ secrets.gh-token }}
+          fetch-depth: 0
+
+      - name: Set git 'user.name' and 'user.email'
+        run: |
+          git config --global user.name "${{ env.git-user }}"
+          git config --global user.email ${{ env.git-email }}
+
+      - name: Update Chart Version in YAML Files
+        run: |
+          HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
+          CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
+          CHART_DEV_VERSION="v9.99.9-dev"
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ inputs.next-version }}/g" {} +
+          # TODO: values.yml is updated also other workflows that adds v9.99.9-dev, for now we replace them also, in the future we can remove below line. 
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${{ inputs.next-version }}/g" {} +
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.2.1
+
+      - name: Run chart-testing
+        working-directory: ${{ github.workspace }}/helm
+        run: |
+          ct lint --all --chart-dirs . --config ./ct/lint-cfg.yaml --lint-conf ./ct/lint-rules.yaml
+
+      - name: Install helm-docs
+        run: |
+          cd /tmp
+          wget https://github.com/norwoodj/helm-docs/releases/download/v${{env.HELM_DOCS_VERSION}}/helm-docs_${{env.HELM_DOCS_VERSION}}_Linux_x86_64.tar.gz
+          tar -xvf helm-docs_${{env.HELM_DOCS_VERSION}}_Linux_x86_64.tar.gz
+          sudo mv helm-docs /usr/local/sbin
+
+      - name: Process Helm Docs
+        working-directory: ${{ github.workspace }}/helm/botkube
+        run: |
+          helm-docs -l debug -f ./values.yaml -t ./README.tpl.md --sort-values-order file
+
+      - name: Tag & Push Chart Changes
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            git commit -am "[skip-ci] Helm chart update for ${{ inputs.next-version }}"
+            git push origin ${{ inputs.release-branch }}
+          fi
+          git tag -a ${{ inputs.next-version }} -m "${{ inputs.next-version }}"
+          git push --tags
+
+      - name: Checkout to gh-pages for Helm
+        uses: actions/checkout@v3
+        with:
+          path: chart
+          ref: gh-pages
+          token: ${{ secrets.gh-token }}
+
+      - name: Publish Chart
+        run: |
+          helm package -d ${{ github.workspace }}/chart ./helm/botkube
+          cd ${{ github.workspace }}/chart
+          helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ./index.yaml .
+          git add .
+          git commit -m "${{ inputs.next-version }} BotKube Helm chart release"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.gh-token }}
