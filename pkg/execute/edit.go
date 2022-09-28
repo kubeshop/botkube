@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube reload soon..."
+	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube reload in a few seconds..."
 	editedSourcesMsgWithoutReloadFmt = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes."
 	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
