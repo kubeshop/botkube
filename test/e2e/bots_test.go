@@ -420,7 +420,7 @@ func runBotTest(t *testing.T,
 		k8sPrefixTests := []string{"kubectl", "kc", "k"}
 		for _, prefix := range k8sPrefixTests {
 			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
-				command := fmt.Sprintf("%s get pods", prefix)
+				command := fmt.Sprintf("%s get pods --namespace %s", prefix, appCfg.Deployment.Namespace)
 				assertionFn := func(msg string) bool {
 					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
 					containAllColumn := true

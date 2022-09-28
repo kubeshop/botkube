@@ -108,14 +108,15 @@ func (e *Kubectl) GetCommandPrefix(args []string) string {
 	return args[0]
 }
 
-// GetCommandWithoutAlias gets command without k8s alias.
-func (e *Kubectl) GetCommandWithoutAlias(msg string) string {
+// getArgsWithoutAlias gets command without k8s alias.
+func (e *Kubectl) getArgsWithoutAlias(msg string) []string {
 	msgParts := strings.Fields(strings.TrimSpace(msg))
+
 	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
-		return strings.Join(msgParts[1:], " ")
+		return msgParts[1:]
 	}
 
-	return msg
+	return msgParts
 }
 
 // Execute executes kubectl command based on a given args.
@@ -123,9 +124,7 @@ func (e *Kubectl) GetCommandWithoutAlias(msg string) string {
 // This method should be called ONLY if:
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
-func (e *Kubectl) Execute(bindings []string, message string, isAuthChannel bool) (string, error) {
-	command := e.GetCommandWithoutAlias(message)
-
+func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool) (string, error) {
 	log := e.log.WithFields(logrus.Fields{
 		"isAuthChannel": isAuthChannel,
 		"command":       command,
@@ -134,7 +133,7 @@ func (e *Kubectl) Execute(bindings []string, message string, isAuthChannel bool)
 	log.Debugf("Handling command...")
 
 	var (
-		args        = strings.Fields(strings.TrimSpace(command))
+		args        = e.getArgsWithoutAlias(command)
 		clusterName = e.cfg.Settings.ClusterName
 		verb        = args[0]
 		resource    = e.getResourceName(args)

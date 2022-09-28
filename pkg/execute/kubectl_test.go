@@ -567,7 +567,7 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 	}
 }
 
-func TestKubectlGetCommandWithoutAlias(t *testing.T) {
+func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 	tests := []struct {
 		name     string
 		command  string
@@ -613,9 +613,9 @@ func TestKubectlGetCommandWithoutAlias(t *testing.T) {
 			kcChecker := kubectl.NewChecker(nil)
 			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
 
-			verb := executor.GetCommandWithoutAlias(tc.command)
+			verb := executor.getArgsWithoutAlias(tc.command)
 
-			assert.Equal(t, tc.expected, verb)
+			assert.Equal(t, tc.expected, strings.Join(verb, " "))
 		})
 	}
 }
