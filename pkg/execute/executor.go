@@ -215,7 +215,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, e.notifierHandler.BotName())
 		},
 		"feedback": func() (interactive.Message, error) {
-			return interactive.Feedback(e.notifierHandler.BotName()), nil
+			return interactive.Feedback(), nil
 		},
 	}
 
