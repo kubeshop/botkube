@@ -527,17 +527,17 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 		{
 			name:     "Should get proper command with k8s prefix kubectl",
 			command:  "kubectl get pods --cluster-name test",
-			expected: "{kubectl} get",
+			expected: "kubectl get",
 		},
 		{
 			name:     "Should get proper command with k8s prefix kc",
 			command:  "kc get pods --cluster-name test",
-			expected: "{kc} get",
+			expected: "kc get",
 		},
 		{
 			name:     "Should get proper command with k8s prefix k",
 			command:  "k get pods --cluster-name test",
-			expected: "{k} get",
+			expected: "k get",
 		},
 	}
 	logger, _ := logtest.NewNullLogger()
