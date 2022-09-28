@@ -102,7 +102,7 @@ func (e *Kubectl) GetCommandPrefix(args []string) string {
 	}
 
 	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
-		return fmt.Sprintf("{%s} %s", args[0], args[1])
+		return fmt.Sprintf("%s %s", args[0], args[1])
 	}
 
 	return args[0]
