@@ -17,11 +17,6 @@ on:
         type: string
         description: Next version in Chart files
         required: true
-      skip-tagging:
-        type: boolean
-        description: To skip tagging after processing chart
-        required: false
-        default: false
     outputs:
       new-version:
         description: New version for chart

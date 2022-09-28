@@ -31,30 +31,5 @@ jobs:
     with:
       release-branch: release-${{ needs.extract-metadata.outputs.base-version }}
       next-version: ${{ inputs.version }}
-      skip-tagging: true
     secrets:
       gh-token: ${{ secrets.GH_TOKEN }}
-
-  finalize-release:
-    needs: [process-chart, extract-metadata]
-    name: Finalize release ${{ inputs.version }}
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: release-${{ needs.extract-metadata.outputs.base-version }}
-          token: ${{ secrets.GH_TOKEN }}
-          fetch-depth: 0
-
-      - name: Set git 'user.name' and 'user.email'
-        run: |
-          git config user.name "${{ env.git-user }}"
-          git config user.email ${{ env.git-email }}
-
-      - name: Push Tags (Patch Release)
-        if: ${{ !endsWith(inputs.version, '.0') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          git tag -a ${{ inputs.version }} -m "${{ inputs.version }}"
-          git push origin ${{ inputs.version }}
