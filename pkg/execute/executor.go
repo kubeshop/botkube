@@ -166,11 +166,8 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		// Currently the verb is always at the first place of `args`, and, in a result, `finalArgs`.
-		// The length of the slice was already checked before
-		// See the DefaultExecutor.Execute() logic.
-		verb := args[0]
-		err := e.analyticsReporter.ReportCommand(e.platform, verb)
+		cmdPrefix := e.kubectlExecutor.GetCommandPrefix(args)
+		err := e.analyticsReporter.ReportCommand(e.platform, cmdPrefix)
 		if err != nil {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}

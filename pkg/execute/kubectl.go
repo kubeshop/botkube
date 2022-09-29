@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
@@ -22,6 +23,8 @@ const (
 	kubectlFlagAfterVerbMsg            = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
 	kubectlDefaultNamespace            = "default"
 )
+
+var kubectlAlias = []string{"kubectl", "kc", "k"}
 
 // resourcelessCommands holds all commands that don't specify resources directly. For example:
 // - kubectl logs foo
@@ -47,6 +50,7 @@ type Kubectl struct {
 	kcChecker *kubectl.Checker
 	cmdRunner CommandCombinedOutputRunner
 	merger    *kubectl.Merger
+	alias     []string
 }
 
 // NewKubectl creates a new instance of Kubectl.
@@ -57,6 +61,7 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merge
 		merger:    merger,
 		kcChecker: kcChecker,
 		cmdRunner: fn,
+		alias:     kubectlAlias,
 	}
 }
 
@@ -69,12 +74,49 @@ func (e *Kubectl) CanHandle(bindings []string, args []string) bool {
 		return false
 	}
 
+	// TODO Later first argument will be always kubectl alias so we can use it to check if this command is for k8s
+	// For now we support both approach @botkube get pods and @botkube kubectl|kc|k get pods
+	kcVerb := e.GetVerb(args)
+
 	// Check if such kubectl verb is enabled
-	if !e.kcChecker.IsKnownVerb(e.merger.MergeAllEnabledVerbs(bindings), args[0]) {
-		return false
+	return e.kcChecker.IsKnownVerb(e.merger.MergeAllEnabledVerbs(bindings), kcVerb)
+}
+
+// GetVerb gets verb command for k8s ignoring k8s alias prefix.
+func (e *Kubectl) GetVerb(args []string) string {
+	if len(args) == 0 {
+		return ""
 	}
 
-	return true
+	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
+		return args[1]
+	}
+
+	return args[0]
+}
+
+// GetCommandPrefix gets verb command with k8s alias prefix.
+func (e *Kubectl) GetCommandPrefix(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
+		return fmt.Sprintf("%s %s", args[0], args[1])
+	}
+
+	return args[0]
+}
+
+// getArgsWithoutAlias gets command without k8s alias.
+func (e *Kubectl) getArgsWithoutAlias(msg string) []string {
+	msgParts := strings.Fields(strings.TrimSpace(msg))
+
+	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
+		return msgParts[1:]
+	}
+
+	return msgParts
 }
 
 // Execute executes kubectl command based on a given args.
@@ -91,7 +133,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	log.Debugf("Handling command...")
 
 	var (
-		args        = strings.Fields(strings.TrimSpace(command))
+		args        = e.getArgsWithoutAlias(command)
 		clusterName = e.cfg.Settings.ClusterName
 		verb        = args[0]
 		resource    = e.getResourceName(args)
@@ -110,7 +152,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	if !isAuthChannel && kcConfig.RestrictAccess {
 		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
-		return e.omitIfIfWeAreNotExplicitlyTargetCluster(log, command, msg)
+		return e.omitIfWeAreNotExplicitlyTargetCluster(log, command, msg)
 	}
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
@@ -144,9 +186,9 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	return out, nil
 }
 
-// omitIfIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
+// omitIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
-func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg string) (string, error) {
+func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg string) (string, error) {
 	if utils.GetClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
 		return verboseMsg, nil
 	}
@@ -159,8 +201,8 @@ func (e *Kubectl) omitIfIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd
 //
 //	https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
 //
-// Further refactoring in needed. For example, the cluster flag should be removed by an upper layer as it's strictly
-// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.)
+// Further refactoring in needed. For example, the cluster flag should be removed by an upper layer
+// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.).
 func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string
