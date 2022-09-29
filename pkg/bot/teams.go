@@ -33,17 +33,18 @@ import (
 //  - review all the methods and see if they can be simplified.
 
 const (
-	defaultPort      = "3978"
-	longRespNotice   = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
-	convTypePersonal = "personal"
-	maxMessageSize   = 15700
-	contentTypeCard  = "application/vnd.microsoft.card.adaptive"
-	contentTypeFile  = "application/vnd.microsoft.teams.card.file.consent"
-	responseFileName = "response.txt"
-
+	defaultPort        = "3978"
+	longRespNotice     = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
+	convTypePersonal   = "personal"
+	contentTypeCard    = "application/vnd.microsoft.card.adaptive"
+	contentTypeFile    = "application/vnd.microsoft.teams.card.file.consent"
+	responseFileName   = "response.txt"
 	activityFileUpload = "fileUpload"
 	activityAccept     = "accept"
 	activityUploadInfo = "uploadInfo"
+
+	// teamsMaxMessageSize max size before a message should be uploaded as a file.
+	teamsMaxMessageSize = 15700
 )
 
 var _ Bot = &Teams{}
@@ -174,7 +175,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	err = b.Adapter.ProcessActivity(ctx, activity, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
 			n, resp := b.processMessage(turn.Activity)
-			if n >= maxMessageSize {
+			if n >= teamsMaxMessageSize {
 				if turn.Activity.Conversation.ConversationType == convTypePersonal {
 					// send file upload request
 					attachments := []schema.Attachment{
@@ -192,7 +193,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 					}
 					return turn.SendActivity(coreActivity.MsgOptionAttachments(attachments))
 				}
-				resp = fmt.Sprintf("%s\n```\nCluster: %s\n%s", longRespNotice, b.ClusterName, resp[len(resp)-maxMessageSize:])
+				resp = fmt.Sprintf("%s\n```\nCluster: %s\n%s", longRespNotice, b.ClusterName, resp[len(resp)-teamsMaxMessageSize:])
 			}
 			return turn.SendActivity(coreActivity.MsgOptionText(resp))
 		},
@@ -299,7 +300,7 @@ func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown 
 	out := interactive.MessageToMarkdown(b.mdFormatter, in)
 	actualLength := len(out)
 
-	if !forceMarkdown && actualLength >= maxMessageSize {
+	if !forceMarkdown && actualLength >= teamsMaxMessageSize {
 		return actualLength, interactive.MessageToPlaintext(in, interactive.NewlineFormatter)
 	}
 

@@ -32,6 +32,8 @@ const (
 	WebSocketProtocol = "ws://"
 	// WebSocketSecureProtocol stores protocol initials for web socket
 	WebSocketSecureProtocol = "wss://"
+	// mattermostMaxMessageSize max size before a message should be uploaded as a file.
+	mattermostMaxMessageSize = 3990
 
 	httpsScheme                  = "https"
 	mattermostBotMentionRegexFmt = "^@(?i)%s"
@@ -252,7 +254,7 @@ func (mm mattermostMessage) sendMessage(b *Mattermost, resp interactive.Message)
 	}
 
 	// Create file if message is too large
-	if len(markdown) >= 3990 {
+	if len(markdown) >= mattermostMaxMessageSize {
 		uploadResponse, _, err := mm.APIClient.UploadFileAsRequestBody(
 			[]byte(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
 			mm.Event.GetBroadcast().ChannelId,
