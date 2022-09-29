@@ -152,27 +152,27 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [analytics.disable](./values.yaml#L695) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
 | [configWatcher.enabled](./values.yaml#L700) | bool | `true` | If true, restarts the BotKube Pod on config changes. |
 | [configWatcher.tmpDir](./values.yaml#L702) | string | `"/tmp/watched-cfg/"` | Directory, where watched configuration resources are stored. |
-| [configWatcher.initialSyncTimeout](./values.yaml#L704) | string | `"10s"` | Timeout for the initial Config Watcher sync. If set to 0, waiting for Config Watcher sync will be skipped. |
-| [configWatcher.image.registry](./values.yaml#L707) | string | `"ghcr.io"` | Config watcher image registry. |
-| [configWatcher.image.repository](./values.yaml#L709) | string | `"kubeshop/k8s-sidecar"` | Config watcher image repository. |
-| [configWatcher.image.tag](./values.yaml#L711) | string | `"ignore-initial-events"` | Config watcher image tag. |
-| [configWatcher.image.pullPolicy](./values.yaml#L713) | string | `"IfNotPresent"` | Config watcher image pull policy. |
-| [e2eTest.image.registry](./values.yaml#L719) | string | `"ghcr.io"` | Test runner image registry. |
-| [e2eTest.image.repository](./values.yaml#L721) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
-| [e2eTest.image.pullPolicy](./values.yaml#L723) | string | `"IfNotPresent"` | Test runner image pull policy. |
-| [e2eTest.image.tag](./values.yaml#L725) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
-| [e2eTest.deployment](./values.yaml#L727) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
-| [e2eTest.slack.botName](./values.yaml#L732) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.slack.testerName](./values.yaml#L734) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.slack.testerAppToken](./values.yaml#L736) | string | `""` | Slack tester application token that interacts with BotKube bot. |
-| [e2eTest.slack.additionalContextMessage](./values.yaml#L738) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.slack.messageWaitTimeout](./values.yaml#L740) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
-| [e2eTest.discord.botName](./values.yaml#L743) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
-| [e2eTest.discord.testerName](./values.yaml#L745) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
-| [e2eTest.discord.guildID](./values.yaml#L747) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
-| [e2eTest.discord.testerAppToken](./values.yaml#L749) | string | `""` | Discord tester application token that interacts with BotKube bot. |
-| [e2eTest.discord.additionalContextMessage](./values.yaml#L751) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
-| [e2eTest.discord.messageWaitTimeout](./values.yaml#L753) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [configWatcher.initialSyncTimeout](./values.yaml#L705) | int | `0` | Timeout for the initial Config Watcher sync. If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload BotKube app during the first few seconds after BotKube startup. |
+| [configWatcher.image.registry](./values.yaml#L708) | string | `"ghcr.io"` | Config watcher image registry. |
+| [configWatcher.image.repository](./values.yaml#L710) | string | `"kubeshop/k8s-sidecar"` | Config watcher image repository. |
+| [configWatcher.image.tag](./values.yaml#L712) | string | `"ignore-initial-events"` | Config watcher image tag. |
+| [configWatcher.image.pullPolicy](./values.yaml#L714) | string | `"IfNotPresent"` | Config watcher image pull policy. |
+| [e2eTest.image.registry](./values.yaml#L720) | string | `"ghcr.io"` | Test runner image registry. |
+| [e2eTest.image.repository](./values.yaml#L722) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
+| [e2eTest.image.pullPolicy](./values.yaml#L724) | string | `"IfNotPresent"` | Test runner image pull policy. |
+| [e2eTest.image.tag](./values.yaml#L726) | string | `"v9.99.9-dev"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
+| [e2eTest.deployment](./values.yaml#L728) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
+| [e2eTest.slack.botName](./values.yaml#L733) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.slack.testerName](./values.yaml#L735) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.slack.testerAppToken](./values.yaml#L737) | string | `""` | Slack tester application token that interacts with BotKube bot. |
+| [e2eTest.slack.additionalContextMessage](./values.yaml#L739) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.slack.messageWaitTimeout](./values.yaml#L741) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
+| [e2eTest.discord.botName](./values.yaml#L744) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
+| [e2eTest.discord.testerName](./values.yaml#L746) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
+| [e2eTest.discord.guildID](./values.yaml#L748) | string | `""` | Discord Guild ID (discord server ID) used to run e2e tests |
+| [e2eTest.discord.testerAppToken](./values.yaml#L750) | string | `""` | Discord tester application token that interacts with BotKube bot. |
+| [e2eTest.discord.additionalContextMessage](./values.yaml#L752) | string | `""` | Additional message that is sent by Tester. You can pass e.g. pull request number or source link where these tests are run from. |
+| [e2eTest.discord.messageWaitTimeout](./values.yaml#L754) | string | `"1m"` | Message wait timeout. It defines how long we wait to ensure that notification were not sent when disabled. |
 
 ### AWS IRSA on EKS support
 

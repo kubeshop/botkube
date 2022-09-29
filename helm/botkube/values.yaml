@@ -700,8 +700,9 @@ configWatcher:
   enabled: true
   # -- Directory, where watched configuration resources are stored.
   tmpDir: "/tmp/watched-cfg/"
-  # -- Timeout for the initial Config Watcher sync. If set to 0, waiting for Config Watcher sync will be skipped.
-  initialSyncTimeout: 10s
+  # -- Timeout for the initial Config Watcher sync.
+  # If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload BotKube app during the first few seconds after BotKube startup.
+  initialSyncTimeout: 0
   image:
     # -- Config watcher image registry.
     registry: ghcr.io
