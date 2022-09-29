@@ -23,6 +23,9 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
+// slackMaxMessageSize max size before a message should be uploaded as a file.
+const slackMaxMessageSize = 3990
+
 var _ Bot = &Slack{}
 
 var attachmentColor = map[config.Level]string{
@@ -257,8 +260,8 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 	}
 
 	// Upload message as a file if too long
-	if len(markdown) >= 3990 {
-		return sendMessageWithFileUpload(msg.Channel, resp, b.client)
+	if len(markdown) >= slackMaxMessageSize {
+		return uploadFileToSlack(msg.Channel, resp, b.client)
 	}
 
 	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
@@ -370,20 +373,13 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func sendMessageWithFileUpload(channel string, resp interactive.Message, client *slack.Client) error {
-	uploadMsgOpts := []slack.MsgOption{
-		slack.MsgOptionText(resp.Description, false),
-		slack.MsgOptionAsUser(true),
-	}
-	if _, _, err := client.PostMessage(channel, uploadMsgOpts...); err != nil {
-		return fmt.Errorf("while posting attachment message: %w", err)
-	}
-
+func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) error {
 	params := slack.FileUploadParameters{
-		Filename: "Response.txt",
-		Title:    "Response.txt",
-		Content:  interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels: []string{channel},
+		Filename:       "Response.txt",
+		Title:          "Response.txt",
+		InitialComment: resp.Description,
+		Content:        interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:       []string{channel},
 	}
 
 	_, err := client.UploadFile(params)

@@ -24,13 +24,16 @@ import (
 
 var _ Bot = &Discord{}
 
-// customTimeFormat holds custom time format string.
 const (
+	// customTimeFormat holds custom time format string.
 	customTimeFormat = "2006-01-02T15:04:05Z"
 
 	// discordBotMentionRegexFmt supports also nicknames (the exclamation mark).
 	// Read more: https://discordjs.guide/miscellaneous/parsing-mention-arguments.html#how-discord-mentions-work
 	discordBotMentionRegexFmt = "^<@!?%s>"
+
+	// discordMaxMessageSize max size before a message should be uploaded as a file.
+	discordMaxMessageSize = 2000
 )
 
 var embedColor = map[config.Level]int{
@@ -269,13 +272,9 @@ func (b *Discord) send(event *discordgo.MessageCreate, req string, resp interact
 	}
 
 	// Upload message as a file if too long
-	if len(markdown) >= 2000 {
-		if _, err := b.api.ChannelMessageSend(event.ChannelID, resp.Description); err != nil {
-			return fmt.Errorf("while sending attachment message: %w", err)
-		}
-
+	if len(markdown) >= discordMaxMessageSize {
 		params := &discordgo.MessageSend{
-			Content: req,
+			Content: resp.Description,
 			Files: []*discordgo.File{
 				{
 					Name:   "Response.txt",
