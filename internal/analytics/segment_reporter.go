@@ -17,9 +17,13 @@ import (
 const (
 	kubeSystemNSName  = "kube-system"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
+)
 
-	typedCommand  = "typed"
-	buttonCommand = "buttonClick"
+type commandOrigin string
+
+const (
+	buttonClickCommandOrigin commandOrigin = "buttonClick"
+	typedCommandOrigin       commandOrigin = "typed"
 )
 
 var (
@@ -63,9 +67,9 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string, isInteractiveOrigin bool) error {
-	origin := typedCommand
+	origin := typedCommandOrigin
 	if isInteractiveOrigin {
-		origin = buttonCommand
+		origin = buttonClickCommandOrigin
 	}
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": platform,
