@@ -52,7 +52,7 @@ type ConfigPersistenceManager interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, isInteractiveOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -93,7 +93,7 @@ type Conversation struct {
 	ID                  string
 	ExecutorBindings    []string
 	IsAuthenticated     bool
-	IsInteractiveOrigin bool
+	IsButtonClickOrigin bool
 }
 
 // NewDefaultInput an input for NewDefault

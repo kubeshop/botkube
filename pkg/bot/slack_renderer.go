@@ -14,6 +14,11 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
+const (
+	urlButtonActionIDPrefix = "url:"
+	cmdButtonActionIDPrefix = "cmd:"
+)
+
 // SlackRenderer provides functionality to render Slack specific messages from a generic models.
 type SlackRenderer struct {
 	notification config.Notification
@@ -231,9 +236,9 @@ func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement 
 
 func (b *SlackRenderer) genBtnActionID(btn interactive.Button) string {
 	if btn.Command != "" {
-		return "cmd:" + btn.Command
+		return cmdButtonActionIDPrefix + btn.Command
 	}
-	return "url:" + btn.URL
+	return urlButtonActionIDPrefix + btn.URL
 }
 
 func (*SlackRenderer) mdTextSection(in string, args ...any) *slack.SectionBlock {

@@ -14,7 +14,7 @@ type Reporter interface {
 	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface) error
 
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, isInteractiveOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
 
 	// ReportBotEnabled reports an enabled bot.
 	ReportBotEnabled(platform config.CommPlatformIntegration) error
