@@ -71,7 +71,8 @@ type Teams struct {
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
-	mdFormatter        interactive.MDFormatter
+	longFormatter      interactive.MDFormatter
+	shortFormatter     interactive.MDFormatter
 
 	botName      string
 	AppID        string
@@ -102,7 +103,9 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 	if msgPath == "" {
 		msgPath = "/"
 	}
-	mdFormatter := interactive.NewMDFormatter(mdLineFormatter, interactive.DefaultMDHeaderFormatter)
+	longFormatter := interactive.NewMDFormatter(longLineFormatter, interactive.DefaultMDHeaderFormatter)
+	shortFormatter := interactive.NewMDFormatter(shortLineFormatter, interactive.DefaultMDHeaderFormatter)
+
 	return &Teams{
 		log:             log,
 		executorFactory: executorFactory,
@@ -118,7 +121,8 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		Port:            port,
 		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
-		mdFormatter:     mdFormatter,
+		longFormatter:   longFormatter,
+		shortFormatter:  shortFormatter,
 	}, nil
 }
 
@@ -299,9 +303,9 @@ func (b *Teams) convertInteractiveMessage(in interactive.Message) string {
 	if in.HasSections() {
 		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
 		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		return interactive.MessageToMarkdown(b.mdFormatter, in)
+		return interactive.MessageToMarkdown(b.longFormatter, in)
 	}
-	return interactive.MessageToMarkdown(b.mdFormatter, in)
+	return interactive.MessageToMarkdown(b.shortFormatter, in)
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -536,12 +540,18 @@ func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
 	return botMentionRegex, nil
 }
 
-// MSTeamsLineFmt represents new line formatting for MS Teams.
+// longLineFormatter represents new line formatting for MS Teams where message has multiple sections.
 // Unfortunately, it's different from all others integrations.
-func mdLineFormatter(msg string) string {
+func longLineFormatter(msg string) string {
 	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
 	msg = replaceEmojiTagsWithActualOne(msg)
 	return fmt.Sprintf("%s<br>", msg)
+}
+
+func shortLineFormatter(msg string) string {
+	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
+	msg = replaceEmojiTagsWithActualOne(msg)
+	return fmt.Sprintf("%s\n", msg)
 }
 
 // replaceEmojiTagsWithActualOne replaces the emoji tag with actual emoji.
@@ -553,5 +563,9 @@ func replaceEmojiTagsWithActualOne(content string) string {
 
 // emojiMapping holds mapping between emoji tags and actual ones.
 var emojiMapping = map[string]string{
-	":rocket:": "🚀",
+	":rocket:":                  "🚀",
+	":white_check_mark:":        "✅",
+	":arrows_counterclockwise:": "🔄",
+	":crossed_fingers:":         "🤞",
+	":exclamation:":             "❗",
 }

@@ -7,6 +7,7 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+    botkube.io/config-watch: "true"
 data:
   global_config.yaml: |
     executors:
@@ -20,6 +21,9 @@ data:
 
     filters:
       {{- .Values.filters | toYaml | nindent 6 }}
+
+    configWatcher:
+      {{- .Values.configWatcher | toYaml | nindent 6 }}
 
     analytics:
       disable: {{ .Values.analytics.disable }}

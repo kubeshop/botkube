@@ -389,7 +389,6 @@ analytics:
     disable: true
 settings:
     clusterName: cluster-name-from-env
-    configWatcher: true
     upgradeNotifier: true
     systemConfigMap:
         name: botkube-system
@@ -404,8 +403,16 @@ settings:
             configMap:
                 name: runtime-config
     metricsPort: "1313"
+    lifecycleServer:
+        enabled: false
+        port: 0
+        deployment: {}
     log:
         level: error
         disableColors: false
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env
+configWatcher:
+    enabled: false
+    initialSyncTimeout: 0s
+    tmpDir: ""

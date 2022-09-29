@@ -94,7 +94,6 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				    disable: false
 				settings:
 				    clusterName: foo
-				    configWatcher: false
 				    upgradeNotifier: false
 				    systemConfigMap: {}
 				    persistentConfig:
@@ -105,11 +104,19 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				            fileName: ""
 				            configMap: {}
 				    metricsPort: ""
+				    lifecycleServer:
+				        enabled: false
+				        port: 0
+				        deployment: {}
 				    log:
 				        level: ""
 				        disableColors: false
 				    informersResyncPeriod: 0s
 				    kubeconfig: ""
+				configWatcher:
+				    enabled: false
+				    initialSyncTimeout: 0s
+				    tmpDir: ""
 			`),
 			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},

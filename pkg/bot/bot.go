@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
 	BotName() string
-	controller.Notifier
+	notifier.Notifier
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.

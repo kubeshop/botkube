@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
@@ -27,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -36,6 +38,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
 	"github.com/kubeshop/botkube/pkg/sources"
@@ -159,7 +162,7 @@ func run() error {
 
 	commCfg := conf.Communications
 	var (
-		notifiers []controller.Notifier
+		notifiers []notifier.Notifier
 		bots      = map[string]bot.Bot{}
 	)
 
@@ -241,6 +244,39 @@ func run() error {
 		}
 	}
 
+	// Lifecycle server
+	if conf.Settings.LifecycleServer.Enabled {
+		lifecycleSrv := lifecycle.NewServer(
+			logger.WithField(componentLogFieldKey, "Lifecycle server"),
+			k8sCli,
+			conf.Settings.LifecycleServer,
+			conf.Settings.ClusterName,
+			func(msg string) error {
+				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+			},
+		)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return lifecycleSrv.Serve(ctx)
+		})
+	}
+
+	if conf.ConfigWatcher.Enabled {
+		err := config.WaitForWatcherSync(
+			ctx,
+			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),
+			conf.ConfigWatcher,
+		)
+		if err != nil {
+			if err != wait.ErrWaitTimeout {
+				return reportFatalError("while waiting for Config Watcher sync", err)
+			}
+
+			// non-blocking error, move forward
+			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running BotKube...")
+		}
+	}
+
 	// Send help message
 	helpDB := storage.NewForHelp(conf.Settings.SystemConfigMap.Namespace, conf.Settings.SystemConfigMap.Name, k8sCli)
 	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, bots)
@@ -261,20 +297,6 @@ func run() error {
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return upgradeChecker.Run(ctx)
-		})
-	}
-
-	// Start Config Watcher
-	if conf.Settings.ConfigWatcher {
-		cfgWatcher := controller.NewConfigWatcher(
-			logger.WithField(componentLogFieldKey, "Config Watcher"),
-			confDetails.CfgFilesToWatch,
-			conf.Settings.ClusterName,
-			notifiers,
-		)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return cfgWatcher.Do(ctx, cancelCtxFn)
 		})
 	}
 
