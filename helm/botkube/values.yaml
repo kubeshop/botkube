@@ -267,6 +267,7 @@ executors:
 
 
 # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
+# To reload BotKube once it changes, add label `botkube.io/config-watch: "true"`.
 ## Secret format:
 ##  stringData:
 ##    comm_config.yaml: |
@@ -480,8 +481,11 @@ communications:
 settings:
   # -- Cluster name to differentiate incoming messages.
   clusterName: not-configured
-  # -- If true, restarts the BotKube Pod on config changes.
-  configWatcher: true
+
+  # -- Server configuration which exposes functionality related to the app lifecycle.
+  lifecycleServer:
+    enabled: true
+    port: 2113
   # -- If true, notifies about new BotKube releases.
   upgradeNotifier: true
   ## BotKube logging settings.
@@ -502,7 +506,7 @@ settings:
       configMap:
         name: botkube-startup-config
         annotations: {}
-      fileName: "__startup_state.yaml"
+      fileName: "_startup_state.yaml"
     runtime:
       configMap:
         name: botkube-runtime-config
@@ -689,6 +693,25 @@ analytics:
   # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
   # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
   disable: false
+
+## Parameters for the config watcher container.
+configWatcher:
+  # -- If true, restarts the BotKube Pod on config changes.
+  enabled: true
+  # -- Directory, where watched configuration resources are stored.
+  tmpDir: "/tmp/watched-cfg/"
+  # -- Timeout for the initial Config Watcher sync.
+  # If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload BotKube app during the first few seconds after BotKube startup.
+  initialSyncTimeout: 0
+  image:
+    # -- Config watcher image registry.
+    registry: ghcr.io
+    # -- Config watcher image repository.
+    repository: kubeshop/k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kubeshop/k8s-sidecar/pull/1
+    # -- Config watcher image tag.
+    tag: ignore-initial-events
+    # -- Config watcher image pull policy.
+    pullPolicy: IfNotPresent
 
 ## Parameters for the test container with E2E tests.
 e2eTest:

@@ -15,6 +15,8 @@ metadata:
     {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate # RollingUpdate doesn't work with SocketSlack integration as it requires a single connection to Slack API.
   selector:
     matchLabels:
       component: controller
@@ -70,6 +72,8 @@ spec:
           {{ end }}
             - name: cache
               mountPath: "/.kube/cache"
+            - name: cfg-watcher-tmp
+              mountPath: {{ .Values.configWatcher.tmpDir }}
           env:
             - name: BOTKUBE_CONFIG_PATHS
               value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
@@ -85,6 +89,10 @@ spec:
               value: "{{.Release.Namespace}}"
             - name: BOTKUBE_SETTINGS_PERSISTENT__CONFIG_STARTUP_CONFIG__MAP_NAMESPACE
               value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAME
+              value: "{{ include "botkube.fullname" . }}"
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -92,7 +100,38 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
+        {{- if .Values.configWatcher.enabled }}
+        - name: cfg-watcher
+          image: "{{ .Values.configWatcher.image.registry }}/{{ .Values.configWatcher.image.repository }}:{{ .Values.configWatcher.image.tag }}"
+          imagePullPolicy: "{{ .Values.configWatcher.image.pullPolicy }}"
+          env:
+            - name: FOLDER
+              value: {{ .Values.configWatcher.tmpDir }}
+            - name: RESOURCE
+              value: "both"
+            - name: LOG_LEVEL
+              value: "DEBUG"
+            - name: NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: LABEL
+              value: "botkube.io/config-watch"
+            - name: LABEL_VALUE
+              value: "true"
+            - name: REQ_URL
+              value: "http://{{ include "botkube.fullname" . }}:{{.Values.settings.lifecycleServer.port}}/reload"
+            - name: REQ_IGNORE_INITIAL_EVENT
+              value: "true"
+            - name: REQ_METHOD
+              value: "POST"
+            - name: IGNORE_ALREADY_PROCESSED
+              value: "true"
+          volumeMounts:
+            - name: cfg-watcher-tmp
+              mountPath: {{ .Values.configWatcher.tmpDir }}
+        {{- end }}
       volumes:
+        - name: cfg-watcher-tmp
+          emptyDir: {}
         - name: config-volume
           projected:
             sources:

@@ -12,6 +12,7 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+    botkube.io/config-watch: "true"
 data:
   {{- $prevRuntimeCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $runtimeStateCfgMap | default dict }}
   {{- $prevRuntimeFile := index ( $prevRuntimeCfgMap.data | default dict ) .Values.settings.persistentConfig.runtime.fileName | default "" | fromYaml -}}
@@ -66,14 +67,13 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+    botkube.io/config-watch: "false" # Explicitly don't watch this ConfigMap
 data:
   {{- $prevStartupCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $startupStateCfgMap | default dict }}
   {{- $prevStartupFile := index ( $prevStartupCfgMap.data | default dict ) .Values.settings.persistentConfig.startup.fileName | default "" | fromYaml -}}
   {{- $mergedStartupCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.communications )) (mustDeepCopy .Values.communications) }}
   {{- $mergedStartupFilters := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.filters )) (mustDeepCopy (default (dict) .Values.filters)) }}
-  # This file has a special prefix to:
-  # - load it as the last config file during BotKube startup,
-  # - ignore it by Config Watcher.
+  # This file has a special prefix to load it as the last config file during BotKube startup.
   {{ .Values.settings.persistentConfig.startup.fileName }}: |
     communications:
     {{- range $commGroupName,$commGroup := $mergedStartupCommunications }}

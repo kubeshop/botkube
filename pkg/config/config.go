@@ -25,12 +25,11 @@ var defaultConfiguration []byte
 var configPathsFlag []string
 
 const (
-	configEnvVariablePrefix            = "BOTKUBE_"
-	configDelimiter                    = "."
-	camelCaseDelimiter                 = "__"
-	nestedFieldDelimiter               = "_"
-	specialConfigFileNamePrefix        = "_"
-	specialIgnoredConfigFileNamePrefix = "__"
+	configEnvVariablePrefix     = "BOTKUBE_"
+	configDelimiter             = "."
+	camelCaseDelimiter          = "__"
+	nestedFieldDelimiter        = "_"
+	specialConfigFileNamePrefix = "_"
 )
 
 const (
@@ -130,8 +129,9 @@ type Config struct {
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
 	Filters        Filters                   `yaml:"filters"`
 
-	Analytics Analytics `yaml:"analytics"`
-	Settings  Settings  `yaml:"settings"`
+	Analytics     Analytics  `yaml:"analytics"`
+	Settings      Settings   `yaml:"settings"`
+	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -497,20 +497,34 @@ type Commands struct {
 	Resources []string `yaml:"resources"`
 }
 
+// CfgWatcher describes configuration for watching the configuration.
+type CfgWatcher struct {
+	Enabled            bool          `yaml:"enabled"`
+	InitialSyncTimeout time.Duration `yaml:"initialSyncTimeout"`
+	TmpDir             string        `yaml:"tmpDir"`
+}
+
 // Settings contains BotKube's related configuration.
 type Settings struct {
 	ClusterName      string           `yaml:"clusterName"`
-	ConfigWatcher    bool             `yaml:"configWatcher"`
 	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`
-	SystemConfigMap  K8sConfigMapRef  `yaml:"systemConfigMap"`
+	SystemConfigMap  K8sResourceRef   `yaml:"systemConfigMap"`
 	PersistentConfig PersistentConfig `yaml:"persistentConfig"`
 	MetricsPort      string           `yaml:"metricsPort"`
+	LifecycleServer  LifecycleServer  `yaml:"lifecycleServer"`
 	Log              struct {
 		Level         string `yaml:"level"`
 		DisableColors bool   `yaml:"disableColors"`
 	} `yaml:"log"`
 	InformersResyncPeriod time.Duration `yaml:"informersResyncPeriod"`
 	Kubeconfig            string        `yaml:"kubeconfig"`
+}
+
+// LifecycleServer contains configuration for the server with app lifecycle methods.
+type LifecycleServer struct {
+	Enabled    bool           `yaml:"enabled"`
+	Port       int            `yaml:"port"` // String for consistency
+	Deployment K8sResourceRef `yaml:"deployment"`
 }
 
 // PersistentConfig contains configuration for persistent storage.
@@ -521,12 +535,12 @@ type PersistentConfig struct {
 
 // PartialPersistentConfig contains configuration for persistent storage of a given type.
 type PartialPersistentConfig struct {
-	FileName  string          `yaml:"fileName"`
-	ConfigMap K8sConfigMapRef `yaml:"configMap"`
+	FileName  string         `yaml:"fileName"`
+	ConfigMap K8sResourceRef `yaml:"configMap"`
 }
 
-// K8sConfigMapRef holds the configuration for a ConfigMap.
-type K8sConfigMapRef struct {
+// K8sResourceRef holds the configuration for a Kubernetes resource.
+type K8sResourceRef struct {
 	Name      string `yaml:"name,omitempty"`
 	Namespace string `yaml:"namespace,omitempty"`
 }
@@ -540,7 +554,6 @@ type PathsGetter func() []string
 
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
-	CfgFilesToWatch  []string
 	ValidateWarnings error
 }
 
@@ -587,7 +600,6 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	return &cfg, LoadWithDefaultsDetails{
-		CfgFilesToWatch:  getCfgFilesToWatch(configPaths),
 		ValidateWarnings: result.Warnings.ErrorOrNil(),
 	}, nil
 }
@@ -641,22 +653,6 @@ func sortCfgFiles(paths []string) []string {
 	}
 
 	return append(ordinaryCfgFiles, specialCfgFiles...)
-}
-
-// getCfgFilesToWatch excludes the files that has specialIgnoredConfigFileNamePrefix from the paths.
-func getCfgFilesToWatch(paths []string) []string {
-	var filesToWatch []string
-	for _, path := range paths {
-		_, filename := filepath.Split(path)
-
-		if strings.HasPrefix(filename, specialIgnoredConfigFileNamePrefix) {
-			continue
-		}
-
-		filesToWatch = append(filesToWatch, path)
-	}
-
-	return filesToWatch
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.

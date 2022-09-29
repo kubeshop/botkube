@@ -69,7 +69,7 @@ func (e *NotifierExecutor) Do(ctx context.Context, args []string, commGroupName 
 			cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
 		}
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(platform, cmdToReport)
+		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.IsButtonClickOrigin)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while reporting notifier command: %s", err.Error())

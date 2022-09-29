@@ -7,3 +7,4 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+    botkube.io/config-watch: "false" # Explicitly don't watch this ConfigMap
