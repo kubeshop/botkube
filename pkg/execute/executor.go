@@ -167,7 +167,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
 		cmdPrefix := e.kubectlExecutor.GetCommandPrefix(args)
-		err := e.analyticsReporter.ReportCommand(e.platform, cmdPrefix)
+		err := e.analyticsReporter.ReportCommand(e.platform, cmdPrefix, e.conversation.IsButtonClickOrigin)
 		if err != nil {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
@@ -242,7 +242,7 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(e.platform, cmdToReport)
+		err := e.analyticsReporter.ReportCommand(e.platform, cmdToReport, e.conversation.IsButtonClickOrigin)
 		if err != nil {
 			e.log.Errorf("while reporting filter command: %s", err.Error())
 		}
@@ -302,7 +302,7 @@ func (e *DefaultExecutor) runInfoCommand(args []string) (string, error) {
 		return "", errInvalidCommand
 	}
 
-	err := e.analyticsReporter.ReportCommand(e.platform, strings.Join(args, " "))
+	err := e.analyticsReporter.ReportCommand(e.platform, strings.Join(args, " "), e.conversation.IsButtonClickOrigin)
 	if err != nil {
 		e.log.Errorf("while reporting info command: %s", err.Error())
 	}
@@ -376,7 +376,7 @@ func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	err := e.analyticsReporter.ReportCommand(e.platform, cmd)
+	err := e.analyticsReporter.ReportCommand(e.platform, cmd, e.conversation.IsButtonClickOrigin)
 	if err != nil {
 		e.log.Errorf("while reporting version command: %s", err.Error())
 	}

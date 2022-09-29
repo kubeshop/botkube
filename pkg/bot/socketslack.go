@@ -33,7 +33,7 @@ var _ Bot = &SocketSlack{}
 type SocketSlack struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
-	reporter        FatalErrorAnalyticsReporter
+	reporter        socketSlackAnalyticsReporter
 	botID           string
 	client          *slack.Client
 	channelsMutex   sync.RWMutex
@@ -46,15 +46,22 @@ type SocketSlack struct {
 }
 
 type socketSlackMessage struct {
-	Text            string
-	Channel         string
-	ThreadTimeStamp string
-	User            string
-	TriggerID       string
+	Text                string
+	Channel             string
+	ThreadTimeStamp     string
+	User                string
+	TriggerID           string
+	IsButtonClickOrigin bool
+}
+
+// socketSlackAnalyticsReporter defines a reporter that collects analytics data.
+type socketSlackAnalyticsReporter interface {
+	FatalErrorAnalyticsReporter
+	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*SocketSlack, error) {
+func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -161,7 +168,11 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					}
 
 					act := callback.ActionCallback.BlockActions[0]
-					if act == nil || strings.HasPrefix(act.ActionID, "url:") {
+					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
+						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, true)
+						if reportErr != nil {
+							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
+						}
 						continue // skip the url actions
 					}
 
@@ -176,11 +187,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					}
 
 					msg := socketSlackMessage{
-						Text:            resolveBlockActionCommand(*act),
-						Channel:         channelID,
-						ThreadTimeStamp: callback.MessageTs,
-						TriggerID:       callback.TriggerID,
-						User:            callback.User.ID,
+						Text:                resolveBlockActionCommand(*act),
+						Channel:             channelID,
+						ThreadTimeStamp:     callback.MessageTs,
+						TriggerID:           callback.TriggerID,
+						User:                callback.User.ID,
+						IsButtonClickOrigin: true,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -193,9 +205,10 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:    resolveBlockActionCommand(act),
-								Channel: callback.View.PrivateMetadata,
-								User:    callback.User.ID,
+								Text:                resolveBlockActionCommand(act),
+								Channel:             callback.View.PrivateMetadata,
+								User:                callback.User.ID,
+								IsButtonClickOrigin: true,
 							}
 
 							if err := b.handleMessage(msg); err != nil {
@@ -280,10 +293,11 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
-			Alias:            channel.alias,
-			ID:               channel.Identifier(),
-			ExecutorBindings: channel.Bindings.Executors,
-			IsAuthenticated:  isAuthChannel,
+			Alias:               channel.alias,
+			ID:                  channel.Identifier(),
+			ExecutorBindings:    channel.Bindings.Executors,
+			IsAuthenticated:     isAuthChannel,
+			IsButtonClickOrigin: event.IsButtonClickOrigin,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
