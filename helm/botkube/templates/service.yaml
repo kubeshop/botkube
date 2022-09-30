@@ -13,9 +13,9 @@ spec:
   type: ClusterIP
   ports:
   {{- if .Values.settings.lifecycleServer.enabled }}
-    - name: "lifecycle"
-      port: {{ .Values.settings.lifecycleServer.port }}
-      targetPort: {{ .Values.settings.lifecycleServer.port }}
+  - name: "lifecycle"
+    port: {{ .Values.settings.lifecycleServer.port }}
+    targetPort: {{ .Values.settings.lifecycleServer.port }}
   {{- end }}
   {{- if .Values.serviceMonitor.enabled }}
   - name: {{ .Values.service.name }}

@@ -1,0 +1,7 @@
+Adjust notifications
+
+Select notification sources
+
+Available options:
+ - k8s-all-events
+ - k8s-recommendations

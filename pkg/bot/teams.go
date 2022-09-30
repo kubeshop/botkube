@@ -33,17 +33,18 @@ import (
 //  - review all the methods and see if they can be simplified.
 
 const (
-	defaultPort      = "3978"
-	longRespNotice   = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
-	convTypePersonal = "personal"
-	maxMessageSize   = 15700
-	contentTypeCard  = "application/vnd.microsoft.card.adaptive"
-	contentTypeFile  = "application/vnd.microsoft.teams.card.file.consent"
-	responseFileName = "response.txt"
-
+	defaultPort        = "3978"
+	longRespNotice     = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
+	convTypePersonal   = "personal"
+	contentTypeCard    = "application/vnd.microsoft.card.adaptive"
+	contentTypeFile    = "application/vnd.microsoft.teams.card.file.consent"
+	responseFileName   = "response.txt"
 	activityFileUpload = "fileUpload"
 	activityAccept     = "accept"
 	activityUploadInfo = "uploadInfo"
+
+	// teamsMaxMessageSize max size before a message should be uploaded as a file.
+	teamsMaxMessageSize = 15700
 )
 
 var _ Bot = &Teams{}
@@ -103,8 +104,9 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 	if msgPath == "" {
 		msgPath = "/"
 	}
-	longFormatter := interactive.NewMDFormatter(longLineFormatter, interactive.DefaultMDHeaderFormatter)
-	shortFormatter := interactive.NewMDFormatter(shortLineFormatter, interactive.DefaultMDHeaderFormatter)
+
+	longFormatter := interactive.NewMDFormatter(longLineFormatter, interactive.MdHeaderFormatter)
+	shortFormatter := interactive.NewMDFormatter(shortLineFormatter, interactive.MdHeaderFormatter)
 
 	return &Teams{
 		log:             log,
@@ -177,8 +179,8 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 
 	err = b.Adapter.ProcessActivity(ctx, activity, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			resp := b.processMessage(turn.Activity)
-			if len(resp) >= maxMessageSize {
+			n, resp := b.processMessage(turn.Activity)
+			if n >= teamsMaxMessageSize {
 				if turn.Activity.Conversation.ConversationType == convTypePersonal {
 					// send file upload request
 					attachments := []schema.Attachment{
@@ -196,7 +198,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 					}
 					return turn.SendActivity(coreActivity.MsgOptionAttachments(attachments))
 				}
-				resp = fmt.Sprintf("%s\n```\nCluster: %s\n%s", longRespNotice, b.ClusterName, resp[len(resp)-maxMessageSize:])
+				resp = fmt.Sprintf("%s\n```\nCluster: %s\n%s", longRespNotice, b.ClusterName, resp[len(resp)-teamsMaxMessageSize:])
 			}
 			return turn.SendActivity(coreActivity.MsgOptionText(resp))
 		},
@@ -239,7 +241,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			activity.Text = consentCtx.Command
-			resp := b.processMessage(activity)
+			_, resp := b.processMessage(activity)
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
 			if err != nil {
@@ -273,7 +275,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (b *Teams) processMessage(activity schema.Activity) string {
+func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 	trimmedMsg := b.trimBotMention(activity.Text)
 
 	// Multicluster is not supported for Teams
@@ -281,7 +283,7 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 	ref, err := b.getConversationReferenceFrom(activity)
 	if err != nil {
 		b.log.Errorf("while getting conversation reference: %s", err.Error())
-		return ""
+		return 0, ""
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
@@ -296,16 +298,27 @@ func (b *Teams) processMessage(activity schema.Activity) string {
 		},
 		Message: trimmedMsg,
 	})
-	return b.convertInteractiveMessage(e.Execute())
+	return b.convertInteractiveMessage(e.Execute(), false)
 }
 
-func (b *Teams) convertInteractiveMessage(in interactive.Message) string {
+func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown bool) (int, string) {
+	var out string
+
 	if in.HasSections() {
 		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
 		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		return interactive.MessageToMarkdown(b.longFormatter, in)
+		out = interactive.RenderMessage(b.longFormatter, in)
+	} else {
+		out = interactive.RenderMessage(b.shortFormatter, in)
 	}
-	return interactive.MessageToMarkdown(b.shortFormatter, in)
+
+	actualLength := len(out)
+
+	if !forceMarkdown && actualLength >= teamsMaxMessageSize {
+		return actualLength, interactive.MessageToPlaintext(in, interactive.NewlineFormatter)
+	}
+
+	return actualLength, out
 }
 
 func (b *Teams) putRequest(u string, data []byte) (err error) {
@@ -372,11 +385,11 @@ func (b *Teams) SendMessage(ctx context.Context, msg interactive.Message) error 
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
 
-		plaintext := b.convertInteractiveMessage(msg)
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
+		_, converted := b.convertInteractiveMessage(msg, true)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, converted)
 		err := b.Adapter.ProactiveMessage(ctx, convCfg.ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-				return turn.SendActivity(coreActivity.MsgOptionText(plaintext))
+				return turn.SendActivity(coreActivity.MsgOptionText(converted))
 			},
 		})
 		if err != nil {

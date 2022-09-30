@@ -79,7 +79,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
 		log:             log,
 		executorFactory: executorFactory,
@@ -315,24 +315,15 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	plaintext := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
-	if len(plaintext) == 0 {
+	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
+
 	// Upload message as a file if too long
-	if len(plaintext) >= 3990 {
-		params := slack.FileUploadParameters{
-			Filename: req,
-			Title:    req,
-			Content:  plaintext,
-			Channels: []string{event.Channel},
-		}
-		_, err := b.client.UploadFile(params)
-		if err != nil {
-			return fmt.Errorf("while uploading file: %w", err)
-		}
-		return nil
+	if len(markdown) >= slackMaxMessageSize {
+		return uploadFileToSlack(event.Channel, resp, b.client)
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)

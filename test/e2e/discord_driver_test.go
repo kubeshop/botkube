@@ -189,6 +189,57 @@ func (d *discordTester) WaitForInteractiveMessagePosted(userID, channelID string
 	return d.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
+func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
+	// To always receive message content:
+	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
+	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
+	// This setting has been enforced from August 31, 2022
+
+	var fetchedMessages []*discordgo.Message
+	var lastErr error
+
+	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
+		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+
+		fetchedMessages = messages
+		for _, msg := range messages {
+			if msg.Author.ID != userID {
+				continue
+			}
+
+			if len(msg.Attachments) != 1 {
+				lastErr = err
+				return false, nil
+			}
+
+			upload := msg.Attachments[0]
+			if !assertFn(upload.Filename, upload.ContentType) {
+				// different message
+				continue
+			}
+
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if lastErr == nil {
+		lastErr = errors.New("message assertion function returned false")
+	}
+	if err != nil {
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
@@ -251,14 +302,14 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 }
 
 func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
-	markdown := strings.TrimSpace(interactive.MessageToMarkdown(d.mdFormatter, msg))
+	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
 		return strings.EqualFold(markdown, msg)
 	})
 }
 
 func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
-	markdown := strings.TrimSpace(interactive.MessageToMarkdown(d.mdFormatter, msg))
+	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(markdown, msg)
 	})

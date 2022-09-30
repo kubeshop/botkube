@@ -23,6 +23,9 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
+// slackMaxMessageSize max size before a message should be uploaded as a file.
+const slackMaxMessageSize = 3990
+
 var _ Bot = &Slack{}
 
 var attachmentColor = map[config.Level]string{
@@ -78,7 +81,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, mdHeaderFormatter)
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &Slack{
 		log:             log,
 		executorFactory: executorFactory,
@@ -238,8 +241,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute()
-	plaintext := interactive.MessageToMarkdown(b.mdFormatter, response)
-	err = b.send(msg, request, plaintext, response.OnlyVisibleForYou)
+	err = b.send(msg, request, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -247,29 +249,22 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(msg slackMessage, req string, resp string, onlyVisibleToUser bool) error {
+func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onlyVisibleToUser bool) error {
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	if len(resp) == 0 {
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+
+	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
+
 	// Upload message as a file if too long
-	if len(resp) >= 3990 {
-		params := slack.FileUploadParameters{
-			Filename: req,
-			Title:    req,
-			Content:  resp,
-			Channels: []string{msg.Channel},
-		}
-		_, err := b.client.UploadFile(params)
-		if err != nil {
-			return fmt.Errorf("while uploading file: %w", err)
-		}
-		return nil
+	if len(markdown) >= slackMaxMessageSize {
+		return uploadFileToSlack(msg.Channel, resp, b.client)
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(resp, false), slack.MsgOptionAsUser(true)}
+	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.ThreadTimeStamp != "" {
@@ -333,7 +328,7 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
-	message := interactive.MessageToMarkdown(b.mdFormatter, msg)
+	message := interactive.RenderMessage(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
 		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)
@@ -376,4 +371,21 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 
 func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
+}
+
+func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) error {
+	params := slack.FileUploadParameters{
+		Filename:       "Response.txt",
+		Title:          "Response.txt",
+		InitialComment: resp.Description,
+		Content:        interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:       []string{channel},
+	}
+
+	_, err := client.UploadFile(params)
+	if err != nil {
+		return fmt.Errorf("while uploading file: %w", err)
+	}
+
+	return nil
 }
