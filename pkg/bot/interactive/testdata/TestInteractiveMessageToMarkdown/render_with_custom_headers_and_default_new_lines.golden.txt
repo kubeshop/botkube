@@ -14,7 +14,7 @@ If you are running multiple BotKube instances in the same channel to interact wi
   - `@BotKube notifier stop`
   - `@BotKube notifier status`
 
-*Notification types*
+*Notification settings for this channel*
 By default, BotKube will notify only about cluster errors and recommendations.
   - `@BotKube edit SourceBindings`
 

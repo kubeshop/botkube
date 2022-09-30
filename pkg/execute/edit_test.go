@@ -62,7 +62,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit SourceBindings "bar,xyz"`,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR` and `XYZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
@@ -70,7 +70,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: "edit sourcebindings “`bar`,xyz ”",
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR` and `XYZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
@@ -78,7 +78,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit sourceBindings bar,xyz `,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR` and `XYZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
@@ -86,7 +86,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit sourcebindings bar,       xyz, `,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR` and `XYZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 		{
@@ -94,7 +94,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit SourceBindings bar       xyz, "baz"`,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR, XYZ, and BAZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR`, `XYZ`, and `BAZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"bar", "xyz", "baz"},
 		},
 		{
@@ -102,7 +102,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit SourceBindings “foo,bar”`,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO and BAR messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `FOO` and `BAR` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"foo", "bar"},
 		},
 		{
@@ -110,7 +110,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit SourceBindings foo baz "bar,xyz" "fiz"`,
 			config:  cfg,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to FOO, BAZ, BAR, XYZ, and FIZ messages. Expect BotKube reload in a few seconds...",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `FOO`, `BAZ`, `BAR`, `XYZ`, and `FIZ` messages for this channel. Expect BotKube reload in a few seconds...",
 			sourceBindings: []string{"foo", "baz", "bar", "xyz", "fiz"},
 		},
 		{
@@ -118,7 +118,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			command: `edit SourceBindings "bar,xyz"`,
 			config:  cfgWithCfgWatcherDisabled,
 
-			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to BAR and XYZ messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes.",
+			message:        ":white_check_mark: Joe adjusted the BotKube notifications settings to `BAR` and `XYZ` messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes.",
 			sourceBindings: []string{"bar", "xyz"},
 		},
 	}
@@ -176,7 +176,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":exclamation: The 'something-else' source was not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
+					Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
 				},
 			},
 		},
@@ -187,7 +187,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":exclamation: The 'something-else' and 'other' sources were not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
+					Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
 				},
 			},
 		},
