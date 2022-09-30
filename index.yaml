@@ -2,8 +2,35 @@ apiVersion: v1
 entries:
   botkube:
   - apiVersion: v1
+    appVersion: v0.14.0-rc.1
+    created: "2022-09-30T10:17:25.963416847Z"
+    description: Controller for the BotKube Slack app which helps you monitor your
+      Kubernetes cluster, debug deployments and run specific checks on resources in
+      the cluster.
+    digest: 43bf47f91078178637c433b335271e0cffa0e1be33268929e57f1686dc07818c
+    home: https://botkube.io
+    icon: https://botkube.io/images/botkube.ico
+    keywords:
+    - botkube
+    - kubernetes
+    - kubernetes-monitoring
+    - kubernetes-controller
+    - kubernetes-bot
+    - chatops
+    - bot
+    - botops
+    maintainers:
+    - email: dev-team@botkube.io
+      name: BotKube Dev Team
+    name: botkube
+    sources:
+    - https://github.com/kubeshop/botkube
+    urls:
+    - https://charts.botkube.io/botkube-v0.14.0-rc.1.tgz
+    version: v0.14.0-rc.1
+  - apiVersion: v1
     appVersion: v0.13.0
-    created: "2022-08-29T14:21:37.917447+02:00"
+    created: "2022-09-30T10:17:25.960612934Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -30,7 +57,7 @@ entries:
     version: v0.13.0
   - apiVersion: v1
     appVersion: v0.13.0-rc.1
-    created: "2022-08-25T10:51:17.120551+02:00"
+    created: "2022-09-30T10:17:25.958593225Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -57,11 +84,11 @@ entries:
     version: v0.13.0-rc.1
   - apiVersion: v1
     appVersion: v0.12.4
-    created: "2022-07-05T16:49:31.15994+02:00"
+    created: "2022-09-30T10:17:25.956326914Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
-    digest: b776aac1f0c989996f2426fb321b8c262c93ec12547570b8f2bc7eeb3728af96
+    digest: 92322fd3a786a003685d0e34896db7b7166efe8e6faf768b033820dc34b6cd94
     home: https://www.botkube.io
     icon: https://www.botkube.io/images/botkube.ico
     keywords:
@@ -82,4 +109,4 @@ entries:
     urls:
     - https://charts.botkube.io/botkube-v0.12.4.tgz
     version: v0.12.4
-generated: "2022-08-29T14:21:37.91178+02:00"
+generated: "2022-09-30T10:17:25.954105004Z"
