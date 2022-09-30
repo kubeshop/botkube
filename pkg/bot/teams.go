@@ -307,9 +307,9 @@ func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown 
 	if in.HasSections() {
 		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
 		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		out = interactive.MessageToMarkdown(b.longFormatter, in)
+		out = interactive.RenderMessage(b.longFormatter, in)
 	} else {
-		out = interactive.MessageToMarkdown(b.shortFormatter, in)
+		out = interactive.RenderMessage(b.shortFormatter, in)
 	}
 
 	actualLength := len(out)

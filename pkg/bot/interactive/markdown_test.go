@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	formatx "github.com/kubeshop/botkube/pkg/format"
 	"gotest.tools/v3/golden"
 )
 
@@ -39,7 +40,7 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 	}
 
 	// when
-	out := MessageToMarkdown(DefaultMDFormatter(), message)
+	out := RenderMessage(DefaultMDFormatter(), message)
 
 	// then
 	golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))
@@ -51,7 +52,9 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 		newlineFormatter: func(msg string) string {
 			return fmt.Sprintf("%s<br>", msg)
 		},
-		headerFormatter: MdHeaderFormatter,
+		headerFormatter:            MdHeaderFormatter,
+		codeBlockFormatter:         formatx.CodeBlock,
+		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 
 	formatterForCustomHeaders := MDFormatter{
@@ -59,6 +62,8 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 		headerFormatter: func(msg string) string {
 			return fmt.Sprintf("*%s*", msg)
 		},
+		codeBlockFormatter:         formatx.CodeBlock,
+		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 	tests := []struct {
 		name        string
@@ -79,7 +84,7 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 			given := Help("platform", "testing", "@BotKube")
 
 			// when
-			out := MessageToMarkdown(tc.mdFormatter, given)
+			out := RenderMessage(tc.mdFormatter, given)
 
 			// then
 			golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))

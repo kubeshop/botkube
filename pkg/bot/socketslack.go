@@ -315,7 +315,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)

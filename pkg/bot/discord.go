@@ -157,7 +157,7 @@ func (b *Discord) SendMessage(_ context.Context, msg interactive.Message) error 
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
+		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %s", channelID, plaintext)
 
 		if _, err := b.api.ChannelMessageSend(channelID, plaintext); err != nil {
@@ -251,7 +251,7 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 	})
 
 	response := e.Execute()
-	//resp := interactive.MessageToMarkdown(b.mdFormatter, response)
+	//resp := interactive.RenderMessage(b.mdFormatter, response)
 	//err := b.send(dm.Event, req, resp)
 	err := b.send(dm.Event, req, response)
 	if err != nil {
@@ -265,7 +265,7 @@ func (b *Discord) send(event *discordgo.MessageCreate, req string, resp interact
 	b.log.Debugf("Discord incoming Request: %s", req)
 	b.log.Debugf("Discord Response: %s", resp)
 
-	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)

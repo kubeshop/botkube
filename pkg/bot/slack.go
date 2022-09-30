@@ -253,7 +253,7 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 	b.log.Debugf("Slack incoming Request: %s", req)
 	b.log.Debugf("Slack Response: %s", resp)
 
-	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
@@ -328,7 +328,7 @@ func (b *Slack) getChannelsToNotify(event events.Event, eventSources []string) [
 // SendMessage sends message to slack channel
 func (b *Slack) SendMessage(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
-	message := interactive.MessageToMarkdown(b.mdFormatter, msg)
+	message := interactive.RenderMessage(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
 		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)

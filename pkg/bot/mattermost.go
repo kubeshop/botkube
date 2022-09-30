@@ -246,7 +246,7 @@ func (mm mattermostMessage) sendMessage(b *Mattermost, resp interactive.Message)
 	mm.log.Debugf("Mattermost incoming Request: %s", mm.Request)
 	mm.log.Debugf("Mattermost Response: %s", resp)
 
-	markdown := interactive.MessageToMarkdown(b.mdFormatter, resp)
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
 		mm.log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
@@ -417,7 +417,7 @@ func (b *Mattermost) SendMessage(_ context.Context, msg interactive.Message) err
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
+		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
 		post := &model.Post{
 			ChannelId: channelID,

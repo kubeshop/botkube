@@ -13,3 +13,8 @@ func NewlineFormatter(msg string) string {
 func MdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("**%s**", msg)
 }
+
+// NoFormatting does not apply any formatting.
+func NoFormatting(msg string) string {
+	return msg
+}
