@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages. Expect BotKube reload in a few seconds..."
+	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages for this channel. Expect BotKube reload in a few seconds..."
 	editedSourcesMsgWithoutReloadFmt = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes."
 	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
@@ -147,7 +147,9 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 		return empty, fmt.Errorf("while persisting source bindings configuration: %w", err)
 	}
 
-	sourceList := english.OxfordWordSeries(e.mapToDisplayNames(sourceBindings), "and")
+	names := e.mapToDisplayNames(sourceBindings)
+	names = e.quoteEachItem(names)
+	sourceList := english.OxfordWordSeries(names, "and")
 	if userID == "" {
 		userID = "Anonymous"
 	}
@@ -304,7 +306,7 @@ func (e *EditExecutor) getUnknownInputSourceBindings(sources []string) []string 
 
 func (*EditExecutor) quoteEachItem(in []string) []string {
 	for idx := range in {
-		in[idx] = fmt.Sprintf("'%s'", in[idx])
+		in[idx] = fmt.Sprintf("`%s`", in[idx])
 	}
 	return in
 }
