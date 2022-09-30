@@ -251,8 +251,6 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 	})
 
 	response := e.Execute()
-	//resp := interactive.RenderMessage(b.mdFormatter, response)
-	//err := b.send(dm.Event, req, resp)
 	err := b.send(dm.Event, req, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
