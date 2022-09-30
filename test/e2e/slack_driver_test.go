@@ -5,6 +5,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"strings"
 	"testing"
 
@@ -17,6 +18,14 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
+
+var SlackAttachmentColorStatus = AttachmentStatus{
+	config.Info:     "2eb886",
+	config.Debug:    "2eb886",
+	config.Warn:     "daa038",
+	config.Error:    "a30200",
+	config.Critical: "a30200",
+}
 
 type SlackChannel struct {
 	*slack.Channel
@@ -307,6 +316,14 @@ func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
 	})
+}
+
+func (s *slackTester) GetColorByLevel(level config.Level) string {
+	if s.cfg.AttachmentStatus[level] != "" {
+		return s.cfg.AttachmentStatus[level]
+	}
+
+	return ""
 }
 
 func (s *slackTester) findUserID(t *testing.T, name string) string {

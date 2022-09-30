@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"github.com/kubeshop/botkube/pkg/config"
 	"regexp"
 	"testing"
 
@@ -64,4 +65,5 @@ type BotDriver interface {
 	TesterUserID() string
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.Message) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.Message) error
+	GetColorByLevel(level config.Level) string
 }

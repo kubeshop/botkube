@@ -5,6 +5,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,6 +19,14 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
+
+var DiscordAttachmentColorStatus = AttachmentStatus{
+	config.Info:     "8311585",
+	config.Debug:    "8311585",
+	config.Warn:     "16312092",
+	config.Error:    "13632027",
+	config.Critical: "13632027",
+}
 
 type DiscordChannel struct {
 	*discordgo.Channel
@@ -313,6 +322,14 @@ func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channel
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(markdown, msg)
 	})
+}
+
+func (d *discordTester) GetColorByLevel(level config.Level) string {
+	if d.cfg.AttachmentStatus[level] != "" {
+		return d.cfg.AttachmentStatus[level]
+	}
+
+	return ""
 }
 
 func (d *discordTester) findUserID(t *testing.T, name string) string {
