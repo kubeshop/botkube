@@ -17,7 +17,7 @@ image:
   # -- BotKube container image pull policy.
   pullPolicy: IfNotPresent
   # -- BotKube container image tag. Default tag is `appVersion` from Chart.yaml.
-  tag: v9.99.9-dev
+  tag: v0.14.0-rc.1
 
 # -- Configures Pod Security Policy to allow BotKube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
@@ -723,7 +723,7 @@ e2eTest:
     # -- Test runner image pull policy.
     pullPolicy: IfNotPresent
     # -- Test runner image tag. Default tag is `appVersion` from Chart.yaml.
-    tag: v9.99.9-dev
+    tag: v0.14.0-rc.1
   # -- Configures BotKube Deployment related data.
   deployment:
     waitTimeout: 3m
