@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	formatx "github.com/kubeshop/botkube/pkg/format"
 	"gotest.tools/v3/golden"
+
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 // go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
