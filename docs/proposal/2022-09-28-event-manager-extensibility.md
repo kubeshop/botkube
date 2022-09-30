@@ -24,11 +24,16 @@ General overview of the proposal and section with ToC
 
 <!-- tocstop -->
 ## Motivation
+Currently we have support for 5 integrations for BotKube and BotKube is designed to listen events from kubernetes
+and execute kubectl commands. In this design documentation, we aim to provide an architecture where end users can 
+extend BotKube to have their integrations with respective configurations.
 
 ### Goal
+1. Introduce a system for sources so that BotKube can accept events from sources other than Kubernetes.
+2. Introduce a system for executors so that BotKube can handle custom commands via extensions.
 
 ### Non-goal
-
+1. 
 ## Proposal
 
 ### User Story Name
