@@ -5,7 +5,6 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"strings"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 

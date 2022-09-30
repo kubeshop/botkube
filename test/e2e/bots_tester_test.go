@@ -3,13 +3,13 @@
 package e2e
 
 import (
-	"github.com/kubeshop/botkube/pkg/config"
 	"regexp"
 	"testing"
 
 	"github.com/sanity-io/litter"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const recentMessagesLimit = 6
