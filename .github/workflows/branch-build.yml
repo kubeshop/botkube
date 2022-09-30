@@ -61,6 +61,12 @@ jobs:
       contents: read
       packages: read
 
+    strategy:
+      matrix:
+        integration:
+          - slack
+          - discord
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -75,10 +81,10 @@ jobs:
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
 
-      - name: Create cluster
-        run: "k3d cluster create botkube --wait --timeout=5m"
+      - name: Create cluster to test ${{ matrix.integration }}
+        run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install BotKube
+      - name: Install BotKube to test ${{ matrix.integration }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -87,7 +93,9 @@ jobs:
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         run: |
-          helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
+          KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
+            helm install botkube \
+            --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
             --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
             --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
@@ -99,10 +107,15 @@ jobs:
             --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
             --set e2eTest.image.tag="${IMAGE_TAG}" \
             --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}" \
+            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}" \
             --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
             --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
-            --set e2eTest.discord.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+            --set e2eTest.discord.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
-      - name: Run tests
-        run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
+      - name: Run ${{ matrix.integration }} tests
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
+            helm test botkube \
+            --namespace botkube \
+            --timeout=$INTEGRATION_TESTS_TIMEOUT \
+            --logs
