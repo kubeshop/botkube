@@ -264,6 +264,7 @@ func runBotTest(t *testing.T,
 			          - storageclasses
 			          - nodes
 			          - configmaps
+			          - services
 			      defaultNamespace: default
 			      restrictAccess: false
 			    kubectl-wait-cmd:
