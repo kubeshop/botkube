@@ -3,6 +3,8 @@ package bot
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -52,6 +54,9 @@ type socketSlackMessage struct {
 	User                string
 	TriggerID           string
 	IsButtonClickOrigin bool
+	State               *slack.BlockActionStates
+	ResponseURL         string
+	BlockID             string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -61,8 +66,11 @@ type socketSlackAnalyticsReporter interface {
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+func NewSocketSlack(loggger logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken),
+		slack.OptionDebug(true),
+		slack.OptionLog(log.New(os.Stdout, "api: ", log.Lshortfile|log.LstdFlags)),
+	)
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
@@ -81,7 +89,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
-		log:             log,
+		log:             loggger,
 		executorFactory: executorFactory,
 		reporter:        reporter,
 		botID:           botID,
@@ -98,7 +106,10 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 func (b *SocketSlack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	websocketClient := socketmode.New(b.client)
+	websocketClient := socketmode.New(b.client,
+		socketmode.OptionDebug(true),
+		socketmode.OptionLog(log.New(os.Stdout, "api: ", log.Lshortfile|log.LstdFlags)),
+	)
 
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
@@ -193,6 +204,9 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						TriggerID:           callback.TriggerID,
 						User:                callback.User.ID,
 						IsButtonClickOrigin: true,
+						State:               callback.BlockActionState,
+						ResponseURL:         callback.ResponseURL,
+						BlockID:             act.BlockID,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -298,6 +312,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 			ExecutorBindings:    channel.Bindings.Executors,
 			IsAuthenticated:     isAuthChannel,
 			IsButtonClickOrigin: event.IsButtonClickOrigin,
+			State:               event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
@@ -316,10 +331,10 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
-
-	if len(markdown) == 0 {
-		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
-	}
+	// fixme: add actions
+	//if len(markdown) == 0 {
+	//	return fmt.Errorf("while reading Slack response: empty response for request %q", req)
+	//}
 
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
@@ -337,6 +352,10 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		return nil
 	}
 
+	for idx := range resp.Sections {
+		resp.Sections[idx].Selects.ID = event.BlockID // FIXME pls
+	}
+
 	options := []slack.MsgOption{
 		b.renderer.RenderInteractiveMessage(resp),
 	}
@@ -346,7 +365,11 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
 
-	if resp.OnlyVisibleForYou && event.User != "" {
+	if resp.ReplaceOriginal && event.ResponseURL != "" {
+		options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
+	}
+
+	if resp.OnlyVisibleForYou {
 		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
@@ -455,6 +478,8 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 			items = append(items, item.Value)
 		}
 		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+	case "static_select":
+		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 
 	return command

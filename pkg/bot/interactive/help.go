@@ -11,7 +11,7 @@ import (
 
 // Help represent a help message with interactive sections.
 func Help(platform config.CommPlatformIntegration, clusterName, botName string) Message {
-	btnBuilder := buttonBuilder{botName: botName}
+	btnBuilder := ButtonBuilder{BotName: botName}
 	return Message{
 		Base: Base{
 			Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", clusterName),
@@ -63,9 +63,9 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(platform))),
 				},
 				Buttons: []Button{
-					btnBuilder.ForCommandWithDescCmd("Run command", "get services"),
-					btnBuilder.ForCommandWithDescCmd("Run command", "get pods"),
-					btnBuilder.ForCommandWithDescCmd("Run command", "get deployments"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "kubectl get services"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "kubectl get pods"),
+					btnBuilder.ForCommandWithDescCmd("Run command", "kubectl get deployments"),
 				},
 			},
 			{

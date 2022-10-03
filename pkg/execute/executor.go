@@ -23,10 +23,6 @@ import (
 var (
 	kubectlBinary = "/usr/local/bin/kubectl"
 )
-var (
-	errInvalidCommand     = errors.New("invalid command")
-	errUnsupportedCommand = errors.New("unsupported command")
-)
 
 const (
 	unsupportedCmdMsg   = "Command not supported. Please use 'help' to see supported commands."
@@ -63,6 +59,7 @@ type DefaultExecutor struct {
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
 	user              string
+	kubectlSurvey     *KubectlSurvey
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -214,6 +211,9 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		"feedback": func() (interactive.Message, error) {
 			return interactive.Feedback(), nil
 		},
+		"kcc": func() (interactive.Message, error) {
+			return e.kubectlSurvey.Do(args, e.platform, e.conversation.ExecutorBindings, e.conversation, e.notifierHandler.BotName())
+		},
 	}
 
 	msg, err := cmds.SelectAndRun(args[0])
@@ -223,6 +223,8 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return response(incompleteCmdMsg, "")
 	case errors.Is(err, errUnsupportedCommand):
 		return response(unsupportedCmdMsg, "")
+	case IsExecutionCommandError(err):
+		return response(err.Error(), "")
 	default:
 		e.log.Errorf("while executing command %q: %s", command, err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
