@@ -1,6 +1,6 @@
 # BotKube
 
-![Version: v0.14.0-rc.2](https://img.shields.io/badge/Version-v0.14.0--rc.2-informational?style=flat-square) ![AppVersion: v0.14.0-rc.2](https://img.shields.io/badge/AppVersion-v0.14.0--rc.2-informational?style=flat-square)
+![Version: v0.14.0](https://img.shields.io/badge/Version-v0.14.0-informational?style=flat-square) ![AppVersion: v0.14.0](https://img.shields.io/badge/AppVersion-v0.14.0-informational?style=flat-square)
 
 Controller for the BotKube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -23,7 +23,7 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [image.registry](./values.yaml#L14) | string | `"ghcr.io"` | BotKube container image registry. |
 | [image.repository](./values.yaml#L16) | string | `"kubeshop/botkube"` | BotKube container image repository. |
 | [image.pullPolicy](./values.yaml#L18) | string | `"IfNotPresent"` | BotKube container image pull policy. |
-| [image.tag](./values.yaml#L20) | string | `"v0.14.0-rc.2"` | BotKube container image tag. Default tag is `appVersion` from Chart.yaml. |
+| [image.tag](./values.yaml#L20) | string | `"v0.14.0"` | BotKube container image tag. Default tag is `appVersion` from Chart.yaml. |
 | [podSecurityPolicy](./values.yaml#L24) | object | `{"enabled":false}` | Configures Pod Security Policy to allow BotKube to run in restricted clusters. [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). |
 | [securityContext](./values.yaml#L30) | object | Runs as a Non-Privileged user. | Configures security context to manage user Privileges in Pod. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). |
 | [containerSecurityContext](./values.yaml#L36) | object | `{"allowPrivilegeEscalation":false,"privileged":false,"readOnlyRootFilesystem":true}` | Configures container security context. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). |
@@ -160,7 +160,7 @@ Controller for the BotKube Slack app which helps you monitor your Kubernetes clu
 | [e2eTest.image.registry](./values.yaml#L720) | string | `"ghcr.io"` | Test runner image registry. |
 | [e2eTest.image.repository](./values.yaml#L722) | string | `"kubeshop/botkube-test"` | Test runner image repository. |
 | [e2eTest.image.pullPolicy](./values.yaml#L724) | string | `"IfNotPresent"` | Test runner image pull policy. |
-| [e2eTest.image.tag](./values.yaml#L726) | string | `"v0.14.0-rc.2"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
+| [e2eTest.image.tag](./values.yaml#L726) | string | `"v0.14.0"` | Test runner image tag. Default tag is `appVersion` from Chart.yaml. |
 | [e2eTest.deployment](./values.yaml#L728) | object | `{"waitTimeout":"3m"}` | Configures BotKube Deployment related data. |
 | [e2eTest.slack.botName](./values.yaml#L733) | string | `"botkube"` | Name of the BotKube bot to interact with during the e2e tests. |
 | [e2eTest.slack.testerName](./values.yaml#L735) | string | `"botkube_tester"` | Name of the BotKube Tester bot that sends messages during the e2e tests. |
