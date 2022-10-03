@@ -171,6 +171,7 @@ func runBotTest(t *testing.T,
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 	require.NoError(t, err)
 
+	time.Sleep(appCfg.Slack.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
