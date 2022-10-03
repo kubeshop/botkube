@@ -1,7 +1,6 @@
 package execute
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 
@@ -35,10 +34,6 @@ func (*OSCommand) RunSeparateOutput(command string, args []string) (string, stri
 	)
 
 	// #nosec G204
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println("command")
-	fmt.Println(command)
-	fmt.Println(args)
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = &out
 	cmd.Stderr = &outErr

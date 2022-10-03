@@ -110,14 +110,16 @@ func (e *Kubectl) GetCommandPrefix(args []string) string {
 }
 
 // getArgsWithoutAlias gets command without k8s alias.
-func (e *Kubectl) getArgsWithoutAlias(msg string) []string {
-	msgParts, _ := shellwords.Parse(strings.TrimSpace(msg))
-
+func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
+	msgParts, err := shellwords.Parse(strings.TrimSpace(msg))
+	if err != nil {
+		return nil, fmt.Errorf("while parsing the command message into args: %w", err)
+	}
 	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
-		return msgParts[1:]
+		return msgParts[1:], nil
 	}
 
-	return msgParts
+	return msgParts, nil
 }
 
 // Execute executes kubectl command based on a given args.
@@ -133,8 +135,12 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	log.Debugf("Handling command...")
 
+	args, err := e.getArgsWithoutAlias(command)
+	if err != nil {
+		return "", err
+	}
+
 	var (
-		args        = e.getArgsWithoutAlias(command)
 		clusterName = e.cfg.Settings.ClusterName
 		verb        = args[0]
 		resource    = e.getResourceName(args)

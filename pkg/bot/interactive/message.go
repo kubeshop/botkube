@@ -42,7 +42,6 @@ func (msg *Message) HasSections() bool {
 
 // Select holds data related to the select drop-down.
 type Select struct {
-	Type    string
 	Name    string
 	Command string
 
@@ -70,7 +69,7 @@ type Body struct {
 type Section struct {
 	Base
 	Buttons     Buttons
-	MultiSelect MultiSelect // FIXME: for consistency, change with slice too
+	MultiSelect MultiSelect
 	Selects     Selects
 }
 
@@ -91,10 +90,6 @@ type MultiSelect struct {
 	Name        string
 	Description Body
 	Command     string
-
-	// Options holds all available options
-	// OptionGroups Provides a way to group options in a select menu.
-	OptionGroups []OptionGroup
 
 	// Options holds all available options
 	Options []OptionItem

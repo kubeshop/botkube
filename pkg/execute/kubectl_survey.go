@@ -42,16 +42,11 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 
 	verbs, resTypes := e.getVerbsAndResourceTypeSelectLists(botName, bindings)
 
-	if len(args) <= 1 {
+	if len(args) == 1 { // no args specified, only command name, so we sent generic message
 		return Survey(verbs, resTypes, nil, nil), nil
 	}
 
-	if len(args) < 2 {
-		return empty, errInvalidCommand
-	}
-
 	var (
-		//cmdName = args[0]
 		cmdVerb = args[1]
 		cmdArgs = args[2:]
 	)
@@ -97,10 +92,6 @@ func (e *KubectlSurvey) tryToGetResourceNamesForCommand(botName string, bindings
 	}
 
 	lines := strings.FieldsFunc(out, splitByNewLines)
-	for idx := range lines {
-		lines[idx] = strings.Split(lines[idx], " ")[0]
-	}
-
 	return ResourceNames(botName, overflowSentence(lines))
 }
 

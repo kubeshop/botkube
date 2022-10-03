@@ -95,10 +95,6 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
 	}
 
-	//for _, s := range msg.Actions {
-	//	blocks = append(blocks, b.renderSelects(s))
-	//}
-
 	all := len(msg.Sections)
 	for idx, s := range msg.Sections {
 		blocks = append(blocks, b.renderSection(s)...)

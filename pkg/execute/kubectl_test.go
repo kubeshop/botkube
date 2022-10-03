@@ -595,13 +595,17 @@ func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// given
 			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
 			merger := kubectl.NewMerger(cfg.Executors)
 			kcChecker := kubectl.NewChecker(nil)
 			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
 
-			verb := executor.getArgsWithoutAlias(tc.command)
+			// when
+			verb, err := executor.getArgsWithoutAlias(tc.command)
 
+			// then
+			require.NoError(t, err)
 			assert.Equal(t, tc.expected, strings.Join(verb, " "))
 		})
 	}

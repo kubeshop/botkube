@@ -3,8 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -66,11 +64,9 @@ type socketSlackAnalyticsReporter interface {
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(loggger logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken),
-		slack.OptionDebug(true),
-		slack.OptionLog(log.New(os.Stdout, "api: ", log.Lshortfile|log.LstdFlags)),
-	)
+func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
@@ -89,7 +85,7 @@ func NewSocketSlack(loggger logrus.FieldLogger, commGroupName string, cfg config
 
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
-		log:             loggger,
+		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
 		botID:           botID,
@@ -106,10 +102,7 @@ func NewSocketSlack(loggger logrus.FieldLogger, commGroupName string, cfg config
 func (b *SocketSlack) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
-	websocketClient := socketmode.New(b.client,
-		socketmode.OptionDebug(true),
-		socketmode.OptionLog(log.New(os.Stdout, "api: ", log.Lshortfile|log.LstdFlags)),
-	)
+	websocketClient := socketmode.New(b.client)
 
 	go func() {
 		defer analytics.ReportPanicIfOccurs(b.log, b.reporter)
