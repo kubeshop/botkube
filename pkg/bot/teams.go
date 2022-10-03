@@ -579,6 +579,5 @@ var emojiMapping = map[string]string{
 	":rocket:":                  "🚀",
 	":white_check_mark:":        "✅",
 	":arrows_counterclockwise:": "🔄",
-	":crossed_fingers:":         "🤞",
 	":exclamation:":             "❗",
 }
