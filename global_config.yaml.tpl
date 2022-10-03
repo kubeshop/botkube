@@ -238,9 +238,18 @@ settings:
   # Cluster name to differentiate incoming messages
   clusterName: not-configured
   # Set true to enable config watcher
-  configWatcher: true
+  # Server configuration which exposes functionality related to the app lifecycle.
+  lifecycleServer:
+    deployment:
+      name: botkube
+      namespace: botkube
+    port: "2113"
   # Set false to disable upgrade notification
   upgradeNotifier: true
+
+# Parameters for the config watcher container.
+configWatcher:
+    enabled: false # Used only on Kubernetes
 
 # Map of enabled executors. The `executors` property name is an alias for a given configuration.
 # It's used as a binding reference.

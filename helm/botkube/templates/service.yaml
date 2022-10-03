@@ -1,4 +1,4 @@
-{{- if or .Values.serviceMonitor.enabled (include "botkube.communication.team.enabled" $) }}
+{{- if or .Values.serviceMonitor.enabled (include "botkube.communication.team.enabled" $) (.Values.settings.lifecycleServer.enabled ) }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,6 +12,11 @@ metadata:
 spec:
   type: ClusterIP
   ports:
+  {{- if .Values.settings.lifecycleServer.enabled }}
+  - name: "lifecycle"
+    port: {{ .Values.settings.lifecycleServer.port }}
+    targetPort: {{ .Values.settings.lifecycleServer.port }}
+  {{- end }}
   {{- if .Values.serviceMonitor.enabled }}
   - name: {{ .Values.service.name }}
     port: {{ .Values.service.port }}

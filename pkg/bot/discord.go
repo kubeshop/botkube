@@ -24,13 +24,16 @@ import (
 
 var _ Bot = &Discord{}
 
-// customTimeFormat holds custom time format string.
 const (
+	// customTimeFormat holds custom time format string.
 	customTimeFormat = "2006-01-02T15:04:05Z"
 
 	// discordBotMentionRegexFmt supports also nicknames (the exclamation mark).
 	// Read more: https://discordjs.guide/miscellaneous/parsing-mention-arguments.html#how-discord-mentions-work
 	discordBotMentionRegexFmt = "^<@!?%s>"
+
+	// discordMaxMessageSize max size before a message should be uploaded as a file.
+	discordMaxMessageSize = 2000
 )
 
 var embedColor = map[config.Level]int{
@@ -154,7 +157,7 @@ func (b *Discord) SendMessage(_ context.Context, msg interactive.Message) error 
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
+		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %s", channelID, plaintext)
 
 		if _, err := b.api.ChannelMessageSend(channelID, plaintext); err != nil {
@@ -247,9 +250,8 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),
 	})
 
-	out := e.Execute()
-	resp := interactive.MessageToMarkdown(b.mdFormatter, out)
-	err := b.send(dm.Event, req, resp)
+	response := e.Execute()
+	err := b.send(dm.Event, req, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -257,22 +259,24 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 	return nil
 }
 
-func (b *Discord) send(event *discordgo.MessageCreate, req, resp string) error {
+func (b *Discord) send(event *discordgo.MessageCreate, req string, resp interactive.Message) error {
 	b.log.Debugf("Discord incoming Request: %s", req)
 	b.log.Debugf("Discord Response: %s", resp)
 
-	if len(resp) == 0 {
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+
+	if len(markdown) == 0 {
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 
 	// Upload message as a file if too long
-	if len(resp) >= 2000 {
+	if len(markdown) >= discordMaxMessageSize {
 		params := &discordgo.MessageSend{
-			Content: req,
+			Content: resp.Description,
 			Files: []*discordgo.File{
 				{
-					Name:   "Response",
-					Reader: strings.NewReader(resp),
+					Name:   "Response.txt",
+					Reader: strings.NewReader(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
 				},
 			},
 		}
@@ -282,7 +286,7 @@ func (b *Discord) send(event *discordgo.MessageCreate, req, resp string) error {
 		return nil
 	}
 
-	if _, err := b.api.ChannelMessageSend(event.ChannelID, resp); err != nil {
+	if _, err := b.api.ChannelMessageSend(event.ChannelID, markdown); err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
 	return nil

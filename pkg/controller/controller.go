@@ -18,15 +18,15 @@ import (
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sources"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const (
-	controllerStartMsg = "...and now my watch begins for cluster '%s'! :crossed_swords:"
-	controllerStopMsg  = "My watch has ended for cluster '%s'. Hope will be back online soon! :crossed_fingers:"
-	configUpdateMsg    = "Looks like the configuration is updated for cluster '%s'. I shall halt my watch till I read it."
+	controllerStartMsg = "My watch begins for cluster '%s'! :crossed_swords:"
+	controllerStopMsg  = "My watch has ended for cluster '%s'. See you soon!"
 
 	finalMessageTimeout = 20 * time.Second
 )
@@ -57,7 +57,7 @@ type Controller struct {
 	reporter              AnalyticsReporter
 	startTime             time.Time
 	conf                  *config.Config
-	notifiers             []Notifier
+	notifiers             []notifier.Notifier
 	recommFactory         RecommendationFactory
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
@@ -72,7 +72,7 @@ type Controller struct {
 // New create a new Controller instance.
 func New(log logrus.FieldLogger,
 	conf *config.Config,
-	notifiers []Notifier,
+	notifiers []notifier.Notifier,
 	recommFactory RecommendationFactory,
 	filterEngine filterengine.FilterEngine,
 	dynamicCli dynamic.Interface,
@@ -97,6 +97,7 @@ func New(log logrus.FieldLogger,
 
 // Start creates new informer controllers to watch k8s resources
 func (c *Controller) Start(ctx context.Context) error {
+	c.log.Info("Starting controller...")
 	c.dynamicKubeInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicCli, c.informersResyncPeriod)
 
 	err := c.sourcesRouter.RegisterInformers([]config.EventType{
@@ -197,8 +198,8 @@ func (c *Controller) Start(ctx context.Context) error {
 			}
 		})
 
-	c.log.Info("Starting controller")
-	err = sendMessageToNotifiers(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	c.log.Info("Sending welcome message...")
+	err = notifier.SendPlaintextMessage(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}
@@ -206,14 +207,14 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.startTime = time.Now()
 
 	stopCh := ctx.Done()
-
 	c.dynamicKubeInformerFactory.Start(stopCh)
+
 	<-stopCh
 
 	c.log.Info("Shutdown requested. Sending final message...")
 	finalMsgCtx, cancelFn := context.WithTimeout(context.Background(), finalMessageTimeout)
 	defer cancelFn()
-	err = sendMessageToNotifiers(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
+	err = notifier.SendPlaintextMessage(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending final message: %w", err)
 	}
@@ -286,7 +287,7 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 	// Send event over notifiers
 	anonymousEvent := analytics.AnonymizedEventDetailsFrom(event)
 	for _, n := range c.notifiers {
-		go func(n Notifier) {
+		go func(n notifier.Notifier) {
 			defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
 
 			err := n.SendEvent(ctx, event, sources)

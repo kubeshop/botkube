@@ -12,6 +12,14 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["update", "get", "create"]
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "watch", "list"]
+{{- if .Values.settings.lifecycleServer.enabled }}
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["patch"]
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

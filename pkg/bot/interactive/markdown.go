@@ -7,40 +7,34 @@ import (
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-// DefaultMDLineFormatter represents a Markdown new line formatting.
-func DefaultMDLineFormatter(msg string) string {
-	return fmt.Sprintf("%s\n", msg)
-}
-
-// DefaultMDHeaderFormatter represents a Markdown header formatting.
-func DefaultMDHeaderFormatter(msg string) string {
-	return fmt.Sprintf("**%s**", msg)
-}
-
 // MDFormatter represents the capability of Markdown Formatter
 type MDFormatter struct {
-	lineFormatter   func(msg string) string
-	headerFormatter func(msg string) string
+	newlineFormatter           func(msg string) string
+	headerFormatter            func(msg string) string
+	codeBlockFormatter         func(msg string) string
+	adaptiveCodeBlockFormatter func(msg string) string
 }
 
 // NewMDFormatter is for initializing custom Markdown formatter
-func NewMDFormatter(lineFormatter, headerFormatter func(msg string) string) MDFormatter {
+func NewMDFormatter(newlineFormatter, headerFormatter func(msg string) string) MDFormatter {
 	return MDFormatter{
-		lineFormatter:   lineFormatter,
-		headerFormatter: headerFormatter,
+		newlineFormatter:           newlineFormatter,
+		headerFormatter:            headerFormatter,
+		codeBlockFormatter:         formatx.CodeBlock,
+		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 }
 
 // DefaultMDFormatter is for initializing built-in Markdown formatter
 func DefaultMDFormatter() MDFormatter {
-	return NewMDFormatter(DefaultMDLineFormatter, DefaultMDHeaderFormatter)
+	return NewMDFormatter(NewlineFormatter, MdHeaderFormatter)
 }
 
-// MessageToMarkdown returns interactive message as a plaintext with Markdown syntax.
-func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
+// RenderMessage returns interactive message as a plaintext with Markdown syntax.
+func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 	var out strings.Builder
 	addLine := func(in string) {
-		out.WriteString(mdFormatter.lineFormatter(in))
+		out.WriteString(mdFormatter.newlineFormatter(in))
 	}
 
 	if msg.Header != "" {
@@ -55,7 +49,7 @@ func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 	}
 
 	if msg.Body.CodeBlock != "" {
-		addLine(formatx.CodeBlock(msg.Body.CodeBlock))
+		addLine(mdFormatter.codeBlockFormatter(msg.Body.CodeBlock))
 	}
 
 	for _, section := range msg.Sections {
@@ -75,7 +69,7 @@ func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 		if section.Body.CodeBlock != "" {
 			// not using the adaptive code block is on purpose, we always want to have
 			// a multiline code block to improve readability
-			addLine(formatx.CodeBlock(section.Body.CodeBlock))
+			addLine(mdFormatter.codeBlockFormatter(section.Body.CodeBlock))
 		}
 
 		if section.MultiSelect.AreOptionsDefined() {
@@ -86,14 +80,14 @@ func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 			}
 
 			if ms.Description.CodeBlock != "" {
-				addLine(formatx.AdaptiveCodeBlock(ms.Description.CodeBlock))
+				addLine(mdFormatter.adaptiveCodeBlockFormatter(ms.Description.CodeBlock))
 			}
 
 			addLine("") // new line
 			addLine("Available options:")
 
 			for _, opt := range ms.Options {
-				addLine(fmt.Sprintf(" - %s", formatx.AdaptiveCodeBlock(opt.Value)))
+				addLine(fmt.Sprintf(" - %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
 			}
 		}
 
@@ -103,7 +97,7 @@ func MessageToMarkdown(mdFormatter MDFormatter, msg Message) string {
 				continue
 			}
 			if btn.Command != "" {
-				addLine(fmt.Sprintf("  - %s", formatx.AdaptiveCodeBlock(btn.Command)))
+				addLine(fmt.Sprintf("  - %s", mdFormatter.adaptiveCodeBlockFormatter(btn.Command)))
 				continue
 			}
 		}

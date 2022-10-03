@@ -19,7 +19,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 	// given
 	commGroupName := "default-group"
 	cfg := config.PartialPersistentConfig{
-		ConfigMap: config.K8sConfigMapRef{
+		ConfigMap: config.K8sResourceRef{
 			Name:      "foo",
 			Namespace: "ns",
 		},
@@ -275,7 +275,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 	// given
 	commGroupName := "default-group"
 	cfg := config.PartialPersistentConfig{
-		ConfigMap: config.K8sConfigMapRef{
+		ConfigMap: config.K8sResourceRef{
 			Name:      "foo",
 			Namespace: "ns",
 		},
@@ -428,7 +428,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 func TestPersistenceManager_PersistFilterEnabled(t *testing.T) {
 	// given
 	cfg := config.PartialPersistentConfig{
-		ConfigMap: config.K8sConfigMapRef{
+		ConfigMap: config.K8sResourceRef{
 			Name:      "foo",
 			Namespace: "ns",
 		},

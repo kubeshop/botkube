@@ -48,7 +48,7 @@ func newSlackDriver(slackCfg SlackConfig) (BotDriver, error) {
 	if err != nil {
 		return nil, err
 	}
-	mdFormatter := interactive.NewMDFormatter(interactive.DefaultMDLineFormatter, func(msg string) string {
+	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, func(msg string) string {
 		return fmt.Sprintf("*%s*", msg)
 	})
 	return &slackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter}, nil
@@ -187,6 +187,52 @@ func (s *slackTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 	return s.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
+func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
+	var fetchedMessages []slack.Message
+	var lastErr error
+	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
+			ChannelID: channelID, Limit: 1,
+		})
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+
+		fetchedMessages = historyRes.Messages
+		for _, msg := range historyRes.Messages {
+			if msg.User != userID {
+				continue
+			}
+
+			if len(msg.Files) != 1 {
+				return false, nil
+			}
+
+			upload := msg.Files[0]
+			if !assertFn(upload.Title, upload.Mimetype) {
+				// different message
+				return false, nil
+			}
+
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if lastErr == nil {
+		lastErr = errors.New("message assertion function returned false")
+	}
+	if err != nil {
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
@@ -249,7 +295,7 @@ func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID strin
 // TODO: This contains an implementation for socket mode slack apps. Once needed, you can see the already implemented
 // functions here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
 func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
-	renderedMsg := interactive.MessageToMarkdown(s.mdFormatter, msg)
+	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
 		// Slack encloses URLs with `<` and `>`, since we need to remove them before assertion
 		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
@@ -257,7 +303,7 @@ func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, chann
 }
 
 func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
-	renderedMsg := interactive.MessageToMarkdown(s.mdFormatter, msg)
+	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
 		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
 	})

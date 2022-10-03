@@ -13,7 +13,6 @@ on:
       - '.golangci.yml'
       - 'botkube-title.jpg'
       - 'botkube_arch.jpg'
-      - 'CHANGELOG.md'
       - 'CODE_OF_CONDUCT.md'
       - 'comm_config.yaml.tpl'
       - 'CONTRIBUTING.md'

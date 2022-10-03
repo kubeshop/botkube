@@ -32,6 +32,8 @@ const (
 	WebSocketProtocol = "ws://"
 	// WebSocketSecureProtocol stores protocol initials for web socket
 	WebSocketSecureProtocol = "wss://"
+	// mattermostMaxMessageSize max size before a message should be uploaded as a file.
+	mattermostMaxMessageSize = 3990
 
 	httpsScheme                  = "https"
 	mattermostBotMentionRegexFmt = "^@(?i)%s"
@@ -68,7 +70,6 @@ type mattermostMessage struct {
 
 	Event         *model.WebSocketEvent
 	APIClient     *model.Client4
-	Response      string
 	Request       string
 	IsAuthChannel bool
 }
@@ -236,33 +237,49 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		},
 		Message: mm.Request,
 	})
-	out := interactive.MessageToMarkdown(b.mdFormatter, e.Execute())
-	mm.Response = out
-	mm.sendMessage()
+	response := e.Execute()
+	mm.sendMessage(b, response)
 }
 
 // Send messages to Mattermost
-func (mm mattermostMessage) sendMessage() {
+func (mm mattermostMessage) sendMessage(b *Mattermost, resp interactive.Message) {
 	mm.log.Debugf("Mattermost incoming Request: %s", mm.Request)
-	mm.log.Debugf("Mattermost Response: %s", mm.Response)
-	post := &model.Post{}
-	post.ChannelId = mm.Event.GetBroadcast().ChannelId
+	mm.log.Debugf("Mattermost Response: %s", resp)
 
-	if len(mm.Response) == 0 {
+	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+
+	if len(markdown) == 0 {
 		mm.log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
 		return
 	}
+
 	// Create file if message is too large
-	if len(mm.Response) >= 3990 {
-		res, _, err := mm.APIClient.UploadFileAsRequestBody([]byte(mm.Response), mm.Event.GetBroadcast().ChannelId, mm.Request)
+	if len(markdown) >= mattermostMaxMessageSize {
+		uploadResponse, _, err := mm.APIClient.UploadFileAsRequestBody(
+			[]byte(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
+			mm.Event.GetBroadcast().ChannelId,
+			mm.Request,
+		)
 		if err != nil {
 			mm.log.Error("Error occurred while uploading file. Error: ", err)
+			return
 		}
-		post.FileIds = []string{res.FileInfos[0].Id}
-	} else {
-		post.Message = mm.Response
+
+		post := &model.Post{}
+		post.ChannelId = mm.Event.GetBroadcast().ChannelId
+		post.Message = resp.Description
+		post.FileIds = []string{uploadResponse.FileInfos[0].Id}
+
+		if _, _, err := mm.APIClient.CreatePost(post); err != nil {
+			mm.log.Error("Failed to send attachment message. Error: ", err)
+			return
+		}
+		return
 	}
 
+	post := &model.Post{}
+	post.ChannelId = mm.Event.GetBroadcast().ChannelId
+	post.Message = markdown
 	if _, _, err := mm.APIClient.CreatePost(post); err != nil {
 		mm.log.Error("Failed to send message. Error: ", err)
 	}
@@ -400,7 +417,7 @@ func (b *Mattermost) SendMessage(_ context.Context, msg interactive.Message) err
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.MessageToMarkdown(b.mdFormatter, msg)
+		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
 		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
 		post := &model.Post{
 			ChannelId: channelID,

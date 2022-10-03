@@ -11,7 +11,7 @@ on:
 env:
   git-user: github-actions[bot]
   git-email: 41898282+github-actions[bot]@users.noreply.github.com
-  main-branch: automate-release
+  main-branch: main
 
 jobs:
   workflow-metadata:

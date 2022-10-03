@@ -66,12 +66,13 @@ type DiscordConfig struct {
 }
 
 const (
-	channelNamePrefix = "test"
-	welcomeText       = "Let the tests begin 🤞"
-	pollInterval      = time.Second
-	slackAnnotation   = "<http://botkube.io/*|botkube.io/*>"
-	discordAnnotation = "botkube.io/*"
-	discordInvalidCmd = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
+	channelNamePrefix   = "test"
+	welcomeText         = "Let the tests begin 🤞"
+	pollInterval        = time.Second
+	globalConfigMapName = "botkube-global-config"
+	slackAnnotation     = "<http://botkube.io/*|botkube.io/*>"
+	discordAnnotation   = "botkube.io/*"
+	discordInvalidCmd   = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
 )
 
 var (
@@ -170,13 +171,15 @@ func runBotTest(t *testing.T,
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 	require.NoError(t, err)
 
-	t.Log("Waiting for Bot message in channel...")
+	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
 		interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()),
 	)
 	require.NoError(t, err)
-	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("...and now my watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
+
+	t.Log("Waiting for Bot message in channel...")
+	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)
 
 	t.Log("Running actual test cases")
@@ -261,6 +264,7 @@ func runBotTest(t *testing.T,
 			          - storageclasses
 			          - nodes
 			          - configmaps
+			          - services
 			      defaultNamespace: default
 			      restrictAccess: false
 			    kubectl-wait-cmd:
@@ -327,6 +331,21 @@ func runBotTest(t *testing.T,
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
+		})
+
+		t.Run("Receive large output as plaintext file with executor command as message", func(t *testing.T) {
+			command := fmt.Sprintf("get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
+			fileUploadAssertionFn := func(title, mimetype string) bool {
+				return title == "Response.txt" && strings.Contains(mimetype, "text/plain")
+			}
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForMessagePostedWithFileUpload(botDriver.BotUserID(), botDriver.Channel().ID(), fileUploadAssertionFn)
+			assert.NoError(t, err)
+
+			assertionFn := func(msg string) bool {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)))
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
@@ -416,6 +435,28 @@ func runBotTest(t *testing.T,
 				assert.NoError(t, err)
 			})
 		})
+
+		k8sPrefixTests := []string{"kubectl", "kc", "k"}
+		for _, prefix := range k8sPrefixTests {
+			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
+				command := fmt.Sprintf("%s get pods --namespace %s", prefix, appCfg.Deployment.Namespace)
+				assertionFn := func(msg string) bool {
+					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
+					containAllColumn := true
+					for _, cn := range headerColumnNames {
+						if !strings.Contains(msg, cn) {
+							containAllColumn = false
+						}
+					}
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+						containAllColumn
+				}
+
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				assert.NoError(t, err)
+			})
+		}
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {

@@ -41,7 +41,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			},
 			{
 				Base: Base{
-					Header:      "Notification types",
+					Header:      "Notification settings for this channel",
 					Description: "By default, BotKube will notify only about cluster errors and recommendations.",
 				},
 				Buttons: []Button{
