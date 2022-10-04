@@ -75,6 +75,7 @@ type Section struct {
 
 // Selects holds multiple Select objects.
 type Selects struct {
+	// ID allows to identify a given block when we do the updated.
 	ID    string
 	Items []Select
 }

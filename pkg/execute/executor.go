@@ -144,13 +144,11 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		if overrideCommand != "" {
 			cmd = overrideCommand
 		}
-		byUser := ""
-		if e.user != "" {
-			byUser = "by " + e.user
-		}
+
+		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
 		return interactive.Message{
 			Base: interactive.Base{
-				Description: fmt.Sprintf("%s on `%s` %s", cmd, clusterName, byUser),
+				Description: e.appendByUserOnlyIfNeeded(header),
 				Body: interactive.Body{
 					CodeBlock: msg,
 				},
@@ -409,4 +407,12 @@ func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) 
 	}
 
 	return buff.String(), nil
+}
+
+// appendByUserOnlyIfNeeded returns the "by Foo" only if the command was executed via button.
+func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
+	if e.user == "" || !e.conversation.IsButtonClickOrigin {
+		return cmd
+	}
+	return fmt.Sprintf("%s by %s", cmd, e.user)
 }

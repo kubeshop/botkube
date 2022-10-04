@@ -7,7 +7,7 @@ import (
 )
 
 // Survey returns the survey message for selecting kubectl command.
-func Survey(verbs, resources, resourceNames *interactive.Select, commandPreview *interactive.Section) interactive.Message {
+func Survey(verbs, resources, resourceNames *interactive.Select, commandPreview *interactive.Section, dropdownsBlockID string) interactive.Message {
 	var selects []interactive.Select
 	if verbs != nil {
 		selects = append(selects, *verbs)
@@ -24,6 +24,7 @@ func Survey(verbs, resources, resourceNames *interactive.Select, commandPreview 
 	if len(selects) > 0 {
 		sections = append(sections, interactive.Section{
 			Selects: interactive.Selects{
+				ID:    dropdownsBlockID,
 				Items: selects,
 			},
 		})
@@ -50,24 +51,24 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 			},
 		},
 		Buttons: interactive.Buttons{
-			btn.ForCommand("Run", cmd, interactive.ButtonStylePrimary),
+			btn.ForCommand("Run command", cmd, interactive.ButtonStylePrimary),
 		},
 	}
 }
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string) *interactive.Select {
-	return selectDropdown("Commands", "kcc --verbs", botName, verbs)
+	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs)
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string) *interactive.Select {
-	return selectDropdown("Resources", "kcc --resource-type", botName, resources)
+	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources)
 }
 
-// ResourceNames return drop-down select for kubectl resources names.
-func ResourceNames(botName string, names []string) *interactive.Select {
-	return selectDropdown("Resource name", "kcc --resource-name", botName, names)
+// ResourceNamesSelect return drop-down select for kubectl resources names.
+func ResourceNamesSelect(botName string, names []string) *interactive.Select {
+	return selectDropdown("Resource name", resourceNamesDropdownCommand, botName, names)
 }
 
 func selectDropdown(name, cmd, botName string, items []string) *interactive.Select {

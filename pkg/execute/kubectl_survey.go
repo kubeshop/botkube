@@ -5,12 +5,20 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+)
+
+const (
+	verbsDropdownCommand         = "kcc --verbs"
+	resourceTypesDropdownCommand = "kcc --resource-type"
+	resourceNamesDropdownCommand = "kcc --resource-name"
+	kubectlCommandName           = "kubectl"
 )
 
 // KubectlSurvey provides functionality to handle interactive kubectl command selection.
@@ -43,7 +51,16 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 	verbs, resTypes := e.getVerbsAndResourceTypeSelectLists(botName, bindings)
 
 	if len(args) == 1 { // no args specified, only command name, so we sent generic message
-		return Survey(verbs, resTypes, nil, nil), nil
+		// We start a new interactive block, so we generate unique ID.
+		// Later when we update this message with a new "body" e.g. update command preview
+		// the block state remains the same as Slack always see it under the same id.
+		// If we use different ID each time we update the message, Slack will clean up the state
+		// meaning we will lose information about verb/resourceType/resourceName that were previously selected.
+		id, err := uuid.NewRandom()
+		if err != nil {
+			return empty, err
+		}
+		return Survey(verbs, resTypes, nil, nil, id.String()), nil
 	}
 
 	var (
@@ -52,20 +69,19 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 
 	cmds := executorsRunner{
 		"--verbs": func() (interactive.Message, error) {
-			preview, cmd := getCommandPreview(botName, conv.State)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, false)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
-			return Survey(verbs, resTypes, resNames, preview), nil
+			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
 		"--resource-type": func() (interactive.Message, error) {
-			preview, cmd := getCommandPreview(botName, conv.State)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, false)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
-			return Survey(verbs, resTypes, resNames, preview), nil
+			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
 		"--resource-name": func() (interactive.Message, error) {
-			preview, cmd := getCommandPreview(botName, conv.State)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, true)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
-			out := Survey(verbs, resTypes, resNames, preview)
-			return out, nil
+			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
 	}
 
@@ -88,7 +104,7 @@ func (e *KubectlSurvey) tryToGetResourceNamesForCommand(botName string, bindings
 	}
 
 	lines := strings.FieldsFunc(out, splitByNewLines)
-	return ResourceNames(botName, overflowSentence(lines))
+	return ResourceNamesSelect(botName, overflowSentence(lines))
 }
 
 func (e *KubectlSurvey) getVerbsAndResourceTypeSelectLists(botName string, bindings []string) (*interactive.Select, *interactive.Select) {
@@ -108,41 +124,45 @@ func (e *KubectlSurvey) getVerbsAndResourceTypeSelectLists(botName string, bindi
 	return VerbSelect(botName, verbs), ResourceTypeSelect(botName, resources)
 }
 
-func getCommandPreview(name string, state *slack.BlockActionStates) (*interactive.Section, string) {
+func getCommandPreview(name string, state *slack.BlockActionStates, includeResourceName bool) (*interactive.Section, string, string) {
 	var (
 		verb         string
 		resourceType string
 		resourceName string
 	)
-	for _, blocks := range state.Values {
+	var dropdownsBlockID string
+	for blockID, blocks := range state.Values {
+		dropdownsBlockID = blockID
 		for id, act := range blocks {
 			id = strings.TrimPrefix(id, name)
 			id = strings.TrimSpace(id)
 
 			switch id {
-			case "kcc --verbs":
+			case verbsDropdownCommand:
 				verb = act.SelectedOption.Value
-			case "kcc --resource-type":
+			case resourceTypesDropdownCommand:
 				resourceType = act.SelectedOption.Value
-			case "kcc --resource-name":
-				resourceName = act.SelectedOption.Value
+			case resourceNamesDropdownCommand:
+				if includeResourceName {
+					resourceName = act.SelectedOption.Value
+				}
 			}
 		}
 	}
 
 	if verb == "" || resourceType == "" {
-		return nil, ""
+		return nil, "", dropdownsBlockID
 	}
 
-	// fetchingCommand is command without the resource name
+	// fetchingCommand is command always without the resource name
 	fetchingCommand := ""
 	if verb != "" && resourceType != "" {
-		fetchingCommand = fmt.Sprintf("kubectl %s %s", verb, resourceType)
+		fetchingCommand = fmt.Sprintf("%s %s %s", kubectlCommandName, verb, resourceType)
 	}
 
-	fullCmd := fmt.Sprintf("kubectl %s %s %s", verb, resourceType, resourceName)
+	fullCmd := fmt.Sprintf("%s %s %s %s", kubectlCommandName, verb, resourceType, resourceName)
 
-	return PreviewSection(name, fullCmd), fetchingCommand
+	return PreviewSection(name, fullCmd), fetchingCommand, dropdownsBlockID
 }
 
 func splitByNewLines(c rune) bool {

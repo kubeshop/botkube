@@ -345,10 +345,6 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		return nil
 	}
 
-	for idx := range resp.Sections {
-		resp.Sections[idx].Selects.ID = event.BlockID // FIXME pls
-	}
-
 	options := []slack.MsgOption{
 		b.renderer.RenderInteractiveMessage(resp),
 	}
@@ -474,7 +470,7 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 	case "static_select":
 		// Example of commands that are handled here:
 		//   @BotKube kcc --verbs get
-		//   @BotKube kcc --resource-type pods --state={}
+		//   @BotKube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 

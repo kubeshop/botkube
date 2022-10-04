@@ -47,7 +47,7 @@ func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 	golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))
 }
 
-// go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
+// go test -run=TestInteractiveMessageToPlaintext ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToPlaintext(t *testing.T) {
 	customNewlineFormatter := func(msg string) string {
 		return fmt.Sprintf("%s\r\n", msg)
