@@ -79,6 +79,14 @@ type Selects struct {
 	Items []Select
 }
 
+// AreOptionsDefined returns true if some options are available.
+func (s *Selects) AreOptionsDefined() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.Items) > 0
+}
+
 // OptionItem defines an option model.
 type OptionItem struct {
 	Name  string
@@ -171,11 +179,16 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 }
 
 // ForCommand returns button command without description.
-func (b *ButtonBuilder) ForCommand(name, cmd string) Button {
+func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
 	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
 	return Button{
 		Name:    name,
 		Command: cmd,
+		Style:   bt,
 	}
 }
 

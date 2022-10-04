@@ -324,10 +324,10 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
-	// fixme: add actions
-	//if len(markdown) == 0 {
-	//	return fmt.Errorf("while reading Slack response: empty response for request %q", req)
-	//}
+
+	if len(markdown) == 0 {
+		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
+	}
 
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
@@ -472,6 +472,9 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 		}
 		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
 	case "static_select":
+		// Example of commands that are handled here:
+		//   @BotKube kcc --verbs get
+		//   @BotKube kcc --resource-type pods --state={}
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 

@@ -48,28 +48,24 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 
 	var (
 		cmdVerb = args[1]
-		cmdArgs = args[2:]
 	)
 
 	cmds := executorsRunner{
-		"verbs": func() (interactive.Message, error) {
+		"--verbs": func() (interactive.Message, error) {
 			preview, cmd := getCommandPreview(botName, conv.State)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
 			return Survey(verbs, resTypes, resNames, preview), nil
 		},
-		"resource": func() (interactive.Message, error) {
-			switch cmdArgs[0] {
-			case "type":
-				preview, cmd := getCommandPreview(botName, conv.State)
-				resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
-				return Survey(verbs, resTypes, resNames, preview), nil
-			case "name":
-				preview, cmd := getCommandPreview(botName, conv.State)
-				resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
-				out := Survey(verbs, resTypes, resNames, preview)
-				return out, nil
-			}
-			return empty, nil
+		"--resource-type": func() (interactive.Message, error) {
+			preview, cmd := getCommandPreview(botName, conv.State)
+			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
+			return Survey(verbs, resTypes, resNames, preview), nil
+		},
+		"--resource-name": func() (interactive.Message, error) {
+			preview, cmd := getCommandPreview(botName, conv.State)
+			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
+			out := Survey(verbs, resTypes, resNames, preview)
+			return out, nil
 		},
 	}
 
@@ -124,11 +120,11 @@ func getCommandPreview(name string, state *slack.BlockActionStates) (*interactiv
 			id = strings.TrimSpace(id)
 
 			switch id {
-			case "kcc verbs":
+			case "kcc --verbs":
 				verb = act.SelectedOption.Value
-			case "kcc resource type":
+			case "kcc --resource-type":
 				resourceType = act.SelectedOption.Value
-			case "kcc resource name":
+			case "kcc --resource-name":
 				resourceName = act.SelectedOption.Value
 			}
 		}

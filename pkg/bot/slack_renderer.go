@@ -181,7 +181,7 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 		out = append(out, sec)
 	}
 
-	if len(in.Selects.Items) > 0 {
+	if in.Selects.AreOptionsDefined() {
 		out = append(out, b.renderSelects(in.Selects))
 	}
 

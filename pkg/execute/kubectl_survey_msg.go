@@ -50,24 +50,24 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 			},
 		},
 		Buttons: interactive.Buttons{
-			btn.ForCommand("Run", cmd),
+			btn.ForCommand("Run", cmd, interactive.ButtonStylePrimary),
 		},
 	}
 }
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string) *interactive.Select {
-	return selectDropdown("Commands", "kcc verbs", botName, verbs)
+	return selectDropdown("Commands", "kcc --verbs", botName, verbs)
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string) *interactive.Select {
-	return selectDropdown("Resources", "kcc resource type", botName, resources)
+	return selectDropdown("Resources", "kcc --resource-type", botName, resources)
 }
 
 // ResourceNames return drop-down select for kubectl resources names.
 func ResourceNames(botName string, names []string) *interactive.Select {
-	return selectDropdown("Resource name", "kcc resource name", botName, names)
+	return selectDropdown("Resource name", "kcc --resource-name", botName, names)
 }
 
 func selectDropdown(name, cmd, botName string, items []string) *interactive.Select {

@@ -144,9 +144,13 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		if overrideCommand != "" {
 			cmd = overrideCommand
 		}
+		byUser := ""
+		if e.user != "" {
+			byUser = "by " + e.user
+		}
 		return interactive.Message{
 			Base: interactive.Base{
-				Description: fmt.Sprintf("%s on `%s`", cmd, clusterName),
+				Description: fmt.Sprintf("%s on `%s` %s", cmd, clusterName, byUser),
 				Body: interactive.Body{
 					CodeBlock: msg,
 				},
