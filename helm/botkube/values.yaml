@@ -448,7 +448,7 @@ communications:
       password: 'ELASTICSEARCH_PASSWORD'
       # -- If true, skips the verification of TLS certificate of the Elastic nodes.
       # It's useful for clusters with self-signed certificates.
-      skipTLSVerify: false
+      skipTLSVerify: true
       # -- Map of configured indices. The `indices` property name is an alias for a given configuration.
       #
       ## Format: indices.<alias>
