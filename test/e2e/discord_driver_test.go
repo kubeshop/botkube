@@ -325,11 +325,7 @@ func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channel
 }
 
 func (d *discordTester) GetColorByLevel(level config.Level) string {
-	if d.cfg.AttachmentStatus[level] != "" {
-		return d.cfg.AttachmentStatus[level]
-	}
-
-	return ""
+	return DiscordAttachmentColorStatus[level]
 }
 
 func (d *discordTester) findUserID(t *testing.T, name string) string {

@@ -319,11 +319,7 @@ func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 }
 
 func (s *slackTester) GetColorByLevel(level config.Level) string {
-	if s.cfg.AttachmentStatus[level] != "" {
-		return s.cfg.AttachmentStatus[level]
-	}
-
-	return ""
+	return SlackAttachmentColorStatus[level]
 }
 
 func (s *slackTester) findUserID(t *testing.T, name string) string {

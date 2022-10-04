@@ -51,19 +51,17 @@ type Config struct {
 type AttachmentStatus = map[config.Level]string
 
 type SlackConfig struct {
-	BotName                  string           `envconfig:"default=botkube"`
-	TesterName               string           `envconfig:"default=tester"`
-	AdditionalContextMessage string           `envconfig:"optional"`
-	AttachmentStatus         AttachmentStatus `envconfig:"optional"`
+	BotName                  string `envconfig:"default=botkube"`
+	TesterName               string `envconfig:"default=tester"`
+	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
 	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
 }
 
 type DiscordConfig struct {
-	BotName                  string           `envconfig:"default=botkube"`
-	TesterName               string           `envconfig:"default=botkube_tester"`
-	AdditionalContextMessage string           `envconfig:"optional"`
-	AttachmentStatus         AttachmentStatus `envconfig:"optional"`
+	BotName                  string `envconfig:"default=botkube"`
+	TesterName               string `envconfig:"default=botkube_tester"`
+	AdditionalContextMessage string `envconfig:"optional"`
 	GuildID                  string
 	TesterAppToken           string
 	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
@@ -124,10 +122,8 @@ func TestDiscord(t *testing.T) {
 func newBotDriver(cfg Config, driverType DriverType) (BotDriver, error) {
 	switch driverType {
 	case SlackBot:
-		cfg.Slack.AttachmentStatus = SlackAttachmentColorStatus
 		return newSlackDriver(cfg.Slack)
 	case DiscordBot:
-		cfg.Discord.AttachmentStatus = DiscordAttachmentColorStatus
 		return newDiscordDriver(cfg.Discord)
 	}
 	return nil, nil
