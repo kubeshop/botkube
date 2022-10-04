@@ -21,26 +21,34 @@ const (
 	kubectlCommandName           = "kubectl"
 )
 
+type (
+	kcMerger interface {
+		MergeAllEnabled(includeBindings []string) kubectl.EnabledKubectl
+	}
+	kcExecutor interface {
+		Execute(bindings []string, command string, isAuthChannel bool) (string, error)
+	}
+)
+
 // KubectlSurvey provides functionality to handle interactive kubectl command selection.
 type KubectlSurvey struct {
 	log        logrus.FieldLogger
-	cfg        config.Config
-	kcExecutor *Kubectl
-	merger     *kubectl.Merger
+	kcExecutor kcExecutor
+	merger     kcMerger
 }
 
 // NewKubectlSurvey returns a new KubectlSurvey instance.
-func NewKubectlSurvey(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merger, executor *Kubectl) *KubectlSurvey {
+func NewKubectlSurvey(log logrus.FieldLogger, merger kcMerger, executor kcExecutor) *KubectlSurvey {
 	return &KubectlSurvey{
 		log:        log,
-		cfg:        cfg,
 		kcExecutor: executor,
 		merger:     merger,
 	}
 }
 
 // Do executes a given kcc command based on args.
-func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegration, bindings []string, conv Conversation, botName string) (interactive.Message, error) {
+// TODO: once we will have a real use-case, we should abstract the Slack state and introduce our own model.
+func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if platform != config.SocketSlackCommPlatformIntegration {
@@ -50,7 +58,8 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 
 	verbs, resTypes := e.getVerbsAndResourceTypeSelectLists(botName, bindings)
 
-	if len(args) == 1 { // no args specified, only command name, so we sent generic message
+	// if only command name was specified, return initial survey message
+	if len(args) == 1 {
 		// We start a new interactive block, so we generate unique ID.
 		// Later when we update this message with a new "body" e.g. update command preview
 		// the block state remains the same as Slack always see it under the same id.
@@ -63,23 +72,21 @@ func (e *KubectlSurvey) Do(args []string, platform config.CommPlatformIntegratio
 		return Survey(verbs, resTypes, nil, nil, id.String()), nil
 	}
 
-	var (
-		cmdVerb = args[1]
-	)
+	cmdVerb := args[1]
 
 	cmds := executorsRunner{
 		"--verbs": func() (interactive.Message, error) {
-			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, false)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, state, false)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
 			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
 		"--resource-type": func() (interactive.Message, error) {
-			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, false)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, state, false)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
 			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
 		"--resource-name": func() (interactive.Message, error) {
-			preview, cmd, dropdownsBlockID := getCommandPreview(botName, conv.State, true)
+			preview, cmd, dropdownsBlockID := getCommandPreview(botName, state, true)
 			resNames := e.tryToGetResourceNamesForCommand(botName, bindings, cmd)
 			return Survey(verbs, resTypes, resNames, preview, dropdownsBlockID), nil
 		},
@@ -125,6 +132,10 @@ func (e *KubectlSurvey) getVerbsAndResourceTypeSelectLists(botName string, bindi
 }
 
 func getCommandPreview(name string, state *slack.BlockActionStates, includeResourceName bool) (*interactive.Section, string, string) {
+	if state == nil {
+		return nil, "", ""
+	}
+
 	var (
 		verb         string
 		resourceType string

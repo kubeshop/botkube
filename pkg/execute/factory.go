@@ -80,7 +80,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		),
 		kubectlSurvey: NewKubectlSurvey(
 			params.Log.WithField("component", "Notifier Executor"),
-			params.Cfg,
 			params.Merger,
 			kcExecutor,
 		),

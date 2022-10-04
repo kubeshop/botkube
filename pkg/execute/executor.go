@@ -214,7 +214,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return interactive.Feedback(), nil
 		},
 		"kcc": func() (interactive.Message, error) {
-			return e.kubectlSurvey.Do(args, e.platform, e.conversation.ExecutorBindings, e.conversation, e.notifierHandler.BotName())
+			return e.kubectlSurvey.Do(args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, e.notifierHandler.BotName())
 		},
 	}
 
