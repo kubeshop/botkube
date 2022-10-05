@@ -19,7 +19,7 @@ import (
 
 const testingBotName = "@BKTesting"
 
-func Test(t *testing.T) {
+func TestCommandPreview(t *testing.T) {
 	var (
 		logger, _   = logtest.NewNullLogger()
 		fixBindings = []string{"kc-read-only", "kc-delete-pod"}

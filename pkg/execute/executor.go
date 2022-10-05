@@ -171,7 +171,11 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
-		if err != nil {
+		switch {
+		case err == nil:
+		case IsExecutionCommandError(err):
+			return response(err.Error(), "")
+		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
