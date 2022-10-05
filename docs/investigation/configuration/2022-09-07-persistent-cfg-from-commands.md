@@ -1,4 +1,4 @@
-# Persistent configuration from BotKube commands
+# Persistent configuration from Botkube commands
 
 Created on 2022-09-07 by Paweł Kosiec ([@pkosiec](https://github.com/pkosiec))
 
@@ -6,7 +6,7 @@ Created on 2022-09-07 by Paweł Kosiec ([@pkosiec](https://github.com/pkosiec))
 
 - [Goal](#goal)
 - [Current approach](#current-approach)
-  * [Configuration persistence for BotKube commands](#configuration-persistence-for-botkube-commands)
+  * [Configuration persistence for Botkube commands](#configuration-persistence-for-botkube-commands)
   * [Reloading configuration](#reloading-configuration)
 - [Single source of truth](#single-source-of-truth)
   * [Simple PoC](#simple-poc)
@@ -15,7 +15,7 @@ Created on 2022-09-07 by Paweł Kosiec ([@pkosiec](https://github.com/pkosiec))
     + [Upgrade Helm chart](#upgrade-helm-chart)
     + [Rollback](#rollback)
   * [Implementation](#implementation)
-- [Setting configuration from BotKube commands](#setting-configuration-from-botkube-commands)
+- [Setting configuration from Botkube commands](#setting-configuration-from-botkube-commands)
   * [1. Dedicated command for manual restart](#1-dedicated-command-for-manual-restart)
   * [2. Restart app every time and post an updated message](#2-restart-app-every-time-and-post-an-updated-message)
   * [3. Distinguish two types of commands and restart if necessary](#3-distinguish-two-types-of-commands-and-restart-if-necessary)
@@ -26,29 +26,29 @@ Created on 2022-09-07 by Paweł Kosiec ([@pkosiec](https://github.com/pkosiec))
 
 ## Goal
 
-- Make configuration done with `@BotKube` commands persistent.
+- Make configuration done with `@Botkube` commands persistent.
 - Read configuration both from installation/upgrade config (ConfigMap) and also commands.
 
 ## Current approach
 
-### Configuration persistence for BotKube commands
+### Configuration persistence for Botkube commands
 
-BotKube commands change runtime configuration and it is not persisted.
+Botkube commands change runtime configuration and it is not persisted.
 
 ### Reloading configuration
 
 Config watcher watches for ConfigMap changes and restarts the app if it was updated.
 
-Before restart, BotKube messages:
+Before restart, Botkube messages:
 
 > Looks like the configuration is updated for cluster 'not-configured'. I shall halt my watch till I read it.
 
 and then:
 
 > My watch has ended for cluster 'not-configured'!
-Please send @BotKube notifier start to enable notification once BotKube comes online.
+Please send @Botkube notifier start to enable notification once Botkube comes online.
 
-Once online, BotKube says:
+Once online, Botkube says:
 
 > ...and now my watch begins for cluster 'not-configured'! :crossed_swords:
 
@@ -56,17 +56,17 @@ So there are 3 messages in total when reloading the configuration.
 
 ## Single source of truth
 
-While I was considering different approaches, I wanted to make sure we have a single source of truth for our config - a ConfigMap. The idea is that every `@BotKube` command that saves some state (e.g. `@BotKube notifier stop`), writes the state to the same ConfigMap. If we're using ConfigMap, the concurrent write already resolved by Kubernetes itself (`resourceVersion`).
+While I was considering different approaches, I wanted to make sure we have a single source of truth for our config - a ConfigMap. The idea is that every `@Botkube` command that saves some state (e.g. `@Botkube notifier stop`), writes the state to the same ConfigMap. If we're using ConfigMap, the concurrent write already resolved by Kubernetes itself (`resourceVersion`).
 
-- As it is right now, BotKube always loads the configuration during it start from the files (including mounted ConfigMap).
-- `@BotKube` commands results in Kubernetes API calls which modify ConfigMap with config.
+- As it is right now, Botkube always loads the configuration during it start from the files (including mounted ConfigMap).
+- `@Botkube` commands results in Kubernetes API calls which modify ConfigMap with config.
 - As the ConfigMap is mounted, Config Watcher detects the change.
 
-To support Helm upgrade and `@BotKube` commands, I modified the Helm chart to make it work.
+To support Helm upgrade and `@Botkube` commands, I modified the Helm chart to make it work.
 
 ### Simple PoC
 
-This scenario proves that the single source of truth works as expected. It imitates changes done by `@BotKube` commands and Helm upgrade.
+This scenario proves that the single source of truth works as expected. It imitates changes done by `@Botkube` commands and Helm upgrade.
 While in this scenario I used Secret, same thing can be achieved with ConfigMap.
 
 Patch the `communicationsecret.yaml` file.
@@ -147,7 +147,7 @@ kubectl get secret -n botkube botkube-communication-secret -o go-template='{{ in
 
 #### Do external state change
 
-Let's imitate a change, which will be done by `@BotKube` commands.
+Let's imitate a change, which will be done by `@Botkube` commands.
 Get secret `k get secret -n botkube botkube-communication-secret -oyaml` and change Slack `notifications.disabled=false` for Slack `default` channel, and add `notifications.disabled=true` for Teams.
 
 Alternatively, trust me and apply the Secret update:
@@ -340,21 +340,21 @@ communications:
 Initially, we could have duplication over these "state" properties, that is, have them both in communication Secret and "state" ConfigMap. However, as pointed before, the state ConfigMap will take precedence over the Secret.
 Later, we could iterate over all nested elements and check whether it should be filtered from the e.g. Communication Secret or State ConfigMap. So we'd iterate over the full object twice (once in state ConfigMap, and second time in Communications secret).
 
-## Setting configuration from BotKube commands
+## Setting configuration from Botkube commands
 
 ### 1. Dedicated command for manual restart
 
-Once user changes the configuration with `@BotKube` commands, config watcher detects the changes. It doesn't quit BotKube, but just informs about config reload instead, (e.g. only the first time):
+Once user changes the configuration with `@Botkube` commands, config watcher detects the changes. It doesn't quit Botkube, but just informs about config reload instead, (e.g. only the first time):
 
-> "Configuration has been updated. Apply it with the `@BotKube reload` command."
+> "Configuration has been updated. Apply it with the `@Botkube reload` command."
 
-The `@BotKube reload` is executed manually to apply new configuration, which would result in the app restart.
+The `@Botkube reload` is executed manually to apply new configuration, which would result in the app restart.
 
 We don't need to change the "goodbye" and "hello" messages.
 
 Pros:
 - Very easy to implement and maintain
-- Allows to fully control the time BotKube app restarts by the user (batch multiple configuration changes)
+- Allows to fully control the time Botkube app restarts by the user (batch multiple configuration changes)
 
 Cons:
 - UX is not great, as user needs to execute the command manually
@@ -364,9 +364,9 @@ Cons:
 
 Every command, even `notifier start/stop` restarts the app. But we don't post "config change detected", "goodbye" and "hello" messages.
 
-Instead, we post a notification when BotKube is online: `BotKube configuration for cluster "dev" has been reloaded 👍`.
+Instead, we post a notification when Botkube is online: `Botkube configuration for cluster "dev" has been reloaded 👍`.
 
-How to implement it? There would be another "state" BotKube ConfigMap, which is not monitored by Config Watcher, but still loaded during BotKube startup. Let's call it "startup-state" for now.
+How to implement it? There would be another "state" Botkube ConfigMap, which is not monitored by Config Watcher, but still loaded during Botkube startup. Let's call it "startup-state" for now.
 
 When detecting new configuration, Config Watcher writes to the "startup-state":
 
@@ -374,23 +374,23 @@ When detecting new configuration, Config Watcher writes to the "startup-state":
 lastExitReason: "ConfigReloaded"
 ```
 
-When BotKube launches again, it reads the config and posts `BotKube configuration for cluster "dev" has been reloaded 👍`. Then, it modifies the "startup-state" ConfigMap and removes the `lastExitReason` field, to not post the same message next time.
+When Botkube launches again, it reads the config and posts `Botkube configuration for cluster "dev" has been reloaded 👍`. Then, it modifies the "startup-state" ConfigMap and removes the `lastExitReason` field, to not post the same message next time.
 
 Initially, it is posted for all channels as it is right now. Later, we can include the channel name in the state and post it only to the channel where the command was executed.
 
 Pros:
 - Quite easy to implement and maintain
-- BotKube reload is "hidden"
+- Botkube reload is "hidden"
 
 Cons:
-- Current `notifier start/stop` commands will also reload BotKube. That shouldn't make big difference though, as it would be "hidden".
+- Current `notifier start/stop` commands will also reload Botkube. That shouldn't make big difference though, as it would be "hidden".
 
 ### 3. Distinguish two types of commands and restart if necessary
 
 This is a variation of the previous approach. We could distinguish two types of commands:
-- commands that don't restart BotKube, e.g. `notifier start/stop`
-    - they save the state in runtime config and another ConfigMap, which is not monitored by Config Watcher, but still loaded during BotKube startup.
-- commands that restart BotKube instantly, such as commands for notification presets
+- commands that don't restart Botkube, e.g. `notifier start/stop`
+    - they save the state in runtime config and another ConfigMap, which is not monitored by Config Watcher, but still loaded during Botkube startup.
+- commands that restart Botkube instantly, such as commands for notification presets
     - they post "Reloading configuration..." message and restart the app.
 
 Initially, the "goodbye" and "welcome" messages could be kept as they are. Later we can combine it with option 2.
@@ -400,7 +400,7 @@ Pros:
 - Current `notifier start/stop` still work instantly
 
 Cons:
-- If we want to combine it with option 2 approach to hide BotKube restart, it would be a bit more time-consuming to implement.
+- If we want to combine it with option 2 approach to hide Botkube restart, it would be a bit more time-consuming to implement.
 
 ### Rejected: Reload config dynamically
 
@@ -413,9 +413,9 @@ Doing a diff and restarting just some updated components (e.g. just Slack Bot or
 
 After team discussion (@ezodude, @huseyinbabal, @mszostok) we agree as follows:
 - We'll choose the option no 3.
-    - In the first implementation every BotKube restart related to configuration change will post "goodbye" and "hello" messages. This will be implemented as a part of [#704](https://github.com/kubeshop/botkube/issues/704).
+    - In the first implementation every Botkube restart related to configuration change will post "goodbye" and "hello" messages. This will be implemented as a part of [#704](https://github.com/kubeshop/botkube/issues/704).
     - If we have time as a part of this task, we will also implement the scope of 2:
         - Modify ConfigWatcher - save config
-        - Read config in controller and post custom message (`BotKube configuration for cluster "dev" has been reloaded 👍`)
+        - Read config in controller and post custom message (`Botkube configuration for cluster "dev" has been reloaded 👍`)
         - Clear welcome message after posting it
-- We may still implement the `@BotKube reload` command from the [1. Dedicated command for manual restart](#1-dedicated-command-for-manual-restart) section later, to support operation use cases (e.g. update configuration during maintenance window). This will be defined as a follow-up task to see how big the community demand is.
+- We may still implement the `@Botkube reload` command from the [1. Dedicated command for manual restart](#1-dedicated-command-for-manual-restart) section later, to support operation use cases (e.g. update configuration during maintenance window). This will be defined as a follow-up task to see how big the community demand is.

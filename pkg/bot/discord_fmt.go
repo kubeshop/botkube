@@ -52,7 +52,7 @@ func (b *Discord) longNotification(event events.Event) discordgo.MessageEmbed {
 			},
 		},
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "BotKube",
+			Text: "Botkube",
 		},
 	}
 
@@ -83,7 +83,7 @@ func (b *Discord) shortNotification(event events.Event) discordgo.MessageEmbed {
 		Title:       event.Title,
 		Description: formatx.ShortMessage(event),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "BotKube",
+			Text: "Botkube",
 		},
 	}
 }

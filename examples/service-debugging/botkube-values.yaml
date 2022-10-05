@@ -79,7 +79,7 @@ settings:
   configWatcher: false
   upgradeNotifier: false
 
-# -- Role Based Access for BotKube Pod.
+# -- Role Based Access for Botkube Pod.
 # [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
 rbac:
   create: true

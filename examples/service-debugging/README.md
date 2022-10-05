@@ -1,8 +1,8 @@
-# BotKube Use Case: Collaboratively debug Kubernetes resources via Slack
+# Botkube Use Case: Collaboratively debug Kubernetes resources via Slack
 
 This example showcases debugging a failing Pod with a network issue. You will learn:
 
-- how BotKube notifies you about errors
+- how Botkube notifies you about errors
 - how to execute `kubectl` commands via `@Botkube`
 - how the `kubectl` permission restriction works
 
@@ -22,9 +22,9 @@ Run the command:
 k3d cluster create svc-debug
 ```
 
-### Deploy BotKube
+### Deploy Botkube
 
-1. Install [BotKube in your Slack workspace](https://botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace).
+1. Install [Botkube in your Slack workspace](https://botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace).
 
 2. Export required environment variables:
 
@@ -35,16 +35,16 @@ k3d cluster create svc-debug
    ```
 
    > **Note**
-   > The channels must exist and the BotKube bot must be added to them.
+   > The channels must exist and the Botkube bot must be added to them.
 
-3. Add BotKube Helm chart:
+3. Add Botkube Helm chart:
 
    ```bash
    helm repo add botkube https://charts.botkube.io
    helm repo update botkube
    ```
 
-4. Deploy BotKube:
+4. Deploy Botkube:
 
    ```bash
    helm install botkube --version v0.13.0 --namespace botkube --create-namespace \
@@ -70,7 +70,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 
 1. Open the team Slack channel.
 
-2. You should see new events sent by BotKube about the created service:
+2. You should see new events sent by Botkube about the created service:
 
    ![](assets/create-events.png)
 
@@ -122,7 +122,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
    @Botkube label pod {quote_pod_name} app=quote
    ```
 
-   If you execute that command in the team channel, you will get an error. This is yet another BotKube feature, it allows you to define executor permissions per channel.
+   If you execute that command in the team channel, you will get an error. This is yet another Botkube feature, it allows you to define executor permissions per channel.
 
 10. To be able to run the label command, you must switch to the admin channel.
 
@@ -166,7 +166,7 @@ During the short demo, you'll notice that:
 - You don't need to switch context - between Slack and your terminal
 - You can define different `kubectl` permissions per channel
 
-If you are very observant, you probably noticed that events were sent only to the team channel and not to the admin one. This is possible with a single BotKube instance. To learn more, check [Source and Executors Bindings](https://botkube.io/configuration/communication/#source-and-executor-bindings).
+If you are very observant, you probably noticed that events were sent only to the team channel and not to the admin one. This is possible with a single Botkube instance. To learn more, check [Source and Executors Bindings](https://botkube.io/configuration/communication/#source-and-executor-bindings).
 
 ## Cleanup
 

@@ -360,7 +360,7 @@ func (e *DefaultExecutor) findK8sVersion() (string, error) {
 
 	return ver, nil
 }
-func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
+func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 	k8sVersion, err := e.findK8sVersion()
 	if err != nil {
 		e.log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
@@ -372,7 +372,7 @@ func (e *DefaultExecutor) findBotKubeVersion() (versions string) {
 		botkubeVersion = "Unknown"
 	}
 
-	return fmt.Sprintf("K8s Server Version: %s\nBotKube version: %s", k8sVersion, botkubeVersion)
+	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVersion, botkubeVersion)
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
@@ -381,7 +381,7 @@ func (e *DefaultExecutor) runVersionCommand(cmd string) string {
 		e.log.Errorf("while reporting version command: %s", err.Error())
 	}
 
-	return e.findBotKubeVersion()
+	return e.findBotkubeVersion()
 }
 
 func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) {

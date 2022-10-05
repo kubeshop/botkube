@@ -17,7 +17,7 @@ const (
 	notifierStopMsgFmt                 = "Sure! I won't send you notifications from cluster '%s' here."
 	notifierStatusMsgFmt               = "Notifications from cluster '%s' are %s here."
 	notifierNotConfiguredMsgFmt        = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
-	notifierPersistenceNotSupportedFmt = "Platform %q doesn't support persistence for notifications. When BotKube Pod restarts, default notification settings will be applied for this platform."
+	notifierPersistenceNotSupportedFmt = "Platform %q doesn't support persistence for notifications. When Botkube Pod restarts, default notification settings will be applied for this platform."
 )
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.

@@ -10,13 +10,13 @@ import (
 type Identity struct {
 	ID                string
 	KubernetesVersion k8sVersion.Info
-	BotKubeVersion    version.Details
+	BotkubeVersion    version.Details
 }
 
 // TraitsMap returns a map with traits based on Identity struct fields.
 func (i Identity) TraitsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"k8sVersion":     i.KubernetesVersion,
-		"botkubeVersion": i.BotKubeVersion,
+		"botkubeVersion": i.BotkubeVersion,
 	}
 }

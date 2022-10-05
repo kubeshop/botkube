@@ -1,11 +1,11 @@
 # Analytics collection
 
-This document contains a summary of a short research around collecting anonymous analytics (a.k.a. telemetry) for BotKube.
+This document contains a summary of a short research around collecting anonymous analytics (a.k.a. telemetry) for Botkube.
 
 ## Goal
 
-The main goal is learning how BotKube is used, in the most private and least invasive way for users.
-All data must be anonymized to prevent identifying users. All analytics will be used only as aggregated collection of data (in forms of some statistics), to further improve BotKube and adjust its roadmap.
+The main goal is learning how Botkube is used, in the most private and least invasive way for users.
+All data must be anonymized to prevent identifying users. All analytics will be used only as aggregated collection of data (in forms of some statistics), to further improve Botkube and adjust its roadmap.
 
 The change must be widely communicated to all users, and there must be an ability to opt out from collecting such analytics.
 
@@ -28,7 +28,7 @@ All of the software I found that collect anonymous analytics (not only from Go/K
 This list contains initial data which we will collect.
 
 - Running installations:
-  - BotKube Version,
+  - Botkube Version,
   - Kubernetes version (it might be helpful to know which K8s we should support),
   - Enabled notifiers (names),
   - Enabled bots (names).
@@ -38,7 +38,7 @@ This list contains initial data which we will collect.
     - exclude resource name (it could potentially identify user),
     - collect just command verbs.
 - Received events:
-  - See how many events are handled by BotKube and sent to any communication channel,
+  - See how many events are handled by Botkube and sent to any communication channel,
     - We should batch the events to avoid high resource consumption during heavy load. This could be a built-in feature, like in [Segment Go library](https://segment.com/docs/connections/sources/catalog/libraries/server/go/#batching).
 - Errors:
   - Application crashes (from inside the app),
@@ -48,7 +48,7 @@ This list contains initial data which we will collect.
 The data collection would be enabled by default.
 By using two different identifiers at the same time, we will aggregate the data:
 - per cluster (by using `uid` of the `kube-system` Namespace),
-- and per BotKube installation (generating and storing UUID during BotKube installation e.g. in a ConfigMap).
+- and per Botkube installation (generating and storing UUID during Botkube installation e.g. in a ConfigMap).
 
 ### Out of scope
 
@@ -87,7 +87,7 @@ Once agreed, the following to do list will be pasted into the [epic issue (#506)
 - [ ] Set up Google Analytics and Twilio Segment accounts
   - Ensure proper access rights
 
-- [ ] Implement collecting analytics in BotKube
+- [ ] Implement collecting analytics in Botkube
   - Collect analytics listed in [Data collection](#data-collection) section
   - Use [Segment Go Library](https://segment.com/docs/connections/sources/catalog/libraries/server/go/)
   - Enabled by default
@@ -109,4 +109,4 @@ Once agreed, the following to do list will be pasted into the [epic issue (#506)
     - Explain the reason of introducing the analytics
     - Point to the [epic issue](https://github.com/kubeshop/botkube/issues/506) for further discussion
     - If necessary, schedule a public meeting to discuss the changes
-  - Mention analytics in BotKube 0.13 GitHub release description
+  - Mention analytics in Botkube 0.13 GitHub release description

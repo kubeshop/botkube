@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This scripts runs linters to ensure the correctness of the BotKube Helm chart.
+# This scripts runs linters to ensure the correctness of the Botkube Helm chart.
 #
 
 # standard bash error handling
@@ -13,7 +13,7 @@ readonly LOCAL_HELM_REPO_DIR=$( cd "${CURRENT_DIR}/../" && pwd )
 
 
 chart::lint() {
-    echo '- Linting BotKube chart...'
+    echo '- Linting Botkube chart...'
     docker run \
       --workdir=/data/helm \
       --volume "${LOCAL_HELM_REPO_DIR}:/data" \
@@ -22,7 +22,7 @@ chart::lint() {
 }
 
 chart::docs() {
-	echo '- Rendering BotKube chart README.md...'
+	echo '- Rendering Botkube chart README.md...'
 	docker run \
       --volume "${LOCAL_HELM_REPO_DIR}/helm/botkube:/helm-docs" \
       jnorwood/helm-docs:v1.11.0 -l debug -f ./values.yaml -t ./README.tpl.md --sort-values-order file

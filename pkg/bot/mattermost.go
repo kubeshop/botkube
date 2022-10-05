@@ -149,7 +149,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// It is observed that Mattermost server closes connections unexpectedly after some time.
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
-	b.log.Info("BotKube connected to Mattermost!")
+	b.log.Info("Botkube connected to Mattermost!")
 	for {
 		select {
 		case <-ctx.Done():
@@ -309,7 +309,7 @@ func (b *Mattermost) getTeam() *model.Team {
 	return botTeam
 }
 
-// Check if BotKube user exists in Mattermost
+// Check if Botkube user exists in Mattermost
 func (b *Mattermost) getUser() *model.User {
 	users, _, err := b.apiClient.AutocompleteUsersInTeam(b.getTeam().Id, b.botName, 1, "")
 	if err != nil {
@@ -351,7 +351,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			// Skip if message posted by BotKube or doesn't start with mention
+			// Skip if message posted by Botkube or doesn't start with mention
 			if post.UserId == b.getUser().Id {
 				continue
 			}

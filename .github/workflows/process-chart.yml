@@ -95,7 +95,7 @@ jobs:
           cd ${{ github.workspace }}/chart
           helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ./index.yaml .
           git add .
-          git commit -m "${{ inputs.next-version }} BotKube Helm chart release"
+          git commit -m "${{ inputs.next-version }} Botkube Helm chart release"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.gh-token }}

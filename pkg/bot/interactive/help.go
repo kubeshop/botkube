@@ -14,13 +14,13 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 	btnBuilder := buttonBuilder{botName: botName}
 	return Message{
 		Base: Base{
-			Description: fmt.Sprintf("BotKube is now active for %q cluster :rocket:", clusterName),
+			Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", clusterName),
 		},
 		Sections: []Section{
 			{
 				Base: Base{
 					Header:      "Using multiple instances",
-					Description: fmt.Sprintf("If you are running multiple BotKube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", clusterName),
+					Description: fmt.Sprintf("If you are running multiple Botkube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", clusterName),
 					Body: Body{
 						CodeBlock: fmt.Sprintf("--cluster-name=%q\n", clusterName),
 					},
@@ -42,7 +42,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 			{
 				Base: Base{
 					Header:      "Notification settings for this channel",
-					Description: "By default, BotKube will notify only about cluster errors and recommendations.",
+					Description: "By default, Botkube will notify only about cluster errors and recommendations.",
 				},
 				Buttons: []Button{
 					btnBuilder.ForCommandWithDescCmd("Adjust notifications", "edit SourceBindings", ButtonStylePrimary),
@@ -80,7 +80,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 				Base: Base{
 					Header: "Filters (advanced)",
 					Body: Body{
-						Plaintext: "You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters",
+						Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters",
 					},
 				},
 			},

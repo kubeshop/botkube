@@ -9,7 +9,7 @@ import (
 
 func TestTeams_TrimBotMention(t *testing.T) {
 	/// given
-	botName := "BotKube"
+	botName := "Botkube"
 	testCases := []struct {
 		Name               string
 		Input              string
@@ -17,13 +17,13 @@ func TestTeams_TrimBotMention(t *testing.T) {
 	}{
 		{
 			Name:               "Mention",
-			Input:              "<at>BotKube</at> get pods",
+			Input:              "<at>Botkube</at> get pods",
 			ExpectedTrimmedMsg: " get pods",
 		},
 		{
 			Name:               "Not at the beginning",
-			Input:              "Not at the beginning <at>BotKube</at> get pods",
-			ExpectedTrimmedMsg: "Not at the beginning <at>BotKube</at> get pods",
+			Input:              "Not at the beginning <at>Botkube</at> get pods",
+			ExpectedTrimmedMsg: "Not at the beginning <at>Botkube</at> get pods",
 		},
 		{
 			Name:               "Different mention",

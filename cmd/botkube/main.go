@@ -273,7 +273,7 @@ func run() error {
 			}
 
 			// non-blocking error, move forward
-			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running BotKube...")
+			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running Botkube...")
 		}
 	}
 
