@@ -38,6 +38,7 @@ type DefaultExecutorFactoryParams struct {
 	CfgManager        ConfigPersistenceManager
 	AnalyticsReporter AnalyticsReporter
 	NamespaceLister   NamespaceLister
+	CommandGuard      CommandGuard
 }
 
 // Executor is an interface for processes to execute commands
@@ -56,6 +57,12 @@ type ConfigPersistenceManager interface {
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+}
+
+// CommandGuard is an interface that allows to check if a given command is allowed to be executed.
+type CommandGuard interface {
+	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
+	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -84,6 +91,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.Merger,
 			kcExecutor,
 			params.NamespaceLister,
+			// TODO: Pass params.CommandGuard,
 		),
 		editExecutor: NewEditExecutor(
 			params.Log.WithField("component", "Notifier Executor"),

@@ -287,7 +287,7 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 // SendEvent sends event notification to slack
 func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
-	attachment := b.renderer.RenderEventMessage(event)
+	attachment := b.renderer.RenderLegacyEventMessage(event)
 
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event, eventSources) {

@@ -268,6 +268,7 @@ func runBotTest(t *testing.T,
 			          - nodes
 			          - configmaps
 			          - services
+			          - ingresses
 			      defaultNamespace: default
 			      restrictAccess: false
 			    kubectl-wait-cmd:
@@ -352,8 +353,8 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
-			command := "get ingress"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			command := "get role"
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
