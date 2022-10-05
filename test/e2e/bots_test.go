@@ -48,6 +48,8 @@ type Config struct {
 	Discord     DiscordConfig
 }
 
+type AttachmentStatus = map[config.Level]string
+
 type SlackConfig struct {
 	BotName                  string `envconfig:"default=botkube"`
 	TesterName               string `envconfig:"default=tester"`
@@ -499,9 +501,10 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		attachAssertionFn := func(title, _, msg string) bool {
+		attachAssertionFn := func(title, color, msg string) bool {
 			return title == "v1/configmaps created" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+				msg == fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName) &&
+				color == botDriver.GetColorByLevel(config.Info)
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
@@ -652,7 +655,8 @@ func runBotTest(t *testing.T,
 			return title == "v1/pods created" &&
 				strings.Contains(msg, "Recommendations:") &&
 				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
-				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name))
+				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name)) &&
+				color == botDriver.GetColorByLevel(config.Info)
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), assertionFn)
 		require.NoError(t, err)
