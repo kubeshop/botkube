@@ -118,7 +118,7 @@ func (b *Discord) Start(ctx context.Context) error {
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
-	b.log.Info("BotKube connected to Discord!")
+	b.log.Info("Botkube connected to Discord!")
 
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
@@ -298,7 +298,7 @@ func (b *Discord) BotName() string {
 	// We would need to execute external call to find the Bot display name.
 	// But this will be solved once we will introduce full support
 	// for interactive messages.
-	return "@BotKube"
+	return "@Botkube"
 }
 
 func (b *Discord) getChannels() map[string]channelConfigByID {

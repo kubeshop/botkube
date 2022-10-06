@@ -152,7 +152,7 @@ usage() {
 Usage: ${0} [build|release|release_snapshot]
 Where,
   build: Builds project with goreleaser without pushing images.
-  release_snapshot: Builds project without publishing release. It builds and pushes BotKube image with v9.99.9-dev image tag.
+  release_snapshot: Builds project without publishing release. It builds and pushes Botkube image with v9.99.9-dev image tag.
 EOM
     exit 1
 }

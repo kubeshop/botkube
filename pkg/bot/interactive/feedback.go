@@ -8,7 +8,7 @@ func Feedback() Message {
 			{
 				Base: Base{
 					Body: Body{
-						Plaintext: ":wave: Hey, what's your experience with BotKube so far?",
+						Plaintext: ":wave: Hey, what's your experience with Botkube so far?",
 					},
 				},
 				Buttons: []Button{

@@ -35,8 +35,8 @@ func TestRemoveSlackLinksIndicators(t *testing.T) {
 		},
 		{
 			name:     "one link",
-			content:  `You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at <https://botkube.io/filters>`,
-			expected: `You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters`,
+			content:  `You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at <https://botkube.io/filters>`,
+			expected: `You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters`,
 		},
 		{
 			name:     "multiple links",

@@ -1,6 +1,6 @@
 ## Reference: https://github.com/helm/chart-testing/blob/master/doc/ct_lint-and-install.md
 validate-chart-schema: false
-validate-maintainers: false # needs to be ignored due to: 'Error validating maintainer 'BotKube Dev Team': 404 Not Found'
+validate-maintainers: false # needs to be ignored due to: 'Error validating maintainer 'Botkube Dev Team': 404 Not Found'
 validate-yaml: true
 exclude-deprecated: true
 excluded-charts: []

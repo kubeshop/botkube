@@ -1,4 +1,4 @@
-# Configure BotKube via CRs
+# Configure Botkube via CRs
 
 Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
 
@@ -36,16 +36,16 @@ Created on 2022-06-20 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 
 ## Motivation
 
-This document is based on the outcome from [Configuration API syntax issues](2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure BotKube via dedicated CustomResources (CR) instead of configuration files. It also addresses the multichannel support.
+This document is based on the outcome from [Configuration API syntax issues](2022-06-15-cfg-syntax-issues.md) document. It describes the possible solution to configure Botkube via dedicated CustomResources (CR) instead of configuration files. It also addresses the multichannel support.
 
 ## Overview
 
-> Make BotKube, Kube native.
+> Make Botkube, Kube native.
 
 Defining configuration via CRD allows:
 
 - Easy extensibility - new executor/notificator can be dynamically created, and it will be automatically picked by controller.
-  - Currently, two big YAML file, requires BotKube restart, extensions need to be built-in.
+  - Currently, two big YAML file, requires Botkube restart, extensions need to be built-in.
 - Showing status of a given extension - if it's up and running.
     ```yaml
     # ..
@@ -280,7 +280,7 @@ spec:
 
 ### Communicator
 
-Communicators integration in BotKube is quite narrow in comparison to executors or notifiers, and it's not the main extension part. We can even decide to represent is as fixed set of CRDs, see [Communicators CRDs](#communicator-crds). In the first implementation also the Namespace-scoped CRD doesn't make sens.
+Communicators integration in Botkube is quite narrow in comparison to executors or notifiers, and it's not the main extension part. We can even decide to represent is as fixed set of CRDs, see [Communicators CRDs](#communicator-crds). In the first implementation also the Namespace-scoped CRD doesn't make sens.
 
 #### Template
 
@@ -402,19 +402,19 @@ This section described necessary changes if the implementation idea will be acce
 
 2. Recommendations are merged under notifiers.
 3. Filters are removed and existing one are moved under notifiers.
-4. Update `@BotKube` commands to reflect new configuration.
+4. Update `@Botkube` commands to reflect new configuration.
    1. Add option to manage all settings via communicator.
 5. GraphQL gateway service that will expose CRs. Used by Dashboard.
 6. **Optional**: Add CLI to simplify creating/updating configuration.
 
 ## Summary
 
-The CRD seems to be the most flexible and Kubernetes native approach for handling BotKube configuration. It enables a lot of new features. However, we still don't know the future of the BotKube and how it will be used.
+The CRD seems to be the most flexible and Kubernetes native approach for handling Botkube configuration. It enables a lot of new features. However, we still don't know the future of the Botkube and how it will be used.
 
 Because it is a huge change and the implementation phase will be time-consuming, I propose to postpone it until we will know answers for questions like:
-- what is the desired way of extending BotKube?
+- what is the desired way of extending Botkube?
 - what is the main extensions part? Notifiers, Communicators, Executors or something else?
-- what are the requirements regarding BotKube dashboard?
+- what are the requirements regarding Botkube dashboard?
 - what features we want to support? assign predefined action buttons? customizable message format? interactive recommendations?
 
 ## Alternatives
@@ -430,8 +430,8 @@ Each communicator, executor, and notificator is represented by own CRD.
 
 #### Communicator CRDs
 
-Communicators integration in BotKube is quite narrow in comparison to executors or notifiers, and it's not the main extension part.
-To simplify the BotKube implementation we can still have them as built-in. To still be K8s native, we can define them as CRDs. For example:
+Communicators integration in Botkube is quite narrow in comparison to executors or notifiers, and it's not the main extension part.
+To simplify the Botkube implementation we can still have them as built-in. To still be K8s native, we can define them as CRDs. For example:
 
 - `Slack/ClusterSlack.communicators.core.botkube.io/v1`
 - `Discord/ClusterDiscord.communicators.core.botkube.io/v1`

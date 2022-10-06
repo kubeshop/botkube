@@ -158,8 +158,8 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 // renderButtons renders button section.
 //
 //  1. With description, renders one per row. For example:
-//     `@BotKube get pods` [Button "Get Pods"]
-//     `@BotKube get deploys` [Button "Get Deployments"]
+//     `@Botkube get pods` [Button "Get Pods"]
+//     `@Botkube get deploys` [Button "Get Deployments"]
 //
 //  2. Without description: all in the same row. For example:
 //     [Button "Get Pods"] [Button "Get Deployments"]
@@ -269,7 +269,7 @@ func (b *SlackRenderer) longNotification(event events.Event) slack.Attachment {
 				Short: true,
 			},
 		},
-		Footer: "BotKube",
+		Footer: "Botkube",
 	}
 
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Namespace, "Namespace", true)
@@ -302,7 +302,7 @@ func (b *SlackRenderer) shortNotification(event events.Event) slack.Attachment {
 				Value: formatx.ShortMessage(event),
 			},
 		},
-		Footer: "BotKube",
+		Footer: "Botkube",
 	}
 }
 

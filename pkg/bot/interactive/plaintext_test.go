@@ -24,7 +24,7 @@ func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 					Description: Body{
 						Plaintext: "Select notification sources",
 					},
-					Command: "@BotKube edit SourceBindings",
+					Command: "@Botkube edit SourceBindings",
 					Options: []OptionItem{
 						{
 							Name:  "K8s all events",
@@ -54,7 +54,7 @@ func TestInteractiveMessageToPlaintext(t *testing.T) {
 	}
 
 	// given
-	help := Help("platform", "testing", "@BotKube")
+	help := Help("platform", "testing", "@Botkube")
 
 	// when
 	out := MessageToPlaintext(help, customNewlineFormatter)

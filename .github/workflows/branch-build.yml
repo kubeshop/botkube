@@ -78,7 +78,7 @@ jobs:
       - name: Create cluster
         run: "k3d cluster create botkube --wait --timeout=5m"
 
-      - name: Install BotKube
+      - name: Install Botkube
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}

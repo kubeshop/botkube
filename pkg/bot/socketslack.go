@@ -119,12 +119,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 		case event := <-websocketClient.Events:
 			switch event.Type {
 			case socketmode.EventTypeConnecting:
-				b.log.Info("BotKube is connecting to Slack...")
+				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
 				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
 					return fmt.Errorf("report analytics error: %w", err)
 				}
-				b.log.Info("BotKube connected to Slack!")
+				b.log.Info("Botkube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
 				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
 				if !ok {
@@ -279,7 +279,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
-	// but unfortunately BotKube would need another scope (get all conversations).
+	// but unfortunately Botkube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
 	info, err := b.client.GetConversationInfo(event.Channel, true)
 	if err != nil {

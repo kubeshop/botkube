@@ -1,9 +1,9 @@
 FROM alpine:3.15
 ARG botkube_version="dev"
 LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
-      org.opencontainers.image.title="BotKube" \
+      org.opencontainers.image.title="Botkube" \
       org.opencontainers.image.version="${botkube_version}" \
-      org.opencontainers.image.description="BotKube is a messaging bot for monitoring and debugging Kubernetes clusters" \
+      org.opencontainers.image.description="Botkube is a messaging bot for monitoring and debugging Kubernetes clusters" \
       org.opencontainers.image.documentation="https://botkube.io" \
       org.opencontainers.image.licenses="MIT"
 

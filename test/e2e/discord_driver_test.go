@@ -65,7 +65,7 @@ func (d *discordTester) Type() DriverType {
 }
 
 func (d *discordTester) BotName() string {
-	return "@BotKube"
+	return "@Botkube"
 }
 
 func (d *discordTester) BotUserID() string {

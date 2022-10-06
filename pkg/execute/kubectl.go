@@ -67,7 +67,7 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merge
 
 // CanHandle returns true if it's allowed kubectl command that can be handled by this executor.
 //
-// TODO: we should just introduce a command name explicitly. In this case `@BotKube kubectl get po` instead of `@BotKube get po`
+// TODO: we should just introduce a command name explicitly. In this case `@Botkube kubectl get po` instead of `@Botkube get po`
 // As a result, we are able to detect kubectl command but say that you're simply not authorized to use it instead of "Command not supported. (..)"
 func (e *Kubectl) CanHandle(bindings []string, args []string) bool {
 	if len(args) == 0 {
@@ -202,7 +202,7 @@ func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd s
 //	https://github.com/kubeshop/botkube/blob/0b99ac480c8e7e93ce721b345ffc54d89019a812/pkg/execute/executor.go#L242-L276
 //
 // Further refactoring in needed. For example, the cluster flag should be removed by an upper layer
-// as it's strictly BotKube related and not executor specific (e.g. kubectl, helm, istio etc.).
+// as it's strictly Botkube related and not executor specific (e.g. kubectl, helm, istio etc.).
 func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string

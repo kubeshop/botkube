@@ -4,7 +4,7 @@
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-To report security vulnerabilities in BotKube project, please email [**frontdesk@kubeshop.io**](mailto:frontdesk@kubeshop.io) with a detailed description of the issue. If the issue is confirmed, we will release a patch as soon as possible depending on complexity.
+To report security vulnerabilities in Botkube project, please email [**frontdesk@kubeshop.io**](mailto:frontdesk@kubeshop.io) with a detailed description of the issue. If the issue is confirmed, we will release a patch as soon as possible depending on complexity.
 
 Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
 
