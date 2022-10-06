@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -268,6 +269,26 @@ func (e *DefaultExecutor) reportCommand(verb string) {
 	if err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
+}
+
+func extractResultsFilter(cmd string) (ResultsFilter, string, error) {
+	r, err := regexp.Compile(`--filter[=|(' ')]('(.*?)'|"(.*?)"|(\S+))`)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var filter ResultsFilter
+	var cmdMinusFilter string
+
+	matchedArray := r.FindStringSubmatch(cmd)
+	if len(matchedArray) >= 3 {
+		filter = TextFilter{value: matchedArray[2]}
+		cmdMinusFilter = strings.ReplaceAll(cmd, matchedArray[0], "")
+	} else {
+		filter = EchoFilter{}
+	}
+
+	return filter, cmdMinusFilter, nil
 }
 
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
