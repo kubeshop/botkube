@@ -52,6 +52,9 @@ type socketSlackMessage struct {
 	User                string
 	TriggerID           string
 	IsButtonClickOrigin bool
+	State               *slack.BlockActionStates
+	ResponseURL         string
+	BlockID             string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -63,6 +66,7 @@ type socketSlackAnalyticsReporter interface {
 // NewSocketSlack creates a new SocketSlack instance.
 func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
@@ -193,6 +197,9 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						TriggerID:           callback.TriggerID,
 						User:                callback.User.ID,
 						IsButtonClickOrigin: true,
+						State:               callback.BlockActionState,
+						ResponseURL:         callback.ResponseURL,
+						BlockID:             act.BlockID,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -298,6 +305,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 			ExecutorBindings:    channel.Bindings.Executors,
 			IsAuthenticated:     isAuthChannel,
 			IsButtonClickOrigin: event.IsButtonClickOrigin,
+			State:               event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
@@ -346,7 +354,11 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
 
-	if resp.OnlyVisibleForYou && event.User != "" {
+	if resp.ReplaceOriginal && event.ResponseURL != "" {
+		options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
+	}
+
+	if resp.OnlyVisibleForYou {
 		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
@@ -455,6 +467,11 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 			items = append(items, item.Value)
 		}
 		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+	case "static_select":
+		// Example of commands that are handled here:
+		//   @BotKube kcc --verbs get
+		//   @BotKube kcc --resource-type
+		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 
 	return command

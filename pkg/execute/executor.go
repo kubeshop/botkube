@@ -23,10 +23,6 @@ import (
 var (
 	kubectlBinary = "/usr/local/bin/kubectl"
 )
-var (
-	errInvalidCommand     = errors.New("invalid command")
-	errUnsupportedCommand = errors.New("unsupported command")
-)
 
 const (
 	unsupportedCmdMsg   = "Command not supported. Please use 'help' to see supported commands."
@@ -63,6 +59,7 @@ type DefaultExecutor struct {
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
 	user              string
+	kubectlSurvey     *KubectlSurvey
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -147,9 +144,11 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		if overrideCommand != "" {
 			cmd = overrideCommand
 		}
+
+		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
 		return interactive.Message{
 			Base: interactive.Base{
-				Description: fmt.Sprintf("%s on `%s`", cmd, clusterName),
+				Description: e.appendByUserOnlyIfNeeded(header),
 				Body: interactive.Body{
 					CodeBlock: msg,
 				},
@@ -172,7 +171,11 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			e.log.Errorf("while reporting executed command: %s", err.Error())
 		}
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
-		if err != nil {
+		switch {
+		case err == nil:
+		case IsExecutionCommandError(err):
+			return response(err.Error(), "")
+		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
@@ -214,6 +217,9 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		"feedback": func() (interactive.Message, error) {
 			return interactive.Feedback(), nil
 		},
+		"kcc": func() (interactive.Message, error) {
+			return e.kubectlSurvey.Do(args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, e.notifierHandler.BotName())
+		},
 	}
 
 	msg, err := cmds.SelectAndRun(args[0])
@@ -223,6 +229,8 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return response(incompleteCmdMsg, "")
 	case errors.Is(err, errUnsupportedCommand):
 		return response(unsupportedCmdMsg, "")
+	case IsExecutionCommandError(err):
+		return response(err.Error(), "")
 	default:
 		e.log.Errorf("while executing command %q: %s", command, err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
@@ -403,4 +411,12 @@ func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) 
 	}
 
 	return buff.String(), nil
+}
+
+// appendByUserOnlyIfNeeded returns the "by Foo" only if the command was executed via button.
+func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
+	if e.user == "" || !e.conversation.IsButtonClickOrigin {
+		return cmd
+	}
+	return fmt.Sprintf("%s by %s", cmd, e.user)
 }

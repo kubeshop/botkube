@@ -2,7 +2,7 @@ package interactive
 
 // Feedback generates Message structure.
 func Feedback() Message {
-	btnBuilder := buttonBuilder{}
+	btnBuilder := ButtonBuilder{}
 	return Message{
 		Sections: []Section{
 			{

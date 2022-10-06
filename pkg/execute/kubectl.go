@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/utils/strings/slices"
@@ -109,14 +110,16 @@ func (e *Kubectl) GetCommandPrefix(args []string) string {
 }
 
 // getArgsWithoutAlias gets command without k8s alias.
-func (e *Kubectl) getArgsWithoutAlias(msg string) []string {
-	msgParts := strings.Fields(strings.TrimSpace(msg))
-
+func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
+	msgParts, err := shellwords.Parse(strings.TrimSpace(msg))
+	if err != nil {
+		return nil, fmt.Errorf("while parsing the command message into args: %w", err)
+	}
 	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
-		return msgParts[1:]
+		return msgParts[1:], nil
 	}
 
-	return msgParts
+	return msgParts, nil
 }
 
 // Execute executes kubectl command based on a given args.
@@ -132,8 +135,12 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	log.Debugf("Handling command...")
 
+	args, err := e.getArgsWithoutAlias(command)
+	if err != nil {
+		return "", err
+	}
+
 	var (
-		args        = e.getArgsWithoutAlias(command)
 		clusterName = e.cfg.Settings.ClusterName
 		verb        = args[0]
 		resource    = e.getResourceName(args)
@@ -151,36 +158,36 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	kcConfig := e.merger.MergeForNamespace(bindings, executionNs)
 
 	if !isAuthChannel && kcConfig.RestrictAccess {
-		msg := fmt.Sprintf(kubectlNotAuthorizedMsgFmt, clusterName)
-		return e.omitIfWeAreNotExplicitlyTargetCluster(log, command, msg)
+		msg := NewExecutionCommandError(kubectlNotAuthorizedMsgFmt, clusterName)
+		return "", e.omitIfWeAreNotExplicitlyTargetCluster(log, command, msg)
 	}
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
 		if executionNs == config.AllNamespaceIndicator {
-			return fmt.Sprintf(kubectlNotAllowedVerbInAllNsMsgFmt, verb, clusterName), nil
+			return "", NewExecutionCommandError(kubectlNotAllowedVerbInAllNsMsgFmt, verb, clusterName)
 		}
-		return fmt.Sprintf(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName), nil
+		return "", NewExecutionCommandError(kubectlNotAllowedVerbMsgFmt, verb, executionNs, clusterName)
 	}
 
 	_, isResourceless := resourcelessCommands[verb]
 	if !isResourceless && resource != "" {
 		if !e.validResourceName(resource) {
-			return kubectlFlagAfterVerbMsg, nil
+			return "", NewExecutionCommandError(kubectlFlagAfterVerbMsg)
 		}
 		// Check if user has access to a given Kubernetes resource
 		// TODO: instead of using config with allowed verbs and commands we simply should use related SA.
 		if !e.kcChecker.IsResourceAllowedInNs(kcConfig, resource) {
 			if executionNs == config.AllNamespaceIndicator {
-				return fmt.Sprintf(kubectlNotAllowedKinInAllNsMsgFmt, resource, clusterName), nil
+				return "", NewExecutionCommandError(kubectlNotAllowedKinInAllNsMsgFmt, resource, clusterName)
 			}
-			return fmt.Sprintf(kubectlNotAllowedKindMsgFmt, resource, executionNs, clusterName), nil
+			return "", NewExecutionCommandError(kubectlNotAllowedKindMsgFmt, resource, executionNs, clusterName)
 		}
 	}
 
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
 	if err != nil {
-		return fmt.Sprintf("%s%s", out, err.Error()), nil
+		return "", NewExecutionCommandError("%s%s", out, err.Error())
 	}
 
 	return out, nil
@@ -188,13 +195,13 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 // omitIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
-func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg string) (string, error) {
+func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg *ExecutionCommandError) error {
 	if utils.GetClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
-		return verboseMsg, nil
+		return verboseMsg
 	}
 
 	log.WithField("verboseMsg", verboseMsg).Debugf("Skipping kubectl verbose message...")
-	return "", nil
+	return nil
 }
 
 // TODO: This code was moved from:

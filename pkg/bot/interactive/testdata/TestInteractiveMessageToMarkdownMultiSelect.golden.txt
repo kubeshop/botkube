@@ -5,3 +5,12 @@ Select notification sources
 Available options:
  - `k8s-all-events`
  - `k8s-recommendations`
+
+
+Available options:
+ - Workloads:
+  - `pods`
+  - `deployments`
+ - Data:
+  - `configmap`
+  - `secrets`

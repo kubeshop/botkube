@@ -24,9 +24,9 @@ Check the status of connected Kubernetes cluster(s).
 
 *Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
-  - `@Botkube get services`
-  - `@Botkube get pods`
-  - `@Botkube get deployments`
+  - `@Botkube kubectl get services`
+  - `@Botkube kubectl get pods`
+  - `@Botkube kubectl get deployments`
 
 To list all supported kubectl commands
   - `@Botkube commands list`

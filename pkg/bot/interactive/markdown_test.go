@@ -37,6 +37,44 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 					},
 				},
 			},
+			{
+				Selects: Selects{
+					Items: []Select{
+						{
+							Name:    "Commands",
+							Command: "@Botkube kcc",
+							OptionGroups: []OptionGroup{
+								{
+									Name: "Workloads",
+									Options: []OptionItem{
+										{
+											Name:  "pods",
+											Value: "pods",
+										},
+										{
+											Name:  "deployments",
+											Value: "deployments",
+										},
+									},
+								},
+								{
+									Name: "Data",
+									Options: []OptionItem{
+										{
+											Name:  "configmap",
+											Value: "configmap",
+										},
+										{
+											Name:  "secrets",
+											Value: "secrets",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
