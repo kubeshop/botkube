@@ -11,7 +11,7 @@ on:
       - '.codespell-whitelist'
       - '.gitignore'
       - '.golangci.yml'
-      - 'botkube-title.jpg'
+      - 'botkube-title.png'
       - 'botkube_arch.jpg'
       - 'CODE_OF_CONDUCT.md'
       - 'comm_config.yaml.tpl'
