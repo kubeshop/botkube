@@ -24,7 +24,7 @@ func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 					Description: Body{
 						Plaintext: "Select notification sources",
 					},
-					Command: "@BotKube edit SourceBindings",
+					Command: "@Botkube edit SourceBindings",
 					Options: []OptionItem{
 						{
 							Name:  "K8s all events",
@@ -47,14 +47,14 @@ func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 	golden.Assert(t, out, fmt.Sprintf("%s.golden.txt", t.Name()))
 }
 
-// go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
+// go test -run=TestInteractiveMessageToPlaintext ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToPlaintext(t *testing.T) {
 	customNewlineFormatter := func(msg string) string {
 		return fmt.Sprintf("%s\r\n", msg)
 	}
 
 	// given
-	help := Help("platform", "testing", "@BotKube")
+	help := Help("platform", "testing", "@Botkube")
 
 	// when
 	out := MessageToPlaintext(help, customNewlineFormatter)

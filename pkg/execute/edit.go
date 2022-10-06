@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages for this channel. Expect BotKube reload in a few seconds..."
-	editedSourcesMsgWithoutReloadFmt = ":white_check_mark: %s adjusted the BotKube notifications settings to %s messages.\nAs the Config Watcher is disabled, you need to restart BotKube manually to apply the changes."
+	editedSourcesMsgFmt              = ":white_check_mark: %s adjusted the Botkube notifications settings to %s messages for this channel. Expect Botkube reload in a few seconds..."
+	editedSourcesMsgWithoutReloadFmt = ":white_check_mark: %s adjusted the Botkube notifications settings to %s messages.\nAs the Config Watcher is disabled, you need to restart Botkube manually to apply the changes."
 	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source."
 )
 
@@ -40,7 +40,7 @@ type BindingsStorage interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 }
 
-// EditExecutor provides functionality to run all BotKube edit related commands.
+// EditExecutor provides functionality to run all Botkube edit related commands.
 type EditExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter

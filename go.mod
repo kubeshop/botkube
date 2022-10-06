@@ -16,6 +16,7 @@ require (
 	github.com/knadh/koanf v1.4.1
 	github.com/mattermost/mattermost-server/v5 v5.39.3
 	github.com/mattermost/mattermost-server/v6 v6.7.2
+	github.com/mattn/go-shellwords v1.0.12
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/prometheus/client_golang v1.12.2
 	github.com/sanity-io/litter v1.5.5

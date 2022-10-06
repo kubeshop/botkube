@@ -220,7 +220,7 @@ func fixIdentity() *analytics.Identity {
 			Compiler:     "k8s-compiler",
 			Platform:     "k8s-platform",
 		},
-		BotKubeVersion: version.Details{
+		BotkubeVersion: version.Details{
 			Version:     "botkube-version",
 			GitCommitID: "botkube-git-commit-id",
 			BuildDate:   "botkube-build-date",

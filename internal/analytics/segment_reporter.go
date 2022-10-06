@@ -199,7 +199,7 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface)
 	return Identity{
 		ID:                clusterID,
 		KubernetesVersion: *k8sServerVersion,
-		BotKubeVersion:    version.Info(),
+		BotkubeVersion:    version.Info(),
 	}, nil
 }
 

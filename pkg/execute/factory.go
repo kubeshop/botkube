@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
+	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -23,6 +24,7 @@ type DefaultExecutorFactory struct {
 	editExecutor      *EditExecutor
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
+	kubectlSurvey     *KubectlSurvey
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -57,6 +59,13 @@ type AnalyticsReporter interface {
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
 func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFactory {
+	kcExecutor := NewKubectl(
+		params.Log.WithField("component", "Kubectl Executor"),
+		params.Cfg,
+		params.Merger,
+		params.KcChecker,
+		params.CmdRunner,
+	)
 	return &DefaultExecutorFactory{
 		log:               params.Log,
 		cmdRunner:         params.CmdRunner,
@@ -69,21 +78,20 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.CfgManager,
 			params.AnalyticsReporter,
 		),
+		kubectlSurvey: NewKubectlSurvey(
+			params.Log.WithField("component", "Notifier Executor"),
+			params.Merger,
+			kcExecutor,
+		),
 		editExecutor: NewEditExecutor(
 			params.Log.WithField("component", "Notifier Executor"),
 			params.AnalyticsReporter,
 			params.CfgManager,
 			params.Cfg,
 		),
-		merger:     params.Merger,
-		cfgManager: params.CfgManager,
-		kubectlExecutor: NewKubectl(
-			params.Log.WithField("component", "Kubectl Executor"),
-			params.Cfg,
-			params.Merger,
-			params.KcChecker,
-			params.CmdRunner,
-		),
+		merger:          params.Merger,
+		cfgManager:      params.CfgManager,
+		kubectlExecutor: kcExecutor,
 	}
 }
 
@@ -94,6 +102,7 @@ type Conversation struct {
 	ExecutorBindings    []string
 	IsAuthenticated     bool
 	IsButtonClickOrigin bool
+	State               *slack.BlockActionStates
 }
 
 // NewDefaultInput an input for NewDefault
@@ -119,6 +128,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
+		kubectlSurvey:     f.kubectlSurvey,
 		user:              cfg.User,
 		notifierHandler:   cfg.NotifierHandler,
 		conversation:      cfg.Conversation,

@@ -106,6 +106,35 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 	return blocks
 }
 
+func (b *SlackRenderer) renderSelects(s interactive.Selects) slack.Block {
+	var elems []slack.BlockElement
+	for _, s := range s.Items {
+		placeholder := slack.NewTextBlockObject(slack.PlainTextType, s.Name, false, false)
+		singleSelect := slack.NewOptionsSelectBlockElement("static_select", placeholder, s.Command)
+
+		for _, group := range s.OptionGroups {
+			var slackOptions []*slack.OptionBlockObject
+			for _, opt := range group.Options {
+				slackOptions = append(slackOptions, slack.NewOptionBlockObject(opt.Value, b.plainTextBlock(opt.Name), nil))
+			}
+			singleSelect.OptionGroups = append(singleSelect.OptionGroups, slack.NewOptionGroupBlockElement(b.plainTextBlock(group.Name), slackOptions...))
+		}
+
+		if opt := s.InitialOption; opt != nil {
+			singleSelect.InitialOption = slack.NewOptionBlockObject(opt.Value, b.plainTextBlock(opt.Name), nil)
+		}
+
+		elems = append(elems, singleSelect)
+	}
+
+	// We use actions as we have only select items that we want to display in a single line.
+	// https://api.slack.com/reference/block-kit/blocks#actions
+	return slack.NewActionBlock(
+		s.ID,
+		elems...,
+	)
+}
+
 func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.Message) slack.MsgOption {
 	var out strings.Builder
 	if msg.Header != "" {
@@ -152,14 +181,18 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 		out = append(out, sec)
 	}
 
+	if in.Selects.AreOptionsDefined() {
+		out = append(out, b.renderSelects(in.Selects))
+	}
+
 	return out
 }
 
 // renderButtons renders button section.
 //
 //  1. With description, renders one per row. For example:
-//     `@BotKube get pods` [Button "Get Pods"]
-//     `@BotKube get deploys` [Button "Get Deployments"]
+//     `@Botkube get pods` [Button "Get Pods"]
+//     `@Botkube get deploys` [Button "Get Deployments"]
 //
 //  2. Without description: all in the same row. For example:
 //     [Button "Get Pods"] [Button "Get Deployments"]
@@ -169,6 +202,8 @@ func (b *SlackRenderer) renderButtons(in interactive.Buttons) []slack.Block {
 	}
 
 	if in.AtLeastOneButtonHasDescription() {
+		// We use section layout as we also want to add text description
+		// https://api.slack.com/reference/block-kit/blocks#section
 		return b.renderButtonsWithDescription(in)
 	}
 
@@ -178,6 +213,8 @@ func (b *SlackRenderer) renderButtons(in interactive.Buttons) []slack.Block {
 	}
 
 	return []slack.Block{
+		// We use actions layout as we have only buttons that we want to display in a single line.
+		// https://api.slack.com/reference/block-kit/blocks#actions
 		slack.NewActionBlock(
 			"",
 			btns...,
@@ -269,7 +306,7 @@ func (b *SlackRenderer) longNotification(event events.Event) slack.Attachment {
 				Short: true,
 			},
 		},
-		Footer: "BotKube",
+		Footer: "Botkube",
 	}
 
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Namespace, "Namespace", true)
@@ -302,7 +339,7 @@ func (b *SlackRenderer) shortNotification(event events.Event) slack.Attachment {
 				Value: formatx.ShortMessage(event),
 			},
 		},
-		Footer: "BotKube",
+		Footer: "Botkube",
 	}
 }
 

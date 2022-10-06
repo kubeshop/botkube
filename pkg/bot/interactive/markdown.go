@@ -91,6 +91,20 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 			}
 		}
 
+		if section.Selects.AreOptionsDefined() {
+			addLine("") // new line
+			addLine("Available options:")
+
+			for _, item := range section.Selects.Items {
+				for _, group := range item.OptionGroups {
+					addLine(fmt.Sprintf(" - %s:", group.Name))
+					for _, opt := range group.Options {
+						addLine(fmt.Sprintf("  - %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
+					}
+				}
+			}
+		}
+
 		for _, btn := range section.Buttons {
 			if btn.URL != "" {
 				addLine(fmt.Sprintf("%s: %s", btn.Name, btn.URL))

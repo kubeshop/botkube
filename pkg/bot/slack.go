@@ -125,10 +125,10 @@ func (b *Slack) Start(ctx context.Context) error {
 					return fmt.Errorf("while reporting analytics: %w", err)
 				}
 
-				b.log.Info("BotKube connected to Slack!")
+				b.log.Info("Botkube connected to Slack!")
 
 			case *slack.MessageEvent:
-				// Skip if message posted by BotKube
+				// Skip if message posted by Botkube
 				if ev.User == b.botID {
 					continue
 				}
@@ -218,7 +218,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
-	// but unfortunately BotKube would need another scope (get all conversations).
+	// but unfortunately Botkube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
 	info, err := b.client.GetConversationInfo(msg.Channel, true)
 	if err != nil {

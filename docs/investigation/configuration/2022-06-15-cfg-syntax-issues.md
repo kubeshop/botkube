@@ -2,7 +2,7 @@
 
 Created on 2022-06-15 by Mateusz Szostok ([@mszostok](https://github.com/mszostok))
 
-This document describes found issue with the current syntax for BotKube configuration.
+This document describes found issue with the current syntax for Botkube configuration.
 
 ## Communications
 
@@ -57,7 +57,7 @@ The resource configuration file contains:
 3. You are not able to enable/disable a given recommendation. There is only the `recommendations: true` property.
 4. You are not able to manage filters settings. There are no property for that.
 5. The `kubectl` executor settings are under `settings`.
-6. No option to define multiple notification settings. Currently, you need to deploy BotKube twice if you want to have two different notification strategies.
+6. No option to define multiple notification settings. Currently, you need to deploy Botkube twice if you want to have two different notification strategies.
 
 ### Ideas
 
@@ -165,7 +165,7 @@ The resource configuration file contains:
     </tr>
     </table>
 
-3. BotKube settings:
+3. Botkube settings:
 
     Stay as they are right now.
 
@@ -376,7 +376,7 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
 
 Issues that are still not addressed:
 - Showing status of a given extension - if it's up and running.
-  - Currently, there is no feedback channel. We can check that only in BotKube logs.
+  - Currently, there is no feedback channel. We can check that only in Botkube logs.
 - Providing metadata information about given extension (icon, display name, docs url etc.). Will be useful for discoverability.
   - Currently, not available.
 - Out-of-the-box validation via Open API schema.
@@ -384,10 +384,10 @@ Issues that are still not addressed:
 - Easy extensibility - add a new executor/notificator.
   - Currently, via built-in filters.
 
-Those issues can be address with dedicated BotKube configuration CRDs. See [Configure BotKube via CRs](2022-06-20-cfg-via-crds.md) investigation.
+Those issues can be address with dedicated Botkube configuration CRDs. See [Configure Botkube via CRs](2022-06-20-cfg-via-crds.md) investigation.
 
 ## Summary
 
-Even though the option to [configure BotKube via CRs](2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the BotKube.
+Even though the option to [configure Botkube via CRs](2022-06-20-cfg-via-crds.md) seems to be more flexible, I think that it's too big to be implemented at the current stage of the Botkube.
 
 I propose to solve the syntax issues and multichannel feature as described in the [Bindings](https://github.com/kubeshop/botkube/pull/626) proposal.

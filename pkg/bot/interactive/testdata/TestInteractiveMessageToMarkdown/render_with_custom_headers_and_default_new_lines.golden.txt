@@ -1,38 +1,38 @@
-BotKube is now active for "testing" cluster :rocket:
+Botkube is now active for "testing" cluster :rocket:
 
 *Using multiple instances*
-If you are running multiple BotKube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.
+If you are running multiple Botkube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.
 ```
 --cluster-name="testing"
 ```
 
 *Manage incoming notifications*
 ```
-@BotKube notifier [start|stop|status]
+@Botkube notifier [start|stop|status]
 ```
-  - `@BotKube notifier start`
-  - `@BotKube notifier stop`
-  - `@BotKube notifier status`
+  - `@Botkube notifier start`
+  - `@Botkube notifier stop`
+  - `@Botkube notifier status`
 
 *Notification settings for this channel*
-By default, BotKube will notify only about cluster errors and recommendations.
-  - `@BotKube edit SourceBindings`
+By default, Botkube will notify only about cluster errors and recommendations.
+  - `@Botkube edit SourceBindings`
 
 *Ping your cluster*
 Check the status of connected Kubernetes cluster(s).
-  - `@BotKube ping`
+  - `@Botkube ping`
 
 *Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
-  - `@BotKube get services`
-  - `@BotKube get pods`
-  - `@BotKube get deployments`
+  - `@Botkube kubectl get services`
+  - `@Botkube kubectl get pods`
+  - `@Botkube kubectl get deployments`
 
 To list all supported kubectl commands
-  - `@BotKube commands list`
+  - `@Botkube commands list`
 
 *Filters (advanced)*
-You can extend BotKube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters
+You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters
 
 *Angry? Amazed?*
 Give feedback: https://feedback.botkube.io

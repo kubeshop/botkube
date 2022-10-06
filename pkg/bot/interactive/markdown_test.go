@@ -24,7 +24,7 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 					Description: Body{
 						Plaintext: "Select notification sources",
 					},
-					Command: "@BotKube edit SourceBindings",
+					Command: "@Botkube edit SourceBindings",
 					Options: []OptionItem{
 						{
 							Name:  "K8s all events",
@@ -33,6 +33,44 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 						{
 							Name:  "K8s recommendations",
 							Value: "k8s-recommendations",
+						},
+					},
+				},
+			},
+			{
+				Selects: Selects{
+					Items: []Select{
+						{
+							Name:    "Commands",
+							Command: "@Botkube kcc",
+							OptionGroups: []OptionGroup{
+								{
+									Name: "Workloads",
+									Options: []OptionItem{
+										{
+											Name:  "pods",
+											Value: "pods",
+										},
+										{
+											Name:  "deployments",
+											Value: "deployments",
+										},
+									},
+								},
+								{
+									Name: "Data",
+									Options: []OptionItem{
+										{
+											Name:  "configmap",
+											Value: "configmap",
+										},
+										{
+											Name:  "secrets",
+											Value: "secrets",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -82,7 +120,7 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			given := Help("platform", "testing", "@BotKube")
+			given := Help("platform", "testing", "@Botkube")
 
 			// when
 			out := RenderMessage(tc.mdFormatter, given)

@@ -30,11 +30,22 @@ type Message struct {
 	Base
 	Sections          []Section
 	OnlyVisibleForYou bool
+	ReplaceOriginal   bool
 }
 
 // HasSections returns true if message has interactive sections.
 func (msg *Message) HasSections() bool {
 	return len(msg.Sections) != 0
+}
+
+// Select holds data related to the select drop-down.
+type Select struct {
+	Name    string
+	Command string
+	// OptionGroups provides a way to group options in a select menu.
+	OptionGroups []OptionGroup
+	// InitialOption holds already pre-selected options. MUST be a sub-set of OptionGroups.
+	InitialOption *OptionItem
 }
 
 // Base holds generic message fields.
@@ -55,6 +66,22 @@ type Section struct {
 	Base
 	Buttons     Buttons
 	MultiSelect MultiSelect
+	Selects     Selects
+}
+
+// Selects holds multiple Select objects.
+type Selects struct {
+	// ID allows to identify a given block when we do the updated.
+	ID    string
+	Items []Select
+}
+
+// AreOptionsDefined returns true if some options are available.
+func (s *Selects) AreOptionsDefined() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.Items) > 0
 }
 
 // OptionItem defines an option model.
@@ -71,8 +98,15 @@ type MultiSelect struct {
 
 	// Options holds all available options
 	Options []OptionItem
+
 	// InitialOptions hold already pre-selected options. MUST be a sub-set of Options.
 	InitialOptions []OptionItem
+}
+
+// OptionGroup holds information about options in the same group.
+type OptionGroup struct {
+	Name    string
+	Options []OptionItem
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -112,13 +146,13 @@ type Button struct {
 	Style       ButtonStyle
 }
 
-// buttonBuilder provides a simplified way to construct a Button model.
-type buttonBuilder struct {
-	botName string
+// ButtonBuilder provides a simplified way to construct a Button model.
+type ButtonBuilder struct {
+	BotName string
 }
 
 // ForCommandWithDescCmd returns button command where description and command are the same.
-func (b *buttonBuilder) ForCommandWithDescCmd(name, cmd string, style ...ButtonStyle) Button {
+func (b *ButtonBuilder) ForCommandWithDescCmd(name, cmd string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -126,7 +160,8 @@ func (b *buttonBuilder) ForCommandWithDescCmd(name, cmd string, style ...ButtonS
 	return b.commandWithDesc(name, cmd, cmd, bt)
 }
 
-func (b *buttonBuilder) DescriptionURL(name, cmd string, url string, style ...ButtonStyle) Button {
+// DescriptionURL returns link button with description.
+func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -134,23 +169,28 @@ func (b *buttonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 
 	return Button{
 		Name:        name,
-		Description: fmt.Sprintf("%s %s", b.botName, cmd),
+		Description: fmt.Sprintf("%s %s", b.BotName, cmd),
 		URL:         url,
 		Style:       bt,
 	}
 }
 
 // ForCommand returns button command without description.
-func (b *buttonBuilder) ForCommand(name, cmd string) Button {
-	cmd = fmt.Sprintf("%s %s", b.botName, cmd)
+func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
 	return Button{
 		Name:    name,
 		Command: cmd,
+		Style:   bt,
 	}
 }
 
 // ForURL returns link button.
-func (b *buttonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
+func (b *ButtonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -163,9 +203,9 @@ func (b *buttonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
 	}
 }
 
-func (b *buttonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle) Button {
-	cmd = fmt.Sprintf("%s %s", b.botName, cmd)
-	desc = fmt.Sprintf("%s %s", b.botName, desc)
+func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle) Button {
+	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
+	desc = fmt.Sprintf("%s %s", b.BotName, desc)
 	return Button{
 		Name:        name,
 		Command:     cmd,
