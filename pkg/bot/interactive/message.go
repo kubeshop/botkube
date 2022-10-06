@@ -28,9 +28,7 @@ const (
 type Message struct {
 	Type MessageType
 	Base
-
-	Sections []Section
-
+	Sections          []Section
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -44,11 +42,9 @@ func (msg *Message) HasSections() bool {
 type Select struct {
 	Name    string
 	Command string
-
-	// OptionGroups Provides a way to group options in a select menu.
+	// OptionGroups provides a way to group options in a select menu.
 	OptionGroups []OptionGroup
-
-	// InitialOption hold already pre-selected options. MUST be a sub-set of OptionGroups.
+	// InitialOption holds already pre-selected options. MUST be a sub-set of OptionGroups.
 	InitialOption *OptionItem
 }
 
