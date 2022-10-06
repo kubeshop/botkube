@@ -327,7 +327,7 @@ func (n *Namespaces) IsConfigured() bool {
 
 // IsAllowed checks if a given Namespace is allowed based on the config.
 func (n *Namespaces) IsAllowed(givenNs string) bool {
-	if n == nil {
+	if n == nil || givenNs == "" {
 		return false
 	}
 

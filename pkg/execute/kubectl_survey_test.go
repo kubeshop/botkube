@@ -1,6 +1,7 @@
 package execute_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -32,38 +35,45 @@ func TestCommandPreview(t *testing.T) {
 		expMsg interactive.Message
 	}{
 		{
-			name: "Print the verb and resource type based on a given state when triggered by verbs dropdown",
+			name: "Print all dropdowns and full command on verb change",
 			args: strings.Fields("kcc --verbs"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods ", "@BKTesting kubectl get pods ", fixAllDropdown()...),
+			expMsg: fixStateSurveyMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
 		},
 		{
-			name: "Print the verb and resource type based on a given state when triggered by resource type dropdown",
+			name: "Print all dropdowns and command without the resource name on resource type change",
 			args: strings.Fields("kcc --resource-type"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods ", "@BKTesting kubectl get pods ", fixAllDropdown()...),
+			expMsg: fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
 		},
 		{
-			name: "Print the verb, resource type, and resource name based on a given state when triggered by resource name dropdown",
+			name: "Print all dropdowns and full command on resource name change",
 			args: strings.Fields("kcc --resource-name"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods nginx2", "@BKTesting kubectl get pods nginx2", fixAllDropdown()...),
+			expMsg: fixStateSurveyMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
+		},
+		{
+			name: "Print all dropdowns and command without the resource name on namespace change",
+			args: strings.Fields("kcc --namespace"),
+
+			expMsg: fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var (
-				expKubectlCmd = `kubectl get pods --ignore-not-found=true -o go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`
+				expKubectlCmd = `kubectl get pods --ignore-not-found=true -o go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' -n default`
 				state         = fixStateForAllDropdowns()
 				kcExecutor    = &fakeKcExecutor{}
-				kcMerger      = newFakeKcMerger([]string{"get", "describe"}, []string{"deploy", "pods"})
+				nsLister      = &fakeNamespaceLister{}
+				kcMerger      = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 			)
 
-			kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor)
+			kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor, nsLister)
 
 			// when
-			gotMsg, err := kcSurveyExecutor.Do(tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName)
+			gotMsg, err := kcSurveyExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName)
 
 			// then
 			require.NoError(t, err)
@@ -89,10 +99,10 @@ func TestIgnorePlatformsOtherThanSocketSlack(t *testing.T) {
 	for _, platform := range platforms {
 		t.Run(fmt.Sprintf("Should ignore %s", platform), func(t *testing.T) {
 			// given
-			kcSurveyExecutor := execute.NewKubectlSurvey(logger, nil, nil)
+			kcSurveyExecutor := execute.NewKubectlSurvey(logger, nil, nil, nil)
 
 			// when
-			gotMsg, err := kcSurveyExecutor.Do(nil, platform, nil, nil, "")
+			gotMsg, err := kcSurveyExecutor.Do(context.Background(), nil, platform, nil, nil, "")
 
 			// then
 			require.NoError(t, err)
@@ -105,14 +115,14 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 	// given
 	var (
 		logger, _        = logtest.NewNullLogger()
-		kcMerger         = newFakeKcMerger([]string{"get", "describe"}, []string{"deploy", "pods"})
-		kcSurveyExecutor = execute.NewKubectlSurvey(logger, kcMerger, nil)
+		kcMerger         = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
+		kcSurveyExecutor = execute.NewKubectlSurvey(logger, kcMerger, nil, nil)
 		expMsg           = fixInitialSurveyMessage()
 	)
 
 	// when command args are not specified
 	cmd := []string{"kcc"}
-	gotMsg, err := kcSurveyExecutor.Do(cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName)
+	gotMsg, err := kcSurveyExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -130,15 +140,16 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		logger, _  = logtest.NewNullLogger()
 		state      = fixStateForAllDropdowns()
 		kcExecutor = &fakeErrorKcExecutor{}
-		kcMerger   = newFakeKcMerger([]string{"get", "describe"}, []string{"deploy", "pods"})
+		nsLister   = &fakeNamespaceLister{}
+		kcMerger   = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 		args       = []string{"kcc", "--verbs"}
-		expMsg     = fixStateSurveyMessage("kubectl get pods ", "@BKTesting kubectl get pods ", fixVerbsDropdown(), fixResourceTypeDropdown())
+		expMsg     = fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixNamespaceDropdown())
 	)
 
-	kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor)
+	kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor, nsLister)
 
 	// when
-	gotMsg, err := kcSurveyExecutor.Do(args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName)
+	gotMsg, err := kcSurveyExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -176,7 +187,6 @@ func fixInitialSurveyMessage() interactive.Message {
 				Selects: interactive.Selects{
 					Items: []interactive.Select{
 						fixVerbsDropdown(),
-						fixResourceTypeDropdown(),
 					},
 				},
 			},
@@ -217,8 +227,8 @@ func fixResourceTypeDropdown() interactive.Select {
 				Name: "Resources",
 				Options: []interactive.OptionItem{
 					{
-						Name:  "deploy",
-						Value: "deploy",
+						Name:  "deployments",
+						Value: "deployments",
 					},
 					{
 						Name:  "pods",
@@ -226,6 +236,28 @@ func fixResourceTypeDropdown() interactive.Select {
 					},
 				},
 			},
+		},
+	}
+}
+
+func fixNamespaceDropdown() interactive.Select {
+	return interactive.Select{
+		Name:    "Namespaces",
+		Command: "@BKTesting kcc --namespace",
+		OptionGroups: []interactive.OptionGroup{
+			{
+				Name: "Namespaces",
+				Options: []interactive.OptionItem{
+					{
+						Name:  "default",
+						Value: "default",
+					},
+				},
+			},
+		},
+		InitialOption: &interactive.OptionItem{
+			Name:  "default",
+			Value: "default",
 		},
 	}
 }
@@ -239,12 +271,16 @@ func fixResourceNamesDropdown() interactive.Select {
 				Name: "Resource name",
 				Options: []interactive.OptionItem{
 					{
-						Name:  "kc line1",
-						Value: "kc line1",
+						Name:  "nginx2",
+						Value: "nginx2",
 					},
 					{
-						Name:  "line2",
-						Value: "line2",
+						Name:  "grafana",
+						Value: "grafana",
+					},
+					{
+						Name:  "argo",
+						Value: "argo",
 					},
 				},
 			},
@@ -257,6 +293,7 @@ func fixAllDropdown() []interactive.Select {
 		fixVerbsDropdown(),
 		fixResourceTypeDropdown(),
 		fixResourceNamesDropdown(),
+		fixNamespaceDropdown(),
 	}
 }
 
@@ -300,7 +337,7 @@ func (r *fakeKcExecutor) Execute(bindings []string, command string, isAuthChanne
 	r.command = command
 	r.isAuthed = isAuthChannel
 
-	return "kc line1\nline2", nil
+	return "nginx2\ngrafana\nargo", nil
 }
 
 type fakeErrorKcExecutor struct{}
@@ -327,8 +364,29 @@ func (r *fakeKcMerger) MergeAllEnabled(_ []string) kubectl.EnabledKubectl {
 	for _, name := range r.allowedResources {
 		resources[name] = struct{}{}
 	}
-	return kubectl.EnabledKubectl{
-		AllowedKubectlVerb:     verbs,
-		AllowedKubectlResource: resources,
+	resourceNamespaces := map[string]config.Namespaces{}
+	for _, name := range r.allowedResources {
+		resourceNamespaces[name] = config.Namespaces{
+			Include: []string{"default"},
+		}
 	}
+	return kubectl.EnabledKubectl{
+		AllowedKubectlVerb:           verbs,
+		AllowedKubectlResource:       resources,
+		AllowedNamespacesPerResource: resourceNamespaces,
+	}
+}
+
+type fakeNamespaceLister struct{}
+
+func (f *fakeNamespaceLister) List(_ context.Context, opts metav1.ListOptions) (*corev1.NamespaceList, error) {
+	return &corev1.NamespaceList{
+		Items: []corev1.Namespace{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+				},
+			},
+		},
+	}, nil
 }

@@ -31,16 +31,17 @@ var kubectlAlias = []string{"kubectl", "kc", "k"}
 // - kubectl logs foo
 // - kubectl cluster-info
 var resourcelessCommands = map[string]struct{}{
-	"exec":         {},
-	"logs":         {},
-	"attach":       {},
-	"auth":         {},
-	"api-versions": {},
-	"cluster-info": {},
-	"cordon":       {},
-	"drain":        {},
-	"uncordon":     {},
-	"run":          {},
+	"exec":          {},
+	"logs":          {},
+	"attach":        {},
+	"auth":          {},
+	"api-versions":  {},
+	"cluster-info":  {},
+	"cordon":        {},
+	"drain":         {},
+	"uncordon":      {},
+	"run":           {},
+	"api-resources": {},
 }
 
 // Kubectl executes kubectl commands using local binary.

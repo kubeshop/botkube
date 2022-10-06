@@ -6,34 +6,60 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
+type (
+	// SurveyOptions holds survey message options.
+	SurveyOptions struct {
+		selects  []interactive.Select
+		sections []interactive.Section
+	}
+	// SurveyOption defines option mutator signature.
+	SurveyOption func(options *SurveyOptions)
+)
+
+// WithAdditionalSelects adds additional selects to a given kubectl Survey message.
+func WithAdditionalSelects(in ...*interactive.Select) SurveyOption {
+	return func(options *SurveyOptions) {
+		for _, s := range in {
+			if s == nil {
+				continue
+			}
+			options.selects = append(options.selects, *s)
+		}
+	}
+}
+
+// WithAdditionalSections adds additional sections to a given kubectl Survey message.
+func WithAdditionalSections(in ...*interactive.Section) SurveyOption {
+	return func(options *SurveyOptions) {
+		for _, s := range in {
+			if s == nil {
+				continue
+			}
+			options.sections = append(options.sections, *s)
+		}
+	}
+}
+
 // Survey returns the survey message for selecting kubectl command.
-func Survey(verbs, resources, resourceNames *interactive.Select, commandPreview *interactive.Section, dropdownsBlockID string) interactive.Message {
-	var selects []interactive.Select
-	if verbs != nil {
-		selects = append(selects, *verbs)
+func Survey(dropdownsBlockID string, verbs interactive.Select, opts ...SurveyOption) interactive.Message {
+	defaultOpt := SurveyOptions{
+		selects: []interactive.Select{
+			verbs,
+		},
 	}
-	if resources != nil {
-		selects = append(selects, *resources)
-	}
-	if resourceNames != nil {
-		selects = append(selects, *resourceNames)
+	for _, opt := range opts {
+		opt(&defaultOpt)
 	}
 
 	var sections []interactive.Section
+	sections = append(sections, interactive.Section{
+		Selects: interactive.Selects{
+			ID:    dropdownsBlockID,
+			Items: defaultOpt.selects,
+		},
+	})
 
-	if len(selects) > 0 {
-		sections = append(sections, interactive.Section{
-			Selects: interactive.Selects{
-				ID:    dropdownsBlockID,
-				Items: selects,
-			},
-		})
-	}
-
-	if commandPreview != nil {
-		sections = append(sections, *commandPreview)
-	}
-
+	sections = append(sections, defaultOpt.sections...)
 	return interactive.Message{
 		ReplaceOriginal:   true,
 		OnlyVisibleForYou: true,
@@ -58,20 +84,25 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string) *interactive.Select {
-	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs)
+	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs, nil)
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string) *interactive.Select {
-	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources)
+	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources, nil)
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
 func ResourceNamesSelect(botName string, names []string) *interactive.Select {
-	return selectDropdown("Resource name", resourceNamesDropdownCommand, botName, names)
+	return selectDropdown("Resource name", resourceNamesDropdownCommand, botName, names, nil)
 }
 
-func selectDropdown(name, cmd, botName string, items []string) *interactive.Select {
+// ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
+func ResourceNamespaceSelect(botName string, names []string, initialNamespace *string) *interactive.Select {
+	return selectDropdown("Namespaces", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
+}
+
+func selectDropdown(name, cmd, botName string, items []string, initialItem *string) *interactive.Select {
 	if len(items) == 0 {
 		return nil
 	}
@@ -84,9 +115,18 @@ func selectDropdown(name, cmd, botName string, items []string) *interactive.Sele
 		})
 	}
 
+	var initialOption *interactive.OptionItem
+	if initialItem != nil {
+		initialOption = &interactive.OptionItem{
+			Name:  *initialItem,
+			Value: *initialItem,
+		}
+	}
+
 	return &interactive.Select{
-		Name:    name,
-		Command: fmt.Sprintf("%s %s", botName, cmd),
+		Name:          name,
+		Command:       fmt.Sprintf("%s %s", botName, cmd),
+		InitialOption: initialOption,
 		OptionGroups: []interactive.OptionGroup{
 			{
 				Name:    name,
