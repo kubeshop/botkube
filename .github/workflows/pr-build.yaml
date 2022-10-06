@@ -26,7 +26,6 @@ env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/pr/botkube"
-  TEST_IMAGE_REPOSITORY: "kubeshop/pr/botkube-test"
   IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
 
