@@ -50,7 +50,7 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
 5. Navigate to the **OAuth & Permissions** section
 6. Copy the **Bot User OAuth Token** and save it for later.
 
-   You can already export it as environment variable for [Botkube installation](#install-botkube) or [running the tests locally](#run-tests-locally):
+   You can already export it as environment variable for [Botkube installation](#install-botkube) or [running the tests](#run-the-tests):
 
    ```bash
    export SLACK_TESTER_APP_TOKEN="{Botkube tester app token}
@@ -108,6 +108,10 @@ For example, if you're only running Discord tests, you can omit env var prefixed
 1. Export required environment variables:
 
     ```bash
+    #
+    # Environment variables for running Botkube
+    #
+
     export SLACK_BOT_TOKEN="{token for your configured Slack Botkube app}" # WARNING: Token for Botkube Slack bot, not the Tester!
 
     export DISCORD_BOT_ID="{Botkube Discord bot ClientID}" # WARNING: ClientID for Botkube Discord bot, not the Tester bot!
@@ -118,35 +122,20 @@ For example, if you're only running Discord tests, you can omit env var prefixed
     export IMAGE_TAG="v9.99.9-dev"
 
     #
-    # Environment variables for running integration tests via Helm:
-    #
-    export TEST_IMAGE_REGISTRY="ghcr.io"
-    export TEST_IMAGE_REPOSITORY="kubeshop/botkube-test"
-    export TEST_IMAGE_TAG="v9.99.9-dev"
-
-    #
-    # Environment variables for running integration tests both LOCALLY and via Helm:
+    # Environment variables for running integration tests
     #
     export SLACK_TESTER_APP_TOKEN="{Botkube Slack tester app token}" # WARNING: Token for Tester, not the Botkube Slack bot!
     export DISCORD_TESTER_APP_TOKEN="{Botkube Discord tester app token}" # WARNING: Token for Tester, not the Botkube Discord bot!
     export DISCORD_GUILD_ID="{Discord server ID}" # Where the tests will
 
     #
-    # Optional: environment variables for running integration tests LOCALLY using make:
+    # Optional environment variables
     #
     export SLACK_TESTER_NAME="{Name of Botkube SLACK tester app}" # WARNING: tester name defaults to `tester` when a name is not provided for local test runs!
     export DISCORD_TESTER_NAME="{Name of Botkube DISCORD tester app}" # WARNING: tester name defaults to `tester` when a name is not provided for local test runs!
     ```
 
 2. Install Botkube using Helm chart:
-
-   Again, you can omit a platform your E2E tests by only adding `--set` directives for the target platform.
-
-   For example, if you're only intending to test SLACK, remove:
-   - `--set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}"`
-   - `--set communications.default-group.discord.botID="${DISCORD_BOT_ID}"`
-   - `--set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}"`
-   - `--set e2eTest.discord.guildID="${DISCORD_GUILD_ID}"`
 
     ```bash
     helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
@@ -156,46 +145,22 @@ For example, if you're only running Discord tests, you can omit env var prefixed
       --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
       --set image.registry="${IMAGE_REGISTRY}" \
       --set image.repository="${IMAGE_REPOSITORY}" \
-      --set image.tag="${IMAGE_TAG}" \
-      --set e2eTest.image.registry="${TEST_IMAGE_REGISTRY}" \
-      --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
-      --set e2eTest.image.tag="${TEST_IMAGE_TAG}" \
-      --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-      --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
-      --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}"
+      --set image.tag="${IMAGE_TAG}" 
     ```
 
-## Run tests locally
+## Run the tests
 
 1. Ensure the environment variables for your target platforms are exported:
 
     ```bash
+    export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
     export SLACK_TESTER_APP_TOKEN="{Botkube Slack tester app token}" # WARNING: Token for Tester, not the Botkube Slack bot!
     export DISCORD_TESTER_APP_TOKEN="{Botkube Discord tester app token}" # WARNING: Token for Tester, not the Botkube Discord bot!
     export DISCORD_GUILD_ID="{Discord server ID}" # Where the tests will
-    export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
     ```
 
 2. Run the tests for Slack and Discord in parallel :
 
     ```bash
     make test-integration-slack & make test-integration-discord &
-    ```
-
-## Run Helm test
-
-Follow these steps to run integration tests via Helm:
-
-1. Run the tests:
-
-    ```bash
-    helm test botkube --namespace botkube --timeout=30m  --logs
-    ```
-
-   Wait for the results. The logs will be printed when the `helm test` command exits.
-
-2. If you would like to see the logs in real time, run:
-
-    ```bash
-    kubectl logs -n botkube botkube-e2e-test -f
     ```

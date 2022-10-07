@@ -5,7 +5,6 @@ set -o pipefail
 
 IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-kubeshop/botkube}"
-TEST_IMAGE_REPOSITORY="${TEST_IMAGE_REPOSITORY:-kubeshop/botkube-test}"
 IMAGE_SAVE_LOAD_DIR="${IMAGE_SAVE_LOAD_DIR:-/tmp/botkube-images}"
 IMAGE_PLATFORM="${IMAGE_PLATFORM:-linux/amd64}"
 
@@ -18,26 +17,18 @@ release_snapshot() {
   prepare
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
   goreleaser release --rm-dist --snapshot --skip-publish
+
   # Push images
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+
   # Create manifest
   docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
   docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
-
-  # Create manifest
-  docker manifest create ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
 save_images() {
@@ -59,11 +50,6 @@ save_images() {
   docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
   docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
   docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
-
-  TEST_FILE_NAME_PREFIX=$(echo "${TEST_IMAGE_REPOSITORY}" | tr "/" "-")
-  docker save ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 > ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME_PREFIX}-amd64.tar
-  docker save ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 > ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME_PREFIX}-arm64.tar
-  docker save ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 > ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME_PREFIX}-armv7.tar
 }
 
 load_and_push_images() {
@@ -82,18 +68,10 @@ load_and_push_images() {
   docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
   docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
 
-  TEST_FILE_NAME=$(echo "${TEST_IMAGE_REPOSITORY}" | tr "/" "-")
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME}-amd64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME}-arm64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${TEST_FILE_NAME}-armv7.tar
-
 	# Push images
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
 
   # Create manifest
   docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
@@ -101,14 +79,6 @@ load_and_push_images() {
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
   docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
-
-   # Create manifest for test
-   docker manifest create ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
-     --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
-     --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
-     --amend ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-   docker manifest push ${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
-
 }
 
 build() {
@@ -135,18 +105,6 @@ build_single() {
   rm "$PWD/botkube"
 }
 
-build_single_e2e(){
-  export GORELEASER_CURRENT_TAG=v9.99.9-dev
-  docker run --rm --privileged \
-    -v "$PWD":/go/src/github.com/kubeshop/botkube \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -w /go/src/github.com/kubeshop/botkube \
-    -e GORELEASER_CURRENT_TAG=${GORELEASER_CURRENT_TAG} \
-    goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube-test -o "./botkube-e2e.test"
-  docker build -f "$PWD/build/test.Dockerfile" --build-arg=TEST_NAME=botkube-e2e.test --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${TEST_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}" .
-  rm "$PWD/botkube-e2e.test"
-}
-
 usage() {
     cat <<EOM
 Usage: ${0} [build|release|release_snapshot]
@@ -164,9 +122,6 @@ case "${1}" in
     ;;
   build_single)
     build_single
-    ;;
-  build_single_e2e)
-    build_single_e2e
     ;;
   release_snapshot)
     release_snapshot

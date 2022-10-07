@@ -469,8 +469,8 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
 	case "static_select":
 		// Example of commands that are handled here:
-		//   @BotKube kcc --verbs get
-		//   @BotKube kcc --resource-type
+		//   @Botkube kcc --verbs get
+		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 
