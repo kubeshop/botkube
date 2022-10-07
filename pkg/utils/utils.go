@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -122,7 +123,13 @@ func GetClusterNameFromKubectlCmd(cmd string) string {
 	if len(matchedArray) >= 2 {
 		s = matchedArray[1]
 	}
-	return s
+
+	str, err := strconv.Unquote(s)
+	if err != nil {
+		return s
+	}
+
+	return str
 }
 
 // GVRToString converts GVR formats to string

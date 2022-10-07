@@ -25,7 +25,7 @@ func Help(platform config.CommPlatformIntegration, clusterName, botName string) 
 					Header:      "Using multiple instances",
 					Description: fmt.Sprintf("If you are running multiple Botkube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", clusterName),
 					Body: Body{
-						CodeBlock: fmt.Sprintf("--cluster-name=%q\n", clusterName),
+						CodeBlock: fmt.Sprintf("--cluster-name=%s\n", clusterName),
 					},
 				},
 			},
