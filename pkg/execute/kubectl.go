@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/gookit/color"
 	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -31,16 +32,17 @@ var kubectlAlias = []string{"kubectl", "kc", "k"}
 // - kubectl logs foo
 // - kubectl cluster-info
 var resourcelessCommands = map[string]struct{}{
-	"exec":         {},
-	"logs":         {},
-	"attach":       {},
-	"auth":         {},
-	"api-versions": {},
-	"cluster-info": {},
-	"cordon":       {},
-	"drain":        {},
-	"uncordon":     {},
-	"run":          {},
+	"exec":          {},
+	"logs":          {},
+	"attach":        {},
+	"auth":          {},
+	"api-versions":  {},
+	"cluster-info":  {},
+	"cordon":        {},
+	"drain":         {},
+	"uncordon":      {},
+	"run":           {},
+	"api-resources": {},
 }
 
 // Kubectl executes kubectl commands using local binary.
@@ -186,6 +188,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
+	out = color.ClearCode(out)
 	if err != nil {
 		return "", NewExecutionCommandError("%s%s", out, err.Error())
 	}

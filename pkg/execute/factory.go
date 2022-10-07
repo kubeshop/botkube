@@ -37,6 +37,7 @@ type DefaultExecutorFactoryParams struct {
 	Merger            *kubectl.Merger
 	CfgManager        ConfigPersistenceManager
 	AnalyticsReporter AnalyticsReporter
+	NamespaceLister   NamespaceLister
 }
 
 // Executor is an interface for processes to execute commands
@@ -82,6 +83,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.Log.WithField("component", "Notifier Executor"),
 			params.Merger,
 			kcExecutor,
+			params.NamespaceLister,
 		),
 		editExecutor: NewEditExecutor(
 			params.Log.WithField("component", "Notifier Executor"),

@@ -18,4 +18,7 @@ rules:
     resources: ["podsecuritypolicies"]
     verbs: ["use"]
 {{ end }}
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get"]
 {{ end }}

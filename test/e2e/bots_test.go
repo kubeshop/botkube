@@ -254,12 +254,10 @@ func runBotTest(t *testing.T,
 			          - api-versions
 			          - cluster-info
 			          - describe
-			          - diff
 			          - explain
 			          - get
 			          - logs
 			          - top
-			          - auth
 			        resources:
 			          - deployments
 			          - pods

@@ -14,6 +14,15 @@ const (
 	ButtonStyleDanger  ButtonStyle = "danger"
 )
 
+// SelectType is a type of Button element.
+type SelectType string
+
+// Represents a select dropdown types.
+const (
+	StaticSelect   SelectType = "static"
+	ExternalSelect SelectType = "external"
+)
+
 // MessageType defines the message type.
 type MessageType string
 
@@ -40,6 +49,7 @@ func (msg *Message) HasSections() bool {
 
 // Select holds data related to the select drop-down.
 type Select struct {
+	Type    SelectType
 	Name    string
 	Command string
 	// OptionGroups provides a way to group options in a select menu.

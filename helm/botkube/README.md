@@ -54,7 +54,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [executors.kubectl-read-only.kubectl.namespaces.include](./values.yaml#L249) | list | `[".*"]` | List of allowed Kubernetes Namespaces for command execution. It can also contain a regex expressions:  `- ".*"` - to specify all Namespaces. |
 | [executors.kubectl-read-only.kubectl.namespaces.exclude](./values.yaml#L254) | list | `[]` | List of ignored Kubernetes Namespace. It can also contain a regex expressions:  `- "test-.*"` - to specify all Namespaces. |
 | [executors.kubectl-read-only.kubectl.enabled](./values.yaml#L256) | bool | `false` | If true, enables `kubectl` commands execution. |
-| [executors.kubectl-read-only.kubectl.commands.verbs](./values.yaml#L260) | list | `["api-resources","api-versions","cluster-info","describe","diff","explain","get","logs","top","auth"]` | Configures which `kubectl` methods are allowed. |
+| [executors.kubectl-read-only.kubectl.commands.verbs](./values.yaml#L260) | list | `["api-resources","api-versions","cluster-info","describe","explain","get","logs","top"]` | Configures which `kubectl` methods are allowed. |
 | [executors.kubectl-read-only.kubectl.commands.resources](./values.yaml#L262) | list | `["deployments","pods","namespaces","daemonsets","statefulsets","storageclasses","nodes","configmaps","services"]` | Configures which K8s resource are allowed. |
 | [executors.kubectl-read-only.kubectl.defaultNamespace](./values.yaml#L264) | string | `"default"` | Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses the 'default'. |
 | [executors.kubectl-read-only.kubectl.restrictAccess](./values.yaml#L266) | bool | `false` | If true, enables commands execution from configured channel only. |

@@ -155,12 +155,12 @@ func run() error {
 			Merger:            kcMerger,
 			CfgManager:        cfgManager,
 			AnalyticsReporter: reporter,
+			NamespaceLister:   k8sCli.CoreV1().Namespaces(),
 		},
 	)
 
 	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
-	commCfg := conf.Communications
 	var (
 		notifiers []notifier.Notifier
 		bots      = map[string]bot.Bot{}
@@ -170,7 +170,7 @@ func run() error {
 	//    For example, if in both communication groups there's a Slack configuration pointing to the same workspace,
 	//	  when user executes `kubectl` command, one Bot instance will execute the command and return response,
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
-	for commGroupName, commGroupCfg := range commCfg {
+	for commGroupName, commGroupCfg := range conf.Communications {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
 
 		router.AddCommunicationsBindings(commGroupCfg)
