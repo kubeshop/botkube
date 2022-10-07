@@ -3,7 +3,7 @@ Botkube is now active for "testing" cluster :rocket:
 *Using multiple instances*
 If you are running multiple Botkube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.
 ```
---cluster-name="testing"
+--cluster-name=testing
 ```
 
 *Manage incoming notifications*
