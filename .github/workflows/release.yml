@@ -39,8 +39,7 @@ jobs:
 
       - name: Prepare GoReleaser Env
         run: |
-          echo "IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube" >> $GITHUB_ENV 
-          echo "TEST_IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube-test" >> $GITHUB_ENV 
+          echo "IMAGE_REPOSITORY=$GITHUB_REPOSITORY_OWNER/botkube" >> $GITHUB_ENV
 
       - name: Extract Previous Version
         id: prev-version

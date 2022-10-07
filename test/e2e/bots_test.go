@@ -173,6 +173,9 @@ func runBotTest(t *testing.T,
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 	require.NoError(t, err)
 
+	// TODO: configure and use MessageWaitTimeout from an (app) Config as it targets both Slack and Discord.
+	// Discord bot needs a bit more time to connect to Discord API.
+	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
