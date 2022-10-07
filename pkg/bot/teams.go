@@ -26,7 +26,7 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//  - see if we cannot set conversation ref without waiting for `@BotKube notify start` message.
+//  - see if we cannot set conversation ref without waiting for `@Botkube notify start` message.
 //  - see if a public endpoint can be avoided to handle Teams messages.
 //  - see if we can use different library
 //  - split to multiple files in a separate package,
@@ -34,7 +34,7 @@ import (
 
 const (
 	defaultPort        = "3978"
-	longRespNotice     = "Response is too long. Sending last few lines. Please send DM to BotKube to get complete response."
+	longRespNotice     = "Response is too long. Sending last few lines. Please send DM to Botkube to get complete response."
 	convTypePersonal   = "personal"
 	contentTypeCard    = "application/vnd.microsoft.card.adaptive"
 	contentTypeFile    = "application/vnd.microsoft.teams.card.file.consent"

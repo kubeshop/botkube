@@ -7,11 +7,9 @@ on:
 
 env:
   HELM_VERSION: v3.9.0
-  K3D_VERSION: v5.4.3
-  INTEGRATION_TESTS_TIMEOUT: 30m
+  K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
-  TEST_IMAGE_REPOSITORY: "kubeshop/botkube-test"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
@@ -61,12 +59,24 @@ jobs:
       contents: read
       packages: read
 
+    strategy:
+      matrix:
+        integration:
+          - slack
+          - discord
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           persist-credentials: false
 
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+            
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -75,34 +85,31 @@ jobs:
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
 
-      - name: Create cluster
-        run: "k3d cluster create botkube --wait --timeout=5m"
+      - name: Create cluster to test ${{ matrix.integration }}
+        run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install BotKube
+      - name: Install Botkube to test ${{ matrix.integration }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
-          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
-          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
-            -f ./helm/botkube/e2e-test-values.yaml \
-            --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
-            --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
-            --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
-            --set image.registry="${IMAGE_REGISTRY}" \
-            --set image.repository="${IMAGE_REPOSITORY}" \
-            --set image.tag="${IMAGE_TAG}" \
-            --set e2eTest.image.registry="${IMAGE_REGISTRY}" \
-            --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
-            --set e2eTest.image.tag="${IMAGE_TAG}" \
-            --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}" \
-            --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
-            --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
-            --set e2eTest.discord.additionalContextMessage="Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+           -f ./helm/botkube/e2e-test-values.yaml \
+           --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
+           --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
+           --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
+           --set image.registry="${IMAGE_REGISTRY}" \
+           --set image.repository="${IMAGE_REPOSITORY}" \
+           --set image.tag="${IMAGE_TAG}" \
 
-      - name: Run tests
-        run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
+      - name: Run ${{ matrix.integration }} tests
+        env:
+          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+          SLACK_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
+            make test-integration-${{ matrix.integration }}

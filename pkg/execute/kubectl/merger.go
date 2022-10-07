@@ -9,6 +9,8 @@ type EnabledKubectl struct {
 	AllowedKubectlVerb     map[string]struct{}
 	AllowedKubectlResource map[string]struct{}
 
+	AllowedNamespacesPerResource map[string]config.Namespaces
+
 	DefaultNamespace string
 	RestrictAccess   bool
 }
@@ -99,8 +101,9 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder
 		defaultNs      string
 		restrictAccess bool
 
-		allowedResources = map[string]struct{}{}
-		allowedVerbs     = map[string]struct{}{}
+		allowedResources     = map[string]struct{}{}
+		allowedVerbs         = map[string]struct{}{}
+		allowedNSPerResource = map[string]config.Namespaces{}
 	)
 	for _, name := range mapKeyOrder {
 		item, found := collectedKubectls[name]
@@ -110,10 +113,19 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder
 
 		for _, resourceName := range item.Commands.Resources {
 			allowedResources[resourceName] = struct{}{}
+			ns, found := allowedNSPerResource[resourceName]
+			if !found {
+				allowedNSPerResource[resourceName] = item.Namespaces
+			}
+			ns.Exclude = append(ns.Exclude, item.Namespaces.Exclude...)
+			ns.Include = append(ns.Include, item.Namespaces.Include...)
+			allowedNSPerResource[resourceName] = ns
 		}
+
 		for _, verbName := range item.Commands.Verbs {
 			allowedVerbs[verbName] = struct{}{}
 		}
+
 		if item.DefaultNamespace != "" {
 			defaultNs = item.DefaultNamespace
 		}
@@ -124,10 +136,11 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder
 	}
 
 	return EnabledKubectl{
-		AllowedKubectlResource: allowedResources,
-		AllowedKubectlVerb:     allowedVerbs,
-		DefaultNamespace:       defaultNs,
-		RestrictAccess:         restrictAccess,
+		AllowedKubectlResource:       allowedResources,
+		AllowedKubectlVerb:           allowedVerbs,
+		AllowedNamespacesPerResource: allowedNSPerResource,
+		DefaultNamespace:             defaultNs,
+		RestrictAccess:               restrictAccess,
 	}
 }
 

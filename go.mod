@@ -10,12 +10,14 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/google/go-github/v44 v44.1.0
 	github.com/google/uuid v1.3.0
+	github.com/gookit/color v1.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/knadh/koanf v1.4.1
 	github.com/mattermost/mattermost-server/v5 v5.39.3
 	github.com/mattermost/mattermost-server/v6 v6.7.2
+	github.com/mattn/go-shellwords v1.0.12
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/prometheus/client_golang v1.12.2
 	github.com/sanity-io/litter v1.5.5
@@ -24,7 +26,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slack-go/slack v0.10.4-0.20220606002947-9fd6da5aee56
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7
@@ -131,6 +133,7 @@ require (
 	github.com/wiggin77/merror v1.0.3 // indirect
 	github.com/wiggin77/srslog v1.0.1 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
+	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

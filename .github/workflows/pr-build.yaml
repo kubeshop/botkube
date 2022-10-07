@@ -11,7 +11,7 @@ on:
       - '.codespell-whitelist'
       - '.gitignore'
       - '.golangci.yml'
-      - 'botkube-title.jpg'
+      - 'botkube-title.png'
       - 'botkube_arch.jpg'
       - 'CODE_OF_CONDUCT.md'
       - 'comm_config.yaml.tpl'
@@ -22,19 +22,17 @@ on:
 
 env:
   HELM_VERSION: v3.9.0
-  K3D_VERSION: v5.4.3
+  K3D_VERSION: v5.4.6
   PR_NUMBER: ${{ github.event.pull_request.number }}
-  INTEGRATION_TESTS_TIMEOUT: 30m
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/pr/botkube"
-  TEST_IMAGE_REPOSITORY: "kubeshop/pr/botkube-test"
   IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
 
 jobs:
 
   save-image:
-    name: Build and save BotKube image
+    name: Build and save Botkube image
     runs-on: ubuntu-latest
 
     permissions:
@@ -71,7 +69,7 @@ jobs:
           retention-days: 1
 
   push-image:
-    name: Push BotKube image
+    name: Push Botkube image
     runs-on: ubuntu-latest
     needs: [save-image]
 
@@ -111,15 +109,13 @@ jobs:
         run: |
           cat > $GITHUB_STEP_SUMMARY << ENDOFFILE
 
-          ### BotKube image published successfully! :rocket:
-          To test BotKube with PR changes, run:
+          ### Botkube image published successfully! :rocket:
+          To test Botkube with PR changes, run:
 
               gh pr checkout ${PR_NUMBER}
               helm install botkube -n botkube --create-namespace \\
               --set image.repository=${IMAGE_REPOSITORY} \\
               --set image.tag=${IMAGE_TAG} \\
-              --set e2eTest.image.repository=${TEST_IMAGE_REPOSITORY} \\
-              --set e2eTest.image.tag=${IMAGE_TAG} \\
               ./helm/botkube
 
           ENDOFFILE
@@ -133,12 +129,24 @@ jobs:
       contents: read
       packages: read
 
+    strategy:
+      matrix:
+        integration:
+          - slack
+          - discord
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Install Helm
         uses: azure/setup-helm@v1
@@ -148,19 +156,16 @@ jobs:
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
 
-      - name: Create cluster
-        run: "k3d cluster create botkube --wait --timeout=5m"
+      - name: Create cluster to test ${{ matrix.integration }}
+        run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install BotKube
+      - name: Install Botkube to test ${{ matrix.integration }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
-          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
-          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
         run: |
-          helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
+            helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
             -f ./helm/botkube/e2e-test-values.yaml \
             --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
             --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
@@ -168,14 +173,14 @@ jobs:
             --set image.registry="${IMAGE_REGISTRY}" \
             --set image.repository="${IMAGE_REPOSITORY}" \
             --set image.tag="${IMAGE_TAG}" \
-            --set e2eTest.image.registry="${IMAGE_REGISTRY}" \
-            --set e2eTest.image.repository="${TEST_IMAGE_REPOSITORY}" \
-            --set e2eTest.image.tag="${IMAGE_TAG}" \
-            --set e2eTest.slack.testerAppToken="${SLACK_TESTER_APP_TOKEN}" \
-            --set e2eTest.slack.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}" \
-            --set e2eTest.discord.testerAppToken="${DISCORD_TESTER_APP_TOKEN}" \
-            --set e2eTest.discord.guildID="${DISCORD_GUILD_ID}" \
-            --set e2eTest.discord.additionalContextMessage="Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
 
-      - name: Run tests
-        run: "helm test botkube --namespace botkube --timeout=$INTEGRATION_TESTS_TIMEOUT --logs"
+      - name: Run ${{ matrix.integration }} tests
+        env:
+          SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+          SLACK_ADDITIONAL_CONTEXT_MESSAGE: "Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Pull request: ${PR_NUMBER} - https://github.com/kubeshop/botkube/pull/${PR_NUMBER}"
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
+            make test-integration-${{ matrix.integration }}

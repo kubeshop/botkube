@@ -52,6 +52,9 @@ type socketSlackMessage struct {
 	User                string
 	TriggerID           string
 	IsButtonClickOrigin bool
+	State               *slack.BlockActionStates
+	ResponseURL         string
+	BlockID             string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -63,6 +66,7 @@ type socketSlackAnalyticsReporter interface {
 // NewSocketSlack creates a new SocketSlack instance.
 func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+
 	authResp, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
@@ -119,12 +123,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 		case event := <-websocketClient.Events:
 			switch event.Type {
 			case socketmode.EventTypeConnecting:
-				b.log.Info("BotKube is connecting to Slack...")
+				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
 				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
 					return fmt.Errorf("report analytics error: %w", err)
 				}
-				b.log.Info("BotKube connected to Slack!")
+				b.log.Info("Botkube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
 				eventsAPIEvent, ok := event.Data.(slackevents.EventsAPIEvent)
 				if !ok {
@@ -193,6 +197,9 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						TriggerID:           callback.TriggerID,
 						User:                callback.User.ID,
 						IsButtonClickOrigin: true,
+						State:               callback.BlockActionState,
+						ResponseURL:         callback.ResponseURL,
+						BlockID:             act.BlockID,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -279,7 +286,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
-	// but unfortunately BotKube would need another scope (get all conversations).
+	// but unfortunately Botkube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
 	info, err := b.client.GetConversationInfo(event.Channel, true)
 	if err != nil {
@@ -298,6 +305,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 			ExecutorBindings:    channel.Bindings.Executors,
 			IsAuthenticated:     isAuthChannel,
 			IsButtonClickOrigin: event.IsButtonClickOrigin,
+			State:               event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
@@ -346,7 +354,11 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
 
-	if resp.OnlyVisibleForYou && event.User != "" {
+	if resp.ReplaceOriginal && event.ResponseURL != "" {
+		options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
+	}
+
+	if resp.OnlyVisibleForYou {
 		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
@@ -455,6 +467,11 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 			items = append(items, item.Value)
 		}
 		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+	case "static_select":
+		// Example of commands that are handled here:
+		//   @Botkube kcc --verbs get
+		//   @Botkube kcc --resource-type
+		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	}
 
 	return command

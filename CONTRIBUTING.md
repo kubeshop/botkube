@@ -1,8 +1,8 @@
-# How to Contribute to BotKube
+# How to Contribute to Botkube
 
 We'd love your help!
 
-BotKube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
+Botkube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
 
 We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to documentation site") as well as to code.
 
@@ -10,9 +10,9 @@ We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to
 
 Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-docs/blob/main/CONTRIBUTING.md) file to learn how to contribute to documentation.
 
-## Build and run BotKube from source code
+## Build and run Botkube from source code
 
-This section describes how to build and run the BotKube from the source code.
+This section describes how to build and run the Botkube from the source code.
 
 ### Prerequisite
 
@@ -20,7 +20,7 @@ This section describes how to build and run the BotKube from the source code.
 - `make`
 - [Docker](https://docs.docker.com/install/)
 - Kubernetes cluster, at least 1.21
-- Cloned BotKube repository
+- Cloned Botkube repository
 
    Use the following command to clone it:
    ```sh
@@ -29,11 +29,11 @@ This section describes how to build and run the BotKube from the source code.
 
 ### Build and install on Kubernetes
 
-1. Build BotKube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`. Choose one option:
+1. Build Botkube and create a new container image tagged as `ghcr.io/kubeshop/botkube:v9.99.9-dev`. Choose one option:
 
    - **Single target build for your local K8s cluster**
 
-     This is ideal for running BotKube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
+     This is ideal for running Botkube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
      Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target. By default, the build targets `linux/amd64`.
 
@@ -46,7 +46,7 @@ This section describes how to build and run the BotKube from the source code.
 
    - **Multi-arch target builds for any K8s cluster**
 
-     This is ideal for running BotKube on remote clusters.
+     This is ideal for running Botkube on remote clusters.
 
      When tagging your dev image take care to add your target image architecture as a suffix. For example, in the command below we added `-amd64` as our target architecture.
 
@@ -81,9 +81,9 @@ This section describes how to build and run the BotKube from the source code.
 
 ### Build and run locally
 
-For faster development, you can also build and run BotKube outside K8s cluster.
+For faster development, you can also build and run Botkube outside K8s cluster.
 
-1. Build BotKube local binary:
+1. Build Botkube local binary:
 
    ```sh
    # Fetch the dependencies
@@ -124,7 +124,7 @@ For faster development, you can also build and run BotKube outside K8s cluster.
    ...
    ```
 
-6. Run BotKube binary:
+6. Run Botkube binary:
 
    ```sh
    ./botkube
@@ -161,8 +161,8 @@ For faster development, you can also build and run BotKube outside K8s cluster.
 
 ## Support Channels
 
-Join the BotKube-related discussion on Slack!
+Join the Botkube-related discussion on Slack!
 
-Create your Slack account on [BotKube](https://join.botkube.io) workspace.
+Create your Slack account on [Botkube](https://join.botkube.io) workspace.
 
 To report bug or feature, use [GitHub issues](https://github.com/kubeshop/botkube/issues/new/choose).

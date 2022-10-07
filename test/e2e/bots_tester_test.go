@@ -9,6 +9,7 @@ import (
 	"github.com/sanity-io/litter"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const recentMessagesLimit = 6
@@ -64,4 +65,5 @@ type BotDriver interface {
 	TesterUserID() string
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.Message) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.Message) error
+	GetColorByLevel(level config.Level) string
 }

@@ -15,7 +15,7 @@ import (
 
 const (
 	defaultDuration = 24 * time.Hour
-	upgradeMsgFmt   = "Newer version (%s) of BotKube is available :tada:. Please upgrade BotKube backend.\nVisit botkube.io for more info."
+	upgradeMsgFmt   = "Newer version (%s) of Botkube is available :tada:. Please upgrade Botkube backend.\nVisit botkube.io for more info."
 	repoOwner       = "kubeshop"
 	repoName        = "botkube"
 )
@@ -25,7 +25,7 @@ type GitHubRepoClient interface {
 	GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
 }
 
-// UpgradeChecker checks for new BotKube releases.
+// UpgradeChecker checks for new Botkube releases.
 type UpgradeChecker struct {
 	log       logrus.FieldLogger
 	notifiers []notifier.Notifier
@@ -37,7 +37,7 @@ func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notifier.Notifier, gh
 	return &UpgradeChecker{log: log, notifiers: notifiers, ghRepoCli: ghCli}
 }
 
-// Run runs the Upgrade Checker and checks for new BotKube releases periodically.
+// Run runs the Upgrade Checker and checks for new Botkube releases periodically.
 func (c *UpgradeChecker) Run(ctx context.Context) error {
 	c.log.Info("Starting checker")
 	// Check at startup

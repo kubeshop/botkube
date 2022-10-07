@@ -169,7 +169,7 @@ type SinkBindings struct {
 	Sources []string `yaml:"sources"`
 }
 
-// Sources contains configuration for BotKube app sources.
+// Sources contains configuration for Botkube app sources.
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
@@ -327,7 +327,7 @@ func (n *Namespaces) IsConfigured() bool {
 
 // IsAllowed checks if a given Namespace is allowed based on the config.
 func (n *Namespaces) IsAllowed(givenNs string) bool {
-	if n == nil {
+	if n == nil || givenNs == "" {
 		return false
 	}
 
@@ -504,7 +504,7 @@ type CfgWatcher struct {
 	TmpDir             string        `yaml:"tmpDir"`
 }
 
-// Settings contains BotKube's related configuration.
+// Settings contains Botkube's related configuration.
 type Settings struct {
 	ClusterName      string           `yaml:"clusterName"`
 	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`

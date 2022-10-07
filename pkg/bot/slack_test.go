@@ -9,7 +9,7 @@ import (
 
 func TestSlack_FindAndTrimBotMention(t *testing.T) {
 	/// given
-	botName := "BotKube"
+	botName := "Botkube"
 	testCases := []struct {
 		Name               string
 		Input              string
@@ -18,13 +18,13 @@ func TestSlack_FindAndTrimBotMention(t *testing.T) {
 	}{
 		{
 			Name:               "Mention",
-			Input:              "<@BotKube> get pods",
+			Input:              "<@Botkube> get pods",
 			ExpectedFound:      true,
 			ExpectedTrimmedMsg: " get pods",
 		},
 		{
 			Name:          "Not at the beginning",
-			Input:         "Not at the beginning <@BotKube> get pods",
+			Input:         "Not at the beginning <@Botkube> get pods",
 			ExpectedFound: false,
 		},
 		{

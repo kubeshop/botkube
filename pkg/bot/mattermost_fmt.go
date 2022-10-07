@@ -28,7 +28,7 @@ func (b *Mattermost) formatAttachments(event events.Event) []*model.SlackAttachm
 			Color:     attachmentColor[event.Level],
 			Title:     event.Title,
 			Fields:    fields,
-			Footer:    "BotKube",
+			Footer:    "Botkube",
 			Timestamp: json.Number(strconv.FormatInt(event.TimeStamp.Unix(), 10)),
 		},
 	}

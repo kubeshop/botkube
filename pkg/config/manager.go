@@ -102,7 +102,7 @@ func (m *PersistenceManager) PersistSourceBindings(ctx context.Context, commGrou
 }
 
 // PersistNotificationsEnabled persists notifications state for a given channel.
-// While this method updates the BotKube ConfigMap, it doesn't reload BotKube itself.
+// While this method updates the Botkube ConfigMap, it doesn't reload Botkube itself.
 func (m *PersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
 	supportedPlatforms := []string{
 		string(SlackCommPlatformIntegration),
@@ -158,7 +158,7 @@ func (m *PersistenceManager) PersistNotificationsEnabled(ctx context.Context, co
 }
 
 // PersistFilterEnabled persists status for a given filter.
-// While this method updates the BotKube ConfigMap, it doesn't reload BotKube itself.
+// While this method updates the Botkube ConfigMap, it doesn't reload Botkube itself.
 func (m *PersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
 	cmStorage := configMapStorage[StartupState]{k8sCli: m.k8sCli, cfg: m.cfg.Startup}
 

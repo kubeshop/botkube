@@ -11,7 +11,7 @@ Created on 2022-06-14 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
   * [Terminology](#terminology)
   * [New syntax](#new-syntax)
 - [Use cases](#use-cases)
-  * [Route BotKube notifications to individual channels](#route-botkube-notifications-to-individual-channels)
+  * [Route Botkube notifications to individual channels](#route-botkube-notifications-to-individual-channels)
   * [Route notifications to a given channel based on the Kubernetes Namespace](#route-notifications-to-a-given-channel-based-on-the-kubernetes-namespace)
   * [Send notifications to multiple communications platform](#send-notifications-to-multiple-communications-platform)
   * [Run executor only from a dedicated channel](#run-executor-only-from-a-dedicated-channel)
@@ -52,7 +52,7 @@ The proposed syntax not only enables new features, but also addresses the issues
 
 3. Defining `kubectl` (executor) permissions per channel—in particular, configuring what commands can be executed and in which Namespaces.
 
-    Currently, it's possible only if you will deploy multiple BotKube instances with different configurations.
+    Currently, it's possible only if you will deploy multiple Botkube instances with different configurations.
 
     Related issues:
       - [Multiple Slack Channels](https://github.com/infracloudio/botkube/issues/250)
@@ -72,7 +72,7 @@ Those are not the goals of this proposal. However, we should be able to implemen
 
 | Name           | Description                                                                                                                                                            |
 |----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Executors      | Executes BotKube or `kubectl` command and sends back the result to the Bot. In the future, new executors might be added. For example, `helm`, `argo`, `istioctl`, etc. |
+| Executors      | Executes Botkube or `kubectl` command and sends back the result to the Bot. In the future, new executors might be added. For example, `helm`, `argo`, `istioctl`, etc. |
 | Sources        | Provides domain specific notification. For example, Kubernetes events, security events (Sysdig), metrics (Prometheus), and similar.                                    |
 | Communications | Describes both Bot and Sink.                                                                                                                                           |
 | Bot            | Bi-directional communication such as Slack, Discord, Mattermost.                                                                                                       |
@@ -291,7 +291,7 @@ This section describes the necessary changes in the syntax. **It's not backward 
 
 This section describes example configurations that enable the requested use-cases.
 
-### Route BotKube notifications to individual channels
+### Route Botkube notifications to individual channels
 
 With presented configuration:
 - nodes errors are sent to a `#nodes` channel,
@@ -621,7 +621,7 @@ Other approaches that I consider with explanation why I ruled them out.
 
 #### Annotate Namespace
 
-Allow to set the `botkube.io/channel: <channel_name>` on the Kubernetes Namespace object. As a result, all object's notification from annotated Namespace will be sent to a given channel. Such approach solves the problem partially. You don't need to annotate each object manually in a given Namespace. However, it's still not a part of the BotKube installation. You need to do that manually, or automate that in some way. Additionally, it's decoupled from the BotKube configuration, causing that there are multiple sources of true which you need to analyze to understand to which Namespace the notification will be sent.
+Allow to set the `botkube.io/channel: <channel_name>` on the Kubernetes Namespace object. As a result, all object's notification from annotated Namespace will be sent to a given channel. Such approach solves the problem partially. You don't need to annotate each object manually in a given Namespace. However, it's still not a part of the Botkube installation. You need to do that manually, or automate that in some way. Additionally, it's decoupled from the Botkube configuration, causing that there are multiple sources of true which you need to analyze to understand to which Namespace the notification will be sent.
 
 #### Top level Namespace property
 
@@ -742,12 +742,12 @@ This section described necessary changes if proposal will be accepted.
 1. Change selector for all Namespaces from `all` to `.*`.
 2. Add full channel/user indicator - `@` or `#`.
 3. Recommendations are merged under notifications.
-4. Update `@BotKube` commands to reflect new configuration.
+4. Update `@Botkube` commands to reflect new configuration.
 5. **Optional**: [Filters](https://www.botkube.io/filters/) are renamed to `sources` and configuration is added under `sources[].{name}`.
 
     > **Note**
     >
-    > In the future, [Filters](https://www.botkube.io/filters/) should be completely removed from the BotKube and replaced with the plugin system.
+    > In the future, [Filters](https://www.botkube.io/filters/) should be completely removed from the Botkube and replaced with the plugin system.
 
 7. **Optional**: Add CLI to simplify creating/updating configuration.
 

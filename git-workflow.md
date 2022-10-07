@@ -1,6 +1,6 @@
 # Git workflow
 
-This document describes the best practices when working with BotKube repositories.
+This document describes the best practices when working with Botkube repositories.
 
 ## General rules
 
@@ -11,7 +11,7 @@ Each contributor and maintainer must follow this workflow:
 
 ## Prepare the fork
 
-A fork is a copy of the repository from which you raise pull requests to propose changes to the original repository. The contribution workflow that bases on forks allows both the members of the BotKube repositories, and the external contributors to contribute code and content through the same process. This keeps the main repositories clean as contributors create branches only on the forked repositories.
+A fork is a copy of the repository from which you raise pull requests to propose changes to the original repository. The contribution workflow that bases on forks allows both the members of the Botkube repositories, and the external contributors to contribute code and content through the same process. This keeps the main repositories clean as contributors create branches only on the forked repositories.
 
 To create the fork, click **Fork** button in the upper-right corner of the repository's main page.
 

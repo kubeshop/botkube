@@ -2,13 +2,13 @@ package interactive
 
 // Feedback generates Message structure.
 func Feedback() Message {
-	btnBuilder := buttonBuilder{}
+	btnBuilder := ButtonBuilder{}
 	return Message{
 		Sections: []Section{
 			{
 				Base: Base{
 					Body: Body{
-						Plaintext: ":wave: Hey, what's your experience with BotKube so far?",
+						Plaintext: ":wave: Hey, what's your experience with Botkube so far?",
 					},
 				},
 				Buttons: []Button{

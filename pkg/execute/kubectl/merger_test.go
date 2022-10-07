@@ -28,6 +28,13 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{
+					"deployments": {
+						Include: []string{
+							"team-a",
+						},
+					},
+				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get":  {},
 					"logs": {},
@@ -51,6 +58,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: config.AllNamespaceIndicator,
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{},
 				AllowedKubectlVerb: map[string]struct{}{
 					"logs":         {},
 					"top":          {},
@@ -69,6 +77,13 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{
+					"deployments": {
+						Include: []string{
+							"team-a",
+						},
+					},
+				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get": {},
 				},
@@ -87,6 +102,13 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{
+					"deployments": {
+						Include: []string{
+							"team-a",
+						},
+					},
+				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get":  {},
 					"logs": {},
@@ -107,6 +129,13 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{
+					"deployments": {
+						Include: []string{
+							"team-a",
+						},
+					},
+				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get":  {},
 					"logs": {},
@@ -127,6 +156,18 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-b",
 			expectKubectlConfig: kubectl.EnabledKubectl{
+				AllowedNamespacesPerResource: map[string]config.Namespaces{
+					"deployments": {
+						Include: []string{
+							"team-b",
+						},
+					},
+					"pods": {
+						Include: []string{
+							"team-b",
+						},
+					},
+				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get":      {},
 					"describe": {},
