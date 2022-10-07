@@ -83,26 +83,26 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 }
 
 // VerbSelect return drop-down select for kubectl verbs.
-func VerbSelect(botName string, verbs []string) *interactive.Select {
-	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs, nil)
+func VerbSelect(botName string, verbs []string, initialItem string) *interactive.Select {
+	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs, initialItem)
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
-func ResourceTypeSelect(botName string, resources []string) *interactive.Select {
-	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources, nil)
+func ResourceTypeSelect(botName string, resources []string, initialItem string) *interactive.Select {
+	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources, initialItem)
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
-func ResourceNamesSelect(botName string, names []string) *interactive.Select {
-	return selectDropdown("Resource name", resourceNamesDropdownCommand, botName, names, nil)
+func ResourceNamesSelect(botName string, names []string, initialItem string) *interactive.Select {
+	return selectDropdown("Resource names", resourceNamesDropdownCommand, botName, names, initialItem)
 }
 
 // ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
-func ResourceNamespaceSelect(botName string, names []string, initialNamespace *string) *interactive.Select {
+func ResourceNamespaceSelect(botName string, names []string, initialNamespace string) *interactive.Select {
 	return selectDropdown("Namespaces", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
 }
 
-func selectDropdown(name, cmd, botName string, items []string, initialItem *string) *interactive.Select {
+func selectDropdown(name, cmd, botName string, items []string, initialItem string) *interactive.Select {
 	if len(items) == 0 {
 		return nil
 	}
@@ -116,10 +116,10 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem *stri
 	}
 
 	var initialOption *interactive.OptionItem
-	if initialItem != nil {
+	if initialItem != "" {
 		initialOption = &interactive.OptionItem{
-			Name:  *initialItem,
-			Value: *initialItem,
+			Name:  initialItem,
+			Value: initialItem,
 		}
 	}
 
@@ -133,5 +133,22 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem *stri
 				Options: opts,
 			},
 		},
+	}
+}
+
+// EmptyResourceNameDropdown returns a select that simulates an empty one.
+// Normally, Slack doesn't allow to return a static select with no options.
+// This is a workaround to send a dropdown that it's rendered even if empty.
+// We use that to preserve a proper order in displayed dropdowns.
+//
+// How it works under the hood:
+//  1. This select is converted to external data source (https://api.slack.com/reference/block-kit/block-elements#external_select)
+//  2. We change the `min_query_length` to 0 to remove th "Type minimum of 3 characters to see options" message.
+//  3. Our backend doesn't return any options, so you see "No result".
+func EmptyResourceNameDropdown(botName string) *interactive.Select {
+	return &interactive.Select{
+		Type:    "external",
+		Name:    "Resource names",
+		Command: fmt.Sprintf("%s %s", botName, resourceNamesDropdownCommand),
 	}
 }

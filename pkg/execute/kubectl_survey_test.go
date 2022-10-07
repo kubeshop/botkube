@@ -143,7 +143,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		nsLister   = &fakeNamespaceLister{}
 		kcMerger   = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 		args       = []string{"kcc", "--verbs"}
-		expMsg     = fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixNamespaceDropdown())
+		expMsg     = fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
 	)
 
 	kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor, nsLister)
@@ -181,12 +181,14 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 }
 
 func fixInitialSurveyMessage() interactive.Message {
+	verbsDropdown := fixVerbsDropdown()
+	verbsDropdown.InitialOption = nil // initial message shouldn't have anything selected.
 	return interactive.Message{
 		Sections: []interactive.Section{
 			{
 				Selects: interactive.Selects{
 					Items: []interactive.Select{
-						fixVerbsDropdown(),
+						verbsDropdown,
 					},
 				},
 			},
@@ -200,6 +202,10 @@ func fixVerbsDropdown() interactive.Select {
 	return interactive.Select{
 		Name:    "Commands",
 		Command: "@BKTesting kcc --verbs",
+		InitialOption: &interactive.OptionItem{
+			Name:  "get",
+			Value: "get",
+		},
 		OptionGroups: []interactive.OptionGroup{
 			{
 				Name: "Commands",
@@ -222,6 +228,10 @@ func fixResourceTypeDropdown() interactive.Select {
 	return interactive.Select{
 		Name:    "Resources",
 		Command: "@BKTesting kcc --resource-type",
+		InitialOption: &interactive.OptionItem{
+			Name:  "pods",
+			Value: "pods",
+		},
 		OptionGroups: []interactive.OptionGroup{
 			{
 				Name: "Resources",
@@ -262,13 +272,25 @@ func fixNamespaceDropdown() interactive.Select {
 	}
 }
 
+func fixEmptyResourceNamesDropdown() interactive.Select {
+	return interactive.Select{
+		Name:    "Resource names",
+		Type:    interactive.ExternalSelect,
+		Command: "@BKTesting kcc --resource-name",
+	}
+}
+
 func fixResourceNamesDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Resource name",
+		Name:    "Resource names",
 		Command: "@BKTesting kcc --resource-name",
+		InitialOption: &interactive.OptionItem{
+			Name:  "nginx2",
+			Value: "nginx2",
+		},
 		OptionGroups: []interactive.OptionGroup{
 			{
-				Name: "Resource name",
+				Name: "Resource names",
 				Options: []interactive.OptionItem{
 					{
 						Name:  "nginx2",

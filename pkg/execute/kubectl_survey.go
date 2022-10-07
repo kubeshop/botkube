@@ -27,6 +27,8 @@ const (
 	dropdownItemsLimit               = 100
 )
 
+var errRequiredVerbDropdown = errors.New("verbs dropdown select cannot be empty")
+
 type (
 	kcMerger interface {
 		MergeAllEnabled(includeBindings []string) kubectl.EnabledKubectl
@@ -71,7 +73,6 @@ func (e *KubectlSurvey) Do(ctx context.Context, args []string, platform config.C
 	}
 
 	allVerbs, allTypes, defaultNs := e.getEnableKubectlDetails(bindings)
-	allVerbsSelect := *VerbSelect(botName, allVerbs)
 
 	// if only command name was specified, return initial survey message
 	if len(args) == 1 {
@@ -84,7 +85,11 @@ func (e *KubectlSurvey) Do(ctx context.Context, args []string, platform config.C
 		if err != nil {
 			return empty, err
 		}
-		return Survey(id.String(), allVerbsSelect), nil
+		allVerbsSelect := VerbSelect(botName, allVerbs, "")
+		if allVerbsSelect == nil {
+			return empty, errRequiredVerbDropdown
+		}
+		return Survey(id.String(), *allVerbsSelect), nil
 	}
 
 	stateDetails := e.extractStateDetails(botName, state)
@@ -124,13 +129,13 @@ func (e *KubectlSurvey) Do(ctx context.Context, args []string, platform config.C
 func (e *KubectlSurvey) renderSurvey(ctx context.Context, botName string, stateDetails stateDetails, includeResourceName bool, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
 	var empty interactive.Message
 
-	allVerbsSelect := VerbSelect(botName, allVerbs)
+	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
 	if allVerbsSelect == nil {
-		return empty, errors.New("verbs dropdown select cannot be empty")
+		return empty, errRequiredVerbDropdown
 	}
 
 	// 1. Refresh resource type list
-	matchingTypes, err := e.getAllowedResourcesSelectList(botName, stateDetails.verb, allTypes)
+	matchingTypes, err := e.getAllowedResourcesSelectList(botName, stateDetails.verb, allTypes, stateDetails.resourceType)
 	if err != nil {
 		return empty, err
 	}
@@ -191,7 +196,7 @@ func (e *KubectlSurvey) renderSurvey(ctx context.Context, botName string, stateD
 
 func (e *KubectlSurvey) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails) *interactive.Select {
 	if state.resourceType == "" {
-		return nil
+		return EmptyResourceNameDropdown(botName)
 	}
 	cmd := fmt.Sprintf(`%s get %s --ignore-not-found=true -o go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`, kubectlCommandName, state.resourceType)
 	if state.namespace != "" {
@@ -200,11 +205,15 @@ func (e *KubectlSurvey) tryToGetResourceNamesSelect(botName string, bindings []s
 
 	out, err := e.kcExecutor.Execute(bindings, cmd, true)
 	if err != nil {
-		return nil
+		return EmptyResourceNameDropdown(botName)
 	}
 
 	lines := strings.FieldsFunc(out, splitByNewLines)
-	return ResourceNamesSelect(botName, overflowSentence(lines))
+	if len(lines) == 0 {
+		return EmptyResourceNameDropdown(botName)
+	}
+
+	return ResourceNamesSelect(botName, overflowSentence(lines), state.resourceName)
 }
 
 func (e *KubectlSurvey) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *interactive.Select {
@@ -240,10 +249,10 @@ func (e *KubectlSurvey) tryToGetNamespaceSelect(ctx context.Context, botName str
 	if defaultNSExists {
 		// The initial option MUST be a subset of all available dropdown options
 		// if the default namespace was not found on that list, don't include it.
-		ResourceNamespaceSelect(botName, finalNS, nil)
+		ResourceNamespaceSelect(botName, finalNS, "")
 	}
 
-	return ResourceNamespaceSelect(botName, finalNS, &details.namespace)
+	return ResourceNamespaceSelect(botName, finalNS, details.namespace)
 }
 
 func (e *KubectlSurvey) getEnableKubectlDetails(bindings []string) (verbs []string, resources []string, namespace string) {
@@ -266,7 +275,7 @@ func (e *KubectlSurvey) getEnableKubectlDetails(bindings []string) (verbs []stri
 }
 
 // getAllowedResourcesSelectList returns dropdown select with allowed resources for a given verb.
-func (e *KubectlSurvey) getAllowedResourcesSelectList(botName, verb string, resources []string) (*interactive.Select, error) {
+func (e *KubectlSurvey) getAllowedResourcesSelectList(botName, verb string, resources []string, resourceType string) (*interactive.Select, error) {
 	allowedResources, err := e.commandGuard.GetAllowedResourcesForVerb(verb, resources)
 	if err != nil {
 		return nil, err
@@ -280,7 +289,7 @@ func (e *KubectlSurvey) getAllowedResourcesSelectList(botName, verb string, reso
 		allowedResourcesList = append(allowedResourcesList, item.Name)
 	}
 
-	return ResourceTypeSelect(botName, allowedResourcesList), nil
+	return ResourceTypeSelect(botName, allowedResourcesList, resourceType), nil
 }
 
 type stateDetails struct {

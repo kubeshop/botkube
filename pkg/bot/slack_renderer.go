@@ -110,7 +110,14 @@ func (b *SlackRenderer) renderSelects(s interactive.Selects) slack.Block {
 	var elems []slack.BlockElement
 	for _, s := range s.Items {
 		placeholder := slack.NewTextBlockObject(slack.PlainTextType, s.Name, false, false)
-		singleSelect := slack.NewOptionsSelectBlockElement("static_select", placeholder, s.Command)
+		singleSelect := slack.NewOptionsSelectBlockElement(convertToSlackSelectType(s.Type), placeholder, s.Command)
+
+		if singleSelect.Type == slack.OptTypeExternal {
+			// override the default 3 characters. In this way, the call to our backend is triggered even if user only
+			// opens a given dropdown and not when he types at least 3 characters.
+			minLen := 0
+			singleSelect.MinQueryLength = &minLen
+		}
 
 		for _, group := range s.OptionGroups {
 			var slackOptions []*slack.OptionBlockObject
@@ -353,4 +360,14 @@ func convertToSlackStyle(in interactive.ButtonStyle) slack.Style {
 		return slack.StyleDanger
 	}
 	return slack.StyleDefault
+}
+
+func convertToSlackSelectType(in interactive.SelectType) string {
+	switch in {
+	case interactive.StaticSelect:
+		return slack.OptTypeStatic
+	case interactive.ExternalSelect:
+		return slack.OptTypeExternal
+	}
+	return slack.OptTypeStatic
 }

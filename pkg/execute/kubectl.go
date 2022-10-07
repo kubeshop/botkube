@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/gookit/color"
 	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -187,6 +188,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	finalArgs := e.getFinalArgs(args)
 	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
+	out = color.ClearCode(out)
 	if err != nil {
 		return "", NewExecutionCommandError("%s%s", out, err.Error())
 	}
