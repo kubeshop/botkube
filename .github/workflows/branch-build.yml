@@ -88,7 +88,7 @@ jobs:
       - name: Create cluster to test ${{ matrix.integration }}
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install BotKube to test ${{ matrix.integration }}
+      - name: Install Botkube to test ${{ matrix.integration }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
