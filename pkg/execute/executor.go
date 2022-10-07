@@ -60,7 +60,7 @@ type DefaultExecutor struct {
 	cfgManager        ConfigPersistenceManager
 	commGroupName     string
 	user              string
-	kubectlSurvey     *KubectlSurvey
+	kubectlCmdBuilder *KubectlCmdBuilder
 }
 
 // NotifierAction creates custom type for notifier actions
@@ -112,23 +112,20 @@ const (
 	infoList infoAction = "list"
 )
 
-func (action FiltersAction) String() string {
-	return string(action)
-}
-
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute() interactive.Message {
 	// TODO: Pass context from bots to this method
 	ctx := context.Background()
-	// Remove hyperlink if it got added automatically
-	command := utils.RemoveHyperlink(e.message)
 
 	var (
+		command       = utils.RemoveHyperlink(e.message)
 		clusterName   = e.cfg.Settings.ClusterName
 		inClusterName = utils.GetClusterNameFromKubectlCmd(command)
 		args          = strings.Fields(strings.TrimSpace(command))
 		empty         = interactive.Message{}
+		botName       = e.notifierHandler.BotName()
 	)
+
 	if len(args) == 0 {
 		if e.conversation.IsAuthenticated {
 			return interactive.Message{
@@ -173,11 +170,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		cmdPrefix := e.kubectlExecutor.GetCommandPrefix(args)
-		err := e.analyticsReporter.ReportCommand(e.platform, cmdPrefix, e.conversation.IsButtonClickOrigin)
-		if err != nil {
-			e.log.Errorf("while reporting executed command: %s", err.Error())
-		}
+		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args))
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
 		switch {
 		case err == nil:
@@ -196,9 +189,20 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty
 	}
 
+	if e.kubectlCmdBuilder.CanHandle(args) {
+		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args))
+		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName)
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while executing kubectl: %s", err.Error())
+			return empty
+		}
+		return out
+	}
+
 	cmds := executorsRunner{
 		"help": func() (interactive.Message, error) {
-			return interactive.Help(e.platform, clusterName, e.notifierHandler.BotName()), nil
+			return interactive.Help(e.platform, clusterName, botName), nil
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
@@ -220,13 +224,10 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return response(res, ""), err
 		},
 		"edit": func() (interactive.Message, error) {
-			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, e.notifierHandler.BotName())
+			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
 		},
 		"feedback": func() (interactive.Message, error) {
 			return interactive.Feedback(), nil
-		},
-		"kcc": func() (interactive.Message, error) {
-			return e.kubectlSurvey.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, e.notifierHandler.BotName())
 		},
 	}
 
@@ -248,6 +249,13 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	return msg
 }
 
+func (e *DefaultExecutor) reportCommand(verb string) {
+	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.IsButtonClickOrigin)
+	if err != nil {
+		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
+	}
+}
+
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
 // runFilterCommand to list, enable or disable filters
 func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, clusterName string) (string, error) {
@@ -258,19 +266,16 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(e.platform, cmdToReport, e.conversation.IsButtonClickOrigin)
-		if err != nil {
-			e.log.Errorf("while reporting filter command: %s", err.Error())
-		}
+		e.reportCommand(cmdToReport)
 	}()
 
-	switch args[1] {
-	case FilterList.String():
+	switch FiltersAction(args[1]) {
+	case FilterList:
 		e.log.Debug("List filters")
 		return e.makeFiltersList(), nil
 
 	// Enable filter
-	case FilterEnable.String():
+	case FilterEnable:
 		const enabled = true
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
@@ -289,7 +294,7 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 		return fmt.Sprintf(filterEnabled, filterName, clusterName), nil
 
 	// Disable filter
-	case FilterDisable.String():
+	case FilterDisable:
 		const enabled = false
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
@@ -314,21 +319,27 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 
 // runInfoCommand to list allowed commands
 func (e *DefaultExecutor) runInfoCommand(args []string) (string, error) {
-	if len(args) > 1 && args[1] != string(infoList) {
+	if len(args) < 2 {
 		return "", errInvalidCommand
 	}
+	var cmdVerb = args[1]
+	defer func() {
+		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
+		e.reportCommand(cmdToReport)
+	}()
 
-	err := e.analyticsReporter.ReportCommand(e.platform, strings.Join(args, " "), e.conversation.IsButtonClickOrigin)
-	if err != nil {
-		e.log.Errorf("while reporting info command: %s", err.Error())
+	switch infoAction(cmdVerb) {
+	case infoList:
+		enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
+		if err != nil {
+			return "", fmt.Errorf("while rendering namespace config: %s", err.Error())
+		}
+
+		return enabledKubectls, nil
 	}
 
-	enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
-	if err != nil {
-		return "", fmt.Errorf("while rendering namespace config: %s", err.Error())
-	}
-
-	return enabledKubectls, nil
+	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+	return "", errUnsupportedCommand
 }
 
 // Use tabwriter to display string in tabular form
@@ -392,11 +403,7 @@ func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	err := e.analyticsReporter.ReportCommand(e.platform, cmd, e.conversation.IsButtonClickOrigin)
-	if err != nil {
-		e.log.Errorf("while reporting version command: %s", err.Error())
-	}
-
+	e.reportCommand(cmd)
 	return e.findBotkubeVersion()
 }
 

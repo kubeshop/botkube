@@ -30,7 +30,11 @@ func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allCo
 
 	var out []Resource
 	for _, name := range allConfiguredResources {
-		out = append(out, staticResourceMapping[name])
+		res, found := staticResourceMapping[name]
+		if !found {
+			continue
+		}
+		out = append(out, res)
 	}
 	return out, nil
 }
@@ -45,7 +49,16 @@ func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) Resourc
 		}
 	}
 
-	return staticResourceMapping[resourceType]
+	res, found := staticResourceMapping[resourceType]
+	if found {
+		return res
+	}
+
+	// fake data about resource
+	return Resource{
+		Name:       resourceType,
+		Namespaced: true,
+	}
 }
 
 var resourcelessVerbs = map[string]struct{}{

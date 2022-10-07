@@ -7,18 +7,18 @@ import (
 )
 
 type (
-	// SurveyOptions holds survey message options.
-	SurveyOptions struct {
+	// KubectlCmdBuilderOptions holds builder message options.
+	KubectlCmdBuilderOptions struct {
 		selects  []interactive.Select
 		sections []interactive.Section
 	}
-	// SurveyOption defines option mutator signature.
-	SurveyOption func(options *SurveyOptions)
+	// KubectlCmdBuilderOption defines option mutator signature.
+	KubectlCmdBuilderOption func(options *KubectlCmdBuilderOptions)
 )
 
-// WithAdditionalSelects adds additional selects to a given kubectl Survey message.
-func WithAdditionalSelects(in ...*interactive.Select) SurveyOption {
-	return func(options *SurveyOptions) {
+// WithAdditionalSelects adds additional selects to a given kubectl KubectlCmdBuilderMessage message.
+func WithAdditionalSelects(in ...*interactive.Select) KubectlCmdBuilderOption {
+	return func(options *KubectlCmdBuilderOptions) {
 		for _, s := range in {
 			if s == nil {
 				continue
@@ -28,9 +28,9 @@ func WithAdditionalSelects(in ...*interactive.Select) SurveyOption {
 	}
 }
 
-// WithAdditionalSections adds additional sections to a given kubectl Survey message.
-func WithAdditionalSections(in ...*interactive.Section) SurveyOption {
-	return func(options *SurveyOptions) {
+// WithAdditionalSections adds additional sections to a given kubectl KubectlCmdBuilderMessage message.
+func WithAdditionalSections(in ...*interactive.Section) KubectlCmdBuilderOption {
+	return func(options *KubectlCmdBuilderOptions) {
 		for _, s := range in {
 			if s == nil {
 				continue
@@ -40,9 +40,9 @@ func WithAdditionalSections(in ...*interactive.Section) SurveyOption {
 	}
 }
 
-// Survey returns the survey message for selecting kubectl command.
-func Survey(dropdownsBlockID string, verbs interactive.Select, opts ...SurveyOption) interactive.Message {
-	defaultOpt := SurveyOptions{
+// KubectlCmdBuilderMessage returns message for constructing kubectl command.
+func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select, opts ...KubectlCmdBuilderOption) interactive.Message {
+	defaultOpt := KubectlCmdBuilderOptions{
 		selects: []interactive.Select{
 			verbs,
 		},
@@ -84,22 +84,22 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string, initialItem string) *interactive.Select {
-	return selectDropdown("Commands", verbsDropdownCommand, botName, verbs, initialItem)
+	return selectDropdown("Select command", verbsDropdownCommand, botName, verbs, initialItem)
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string, initialItem string) *interactive.Select {
-	return selectDropdown("Resources", resourceTypesDropdownCommand, botName, resources, initialItem)
+	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, resources, initialItem)
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
 func ResourceNamesSelect(botName string, names []string, initialItem string) *interactive.Select {
-	return selectDropdown("Resource names", resourceNamesDropdownCommand, botName, names, initialItem)
+	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, names, initialItem)
 }
 
 // ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
 func ResourceNamespaceSelect(botName string, names []string, initialNamespace string) *interactive.Select {
-	return selectDropdown("Namespaces", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
+	return selectDropdown("Select namespace", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
 }
 
 func selectDropdown(name, cmd, botName string, items []string, initialItem string) *interactive.Select {
@@ -108,7 +108,15 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 	}
 
 	var opts []interactive.OptionItem
+	foundInitialOptOnList := false
 	for _, itemName := range items {
+		if itemName == "" {
+			continue
+		}
+
+		if initialItem == itemName {
+			foundInitialOptOnList = true
+		}
 		opts = append(opts, interactive.OptionItem{
 			Name:  itemName,
 			Value: itemName,
@@ -116,11 +124,15 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 	}
 
 	var initialOption *interactive.OptionItem
-	if initialItem != "" {
+	if initialItem != "" && foundInitialOptOnList {
 		initialOption = &interactive.OptionItem{
 			Name:  initialItem,
 			Value: initialItem,
 		}
+	}
+
+	if len(opts) == 0 {
+		return nil
 	}
 
 	return &interactive.Select{
@@ -148,7 +160,7 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 func EmptyResourceNameDropdown(botName string) *interactive.Select {
 	return &interactive.Select{
 		Type:    "external",
-		Name:    "Resource names",
+		Name:    "No resources found",
 		Command: fmt.Sprintf("%s %s", botName, resourceNamesDropdownCommand),
 	}
 }
