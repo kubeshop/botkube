@@ -144,7 +144,49 @@ we can also add some kind of validation in BotKube to better use received data. 
 we can easily apply templating/filtering to this event to full-fill our future stories about sending custom notifications to slack.
 Data structure is strongly opened to suggestion.
 
+## PoC
+### Motivation
+The main motivation of the PoC is to come up with a simple playground project that explains how it looks like to have a plugin system for BotKube.
 
+### Folder Structure
+![](./assets/plugin-system.png)
+The plugin system contains 2 packages: `contrib` and `plugin`. `contrib` package is for end users and they can come up with their own
+plugins to include them after PR approval. `plugin` package contains the logic to manage BotKube plugins. Let's deep dive those folders
+to understand them a bit better.
+
+### Contrib Folder
+#### `build`: This contains plugin executables. Hashicorp's Go Plugin uses an RPC mechanism between client (BotKube), and server (Plugin),
+and server side is actually an executable. Those executables can be maintained in a separate repo, and they can be cloned to local during BotKube 
+startup process. Let's keep this in mind as an alternative plugin management notation.
+
+#### `executors`: This package contains executor plugins. They are just Hashicorp Go Plugins that contains a main method that serves plugin implementation.
+Plugin implementation is completely detached from BotKube system. Executor plugin has a contract `Execute(command string) (string, error)` where, BotKube
+application can send command as an input, and executor plugin can return error or successful response from execution.
+
+#### `sources`: Same as executors, and it has `Consume(ch chan interface) error` as a contract to be able to feed provided channel whenever there is an event 
+reached to source plugin system.
+
+#### `Makefiles`: They contain the logic of building plugins.
+
+### Plugin Folder
+#### `executor/proto`: Basically, we have **executor** and **source** plugins and they have their interfaces which are `Consume` and `Execute`. Proto folder contains 
+the proto message definitions for executor plugins. In the root Makefile, you can see we generate Go code out of those messages. These means, whoever interested, they can
+contribute to generate also for other languages and they can implement a plugin in other languages!
+
+#### `source/proto`: Same as executor, it has proto message definitions for Consume operation. The main difference between executor and source is, source plugin 
+is a server-side streaming plugin where it streams events to client which is BotKube in our case.
+
+#### `**/grpc.go`: This contains the gRPC client/server definitions which Hashicorp Go Plugin system will use for RPC communication between BotKube and Plugin.
+#### `**/interface.go`: Interface of plugin, it contains interface methods to describe plugin.
+#### `**/plugin.go`: Contains plugin definition for Hashicorp Go Plugin system. Plugin definition contains the actual implementation behind that specific plugin.
+#### `plugin/manager.go`: This is responsible for plugin management. The scenario for manager is as follows;
+- It checks all the executables under `contrib` folder and aggregates them as list of plugin. 
+- It creates a plugin client for each plugin by using either one of the Source or Executor plugin format.
+- It registers all the plugin on initialization, and BotKube can resolve any of them on event, or command coming from platform and calls contract function which are 
+`Consume` or `Execute`.
+
+### Example
+You can see a working example [here](https://github.com/huseyinbabal/botkube-plugins-playground)
 <!--
 What other approaches did you consider, and why did you rule them out? These do
 not need to be as detailed as the proposal, but should include enough
