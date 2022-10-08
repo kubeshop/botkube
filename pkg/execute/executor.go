@@ -117,12 +117,11 @@ const (
 )
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute() interactive.Message {
-	// TODO: Pass context from bots to this method
-	ctx := context.Background()
+func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
+	rawCmd := utils.RemoveAnyHyperlinks(e.message)
+	resultsFilter, command, _ := extractResultsFilter(rawCmd)
 
 	var (
-		command       = utils.RemoveHyperlink(e.message)
 		clusterName   = e.cfg.Settings.ClusterName
 		inClusterName = utils.GetClusterNameFromKubectlCmd(command)
 		args          = strings.Fields(strings.TrimSpace(command))
@@ -184,7 +183,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(out)
+		return response(resultsFilter.filter(out))
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -217,11 +216,11 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(res), err
+			return response(resultsFilter.filter(res)), err
 		},
 		"commands": func() (interactive.Message, error) {
 			res, err := e.runInfoCommand(args)
-			return response(res, humanReadableCommandListName), err
+			return response(resultsFilter.filter(res), humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)

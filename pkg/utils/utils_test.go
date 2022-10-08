@@ -77,7 +77,7 @@ func TestRemoveHyperlink(t *testing.T) {
 	}
 
 	for _, ts := range tests {
-		got := RemoveHyperlink(ts.input)
+		got := RemoveAnyHyperlinks(ts.input)
 		if got != ts.expected {
 			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}

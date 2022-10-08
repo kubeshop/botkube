@@ -158,7 +158,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							User:            ev.User,
 							CommandOrigin:   command.TypedOrigin,
 						}
-						if err := b.handleMessage(msg); err != nil {
+						if err := b.handleMessage(ctx, msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
 						}
 					}
@@ -217,7 +217,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						ResponseURL:     callback.ResponseURL,
 						BlockID:         act.BlockID,
 					}
-					if err := b.handleMessage(msg); err != nil {
+					if err := b.handleMessage(ctx, msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
 					}
 				case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
@@ -235,7 +235,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 								CommandOrigin: cmdOrigin,
 							}
 
-							if err := b.handleMessage(msg); err != nil {
+							if err := b.handleMessage(ctx, msg); err != nil {
 								b.log.Errorf("Message handling error: %s", err.Error())
 							}
 						}
@@ -294,7 +294,7 @@ func (b *SocketSlack) SetNotificationsEnabled(channelName string, enabled bool) 
 	return nil
 }
 
-func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
+func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
@@ -328,7 +328,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err = b.send(event, request, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)

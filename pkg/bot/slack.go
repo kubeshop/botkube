@@ -139,7 +139,7 @@ func (b *Slack) Start(ctx context.Context) error {
 					ThreadTimeStamp: ev.ThreadTimestamp,
 					User:            ev.User,
 				}
-				err := b.handleMessage(sm)
+				err := b.handleMessage(ctx, sm)
 				if err != nil {
 					wrappedErr := fmt.Errorf("while handling message: %w", err)
 					b.log.Errorf(wrappedErr.Error())
@@ -209,7 +209,7 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 	return nil
 }
 
-func (b *Slack) handleMessage(msg slackMessage) error {
+func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(msg.Text)
 	if !found {
@@ -242,7 +242,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err = b.send(msg, request, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
