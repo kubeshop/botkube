@@ -153,12 +153,28 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		}
 
 		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
-		return interactive.Message{
+		message := interactive.Message{
 			Base: interactive.Base{
 				Description: e.appendByUserOnlyIfNeeded(header),
 				Body:        msgBody,
 			},
 		}
+		if len(strings.SplitN(msg, "\n", 16)) == 16 {
+			message.Inputs = []interactive.Input{
+				{
+					Type:             interactive.InputText,
+					DispatchedAction: true,
+					Element: interactive.InputElement{
+						Type: interactive.PlainTextInput,
+					},
+					Label: interactive.InputLabel{
+						Type: interactive.PlainText,
+						Text: "Filter Output",
+					},
+				},
+			}
+		}
+		return message
 	}
 
 	if inClusterName != "" && inClusterName != clusterName {

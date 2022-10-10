@@ -197,9 +197,8 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						b.log.Debug("Ignoring callback as its source is an active modal")
 						continue
 					}
-
 					msg := socketSlackMessage{
-						Text:                resolveBlockActionCommand(*act),
+						Text:                resolveBlockActionCommand(*act, callback.Message.Msg.Blocks.BlockSet[0].(*slack.SectionBlock).Text.Text, b.BotName()),
 						Channel:             channelID,
 						ThreadTimeStamp:     callback.MessageTs,
 						TriggerID:           callback.TriggerID,
@@ -220,7 +219,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:                resolveBlockActionCommand(act),
+								Text:                resolveBlockActionCommand(act, "", b.BotName()),
 								Channel:             callback.View.PrivateMetadata,
 								User:                callback.User.ID,
 								IsButtonClickOrigin: true,
@@ -234,6 +233,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				default:
 					b.log.Debugf("get unhandled event %s", callback.Type)
 				}
+
 			case socketmode.EventTypeErrorBadMessage:
 				b.log.Errorf("Bad message: %+v\n", event.Data)
 			case socketmode.EventTypeIncomingError:
@@ -504,7 +504,7 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func resolveBlockActionCommand(act slack.BlockAction) string {
+func resolveBlockActionCommand(act slack.BlockAction, cmd, botName string) string {
 	command := act.Value
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
@@ -519,6 +519,9 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 		//   @Botkube kcc --verbs get
 		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+	case "plain_text_input":
+		cmd = strings.Split(cmd, "`")[1]
+		command = fmt.Sprintf("%s %s --filter %s", botName, cmd, command)
 	}
 
 	return command

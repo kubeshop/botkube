@@ -33,11 +33,22 @@ const (
 	Popup MessageType = "form"
 )
 
+type InputType string
+type PlainTextType string
+type PlainTextInputType string
+
+const (
+	InputText      InputType          = "input"
+	PlainText      PlainTextType      = "plain_text"
+	PlainTextInput PlainTextInputType = "plain_text_input"
+)
+
 // Message represents a generic message with interactive buttons.
 type Message struct {
 	Type MessageType
 	Base
 	Sections          []Section
+	Inputs            []Input
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -45,6 +56,11 @@ type Message struct {
 // HasSections returns true if message has interactive sections.
 func (msg *Message) HasSections() bool {
 	return len(msg.Sections) != 0
+}
+
+// HasInputs returns true if message has interactive inputs.
+func (msg *Message) HasInputs() bool {
+	return len(msg.Inputs) != 0
 }
 
 // Select holds data related to the select drop-down.
@@ -107,6 +123,22 @@ type Selects struct {
 	// ID allows to identify a given block when we do the updated.
 	ID    string
 	Items []Select
+}
+
+type Input struct {
+	Type             InputType
+	DispatchedAction bool
+	Element          InputElement
+	Label            InputLabel
+}
+
+type InputElement struct {
+	Type PlainTextInputType
+}
+
+type InputLabel struct {
+	Type PlainTextType
+	Text string
 }
 
 // AreOptionsDefined returns true if some options are available.
