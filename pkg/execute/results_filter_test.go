@@ -51,9 +51,7 @@ daemonset.apps/kindnet      3         3         3       3            3          
 		},
 	}
 
-	filterText := "kind"
-	var txFilter execute.ResultsFilter = execute.NewTextFilter(filterText)
-
+	var txFilter execute.ResultsFilter = execute.NewTextFilter("kind")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.expected, txFilter.Apply(tc.text))
