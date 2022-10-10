@@ -74,6 +74,13 @@ func TestExtractResultsFilter(t *testing.T) {
 			filterApplied: `etcd-kind-control-plane                      1/1     Running   0          86m`,
 		},
 		{
+			name:          "extract left quoted and right quoted text filter at end of command",
+			cmd:           "kubectl get po -n kube-system --filter=“kind”",
+			extractedCmd:  "kubectl get po -n kube-system",
+			text:          `etcd-kind-control-plane                      1/1     Running   0          86m`,
+			filterApplied: `etcd-kind-control-plane                      1/1     Running   0          86m`,
+		},
+		{
 			name:          "extract unquoted text filter in the middle of the command",
 			cmd:           "kubectl get po  --filter=kind -n kube-system",
 			extractedCmd:  "kubectl get po  -n kube-system",
