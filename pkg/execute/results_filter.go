@@ -3,6 +3,9 @@ package execute
 import (
 	"bufio"
 	"bytes"
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -43,4 +46,26 @@ func (f *TextFilter) Apply(text string) string {
 	}
 
 	return strings.TrimSuffix(out.String(), "\n")
+}
+
+func extractResultsFilter(cmd string) (ResultsFilter, string) {
+	r, _ := regexp.Compile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
+
+	var filter ResultsFilter
+	var cmdMinusFilter string
+
+	matchedArray := r.FindStringSubmatch(cmd)
+	if len(matchedArray) >= 2 {
+		match, err := strconv.Unquote(matchedArray[1])
+		if err != nil {
+			match = matchedArray[1]
+		}
+		filter = NewTextFilter(match)
+		cmdMinusFilter = strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), "")
+	} else {
+		filter = NewEchoFilter()
+		cmdMinusFilter = cmd
+	}
+
+	return filter, cmdMinusFilter
 }
