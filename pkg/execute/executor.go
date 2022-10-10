@@ -177,13 +177,13 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return response(err.Error())
+			return response(err.Error(), "")
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(resultsFilter.filter(out))
+		return response(resultsFilter.Apply(out))
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -216,15 +216,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(resultsFilter.filter(res)), err
+			return response(resultsFilter.Apply(res)), err
 		},
 		"commands": func() (interactive.Message, error) {
 			res, err := e.runInfoCommand(args)
-			return response(resultsFilter.filter(res), humanReadableCommandListName), err
+			return response(resultsFilter.Apply(res), humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return response(res), err
+			return response(res, ""), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
@@ -239,15 +239,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return response(incompleteCmdMsg)
+		return response(incompleteCmdMsg, "")
 	case errors.Is(err, errUnsupportedCommand):
-		return response(unsupportedCmdMsg)
+		return response(unsupportedCmdMsg, "")
 	case IsExecutionCommandError(err):
-		return response(err.Error())
+		return response(err.Error(), "")
 	default:
 		e.log.Errorf("while executing command %q: %s", command, err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return response(internalErrorMsg)
+		return response(internalErrorMsg, "")
 	}
 
 	return msg
@@ -281,10 +281,10 @@ func extractResultsFilter(cmd string) (ResultsFilter, string, error) {
 
 	matchedArray := r.FindStringSubmatch(cmd)
 	if len(matchedArray) >= 3 {
-		filter = TextFilter{value: matchedArray[2]}
+		filter = NewTextFilter(matchedArray[2])
 		cmdMinusFilter = strings.ReplaceAll(cmd, matchedArray[0], "")
 	} else {
-		filter = EchoFilter{}
+		filter = NewEchoFilter()
 	}
 
 	return filter, cmdMinusFilter, nil
