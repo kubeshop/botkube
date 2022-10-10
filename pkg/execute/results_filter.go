@@ -40,7 +40,7 @@ func (f *TextFilter) Apply(text string) string {
 	for scanner.Scan() {
 		scanned := scanner.Bytes()
 		if bytes.Contains(scanned, f.value) {
-			out.Write(scanned)
+			out.Write(bytes.TrimSpace(scanned))
 			out.WriteString("\n")
 		}
 	}
@@ -49,6 +49,7 @@ func (f *TextFilter) Apply(text string) string {
 }
 
 func extractResultsFilter(cmd string) (ResultsFilter, string) {
+	cmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `'`, `’`, `'`).Replace(cmd)
 	r, _ := regexp.Compile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
 
 	var filter ResultsFilter
