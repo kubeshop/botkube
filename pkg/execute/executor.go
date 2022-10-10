@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -119,7 +118,7 @@ const (
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd := utils.RemoveAnyHyperlinks(e.message)
-	resultsFilter, command, _ := extractResultsFilter(rawCmd)
+	resultsFilter, command := extractResultsFilter(rawCmd)
 
 	var (
 		clusterName   = e.cfg.Settings.ClusterName
@@ -268,26 +267,6 @@ func (e *DefaultExecutor) reportCommand(verb string) {
 	if err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
-}
-
-func extractResultsFilter(cmd string) (ResultsFilter, string, error) {
-	r, err := regexp.Compile(`--filter[=|(' ')]('(.*?)'|"(.*?)"|(\S+))`)
-	if err != nil {
-		return nil, "", err
-	}
-
-	var filter ResultsFilter
-	var cmdMinusFilter string
-
-	matchedArray := r.FindStringSubmatch(cmd)
-	if len(matchedArray) >= 3 {
-		filter = NewTextFilter(matchedArray[2])
-		cmdMinusFilter = strings.ReplaceAll(cmd, matchedArray[0], "")
-	} else {
-		filter = NewEchoFilter()
-	}
-
-	return filter, cmdMinusFilter, nil
 }
 
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
