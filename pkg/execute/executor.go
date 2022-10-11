@@ -30,6 +30,7 @@ const (
 	filterEnabled       = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled      = "Done. I won't run '%s' filter on '%s' cluster."
 	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
+	emptyResponseMsg    = "The command returned empty response :eyes:"
 
 	// incompleteCmdMsg incomplete command response message
 	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
@@ -145,13 +146,20 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			cmd = overrideCommand
 		}
 
+		msgBody := interactive.Body{
+			CodeBlock: msg,
+		}
+		if msg == "" {
+			msgBody = interactive.Body{
+				Plaintext: emptyResponseMsg,
+			}
+		}
+
 		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
 		return interactive.Message{
 			Base: interactive.Base{
 				Description: e.appendByUserOnlyIfNeeded(header),
-				Body: interactive.Body{
-					CodeBlock: msg,
-				},
+				Body:        msgBody,
 			},
 		}
 	}
