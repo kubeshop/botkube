@@ -118,6 +118,7 @@ const (
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd := utils.RemoveAnyHyperlinks(e.message)
+	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
 	resultsFilter, command := extractResultsFilter(rawCmd)
 
 	var (

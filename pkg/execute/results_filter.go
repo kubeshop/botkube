@@ -49,7 +49,6 @@ func (f *TextFilter) Apply(text string) string {
 }
 
 func extractResultsFilter(cmd string) (ResultsFilter, string) {
-	cmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `'`, `’`, `'`).Replace(cmd)
 	r, _ := regexp.Compile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
 
 	var filter ResultsFilter
