@@ -246,8 +246,8 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 	}
 }
 
-// ForCommand returns button command without description.
-func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
+// ForCommandWithoutDesc returns button command without description.
+func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -257,6 +257,22 @@ func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Butto
 		Name:    name,
 		Command: cmd,
 		Style:   bt,
+	}
+}
+
+// ForCommand returns button command.
+func (b *ButtonBuilder) ForCommand(name, cmd, desc string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
+	desc = fmt.Sprintf("%s %s", b.BotName, desc)
+	return Button{
+		Name:        name,
+		Command:     cmd,
+		Description: desc,
+		Style:       bt,
 	}
 }
 

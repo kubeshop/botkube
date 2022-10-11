@@ -179,7 +179,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
-		interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()),
+		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build(),
 	)
 	require.NoError(t, err)
 
@@ -203,7 +203,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName())
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build()
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
