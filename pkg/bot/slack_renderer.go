@@ -257,7 +257,7 @@ func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block 
 func (b *SlackRenderer) renderInput(in interactive.Input) []slack.Block {
 	var out []slack.Block
 	out = append(out, slack.InputBlock{
-		Type:           slack.MessageBlockType(in.Type),
+		Type:           slack.MBTInput,
 		Label:          b.plainTextBlock(in.Label.Text),
 		Element:        slack.PlainTextInputBlockElement{Type: slack.MessageElementType(in.Element.Type)},
 		DispatchAction: in.DispatchedAction,

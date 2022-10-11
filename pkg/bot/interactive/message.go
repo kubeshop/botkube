@@ -33,12 +33,10 @@ const (
 	Popup MessageType = "form"
 )
 
-type InputType string
 type PlainTextType string
 type PlainTextInputType string
 
 const (
-	InputText      InputType          = "input"
 	PlainText      PlainTextType      = "plain_text"
 	PlainTextInput PlainTextInputType = "plain_text_input"
 )
@@ -126,7 +124,6 @@ type Selects struct {
 }
 
 type Input struct {
-	Type             InputType
 	DispatchedAction bool
 	Element          InputElement
 	Label            InputLabel

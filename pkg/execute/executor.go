@@ -40,6 +40,8 @@ const (
 	// Currently we support only `kubectl, so we
 	// override the message to human-readable command name.
 	humanReadableCommandListName = "Available kubectl commands"
+
+	lineLimitToShowFilter = 16
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -159,10 +161,10 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 				Body:        msgBody,
 			},
 		}
-		if len(strings.SplitN(msg, "\n", 16)) == 16 {
+		// Show Filter Input if command response is more than `lineLimitToShowFilter`
+		if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
 			message.Inputs = []interactive.Input{
 				{
-					Type:             interactive.InputText,
 					DispatchedAction: true,
 					Element: interactive.InputElement{
 						Type: interactive.PlainTextInput,
