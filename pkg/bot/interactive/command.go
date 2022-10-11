@@ -7,7 +7,7 @@ func EventCommandsSection(cmdPrefix string, optionItems []OptionItem) Section {
 			ID: "",
 			Items: []Select{
 				{
-					Name:    "Select command...",
+					Name:    "Run command...",
 					Command: cmdPrefix,
 					OptionGroups: []OptionGroup{
 						{

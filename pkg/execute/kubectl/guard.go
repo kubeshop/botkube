@@ -6,7 +6,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -21,15 +20,20 @@ type Resource struct {
 	SlashSeparatedInCommand bool
 }
 
+// K8sDiscoveryInterface describes an interface for getting K8s server resources.
+type K8sDiscoveryInterface interface {
+	ServerPreferredResources() ([]*v1.APIResourceList, error)
+}
+
 // CommandGuard is responsible for getting allowed resources for a given command.
 type CommandGuard struct {
 	log          logrus.FieldLogger
-	discoveryCli discovery.DiscoveryInterface
+	discoveryCli K8sDiscoveryInterface
 }
 
 var (
-	// ErrVerbNotFound is returned when the verb is not supported for the resource.
-	ErrVerbNotFound = errors.New("verb not found")
+	// ErrVerbNotSupported is returned when the verb is not supported for the resource.
+	ErrVerbNotSupported = errors.New("verb not supported")
 
 	// ErrResourceNotFound is returned when the resource is not found on the server.
 	ErrResourceNotFound = errors.New("resource not found")
@@ -46,6 +50,7 @@ var (
 		"jobs":         {"logs"},
 		"deployments":  {"logs"},
 		"statefulsets": {"logs"},
+		"replicasets":  {"logs"},
 	}
 
 	// resourcelessVerbs contains verbs which are not resource-specific.
@@ -57,11 +62,14 @@ var (
 	}
 
 	// unsupportedGlobalVerbs contains verbs returned by K8s API which are not supported for event-related operations.
-	unsupportedGlobalVerbs = []string{"create", "update", "list", "patch", "watch", "deletecollection"}
+	unsupportedGlobalVerbs = []string{
+		"create", "update", "patch", // valid kubectl verbs, but not supported by interactive kubectl + events actions
+		"list", "watch", "deletecollection", // invalid kubectl verbs returned by K8s API
+	}
 )
 
 // NewCommandGuard creates a new CommandGuard instance.
-func NewCommandGuard(log logrus.FieldLogger, discoveryCli discovery.DiscoveryInterface) *CommandGuard {
+func NewCommandGuard(log logrus.FieldLogger, discoveryCli K8sDiscoveryInterface) *CommandGuard {
 	return &CommandGuard{log: log, discoveryCli: discoveryCli}
 }
 
@@ -81,7 +89,7 @@ func (g *CommandGuard) GetAllowedResourcesForVerb(verb string, allConfiguredReso
 	for _, configuredRes := range allConfiguredResources {
 		res, err := g.GetResourceDetailsFromMap(verb, configuredRes, resMap)
 		if err != nil {
-			if err == ErrVerbNotFound {
+			if err == ErrVerbNotSupported {
 				continue
 			}
 
@@ -89,6 +97,10 @@ func (g *CommandGuard) GetAllowedResourcesForVerb(verb string, allConfiguredReso
 		}
 
 		resources = append(resources, res)
+	}
+
+	if len(resources) == 0 {
+		return nil, ErrVerbNotSupported
 	}
 
 	return resources, nil
@@ -160,7 +172,7 @@ func (g *CommandGuard) GetResourceDetailsFromMap(selectedVerb, resourceType stri
 		}, nil
 	}
 
-	return Resource{}, ErrVerbNotFound
+	return Resource{}, ErrVerbNotSupported
 }
 
 func (g *CommandGuard) getAllSupportedVerbs(resourceType string, inVerbs v1.Verbs) v1.Verbs {

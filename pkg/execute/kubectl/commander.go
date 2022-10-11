@@ -2,9 +2,11 @@ package kubectl
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
@@ -19,12 +21,23 @@ type Command struct {
 // Commander is responsible for generating kubectl commands for the given event.
 type Commander struct {
 	log    logrus.FieldLogger
-	merger *Merger
-	guard  *CommandGuard
+	merger EnabledKubectlMerger
+	guard  CmdGuard
+}
+
+// EnabledKubectlMerger is responsible for merging enabled kubectl commands for the given namespace.
+type EnabledKubectlMerger interface {
+	MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl
+}
+
+// CmdGuard is responsible for guarding kubectl commands.
+type CmdGuard interface {
+	GetServerResourceMap() (map[string]metav1.APIResource, error)
+	GetResourceDetailsFromMap(selectedVerb, resourceType string, resMap map[string]metav1.APIResource) (Resource, error)
 }
 
 // NewCommander creates a new Commander instance.
-func NewCommander(log logrus.FieldLogger, merger *Merger, guard *CommandGuard) *Commander {
+func NewCommander(log logrus.FieldLogger, merger EnabledKubectlMerger, guard CmdGuard) *Commander {
 	return &Commander{log: log, merger: merger, guard: guard}
 }
 
@@ -45,7 +58,11 @@ func (c *Commander) GetCommandsForEvent(event events.Event, executorBindings []s
 		return nil, nil
 	}
 
-	allowedVerbs := enabledKubectls.AllowedKubectlVerb
+	var allowedVerbs []string
+	for key := range enabledKubectls.AllowedKubectlVerb {
+		allowedVerbs = append(allowedVerbs, key)
+	}
+	sort.Strings(allowedVerbs)
 
 	resMap, err := c.guard.GetServerResourceMap()
 	if err != nil {
@@ -53,10 +70,10 @@ func (c *Commander) GetCommandsForEvent(event events.Event, executorBindings []s
 	}
 
 	var commands []Command
-	for verb := range allowedVerbs {
+	for _, verb := range allowedVerbs {
 		res, err := c.guard.GetResourceDetailsFromMap(verb, resourceName, resMap)
 		if err != nil {
-			if err == ErrVerbNotFound {
+			if err == ErrVerbNotSupported {
 				c.log.Warnf("Not supported verb %q for resource %q. Skipping...", verb, resourceName)
 				continue
 			}
