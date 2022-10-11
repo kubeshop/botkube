@@ -30,7 +30,7 @@ const (
 	filterEnabled       = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled      = "Done. I won't run '%s' filter on '%s' cluster."
 	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
-	emptyResponseMsg    = "The command returned empty response :eyes:"
+	emptyResponseMsg    = ".. an empty response :eyes:"
 
 	// incompleteCmdMsg incomplete command response message
 	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
