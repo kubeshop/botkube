@@ -59,25 +59,20 @@ func (f *executorTextFilter) Apply(text string) string {
 // extractExecutorFilter extracts an executorFilter based on
 // the presence or absence of the "--filter=xxx" flag.
 // It also returns passed in executor command minus the
-// flag to be executed by downstream executors.
-func extractExecutorFilter(cmd string) (executorFilter, string) {
+// flag to be executed by downstream executors and if a filter flag was detected.
+func extractExecutorFilter(cmd string) (executorFilter, string, bool) {
 	r, _ := regexp.Compile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
 
-	var filter executorFilter
-	var cmdMinusFilter string
-
 	matchedArray := r.FindStringSubmatch(cmd)
-	if len(matchedArray) >= 2 {
-		match, err := strconv.Unquote(matchedArray[1])
-		if err != nil {
-			match = matchedArray[1]
-		}
-		filter = newExecutorTextFilter(match)
-		cmdMinusFilter = strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), "")
-	} else {
-		filter = newExecutorEchoFilter()
-		cmdMinusFilter = cmd
+	if len(matchedArray) < 2 {
+		return newExecutorEchoFilter(), cmd, false
 	}
 
-	return filter, cmdMinusFilter
+	match, err := strconv.Unquote(matchedArray[1])
+	if err != nil {
+		match = matchedArray[1]
+	}
+	return newExecutorTextFilter(match),
+		strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), ""),
+		true
 }
