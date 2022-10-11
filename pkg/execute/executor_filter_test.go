@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEchoFilter_Apply(t *testing.T) {
-	var filter ResultsFilter = NewEchoFilter()
+func TestExecutorEchoFilter_Apply(t *testing.T) {
+	var filter executorFilter = newExecutorEchoFilter()
 
 	text := "Please return this same text."
 	assert.Equal(t, text, filter.Apply(text))
 }
 
-func TestTextFilter_Apply(t *testing.T) {
+func TestExecutorTextFilter_Apply(t *testing.T) {
 	testCases := []struct {
 		name     string
 		text     string
@@ -50,7 +50,7 @@ daemonset.apps/kindnet      3         3         3       3            3          
 		},
 	}
 
-	var txFilter ResultsFilter = NewTextFilter("kind")
+	var txFilter executorFilter = newExecutorTextFilter("kind")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.expected, txFilter.Apply(tc.text))
@@ -58,7 +58,7 @@ daemonset.apps/kindnet      3         3         3       3            3          
 	}
 }
 
-func TestExtractResultsFilter(t *testing.T) {
+func TestExtractExecutorFilter(t *testing.T) {
 	testCases := []struct {
 		name          string
 		cmd           string
@@ -105,7 +105,7 @@ func TestExtractResultsFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			filter, cmd := extractResultsFilter(tc.cmd)
+			filter, cmd := extractExecutorFilter(tc.cmd)
 			assert.Equal(t, tc.extractedCmd, cmd)
 			assert.Equal(t, tc.filterApplied, filter.Apply(tc.text))
 		})
