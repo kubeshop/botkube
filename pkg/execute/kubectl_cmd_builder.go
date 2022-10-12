@@ -124,6 +124,8 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 		return e.noVerbsAvailableInChannelMessage()
 	}
 
+	allVerbs = e.commandGuard.FilterSupportedVerbs(allVerbs)
+
 	// if only command name was specified, return initial command builder message
 	if len(args) == 1 {
 		return e.initialMessage(botName, allVerbs)

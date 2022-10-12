@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 // Reporter defines an analytics reporter implementation.
@@ -14,7 +15,7 @@ type Reporter interface {
 	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface) error
 
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin) error
 
 	// ReportBotEnabled reports an enabled bot.
 	ReportBotEnabled(platform config.CommPlatformIntegration) error

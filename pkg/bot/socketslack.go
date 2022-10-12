@@ -17,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -53,21 +54,21 @@ type SocketSlack struct {
 }
 
 type socketSlackMessage struct {
-	Text                string
-	Channel             string
-	ThreadTimeStamp     string
-	User                string
-	TriggerID           string
-	IsButtonClickOrigin bool
-	State               *slack.BlockActionStates
-	ResponseURL         string
-	BlockID             string
+	Text            string
+	Channel         string
+	ThreadTimeStamp string
+	User            string
+	TriggerID       string
+	CommandOrigin   command.Origin
+	State           *slack.BlockActionStates
+	ResponseURL     string
+	BlockID         string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
@@ -155,6 +156,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
 							User:            ev.User,
+							CommandOrigin:   command.TypedOrigin,
 						}
 						if err := b.handleMessage(msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
@@ -181,7 +183,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					act := callback.ActionCallback.BlockActions[0]
 					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, true)
+						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin)
 						if reportErr != nil {
 							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 						}
@@ -197,21 +199,23 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						b.log.Debug("Ignoring callback as its source is an active modal")
 						continue
 					}
+
+					cmd, cmdOrigin := resolveBlockActionCommand(*act)
 					// Use thread's TS if interactive call triggered within thread.
 					threadTs := callback.MessageTs
 					if callback.Message.Msg.ThreadTimestamp != "" {
 						threadTs = callback.Message.Msg.ThreadTimestamp
 					}
 					msg := socketSlackMessage{
-						Text:                b.resolveBlockActionCommand(*act),
-						Channel:             channelID,
-						ThreadTimeStamp:     threadTs,
-						TriggerID:           callback.TriggerID,
-						User:                callback.User.ID,
-						IsButtonClickOrigin: true,
-						State:               callback.BlockActionState,
-						ResponseURL:         callback.ResponseURL,
-						BlockID:             act.BlockID,
+						Text:            cmd,
+						Channel:         channelID,
+						ThreadTimeStamp: threadTs,
+						TriggerID:       callback.TriggerID,
+						User:            callback.User.ID,
+						CommandOrigin:   cmdOrigin,
+						State:           callback.BlockActionState,
+						ResponseURL:     callback.ResponseURL,
+						BlockID:         act.BlockID,
 					}
 					if err := b.handleMessage(msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
@@ -223,11 +227,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						for actID, act := range item {
 							act.ActionID = actID // normalize event
 
+							cmd, cmdOrigin := resolveBlockActionCommand(act)
 							msg := socketSlackMessage{
-								Text:                b.resolveBlockActionCommand(act),
-								Channel:             callback.View.PrivateMetadata,
-								User:                callback.User.ID,
-								IsButtonClickOrigin: true,
+								Text:          cmd,
+								Channel:       callback.View.PrivateMetadata,
+								User:          callback.User.ID,
+								CommandOrigin: cmdOrigin,
 							}
 
 							if err := b.handleMessage(msg); err != nil {
@@ -313,12 +318,12 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
-			Alias:               channel.alias,
-			ID:                  channel.Identifier(),
-			ExecutorBindings:    channel.Bindings.Executors,
-			IsAuthenticated:     isAuthChannel,
-			IsButtonClickOrigin: event.IsButtonClickOrigin,
-			State:               event.State,
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  isAuthChannel,
+			CommandOrigin:    event.CommandOrigin,
+			State:            event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
@@ -516,8 +521,10 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func (b *SocketSlack) resolveBlockActionCommand(act slack.BlockAction) string {
-	command := act.Value
+func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
+	cmd := act.Value
+	cmdOrigin := command.UnknownOrigin
+
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
 	case "multi_static_select":
@@ -525,17 +532,22 @@ func (b *SocketSlack) resolveBlockActionCommand(act slack.BlockAction) string {
 		for _, item := range act.SelectedOptions {
 			items = append(items, item.Value)
 		}
-		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+		cmd = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+		cmdOrigin = command.MultiSelectValueChangeOrigin
 	case "static_select":
 		// Example of commands that are handled here:
 		//   @Botkube kcc --verbs get
 		//   @Botkube kcc --resource-type
-		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+		cmd = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+		cmdOrigin = command.SelectValueChangeOrigin
+	case "button":
+		cmdOrigin = command.ButtonClickOrigin
 	case "plain_text_input":
-		command = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
+		cmd = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
+		cmdOrigin = command.PlainTextInputOrigin
 	}
 
-	return command
+	return cmd, cmdOrigin
 }
 
 func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {

@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -236,6 +237,7 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  isAuthChannel,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", msg.User),

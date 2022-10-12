@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -245,6 +246,7 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  isAuthChannel,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: req,
 		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),

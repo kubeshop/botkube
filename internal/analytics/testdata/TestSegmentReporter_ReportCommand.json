@@ -19,7 +19,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "get",
-			"origin": "typed",
+			"origin": "buttonClick",
 			"platform": "slack"
 		}
 	},
@@ -31,7 +31,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "notifier start",
-			"origin": "buttonClick",
+			"origin": "selectValueChange",
 			"platform": "teams"
 		}
 	}
