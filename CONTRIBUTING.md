@@ -12,7 +12,7 @@ Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-do
 
 ## Build and run Botkube from source code
 
-This section describes how to build and run the Botkube from the source code.
+This section describes how to build and run Botkube from source code.
 
 ### Prerequisite
 
@@ -35,14 +35,16 @@ This section describes how to build and run the Botkube from the source code.
 
      This is ideal for running Botkube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
-     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target. By default, the build targets `linux/amd64`.
+     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target.
+
+     By default, the build targets `linux/amd64`.
 
         ```sh
         IMAGE_PLATFORM=linux/arm64 make container-image-single
         docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
         docker push <your_account>/botkube:v9.99.9-dev
         ```
-        Where `<your_account>` is Docker hub account to which you can push the image.
+        Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
    - **Multi-arch target builds for any K8s cluster**
 
@@ -60,25 +62,34 @@ This section describes how to build and run the Botkube from the source code.
      docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
      docker push <your_account>/botkube:v9.99.9-dev
      ```
-     Where `<your_account>` is Docker hub account to which you can push the image.
+     Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
-2. Deploy the newly created image in your cluster:
+2. Ensure you have a Slack installation already setup:
 
+   Please refer to the [Slack installation instructions](https://botkube.io/docs/installation/socketslack/) to ensure you have a valid integration.
+
+3. Deploy the newly created image in your cluster:
+   
    ```sh
    helm install botkube --namespace botkube --create-namespace \
-   --set communications.slack.enabled=true \
-   --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
-   --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
-   --set settings.clusterName=<CLUSTER_NAME> \
-   --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
-   --set image.registry=<image_registry e.g. docker.io> \
+   --set communications.default-group.socketSlack.enabled=true \
+   --set communications.default-group.socketSlack.channels.default.name=<SLACK_CHANNEL_NAME> \
+   --set communications.default-group.socketSlack.appToken=<SLACK_API_APP_TOKEN> \
+   --set communications.default-group.socketSlack.botToken=<SLACK_API_BOT_TOKEN> \
+   --set settings.clusterName=${CLUSTER_NAME} \
+   --set executors.kubectl-read-only.kubectl.enabled=<ALLOW_KUBECTL> \
+   --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
+   --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
    ./helm/botkube
-   ```
-
+   ``` 
+   
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
-
+   
+   > **Note**
+   > Installation config may get updated. Refer to the [chart based installation instructions](https://botkube.io/docs/installation/socketslack/#install-botkube-backend-in-kubernetes-cluster) if you encounter any problems. 
+   
 ### Build and run locally
 
 For faster development, you can also build and run Botkube outside K8s cluster.
