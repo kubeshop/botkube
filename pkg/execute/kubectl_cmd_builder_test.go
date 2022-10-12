@@ -36,27 +36,27 @@ func TestCommandPreview(t *testing.T) {
 	}{
 		{
 			name: "Print all dropdowns and full command on verb change",
-			args: strings.Fields("kcc --verbs"),
+			args: strings.Fields("kc-cmd-builder --verbs"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
 		},
 		{
 			name: "Print all dropdowns and command without the resource name on resource type change",
-			args: strings.Fields("kcc --resource-type"),
+			args: strings.Fields("kc-cmd-builder --resource-type"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
 		},
 		{
 			name: "Print all dropdowns and full command on resource name change",
-			args: strings.Fields("kcc --resource-name"),
+			args: strings.Fields("kc-cmd-builder --resource-name"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
 		},
 		{
 			name: "Print all dropdowns and command without the resource name on namespace change",
-			args: strings.Fields("kcc --namespace"),
+			args: strings.Fields("kc-cmd-builder --namespace"),
 
-			expMsg: fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
 		},
 	}
 	for _, tc := range tests {
@@ -70,10 +70,10 @@ func TestCommandPreview(t *testing.T) {
 				kcMerger      = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 			)
 
-			kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor, nsLister)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
 
 			// when
-			gotMsg, err := kcSurveyExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName)
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName)
 
 			// then
 			require.NoError(t, err)
@@ -85,7 +85,109 @@ func TestCommandPreview(t *testing.T) {
 	}
 }
 
-func TestIgnorePlatformsOtherThanSocketSlack(t *testing.T) {
+func TestCommandBuilderCanHandleAndGetPrefix(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+
+		expPrefix    string
+		expCanHandle bool
+	}{
+		{
+			name: "Dropdown verbs",
+			args: strings.Fields("kc-cmd-builder --verbs my-verb"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --verbs",
+		},
+		{
+			name: "Dropdown resource type",
+			args: strings.Fields("kc-cmd-builder --resource-type my-resource-type"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --resource-type",
+		},
+		{
+			name: "Dropdown resource name",
+			args: strings.Fields("kc-cmd-builder --resource-name my-resource-name"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --resource-name",
+		},
+		{
+			name: "Dropdown namespace",
+			args: strings.Fields("kc-cmd-builder --namespace my-namespace"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --namespace",
+		},
+		{
+			name: "Dropdown namespace",
+			args: strings.Fields("kc-cmd-builder --namespace my-namespace other-arg-but-we-dont-care"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --namespace",
+		},
+		{
+			name: "Kubectl k alias",
+			args: strings.Fields("k"),
+
+			expCanHandle: true,
+			expPrefix:    "k",
+		},
+		{
+			name: "Kubectl kc alias",
+			args: strings.Fields("kc"),
+
+			expCanHandle: true,
+			expPrefix:    "kc",
+		},
+		{
+			name: "Kubectl full command",
+			args: strings.Fields("kubectl"),
+
+			expCanHandle: true,
+			expPrefix:    "kubectl",
+		},
+		{
+			name: "Kubectl full command",
+			args: strings.Fields("kubectl get pod"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+		{
+			name: "Unknown command",
+			args: strings.Fields("helm"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+		{
+			name: "Wrong command",
+			args: strings.Fields("kc-cmd-builder"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(nil, nil, nil, nil)
+
+			// when
+			gotCanHandle := kcCmdBuilderExecutor.CanHandle(tc.args)
+			gotPrefix := kcCmdBuilderExecutor.GetCommandPrefix(tc.args)
+
+			// then
+			assert.Equal(t, tc.expCanHandle, gotCanHandle)
+			assert.Equal(t, tc.expPrefix, gotPrefix)
+		})
+	}
+}
+
+func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
 
 	platforms := []config.CommPlatformIntegration{
@@ -99,14 +201,20 @@ func TestIgnorePlatformsOtherThanSocketSlack(t *testing.T) {
 	for _, platform := range platforms {
 		t.Run(fmt.Sprintf("Should ignore %s", platform), func(t *testing.T) {
 			// given
-			kcSurveyExecutor := execute.NewKubectlSurvey(logger, nil, nil, nil)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, nil, nil, nil)
 
 			// when
-			gotMsg, err := kcSurveyExecutor.Do(context.Background(), nil, platform, nil, nil, "")
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "")
 
 			// then
 			require.NoError(t, err)
-			assert.Empty(t, gotMsg)
+			assert.Equal(t, interactive.Message{
+				Base: interactive.Base{
+					Body: interactive.Body{
+						Plaintext: "Please specify the kubectl command",
+					},
+				},
+			}, gotMsg)
 		})
 	}
 }
@@ -114,15 +222,15 @@ func TestIgnorePlatformsOtherThanSocketSlack(t *testing.T) {
 func TestShouldReturnInitialMessage(t *testing.T) {
 	// given
 	var (
-		logger, _        = logtest.NewNullLogger()
-		kcMerger         = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
-		kcSurveyExecutor = execute.NewKubectlSurvey(logger, kcMerger, nil, nil)
-		expMsg           = fixInitialSurveyMessage()
+		logger, _            = logtest.NewNullLogger()
+		kcMerger             = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
+		kcCmdBuilderExecutor = execute.NewKubectlCmdBuilder(logger, kcMerger, nil, nil)
+		expMsg               = fixInitialBuilderMessage()
 	)
 
 	// when command args are not specified
-	cmd := []string{"kcc"}
-	gotMsg, err := kcSurveyExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName)
+	cmd := []string{"kc-cmd-builder"}
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -142,14 +250,14 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		kcExecutor = &fakeErrorKcExecutor{}
 		nsLister   = &fakeNamespaceLister{}
 		kcMerger   = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
-		args       = []string{"kcc", "--verbs"}
-		expMsg     = fixStateSurveyMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
+		args       = []string{"kc-cmd-builder", "--verbs"}
+		expMsg     = fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
 	)
 
-	kcSurveyExecutor := execute.NewKubectlSurvey(logger, kcMerger, kcExecutor, nsLister)
+	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
 
 	// when
-	gotMsg, err := kcSurveyExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName)
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -160,17 +268,17 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	return &slack.BlockActionStates{
 		Values: map[string]map[string]slack.BlockAction{
 			"dropdown-block-id-403aca17d958": {
-				"@BKTesting kcc --resource-name": {
+				"@BKTesting kc-cmd-builder --resource-name": {
 					SelectedOption: slack.OptionBlockObject{
 						Value: "nginx2",
 					},
 				},
-				"@BKTesting kcc --resource-type": slack.BlockAction{
+				"@BKTesting kc-cmd-builder --resource-type": slack.BlockAction{
 					SelectedOption: slack.OptionBlockObject{
 						Value: "pods",
 					},
 				},
-				"@BKTesting kcc --verbs": slack.BlockAction{
+				"@BKTesting kc-cmd-builder --verbs": slack.BlockAction{
 					SelectedOption: slack.OptionBlockObject{
 						Value: "get",
 					},
@@ -180,7 +288,7 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	}
 }
 
-func fixInitialSurveyMessage() interactive.Message {
+func fixInitialBuilderMessage() interactive.Message {
 	verbsDropdown := fixVerbsDropdown()
 	verbsDropdown.InitialOption = nil // initial message shouldn't have anything selected.
 	return interactive.Message{
@@ -200,15 +308,15 @@ func fixInitialSurveyMessage() interactive.Message {
 
 func fixVerbsDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Commands",
-		Command: "@BKTesting kcc --verbs",
+		Name:    "Select command",
+		Command: "@BKTesting kc-cmd-builder --verbs",
 		InitialOption: &interactive.OptionItem{
 			Name:  "get",
 			Value: "get",
 		},
 		OptionGroups: []interactive.OptionGroup{
 			{
-				Name: "Commands",
+				Name: "Select command",
 				Options: []interactive.OptionItem{
 					{
 						Name:  "describe",
@@ -226,15 +334,15 @@ func fixVerbsDropdown() interactive.Select {
 
 func fixResourceTypeDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Resources",
-		Command: "@BKTesting kcc --resource-type",
+		Name:    "Select resource",
+		Command: "@BKTesting kc-cmd-builder --resource-type",
 		InitialOption: &interactive.OptionItem{
 			Name:  "pods",
 			Value: "pods",
 		},
 		OptionGroups: []interactive.OptionGroup{
 			{
-				Name: "Resources",
+				Name: "Select resource",
 				Options: []interactive.OptionItem{
 					{
 						Name:  "deployments",
@@ -252,11 +360,11 @@ func fixResourceTypeDropdown() interactive.Select {
 
 func fixNamespaceDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Namespaces",
-		Command: "@BKTesting kcc --namespace",
+		Name:    "Select namespace",
+		Command: "@BKTesting kc-cmd-builder --namespace",
 		OptionGroups: []interactive.OptionGroup{
 			{
-				Name: "Namespaces",
+				Name: "Select namespace",
 				Options: []interactive.OptionItem{
 					{
 						Name:  "default",
@@ -274,23 +382,23 @@ func fixNamespaceDropdown() interactive.Select {
 
 func fixEmptyResourceNamesDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Resource names",
+		Name:    "No resources found",
 		Type:    interactive.ExternalSelect,
-		Command: "@BKTesting kcc --resource-name",
+		Command: "@BKTesting kc-cmd-builder --resource-name",
 	}
 }
 
 func fixResourceNamesDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "Resource names",
-		Command: "@BKTesting kcc --resource-name",
+		Name:    "Select resource name",
+		Command: "@BKTesting kc-cmd-builder --resource-name",
 		InitialOption: &interactive.OptionItem{
 			Name:  "nginx2",
 			Value: "nginx2",
 		},
 		OptionGroups: []interactive.OptionGroup{
 			{
-				Name: "Resource names",
+				Name: "Select resource name",
 				Options: []interactive.OptionItem{
 					{
 						Name:  "nginx2",
@@ -319,7 +427,7 @@ func fixAllDropdown() []interactive.Select {
 	}
 }
 
-func fixStateSurveyMessage(kcCommandPreview, kcCommand string, dropdowns ...interactive.Select) interactive.Message {
+func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...interactive.Select) interactive.Message {
 	return interactive.Message{
 		Sections: []interactive.Section{
 			{

@@ -10,3 +10,13 @@ communications: # req 1 elm.
               - kubectl-read-only
             sources:
               - k8s-events
+    socketSlack:
+      enabled: true
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events

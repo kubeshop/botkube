@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -12,7 +13,11 @@ import (
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 
-const nsIncludeTag = "ns-include-regex"
+const (
+	nsIncludeTag   = "ns-include-regex"
+	appTokenPrefix = "xapp-"
+	botTokenPrefix = "xoxb-"
+)
 
 var warnsOnlyTags = map[string]struct{}{
 	nsIncludeTag: {},
@@ -33,9 +38,15 @@ func ValidateStruct(in any) (ValidateResult, error) {
 		return ValidateResult{}, err
 	}
 
+	if err := registerCustomTranslations(validate, trans); err != nil {
+		return ValidateResult{}, err
+	}
 	if err := registerNamespaceValidator(validate, trans); err != nil {
 		return ValidateResult{}, err
 	}
+
+	validate.RegisterStructValidation(slackStructTokenValidator, Slack{})
+	validate.RegisterStructValidation(socketSlackStructTokenValidator, SocketSlack{})
 
 	err := validate.Struct(in)
 	if err == nil {
@@ -64,6 +75,18 @@ func ValidateStruct(in any) (ValidateResult, error) {
 	return result, nil
 }
 
+func registerCustomTranslations(validate *validator.Validate, trans ut.Translator) error {
+	startsWith := func(ut ut.Translator) error {
+		return ut.Add("invalid_slack_token", "{0} {1}", false)
+	}
+
+	if err := validate.RegisterTranslation("invalid_slack_token", trans, startsWith, translateFunc); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func registerNamespaceValidator(validate *validator.Validate, trans ut.Translator) error {
 	// NOTE: only have to register a non-pointer type for 'Namespaces', validator
 	// internally dereferences it.
@@ -74,6 +97,50 @@ func registerNamespaceValidator(validate *validator.Validate, trans ut.Translato
 	}
 
 	return validate.RegisterTranslation(nsIncludeTag, trans, registerFn, translateFunc)
+}
+
+func slackStructTokenValidator(sl validator.StructLevel) {
+	slack, ok := sl.Current().Interface().(Slack)
+
+	if !ok || !slack.Enabled {
+		return
+	}
+
+	if slack.Token == "" {
+		sl.ReportError(slack.Token, "Token", "Token", "required", "")
+		return
+	}
+
+	if !strings.HasPrefix(slack.Token, botTokenPrefix) {
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/slack/#install-botkube-slack-app-to-your-slack-workspace", botTokenPrefix)
+		sl.ReportError(slack.Token, "Token", "Token", "invalid_slack_token", msg)
+	}
+}
+
+func socketSlackStructTokenValidator(sl validator.StructLevel) {
+	slack, ok := sl.Current().Interface().(SocketSlack)
+
+	if !ok || !slack.Enabled {
+		return
+	}
+
+	if slack.AppToken == "" {
+		sl.ReportError(slack.AppToken, "AppToken", "AppToken", "required", "")
+	}
+
+	if slack.BotToken == "" {
+		sl.ReportError(slack.BotToken, "BotToken", "BotToken", "required", "")
+	}
+
+	if !strings.HasPrefix(slack.BotToken, botTokenPrefix) {
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token", botTokenPrefix)
+		sl.ReportError(slack.BotToken, "BotToken", "BotToken", "invalid_slack_token", msg)
+	}
+
+	if !strings.HasPrefix(slack.AppToken, appTokenPrefix) {
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token", appTokenPrefix)
+		sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
+	}
 }
 
 func namespacesStructValidator(sl validator.StructLevel) {
@@ -102,7 +169,7 @@ func namespacesStructValidator(sl validator.StructLevel) {
 
 // copied from: https://github.com/go-playground/validator/blob/9e2ea4038020b5c7e3802a21cfa4e3afcfdcd276/translations/en/en.go#L1391-L1399
 func translateFunc(ut ut.Translator, fe validator.FieldError) string {
-	t, err := ut.T(fe.Tag(), fe.Field())
+	t, err := ut.T(fe.Tag(), fe.Field(), fe.Param())
 	if err != nil {
 		return fe.(error).Error()
 	}

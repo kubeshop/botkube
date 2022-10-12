@@ -24,7 +24,7 @@ type DefaultExecutorFactory struct {
 	editExecutor      *EditExecutor
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
-	kubectlSurvey     *KubectlSurvey
+	kubectlCmdBuilder *KubectlCmdBuilder
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -86,7 +86,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.CfgManager,
 			params.AnalyticsReporter,
 		),
-		kubectlSurvey: NewKubectlSurvey(
+		kubectlCmdBuilder: NewKubectlCmdBuilder(
 			params.Log.WithField("component", "Notifier Executor"),
 			params.Merger,
 			kcExecutor,
@@ -138,7 +138,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
-		kubectlSurvey:     f.kubectlSurvey,
+		kubectlCmdBuilder: f.kubectlCmdBuilder,
 		user:              cfg.User,
 		notifierHandler:   cfg.NotifierHandler,
 		conversation:      cfg.Conversation,
