@@ -378,7 +378,6 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 				break
 			}
 		}
-
 	}
 
 	if resp.ReplaceOriginal && event.ResponseURL != "" {

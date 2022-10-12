@@ -33,11 +33,16 @@ const (
 	Popup MessageType = "form"
 )
 
+// PlainTextType defines the label as plain_text
 type PlainTextType string
+
+// PlainTextInputType defines the element as plain_text_input
 type PlainTextInputType string
 
 const (
-	PlainText      PlainTextType      = "plain_text"
+	// PlainText refers to plain_text
+	PlainText PlainTextType = "plain_text"
+	// PlainTextInput refers to plain_text for elements
 	PlainTextInput PlainTextInputType = "plain_text_input"
 )
 
@@ -124,16 +129,19 @@ type Selects struct {
 	Items []Select
 }
 
+// Input is used to create input elements to use in slack messages.
 type Input struct {
 	DispatchedAction bool
 	Element          InputElement
 	Label            InputLabel
 }
 
+// InputElement is one of the components of Input. This component is mostly used to hold elements like input text, etc...
 type InputElement struct {
 	Type PlainTextInputType
 }
 
+// InputLabel refers to label of input element
 type InputLabel struct {
 	Type PlainTextType
 	Text string
