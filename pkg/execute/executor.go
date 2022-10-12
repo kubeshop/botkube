@@ -417,7 +417,11 @@ func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	e.reportCommand(cmd, false)
+	err := e.analyticsReporter.ReportCommand(e.platform, cmd, e.conversation.IsButtonClickOrigin, false)
+	if err != nil {
+		e.log.Errorf("while reporting version command: %s", err.Error())
+	}
+
 	return e.findBotkubeVersion()
 }
 
