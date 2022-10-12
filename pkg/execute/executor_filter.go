@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+var (
+	//filterFlagRegex regular expression used for extracting executor filters
+	filterFlagRegex = regexp.MustCompile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
+)
+
 // executorFilter interface to implement to filter executor text based results
 type executorFilter interface {
 	Apply(string) string
@@ -61,9 +66,7 @@ func (f *executorTextFilter) Apply(text string) string {
 // It also returns passed in executor command minus the
 // flag to be executed by downstream executors and if a filter flag was detected.
 func extractExecutorFilter(cmd string) (executorFilter, string, bool) {
-	r, _ := regexp.Compile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
-
-	matchedArray := r.FindStringSubmatch(cmd)
+	matchedArray := filterFlagRegex.FindStringSubmatch(cmd)
 	if len(matchedArray) < 2 {
 		return newExecutorEchoFilter(), cmd, false
 	}
