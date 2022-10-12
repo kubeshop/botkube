@@ -135,26 +135,41 @@ func (s *slackTester) InviteBotToChannel(t *testing.T, channelID string) {
 }
 
 func (s *slackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
-		return strings.EqualFold(s.trimNewLine(msg), expectedMsg)
+	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
+		msg = s.trimNewLine(msg)
+		if !strings.EqualFold(expectedMsg, msg) {
+			count := countMatchBlock(expectedMsg, msg)
+			msgDiff := diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
 func (s *slackTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.Contains(s.trimNewLine(msg), expectedMsgSubstring)
+	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		return strings.Contains(s.trimNewLine(msg), expectedMsgSubstring), 0, ""
 	})
 }
 
 func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return s.trimNewLine(msg) == expectedMsg
+	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		msg = s.trimNewLine(msg)
+		if msg != expectedMsg {
+			count := countMatchBlock(expectedMsg, msg)
+			msgDiff := diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
 func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
+	var common int
+	var diffMessage string
+
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: limitMessages,
@@ -169,8 +184,13 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 			if msg.User != userID {
 				continue
 			}
-			if !assertFn(msg.Text) {
+			equal, commonCount, diffStr := assertFn(msg.Text)
+			if !equal {
 				// different message
+				if commonCount > common {
+					common = commonCount
+					diffMessage = diffStr
+				}
 				continue
 			}
 
@@ -180,7 +200,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
+		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
@@ -305,16 +325,28 @@ func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID strin
 // functions here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
 func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
 	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
-	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
+	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
 		// Slack encloses URLs with `<` and `>`, since we need to remove them before assertion
-		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
+		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
+		if !strings.EqualFold(renderedMsg, msg) {
+			count := countMatchBlock(renderedMsg, msg)
+			msgDiff := diff(renderedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
 func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
 	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.EqualFold(strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg), renderedMsg)
+	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
+		if !strings.EqualFold(renderedMsg, msg) {
+			count := countMatchBlock(renderedMsg, msg)
+			msgDiff := diff(renderedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 

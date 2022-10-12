@@ -314,9 +314,9 @@ func runBotTest(t *testing.T,
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-					strings.Contains(msg, "botkube")
+					strings.Contains(msg, "botkube"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -326,10 +326,10 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
-					strings.Contains(msg, "botkube-global-config")
+					strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -346,8 +346,8 @@ func runBotTest(t *testing.T,
 			err = botDriver.WaitForMessagePostedWithFileUpload(botDriver.BotUserID(), botDriver.Channel().ID(), fileUploadAssertionFn)
 			assert.NoError(t, err)
 
-			assertionFn := func(msg string) bool {
-				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)))
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))), 0, ""
 			}
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 		})
@@ -395,9 +395,9 @@ func runBotTest(t *testing.T,
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
 				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						strings.Contains(msg, "deployment.apps/botkube condition met")
+						strings.Contains(msg, "deployment.apps/botkube condition met"), 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -427,11 +427,11 @@ func runBotTest(t *testing.T,
 
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
 				command := "get deploy -A"
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "local-path-provisioner") &&
 						strings.Contains(msg, "coredns") &&
-						strings.Contains(msg, "botkube")
+						strings.Contains(msg, "botkube"), 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -444,7 +444,7 @@ func runBotTest(t *testing.T,
 		for _, prefix := range k8sPrefixTests {
 			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
 				command := fmt.Sprintf("%s get pods --namespace %s", prefix, appCfg.Deployment.Namespace)
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
 					containAllColumn := true
 					for _, cn := range headerColumnNames {
@@ -453,7 +453,7 @@ func runBotTest(t *testing.T,
 						}
 					}
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						containAllColumn
+						containAllColumn, 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
