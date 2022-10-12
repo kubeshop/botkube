@@ -77,7 +77,7 @@ This section describes how to build and run Botkube from source code.
    --set communications.default-group.socketSlack.appToken=<SLACK_API_APP_TOKEN> \
    --set communications.default-group.socketSlack.botToken=<SLACK_API_BOT_TOKEN> \
    --set settings.clusterName=${CLUSTER_NAME} \
-   --set executors.kubectl-read-only.kubectl.enabled=<ALLOW_KUBECTL> \
+   --set executors.kubectl-read-only.kubectl.enabled=true \
    --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
