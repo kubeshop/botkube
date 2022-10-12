@@ -85,6 +85,108 @@ func TestCommandPreview(t *testing.T) {
 	}
 }
 
+func TestCommandBuilderCanHandleAndGetPrefix(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+
+		expPrefix    string
+		expCanHandle bool
+	}{
+		{
+			name: "Dropdown verbs",
+			args: strings.Fields("kc-cmd-builder --verbs my-verb"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --verbs",
+		},
+		{
+			name: "Dropdown resource type",
+			args: strings.Fields("kc-cmd-builder --resource-type my-resource-type"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --resource-type",
+		},
+		{
+			name: "Dropdown resource name",
+			args: strings.Fields("kc-cmd-builder --resource-name my-resource-name"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --resource-name",
+		},
+		{
+			name: "Dropdown namespace",
+			args: strings.Fields("kc-cmd-builder --namespace my-namespace"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --namespace",
+		},
+		{
+			name: "Dropdown namespace",
+			args: strings.Fields("kc-cmd-builder --namespace my-namespace other-arg-but-we-dont-care"),
+
+			expCanHandle: true,
+			expPrefix:    "kc-cmd-builder --namespace",
+		},
+		{
+			name: "Kubectl k alias",
+			args: strings.Fields("k"),
+
+			expCanHandle: true,
+			expPrefix:    "k",
+		},
+		{
+			name: "Kubectl kc alias",
+			args: strings.Fields("kc"),
+
+			expCanHandle: true,
+			expPrefix:    "kc",
+		},
+		{
+			name: "Kubectl full command",
+			args: strings.Fields("kubectl"),
+
+			expCanHandle: true,
+			expPrefix:    "kubectl",
+		},
+		{
+			name: "Kubectl full command",
+			args: strings.Fields("kubectl get pod"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+		{
+			name: "Unknown command",
+			args: strings.Fields("helm"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+		{
+			name: "Wrong command",
+			args: strings.Fields("kc-cmd-builder"),
+
+			expCanHandle: false,
+			expPrefix:    "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(nil, nil, nil, nil)
+
+			// when
+			gotCanHandle := kcCmdBuilderExecutor.CanHandle(tc.args)
+			gotPrefix := kcCmdBuilderExecutor.GetCommandPrefix(tc.args)
+
+			// then
+			assert.Equal(t, tc.expCanHandle, gotCanHandle)
+			assert.Equal(t, tc.expPrefix, gotPrefix)
+		})
+	}
+}
+
 func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
 
