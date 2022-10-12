@@ -22,6 +22,7 @@
 			"command": "get",
 			"filtered": false,
 			"origin": "buttonClick",
+			"filtered": true,
 			"platform": "slack"
 		}
 	},
@@ -35,6 +36,7 @@
 			"command": "notifier start",
 			"filtered": false,
 			"origin": "selectValueChange",
+			"filtered": false,
 			"platform": "teams"
 		}
 	}
