@@ -350,6 +350,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		if err != nil {
 			return err
 		}
+		resp.IgnoreOriginalResponse = true
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
@@ -539,9 +540,19 @@ func (b *SocketSlack) resolveBlockActionCommand(callback slack.InteractionCallba
 		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	case "plain_text_input":
-		// blockID contains previously executed command.
-		blockID := callback.Message.Msg.Blocks.BlockSet[0].(*slack.InputBlock).BlockID
-		cmd := strings.Split(blockID, "`")[1]
+		// The main motivation is to extract original command this input belongs to.
+		// a. If the command is located in section blocks, we extract it from section block text
+		// b. If the original command is located inside an input block, we use blockID since the original
+		// command is propagated via that field.
+		blockType := callback.Message.Msg.Blocks.BlockSet[0].BlockType()
+		originalCmd := ""
+		if blockType == slack.MBTSection {
+			originalCmd = callback.Message.Msg.Blocks.BlockSet[0].(*slack.SectionBlock).Text.Text
+		} else if blockType == slack.MBTInput {
+			// blockID contains previously executed command.
+			originalCmd = callback.Message.Msg.Blocks.BlockSet[0].(*slack.InputBlock).BlockID
+		}
+		cmd := strings.Split(originalCmd, "`")[1]
 		command = fmt.Sprintf("%s %s --filter %s", b.BotName(), cmd, command)
 	}
 

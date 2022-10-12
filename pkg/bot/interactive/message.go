@@ -45,10 +45,11 @@ const (
 type Message struct {
 	Type MessageType
 	Base
-	Sections          []Section
-	Inputs            []Input
-	OnlyVisibleForYou bool
-	ReplaceOriginal   bool
+	Sections               []Section
+	Inputs                 []Input
+	OnlyVisibleForYou      bool
+	ReplaceOriginal        bool
+	IgnoreOriginalResponse bool
 }
 
 // HasSections returns true if message has interactive sections.

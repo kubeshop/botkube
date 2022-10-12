@@ -108,29 +108,31 @@ func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.
 // RenderAsSlackBlocks returns the Slack message blocks for a given input message.
 func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Block {
 	var blocks []slack.Block
-	// Input actions are rendered once the message size is big. For this case,
-	// we shouldn't render basic fields, only input field is ok.
-	if msg.Header != "" && !msg.HasInputs() {
-		blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
-	}
+	if !msg.IgnoreOriginalResponse {
+		// Input actions are rendered once the message size is big. For this case,
+		// we shouldn't render basic fields, only input field is ok.
+		if msg.Header != "" {
+			blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
+		}
 
-	if msg.Description != "" && !msg.HasInputs() {
-		blocks = append(blocks, b.mdTextSection(msg.Description))
-	}
+		if msg.Description != "" {
+			blocks = append(blocks, b.mdTextSection(msg.Description))
+		}
 
-	if msg.Body.Plaintext != "" && !msg.HasInputs() {
-		blocks = append(blocks, b.mdTextSection(msg.Body.Plaintext))
-	}
+		if msg.Body.Plaintext != "" {
+			blocks = append(blocks, b.mdTextSection(msg.Body.Plaintext))
+		}
 
-	if msg.Body.CodeBlock != "" && !msg.HasInputs() {
-		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
-	}
+		if msg.Body.CodeBlock != "" {
+			blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
+		}
 
-	all := len(msg.Sections)
-	for idx, s := range msg.Sections {
-		blocks = append(blocks, b.renderSection(s)...)
-		if !(idx == all-1) { // if not the last one, append divider
-			blocks = append(blocks, slack.NewDividerBlock())
+		all := len(msg.Sections)
+		for idx, s := range msg.Sections {
+			blocks = append(blocks, b.renderSection(s)...)
+			if !(idx == all-1) { // if not the last one, append divider
+				blocks = append(blocks, slack.NewDividerBlock())
+			}
 		}
 	}
 
