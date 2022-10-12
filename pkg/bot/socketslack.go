@@ -197,10 +197,15 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						b.log.Debug("Ignoring callback as its source is an active modal")
 						continue
 					}
+					// Use thread's TS if interactive call triggered within thread.
+					threadTs := callback.MessageTs
+					if callback.Message.Msg.ThreadTimestamp != "" {
+						threadTs = callback.Message.Msg.ThreadTimestamp
+					}
 					msg := socketSlackMessage{
-						Text:                resolveBlockActionCommand(*act, callback.Message.Msg.Blocks.BlockSet[0].(*slack.SectionBlock).Text.Text, b.BotName()),
+						Text:                b.resolveBlockActionCommand(callback),
 						Channel:             channelID,
-						ThreadTimeStamp:     callback.MessageTs,
+						ThreadTimeStamp:     threadTs,
 						TriggerID:           callback.TriggerID,
 						User:                callback.User.ID,
 						IsButtonClickOrigin: true,
@@ -219,7 +224,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:                resolveBlockActionCommand(act, "", b.BotName()),
+								Text:                b.resolveBlockActionCommand(callback),
 								Channel:             callback.View.PrivateMetadata,
 								User:                callback.User.ID,
 								IsButtonClickOrigin: true,
@@ -338,8 +343,13 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	}
 
 	// Upload message as a file if too long
+	var file *slack.File
+	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		return uploadFileToSlack(event.Channel, resp, b.client)
+		file, err = uploadFileToSlack(event.Channel, resp, b.client)
+		if err != nil {
+			return err
+		}
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
@@ -360,6 +370,14 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	//if the message is from thread then add an option to return the response to the thread
 	if event.ThreadTimeStamp != "" {
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	} else if file != nil {
+		for _, share := range file.Shares.Public {
+			if share[0].Ts != "" {
+				options = append(options, slack.MsgOptionTS(share[0].Ts))
+				break
+			}
+		}
+
 	}
 
 	if resp.ReplaceOriginal && event.ResponseURL != "" {
@@ -504,7 +522,8 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func resolveBlockActionCommand(act slack.BlockAction, cmd, botName string) string {
+func (b *SocketSlack) resolveBlockActionCommand(callback slack.InteractionCallback) string {
+	act := callback.ActionCallback.BlockActions[0]
 	command := act.Value
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
@@ -520,8 +539,10 @@ func resolveBlockActionCommand(act slack.BlockAction, cmd, botName string) strin
 		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	case "plain_text_input":
-		cmd = strings.Split(cmd, "`")[1]
-		command = fmt.Sprintf("%s %s --filter %s", botName, cmd, command)
+		// blockID contains previously executed command.
+		blockID := callback.Message.Msg.Blocks.BlockSet[0].(*slack.InputBlock).BlockID
+		cmd := strings.Split(blockID, "`")[1]
+		command = fmt.Sprintf("%s %s --filter %s", b.BotName(), cmd, command)
 	}
 
 	return command

@@ -259,12 +259,16 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 
+	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
+
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
-		return uploadFileToSlack(msg.Channel, resp, b.client)
+		_, err := uploadFileToSlack(msg.Channel, resp, b.client)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-
-	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.ThreadTimeStamp != "" {
@@ -373,7 +377,7 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) error {
+func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) (*slack.File, error) {
 	params := slack.FileUploadParameters{
 		Filename:       "Response.txt",
 		Title:          "Response.txt",
@@ -382,10 +386,10 @@ func uploadFileToSlack(channel string, resp interactive.Message, client *slack.C
 		Channels:       []string{channel},
 	}
 
-	_, err := client.UploadFile(params)
+	file, err := client.UploadFile(params)
 	if err != nil {
-		return fmt.Errorf("while uploading file: %w", err)
+		return nil, fmt.Errorf("while uploading file: %w", err)
 	}
 
-	return nil
+	return file, nil
 }
