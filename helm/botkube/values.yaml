@@ -259,7 +259,7 @@ executors:
         # -- Configures which `kubectl` methods are allowed.
         verbs: ["api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"]
         # -- Configures which K8s resource are allowed.
-        resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services"]
+        resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"]
       # -- Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses the 'default'.
       defaultNamespace: default
       # -- If true, enables commands execution from configured channel only.

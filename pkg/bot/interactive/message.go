@@ -77,6 +77,29 @@ type Section struct {
 	Buttons     Buttons
 	MultiSelect MultiSelect
 	Selects     Selects
+	TextFields  TextFields
+	Context     ContextItems
+}
+
+// ContextItems holds context items.
+type ContextItems []ContextItem
+
+// TextFields holds text field items.
+type TextFields []TextField
+
+// TextField holds a text field data.
+type TextField struct {
+	Text string
+}
+
+// IsDefined returns true if there are any context items defined.
+func (c ContextItems) IsDefined() bool {
+	return len(c) > 0
+}
+
+// ContextItem holds context item.
+type ContextItem struct {
+	Text string
 }
 
 // Selects holds multiple Select objects.

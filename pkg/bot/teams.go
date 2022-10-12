@@ -580,4 +580,5 @@ var emojiMapping = map[string]string{
 	":white_check_mark:":        "✅",
 	":arrows_counterclockwise:": "🔄",
 	":exclamation:":             "❗",
+	":cricket:":                 "🦗",
 }

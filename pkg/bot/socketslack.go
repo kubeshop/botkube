@@ -17,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/kubeshop/botkube/pkg/utils"
@@ -29,20 +30,26 @@ import (
 
 var _ Bot = &SocketSlack{}
 
+// EventCommandProvider describes a provider for event commands.
+type EventCommandProvider interface {
+	GetCommandsForEvent(event events.Event, executorBindings []string) ([]kubectl.Command, error)
+}
+
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        socketSlackAnalyticsReporter
-	botID           string
-	client          *slack.Client
-	channelsMutex   sync.RWMutex
-	channels        map[string]channelConfigByName
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	commGroupName   string
-	renderer        *SlackRenderer
-	mdFormatter     interactive.MDFormatter
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
+	reporter         socketSlackAnalyticsReporter
+	eventCmdProvider EventCommandProvider
+	botID            string
+	client           *slack.Client
+	channelsMutex    sync.RWMutex
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	botMentionRegex  *regexp.Regexp
+	commGroupName    string
+	renderer         *SlackRenderer
+	mdFormatter      interactive.MDFormatter
 }
 
 type socketSlackMessage struct {
@@ -64,7 +71,7 @@ type socketSlackAnalyticsReporter interface {
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, eventCmdProvider EventCommandProvider, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
@@ -85,16 +92,17 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		botID:           botID,
-		client:          client,
-		channels:        channels,
-		commGroupName:   commGroupName,
-		renderer:        NewSlackRenderer(cfg.Notification),
-		botMentionRegex: botMentionRegex,
-		mdFormatter:     mdFormatter,
+		log:              log,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		botID:            botID,
+		client:           client,
+		channels:         channels,
+		commGroupName:    commGroupName,
+		eventCmdProvider: eventCmdProvider,
+		renderer:         NewSlackRenderer(cfg.Notification),
+		botMentionRegex:  botMentionRegex,
+		mdFormatter:      mdFormatter,
 	}, nil
 }
 
@@ -374,11 +382,22 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 // SendEvent sends event notification to slack
 func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
-	attachment := b.renderer.RenderEventMessage(event)
 
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+		additionalSection := b.getInteractiveEventSectionIfShould(event, channelName)
+
+		var additionalSections []interactive.Section
+		if additionalSection != nil {
+			additionalSections = append(additionalSections, *additionalSection)
+		}
+		msg := b.renderer.RenderEventMessage(event, additionalSections...)
+
+		options := []slack.MsgOption{
+			b.renderer.RenderInteractiveMessage(msg),
+		}
+
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
 			continue
@@ -388,6 +407,34 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSo
 	}
 
 	return errs.ErrorOrNil()
+}
+
+func (b *SocketSlack) getInteractiveEventSectionIfShould(event events.Event, channelName string) *interactive.Section {
+	channel, isAuthChannel := b.getChannels()[channelName]
+	if !isAuthChannel {
+		return nil
+	}
+
+	commands, err := b.eventCmdProvider.GetCommandsForEvent(event, channel.Bindings.Executors)
+	if err != nil {
+		b.log.Errorf("while getting commands for event: %w", err)
+		return nil
+	}
+
+	if len(commands) == 0 {
+		return nil
+	}
+
+	cmdPrefix := fmt.Sprintf("%s kubectl", b.BotName())
+	var optionItems []interactive.OptionItem
+	for _, cmd := range commands {
+		optionItems = append(optionItems, interactive.OptionItem{
+			Name:  cmd.Name,
+			Value: cmd.Cmd,
+		})
+	}
+	section := interactive.EventCommandsSection(cmdPrefix, optionItems)
+	return &section
 }
 
 func (b *SocketSlack) getChannelsToNotify(event events.Event, eventSources []string) []string {

@@ -12,13 +12,14 @@ const bulletPointFmt = "- %s\n"
 
 // ShortMessage prepares message in short event format.
 func ShortMessage(event events.Event) string {
-	msg := messageHeader(event)
+	msg := ShortNotificationHeader(event)
 	msgAttachments := messageAttachments(event)
 
 	return fmt.Sprintf("%s\n%s", msg, msgAttachments)
 }
 
-func messageHeader(event events.Event) string {
+// ShortNotificationHeader returns short header for event notification.
+func ShortNotificationHeader(event events.Event) string {
 	resourceName := event.Name
 	if event.Namespace != "" {
 		resourceName = fmt.Sprintf("%s/%s", event.Namespace, event.Name)
