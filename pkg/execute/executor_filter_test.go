@@ -3,6 +3,7 @@ package execute
 import (
 	"testing"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,8 @@ func TestExecutorTextFilter_Apply(t *testing.T) {
 	}{
 		{
 			name: "filter multi line text",
-			text: `NAME                                             READY   STATUS    RESTARTS   AGE
+			text: heredoc.Doc(`
+NAME                                             READY   STATUS    RESTARTS   AGE
 pod/coredns-558bd4d5db-c5gwx                     1/1     Running   0          30m
 pod/coredns-558bd4d5db-j5wqt                     1/1     Running   0          30m
 pod/etcd-kind-control-plane                      1/1     Running   0          30m
@@ -31,12 +33,13 @@ pod/kindnet-x79x6                                1/1     Running   0          29
 
 NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
 daemonset.apps/kindnet      3         3         3       3            3           <none>                   30m
-daemonset.apps/kube-proxy   3         3         3       3            3           kubernetes.io/os=linux   30m`,
-			expected: `pod/etcd-kind-control-plane                      1/1     Running   0          30m
+daemonset.apps/kube-proxy   3         3         3       3            3           kubernetes.io/os=linux   30m`),
+			expected: heredoc.Doc(`
+pod/etcd-kind-control-plane                      1/1     Running   0          30m
 pod/kindnet-hl6zc                                1/1     Running   0          29m
 pod/kindnet-tc254                                1/1     Running   0          30m
 pod/kindnet-x79x6                                1/1     Running   0          29m
-daemonset.apps/kindnet      3         3         3       3            3           <none>                   30m`,
+daemonset.apps/kindnet      3         3         3       3            3           <none>                   30m`),
 		},
 		{
 			name:     "filter single line text",
