@@ -7,6 +7,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "notifier stop",
+			"filtered": false,
 			"origin": "typed",
 			"platform": "discord"
 		}
@@ -20,6 +21,7 @@
 		"properties": {
 			"command": "get",
 			"origin": "buttonClick",
+			"filtered": true,
 			"platform": "slack"
 		}
 	},
@@ -32,6 +34,7 @@
 		"properties": {
 			"command": "notifier start",
 			"origin": "selectValueChange",
+			"filtered": false,
 			"platform": "teams"
 		}
 	}

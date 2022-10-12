@@ -119,7 +119,7 @@ const (
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd := utils.RemoveAnyHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
-	executorFilter, command, _ := extractExecutorFilter(rawCmd)
+	executorFilter, command, withFilter := extractExecutorFilter(rawCmd)
 
 	var (
 		clusterName   = e.cfg.Settings.ClusterName
@@ -172,7 +172,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args))
+		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), withFilter)
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
 		switch {
 		case err == nil:
@@ -192,7 +192,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if e.kubectlCmdBuilder.CanHandle(args) {
-		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args))
+		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args), false)
 		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, e.header(command))
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
@@ -204,7 +204,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	cmds := executorsRunner{
 		"help": func() (interactive.Message, error) {
-			e.reportCommand(args[0])
+			e.reportCommand(args[0], false)
 			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
 		},
 		"ping": func() (interactive.Message, error) {
@@ -219,7 +219,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			return response(executorFilter.Apply(res)), err
 		},
 		"commands": func() (interactive.Message, error) {
-			res, err := e.runInfoCommand(args)
+			res, err := e.runInfoCommand(args, withFilter)
 			return response(executorFilter.Apply(res), humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
@@ -230,7 +230,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
 		},
 		"feedback": func() (interactive.Message, error) {
-			e.reportCommand(args[0])
+			e.reportCommand(args[0], false)
 			return interactive.Feedback(), nil
 		},
 	}
@@ -263,8 +263,8 @@ func (e *DefaultExecutor) header(command string, overrideName ...string) string 
 	return e.appendByUserOnlyIfNeeded(out)
 }
 
-func (e *DefaultExecutor) reportCommand(verb string) {
-	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin)
+func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
+	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin, withFilter)
 	if err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
@@ -280,7 +280,7 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport)
+		e.reportCommand(cmdToReport, false)
 	}()
 
 	switch FiltersAction(args[1]) {
@@ -332,14 +332,14 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 }
 
 // runInfoCommand to list allowed commands
-func (e *DefaultExecutor) runInfoCommand(args []string) (string, error) {
+func (e *DefaultExecutor) runInfoCommand(args []string, withFilter bool) (string, error) {
 	if len(args) < 2 {
 		return "", errInvalidCommand
 	}
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport)
+		e.reportCommand(cmdToReport, withFilter)
 	}()
 
 	switch infoAction(cmdVerb) {
@@ -417,7 +417,7 @@ func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	e.reportCommand(cmd)
+	e.reportCommand(cmd, false)
 	return e.findBotkubeVersion()
 }
 

@@ -10,7 +10,7 @@ import (
 
 type fakeAnalyticsReporter struct{}
 
-func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin) error {
+func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin, _ bool) error {
 	return nil
 }
 
