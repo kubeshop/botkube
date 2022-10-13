@@ -186,7 +186,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 			}
 			equal, commonCount, diffStr := assertFn(msg.Text)
 			if !equal {
-				// different message
+				// different message; update the diff if it's more similar than the previous one (or initial 0)
 				if commonCount > common {
 					common = commonCount
 					diffMessage = diffStr
