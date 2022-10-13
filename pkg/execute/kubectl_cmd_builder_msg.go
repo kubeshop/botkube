@@ -11,6 +11,7 @@ type (
 	KubectlCmdBuilderOptions struct {
 		selects  []interactive.Select
 		sections []interactive.Section
+		inputs   interactive.PlaintextInputs
 	}
 	// KubectlCmdBuilderOption defines option mutator signature.
 	KubectlCmdBuilderOption func(options *KubectlCmdBuilderOptions)
@@ -40,6 +41,18 @@ func WithAdditionalSections(in ...*interactive.Section) KubectlCmdBuilderOption 
 	}
 }
 
+// WithAdditionalInputs adds additional inputs to a given kubectl KubectlCmdBuilderMessage message.
+func WithAdditionalInputs(in ...*interactive.PlaintextInput) KubectlCmdBuilderOption {
+	return func(options *KubectlCmdBuilderOptions) {
+		for _, s := range in {
+			if s == nil {
+				continue
+			}
+			options.inputs = append(options.inputs, *s)
+		}
+	}
+}
+
 // KubectlCmdBuilderMessage returns message for constructing kubectl command.
 func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select, opts ...KubectlCmdBuilderOption) interactive.Message {
 	defaultOpt := KubectlCmdBuilderOptions{
@@ -57,6 +70,7 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select,
 			ID:    dropdownsBlockID,
 			Items: defaultOpt.selects,
 		},
+		PlaintextInputs: defaultOpt.inputs,
 	})
 
 	sections = append(sections, defaultOpt.sections...)
@@ -79,6 +93,22 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 		Buttons: interactive.Buttons{
 			btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
 		},
+	}
+}
+
+// FilterSection returns filter input block.
+func FilterSection(botName string) *interactive.PlaintextInput {
+	return &interactive.PlaintextInput{
+		Label:            "Filter output",
+		DispatchedAction: interactive.DispatchInputActionOnCharacter,
+		Placeholder:      "(Optional) Type to filter command output by.",
+		// the whitespace at the end is required, otherwise we will not recognize the command
+		// as we will receive:
+		//   kc-cmd-builder --filterinput string
+		// instead of:
+		//   kc-cmd-builder --filter input string
+		// TODO: this can be fixed by smarter command parser.
+		ID: fmt.Sprintf("%s %s ", botName, filterPlaintextInputCommand),
 	}
 }
 
@@ -159,7 +189,7 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 //  3. Our backend doesn't return any options, so you see "No result".
 func EmptyResourceNameDropdown(botName string) *interactive.Select {
 	return &interactive.Select{
-		Type:    "external",
+		Type:    interactive.ExternalSelect,
 		Name:    "No resources found",
 		Command: fmt.Sprintf("%s %s", botName, resourceNamesDropdownCommand),
 	}

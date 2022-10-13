@@ -158,7 +158,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		}
 		// Show Filter Input if command response is more than `lineLimitToShowFilter`
 		if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-			message.Inputs = append(message.Inputs, e.filterInput(command, botName))
+			message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(command, botName))
 		}
 		return message
 	}
@@ -450,16 +450,10 @@ func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
 	return fmt.Sprintf("%s by %s", cmd, e.user)
 }
 
-func (e *DefaultExecutor) filterInput(id, botName string) interactive.Input {
-	return interactive.Input{
+func (e *DefaultExecutor) filterInput(id, botName string) interactive.PlaintextInput {
+	return interactive.PlaintextInput{
 		ID:               fmt.Sprintf("%s %s --filter=", botName, id),
-		DispatchedAction: true,
-		Element: interactive.InputElement{
-			Type: interactive.PlainTextInput,
-		},
-		Label: interactive.InputLabel{
-			Type: interactive.PlainText,
-			Text: "Filter Output",
-		},
+		DispatchedAction: interactive.DispatchInputActionOnEnter,
+		Label:            "Filter Output",
 	}
 }
