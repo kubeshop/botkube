@@ -185,7 +185,7 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 
 			equal, commonCount, diffStr := assertFn(msg.Content)
 			if !equal {
-				// different message
+				// different message; update the diff if it's more similar than the previous one (or initial 0)
 				if commonCount > common {
 					common = commonCount
 					diffMessage = diffStr
@@ -274,6 +274,8 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
+	var common int
+	var diffMessage string
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
@@ -295,8 +297,13 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 			embed := msg.Embeds[0]
 
-			if !assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description) {
-				// different message
+			equal, commonCount, diffStr := assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description)
+			if !equal {
+				// different message; update the diff if it's more similar than the previous one (or initial 0)
+				if commonCount > common {
+					common = commonCount
+					diffMessage = diffStr
+				}
 				continue
 			}
 
@@ -306,7 +313,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
+		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {

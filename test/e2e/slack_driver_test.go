@@ -265,6 +265,9 @@ func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
+	var common int
+	var diffMessage string
+
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: 1,
@@ -289,8 +292,13 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 				return false, nil
 			}
 
-			if !assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value) {
-				// different message
+			equal, commonCount, diffStr := assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value)
+			if !equal {
+				// different message; update the diff if it's more similar than the previous one (or initial 0)
+				if commonCount > common {
+					common = commonCount
+					diffMessage = diffStr
+				}
 				return false, nil
 			}
 
@@ -300,7 +308,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
+		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
