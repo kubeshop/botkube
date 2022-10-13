@@ -197,11 +197,15 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						b.log.Debug("Ignoring callback as its source is an active modal")
 						continue
 					}
-
+					// Use thread's TS if interactive call triggered within thread.
+					threadTs := callback.MessageTs
+					if callback.Message.Msg.ThreadTimestamp != "" {
+						threadTs = callback.Message.Msg.ThreadTimestamp
+					}
 					msg := socketSlackMessage{
-						Text:                resolveBlockActionCommand(*act),
+						Text:                b.resolveBlockActionCommand(*act),
 						Channel:             channelID,
-						ThreadTimeStamp:     callback.MessageTs,
+						ThreadTimeStamp:     threadTs,
 						TriggerID:           callback.TriggerID,
 						User:                callback.User.ID,
 						IsButtonClickOrigin: true,
@@ -220,7 +224,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:                resolveBlockActionCommand(act),
+								Text:                b.resolveBlockActionCommand(act),
 								Channel:             callback.View.PrivateMetadata,
 								User:                callback.User.ID,
 								IsButtonClickOrigin: true,
@@ -234,6 +238,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				default:
 					b.log.Debugf("get unhandled event %s", callback.Type)
 				}
+
 			case socketmode.EventTypeErrorBadMessage:
 				b.log.Errorf("Bad message: %+v\n", event.Data)
 			case socketmode.EventTypeIncomingError:
@@ -338,8 +343,16 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	}
 
 	// Upload message as a file if too long
+	var file *slack.File
+	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		return uploadFileToSlack(event.Channel, resp, b.client)
+		file, err = uploadFileToSlack(event.Channel, resp, b.client)
+		if err != nil {
+			return err
+		}
+		resp = interactive.Message{
+			Inputs: resp.Inputs,
+		}
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
@@ -357,9 +370,8 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		b.renderer.RenderInteractiveMessage(resp),
 	}
 
-	//if the message is from thread then add an option to return the response to the thread
-	if event.ThreadTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+		options = append(options, ts)
 	}
 
 	if resp.ReplaceOriginal && event.ResponseURL != "" {
@@ -504,7 +516,7 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func resolveBlockActionCommand(act slack.BlockAction) string {
+func (b *SocketSlack) resolveBlockActionCommand(act slack.BlockAction) string {
 	command := act.Value
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
@@ -519,7 +531,29 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 		//   @Botkube kcc --verbs get
 		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+	case "plain_text_input":
+		command = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
 	}
 
 	return command
+}
+
+func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {
+	//if the message is from thread then add an option to return the response to the thread
+	if event.ThreadTimeStamp != "" {
+		return slack.MsgOptionTS(event.ThreadTimeStamp)
+	}
+
+	if file == nil {
+		return nil
+	}
+
+	// If the message was already as a file attachment, reply it a given thread
+	for _, share := range file.Shares.Public {
+		if len(share) >= 1 && share[0].Ts != "" {
+			return slack.MsgOptionTS(share[0].Ts)
+		}
+	}
+
+	return nil
 }

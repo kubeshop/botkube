@@ -40,6 +40,8 @@ const (
 	// Currently we support only `kubectl, so we
 	// override the message to human-readable command name.
 	humanReadableCommandListName = "Available kubectl commands"
+
+	lineLimitToShowFilter = 16
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -153,12 +155,17 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		}
 
 		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
-		return interactive.Message{
+		message := interactive.Message{
 			Base: interactive.Base{
 				Description: e.appendByUserOnlyIfNeeded(header),
 				Body:        msgBody,
 			},
 		}
+		// Show Filter Input if command response is more than `lineLimitToShowFilter`
+		if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+			message.Inputs = append(message.Inputs, e.filterInput(command, botName))
+		}
+		return message
 	}
 
 	if inClusterName != "" && inClusterName != clusterName {
@@ -434,4 +441,18 @@ func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
 		return cmd
 	}
 	return fmt.Sprintf("%s by %s", cmd, e.user)
+}
+
+func (e *DefaultExecutor) filterInput(id, botName string) interactive.Input {
+	return interactive.Input{
+		ID:               fmt.Sprintf("%s %s --filter=", botName, id),
+		DispatchedAction: true,
+		Element: interactive.InputElement{
+			Type: interactive.PlainTextInput,
+		},
+		Label: interactive.InputLabel{
+			Type: interactive.PlainText,
+			Text: "Filter Output",
+		},
+	}
 }

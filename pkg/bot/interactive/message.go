@@ -33,11 +33,25 @@ const (
 	Popup MessageType = "form"
 )
 
+// PlainTextType defines the label as plain_text
+type PlainTextType string
+
+// PlainTextInputType defines the element as plain_text_input
+type PlainTextInputType string
+
+const (
+	// PlainText refers to plain_text
+	PlainText PlainTextType = "plain_text"
+	// PlainTextInput refers to plain_text for elements
+	PlainTextInput PlainTextInputType = "plain_text_input"
+)
+
 // Message represents a generic message with interactive buttons.
 type Message struct {
 	Type MessageType
 	Base
 	Sections          []Section
+	Inputs            []Input
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -45,6 +59,11 @@ type Message struct {
 // HasSections returns true if message has interactive sections.
 func (msg *Message) HasSections() bool {
 	return len(msg.Sections) != 0
+}
+
+// HasInputs returns true if message has interactive inputs.
+func (msg *Message) HasInputs() bool {
+	return len(msg.Inputs) != 0
 }
 
 // Select holds data related to the select drop-down.
@@ -107,6 +126,25 @@ type Selects struct {
 	// ID allows to identify a given block when we do the updated.
 	ID    string
 	Items []Select
+}
+
+// Input is used to create input elements to use in slack messages.
+type Input struct {
+	ID               string
+	DispatchedAction bool
+	Element          InputElement
+	Label            InputLabel
+}
+
+// InputElement is one of the components of Input. This component is mostly used to hold elements like input text, etc...
+type InputElement struct {
+	Type PlainTextInputType
+}
+
+// InputLabel refers to label of input element
+type InputLabel struct {
+	Type PlainTextType
+	Text string
 }
 
 // AreOptionsDefined returns true if some options are available.

@@ -98,7 +98,7 @@ func (b *SlackRenderer) RenderModal(msg interactive.Message) slack.ModalViewRequ
 
 // RenderInteractiveMessage returns Slack message based on the input msg.
 func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.MsgOption {
-	if msg.HasSections() {
+	if msg.HasSections() || msg.HasInputs() {
 		blocks := b.RenderAsSlackBlocks(msg)
 		return slack.MsgOptionBlocks(blocks...)
 	}
@@ -130,6 +130,10 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 		if !(idx == all-1) { // if not the last one, append divider
 			blocks = append(blocks, slack.NewDividerBlock())
 		}
+	}
+
+	for _, i := range msg.Inputs {
+		blocks = append(blocks, b.renderInput(i)...)
 	}
 
 	return blocks
@@ -248,6 +252,18 @@ func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block 
 		textBlockObjs,
 		nil,
 	)
+}
+
+func (b *SlackRenderer) renderInput(in interactive.Input) []slack.Block {
+	return []slack.Block{
+		slack.InputBlock{
+			Type:           slack.MBTInput,
+			Label:          b.plainTextBlock(in.Label.Text),
+			Element:        slack.PlainTextInputBlockElement{Type: slack.MessageElementType(in.Element.Type)},
+			DispatchAction: in.DispatchedAction,
+			BlockID:        in.ID,
+		},
+	}
 }
 
 func (b *SlackRenderer) renderContext(in []interactive.ContextItem) []slack.Block {
