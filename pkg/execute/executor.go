@@ -119,7 +119,10 @@ const (
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd := utils.RemoveAnyHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
-	execFilter := extractExecutorFilter(rawCmd)
+	execFilter, err := extractExecutorFilter(rawCmd)
+	if err != nil {
+		panic("Handle this soon")
+	}
 
 	var (
 		clusterName   = e.cfg.Settings.ClusterName

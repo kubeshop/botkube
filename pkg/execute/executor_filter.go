@@ -93,15 +93,15 @@ func (f *executorTextFilter) Apply(text string) string {
 // the presence or absence of the "--filter=xxx" flag.
 // It also returns passed in executor command minus the
 // flag to be executed by downstream executors and if a filter flag was detected.
-func extractExecutorFilter(cmd string) executorFilter {
+func extractExecutorFilter(cmd string) (executorFilter, error) {
 	matchedArray := filterFlagRegex.FindStringSubmatch(cmd)
 	if len(matchedArray) < 2 {
-		return newExecutorEchoFilter(cmd)
+		return newExecutorEchoFilter(cmd), nil
 	}
 
 	match, err := strconv.Unquote(matchedArray[1])
 	if err != nil {
 		match = matchedArray[1]
 	}
-	return newExecutorTextFilter(match, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), ""))
+	return newExecutorTextFilter(match, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), "")), nil
 }

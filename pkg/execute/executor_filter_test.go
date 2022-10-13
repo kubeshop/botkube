@@ -122,7 +122,8 @@ func TestExtractExecutorFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			filter := extractExecutorFilter(tc.cmd)
+			filter, err := extractExecutorFilter(tc.cmd)
+			assert.Nil(t, err)
 			assert.Equal(t, tc.extractedCmd, filter.FilteredCommand())
 			assert.Equal(t, tc.filterApplied, filter.Apply(tc.text))
 			assert.Equal(t, tc.filterActive, filter.IsActive())
