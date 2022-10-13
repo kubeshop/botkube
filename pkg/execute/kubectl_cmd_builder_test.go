@@ -437,6 +437,13 @@ func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...int
 					ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
 					Items: dropdowns,
 				},
+			},
+			{
+				Base: interactive.Base{
+					Body: interactive.Body{
+						CodeBlock: kcCommandPreview,
+					},
+				},
 				PlaintextInputs: interactive.PlaintextInputs{
 					interactive.PlaintextInput{
 						ID:               "@BKTesting kc-cmd-builder --filter ",
@@ -447,11 +454,6 @@ func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...int
 				},
 			},
 			{
-				Base: interactive.Base{
-					Body: interactive.Body{
-						CodeBlock: kcCommandPreview,
-					},
-				},
 				Buttons: interactive.Buttons{
 					interactive.Button{
 						Name:    "Run command",

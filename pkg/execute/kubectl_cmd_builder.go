@@ -224,8 +224,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 
 		return KubectlCmdBuilderMessage(
 			stateDetails.dropdownsBlockID, *allVerbsSelect,
-			WithAdditionalSections(preview),
-			WithAdditionalInputs(FilterSection(botName)),
+			WithAdditionalSections(preview...),
 		), nil
 	}
 
@@ -233,7 +232,6 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	//    render:
 	//      1. Dropdown with all verbs
 	//      2. Dropdown with all related resource types
-	//      3. Filter input
 	//    because we don't know the resource type we cannot render:
 	//      1. Resource names - obvious :).
 	//      2. Namespaces as we don't know if it's cluster or namespace scoped resource.
@@ -241,7 +239,6 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 		return KubectlCmdBuilderMessage(
 			stateDetails.dropdownsBlockID, *allVerbsSelect,
 			WithAdditionalSelects(matchingTypes),
-			WithAdditionalInputs(FilterSection(botName)),
 		), nil
 	}
 
@@ -268,8 +265,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	return KubectlCmdBuilderMessage(
 		stateDetails.dropdownsBlockID, *allVerbsSelect,
 		WithAdditionalSelects(matchingTypes, resNames, nsNames),
-		WithAdditionalSections(preview),
-		WithAdditionalInputs(FilterSection(botName)),
+		WithAdditionalSections(preview...),
 	), nil
 }
 
@@ -426,7 +422,7 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 	return false
 }
 
-func (e *KubectlCmdBuilder) buildCommandPreview(name string, state stateDetails, includeResourceName bool) *interactive.Section {
+func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails, includeResourceName bool) []interactive.Section {
 	resourceDetails := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
 
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
@@ -455,7 +451,7 @@ func (e *KubectlCmdBuilder) buildCommandPreview(name string, state stateDetails,
 		cmd = fmt.Sprintf("%s --filter=%q", cmd, state.filter)
 	}
 
-	return PreviewSection(name, cmd)
+	return PreviewSection(botName, cmd, FilterSection(botName))
 }
 
 func (e *KubectlCmdBuilder) message(header, msg string) (interactive.Message, error) {

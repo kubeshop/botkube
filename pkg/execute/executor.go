@@ -454,6 +454,6 @@ func (e *DefaultExecutor) filterInput(id, botName string) interactive.PlaintextI
 	return interactive.PlaintextInput{
 		ID:               fmt.Sprintf("%s %s --filter=", botName, id),
 		DispatchedAction: interactive.DispatchInputActionOnEnter,
-		Label:            "Filter Output",
+		Label:            "Filter output",
 	}
 }

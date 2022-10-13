@@ -218,6 +218,10 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 		out = append(out, b.mdTextSection(formatx.AdaptiveCodeBlock(in.Body.CodeBlock)))
 	}
 
+	for _, item := range in.PlaintextInputs {
+		out = append(out, b.renderInput(item))
+	}
+
 	out = append(out, b.renderButtons(in.Buttons)...)
 	if in.MultiSelect.AreOptionsDefined() {
 		sec := b.renderMultiselectWithDescription(in.MultiSelect)
@@ -230,10 +234,6 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 
 	if len(in.Context) > 0 {
 		out = append(out, b.renderContext(in.Context)...)
-	}
-
-	for _, item := range in.PlaintextInputs {
-		out = append(out, b.renderInput(item))
 	}
 
 	return out

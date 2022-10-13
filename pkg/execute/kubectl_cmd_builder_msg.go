@@ -11,7 +11,6 @@ type (
 	KubectlCmdBuilderOptions struct {
 		selects  []interactive.Select
 		sections []interactive.Section
-		inputs   interactive.PlaintextInputs
 	}
 	// KubectlCmdBuilderOption defines option mutator signature.
 	KubectlCmdBuilderOption func(options *KubectlCmdBuilderOptions)
@@ -30,26 +29,9 @@ func WithAdditionalSelects(in ...*interactive.Select) KubectlCmdBuilderOption {
 }
 
 // WithAdditionalSections adds additional sections to a given kubectl KubectlCmdBuilderMessage message.
-func WithAdditionalSections(in ...*interactive.Section) KubectlCmdBuilderOption {
+func WithAdditionalSections(in ...interactive.Section) KubectlCmdBuilderOption {
 	return func(options *KubectlCmdBuilderOptions) {
-		for _, s := range in {
-			if s == nil {
-				continue
-			}
-			options.sections = append(options.sections, *s)
-		}
-	}
-}
-
-// WithAdditionalInputs adds additional inputs to a given kubectl KubectlCmdBuilderMessage message.
-func WithAdditionalInputs(in ...*interactive.PlaintextInput) KubectlCmdBuilderOption {
-	return func(options *KubectlCmdBuilderOptions) {
-		for _, s := range in {
-			if s == nil {
-				continue
-			}
-			options.inputs = append(options.inputs, *s)
-		}
+		options.sections = append(options.sections, in...)
 	}
 }
 
@@ -70,7 +52,6 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select,
 			ID:    dropdownsBlockID,
 			Items: defaultOpt.selects,
 		},
-		PlaintextInputs: defaultOpt.inputs,
 	})
 
 	sections = append(sections, defaultOpt.sections...)
@@ -82,23 +63,30 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select,
 }
 
 // PreviewSection returns preview command section with Run button.
-func PreviewSection(botName, cmd string) *interactive.Section {
+func PreviewSection(botName, cmd string, input interactive.PlaintextInput) []interactive.Section {
 	btn := interactive.ButtonBuilder{BotName: botName}
-	return &interactive.Section{
-		Base: interactive.Base{
-			Body: interactive.Body{
-				CodeBlock: cmd,
+	return []interactive.Section{
+		{
+			Base: interactive.Base{
+				Body: interactive.Body{
+					CodeBlock: cmd,
+				},
+			},
+			PlaintextInputs: interactive.PlaintextInputs{
+				input,
 			},
 		},
-		Buttons: interactive.Buttons{
-			btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
+		{
+			Buttons: interactive.Buttons{
+				btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
+			},
 		},
 	}
 }
 
 // FilterSection returns filter input block.
-func FilterSection(botName string) *interactive.PlaintextInput {
-	return &interactive.PlaintextInput{
+func FilterSection(botName string) interactive.PlaintextInput {
+	return interactive.PlaintextInput{
 		Label:            "Filter output",
 		DispatchedAction: interactive.DispatchInputActionOnCharacter,
 		Placeholder:      "(Optional) Type to filter command output by.",
