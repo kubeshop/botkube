@@ -8,7 +8,7 @@ import (
 )
 
 func TestExecutorEchoFilter_Apply(t *testing.T) {
-	var filter executorFilter = newExecutorEchoFilter()
+	var filter executorFilter = newExecutorEchoFilter("")
 
 	text := "Please return this same text."
 	assert.Equal(t, text, filter.Apply(text))
@@ -53,7 +53,7 @@ daemonset.apps/kindnet      3         3         3       3            3          
 		},
 	}
 
-	var txFilter executorFilter = newExecutorTextFilter("kind")
+	var txFilter executorFilter = newExecutorTextFilter("kind", "")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.expected, txFilter.Apply(tc.text))
@@ -63,61 +63,69 @@ daemonset.apps/kindnet      3         3         3       3            3          
 
 func TestExtractExecutorFilter(t *testing.T) {
 	testCases := []struct {
-		name           string
-		cmd            string
-		extractedCmd   string
-		text           string
-		filterApplied  string
-		filterDetected bool
+		name          string
+		cmd           string
+		extractedCmd  string
+		text          string
+		filterApplied string
+		filterActive  bool
 	}{
 		{
-			name:           "extract unquoted text filter at end of command",
-			cmd:            `kubectl get po -n kube-system --filter=kind`,
-			extractedCmd:   "kubectl get po -n kube-system",
-			text:           `etcd-kind-control-plane                      1/1     Running   0          86m`,
-			filterApplied:  `etcd-kind-control-plane                      1/1     Running   0          86m`,
-			filterDetected: true,
+			name:          "extract unquoted text filter at end of command",
+			cmd:           `kubectl get po -n kube-system --filter=kind`,
+			extractedCmd:  "kubectl get po -n kube-system",
+			text:          `etcd-kind-control-plane                      1/1     Running   0          86m`,
+			filterApplied: `etcd-kind-control-plane                      1/1     Running   0          86m`,
+			filterActive:  true,
 		},
 		{
-			name:           "extract unquoted text filter in the middle of the command",
-			cmd:            `kubectl get po  --filter=kind -n kube-system`,
-			extractedCmd:   "kubectl get po  -n kube-system",
-			text:           `etcd-control-plane                      1/1     Running   0          86m`,
-			filterApplied:  "",
-			filterDetected: true,
+			name:          "extract unquoted text filter in the middle of the command",
+			cmd:           `kubectl get po  --filter=kind -n kube-system`,
+			extractedCmd:  "kubectl get po  -n kube-system",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
 		},
 		{
-			name:           "extract single quoted text filter in the middle of the command",
-			cmd:            `kubectl get po  --filter='kind system' -n kube-system`,
-			extractedCmd:   "kubectl get po  -n kube-system",
-			text:           `etcd-control-plane                      1/1     Running   0          86m`,
-			filterApplied:  "",
-			filterDetected: true,
+			name:          "extract single quoted text filter in the middle of the command",
+			cmd:           `kubectl get po  --filter='kind system' -n kube-system`,
+			extractedCmd:  "kubectl get po  -n kube-system",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
 		},
 		{
-			name:           "extract double quoted text filter in the middle of the command",
-			cmd:            `kubectl get po  --filter="kind" -n kube-system`,
-			extractedCmd:   "kubectl get po  -n kube-system",
-			text:           `etcd-control-plane                      1/1     Running   0          86m`,
-			filterApplied:  "",
-			filterDetected: true,
+			name:          "extract double quoted text filter in the middle of the command",
+			cmd:           `kubectl get po  --filter="kind" -n kube-system`,
+			extractedCmd:  "kubectl get po  -n kube-system",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
 		},
 		{
-			name:           "extract echo filter from command",
-			cmd:            "kubectl get po -n kube-system",
-			extractedCmd:   "kubectl get po -n kube-system",
-			text:           `etcd-control-plane                      1/1     Running   0          86m`,
-			filterApplied:  `etcd-control-plane                      1/1     Running   0          86m`,
-			filterDetected: false,
+			name:          "extract echo filter from command",
+			cmd:           "kubectl get po -n kube-system",
+			extractedCmd:  "kubectl get po -n kube-system",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: `etcd-control-plane                      1/1     Running   0          86m`,
+			filterActive:  false,
 		},
+		//{
+		//	name:           "extract echo filter when filter flag not set at end of command",
+		//	cmd:            "kubectl get po -n kube-system --filter",
+		//	extractedCmd:   "kubectl get po -n kube-system",
+		//	text:           `etcd-control-plane                      1/1     Running   0          86m`,
+		//	filterApplied:  `etcd-control-plane                      1/1     Running   0          86m`,
+		//	filterActive: false,
+		//},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			filter, cmd, detected := extractExecutorFilter(tc.cmd)
-			assert.Equal(t, tc.extractedCmd, cmd)
+			filter := extractExecutorFilter(tc.cmd)
+			assert.Equal(t, tc.extractedCmd, filter.FilteredCommand())
 			assert.Equal(t, tc.filterApplied, filter.Apply(tc.text))
-			assert.Equal(t, tc.filterDetected, detected)
+			assert.Equal(t, tc.filterActive, filter.IsActive())
 		})
 	}
 }

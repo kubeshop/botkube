@@ -17,11 +17,25 @@ var (
 // executorFilter interface to implement to filter executor text based results
 type executorFilter interface {
 	Apply(string) string
+	FilteredCommand() string
+	IsActive() bool
 }
 
 // executorEchoFilter echos given text when asked to filter executor text results.
 // Mainly used when executor commands are missing a "--filter=xxx" flag.
-type executorEchoFilter struct{}
+type executorEchoFilter struct {
+	command string
+}
+
+// FilteredCommand returns the command whose results the filter will be applied on.
+func (f *executorEchoFilter) FilteredCommand() string {
+	return f.command
+}
+
+// IsActive whether this filter will actually mutate the output or not.
+func (f *executorEchoFilter) IsActive() bool {
+	return false
+}
 
 // Apply implements executorFilter to apply filtering.
 func (f *executorEchoFilter) Apply(text string) string {
@@ -29,19 +43,33 @@ func (f *executorEchoFilter) Apply(text string) string {
 }
 
 // newExecutorEchoFilter creates a new executorEchoFilter.
-func newExecutorEchoFilter() *executorEchoFilter {
-	return &executorEchoFilter{}
+func newExecutorEchoFilter(command string) *executorEchoFilter {
+	return &executorEchoFilter{
+		command: command,
+	}
 }
 
 // executorTextFilter filters executor text results by a given text value.
 type executorTextFilter struct {
-	value []byte
+	value   []byte
+	command string
+}
+
+// FilteredCommand returns the command whose results the filter will be applied on.
+func (f *executorTextFilter) FilteredCommand() string {
+	return f.command
+}
+
+// IsActive whether this filter will actually mutate the output or not.
+func (f *executorTextFilter) IsActive() bool {
+	return true
 }
 
 // newExecutorTextFilter creates a new executorTextFilter.
-func newExecutorTextFilter(val string) *executorTextFilter {
+func newExecutorTextFilter(val, command string) *executorTextFilter {
 	return &executorTextFilter{
-		value: []byte(val),
+		value:   []byte(val),
+		command: command,
 	}
 }
 
@@ -65,17 +93,15 @@ func (f *executorTextFilter) Apply(text string) string {
 // the presence or absence of the "--filter=xxx" flag.
 // It also returns passed in executor command minus the
 // flag to be executed by downstream executors and if a filter flag was detected.
-func extractExecutorFilter(cmd string) (executorFilter, string, bool) {
+func extractExecutorFilter(cmd string) executorFilter {
 	matchedArray := filterFlagRegex.FindStringSubmatch(cmd)
 	if len(matchedArray) < 2 {
-		return newExecutorEchoFilter(), cmd, false
+		return newExecutorEchoFilter(cmd)
 	}
 
 	match, err := strconv.Unquote(matchedArray[1])
 	if err != nil {
 		match = matchedArray[1]
 	}
-	return newExecutorTextFilter(match),
-		strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), ""),
-		true
+	return newExecutorTextFilter(match, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), ""))
 }
