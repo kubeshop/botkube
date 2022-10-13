@@ -203,7 +203,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						threadTs = callback.Message.Msg.ThreadTimestamp
 					}
 					msg := socketSlackMessage{
-						Text:                b.resolveBlockActionCommand(callback),
+						Text:                b.resolveBlockActionCommand(*act),
 						Channel:             channelID,
 						ThreadTimeStamp:     threadTs,
 						TriggerID:           callback.TriggerID,
@@ -224,7 +224,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							msg := socketSlackMessage{
-								Text:                b.resolveBlockActionCommand(callback),
+								Text:                b.resolveBlockActionCommand(act),
 								Channel:             callback.View.PrivateMetadata,
 								User:                callback.User.ID,
 								IsButtonClickOrigin: true,
@@ -350,7 +350,9 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		if err != nil {
 			return err
 		}
-		resp.IgnoreOriginalResponse = true
+		resp = interactive.Message{
+			Inputs: resp.Inputs,
+		}
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
@@ -368,16 +370,8 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		b.renderer.RenderInteractiveMessage(resp),
 	}
 
-	//if the message is from thread then add an option to return the response to the thread
-	if event.ThreadTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
-	} else if file != nil {
-		for _, share := range file.Shares.Public {
-			if share[0].Ts != "" {
-				options = append(options, slack.MsgOptionTS(share[0].Ts))
-				break
-			}
-		}
+	if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+		options = append(options, ts)
 	}
 
 	if resp.ReplaceOriginal && event.ResponseURL != "" {
@@ -522,8 +516,7 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func (b *SocketSlack) resolveBlockActionCommand(callback slack.InteractionCallback) string {
-	act := callback.ActionCallback.BlockActions[0]
+func (b *SocketSlack) resolveBlockActionCommand(act slack.BlockAction) string {
 	command := act.Value
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
@@ -539,21 +532,28 @@ func (b *SocketSlack) resolveBlockActionCommand(callback slack.InteractionCallba
 		//   @Botkube kcc --resource-type
 		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
 	case "plain_text_input":
-		// The main motivation is to extract original command this input belongs to.
-		// a. If the command is located in section blocks, we extract it from section block text
-		// b. If the original command is located inside an input block, we use blockID since the original
-		// command is propagated via that field.
-		blockType := callback.Message.Msg.Blocks.BlockSet[0].BlockType()
-		originalCmd := ""
-		if blockType == slack.MBTSection {
-			originalCmd = callback.Message.Msg.Blocks.BlockSet[0].(*slack.SectionBlock).Text.Text
-		} else if blockType == slack.MBTInput {
-			// blockID contains previously executed command.
-			originalCmd = callback.Message.Msg.Blocks.BlockSet[0].(*slack.InputBlock).BlockID
-		}
-		cmd := strings.Split(originalCmd, "`")[1]
-		command = fmt.Sprintf("%s %s --filter %s", b.BotName(), cmd, command)
+		command = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
 	}
 
 	return command
+}
+
+func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {
+	//if the message is from thread then add an option to return the response to the thread
+	if event.ThreadTimeStamp != "" {
+		return slack.MsgOptionTS(event.ThreadTimeStamp)
+	}
+
+	if file == nil {
+		return nil
+	}
+
+	// If the message was already as a file attachment, reply it a given thread
+	for _, share := range file.Shares.Public {
+		if len(share) >= 1 && share[0].Ts != "" {
+			return slack.MsgOptionTS(share[0].Ts)
+		}
+	}
+
+	return nil
 }

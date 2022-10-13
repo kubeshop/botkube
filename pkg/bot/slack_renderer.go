@@ -108,36 +108,32 @@ func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.
 // RenderAsSlackBlocks returns the Slack message blocks for a given input message.
 func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Block {
 	var blocks []slack.Block
-	if !msg.IgnoreOriginalResponse {
-		// Input actions are rendered once the message size is big. For this case,
-		// we shouldn't render basic fields, only input field is ok.
-		if msg.Header != "" {
-			blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
-		}
+	if msg.Header != "" {
+		blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
+	}
 
-		if msg.Description != "" {
-			blocks = append(blocks, b.mdTextSection(msg.Description))
-		}
+	if msg.Description != "" {
+		blocks = append(blocks, b.mdTextSection(msg.Description))
+	}
 
-		if msg.Body.Plaintext != "" {
-			blocks = append(blocks, b.mdTextSection(msg.Body.Plaintext))
-		}
+	if msg.Body.Plaintext != "" {
+		blocks = append(blocks, b.mdTextSection(msg.Body.Plaintext))
+	}
 
-		if msg.Body.CodeBlock != "" {
-			blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
-		}
+	if msg.Body.CodeBlock != "" {
+		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
+	}
 
-		all := len(msg.Sections)
-		for idx, s := range msg.Sections {
-			blocks = append(blocks, b.renderSection(s)...)
-			if !(idx == all-1) { // if not the last one, append divider
-				blocks = append(blocks, slack.NewDividerBlock())
-			}
+	all := len(msg.Sections)
+	for idx, s := range msg.Sections {
+		blocks = append(blocks, b.renderSection(s)...)
+		if !(idx == all-1) { // if not the last one, append divider
+			blocks = append(blocks, slack.NewDividerBlock())
 		}
 	}
 
 	for _, i := range msg.Inputs {
-		blocks = append(blocks, b.renderInput(i, msg.Description)...)
+		blocks = append(blocks, b.renderInput(i)...)
 	}
 
 	return blocks
@@ -258,14 +254,14 @@ func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block 
 	)
 }
 
-func (b *SlackRenderer) renderInput(in interactive.Input, blockID string) []slack.Block {
+func (b *SlackRenderer) renderInput(in interactive.Input) []slack.Block {
 	return []slack.Block{
 		slack.InputBlock{
 			Type:           slack.MBTInput,
 			Label:          b.plainTextBlock(in.Label.Text),
 			Element:        slack.PlainTextInputBlockElement{Type: slack.MessageElementType(in.Element.Type)},
 			DispatchAction: in.DispatchedAction,
-			BlockID:        blockID,
+			BlockID:        in.ID,
 		},
 	}
 }

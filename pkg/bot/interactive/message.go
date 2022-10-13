@@ -50,11 +50,10 @@ const (
 type Message struct {
 	Type MessageType
 	Base
-	Sections               []Section
-	Inputs                 []Input
-	OnlyVisibleForYou      bool
-	ReplaceOriginal        bool
-	IgnoreOriginalResponse bool
+	Sections          []Section
+	Inputs            []Input
+	OnlyVisibleForYou bool
+	ReplaceOriginal   bool
 }
 
 // HasSections returns true if message has interactive sections.
@@ -131,6 +130,7 @@ type Selects struct {
 
 // Input is used to create input elements to use in slack messages.
 type Input struct {
+	ID               string
 	DispatchedAction bool
 	Element          InputElement
 	Label            InputLabel

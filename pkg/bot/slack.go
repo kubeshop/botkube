@@ -259,8 +259,6 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
 	}
 
-	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
-
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
 		_, err := uploadFileToSlack(msg.Channel, resp, b.client)
@@ -269,6 +267,8 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 		}
 		return nil
 	}
+
+	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
 
 	//if the message is from thread then add an option to return the response to the thread
 	if msg.ThreadTimeStamp != "" {
