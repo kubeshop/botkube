@@ -145,7 +145,7 @@ func TestExtractExecutorFilter_WithErrors(t *testing.T) {
 		{
 			name:   "raise error when filter value is missing in the middle of command",
 			cmd:    "kubectl get po --filter -n kube-system",
-			errMsg: `flag needs an argument`,
+			errMsg: `an argument is missing`,
 		},
 		{
 			name:   "raise error when multiple filter flags with values  are used in command",
@@ -155,12 +155,12 @@ func TestExtractExecutorFilter_WithErrors(t *testing.T) {
 		{
 			name:   "raise error when multiple filter flags with no values are used in command",
 			cmd:    "kubectl get po --filter --filter -n kube-system",
-			errMsg: `flag needs an argument`,
+			errMsg: `an argument is missing`,
 		},
 		{
 			name:   "raise error when filter flag with equal operator and extra spaces in the command",
 			cmd:    `kubectl get po --filter=    "kind" -n kube-system`,
-			errMsg: `flag needs an argument`,
+			errMsg: `an argument is missing`,
 		},
 	}
 

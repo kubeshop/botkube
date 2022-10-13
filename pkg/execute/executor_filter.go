@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	missingCmdFilterValue = `flag needs an argument: --filter. use --filter="value" or --filter value`
-	multipleFilters       = "found more than one filter flag: --filter"
+	incorrectFilterFlag     = "incorrect use of --filter flag: %s"
+	filterFlagParseErrorMsg = `incorrect use of --filter flag: could not parse flag in %s.\nerror: %s\nuse --filter="value" or --filter value`
+	missingCmdFilterValue   = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
+	multipleFilters         = "incorrect use of --filter flag: found more than one filter flag."
 )
 
 // executorFilter interface to implement to filter executor text based results
@@ -129,7 +131,7 @@ func parseAndValidateAnyFilters(cmd string) ([]string, error) {
 
 	args, err := shellwords.Parse(cmd)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse command %s, error: %s", cmd, err.Error())
+		return nil, fmt.Errorf(filterFlagParseErrorMsg, cmd, err.Error())
 	}
 
 	f := pflag.NewFlagSet("extract-filters", pflag.ContinueOnError)
@@ -137,7 +139,7 @@ func parseAndValidateAnyFilters(cmd string) ([]string, error) {
 
 	f.StringArrayVar(&out, "filter", []string{}, "Output filter")
 	if err := f.Parse(args); err != nil {
-		return nil, err
+		return nil, fmt.Errorf(incorrectFilterFlag, err)
 	}
 
 	if len(out) > 1 {
