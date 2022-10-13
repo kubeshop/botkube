@@ -3,15 +3,18 @@ package execute
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/mattn/go-shellwords"
+	"github.com/spf13/pflag"
 )
 
-var (
-	//filterFlagRegex regular expression used for extracting executor filters
-	filterFlagRegex = regexp.MustCompile(`--filter[=|(' ')]('.*?'|".*?"|\S+)`)
+const (
+	missingCmdFilterValue = `flag needs an argument: --filter. use --filter="value" or --filter value`
+	multipleFilters       = "found more than one filter flag: --filter"
 )
 
 // executorFilter interface to implement to filter executor text based results
@@ -93,15 +96,57 @@ func (f *executorTextFilter) Apply(text string) string {
 // the presence or absence of the "--filter=xxx" flag.
 // It also returns passed in executor command minus the
 // flag to be executed by downstream executors and if a filter flag was detected.
+// ignore unknown flags errors, e.g. `--cluster-name` etc.
 func extractExecutorFilter(cmd string) (executorFilter, error) {
-	matchedArray := filterFlagRegex.FindStringSubmatch(cmd)
-	if len(matchedArray) < 2 {
+	var filters []string
+
+	filters, err := parseAndValidateAnyFilters(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(filters) == 0 {
 		return newExecutorEchoFilter(cmd), nil
 	}
 
-	match, err := strconv.Unquote(matchedArray[1])
-	if err != nil {
-		match = matchedArray[1]
+	if len(filters[0]) == 0 {
+		return nil, errors.New(missingCmdFilterValue)
 	}
-	return newExecutorTextFilter(match, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matchedArray[0]), "")), nil
+
+	filterVal := filters[0]
+	filterFlagRegex, err := regexp.Compile(fmt.Sprintf(`--filter[=|(' ')]*('%s'|"%s"|%s)("|')*`, filterVal, filterVal, filterVal))
+	if err != nil {
+		return nil, errors.New("could not extract provided filter")
+	}
+
+	matches := filterFlagRegex.FindStringSubmatch(cmd)
+	return newExecutorTextFilter(filterVal, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matches[0]), "")), nil
+}
+
+// parseAndValidateAnyFilters parses any filter flags returning their values or an error.
+func parseAndValidateAnyFilters(cmd string) ([]string, error) {
+	var out []string
+
+	args, err := shellwords.Parse(cmd)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse command %s, error: %s", cmd, err.Error())
+	}
+
+	f := pflag.NewFlagSet("extract-filters", pflag.ContinueOnError)
+	f.ParseErrorsWhitelist.UnknownFlags = true
+
+	f.StringArrayVar(&out, "filter", []string{}, "Output filter")
+	if err := f.Parse(args); err != nil {
+		return nil, err
+	}
+
+	if len(out) > 1 {
+		return nil, errors.New(multipleFilters)
+	}
+
+	if len(out) == 1 && (strings.HasPrefix(out[0], "-")) {
+		return nil, errors.New(missingCmdFilterValue)
+	}
+
+	return out, nil
 }

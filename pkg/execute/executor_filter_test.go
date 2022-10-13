@@ -61,7 +61,7 @@ daemonset.apps/kindnet      3         3         3       3            3          
 	}
 }
 
-func TestExtractExecutorFilter(t *testing.T) {
+func TestExtractExecutorFilter_NoErrors(t *testing.T) {
 	testCases := []struct {
 		name          string
 		cmd           string
@@ -88,7 +88,7 @@ func TestExtractExecutorFilter(t *testing.T) {
 		},
 		{
 			name:          "extract single quoted text filter in the middle of the command",
-			cmd:           `kubectl get po  --filter='kind system' -n kube-system`,
+			cmd:           `kubectl get po  --filter="kind system" -n kube-system`,
 			extractedCmd:  "kubectl get po  -n kube-system",
 			text:          `etcd-control-plane                      1/1     Running   0          86m`,
 			filterApplied: "",
@@ -103,6 +103,14 @@ func TestExtractExecutorFilter(t *testing.T) {
 			filterActive:  true,
 		},
 		{
+			name:          "extract double quoted text filter with extra spaces in the command",
+			cmd:           `kubectl get po  --filter      "kind" -n kube-system`,
+			extractedCmd:  "kubectl get po  -n kube-system",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
+		},
+		{
 			name:          "extract echo filter from command",
 			cmd:           "kubectl get po -n kube-system",
 			extractedCmd:  "kubectl get po -n kube-system",
@@ -110,14 +118,6 @@ func TestExtractExecutorFilter(t *testing.T) {
 			filterApplied: `etcd-control-plane                      1/1     Running   0          86m`,
 			filterActive:  false,
 		},
-		//{
-		//	name:           "extract echo filter when filter flag not set at end of command",
-		//	cmd:            "kubectl get po -n kube-system --filter",
-		//	extractedCmd:   "kubectl get po -n kube-system",
-		//	text:           `etcd-control-plane                      1/1     Running   0          86m`,
-		//	filterApplied:  `etcd-control-plane                      1/1     Running   0          86m`,
-		//	filterActive: false,
-		//},
 	}
 
 	for _, tc := range testCases {
@@ -127,6 +127,47 @@ func TestExtractExecutorFilter(t *testing.T) {
 			assert.Equal(t, tc.extractedCmd, filter.FilteredCommand())
 			assert.Equal(t, tc.filterApplied, filter.Apply(tc.text))
 			assert.Equal(t, tc.filterActive, filter.IsActive())
+		})
+	}
+}
+
+func TestExtractExecutorFilter_WithErrors(t *testing.T) {
+	testCases := []struct {
+		name   string
+		cmd    string
+		errMsg string
+	}{
+		{
+			name:   "raise error when filter value is missing at end of command",
+			cmd:    "kubectl get po -n kube-system --filter",
+			errMsg: `flag needs an argument`,
+		},
+		{
+			name:   "raise error when filter value is missing in the middle of command",
+			cmd:    "kubectl get po --filter -n kube-system",
+			errMsg: `flag needs an argument`,
+		},
+		{
+			name:   "raise error when multiple filter flags with values  are used in command",
+			cmd:    "kubectl get po --filter hello --filter='world' -n kube-system",
+			errMsg: `found more than one filter flag`,
+		},
+		{
+			name:   "raise error when multiple filter flags with no values are used in command",
+			cmd:    "kubectl get po --filter --filter -n kube-system",
+			errMsg: `flag needs an argument`,
+		},
+		{
+			name:   "raise error when filter flag with equal operator and extra spaces in the command",
+			cmd:    `kubectl get po --filter=    "kind" -n kube-system`,
+			errMsg: `flag needs an argument`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := extractExecutorFilter(tc.cmd)
+			assert.ErrorContains(t, err, tc.errMsg)
 		})
 	}
 }

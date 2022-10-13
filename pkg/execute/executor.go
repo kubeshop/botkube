@@ -117,31 +117,12 @@ const (
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
+	empty := interactive.Message{}
 	rawCmd := utils.RemoveAnyHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
-	execFilter, err := extractExecutorFilter(rawCmd)
-	if err != nil {
-		panic("Handle this soon")
-	}
-
-	var (
-		clusterName   = e.cfg.Settings.ClusterName
-		inClusterName = utils.GetClusterNameFromKubectlCmd(execFilter.FilteredCommand())
-		args          = strings.Fields(strings.TrimSpace(execFilter.FilteredCommand()))
-		empty         = interactive.Message{}
-		botName       = e.notifierHandler.BotName()
-	)
-
-	if len(args) == 0 {
-		if e.conversation.IsAuthenticated {
-			return interactive.Message{
-				Base: interactive.Base{
-					Description: unsupportedCmdMsg,
-				},
-			}
-		}
-		return empty // this prevents all bots on all clusters to answer something
-	}
+	clusterName := e.cfg.Settings.ClusterName
+	inClusterName := utils.GetClusterNameFromKubectlCmd(rawCmd)
+	botName       := e.notifierHandler.BotName()
 
 	response := func(msg string, overrideCommand ...string) interactive.Message {
 		msgBody := interactive.Body{
@@ -164,6 +145,22 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			message.Inputs = append(message.Inputs, e.filterInput(rawCmd, botName))
 		}
 		return message
+	}
+	execFilter, err := extractExecutorFilter(rawCmd)
+	if err != nil {
+		return response(err.Error(), "")
+	}
+
+	args := strings.Fields(strings.TrimSpace(execFilter.FilteredCommand()))
+	if len(args) == 0 {
+		if e.conversation.IsAuthenticated {
+			return interactive.Message{
+				Base: interactive.Base{
+					Description: unsupportedCmdMsg,
+				},
+			}
+		}
+		return empty // this prevents all bots on all clusters to answer something
 	}
 
 	if inClusterName != "" && inClusterName != clusterName {
