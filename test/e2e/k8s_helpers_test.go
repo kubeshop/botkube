@@ -173,7 +173,7 @@ func updateEnv(existing []v1.EnvVar, env []v1.EnvVar, remove []string) []v1.EnvV
 	return out
 }
 
-// Original source: https://github.com/stretchr/testify/blob/master/assert/assertions.go#L1685-L1695
+// Original source: https://github.com/stretchr/testify/blob/181cea6eab8b2de7071383eca4be32a424db38dd/assert/assertions.go#L1685-L1695
 // Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors. Licensed under MIT License.
 // return diff string is expect and actual are different, otherwise return empty string
 func diff(expect string, actual string) string {
