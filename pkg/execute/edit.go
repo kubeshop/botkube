@@ -85,7 +85,7 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", cmdName, cmdVerb)
-		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.IsButtonClickOrigin)
+		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.CommandOrigin)
 		if err != nil {
 			e.log.Errorf("while reporting edit command: %s", err.Error())
 		}
@@ -99,7 +99,9 @@ func (e *EditExecutor) Do(args []string, commGroupName string, platform config.C
 
 	msg, err := cmds.SelectAndRun(cmdVerb)
 	if err != nil {
-		cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+		if err == errUnsupportedCommand {
+			cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+		}
 		return empty, err
 	}
 	return msg, nil

@@ -14,6 +14,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/utils"
@@ -209,6 +210,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 
 	cmds := executorsRunner{
 		"help": func() (interactive.Message, error) {
+			e.reportCommand(args[0])
 			return interactive.Help(e.platform, clusterName, botName), nil
 		},
 		"ping": func() (interactive.Message, error) {
@@ -234,6 +236,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
 		},
 		"feedback": func() (interactive.Message, error) {
+			e.reportCommand(args[0])
 			return interactive.Feedback(), nil
 		},
 	}
@@ -257,7 +260,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 }
 
 func (e *DefaultExecutor) reportCommand(verb string) {
-	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.IsButtonClickOrigin)
+	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin)
 	if err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
@@ -437,7 +440,7 @@ func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) 
 
 // appendByUserOnlyIfNeeded returns the "by Foo" only if the command was executed via button.
 func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
-	if e.user == "" || !e.conversation.IsButtonClickOrigin {
+	if e.user == "" || e.conversation.CommandOrigin == command.TypedOrigin {
 		return cmd
 	}
 	return fmt.Sprintf("%s by %s", cmd, e.user)

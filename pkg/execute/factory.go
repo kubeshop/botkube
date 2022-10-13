@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 )
@@ -56,7 +57,7 @@ type ConfigPersistenceManager interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin) error
 }
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.
@@ -107,12 +108,12 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 
 // Conversation contains details about the conversation.
 type Conversation struct {
-	Alias               string
-	ID                  string
-	ExecutorBindings    []string
-	IsAuthenticated     bool
-	IsButtonClickOrigin bool
-	State               *slack.BlockActionStates
+	Alias            string
+	ID               string
+	ExecutorBindings []string
+	IsAuthenticated  bool
+	CommandOrigin    command.Origin
+	State            *slack.BlockActionStates
 }
 
 // NewDefaultInput an input for NewDefault

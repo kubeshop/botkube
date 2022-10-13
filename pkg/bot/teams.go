@@ -20,6 +20,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -295,6 +296,7 @@ func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 			IsAuthenticated:  true,
 			ID:               ref.ChannelID,
 			ExecutorBindings: b.bindings.Executors,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: trimmedMsg,
 	})

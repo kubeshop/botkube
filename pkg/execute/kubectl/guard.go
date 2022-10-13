@@ -61,16 +61,43 @@ var (
 		"cluster-info":  {},
 	}
 
-	// unsupportedGlobalVerbs contains verbs returned by K8s API which are not supported for event-related operations.
-	unsupportedGlobalVerbs = []string{
-		"create", "update", "patch", // valid kubectl verbs, but not supported by interactive kubectl + events actions
-		"list", "watch", "deletecollection", // invalid kubectl verbs returned by K8s API
+	// unsupportedGlobalVerbs contains verbs returned by K8s API which are not supported for interactive operations.
+	unsupportedGlobalVerbs = map[string]struct{}{
+		// invalid kubectl verbs returned by K8s API
+		"list":             {},
+		"watch":            {},
+		"deletecollection": {},
+
+		// valid kubectl verbs, but not supported by interactive kubectl + events actions
+		"create":       {},
+		"cp":           {},
+		"update":       {},
+		"patch":        {},
+		"diff":         {},
+		"port-forward": {},
+		"attach":       {},
+		"apply":        {},
+		"replace":      {},
+		"auth":         {},
+		"explain":      {},
+		"autoscale":    {},
+		"scale":        {},
+		"wait":         {},
+		"proxy":        {},
 	}
 )
 
 // NewCommandGuard creates a new CommandGuard instance.
 func NewCommandGuard(log logrus.FieldLogger, discoveryCli K8sDiscoveryInterface) *CommandGuard {
 	return &CommandGuard{log: log, discoveryCli: discoveryCli}
+}
+
+// FilterSupportedVerbs filters out unsupported verbs by the interactive commands.
+func (g *CommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
+	return slices.Filter(nil, allVerbs, func(s string) bool {
+		_, exists := unsupportedGlobalVerbs[s]
+		return !exists
+	})
 }
 
 // GetAllowedResourcesForVerb returns a list of allowed resources for a given verb.
@@ -176,12 +203,8 @@ func (g *CommandGuard) GetResourceDetailsFromMap(selectedVerb, resourceType stri
 }
 
 func (g *CommandGuard) getAllSupportedVerbs(resourceType string, inVerbs v1.Verbs) v1.Verbs {
-	verbs := inVerbs.DeepCopy()
-
 	// filter out not supported verbs
-	verbs = slices.Filter(nil, verbs, func(s string) bool {
-		return !slices.Contains(unsupportedGlobalVerbs, s)
-	})
+	verbs := g.FilterSupportedVerbs(inVerbs)
 
 	// enrich with additional verbs
 	addResVerbs, exists := additionalResourceVerbs[resourceType]

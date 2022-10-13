@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -234,6 +235,7 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  mm.IsAuthChannel,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: mm.Request,
 	})

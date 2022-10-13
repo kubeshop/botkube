@@ -13,6 +13,11 @@ type Resource struct {
 	SlashSeparatedInCommand bool
 }
 
+// FilterSupportedVerbs filters out unsupported verbs by the interactive commands.
+func (f *FakeCommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
+	return allVerbs
+}
+
 // GetAllowedResourcesForVerb returns allowed resources types for a given verb.
 func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allConfiguredResources []string) ([]Resource, error) {
 	_, found := resourcelessVerbs[selectedVerb]
