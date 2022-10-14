@@ -38,7 +38,7 @@ type Message struct {
 	Type MessageType
 	Base
 	Sections          []Section
-	PlaintextInputs   PlaintextInputs
+	PlaintextInputs   LabelInputs
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -83,13 +83,13 @@ type Section struct {
 	Buttons         Buttons
 	MultiSelect     MultiSelect
 	Selects         Selects
-	PlaintextInputs PlaintextInputs
+	PlaintextInputs LabelInputs
 	TextFields      TextFields
 	Context         ContextItems
 }
 
-// PlaintextInputs holds the plain text input items.
-type PlaintextInputs []PlaintextInput
+// LabelInputs holds the plain text input items.
+type LabelInputs []LabelInput
 
 // ContextItems holds context items.
 type ContextItems []ContextItem
@@ -129,13 +129,13 @@ const (
 	DispatchInputActionOnCharacter DispatchedInputAction = "on_character_entered"
 )
 
-// PlaintextInput is used to create input elements to use in slack messages.
-type PlaintextInput struct {
+// LabelInput is used to create input elements to use in slack messages.
+type LabelInput struct {
 	// ID allows to carry the command that this input relates to.
 	ID               string
-	DispatchedAction DispatchedInputAction
-	Label            string
+	Text             string
 	Placeholder      string
+	DispatchedAction DispatchedInputAction
 }
 
 // AreOptionsDefined returns true if some options are available.

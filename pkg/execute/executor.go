@@ -450,10 +450,10 @@ func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
 	return fmt.Sprintf("%s by %s", cmd, e.user)
 }
 
-func (e *DefaultExecutor) filterInput(id, botName string) interactive.PlaintextInput {
-	return interactive.PlaintextInput{
+func (e *DefaultExecutor) filterInput(id, botName string) interactive.LabelInput {
+	return interactive.LabelInput{
 		ID:               fmt.Sprintf("%s %s --filter=", botName, id),
 		DispatchedAction: interactive.DispatchInputActionOnEnter,
-		Label:            "Filter output",
+		Text:             "Filter output",
 	}
 }

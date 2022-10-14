@@ -321,7 +321,7 @@ func (b *SlackRenderer) renderButtonsWithDescription(in interactive.Buttons) []s
 	return out
 }
 
-func (b *SlackRenderer) renderInput(s interactive.PlaintextInput) slack.Block {
+func (b *SlackRenderer) renderInput(s interactive.LabelInput) slack.Block {
 	var placeholder *slack.TextBlockObject
 	if s.Placeholder != "" {
 		placeholder = slack.NewTextBlockObject(slack.PlainTextType, s.Placeholder, false, false)
@@ -329,8 +329,8 @@ func (b *SlackRenderer) renderInput(s interactive.PlaintextInput) slack.Block {
 
 	// label is required
 	var label = slack.NewTextBlockObject(slack.PlainTextType, "Input", false, false)
-	if s.Label != "" {
-		label = slack.NewTextBlockObject(slack.PlainTextType, s.Label, false, false)
+	if s.Text != "" {
+		label = slack.NewTextBlockObject(slack.PlainTextType, s.Text, false, false)
 	}
 
 	input := slack.NewPlainTextInputBlockElement(placeholder, s.ID)

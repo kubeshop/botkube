@@ -63,7 +63,7 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select,
 }
 
 // PreviewSection returns preview command section with Run button.
-func PreviewSection(botName, cmd string, input interactive.PlaintextInput) []interactive.Section {
+func PreviewSection(botName, cmd string, input interactive.LabelInput) []interactive.Section {
 	btn := interactive.ButtonBuilder{BotName: botName}
 	return []interactive.Section{
 		{
@@ -72,7 +72,7 @@ func PreviewSection(botName, cmd string, input interactive.PlaintextInput) []int
 					CodeBlock: cmd,
 				},
 			},
-			PlaintextInputs: interactive.PlaintextInputs{
+			PlaintextInputs: interactive.LabelInputs{
 				input,
 			},
 		},
@@ -85,9 +85,9 @@ func PreviewSection(botName, cmd string, input interactive.PlaintextInput) []int
 }
 
 // FilterSection returns filter input block.
-func FilterSection(botName string) interactive.PlaintextInput {
-	return interactive.PlaintextInput{
-		Label:            "Filter output",
+func FilterSection(botName string) interactive.LabelInput {
+	return interactive.LabelInput{
+		Text:             "Filter output",
 		DispatchedAction: interactive.DispatchInputActionOnCharacter,
 		Placeholder:      "(Optional) Type to filter command output by.",
 		// the whitespace at the end is required, otherwise we will not recognize the command
