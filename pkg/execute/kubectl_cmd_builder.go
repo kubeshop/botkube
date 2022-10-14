@@ -24,7 +24,7 @@ const (
 	resourceTypesDropdownCommand     = "kc-cmd-builder --resource-type"
 	resourceNamesDropdownCommand     = "kc-cmd-builder --resource-name"
 	resourceNamespaceDropdownCommand = "kc-cmd-builder --namespace"
-	filterPlaintextInputCommand      = "kc-cmd-builder --filter"
+	filterPlaintextInputCommand      = "kc-cmd-builder --filter-query"
 	kubectlCommandName               = "kubectl"
 	dropdownItemsLimit               = 100
 	noKubectlCommandsInChannel       = "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://botkube.io/docs/configuration/executor."

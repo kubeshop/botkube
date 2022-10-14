@@ -446,7 +446,7 @@ func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...int
 				},
 				PlaintextInputs: interactive.LabelInputs{
 					interactive.LabelInput{
-						ID:               "@BKTesting kc-cmd-builder --filter ",
+						ID:               "@BKTesting kc-cmd-builder --filter-query ",
 						DispatchedAction: interactive.DispatchInputActionOnCharacter,
 						Text:             "Filter output",
 						Placeholder:      "(Optional) Type to filter command output by.",
