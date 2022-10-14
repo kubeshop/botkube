@@ -131,9 +131,8 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 			blocks = append(blocks, slack.NewDividerBlock())
 		}
 	}
-
-	for _, i := range msg.Inputs {
-		blocks = append(blocks, b.renderInput(i)...)
+	for _, i := range msg.PlaintextInputs {
+		blocks = append(blocks, b.renderInput(i))
 	}
 
 	return blocks
@@ -219,6 +218,10 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 		out = append(out, b.mdTextSection(formatx.AdaptiveCodeBlock(in.Body.CodeBlock)))
 	}
 
+	for _, item := range in.PlaintextInputs {
+		out = append(out, b.renderInput(item))
+	}
+
 	out = append(out, b.renderButtons(in.Buttons)...)
 	if in.MultiSelect.AreOptionsDefined() {
 		sec := b.renderMultiselectWithDescription(in.MultiSelect)
@@ -252,18 +255,6 @@ func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block 
 		textBlockObjs,
 		nil,
 	)
-}
-
-func (b *SlackRenderer) renderInput(in interactive.Input) []slack.Block {
-	return []slack.Block{
-		slack.InputBlock{
-			Type:           slack.MBTInput,
-			Label:          b.plainTextBlock(in.Label.Text),
-			Element:        slack.PlainTextInputBlockElement{Type: slack.MessageElementType(in.Element.Type)},
-			DispatchAction: in.DispatchedAction,
-			BlockID:        in.ID,
-		},
-	}
 }
 
 func (b *SlackRenderer) renderContext(in []interactive.ContextItem) []slack.Block {
@@ -328,6 +319,31 @@ func (b *SlackRenderer) renderButtonsWithDescription(in interactive.Buttons) []s
 		))
 	}
 	return out
+}
+
+func (b *SlackRenderer) renderInput(s interactive.LabelInput) slack.Block {
+	var placeholder *slack.TextBlockObject
+	if s.Placeholder != "" {
+		placeholder = slack.NewTextBlockObject(slack.PlainTextType, s.Placeholder, false, false)
+	}
+
+	// label is required
+	var label = slack.NewTextBlockObject(slack.PlainTextType, "Input", false, false)
+	if s.Text != "" {
+		label = slack.NewTextBlockObject(slack.PlainTextType, s.Text, false, false)
+	}
+
+	input := slack.NewPlainTextInputBlockElement(placeholder, s.ID)
+	block := slack.NewInputBlock(s.ID, label, nil, input)
+
+	if s.DispatchedAction != "" {
+		input.DispatchActionConfig = &slack.DispatchActionConfig{
+			TriggerActionsOn: []string{string(s.DispatchedAction)},
+		}
+		block.DispatchAction = true
+	}
+
+	return block
 }
 
 func (b *SlackRenderer) renderMultiselectWithDescription(in interactive.MultiSelect) slack.Block {

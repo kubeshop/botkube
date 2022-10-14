@@ -29,14 +29,9 @@ func WithAdditionalSelects(in ...*interactive.Select) KubectlCmdBuilderOption {
 }
 
 // WithAdditionalSections adds additional sections to a given kubectl KubectlCmdBuilderMessage message.
-func WithAdditionalSections(in ...*interactive.Section) KubectlCmdBuilderOption {
+func WithAdditionalSections(in ...interactive.Section) KubectlCmdBuilderOption {
 	return func(options *KubectlCmdBuilderOptions) {
-		for _, s := range in {
-			if s == nil {
-				continue
-			}
-			options.sections = append(options.sections, *s)
-		}
+		options.sections = append(options.sections, in...)
 	}
 }
 
@@ -68,17 +63,40 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs interactive.Select,
 }
 
 // PreviewSection returns preview command section with Run button.
-func PreviewSection(botName, cmd string) *interactive.Section {
+func PreviewSection(botName, cmd string, input interactive.LabelInput) []interactive.Section {
 	btn := interactive.ButtonBuilder{BotName: botName}
-	return &interactive.Section{
-		Base: interactive.Base{
-			Body: interactive.Body{
-				CodeBlock: cmd,
+	return []interactive.Section{
+		{
+			Base: interactive.Base{
+				Body: interactive.Body{
+					CodeBlock: cmd,
+				},
+			},
+			PlaintextInputs: interactive.LabelInputs{
+				input,
 			},
 		},
-		Buttons: interactive.Buttons{
-			btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
+		{
+			Buttons: interactive.Buttons{
+				btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
+			},
 		},
+	}
+}
+
+// FilterSection returns filter input block.
+func FilterSection(botName string) interactive.LabelInput {
+	return interactive.LabelInput{
+		Text:             "Filter output",
+		DispatchedAction: interactive.DispatchInputActionOnCharacter,
+		Placeholder:      "(Optional) Type to filter command output by.",
+		// the whitespace at the end is required, otherwise we will not recognize the command
+		// as we will receive:
+		//   kc-cmd-builder --filterinput string
+		// instead of:
+		//   kc-cmd-builder --filter input string
+		// TODO: this can be fixed by smarter command parser.
+		ID: fmt.Sprintf("%s %s ", botName, filterPlaintextInputCommand),
 	}
 }
 
@@ -159,7 +177,7 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 //  3. Our backend doesn't return any options, so you see "No result".
 func EmptyResourceNameDropdown(botName string) *interactive.Select {
 	return &interactive.Select{
-		Type:    "external",
+		Type:    interactive.ExternalSelect,
 		Name:    "No resources found",
 		Command: fmt.Sprintf("%s %s", botName, resourceNamesDropdownCommand),
 	}
