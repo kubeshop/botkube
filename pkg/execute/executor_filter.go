@@ -115,7 +115,7 @@ func extractExecutorFilter(cmd string) (executorFilter, error) {
 		return nil, errors.New(missingCmdFilterValue)
 	}
 
-	filterVal := regexp.QuoteMeta(filters[0])
+	filterVal := filters[0]
 	escapedFilterVal := regexp.QuoteMeta(filterVal)
 	filterFlagRegex, err := regexp.Compile(fmt.Sprintf(`--filter[=|(' ')]*('%s'|"%s"|%s)("|')*`,
 		escapedFilterVal,
