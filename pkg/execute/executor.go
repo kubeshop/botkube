@@ -122,7 +122,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
 	clusterName := e.cfg.Settings.ClusterName
 	inClusterName := utils.GetClusterNameFromKubectlCmd(rawCmd)
-	botName       := e.notifierHandler.BotName()
+	botName := e.notifierHandler.BotName()
 
 	response := func(msg string, overrideCommand ...string) interactive.Message {
 		msgBody := interactive.Body{
