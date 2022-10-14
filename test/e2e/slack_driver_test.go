@@ -265,8 +265,8 @@ func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
-	var common int
 	var diffMessage string
+	common := -1
 
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{

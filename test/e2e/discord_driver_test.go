@@ -274,8 +274,8 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
-	var common int
 	var diffMessage string
+	common := -1
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
