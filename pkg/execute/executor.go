@@ -126,7 +126,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	execFilter, err := extractExecutorFilter(rawCmd)
 	if err != nil {
-		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
+		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	args := strings.Fields(strings.TrimSpace(execFilter.FilteredCommand()))
@@ -155,7 +155,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
+			return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -187,7 +187,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return e.respond(fmt.Sprintf("pong\n\n%s", res), rawCmd, execFilter.FilteredCommand(), botName, ""), nil
+			return e.respond(fmt.Sprintf("pong\n\n%s", res), rawCmd, execFilter.FilteredCommand(), botName), nil
 		},
 		"version": func() (interactive.Message, error) {
 			return e.respond(e.runVersionCommand("version"), rawCmd, execFilter.FilteredCommand(), botName), nil
@@ -202,7 +202,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName, ""), err
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
@@ -217,15 +217,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return e.respond(incompleteCmdMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
+		return e.respond(incompleteCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	case errors.Is(err, errUnsupportedCommand):
-		return e.respond(unsupportedCmdMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
+		return e.respond(unsupportedCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	case IsExecutionCommandError(err):
-		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
+		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 	default:
 		e.log.Errorf("while executing command %q: %s", execFilter.FilteredCommand(), err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return e.respond(internalErrorMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
+		return e.respond(internalErrorMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	return msg
