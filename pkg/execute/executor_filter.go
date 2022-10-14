@@ -126,6 +126,9 @@ func extractExecutorFilter(cmd string) (executorFilter, error) {
 	}
 
 	matches := filterFlagRegex.FindStringSubmatch(cmd)
+	if len(matches) == 0 {
+		return nil, fmt.Errorf(filterFlagParseErrorMsg, cmd, "it contains unsupported characters.")
+	}
 	return newExecutorTextFilter(filterVal, strings.ReplaceAll(cmd, fmt.Sprintf(" %s", matches[0]), "")), nil
 }
 
