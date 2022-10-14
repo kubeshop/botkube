@@ -73,7 +73,7 @@ func TestCommandPreview(t *testing.T) {
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName)
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header")
 
 			// then
 			require.NoError(t, err)
@@ -201,15 +201,17 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 	for _, platform := range platforms {
 		t.Run(fmt.Sprintf("Should ignore %s", platform), func(t *testing.T) {
 			// given
+			const cmdHeader = "header"
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, nil, nil, nil)
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "")
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader)
 
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, interactive.Message{
 				Base: interactive.Base{
+					Description: cmdHeader,
 					Body: interactive.Body{
 						Plaintext: "Please specify the kubectl command",
 					},
@@ -230,7 +232,7 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 
 	// when command args are not specified
 	cmd := []string{"kc-cmd-builder"}
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName)
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName, "cmdHeader")
 
 	// then
 	require.NoError(t, err)
@@ -257,7 +259,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
 
 	// when
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName)
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header")
 
 	// then
 	require.NoError(t, err)
@@ -302,7 +304,7 @@ func fixInitialBuilderMessage() interactive.Message {
 			},
 		},
 		OnlyVisibleForYou: true,
-		ReplaceOriginal:   true,
+		ReplaceOriginal:   false,
 	}
 }
 

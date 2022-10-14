@@ -26,7 +26,7 @@ const (
 	resourceNamespaceDropdownCommand = "kc-cmd-builder --namespace"
 	kubectlCommandName               = "kubectl"
 	dropdownItemsLimit               = 100
-	noKubectlCommandsInChannel       = "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://botkube.io/docs/configuration/executor"
+	noKubectlCommandsInChannel       = "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://botkube.io/docs/configuration/executor."
 	kubectlMissingCommandMsg         = "Please specify the kubectl command"
 )
 
@@ -105,23 +105,17 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 // Do executes a given kc-cmd-builder command based on args.
 //
 // TODO: once we will have a real use-case, we should abstract the Slack state and introduce our own model.
-func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string) (interactive.Message, error) {
+func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if platform != config.SocketSlackCommPlatformIntegration {
 		e.log.Debug("Interactive kubectl command builder is not supported on %s platform", platform)
-		return interactive.Message{
-			Base: interactive.Base{
-				Body: interactive.Body{
-					Plaintext: kubectlMissingCommandMsg,
-				},
-			},
-		}, nil
+		return e.message(header, kubectlMissingCommandMsg)
 	}
 
 	allVerbs, allTypes, defaultNs := e.getEnableKubectlDetails(bindings)
 	if len(allVerbs) == 0 {
-		return e.noVerbsAvailableInChannelMessage()
+		return e.message(header, noKubectlCommandsInChannel)
 	}
 
 	allVerbs = e.commandGuard.FilterSupportedVerbs(allVerbs)
@@ -185,7 +179,13 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	if allVerbsSelect == nil {
 		return empty, errRequiredVerbDropdown
 	}
-	return KubectlCmdBuilderMessage(id.String(), *allVerbsSelect), nil
+
+	msg := KubectlCmdBuilderMessage(id.String(), *allVerbsSelect)
+	// we are the initial message, don't replace the original one as we need to send a brand-new message visible only to the user
+	// otherwise we can replace a message that is publicly visible.
+	msg.ReplaceOriginal = false
+
+	return msg, nil
 }
 
 func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, includeResourceName bool, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
@@ -407,6 +407,11 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 func (e *KubectlCmdBuilder) buildCommandPreview(name string, state stateDetails, includeResourceName bool) *interactive.Section {
 	resourceDetails := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
 
+	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
+		// we should not render the command as it will be invalid anyway without the resource name
+		return nil
+	}
+
 	cmd := fmt.Sprintf("%s %s %s", kubectlCommandName, state.verb, state.resourceType)
 
 	resourceNameSeparator := " "
@@ -427,11 +432,12 @@ func (e *KubectlCmdBuilder) buildCommandPreview(name string, state stateDetails,
 	return PreviewSection(name, cmd)
 }
 
-func (e *KubectlCmdBuilder) noVerbsAvailableInChannelMessage() (interactive.Message, error) {
+func (e *KubectlCmdBuilder) message(header, msg string) (interactive.Message, error) {
 	return interactive.Message{
 		Base: interactive.Base{
+			Description: header,
 			Body: interactive.Body{
-				Plaintext: noKubectlCommandsInChannel,
+				Plaintext: msg,
 			},
 		},
 	}, nil

@@ -140,12 +140,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty // this prevents all bots on all clusters to answer something
 	}
 
-	response := func(msg, overrideCommand string) interactive.Message {
-		cmd := fmt.Sprintf("`%s`", strings.TrimSpace(command))
-		if overrideCommand != "" {
-			cmd = overrideCommand
-		}
-
+	response := func(msg string, overrideCommand ...string) interactive.Message {
 		msgBody := interactive.Body{
 			CodeBlock: msg,
 		}
@@ -155,10 +150,9 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 			}
 		}
 
-		header := fmt.Sprintf("%s on `%s`", cmd, clusterName)
 		message := interactive.Message{
 			Base: interactive.Base{
-				Description: e.appendByUserOnlyIfNeeded(header),
+				Description: e.header(command, overrideCommand...),
 				Body:        msgBody,
 			},
 		}
@@ -183,13 +177,13 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return response(err.Error(), "")
+			return response(err.Error())
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(out, "")
+		return response(out)
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -199,7 +193,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 
 	if e.kubectlCmdBuilder.CanHandle(args) {
 		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args))
-		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName)
+		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, e.header(command))
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -211,18 +205,18 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	cmds := executorsRunner{
 		"help": func() (interactive.Message, error) {
 			e.reportCommand(args[0])
-			return interactive.Help(e.platform, clusterName, botName), nil
+			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res), ""), nil
+			return response(fmt.Sprintf("pong\n\n%s", res)), nil
 		},
 		"version": func() (interactive.Message, error) {
-			return response(e.runVersionCommand("version"), ""), nil
+			return response(e.runVersionCommand("version")), nil
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(res, ""), err
+			return response(res), err
 		},
 		"commands": func() (interactive.Message, error) {
 			res, err := e.runInfoCommand(args)
@@ -230,7 +224,7 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return response(res, ""), err
+			return response(res), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
@@ -245,18 +239,28 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return response(incompleteCmdMsg, "")
+		return response(incompleteCmdMsg)
 	case errors.Is(err, errUnsupportedCommand):
-		return response(unsupportedCmdMsg, "")
+		return response(unsupportedCmdMsg)
 	case IsExecutionCommandError(err):
-		return response(err.Error(), "")
+		return response(err.Error())
 	default:
 		e.log.Errorf("while executing command %q: %s", command, err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return response(internalErrorMsg, "")
+		return response(internalErrorMsg)
 	}
 
 	return msg
+}
+
+func (e *DefaultExecutor) header(command string, overrideName ...string) string {
+	cmd := fmt.Sprintf("`%s`", strings.TrimSpace(command))
+	if len(overrideName) > 0 {
+		cmd = strings.TrimSpace(strings.Join(overrideName, " "))
+	}
+
+	out := fmt.Sprintf("%s on `%s`", cmd, e.cfg.Settings.ClusterName)
+	return e.appendByUserOnlyIfNeeded(out)
 }
 
 func (e *DefaultExecutor) reportCommand(verb string) {

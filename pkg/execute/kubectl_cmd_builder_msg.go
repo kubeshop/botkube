@@ -77,7 +77,7 @@ func PreviewSection(botName, cmd string) *interactive.Section {
 			},
 		},
 		Buttons: interactive.Buttons{
-			btn.ForCommand(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
+			btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, interactive.ButtonStylePrimary),
 		},
 	}
 }

@@ -6,6 +6,10 @@ If you are running multiple Botkube instances in the same channel to interact wi
 --cluster-name=testing
 ```
 
+*Ping your cluster*
+Check the status of connected Kubernetes cluster(s).
+  - `@Botkube ping`
+
 *Manage incoming notifications*
 ```
 @Botkube notifier [start|stop|status]
@@ -17,10 +21,6 @@ If you are running multiple Botkube instances in the same channel to interact wi
 *Notification settings for this channel*
 By default, Botkube will notify only about cluster errors and recommendations.
   - `@Botkube edit SourceBindings`
-
-*Ping your cluster*
-Check the status of connected Kubernetes cluster(s).
-  - `@Botkube ping`
 
 *Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
