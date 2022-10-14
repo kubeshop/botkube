@@ -167,7 +167,10 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
-	var common int
+	var highestCommonBlockCount int
+	if limitMessages == 1 {
+		highestCommonBlockCount = -1 // a single message is fetched, always print diff
+	}
 	var diffMessage string
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
@@ -185,9 +188,9 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 
 			equal, commonCount, diffStr := assertFn(msg.Content)
 			if !equal {
-				// different message; update the diff if it's more similar than the previous one (or initial 0)
-				if commonCount > common {
-					common = commonCount
+				// different message; update the diff if it's more similar than the previous one or initial value
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
 				}
 				continue
@@ -275,7 +278,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
 	var diffMessage string
-	common := -1
+	highestCommonBlockCount := -1 // a single message is fetched, always print diff
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
@@ -299,9 +302,9 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 			equal, commonCount, diffStr := assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description)
 			if !equal {
-				// different message; update the diff if it's more similar than the previous one (or initial 0)
-				if commonCount > common {
-					common = commonCount
+				// different message; update the diff if it's more similar than the previous one or initial value
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
 				}
 				continue

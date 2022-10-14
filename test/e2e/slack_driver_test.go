@@ -189,7 +189,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 			}
 			equal, commonCount, diffStr := assertFn(msg.Text)
 			if !equal {
-				// different message; update the diff if it's more similar than the previous one (or initial 0)
+				// different message; update the diff if it's more similar than the previous one or initial value
 				if commonCount > highestCommonBlockCount {
 					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
@@ -297,7 +297,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 
 			equal, commonCount, diffStr := assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value)
 			if !equal {
-				// different message; update the diff if it's more similar than the previous one (or initial 0)
+				// different message; update the diff if it's more similar than the previous one or initial value
 				if commonCount > highestCommonBlockCount {
 					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
