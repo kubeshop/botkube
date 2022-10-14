@@ -23,8 +23,8 @@ var structDumper = litter.Options{
 	Separator:         " ",
 }
 
-type MessageAssertion func(content string) bool
-type AttachmentAssertion func(title, color, msg string) bool
+type MessageAssertion func(content string) (bool, int, string)
+type AttachmentAssertion func(title, color, msg string) (bool, int, string)
 type FileUploadAssertion func(title, mimetype string) bool
 
 type Channel interface {
