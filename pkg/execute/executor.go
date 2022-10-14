@@ -173,7 +173,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
 		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), execFilter.IsActive())
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, execFilter.FilteredCommand(), e.conversation.IsAuthenticated)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
