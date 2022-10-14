@@ -124,31 +124,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	inClusterName := utils.GetClusterNameFromKubectlCmd(rawCmd)
 	botName := e.notifierHandler.BotName()
 
-	response := func(msg string, overrideCommand ...string) interactive.Message {
-		msgBody := interactive.Body{
-			CodeBlock: msg,
-		}
-		if msg == "" {
-			msgBody = interactive.Body{
-				Plaintext: emptyResponseMsg,
-			}
-		}
-
-		message := interactive.Message{
-			Base: interactive.Base{
-				Description: e.header(rawCmd, overrideCommand...),
-				Body:        msgBody,
-			},
-		}
-		// Show Filter Input if command response is more than `lineLimitToShowFilter`
-		if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-			message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(rawCmd, botName))
-		}
-		return message
-	}
 	execFilter, err := extractExecutorFilter(rawCmd)
 	if err != nil {
-		return response(err.Error(), "")
+		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
 	}
 
 	args := strings.Fields(strings.TrimSpace(execFilter.FilteredCommand()))
@@ -177,13 +155,13 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return response(err.Error(), "")
+			return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(execFilter.Apply(out))
+		return e.respond(execFilter.Apply(out), rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -209,22 +187,22 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res)), nil
+			return e.respond(fmt.Sprintf("pong\n\n%s", res), rawCmd, execFilter.FilteredCommand(), botName, ""), nil
 		},
 		"version": func() (interactive.Message, error) {
-			return response(e.runVersionCommand("version")), nil
+			return e.respond(e.runVersionCommand("version"), rawCmd, execFilter.FilteredCommand(), botName), nil
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(execFilter.Apply(res)), err
+			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"commands": func() (interactive.Message, error) {
 			res, err := e.runInfoCommand(args, execFilter.IsActive())
-			return response(execFilter.Apply(res), humanReadableCommandListName), err
+			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName, humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return response(res, ""), err
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName, ""), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
@@ -239,18 +217,41 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return response(incompleteCmdMsg, "")
+		return e.respond(incompleteCmdMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
 	case errors.Is(err, errUnsupportedCommand):
-		return response(unsupportedCmdMsg, "")
+		return e.respond(unsupportedCmdMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
 	case IsExecutionCommandError(err):
-		return response(err.Error(), "")
+		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName, "")
 	default:
 		e.log.Errorf("while executing command %q: %s", execFilter.FilteredCommand(), err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return response(internalErrorMsg, "")
+		return e.respond(internalErrorMsg, rawCmd, execFilter.FilteredCommand(), botName, "")
 	}
 
 	return msg
+}
+
+func (e *DefaultExecutor) respond(msg string, rawCmd string, filteredCmd string, botName string, overrideCommand ...string) interactive.Message {
+	msgBody := interactive.Body{
+		CodeBlock: msg,
+	}
+	if msg == "" {
+		msgBody = interactive.Body{
+			Plaintext: emptyResponseMsg,
+		}
+	}
+
+	message := interactive.Message{
+		Base: interactive.Base{
+			Description: e.header(rawCmd, overrideCommand...),
+			Body:        msgBody,
+		},
+	}
+	// Show Filter Input if command response is more than `lineLimitToShowFilter`
+	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+		message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(filteredCmd, botName))
+	}
+	return message
 }
 
 func (e *DefaultExecutor) header(command string, overrideName ...string) string {
