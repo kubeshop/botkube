@@ -338,9 +338,9 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get Deployment with matching filter", func(t *testing.T) {
 			command := fmt.Sprintf(`get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-					strings.Contains(msg, "botkube")
+					strings.Contains(msg, "botkube"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -363,10 +363,10 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
 			command := fmt.Sprintf(`get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					!strings.Contains(msg, "kube-root-ca.crt") &&
-					!strings.Contains(msg, "botkube-global-config")
+					!strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
