@@ -25,7 +25,13 @@ import (
 //    - review all the methods and see if they can be simplified.
 
 // slackMaxMessageSize max size before a message should be uploaded as a file.
-const slackMaxMessageSize = 3990
+//
+// "The text for the block, in the form of a text object.
+//
+//	Maximum length for the text in this field is 3000 characters.  (..)"
+//
+// source: https://api.slack.com/reference/block-kit/blocks#section
+const slackMaxMessageSize = 3001
 
 var _ Bot = &Slack{}
 

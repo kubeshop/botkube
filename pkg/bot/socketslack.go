@@ -356,7 +356,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 			return err
 		}
 		resp = interactive.Message{
-			Inputs: resp.Inputs,
+			PlaintextInputs: resp.PlaintextInputs,
 		}
 	}
 

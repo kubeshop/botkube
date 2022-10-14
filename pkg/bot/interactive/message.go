@@ -33,25 +33,12 @@ const (
 	Popup MessageType = "form"
 )
 
-// PlainTextType defines the label as plain_text
-type PlainTextType string
-
-// PlainTextInputType defines the element as plain_text_input
-type PlainTextInputType string
-
-const (
-	// PlainText refers to plain_text
-	PlainText PlainTextType = "plain_text"
-	// PlainTextInput refers to plain_text for elements
-	PlainTextInput PlainTextInputType = "plain_text_input"
-)
-
 // Message represents a generic message with interactive buttons.
 type Message struct {
 	Type MessageType
 	Base
 	Sections          []Section
-	Inputs            []Input
+	PlaintextInputs   LabelInputs
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -63,7 +50,7 @@ func (msg *Message) HasSections() bool {
 
 // HasInputs returns true if message has interactive inputs.
 func (msg *Message) HasInputs() bool {
-	return len(msg.Inputs) != 0
+	return len(msg.PlaintextInputs) != 0
 }
 
 // Select holds data related to the select drop-down.
@@ -93,12 +80,16 @@ type Body struct {
 // Section holds section related fields.
 type Section struct {
 	Base
-	Buttons     Buttons
-	MultiSelect MultiSelect
-	Selects     Selects
-	TextFields  TextFields
-	Context     ContextItems
+	Buttons         Buttons
+	MultiSelect     MultiSelect
+	Selects         Selects
+	PlaintextInputs LabelInputs
+	TextFields      TextFields
+	Context         ContextItems
 }
+
+// LabelInputs holds the plain text input items.
+type LabelInputs []LabelInput
 
 // ContextItems holds context items.
 type ContextItems []ContextItem
@@ -128,23 +119,23 @@ type Selects struct {
 	Items []Select
 }
 
-// Input is used to create input elements to use in slack messages.
-type Input struct {
+// DispatchedInputAction defines when the action should be sent to our backend.
+type DispatchedInputAction string
+
+// Defines the possible options to dispatch the input action.
+const (
+	NoDispatchInputAction          DispatchedInputAction = ""
+	DispatchInputActionOnEnter     DispatchedInputAction = "on_enter_pressed"
+	DispatchInputActionOnCharacter DispatchedInputAction = "on_character_entered"
+)
+
+// LabelInput is used to create input elements to use in slack messages.
+type LabelInput struct {
+	// ID allows to carry the command that this input relates to.
 	ID               string
-	DispatchedAction bool
-	Element          InputElement
-	Label            InputLabel
-}
-
-// InputElement is one of the components of Input. This component is mostly used to hold elements like input text, etc...
-type InputElement struct {
-	Type PlainTextInputType
-}
-
-// InputLabel refers to label of input element
-type InputLabel struct {
-	Type PlainTextType
-	Text string
+	Text             string
+	Placeholder      string
+	DispatchedAction DispatchedInputAction
 }
 
 // AreOptionsDefined returns true if some options are available.
