@@ -167,8 +167,11 @@ func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg str
 func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
-	var common int
 	var diffMessage string
+	var highestCommonBlockCount int
+	if limitMessages == 1 {
+		highestCommonBlockCount = -1 // a single message is fetched, always print diff
+	}
 
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
@@ -187,8 +190,8 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 			equal, commonCount, diffStr := assertFn(msg.Text)
 			if !equal {
 				// different message; update the diff if it's more similar than the previous one (or initial 0)
-				if commonCount > common {
-					common = commonCount
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
 				}
 				continue
@@ -266,7 +269,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	var fetchedMessages []slack.Message
 	var lastErr error
 	var diffMessage string
-	common := -1
+	highestCommonBlockCount := -1 // a single message is fetched, always print diff
 
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
@@ -295,8 +298,8 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 			equal, commonCount, diffStr := assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value)
 			if !equal {
 				// different message; update the diff if it's more similar than the previous one (or initial 0)
-				if commonCount > common {
-					common = commonCount
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
 				}
 				return false, nil
