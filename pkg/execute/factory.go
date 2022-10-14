@@ -39,6 +39,7 @@ type DefaultExecutorFactoryParams struct {
 	CfgManager        ConfigPersistenceManager
 	AnalyticsReporter AnalyticsReporter
 	NamespaceLister   NamespaceLister
+	CommandGuard      CommandGuard
 }
 
 // Executor is an interface for processes to execute commands
