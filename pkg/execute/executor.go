@@ -129,7 +129,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
-	args := strings.Fields(strings.TrimSpace(execFilter.FilteredCommand()))
+	args := strings.Fields(rawCmd)
 	if len(args) == 0 {
 		if e.conversation.IsAuthenticated {
 			return interactive.Message{
