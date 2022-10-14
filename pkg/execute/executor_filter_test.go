@@ -111,6 +111,22 @@ func TestExtractExecutorFilter_NoErrors(t *testing.T) {
 			filterActive:  true,
 		},
 		{
+			name:          "extract double quoted text filter with special characters",
+			cmd:           `kubectl get po -A --filter "botkube.   . [] *?   ^  ===== /test/"`,
+			extractedCmd:  "kubectl get po -A",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
+		},
+		{
+			name:          "extract double quoted text filter with a file path",
+			cmd:           `kubectl get po -A --filter "=./Users/botkube/somefile.txt [info]"`,
+			extractedCmd:  "kubectl get po -A",
+			text:          `etcd-control-plane                      1/1     Running   0          86m`,
+			filterApplied: "",
+			filterActive:  true,
+		},
+		{
 			name:          "extract echo filter from command",
 			cmd:           "kubectl get po -n kube-system",
 			extractedCmd:  "kubectl get po -n kube-system",
