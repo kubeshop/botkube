@@ -40,7 +40,8 @@ var (
 
 	// additionalResourceVerbs contains map of per-resource verbs which are not returned by K8s API, but should be supported.
 	additionalResourceVerbs = map[string][]string{
-		"nodes": {"cordon", "uncordon", "drain"},
+		"nodes": {"cordon", "uncordon", "drain", "top"},
+		"pods":  {"top"},
 	}
 
 	// additionalResourcelessVerbs contains map of per-resource verbs which are not returned by K8s API, but should be supported.
@@ -84,6 +85,7 @@ var (
 		"scale":        {},
 		"wait":         {},
 		"proxy":        {},
+		"run":          {},
 	}
 )
 
