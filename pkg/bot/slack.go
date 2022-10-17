@@ -269,7 +269,7 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
-		_, err := uploadFileToSlack(msg.Channel, resp, b.client)
+		_, err := uploadFileToSlack(msg.Channel, resp, b.client, msg.ThreadTimeStamp)
 		if err != nil {
 			return err
 		}
@@ -385,13 +385,14 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) (*slack.File, error) {
+func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client, ts string) (*slack.File, error) {
 	params := slack.FileUploadParameters{
-		Filename:       "Response.txt",
-		Title:          "Response.txt",
-		InitialComment: resp.Description,
-		Content:        interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:       []string{channel},
+		Filename:        "Response.txt",
+		Title:           "Response.txt",
+		InitialComment:  resp.Description,
+		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:        []string{channel},
+		ThreadTimestamp: ts,
 	}
 
 	file, err := client.UploadFile(params)
