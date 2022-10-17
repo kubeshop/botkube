@@ -84,6 +84,17 @@ func PreviewSection(botName, cmd string, input interactive.LabelInput) []interac
 	}
 }
 
+// InternalErrorSection returns preview command section with Run button.
+func InternalErrorSection() interactive.Section {
+	return interactive.Section{
+		Base: interactive.Base{
+			Body: interactive.Body{
+				CodeBlock: "Sorry, an internal error occurred while rendering command preview. See the logs for more details.",
+			},
+		},
+	}
+}
+
 // FilterSection returns filter input block.
 func FilterSection(botName string) interactive.LabelInput {
 	return interactive.LabelInput{
@@ -175,10 +186,15 @@ func selectDropdown(name, cmd, botName string, items []string, initialItem strin
 //  1. This select is converted to external data source (https://api.slack.com/reference/block-kit/block-elements#external_select)
 //  2. We change the `min_query_length` to 0 to remove th "Type minimum of 3 characters to see options" message.
 //  3. Our backend doesn't return any options, so you see "No result".
-func EmptyResourceNameDropdown(botName string) *interactive.Select {
+//  4. We don't set the command, so the ID of this select is always randomized by Slack server.
+//     As a result, the dropdown value is not cached, and we avoid problem with showing the outdated value.
+func EmptyResourceNameDropdown() *interactive.Select {
 	return &interactive.Select{
-		Type:    interactive.ExternalSelect,
-		Name:    "No resources found",
-		Command: fmt.Sprintf("%s %s", botName, resourceNamesDropdownCommand),
+		Type: interactive.ExternalSelect,
+		Name: "No resources found",
+		InitialOption: &interactive.OptionItem{
+			Name:  "No resources found",
+			Value: "no-resources",
+		},
 	}
 }

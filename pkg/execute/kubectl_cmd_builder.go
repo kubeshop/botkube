@@ -60,17 +60,17 @@ type KubectlCmdBuilder struct {
 	kcExecutor      kcExecutor
 	merger          kcMerger
 	namespaceLister NamespaceLister
-	commandGuard    FakeCommandGuard
+	commandGuard    CommandGuard
 }
 
 // NewKubectlCmdBuilder returns a new KubectlCmdBuilder instance.
-func NewKubectlCmdBuilder(log logrus.FieldLogger, merger kcMerger, executor kcExecutor, namespaceLister NamespaceLister) *KubectlCmdBuilder {
+func NewKubectlCmdBuilder(log logrus.FieldLogger, merger kcMerger, executor kcExecutor, namespaceLister NamespaceLister, guard CommandGuard) *KubectlCmdBuilder {
 	return &KubectlCmdBuilder{
 		log:             log,
 		kcExecutor:      executor,
 		merger:          merger,
 		namespaceLister: namespaceLister,
-		commandGuard:    FakeCommandGuard{},
+		commandGuard:    guard,
 	}
 }
 
@@ -140,31 +140,32 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	cmds := executorsRunner{
 		verbsDropdownCommand: func() (interactive.Message, error) {
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceTypesDropdownCommand: func() (interactive.Message, error) {
 			// the resource type was selected, so clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, false, bindings, allVerbs, allTypes)
+			stateDetails.resourceName = ""
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceNamesDropdownCommand: func() (interactive.Message, error) {
 			// this is called only when the resource name is directly selected from dropdown, so we need to include
 			// it in command preview.
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceNamespaceDropdownCommand: func() (interactive.Message, error) {
 			// when the namespace was changed, there is a small chance that resource name will be still matching,
 			// we will need to do the external call to check that. For now, we clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, false, bindings, allVerbs, allTypes)
+			stateDetails.resourceName = ""
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		filterPlaintextInputCommand: func() (interactive.Message, error) {
-			// when the namespace was changed, there is a small chance that resource name will be still matching,
-			// we will need to do the external call to check that. For now, we clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 	}
 
 	msg, err := cmds.SelectAndRun(cmd)
 	if err != nil {
+		e.log.WithField("error", err.Error()).Error("Cannot render the kubectl command builder. Returning empty message.")
 		return empty, err
 	}
 	return msg, nil
@@ -195,7 +196,7 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, includeResourceName bool, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
+func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
@@ -220,7 +221,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 		stateDetails.resourceType = ""
 		stateDetails.resourceName = ""
 		stateDetails.namespace = ""
-		preview := e.buildCommandPreview(botName, stateDetails, false)
+		preview := e.buildCommandPreview(botName, stateDetails)
 
 		return KubectlCmdBuilderMessage(
 			stateDetails.dropdownsBlockID, *allVerbsSelect,
@@ -261,7 +262,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	}
 
 	// 6. Render all dropdowns and full command preview.
-	preview := e.buildCommandPreview(botName, stateDetails, includeResourceName)
+	preview := e.buildCommandPreview(botName, stateDetails)
 	return KubectlCmdBuilderMessage(
 		stateDetails.dropdownsBlockID, *allVerbsSelect,
 		WithAdditionalSelects(matchingTypes, resNames, nsNames),
@@ -271,7 +272,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 
 func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails) *interactive.Select {
 	if state.resourceType == "" {
-		return EmptyResourceNameDropdown(botName)
+		return EmptyResourceNameDropdown()
 	}
 	cmd := fmt.Sprintf(`%s get %s --ignore-not-found=true -o go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`, kubectlCommandName, state.resourceType)
 	if state.namespace != "" {
@@ -280,20 +281,32 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 
 	out, err := e.kcExecutor.Execute(bindings, cmd, true)
 	if err != nil {
-		return EmptyResourceNameDropdown(botName)
+		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
+		return EmptyResourceNameDropdown()
 	}
 
 	lines := getNonEmptyLines(out)
 	if len(lines) == 0 {
-		return EmptyResourceNameDropdown(botName)
+		return EmptyResourceNameDropdown()
 	}
 
 	return ResourceNamesSelect(botName, overflowSentence(lines), state.resourceName)
 }
 
 func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *interactive.Select {
-	resourceDetails := e.commandGuard.GetResourceDetails(details.verb, details.resourceType)
+	log := e.log.WithFields(logrus.Fields{
+		"state":    details,
+		"bindings": bindings,
+	})
+
+	resourceDetails, err := e.commandGuard.GetResourceDetails(details.verb, details.resourceType)
+	if err != nil {
+		log.WithField("error", err.Error()).Error("Cannot fetch resource details, ignoring namespace dropdown...")
+		return nil
+	}
+
 	if !resourceDetails.Namespaced {
+		log.Debug("Resource is not namespace-scoped, ignore namespace dropdown...")
 		return nil
 	}
 
@@ -301,6 +314,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 		Limit: dropdownItemsLimit,
 	})
 	if err != nil {
+		log.WithField("error", err.Error()).Error("Cannot fetch all available Kubernetes namespaces, ignoring namespace dropdown...")
 		return nil
 	}
 
@@ -313,6 +327,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 	defaultNSExists := false
 	for _, item := range allClusterNamespaces.Items {
 		if !allowedNS.IsAllowed(item.Name) {
+			log.WithField("namespace", item.Name).Debug("Namespace is not allowed, so skipping it.")
 			continue
 		}
 		if details.namespace == item.Name {
@@ -412,18 +427,23 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 	if matchingTypes == nil {
 		return false
 	}
-	for _, item := range matchingTypes.OptionGroups {
-		for _, matchingType := range item.Options {
-			if resourceType == matchingType.Value {
-				return true
-			}
-		}
+
+	if matchingTypes.InitialOption != nil && matchingTypes.InitialOption.Value == resourceType {
+		return true
 	}
+
 	return false
 }
 
-func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails, includeResourceName bool) []interactive.Section {
-	resourceDetails := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
+func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails) []interactive.Section {
+	resourceDetails, err := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
+	if err != nil {
+		e.log.WithFields(logrus.Fields{
+			"state": state,
+			"error": err.Error(),
+		}).Error("Cannot get resource details")
+		return []interactive.Section{InternalErrorSection()}
+	}
 
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
 		// we should not render the command as it will be invalid anyway without the resource name
@@ -439,7 +459,7 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 		resourceNameSeparator = "/"
 	}
 
-	if includeResourceName && state.resourceName != "" {
+	if state.resourceName != "" {
 		cmd = fmt.Sprintf("%s%s%s", cmd, resourceNameSeparator, state.resourceName)
 	}
 

@@ -399,7 +399,7 @@ func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInte
 
 	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-	return dynamicK8sCli, discoveryClient, mapper, nil
+	return dynamicK8sCli, discoCacheClient, mapper, nil
 }
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) func(ctx string, err error) error {
