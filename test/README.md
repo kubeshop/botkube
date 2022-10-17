@@ -159,8 +159,24 @@ For example, if you're only running Discord tests, you can omit env var prefixed
     export DISCORD_GUILD_ID="{Discord server ID}" # Where the tests will
     ```
 
-2. Run the tests for Slack and Discord in parallel :
+2. Run the tests for Slack:
+    ```bash
+    make test-integration-slack
+    ```
+ 
+3. Run the tests for Discord:
 
     ```bash
-    make test-integration-slack & make test-integration-discord &
+    make test-integration-discord
     ```
+### Running the tests against the same Botkube namespace
+
+Botkube tracks whether the initial help message was sent or not to minimise spam. This is tracked in a `botkube-system` ConfigMap.
+
+After running the tests for an e2e target, e.g. `make test-integration-slack`, please ensure this ConfigMap is removed before rerunning the test against another target, e.g. `make test-integration-discord`.
+
+```bash
+kubectl delete cm botkube-system -n botkube # or the namespace where Botkube is installed 
+```
+
+If you don't remove the ConfigMap, any e2e tests looking to verify that a help message is displayed will error. This also stops the rest of the e2e tests from running.  
