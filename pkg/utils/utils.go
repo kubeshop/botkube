@@ -155,8 +155,8 @@ func Contains(a []string, x string) bool {
 	return false
 }
 
-// RemoveHyperlink removes the hyperlink text from url
-func RemoveHyperlink(hyperlink string) string {
+// RemoveAnyHyperlinks removes the hyperlink text from url
+func RemoveAnyHyperlinks(hyperlink string) string {
 	command := hyperlink
 	compiledRegex := regexp.MustCompile(hyperlinkRegex)
 	matched := compiledRegex.FindAllStringSubmatch(string(hyperlink), -1)

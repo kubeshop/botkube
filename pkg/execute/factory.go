@@ -44,7 +44,7 @@ type DefaultExecutorFactoryParams struct {
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute() interactive.Message
+	Execute(context.Context) interactive.Message
 }
 
 // ConfigPersistenceManager manages persistence of the configuration.
@@ -57,7 +57,7 @@ type ConfigPersistenceManager interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
 }
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.

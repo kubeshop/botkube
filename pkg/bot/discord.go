@@ -103,7 +103,7 @@ func (b *Discord) Start(ctx context.Context) error {
 		msg := discordMessage{
 			Event: m,
 		}
-		if err := b.handleMessage(msg); err != nil {
+		if err := b.handleMessage(ctx, msg); err != nil {
 			b.log.Errorf("Message handling error: %s", err.Error())
 		}
 	})
@@ -227,7 +227,7 @@ func (b *Discord) SetNotificationsEnabled(channelID string, enabled bool) error 
 }
 
 // HandleMessage handles the incoming messages.
-func (b *Discord) handleMessage(dm discordMessage) error {
+func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	// Handle message only if starts with mention
 	req, found := b.findAndTrimBotMention(dm.Event.Content)
 	if !found {
@@ -252,7 +252,7 @@ func (b *Discord) handleMessage(dm discordMessage) error {
 		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),
 	})
 
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err := b.send(dm.Event, req, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)

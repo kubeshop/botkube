@@ -282,6 +282,9 @@ func runBotTest(t *testing.T,
 			          - wait
 			        resources: []
 			      restrictAccess: false`))
+		expectedFilteredBody := codeBlock(heredoc.Doc(`
+			          - api-resources
+			          - api-versions`))
 		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {
@@ -293,6 +296,15 @@ func runBotTest(t *testing.T,
 		t.Run("With custom cluster name", func(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
 			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+
+		t.Run("With custom cluster name and filter", func(t *testing.T) {
+			command := fmt.Sprintf("commands list --cluster-name %s --filter=api", appCfg.ClusterName)
+			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -324,12 +336,37 @@ func runBotTest(t *testing.T,
 			assert.NoError(t, err)
 		})
 
+		t.Run("Get Deployment with matching filter", func(t *testing.T) {
+			command := fmt.Sprintf(`get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					strings.Contains(msg, "botkube"), 0, ""
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
+
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
 					strings.Contains(msg, "botkube-global-config"), 0, ""
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
+
+		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
+			command := fmt.Sprintf(`get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					!strings.Contains(msg, "kube-root-ca.crt") &&
+					!strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)

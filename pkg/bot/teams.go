@@ -180,7 +180,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 
 	err = b.Adapter.ProcessActivity(ctx, activity, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			n, resp := b.processMessage(turn.Activity)
+			n, resp := b.processMessage(ctx, turn.Activity)
 			if n >= teamsMaxMessageSize {
 				if turn.Activity.Conversation.ConversationType == convTypePersonal {
 					// send file upload request
@@ -242,7 +242,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			activity.Text = consentCtx.Command
-			_, resp := b.processMessage(activity)
+			_, resp := b.processMessage(ctx, activity)
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
 			if err != nil {
@@ -276,7 +276,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (b *Teams) processMessage(activity schema.Activity) (int, string) {
+func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (int, string) {
 	trimmedMsg := b.trimBotMention(activity.Text)
 
 	// Multicluster is not supported for Teams
@@ -300,7 +300,7 @@ func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 		},
 		Message: trimmedMsg,
 	})
-	return b.convertInteractiveMessage(e.Execute(), false)
+	return b.convertInteractiveMessage(e.Execute(ctx), false)
 }
 
 func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown bool) (int, string) {

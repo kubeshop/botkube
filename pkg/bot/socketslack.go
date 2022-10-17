@@ -68,7 +68,7 @@ type socketSlackMessage struct {
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
@@ -158,7 +158,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							User:            ev.User,
 							CommandOrigin:   command.TypedOrigin,
 						}
-						if err := b.handleMessage(msg); err != nil {
+						if err := b.handleMessage(ctx, msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
 						}
 					}
@@ -183,7 +183,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					act := callback.ActionCallback.BlockActions[0]
 					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin)
+						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
 						if reportErr != nil {
 							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 						}
@@ -217,7 +217,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						ResponseURL:     callback.ResponseURL,
 						BlockID:         act.BlockID,
 					}
-					if err := b.handleMessage(msg); err != nil {
+					if err := b.handleMessage(ctx, msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
 					}
 				case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
@@ -235,7 +235,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 								CommandOrigin: cmdOrigin,
 							}
 
-							if err := b.handleMessage(msg); err != nil {
+							if err := b.handleMessage(ctx, msg); err != nil {
 								b.log.Errorf("Message handling error: %s", err.Error())
 							}
 						}
@@ -294,7 +294,7 @@ func (b *SocketSlack) SetNotificationsEnabled(channelName string, enabled bool) 
 	return nil
 }
 
-func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
+func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
@@ -328,7 +328,7 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err = b.send(event, request, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
