@@ -38,25 +38,25 @@ func TestCommandPreview(t *testing.T) {
 			name: "Print all dropdowns and full command on verb change",
 			args: strings.Fields("kc-cmd-builder --verbs"),
 
-			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown(true)...),
 		},
 		{
 			name: "Print all dropdowns and command without the resource name on resource type change",
 			args: strings.Fields("kc-cmd-builder --resource-type"),
 
-			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown(false)...),
 		},
 		{
 			name: "Print all dropdowns and full command on resource name change",
 			args: strings.Fields("kc-cmd-builder --resource-name"),
 
-			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods nginx2 -n default", "@BKTesting kubectl get pods nginx2 -n default", fixAllDropdown(true)...),
 		},
 		{
 			name: "Print all dropdowns and command without the resource name on namespace change",
 			args: strings.Fields("kc-cmd-builder --namespace"),
 
-			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown()...),
+			expMsg: fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixAllDropdown(false)...),
 		},
 	}
 	for _, tc := range tests {
@@ -384,20 +384,28 @@ func fixNamespaceDropdown() interactive.Select {
 
 func fixEmptyResourceNamesDropdown() interactive.Select {
 	return interactive.Select{
-		Name:    "No resources found",
-		Type:    interactive.ExternalSelect,
-		Command: "@BKTesting kc-cmd-builder --resource-name",
+		Name: "No resources found",
+		Type: interactive.ExternalSelect,
+		InitialOption: &interactive.OptionItem{
+			Name:  "No resources found",
+			Value: "no-resources",
+		},
 	}
 }
 
-func fixResourceNamesDropdown() interactive.Select {
-	return interactive.Select{
-		Name:    "Select resource name",
-		Command: "@BKTesting kc-cmd-builder --resource-name",
-		InitialOption: &interactive.OptionItem{
+func fixResourceNamesDropdown(includeInitialOpt bool) interactive.Select {
+	var opt *interactive.OptionItem
+	if includeInitialOpt {
+		opt = &interactive.OptionItem{
 			Name:  "nginx2",
 			Value: "nginx2",
-		},
+		}
+	}
+
+	return interactive.Select{
+		Name:          "Select resource name",
+		Command:       "@BKTesting kc-cmd-builder --resource-name",
+		InitialOption: opt,
 		OptionGroups: []interactive.OptionGroup{
 			{
 				Name: "Select resource name",
@@ -420,11 +428,11 @@ func fixResourceNamesDropdown() interactive.Select {
 	}
 }
 
-func fixAllDropdown() []interactive.Select {
+func fixAllDropdown(includeResourceName bool) []interactive.Select {
 	return []interactive.Select{
 		fixVerbsDropdown(),
 		fixResourceTypeDropdown(),
-		fixResourceNamesDropdown(),
+		fixResourceNamesDropdown(includeResourceName),
 		fixNamespaceDropdown(),
 	}
 }

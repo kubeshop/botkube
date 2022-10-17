@@ -140,26 +140,26 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	cmds := executorsRunner{
 		verbsDropdownCommand: func() (interactive.Message, error) {
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceTypesDropdownCommand: func() (interactive.Message, error) {
 			// the resource type was selected, so clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, false, bindings, allVerbs, allTypes)
+			stateDetails.resourceName = ""
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceNamesDropdownCommand: func() (interactive.Message, error) {
 			// this is called only when the resource name is directly selected from dropdown, so we need to include
 			// it in command preview.
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		resourceNamespaceDropdownCommand: func() (interactive.Message, error) {
 			// when the namespace was changed, there is a small chance that resource name will be still matching,
 			// we will need to do the external call to check that. For now, we clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, false, bindings, allVerbs, allTypes)
+			stateDetails.resourceName = ""
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 		filterPlaintextInputCommand: func() (interactive.Message, error) {
-			// when the namespace was changed, there is a small chance that resource name will be still matching,
-			// we will need to do the external call to check that. For now, we clear resource name from command preview.
-			return e.renderMessage(ctx, botName, stateDetails, true, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
 		},
 	}
 
@@ -196,7 +196,7 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, includeResourceName bool, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
+func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
@@ -221,7 +221,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 		stateDetails.resourceType = ""
 		stateDetails.resourceName = ""
 		stateDetails.namespace = ""
-		preview := e.buildCommandPreview(botName, stateDetails, false)
+		preview := e.buildCommandPreview(botName, stateDetails)
 
 		return KubectlCmdBuilderMessage(
 			stateDetails.dropdownsBlockID, *allVerbsSelect,
@@ -262,7 +262,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	}
 
 	// 6. Render all dropdowns and full command preview.
-	preview := e.buildCommandPreview(botName, stateDetails, includeResourceName)
+	preview := e.buildCommandPreview(botName, stateDetails)
 	return KubectlCmdBuilderMessage(
 		stateDetails.dropdownsBlockID, *allVerbsSelect,
 		WithAdditionalSelects(matchingTypes, resNames, nsNames),
@@ -272,7 +272,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 
 func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails) *interactive.Select {
 	if state.resourceType == "" {
-		return EmptyResourceNameDropdown(botName)
+		return EmptyResourceNameDropdown()
 	}
 	cmd := fmt.Sprintf(`%s get %s --ignore-not-found=true -o go-template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'`, kubectlCommandName, state.resourceType)
 	if state.namespace != "" {
@@ -282,12 +282,12 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 	out, err := e.kcExecutor.Execute(bindings, cmd, true)
 	if err != nil {
 		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
-		return EmptyResourceNameDropdown(botName)
+		return EmptyResourceNameDropdown()
 	}
 
 	lines := getNonEmptyLines(out)
 	if len(lines) == 0 {
-		return EmptyResourceNameDropdown(botName)
+		return EmptyResourceNameDropdown()
 	}
 
 	return ResourceNamesSelect(botName, overflowSentence(lines), state.resourceName)
@@ -427,23 +427,20 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 	if matchingTypes == nil {
 		return false
 	}
-	for _, item := range matchingTypes.OptionGroups {
-		for _, matchingType := range item.Options {
-			if resourceType == matchingType.Value {
-				return true
-			}
-		}
+
+	if matchingTypes.InitialOption != nil && matchingTypes.InitialOption.Value == resourceType {
+		return true
 	}
+
 	return false
 }
 
-func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails, includeResourceName bool) []interactive.Section {
+func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails) []interactive.Section {
 	resourceDetails, err := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
 	if err != nil {
 		e.log.WithFields(logrus.Fields{
-			"state":               state,
-			"includeResourceName": includeResourceName,
-			"error":               err.Error(),
+			"state": state,
+			"error": err.Error(),
 		}).Error("Cannot get resource details")
 		return []interactive.Section{InternalErrorSection()}
 	}
@@ -462,7 +459,7 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 		resourceNameSeparator = "/"
 	}
 
-	if includeResourceName && state.resourceName != "" {
+	if state.resourceName != "" {
 		cmd = fmt.Sprintf("%s%s%s", cmd, resourceNameSeparator, state.resourceName)
 	}
 

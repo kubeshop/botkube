@@ -89,14 +89,14 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.AnalyticsReporter,
 		),
 		kubectlCmdBuilder: NewKubectlCmdBuilder(
-			params.Log.WithField("component", "Notifier Executor"),
+			params.Log.WithField("component", "Kubectl Command Builder"),
 			params.Merger,
 			kcExecutor,
 			params.NamespaceLister,
 			params.CommandGuard,
 		),
 		editExecutor: NewEditExecutor(
-			params.Log.WithField("component", "Notifier Executor"),
+			params.Log.WithField("component", "Botkube Edit Executor"),
 			params.AnalyticsReporter,
 			params.CfgManager,
 			params.Cfg,
