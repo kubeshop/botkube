@@ -157,7 +157,23 @@ For faster development, you can also build and run Botkube outside K8s cluster.
   ```
   This will run the `golangci-lint` tool to lint the Go code.
 
-- [Run e2e tests](./test/README.md)
+### Run the e2e tests
+
+Here [are the details you need](./test/README.md) to set up and run the e2e tests.
+
+#### Clear botkube-system between test runs
+
+Botkube tracks whether the initial help message was sent or not to minimise spam. This is tracked in a `botkube-system` ConfigMap.
+
+Please ensure this ConfigMap is removed before rerunning any e2e tests.
+
+```shell
+kubectl delete cm botkube-system -n botkube # or the namespace where Botkube is installed 
+```
+
+If you don't remove the ConfigMap, any e2e tests looking to verify that a help message is displayed will error. This also stops the rest of the e2e tests from running.  
+
+### Create a Pull Request
 
 - Make sure your pull request has [good commit messages](https://chris.beams.io/posts/git-commit/):
   - Separate subject from body with a blank line
