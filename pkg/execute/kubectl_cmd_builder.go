@@ -60,17 +60,17 @@ type KubectlCmdBuilder struct {
 	kcExecutor      kcExecutor
 	merger          kcMerger
 	namespaceLister NamespaceLister
-	commandGuard    FakeCommandGuard
+	commandGuard    CommandGuard
 }
 
 // NewKubectlCmdBuilder returns a new KubectlCmdBuilder instance.
-func NewKubectlCmdBuilder(log logrus.FieldLogger, merger kcMerger, executor kcExecutor, namespaceLister NamespaceLister) *KubectlCmdBuilder {
+func NewKubectlCmdBuilder(log logrus.FieldLogger, merger kcMerger, executor kcExecutor, namespaceLister NamespaceLister, guard CommandGuard) *KubectlCmdBuilder {
 	return &KubectlCmdBuilder{
 		log:             log,
 		kcExecutor:      executor,
 		merger:          merger,
 		namespaceLister: namespaceLister,
-		commandGuard:    FakeCommandGuard{},
+		commandGuard:    guard,
 	}
 }
 
@@ -165,6 +165,7 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	msg, err := cmds.SelectAndRun(cmd)
 	if err != nil {
+		e.log.WithField("error", err.Error()).Error("Cannot render the kubectl command builder. Returning empty message.")
 		return empty, err
 	}
 	return msg, nil
@@ -280,6 +281,7 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 
 	out, err := e.kcExecutor.Execute(bindings, cmd, true)
 	if err != nil {
+		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
 		return EmptyResourceNameDropdown(botName)
 	}
 
@@ -292,8 +294,19 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 }
 
 func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *interactive.Select {
-	resourceDetails := e.commandGuard.GetResourceDetails(details.verb, details.resourceType)
+	log := e.log.WithFields(logrus.Fields{
+		"state":    details,
+		"bindings": bindings,
+	})
+
+	resourceDetails, err := e.commandGuard.GetResourceDetails(details.verb, details.resourceType)
+	if err != nil {
+		log.WithField("error", err.Error()).Error("Cannot fetch resource details, ignoring namespace dropdown...")
+		return nil
+	}
+
 	if !resourceDetails.Namespaced {
+		log.Debug("Resource is not namespace-scoped, ignore namespace dropdown...")
 		return nil
 	}
 
@@ -301,6 +314,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 		Limit: dropdownItemsLimit,
 	})
 	if err != nil {
+		log.WithField("error", err.Error()).Error("Cannot fetch all available Kubernetes namespaces, ignoring namespace dropdown...")
 		return nil
 	}
 
@@ -313,6 +327,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 	defaultNSExists := false
 	for _, item := range allClusterNamespaces.Items {
 		if !allowedNS.IsAllowed(item.Name) {
+			log.WithField("namespace", item.Name).Debug("Namespace is not allowed, so skipping it.")
 			continue
 		}
 		if details.namespace == item.Name {
@@ -423,7 +438,15 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 }
 
 func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails, includeResourceName bool) []interactive.Section {
-	resourceDetails := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
+	resourceDetails, err := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
+	if err != nil {
+		e.log.WithFields(logrus.Fields{
+			"state":               state,
+			"includeResourceName": includeResourceName,
+			"error":               err.Error(),
+		}).Error("Cannot get resource details")
+		return []interactive.Section{InternalErrorSection()}
+	}
 
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
 		// we should not render the command as it will be invalid anyway without the resource name

@@ -84,6 +84,17 @@ func PreviewSection(botName, cmd string, input interactive.LabelInput) []interac
 	}
 }
 
+// InternalErrorSection returns preview command section with Run button.
+func InternalErrorSection() interactive.Section {
+	return interactive.Section{
+		Base: interactive.Base{
+			Body: interactive.Body{
+				CodeBlock: "Sorry, an internal error occurred while rendering command preview. See the logs for more details.",
+			},
+		},
+	}
+}
+
 // FilterSection returns filter input block.
 func FilterSection(botName string) interactive.LabelInput {
 	return interactive.LabelInput{

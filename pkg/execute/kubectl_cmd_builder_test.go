@@ -70,7 +70,7 @@ func TestCommandPreview(t *testing.T) {
 				kcMerger      = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 			)
 
-			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 			// when
 			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header")
@@ -174,7 +174,7 @@ func TestCommandBuilderCanHandleAndGetPrefix(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(nil, nil, nil, nil)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(nil, nil, nil, nil, &FakeCommandGuard{})
 
 			// when
 			gotCanHandle := kcCmdBuilderExecutor.CanHandle(tc.args)
@@ -202,7 +202,7 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 		t.Run(fmt.Sprintf("Should ignore %s", platform), func(t *testing.T) {
 			// given
 			const cmdHeader = "header"
-			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, nil, nil, nil)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, nil, nil, nil, nil)
 
 			// when
 			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader)
@@ -226,7 +226,7 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 	var (
 		logger, _            = logtest.NewNullLogger()
 		kcMerger             = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
-		kcCmdBuilderExecutor = execute.NewKubectlCmdBuilder(logger, kcMerger, nil, nil)
+		kcCmdBuilderExecutor = execute.NewKubectlCmdBuilder(logger, kcMerger, nil, nil, &FakeCommandGuard{})
 		expMsg               = fixInitialBuilderMessage()
 	)
 
@@ -256,7 +256,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		expMsg     = fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
 	)
 
-	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister)
+	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 	// when
 	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header")

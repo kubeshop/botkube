@@ -64,6 +64,7 @@ type AnalyticsReporter interface {
 type CommandGuard interface {
 	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
 	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+	FilterSupportedVerbs(allVerbs []string) []string
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -92,7 +93,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.Merger,
 			kcExecutor,
 			params.NamespaceLister,
-			// TODO: Pass params.CommandGuard,
+			params.CommandGuard,
 		),
 		editExecutor: NewEditExecutor(
 			params.Log.WithField("component", "Notifier Executor"),
