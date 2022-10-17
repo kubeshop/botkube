@@ -351,7 +351,7 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	var file *slack.File
 	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		file, err = uploadFileToSlack(event.Channel, resp, b.client)
+		file, err = uploadFileToSlack(event.Channel, resp, b.client, event.ThreadTimeStamp)
 		if err != nil {
 			return err
 		}
