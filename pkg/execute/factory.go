@@ -64,6 +64,7 @@ type AnalyticsReporter interface {
 type CommandGuard interface {
 	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
 	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+	FilterSupportedVerbs(allVerbs []string) []string
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -88,14 +89,14 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.AnalyticsReporter,
 		),
 		kubectlCmdBuilder: NewKubectlCmdBuilder(
-			params.Log.WithField("component", "Notifier Executor"),
+			params.Log.WithField("component", "Kubectl Command Builder"),
 			params.Merger,
 			kcExecutor,
 			params.NamespaceLister,
-			// TODO: Pass params.CommandGuard,
+			params.CommandGuard,
 		),
 		editExecutor: NewEditExecutor(
-			params.Log.WithField("component", "Notifier Executor"),
+			params.Log.WithField("component", "Botkube Edit Executor"),
 			params.AnalyticsReporter,
 			params.CfgManager,
 			params.Cfg,
