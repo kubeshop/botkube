@@ -70,25 +70,16 @@ This section describes how to build and run Botkube from source code.
 
 3. Deploy the newly created image in your cluster:
    
+   Use [the instructions here](https://botkube.io/docs/installation/socketslack/#install-botkube-backend-in-kubernetes-cluster) to Helm install Botkube while updating the following flags:  
+   
    ```sh
-   helm install botkube --namespace botkube --create-namespace \
-   --set communications.default-group.socketSlack.enabled=true \
-   --set communications.default-group.socketSlack.channels.default.name=<SLACK_CHANNEL_NAME> \
-   --set communications.default-group.socketSlack.appToken=<SLACK_API_APP_TOKEN> \
-   --set communications.default-group.socketSlack.botToken=<SLACK_API_BOT_TOKEN> \
-   --set settings.clusterName=${CLUSTER_NAME} \
-   --set executors.kubectl-read-only.kubectl.enabled=true \
    --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
    --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
-   ./helm/botkube
    ``` 
    
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
-   
-   > **Note**
-   > Installation config may get updated. Refer to the [chart based installation instructions](https://botkube.io/docs/installation/socketslack/#install-botkube-backend-in-kubernetes-cluster) if you encounter any problems. 
    
 ### Build and run locally
 
