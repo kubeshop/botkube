@@ -126,7 +126,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	execFilter, err := extractExecutorFilter(rawCmd)
 	if err != nil {
-		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
+		return e.respond(err.Error(), rawCmd, "", botName)
 	}
 
 	args := strings.Fields(rawCmd)
