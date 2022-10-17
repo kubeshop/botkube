@@ -14,7 +14,30 @@ type (
 	}
 	// KubectlCmdBuilderOption defines option mutator signature.
 	KubectlCmdBuilderOption func(options *KubectlCmdBuilderOptions)
+
+	// KVItem describes the data for the dropdown item.
+	KVItem struct {
+		Name  string
+		Value string
+	}
 )
+
+// NewKV returns the KVItem instance.
+func NewKV(key, value string) KVItem {
+	return KVItem{
+		Name:  key,
+		Value: value,
+	}
+}
+
+// KVItemsFromSlice is a helper function to create the KVItem for dropdowns just from slice.
+func KVItemsFromSlice(in []string) []KVItem {
+	var out []KVItem
+	for _, item := range in {
+		out = append(out, NewKV(item, item))
+	}
+	return out
+}
 
 // WithAdditionalSelects adds additional selects to a given kubectl KubectlCmdBuilderMessage message.
 func WithAdditionalSelects(in ...*interactive.Select) KubectlCmdBuilderOption {
@@ -89,7 +112,7 @@ func FilterSection(botName string) interactive.LabelInput {
 	return interactive.LabelInput{
 		Text:             "Filter output",
 		DispatchedAction: interactive.DispatchInputActionOnCharacter,
-		Placeholder:      "(Optional) Type to filter command output by.",
+		Placeholder:      "Filter output by string (optional)",
 		// the whitespace at the end is required, otherwise we will not recognize the command
 		// as we will receive:
 		//   kc-cmd-builder --filterinput string
@@ -102,50 +125,51 @@ func FilterSection(botName string) interactive.LabelInput {
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select command", verbsDropdownCommand, botName, verbs, initialItem)
+	return selectDropdown("Select command", verbsDropdownCommand, botName, KVItemsFromSlice(verbs), NewKV(initialItem, initialItem))
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, resources, initialItem)
+	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, KVItemsFromSlice(resources), NewKV(initialItem, initialItem))
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
 func ResourceNamesSelect(botName string, names []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, names, initialItem)
+	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, KVItemsFromSlice(names), NewKV(initialItem, initialItem))
 }
 
 // ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
-func ResourceNamespaceSelect(botName string, names []string, initialNamespace string) *interactive.Select {
+func ResourceNamespaceSelect(botName string, names []KVItem, initialNamespace KVItem) *interactive.Select {
 	return selectDropdown("Select namespace", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
 }
 
-func selectDropdown(name, cmd, botName string, items []string, initialItem string) *interactive.Select {
+func selectDropdown(name, cmd, botName string, items []KVItem, initialItem KVItem) *interactive.Select {
 	if len(items) == 0 {
 		return nil
 	}
 
 	var opts []interactive.OptionItem
 	foundInitialOptOnList := false
-	for _, itemName := range items {
-		if itemName == "" {
+	for _, item := range items {
+		if item.Value == "" || item.Name == "" {
 			continue
 		}
 
-		if initialItem == itemName {
+		if initialItem.Value == item.Value && initialItem.Name == item.Name {
 			foundInitialOptOnList = true
 		}
+
 		opts = append(opts, interactive.OptionItem{
-			Name:  itemName,
-			Value: itemName,
+			Name:  item.Name,
+			Value: item.Value,
 		})
 	}
 
 	var initialOption *interactive.OptionItem
-	if initialItem != "" && foundInitialOptOnList {
+	if foundInitialOptOnList {
 		initialOption = &interactive.OptionItem{
-			Name:  initialItem,
-			Value: initialItem,
+			Name:  initialItem.Name,
+			Value: initialItem.Value,
 		}
 	}
 
