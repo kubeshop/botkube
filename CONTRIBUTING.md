@@ -66,7 +66,6 @@ This section describes how to build and run Botkube from source code.
 
 2. Ensure you have a Slack installation already setup:
 
-   Please refer to the [Slack installation instructions](https://botkube.io/docs/installation/socketslack/) to ensure you have a valid integration.
 
 3. Deploy the newly created image in your cluster:
    
