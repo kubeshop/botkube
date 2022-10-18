@@ -176,13 +176,13 @@ Each plugin folder contains a simple Go file which contains the actual business 
 process of that plugin. They might not be a simple Go program, that's why there is no unified `Makefile` that builds any Go project, it can contain
 customer specific build flows. For `kubectl` and `Kubernetes`, they are same for now. 
 
-### How to Build Plugins?
+### How to build plugins?
 `plugins` folder only contains the source code of the plugins, and consumer (Botkube or playground project on our case), needs the executable versions
 of those plugin to call via Hashicorp's plugin package. There is a Github Action for plugin release flow which you can see [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/.github/workflows/release.yaml). 
 In this flow, the only thing you need to do is pushing a new tag in a format `<plugin_name>/<version>` like `Kubernetes/v1.0.7`. This will build `Kubernetes` plugin, create a release with version
 `v1.0.7` and go binary executable will be attached to release artifacts. Notice that, those artifacts are used in consumer side to be used as parameter to Hashicorp's Go Plugin.
 
-### How Can I Know the Metadata of Plugins?
+### How can I know the metadata of plugins?
 In `Botkube-plugins` project, we have a plugin index file as you can also see it [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/index.json). That contains basic metadata of each plugin, and notice that they are managed manually
 right now, we can automate and do find/replace whenever there is a change to plugins. Here is an example;
 ```json
@@ -200,6 +200,22 @@ right now, we can automate and do find/replace whenever there is a change to plu
     "version": "v1.0.9"
   }
 ]
+```
+
+### How can I provide plugin configuration?
+If you use terraform before, they use a notation like `<pluginname>_...` to pass settings to specific plugin. So, in Botkube, if somebody provides `KUBERNETES_CONFIG_PATH=something`, the `kubernetes` plugin executable can be run as follows.
+```go
+client := plugin.NewClient(&plugin.ClientConfig{
+    Plugins:          m.pluginMap(metadata),
+    VersionedPlugins: nil,
+    Cmd:              exec.Command(metadata.Path, "--config", "something"), // Plugin specific params goes here
+    AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+    HandshakeConfig: plugin.HandshakeConfig{
+        ProtocolVersion:  1,
+        MagicCookieKey:   "BOTKUBE_MAGIC_COOKIE",
+        MagicCookieValue: "BOTKUBE_BASIC_PLUGIN",
+    },
+})
 ```
 
 `type` can be `source` or `executor` since we decide on plugin implementation contract based on that value.
@@ -220,6 +236,65 @@ to local cache (user's home folder/.Botkube-plugins).
 
 ### Example
 You can see a working example [here](https://github.com/huseyinbabal/Botkube-plugins-playground)
+
+### Consequences
+If we agree on this design, we can extend this epic with following description to come up with new tasks.
+
+- [ ] Maintain Botkube plugins under Kubeshop organization
+  - There is a working version of [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins), move it to Kubeshop Github organization
+  - Check module names in the [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) project and set repo owner parts as `kubeshop` after migrating to Kubeshop organization.
+
+- [ ] Add plugin contribution documentation
+  - Prepare a documentation for adding new plugin to Botkube Plugins.
+  - It should contain how to verify plugin functionality in PR checks.
+  - Boilerplate template for plugin development. Please refer [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubectl) for an example.
+  - Once needed, provide a mocking mechanism to write tests for specific plugin.
+  
+- [ ] Add plugin manager to Botkube
+  - Plugin manager can accept plugin configuration with name and version.
+  - It should download plugin executable by using name and version to specified local folder before running Botkube application
+  - There should be a caching mechanism to not download same version again.
+  - You can see working example [here](https://github.com/huseyinbabal/botkube-plugins-playground/blob/main/plugin/manager.go)
+
+- [ ] Extract Kubernetes source feature as a plugin 
+  - Currently, Kubernetes source events are tightly coupled with Botkube, we can add sourcing mechanism as `kubernetes` plugin. You can see independent example [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubernetes)
+  - It should be background compatible.
+  - Plugin specific parameters should be passed during plugin initialization. Hashicorp's Go plugin system, runs plugin executable as sub process, so it also accepts exec arguments where we can resolve configuration and pass them as separate arguments
+  - Plugin parameters will be documented in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repo, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
+  - Data structure for events
+    - Since each source plugin has different data structure, we cannot have a general data structure except we specified #Cloud Events. `data` field has free data structure, but we can convert them to map then extract 
+any section based on customer definition by using Go template. `data` field has free structure, but we can put mandatory fields in this struct like `message`, `user`, etc. Or we can put mandatory fields to cloud events schema as shown below.
+      ```json
+      {
+      "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",   
+      "source" : "Kubernetes",     
+      "specversion" : "1.0",                             
+      "time" : "2022-03-23T14:35:39.738Z",               
+      "message": "DB instance not found",
+      "user": "john",
+      "data" : {                                         
+        "namespace" : "Botkube",
+          "deployment" : {
+            "name" : "test",
+            "replicas" : 5
+          }
+        }
+      }
+      ```
+- [ ] Extract Kubectl executor feature as a plugin
+  - Extract kubectl executor as plugin and maintain it in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repository.
+  - Ensure it is background compatible.
+  - Plugin parameters will be documented in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repo, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159) 
+  
+- [ ] Keptn as an alternative source plugin
+  - Once we have Botkube cloud events handler, we will be able to accepts from outside. However, we cannot have an endpoint that accepts all kind of data format. Assume that we have a payload format as described in Cloud Events section. In order to accept Keptn events, we can implement a Botkube plugin on Keptn, and this plugin will be responsible for taking events from Keptn, convert and send it to Botkbue.
+  - Implement a Keptn plugin on their plugin marketplace by following their [guidelines](https://keptn.sh/docs/integrations/#contributing) 
+
+- [ ] Helm as alternative executor plugin
+  - Implement Helm plugin for Botkube
+  - Design a configuration structure for helm executor plugin
+  - Document it in [botkube-plugins](https://keptn.sh/docs/integrations/#contributing) repository.
+  
 <!--
 What other approaches did you consider, and why did you rule them out? These do
 not need to be as detailed as the proposal, but should include enough
