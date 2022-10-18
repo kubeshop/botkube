@@ -78,7 +78,6 @@ This section describes how to build and run Botkube from source code.
    --set image.tag=v9.99.9-dev \
    --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
-   
 ### Build and run locally
 
 For faster development, you can also build and run Botkube outside K8s cluster.
