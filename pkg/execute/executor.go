@@ -459,6 +459,7 @@ func (e *DefaultExecutor) filterInput(id, botName string) interactive.LabelInput
 	return interactive.LabelInput{
 		ID:               fmt.Sprintf("%s %s --filter=", botName, id),
 		DispatchedAction: interactive.DispatchInputActionOnEnter,
+		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",
 	}
 }
