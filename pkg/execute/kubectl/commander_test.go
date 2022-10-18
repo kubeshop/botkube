@@ -83,6 +83,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 				},
 				AllowedKubectlVerb: map[string]struct{}{
 					"get":      {},
+					"delete":   {}, // Ignore not supported event command verbs
 					"describe": {},
 					"logs":     {},
 				},
@@ -154,7 +155,7 @@ type fakeMerger struct {
 	res kubectl.EnabledKubectl
 }
 
-func (f *fakeMerger) MergeForNamespace(includeBindings []string, forNamespace string) kubectl.EnabledKubectl {
+func (f *fakeMerger) MergeForNamespace(_ []string, _ string) kubectl.EnabledKubectl {
 	return f.res
 }
 
@@ -167,7 +168,7 @@ func (f *fakeGuard) GetServerResourceMap() (map[string]metav1.APIResource, error
 	return f.resMap, nil
 }
 
-func (f *fakeGuard) GetResourceDetailsFromMap(selectedVerb, resourceType string, resMap map[string]metav1.APIResource) (kubectl.Resource, error) {
+func (f *fakeGuard) GetResourceDetailsFromMap(selectedVerb, resourceType string, _ map[string]metav1.APIResource) (kubectl.Resource, error) {
 	resources, ok := f.verbMap[selectedVerb]
 	if !ok {
 		return kubectl.Resource{}, kubectl.ErrVerbNotSupported
@@ -211,6 +212,13 @@ func fixVerbMapForFakeGuard() map[string]map[string]kubectl.Resource {
 			"pods": {
 				Name:                    "pods",
 				SlashSeparatedInCommand: true,
+				Namespaced:              true,
+			},
+		},
+		"delete": {
+			"pods": {
+				Name:                    "pods",
+				SlashSeparatedInCommand: false,
 				Namespaced:              true,
 			},
 		},

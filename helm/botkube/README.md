@@ -1,6 +1,6 @@
 # Botkube
 
-![Version: v0.13.0](https://img.shields.io/badge/Version-v0.13.0-informational?style=flat-square) ![AppVersion: v0.13.0](https://img.shields.io/badge/AppVersion-v0.13.0-informational?style=flat-square)
+![Version: v9.99.9-dev](https://img.shields.io/badge/Version-v9.99.9--dev-informational?style=flat-square) ![AppVersion: v9.99.9-dev](https://img.shields.io/badge/AppVersion-v9.99.9--dev-informational?style=flat-square)
 
 Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -160,12 +160,12 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 
 ### AWS IRSA on EKS support
 
-AWS has introduced IAM Role for Service Accounts in order to provide fine grained access. This is useful if you are looking to run Botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
+AWS has introduced IAM Role for Service Accounts in order to provide fine-grained access. This is useful if you are looking to run Botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
 
 Annotate the Botkube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding Botkube role to get this working.
 
 ```
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: "<role_arn_to_assume>"
+    eks.amazonaws.com/role-arn: "{role_arn_to_assume}"
 ```
