@@ -132,20 +132,30 @@ func (d *discordTester) InviteBotToChannel(_ *testing.T, _ string) {
 }
 
 func (d *discordTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
-		return strings.EqualFold(msg, expectedMsg)
+	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(expectedMsg, msg) {
+			count := countMatchBlock(expectedMsg, msg)
+			msgDiff := diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
 func (d *discordTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.Contains(msg, expectedMsgSubstring)
+	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		return strings.Contains(msg, expectedMsgSubstring), 0, ""
 	})
 }
 
 func (d *discordTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return msg == expectedMsg
+	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		if msg != expectedMsg {
+			count := countMatchBlock(expectedMsg, msg)
+			msgDiff := diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
@@ -157,6 +167,11 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
+	var highestCommonBlockCount int
+	if limitMessages == 1 {
+		highestCommonBlockCount = -1 // a single message is fetched, always print diff
+	}
+	var diffMessage string
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, limitMessages, "", "", "")
@@ -171,8 +186,13 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 				continue
 			}
 
-			if !assertFn(msg.Content) {
-				// different message
+			equal, commonCount, diffStr := assertFn(msg.Content)
+			if !equal {
+				// different message; update the diff if it's more similar than the previous one or initial value
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
+					diffMessage = diffStr
+				}
 				continue
 			}
 
@@ -182,7 +202,7 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
+		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
@@ -257,6 +277,8 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
+	var diffMessage string
+	highestCommonBlockCount := -1 // a single message is fetched, always print diff
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
@@ -278,8 +300,13 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 			embed := msg.Embeds[0]
 
-			if !assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description) {
-				// different message
+			equal, commonCount, diffStr := assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description)
+			if !equal {
+				// different message; update the diff if it's more similar than the previous one or initial value
+				if commonCount > highestCommonBlockCount {
+					highestCommonBlockCount = commonCount
+					diffMessage = diffStr
+				}
 				continue
 			}
 
@@ -289,7 +316,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
+		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
@@ -312,15 +339,25 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 
 func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
-	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) bool {
-		return strings.EqualFold(markdown, msg)
+	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(markdown, msg) {
+			count := countMatchBlock(markdown, msg)
+			msgDiff := diff(markdown, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 
 func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) bool {
-		return strings.EqualFold(markdown, msg)
+	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(markdown, msg) {
+			count := countMatchBlock(markdown, msg)
+			msgDiff := diff(markdown, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
 	})
 }
 

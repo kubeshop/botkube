@@ -207,7 +207,7 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 }
 
 // Check incoming message and take action
-func (mm *mattermostMessage) handleMessage(b *Mattermost) {
+func (mm *mattermostMessage) handleMessage(ctx context.Context, b *Mattermost) {
 	post, err := postFromEvent(mm.Event)
 	if err != nil {
 		b.log.Error(err)
@@ -239,7 +239,7 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 		},
 		Message: mm.Request,
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	mm.sendMessage(b, response)
 }
 
@@ -364,7 +364,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 				IsAuthChannel:   false,
 				APIClient:       b.apiClient,
 			}
-			mm.handleMessage(b)
+			mm.handleMessage(ctx, b)
 		}
 	}
 }

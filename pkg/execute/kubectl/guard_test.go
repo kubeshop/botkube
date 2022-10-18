@@ -100,30 +100,52 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 }
 
 func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
-	// given
-	expectedRes := kubectl.Resource{
-		Name:                    "pods",
-		Namespaced:              true,
-		SlashSeparatedInCommand: false,
-	}
-	fakeDisco := &fakeDisco{
-		list: []*v1.APIResourceList{
-			{GroupVersion: "v1", APIResources: []v1.APIResource{
-				{Name: "pods", Namespaced: true, Kind: "Pod", Verbs: []string{"create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"}},
-			}},
+	testCases := []struct {
+		Name         string
+		SelectedVerb string
+		ResourceType string
+		ResourceMap  map[string]v1.APIResource
+
+		ExpectedResult     kubectl.Resource
+		ExpectedErrMessage string
+	}{
+		{
+			Name:         "Namespaced",
+			SelectedVerb: "get",
+			ResourceType: "pods",
+			ExpectedResult: kubectl.Resource{
+				Name:                    "pods",
+				Namespaced:              true,
+				SlashSeparatedInCommand: false,
+			},
+		},
+		{
+			Name:           "Verb is resourceless",
+			SelectedVerb:   "api-versions",
+			ResourceType:   "",
+			ExpectedResult: kubectl.Resource{},
 		},
 	}
-	logger, _ := logtest.NewNullLogger()
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			logger, _ := logtest.NewNullLogger()
+			fakeDisco := &fakeDisco{
+				list: []*v1.APIResourceList{
+					{GroupVersion: "v1", APIResources: []v1.APIResource{
+						{Name: "pods", Namespaced: true, Kind: "Pod", Verbs: []string{"create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"}},
+					}},
+				},
+			}
+			cmdGuard := kubectl.NewCommandGuard(logger, fakeDisco)
 
-	cmdGuard := kubectl.NewCommandGuard(logger, fakeDisco)
+			// when
+			result, err := cmdGuard.GetResourceDetails(tc.SelectedVerb, tc.ResourceType)
 
-	// when
-
-	res, err := cmdGuard.GetResourceDetails("get", "pods")
-
-	// then
-	require.NoError(t, err)
-	assert.Equal(t, expectedRes, res)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, tc.ExpectedResult, result)
+		})
+	}
 }
 
 func TestCommandGuard_GetServerResourceMap_HappyPath(t *testing.T) {
@@ -211,6 +233,17 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 		{
 			Name:         "Cluster-wide",
 			SelectedVerb: "get",
+			ResourceType: "nodes",
+			ResourceMap:  resMap,
+			ExpectedResult: kubectl.Resource{
+				Name:                    "nodes",
+				Namespaced:              false,
+				SlashSeparatedInCommand: false,
+			},
+		},
+		{
+			Name:         "Additional top verb",
+			SelectedVerb: "top",
 			ResourceType: "nodes",
 			ResourceMap:  resMap,
 			ExpectedResult: kubectl.Resource{

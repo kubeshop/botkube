@@ -116,19 +116,20 @@ const (
 )
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute() interactive.Message {
-	// TODO: Pass context from bots to this method
-	ctx := context.Background()
+func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
+	empty := interactive.Message{}
+	rawCmd := utils.RemoveAnyHyperlinks(e.message)
+	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
+	clusterName := e.cfg.Settings.ClusterName
+	inClusterName := utils.GetClusterNameFromKubectlCmd(rawCmd)
+	botName := e.notifierHandler.BotName()
 
-	var (
-		command       = utils.RemoveHyperlink(e.message)
-		clusterName   = e.cfg.Settings.ClusterName
-		inClusterName = utils.GetClusterNameFromKubectlCmd(command)
-		args          = strings.Fields(strings.TrimSpace(command))
-		empty         = interactive.Message{}
-		botName       = e.notifierHandler.BotName()
-	)
+	execFilter, err := extractExecutorFilter(rawCmd)
+	if err != nil {
+		return e.respond(err.Error(), rawCmd, "", botName)
+	}
 
+	args := strings.Fields(rawCmd)
 	if len(args) == 0 {
 		if e.conversation.IsAuthenticated {
 			return interactive.Message{
@@ -140,29 +141,6 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 		return empty // this prevents all bots on all clusters to answer something
 	}
 
-	response := func(msg string, overrideCommand ...string) interactive.Message {
-		msgBody := interactive.Body{
-			CodeBlock: msg,
-		}
-		if msg == "" {
-			msgBody = interactive.Body{
-				Plaintext: emptyResponseMsg,
-			}
-		}
-
-		message := interactive.Message{
-			Base: interactive.Base{
-				Description: e.header(command, overrideCommand...),
-				Body:        msgBody,
-			},
-		}
-		// Show Filter Input if command response is more than `lineLimitToShowFilter`
-		if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-			message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(command, botName))
-		}
-		return message
-	}
-
 	if inClusterName != "" && inClusterName != clusterName {
 		e.log.WithFields(logrus.Fields{
 			"config-cluster-name":  clusterName,
@@ -172,18 +150,18 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args))
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, e.message, e.conversation.IsAuthenticated)
+		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), execFilter.IsActive())
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, execFilter.FilteredCommand(), e.conversation.IsAuthenticated)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return response(err.Error())
+			return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return response(out)
+		return e.respond(execFilter.Apply(out), rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -192,8 +170,8 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	}
 
 	if e.kubectlCmdBuilder.CanHandle(args) {
-		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args))
-		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, e.header(command))
+		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args), false)
+		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, e.header(rawCmd))
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -204,33 +182,33 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 
 	cmds := executorsRunner{
 		"help": func() (interactive.Message, error) {
-			e.reportCommand(args[0])
+			e.reportCommand(args[0], false)
 			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
 		},
 		"ping": func() (interactive.Message, error) {
 			res := e.runVersionCommand("ping")
-			return response(fmt.Sprintf("pong\n\n%s", res)), nil
+			return e.respond(fmt.Sprintf("pong\n\n%s", res), rawCmd, execFilter.FilteredCommand(), botName), nil
 		},
 		"version": func() (interactive.Message, error) {
-			return response(e.runVersionCommand("version")), nil
+			return e.respond(e.runVersionCommand("version"), rawCmd, execFilter.FilteredCommand(), botName), nil
 		},
 		"filters": func() (interactive.Message, error) {
 			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return response(res), err
+			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"commands": func() (interactive.Message, error) {
-			res, err := e.runInfoCommand(args)
-			return response(res, humanReadableCommandListName), err
+			res, err := e.runInfoCommand(args, execFilter.IsActive())
+			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName, humanReadableCommandListName), err
 		},
 		"notifier": func() (interactive.Message, error) {
 			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return response(res), err
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"edit": func() (interactive.Message, error) {
 			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
 		},
 		"feedback": func() (interactive.Message, error) {
-			e.reportCommand(args[0])
+			e.reportCommand(args[0], false)
 			return interactive.Feedback(), nil
 		},
 	}
@@ -239,18 +217,41 @@ func (e *DefaultExecutor) Execute() interactive.Message {
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return response(incompleteCmdMsg)
+		return e.respond(incompleteCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	case errors.Is(err, errUnsupportedCommand):
-		return response(unsupportedCmdMsg)
+		return e.respond(unsupportedCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	case IsExecutionCommandError(err):
-		return response(err.Error())
+		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
 	default:
-		e.log.Errorf("while executing command %q: %s", command, err.Error())
+		e.log.Errorf("while executing command %q: %s", execFilter.FilteredCommand(), err.Error())
 		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return response(internalErrorMsg)
+		return e.respond(internalErrorMsg, rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	return msg
+}
+
+func (e *DefaultExecutor) respond(msg string, rawCmd string, filteredCmd string, botName string, overrideCommand ...string) interactive.Message {
+	msgBody := interactive.Body{
+		CodeBlock: msg,
+	}
+	if msg == "" {
+		msgBody = interactive.Body{
+			Plaintext: emptyResponseMsg,
+		}
+	}
+
+	message := interactive.Message{
+		Base: interactive.Base{
+			Description: e.header(rawCmd, overrideCommand...),
+			Body:        msgBody,
+		},
+	}
+	// Show Filter Input if command response is more than `lineLimitToShowFilter`
+	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+		message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(filteredCmd, botName))
+	}
+	return message
 }
 
 func (e *DefaultExecutor) header(command string, overrideName ...string) string {
@@ -263,8 +264,8 @@ func (e *DefaultExecutor) header(command string, overrideName ...string) string 
 	return e.appendByUserOnlyIfNeeded(out)
 }
 
-func (e *DefaultExecutor) reportCommand(verb string) {
-	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin)
+func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
+	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin, withFilter)
 	if err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
@@ -280,7 +281,7 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport)
+		e.reportCommand(cmdToReport, false)
 	}()
 
 	switch FiltersAction(args[1]) {
@@ -332,14 +333,14 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 }
 
 // runInfoCommand to list allowed commands
-func (e *DefaultExecutor) runInfoCommand(args []string) (string, error) {
+func (e *DefaultExecutor) runInfoCommand(args []string, withFilter bool) (string, error) {
 	if len(args) < 2 {
 		return "", errInvalidCommand
 	}
 	var cmdVerb = args[1]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport)
+		e.reportCommand(cmdToReport, withFilter)
 	}()
 
 	switch infoAction(cmdVerb) {
@@ -417,7 +418,11 @@ func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 }
 
 func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	e.reportCommand(cmd)
+	err := e.analyticsReporter.ReportCommand(e.platform, cmd, e.conversation.CommandOrigin, false)
+	if err != nil {
+		e.log.Errorf("while reporting version command: %s", err.Error())
+	}
+
 	return e.findBotkubeVersion()
 }
 
