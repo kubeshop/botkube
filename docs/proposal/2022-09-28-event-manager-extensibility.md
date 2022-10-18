@@ -137,7 +137,7 @@ to see we already have a registered plugin for this event or not.
 
 `specversion`: To have proper versioning for Botkube event format.
 
-`time`: Event time
+`time`: Event time in Unix time format to not deal with date parsing. 
 
 `data`: This is the event data that contains important information about source. what you see in `data` section is just example,
 we can also add some kind of validation in Botkube to better use received data. For example, if we force user to send key value pairs,
