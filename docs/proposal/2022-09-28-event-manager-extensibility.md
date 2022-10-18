@@ -77,7 +77,7 @@ Botkube can connect to `KubernetesSource` plugin and think about this is a serve
 located in that plugin and whenever it gets an event from Kubernetes, it can stream it to client which is Botkube. The main
 advantage of this usage, we can use any language to implement a plugin which supports gRPC. 
 
-![](./assets/Kubernetes-source-plugin.png)
+![](./assets/kubernetes-source-plugin.png)
 
 Source plugin does not necessarily need to implement a logic since some sources may want to have just configuration for the plugin in
 Botkube. Instead of source logic, they may want to send events directly to Botkube
