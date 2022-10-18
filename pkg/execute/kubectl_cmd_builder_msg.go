@@ -15,26 +15,27 @@ type (
 	// KubectlCmdBuilderOption defines option mutator signature.
 	KubectlCmdBuilderOption func(options *KubectlCmdBuilderOptions)
 
-	// KVItem describes the data for the dropdown item.
-	KVItem struct {
+	// dropdownItem describes the data for the dropdown item.
+	dropdownItem struct {
 		Name  string
 		Value string
 	}
 )
 
-// NewKV returns the KVItem instance.
-func NewKV(key, value string) KVItem {
-	return KVItem{
+// newDropdownItem returns the dropdownItem instance.
+func newDropdownItem(key, value string) dropdownItem {
+	return dropdownItem{
 		Name:  key,
 		Value: value,
 	}
 }
 
-// KVItemsFromSlice is a helper function to create the KVItem for dropdowns just from slice.
-func KVItemsFromSlice(in []string) []KVItem {
-	var out []KVItem
+// dropdownItemsFromSlice is a helper function to create the dropdown items from string slice.
+// Name and Value will represent the same data.
+func dropdownItemsFromSlice(in []string) []dropdownItem {
+	var out []dropdownItem
 	for _, item := range in {
-		out = append(out, NewKV(item, item))
+		out = append(out, newDropdownItem(item, item))
 	}
 	return out
 }
@@ -136,25 +137,25 @@ func FilterSection(botName string) interactive.LabelInput {
 
 // VerbSelect return drop-down select for kubectl verbs.
 func VerbSelect(botName string, verbs []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select command", verbsDropdownCommand, botName, KVItemsFromSlice(verbs), NewKV(initialItem, initialItem))
+	return selectDropdown("Select command", verbsDropdownCommand, botName, dropdownItemsFromSlice(verbs), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
 func ResourceTypeSelect(botName string, resources []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, KVItemsFromSlice(resources), NewKV(initialItem, initialItem))
+	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, dropdownItemsFromSlice(resources), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
 func ResourceNamesSelect(botName string, names []string, initialItem string) *interactive.Select {
-	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, KVItemsFromSlice(names), NewKV(initialItem, initialItem))
+	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, dropdownItemsFromSlice(names), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
-func ResourceNamespaceSelect(botName string, names []KVItem, initialNamespace KVItem) *interactive.Select {
+func ResourceNamespaceSelect(botName string, names []dropdownItem, initialNamespace dropdownItem) *interactive.Select {
 	return selectDropdown("Select namespace", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
 }
 
-func selectDropdown(name, cmd, botName string, items []KVItem, initialItem KVItem) *interactive.Select {
+func selectDropdown(name, cmd, botName string, items []dropdownItem, initialItem dropdownItem) *interactive.Select {
 	if len(items) == 0 {
 		return nil
 	}

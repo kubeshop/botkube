@@ -321,10 +321,10 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 	var (
 		kc        = e.merger.MergeAllEnabled(bindings)
 		allowedNS = kc.AllowedNamespacesPerResource[details.resourceType]
-		finalNS   []KVItem
+		finalNS   []dropdownItem
 	)
 
-	initialNamespace := NewKV(details.namespace, details.namespace)
+	initialNamespace := newDropdownItem(details.namespace, details.namespace)
 	initialNamespace = e.appendNamespaceSuffixIfDefault(initialNamespace)
 
 	for _, item := range allClusterNamespaces.Items {
@@ -333,7 +333,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 			continue
 		}
 
-		kv := NewKV(item.Name, item.Name)
+		kv := newDropdownItem(item.Name, item.Name)
 		if initialNamespace.Value == kv.Value {
 			kv = e.appendNamespaceSuffixIfDefault(kv)
 		}
@@ -345,7 +345,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 }
 
 // UX requirement to append the (namespace) suffix if the namespace is called `default`.
-func (e *KubectlCmdBuilder) appendNamespaceSuffixIfDefault(in KVItem) KVItem {
+func (e *KubectlCmdBuilder) appendNamespaceSuffixIfDefault(in dropdownItem) dropdownItem {
 	if in.Name == "default" {
 		in.Name += " (namespace)"
 	}
