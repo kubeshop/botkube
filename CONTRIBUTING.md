@@ -65,15 +65,16 @@ This section describes how to build and run Botkube from source code.
      Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
 2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
-
-
    
    ```sh
    --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
    --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
+   ```
+   
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
+   
 ### Build and run locally
 
 For faster development, you can also build and run Botkube outside K8s cluster.
