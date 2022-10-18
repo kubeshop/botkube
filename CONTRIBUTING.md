@@ -64,7 +64,7 @@ This section describes how to build and run Botkube from source code.
      ```
      Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
-2. Ensure you have a Slack installation already setup:
+2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
 
 
 3. Deploy the newly created image in your cluster:
