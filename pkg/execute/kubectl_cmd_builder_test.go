@@ -369,14 +369,14 @@ func fixNamespaceDropdown() interactive.Select {
 				Name: "Select namespace",
 				Options: []interactive.OptionItem{
 					{
-						Name:  "default",
+						Name:  "default (namespace)",
 						Value: "default",
 					},
 				},
 			},
 		},
 		InitialOption: &interactive.OptionItem{
-			Name:  "default",
+			Name:  "default (namespace)",
 			Value: "default",
 		},
 	}
@@ -457,7 +457,7 @@ func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...int
 						ID:               "@BKTesting kc-cmd-builder --filter-query ",
 						DispatchedAction: interactive.DispatchInputActionOnCharacter,
 						Text:             "Filter output",
-						Placeholder:      "(Optional) Type to filter command output by.",
+						Placeholder:      "Filter output by string (optional)",
 					},
 				},
 			},
