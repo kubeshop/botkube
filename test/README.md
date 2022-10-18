@@ -163,7 +163,6 @@ For example, if you're only running Discord tests, you can omit env var prefixed
     ```bash
     make test-integration-slack
     ```
- 
 3. Run the tests for Discord:
 
     ```bash
