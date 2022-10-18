@@ -321,28 +321,35 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 	var (
 		kc        = e.merger.MergeAllEnabled(bindings)
 		allowedNS = kc.AllowedNamespacesPerResource[details.resourceType]
-		finalNS   []string
+		finalNS   []dropdownItem
 	)
 
-	defaultNSExists := false
+	initialNamespace := newDropdownItem(details.namespace, details.namespace)
+	initialNamespace = e.appendNamespaceSuffixIfDefault(initialNamespace)
+
 	for _, item := range allClusterNamespaces.Items {
 		if !allowedNS.IsAllowed(item.Name) {
 			log.WithField("namespace", item.Name).Debug("Namespace is not allowed, so skipping it.")
 			continue
 		}
-		if details.namespace == item.Name {
-			defaultNSExists = true
+
+		kv := newDropdownItem(item.Name, item.Name)
+		if initialNamespace.Value == kv.Value {
+			kv = e.appendNamespaceSuffixIfDefault(kv)
 		}
-		finalNS = append(finalNS, item.Name)
+
+		finalNS = append(finalNS, kv)
 	}
 
-	if defaultNSExists {
-		// The initial option MUST be a subset of all available dropdown options
-		// if the default namespace was not found on that list, don't include it.
-		ResourceNamespaceSelect(botName, finalNS, "")
-	}
+	return ResourceNamespaceSelect(botName, finalNS, initialNamespace)
+}
 
-	return ResourceNamespaceSelect(botName, finalNS, details.namespace)
+// UX requirement to append the (namespace) suffix if the namespace is called `default`.
+func (e *KubectlCmdBuilder) appendNamespaceSuffixIfDefault(in dropdownItem) dropdownItem {
+	if in.Name == "default" {
+		in.Name += " (namespace)"
+	}
+	return in
 }
 
 func (e *KubectlCmdBuilder) getEnableKubectlDetails(bindings []string) (verbs []string, resources []string, namespace string) {
