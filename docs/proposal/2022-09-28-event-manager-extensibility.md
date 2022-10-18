@@ -79,7 +79,7 @@ advantage of this usage, we can use any language to implement a plugin which sup
 
 ![](./assets/Kubernetes-source-plugin.png)
 
-Source plugin does not necessarily need to implement a logic since some sources may want to have just configuration fot the plugin in
+Source plugin does not necessarily need to implement a logic since some sources may want to have just configuration for the plugin in
 Botkube. Instead of source logic, they may want to send events directly to Botkube
 with a payload in [cloud events schema format](https://cloudevents.io/) which we will see soon. 
 
