@@ -25,6 +25,11 @@ type Commander struct {
 	guard  CmdGuard
 }
 
+// unsupportedEventCommandVerbs contains list of verbs that are not supported for the actionable event notifications.
+var unsupportedEventCommandVerbs = map[string]struct{}{
+	"delete": {}, // See https://github.com/kubeshop/botkube/issues/824
+}
+
 // EnabledKubectlMerger is responsible for merging enabled kubectl commands for the given namespace.
 type EnabledKubectlMerger interface {
 	MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl
@@ -60,7 +65,13 @@ func (c *Commander) GetCommandsForEvent(event events.Event, executorBindings []s
 
 	var allowedVerbs []string
 	for key := range enabledKubectls.AllowedKubectlVerb {
-		allowedVerbs = append(allowedVerbs, key)
+		verb := key
+		if _, exists := unsupportedEventCommandVerbs[verb]; exists {
+			c.log.Debug("Skipping unsupported verb %q for event notification %q...", verb, event.Kind)
+			continue
+		}
+
+		allowedVerbs = append(allowedVerbs, verb)
 	}
 	sort.Strings(allowedVerbs)
 
