@@ -12,7 +12,7 @@ Follow the [botkube-docs/CONTRIBUTING.md](https://github.com/kubeshop/botkube-do
 
 ## Build and run Botkube from source code
 
-This section describes how to build and run the Botkube from the source code.
+This section describes how to build and run Botkube from source code.
 
 ### Prerequisite
 
@@ -35,14 +35,16 @@ This section describes how to build and run the Botkube from the source code.
 
      This is ideal for running Botkube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
-     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target. By default, the build targets `linux/amd64`.
+     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. By default, the build targets `linux/amd64`.
+     
+     For example, the command below builds the `linux/arm64` target:
 
         ```sh
         IMAGE_PLATFORM=linux/arm64 make container-image-single
         docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
         docker push <your_account>/botkube:v9.99.9-dev
         ```
-        Where `<your_account>` is Docker hub account to which you can push the image.
+        Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
    - **Multi-arch target builds for any K8s cluster**
 
@@ -60,25 +62,19 @@ This section describes how to build and run the Botkube from the source code.
      docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
      docker push <your_account>/botkube:v9.99.9-dev
      ```
-     Where `<your_account>` is Docker hub account to which you can push the image.
+     Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
 
-2. Deploy the newly created image in your cluster:
-
+2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
+   
    ```sh
-   helm install botkube --namespace botkube --create-namespace \
-   --set communications.slack.enabled=true \
-   --set communications.slack.channel=<SLACK_CHANNEL_NAME> \
-   --set communications.slack.token=<SLACK_API_TOKEN_FOR_THE_BOT> \
-   --set settings.clusterName=<CLUSTER_NAME> \
-   --set settings.kubectl.enabled=<ALLOW_KUBECTL> \
-   --set image.registry=<image_registry e.g. docker.io> \
+   --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
    --set image.repository=<your_account>/botkube \
    --set image.tag=v9.99.9-dev \
-   ./helm/botkube
+   --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
    ```
-
+   
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
-
+   
 ### Build and run locally
 
 For faster development, you can also build and run Botkube outside K8s cluster.
@@ -146,7 +142,11 @@ For faster development, you can also build and run Botkube outside K8s cluster.
   ```
   This will run the `golangci-lint` tool to lint the Go code.
 
-- [Run e2e tests](./test/README.md)
+### Run the e2e tests
+
+Here [are the details you need](./test/README.md) to set up and run the e2e tests.
+
+### Create a Pull Request
 
 - Make sure your pull request has [good commit messages](https://chris.beams.io/posts/git-commit/):
   - Separate subject from body with a blank line
