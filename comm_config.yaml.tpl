@@ -1,6 +1,6 @@
 # Map of enabled communication mediums. The `communications` property name is an alias for a given configuration.
 #
-# Format: communications.<alias>
+# Format: communications.{alias}
 communications:
   'default-group':
     # Settings for Slack

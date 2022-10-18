@@ -1,7 +1,7 @@
 # Map of enabled sources. The `source` property name is an alias for a given configuration.
 # It's used as a binding reference.
 #
-# Format: source.<alias>
+# Format: source.{alias}
 sources:
   'k8s-events':
 
@@ -22,7 +22,6 @@ sources:
           # If true, notifies about Ingress resources with invalid TLS secret reference.
           tlsSecretValid: true
 
-      # TODO: https://github.com/kubeshop/botkube/issues/596
       # New 'namespace' property.
       # It can be overridden in the nested level.
       # namespace:
@@ -254,7 +253,7 @@ configWatcher:
 # Map of enabled executors. The `executors` property name is an alias for a given configuration.
 # It's used as a binding reference.
 #
-# Format: executors.<alias>
+# Format: executors.{alias}
 executors:
   'kubectl-read-only':
     # Kubectl executor configs

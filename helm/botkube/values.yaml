@@ -56,7 +56,7 @@ kubeconfig:
 # Key name is used as a binding reference.
 # @default -- See the `values.yaml` file for full object.
 #
-## Format: sources.<alias>
+## Format: sources.{alias}
 sources:
   'k8s-recommendation-events':
     displayName: "Kubernetes Recommendations"
@@ -237,7 +237,7 @@ filters:
 # Key name is used as a binding reference.
 # @default -- See the `values.yaml` file for full object.
 #
-## Format: executors.<alias>
+## Format: executors.{alias}
 executors:
   'kubectl-read-only':
     ## Kubectl executor configuration.
@@ -280,7 +280,7 @@ existingCommunicationsSecretName: ""
 # The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.
 # @default -- See the `values.yaml` file for full object.
 #
-## Format: communications.<alias>
+## Format: communications.{alias}
 communications:
   'default-group':
     ## Settings for Slack.
@@ -289,7 +289,7 @@ communications:
       enabled: false
       # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
-      ## Format: channels.<alias>
+      ## Format: channels.{alias}
       channels:
         'default':
           # -- Slack channel name without '#' prefix where you have added Botkube and want to receive notifications in.
@@ -317,7 +317,7 @@ communications:
       enabled: false
       # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
-      ## Format: channels.<alias>
+      ## Format: channels.{alias}
       channels:
         'default':
           # -- Slack channel name without '#' prefix where you have added Botkube and want to receive notifications in.
@@ -353,7 +353,7 @@ communications:
       team: 'MATTERMOST_TEAM'
       # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
-      ## Format: channels.<alias>
+      ## Format: channels.{alias}
       channels:
         'default':
           # -- The Mattermost channel name for receiving Botkube alerts.
@@ -407,7 +407,7 @@ communications:
       botID: 'DISCORD_BOT_ID'
       # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
-      ## Format: channels.<alias>
+      ## Format: channels.{alias}
       channels:
         'default':
           # -- Discord channel ID for receiving Botkube alerts.
@@ -451,7 +451,7 @@ communications:
       skipTLSVerify: false
       # -- Map of configured indices. The `indices` property name is an alias for a given configuration.
       #
-      ## Format: indices.<alias>
+      ## Format: indices.{alias}
       indices:
         'default':
           # -- Configures Elasticsearch index settings.
@@ -591,12 +591,12 @@ resources: {}
 # -- Extra environment variables to pass to the Botkube container.
 # [Ref docs](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables).
 extraEnv: []
-#  - name: <key>
+#  - name: {key}
 #    valueFrom:
 #      configMapKeyRef:
 #        name: configmap-name
 #        key: value_key
-#  - name: <key>
+#  - name: {key}
 #    value: value
 
 
@@ -605,7 +605,7 @@ extraEnv: []
 extraVolumes: []
 # - name: extra-volume-0
 #   secret:
-#     secretName: <secret-name>
+#     secretName: {secret-name}
 #
 ## For CSI e.g. Vault:
 # - name: secrets-store-inline

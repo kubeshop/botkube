@@ -41,10 +41,10 @@ This section describes how to build and run Botkube from source code.
 
         ```sh
         IMAGE_PLATFORM=linux/arm64 make container-image-single
-        docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev <your_account>/botkube:v9.99.9-dev
-        docker push <your_account>/botkube:v9.99.9-dev
+        docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev {your_account}/botkube:v9.99.9-dev
+        docker push {your_account}/botkube:v9.99.9-dev
         ```
-        Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
+        Where `{your_account}` is Docker hub or any other registry provider account to which you can push the image.
 
    - **Multi-arch target builds for any K8s cluster**
 
@@ -59,18 +59,22 @@ This section describes how to build and run Botkube from source code.
 
      ```sh
      make container-image
-     docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 <your_account>/botkube:v9.99.9-dev
-     docker push <your_account>/botkube:v9.99.9-dev
+     docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 {your_account}/botkube:v9.99.9-dev
+     docker push {your_account}/botkube:v9.99.9-dev
      ```
-     Where `<your_account>` is Docker hub or any other registry provider account to which you can push the image.
+     
+     Where `{your_account}` is Docker hub or any other registry provider account to which you can push the image.
 
 2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
    
    ```sh
-   --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
-   --set image.repository=<your_account>/botkube \
+   export IMAGE_REGISTRY="{imageRegistry}" # e.g. docker.io
+   export IMAGE_PULL_POLICY="{pullPolicy}" # e.g. Always or IfNotPresent
+   
+   --set image.registry=${IMAGE_REGISTRY} \
+   --set image.repository={your_account}/botkube \
    --set image.tag=v9.99.9-dev \
-   --set image.pullPolicy=<IMAGE_PULL_POLICY e.g. Always>
+   --set image.pullPolicy=${IMAGE_PULL_POLICY}
    ```
    
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
