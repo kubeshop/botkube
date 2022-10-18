@@ -67,9 +67,6 @@ This section describes how to build and run Botkube from source code.
 2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
 
 
-3. Deploy the newly created image in your cluster:
-   
-   Use [the instructions here](https://botkube.io/docs/installation/socketslack/#install-botkube-backend-in-kubernetes-cluster) to Helm install Botkube while updating the following flags:  
    
    ```sh
    --set image.registry=<IMAGE_REGISTRY e.g. docker.io> \
