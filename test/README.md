@@ -168,7 +168,8 @@ For example, if you're only running Discord tests, you can omit env var prefixed
     ```bash
     make test-integration-discord
     ```
-### Running the tests against the same Botkube namespace
+
+### Clear `botkube-system` ConfigMap between test runs
 
 Botkube tracks whether the initial help message was sent or not to minimise spam. This is tracked in a `botkube-system` ConfigMap.
 
