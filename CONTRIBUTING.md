@@ -35,9 +35,9 @@ This section describes how to build and run Botkube from source code.
 
      This is ideal for running Botkube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
-     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. For example, the command below builds the `linux/arm64` target.
-
-     By default, the build targets `linux/amd64`.
+     Remember to set the `IMAGE_PLATFORM` env var to your target architecture. By default, the build targets `linux/amd64`.
+     
+     For example, the command below builds the `linux/arm64` target:
 
         ```sh
         IMAGE_PLATFORM=linux/arm64 make container-image-single
