@@ -18,12 +18,26 @@ General overview of the proposal and section with ToC
   * [Non-goal](#non-goal)
 - [Proposal](#proposal)
   * [Terminology](#terminology)
-  * [Golang and Extensibility](#golang-and-extensibility)
   * [Hashicorp's Go Plugin](#hashicorps-go-plugin)
   * [Source Plugin Structure](#source-plugin-structure)
   * [Executor Plugin Structure](#executor-plugin-structure)
   * [Cloud Events](#cloud-events)
     + [Botkube Cloudevents Data Structure](#Botkube-cloudevents-data-structure)
+- [PoC](#poc)
+  * [Motivation](#motivation)
+  * [Folder Structure](#folder-structure)
+    + [API Folder](#api-folder)
+    + [Plugins Folder](#plugins-folder)
+  * [How to build plugins?](#how-to-build-plugins)
+  * [How can I know the metadata of plugins?](#how-can-i-know-the-metadata-of-plugins)
+  * [How can I provide plugin configuration?](#how-can-i-provide-plugin-configuration)
+  * [How to install/uninstall plugins?](#how-to-installuninstall-plugins)
+  * [How to Upgrade Plugins?](#how-to-upgrade-plugins)
+  * [Where is the actual plugin process?](#where-is-the-actual-plugin-process)
+  * [Example](#example)
+  * [Consequences](#consequences)
+- [Alternatives](#alternatives)
+  * [Golang and Extensibility](#golang-and-extensibility) 
 
 <!-- tocstop -->
 ## Motivation
@@ -55,13 +69,6 @@ events. In same way, `PrometheusSource` can consume Prometheus events, or it can
 send alerts to this endpoint. Those examples can be extended, but is there another way to add those extensions in more detached way?
 For example, instead of forcing to implement interfaces, what about we add plugins, and they are being called automatically by
 main process (Botkube in our case). By doing that, plugins and core Botkube implementation can be independent and easy to maintain.
-
-### Golang and Extensibility
-Golang has [plugin](https://pkg.go.dev/plugin) package which you can use to add an extension system to your existing Go project.
-This package has some limitations as follows;
-- Once a problem occurs in plugin, it also crashes the host process (your main program, which is Botkube in our case).
-- You can load the plugin during the initialization, then reload is not supported.
-- You need to maintain conflict of shared libraries.
 
 ### Hashicorp's Go Plugin
 There are several alternatives to plugin systems in Golang, but I want to focus specifically on 
@@ -161,7 +168,7 @@ The plugin system contains 2 packages: `api` and `plugins`. `plugins` package is
 plugins to include them after PR approval. `api` package contains the logic to manage Botkube plugins. Let's deep dive those folders
 to understand them a bit better.
 
-### API Folder
+#### API Folder
 This folder contains api packages to help consumers initialize plugins in client side. This package simply contains proto definitions to describe
 contract between client (Botkube) and server (Actual plugin). As you can guess, it become easier once we use gRPC since Hashicorp's plugin system works
 on RPC and the integration is so simple. 
@@ -170,7 +177,7 @@ API folder contains `source` and `executor` folders to have more meaningful pack
 you can see base gRPC server and client implementations in `grpc.go` which is shared among plugins. `interface.go` contains the actual API to expose to consumers. Finally,
 `plugin.go` is for plugin definition which is a simple struct for Hashicorp's Go plugin system.
 
-### Plugins Folder
+#### Plugins Folder
 In this folder, you can see examples `kubectl` and `Kubernetes`. Each plugin has its own dedicated folders which are typically go module projects. 
 Each plugin folder contains a simple Go file which contains the actual business logic of plugin. You can also see a `Makefile` to manage the build
 process of that plugin. They might not be a simple Go program, that's why there is no unified `Makefile` that builds any Go project, it can contain
@@ -294,7 +301,14 @@ any section based on customer definition by using Go template. `data` field has 
   - Implement Helm plugin for Botkube
   - Design a configuration structure for helm executor plugin
   - Document it in [botkube-plugins](https://keptn.sh/docs/integrations/#contributing) repository.
-  
+ 
+## Alternatives
+### Golang and Extensibility
+Golang has [plugin](https://pkg.go.dev/plugin) package which you can use to add an extension system to your existing Go project.
+This package has some limitations as follows;
+- Once a problem occurs in plugin, it also crashes the host process (your main program, which is Botkube in our case).
+- You can load the plugin during the initialization, then reload is not supported.
+- You need to maintain conflict of shared libraries.
 <!--
 What other approaches did you consider, and why did you rule them out? These do
 not need to be as detailed as the proposal, but should include enough
