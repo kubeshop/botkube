@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -206,7 +207,7 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 }
 
 // Check incoming message and take action
-func (mm *mattermostMessage) handleMessage(b *Mattermost) {
+func (mm *mattermostMessage) handleMessage(ctx context.Context, b *Mattermost) {
 	post, err := postFromEvent(mm.Event)
 	if err != nil {
 		b.log.Error(err)
@@ -234,10 +235,11 @@ func (mm *mattermostMessage) handleMessage(b *Mattermost) {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  mm.IsAuthChannel,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: mm.Request,
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	mm.sendMessage(b, response)
 }
 
@@ -362,7 +364,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 				IsAuthChannel:   false,
 				APIClient:       b.apiClient,
 			}
-			mm.handleMessage(b)
+			mm.handleMessage(ctx, b)
 		}
 	}
 }

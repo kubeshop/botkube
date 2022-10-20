@@ -1,20 +1,18 @@
-package execute
+package execute_test
+
+import "github.com/kubeshop/botkube/pkg/execute/kubectl"
 
 // FakeCommandGuard provides functionality to resolve correlations between kubectl verbs and resource types.
-// TODO: Currently, we use dumb implementation that handles only a happy path, just for test purposes.
-//
-//	This will be replaced by https://github.com/kubeshop/botkube/issues/786.
+// It's used for test purposes.
 type FakeCommandGuard struct{}
 
-// Resource holds additional details about the K8s resource type.
-type Resource struct {
-	Name                    string
-	Namespaced              bool
-	SlashSeparatedInCommand bool
+// FilterSupportedVerbs filters out unsupported verbs by the interactive commands.
+func (f *FakeCommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
+	return allVerbs
 }
 
 // GetAllowedResourcesForVerb returns allowed resources types for a given verb.
-func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allConfiguredResources []string) ([]Resource, error) {
+func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allConfiguredResources []string) ([]kubectl.Resource, error) {
 	_, found := resourcelessVerbs[selectedVerb]
 	if found {
 		return nil, nil
@@ -22,30 +20,43 @@ func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allCo
 
 	// special case for 'logs'
 	if selectedVerb == "logs" {
-		return []Resource{
+		return []kubectl.Resource{
 			staticResourceMapping["deployments"],
 			staticResourceMapping["pods"],
 		}, nil
 	}
 
-	var out []Resource
+	var out []kubectl.Resource
 	for _, name := range allConfiguredResources {
-		out = append(out, staticResourceMapping[name])
+		res, found := staticResourceMapping[name]
+		if !found {
+			continue
+		}
+		out = append(out, res)
 	}
 	return out, nil
 }
 
 // GetResourceDetails returns resource details.
-func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) Resource {
+func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) (kubectl.Resource, error) {
 	if verb == "logs" {
-		return Resource{
+		return kubectl.Resource{
 			Name:                    resourceType,
 			Namespaced:              true,
 			SlashSeparatedInCommand: true,
-		}
+		}, nil
 	}
 
-	return staticResourceMapping[resourceType]
+	res, found := staticResourceMapping[resourceType]
+	if found {
+		return res, nil
+	}
+
+	// fake data about resource
+	return kubectl.Resource{
+		Name:       resourceType,
+		Namespaced: true,
+	}, nil
 }
 
 var resourcelessVerbs = map[string]struct{}{
@@ -55,7 +66,7 @@ var resourcelessVerbs = map[string]struct{}{
 	"cluster-info":  {},
 }
 
-var staticResourceMapping = map[string]Resource{
+var staticResourceMapping = map[string]kubectl.Resource{
 	// namespace-scoped:
 	"deployments":  {Name: "deployments", Namespaced: true},
 	"pods":         {Name: "pods", Namespaced: true},

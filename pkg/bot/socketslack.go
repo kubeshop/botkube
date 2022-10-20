@@ -17,6 +17,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/kubeshop/botkube/pkg/utils"
@@ -29,42 +31,48 @@ import (
 
 var _ Bot = &SocketSlack{}
 
+// EventCommandProvider describes a provider for event commands.
+type EventCommandProvider interface {
+	GetCommandsForEvent(event events.Event, executorBindings []string) ([]kubectl.Command, error)
+}
+
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        socketSlackAnalyticsReporter
-	botID           string
-	client          *slack.Client
-	channelsMutex   sync.RWMutex
-	channels        map[string]channelConfigByName
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	commGroupName   string
-	renderer        *SlackRenderer
-	mdFormatter     interactive.MDFormatter
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
+	reporter         socketSlackAnalyticsReporter
+	eventCmdProvider EventCommandProvider
+	botID            string
+	client           *slack.Client
+	channelsMutex    sync.RWMutex
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	botMentionRegex  *regexp.Regexp
+	commGroupName    string
+	renderer         *SlackRenderer
+	mdFormatter      interactive.MDFormatter
 }
 
 type socketSlackMessage struct {
-	Text                string
-	Channel             string
-	ThreadTimeStamp     string
-	User                string
-	TriggerID           string
-	IsButtonClickOrigin bool
-	State               *slack.BlockActionStates
-	ResponseURL         string
-	BlockID             string
+	Text            string
+	Channel         string
+	ThreadTimeStamp string
+	User            string
+	TriggerID       string
+	CommandOrigin   command.Origin
+	State           *slack.BlockActionStates
+	ResponseURL     string
+	BlockID         string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, eventCmdProvider EventCommandProvider, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
@@ -85,16 +93,17 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		botID:           botID,
-		client:          client,
-		channels:        channels,
-		commGroupName:   commGroupName,
-		renderer:        NewSlackRenderer(cfg.Notification),
-		botMentionRegex: botMentionRegex,
-		mdFormatter:     mdFormatter,
+		log:              log,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		botID:            botID,
+		client:           client,
+		channels:         channels,
+		commGroupName:    commGroupName,
+		eventCmdProvider: eventCmdProvider,
+		renderer:         NewSlackRenderer(cfg.Notification),
+		botMentionRegex:  botMentionRegex,
+		mdFormatter:      mdFormatter,
 	}, nil
 }
 
@@ -147,8 +156,9 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
 							User:            ev.User,
+							CommandOrigin:   command.TypedOrigin,
 						}
-						if err := b.handleMessage(msg); err != nil {
+						if err := b.handleMessage(ctx, msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
 						}
 					}
@@ -173,7 +183,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					act := callback.ActionCallback.BlockActions[0]
 					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, true)
+						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
 						if reportErr != nil {
 							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 						}
@@ -190,18 +200,24 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						continue
 					}
 
-					msg := socketSlackMessage{
-						Text:                resolveBlockActionCommand(*act),
-						Channel:             channelID,
-						ThreadTimeStamp:     callback.MessageTs,
-						TriggerID:           callback.TriggerID,
-						User:                callback.User.ID,
-						IsButtonClickOrigin: true,
-						State:               callback.BlockActionState,
-						ResponseURL:         callback.ResponseURL,
-						BlockID:             act.BlockID,
+					cmd, cmdOrigin := resolveBlockActionCommand(*act)
+					// Use thread's TS if interactive call triggered within thread.
+					threadTs := callback.MessageTs
+					if callback.Message.Msg.ThreadTimestamp != "" {
+						threadTs = callback.Message.Msg.ThreadTimestamp
 					}
-					if err := b.handleMessage(msg); err != nil {
+					msg := socketSlackMessage{
+						Text:            cmd,
+						Channel:         channelID,
+						ThreadTimeStamp: threadTs,
+						TriggerID:       callback.TriggerID,
+						User:            callback.User.ID,
+						CommandOrigin:   cmdOrigin,
+						State:           callback.BlockActionState,
+						ResponseURL:     callback.ResponseURL,
+						BlockID:         act.BlockID,
+					}
+					if err := b.handleMessage(ctx, msg); err != nil {
 						b.log.Errorf("Message handling error: %s", err.Error())
 					}
 				case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
@@ -211,14 +227,15 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						for actID, act := range item {
 							act.ActionID = actID // normalize event
 
+							cmd, cmdOrigin := resolveBlockActionCommand(act)
 							msg := socketSlackMessage{
-								Text:                resolveBlockActionCommand(act),
-								Channel:             callback.View.PrivateMetadata,
-								User:                callback.User.ID,
-								IsButtonClickOrigin: true,
+								Text:          cmd,
+								Channel:       callback.View.PrivateMetadata,
+								User:          callback.User.ID,
+								CommandOrigin: cmdOrigin,
 							}
 
-							if err := b.handleMessage(msg); err != nil {
+							if err := b.handleMessage(ctx, msg); err != nil {
 								b.log.Errorf("Message handling error: %s", err.Error())
 							}
 						}
@@ -226,6 +243,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				default:
 					b.log.Debugf("get unhandled event %s", callback.Type)
 				}
+
 			case socketmode.EventTypeErrorBadMessage:
 				b.log.Errorf("Bad message: %+v\n", event.Data)
 			case socketmode.EventTypeIncomingError:
@@ -276,7 +294,7 @@ func (b *SocketSlack) SetNotificationsEnabled(channelName string, enabled bool) 
 	return nil
 }
 
-func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
+func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
@@ -300,17 +318,17 @@ func (b *SocketSlack) handleMessage(event socketSlackMessage) error {
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
-			Alias:               channel.alias,
-			ID:                  channel.Identifier(),
-			ExecutorBindings:    channel.Bindings.Executors,
-			IsAuthenticated:     isAuthChannel,
-			IsButtonClickOrigin: event.IsButtonClickOrigin,
-			State:               event.State,
+			Alias:            channel.alias,
+			ID:               channel.Identifier(),
+			ExecutorBindings: channel.Bindings.Executors,
+			IsAuthenticated:  isAuthChannel,
+			CommandOrigin:    event.CommandOrigin,
+			State:            event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err = b.send(event, request, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
@@ -330,8 +348,16 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 	}
 
 	// Upload message as a file if too long
+	var file *slack.File
+	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		return uploadFileToSlack(event.Channel, resp, b.client)
+		file, err = uploadFileToSlack(event.Channel, resp, b.client, event.ThreadTimeStamp)
+		if err != nil {
+			return err
+		}
+		resp = interactive.Message{
+			PlaintextInputs: resp.PlaintextInputs,
+		}
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
@@ -349,9 +375,8 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 		b.renderer.RenderInteractiveMessage(resp),
 	}
 
-	//if the message is from thread then add an option to return the response to the thread
-	if event.ThreadTimeStamp != "" {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+		options = append(options, ts)
 	}
 
 	if resp.ReplaceOriginal && event.ResponseURL != "" {
@@ -374,11 +399,22 @@ func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactiv
 // SendEvent sends event notification to slack
 func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
-	attachment := b.renderer.RenderEventMessage(event)
 
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
+		additionalSection := b.getInteractiveEventSectionIfShould(event, channelName)
+
+		var additionalSections []interactive.Section
+		if additionalSection != nil {
+			additionalSections = append(additionalSections, *additionalSection)
+		}
+		msg := b.renderer.RenderEventMessage(event, additionalSections...)
+
+		options := []slack.MsgOption{
+			b.renderer.RenderInteractiveMessage(msg),
+		}
+
+		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
 			continue
@@ -388,6 +424,34 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSo
 	}
 
 	return errs.ErrorOrNil()
+}
+
+func (b *SocketSlack) getInteractiveEventSectionIfShould(event events.Event, channelName string) *interactive.Section {
+	channel, isAuthChannel := b.getChannels()[channelName]
+	if !isAuthChannel {
+		return nil
+	}
+
+	commands, err := b.eventCmdProvider.GetCommandsForEvent(event, channel.Bindings.Executors)
+	if err != nil {
+		b.log.Errorf("while getting commands for event: %w", err)
+		return nil
+	}
+
+	if len(commands) == 0 {
+		return nil
+	}
+
+	cmdPrefix := fmt.Sprintf("%s kubectl", b.BotName())
+	var optionItems []interactive.OptionItem
+	for _, cmd := range commands {
+		optionItems = append(optionItems, interactive.OptionItem{
+			Name:  cmd.Name,
+			Value: cmd.Cmd,
+		})
+	}
+	section := interactive.EventCommandsSection(cmdPrefix, optionItems)
+	return &section
 }
 
 func (b *SocketSlack) getChannelsToNotify(event events.Event, eventSources []string) []string {
@@ -457,8 +521,10 @@ func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
 }
 
-func resolveBlockActionCommand(act slack.BlockAction) string {
-	command := act.Value
+func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
+	cmd := act.Value
+	cmdOrigin := command.UnknownOrigin
+
 	switch act.Type {
 	// currently we support only interactive.MultiSelect option
 	case "multi_static_select":
@@ -466,13 +532,40 @@ func resolveBlockActionCommand(act slack.BlockAction) string {
 		for _, item := range act.SelectedOptions {
 			items = append(items, item.Value)
 		}
-		command = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+		cmd = fmt.Sprintf("%s %s", act.ActionID, strings.Join(items, ","))
+		cmdOrigin = command.MultiSelectValueChangeOrigin
 	case "static_select":
 		// Example of commands that are handled here:
 		//   @Botkube kcc --verbs get
 		//   @Botkube kcc --resource-type
-		command = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+		cmd = fmt.Sprintf("%s %s", act.ActionID, act.SelectedOption.Value)
+		cmdOrigin = command.SelectValueChangeOrigin
+	case "button":
+		cmdOrigin = command.ButtonClickOrigin
+	case "plain_text_input":
+		cmd = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
+		cmdOrigin = command.PlainTextInputOrigin
 	}
 
-	return command
+	return cmd, cmdOrigin
+}
+
+func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {
+	//if the message is from thread then add an option to return the response to the thread
+	if event.ThreadTimeStamp != "" {
+		return slack.MsgOptionTS(event.ThreadTimeStamp)
+	}
+
+	if file == nil {
+		return nil
+	}
+
+	// If the message was already as a file attachment, reply it a given thread
+	for _, share := range file.Shares.Public {
+		if len(share) >= 1 && share[0].Ts != "" {
+			return slack.MsgOptionTS(share[0].Ts)
+		}
+	}
+
+	return nil
 }

@@ -5,11 +5,12 @@ import (
 	"errors"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 type fakeAnalyticsReporter struct{}
 
-func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ bool) error {
+func (f *fakeAnalyticsReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin, _ bool) error {
 	return nil
 }
 

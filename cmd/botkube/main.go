@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -143,7 +143,10 @@ func run() error {
 		resourceNameNormalizerFunc = resourceNameNormalizer.Normalize
 	}
 
-	// Create executor factor
+	cmdGuard := kubectl.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
+	commander := kubectl.NewCommander(logger.WithField(componentLogFieldKey, "Commander"), kcMerger, cmdGuard)
+
+	// Create executor factory
 	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, k8sCli)
 	executorFactory := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
@@ -156,6 +159,7 @@ func run() error {
 			CfgManager:        cfgManager,
 			AnalyticsReporter: reporter,
 			NamespaceLister:   k8sCli.CoreV1().Namespaces(),
+			CommandGuard:      cmdGuard,
 		},
 	)
 
@@ -194,7 +198,7 @@ func run() error {
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, reporter)
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, commander, reporter)
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
@@ -393,9 +397,9 @@ func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInte
 		return nil, nil, nil, fmt.Errorf("while creating dynamic K8s client: %w", err)
 	}
 
-	discoCacheClient := cacheddiscovery.NewMemCacheClient(discoveryClient)
+	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-	return dynamicK8sCli, discoveryClient, mapper, nil
+	return dynamicK8sCli, discoCacheClient, mapper, nil
 }
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) func(ctx string, err error) error {
@@ -424,7 +428,7 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifier
 			continue
 		}
 
-		help := interactive.Help(notifier.IntegrationName(), clusterName, notifier.BotName())
+		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, notifier.BotName()).Build()
 		err := notifier.SendMessage(ctx, help)
 		if err != nil {
 			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)

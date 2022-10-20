@@ -1,6 +1,6 @@
 # Botkube
 
-![Version: v0.13.0](https://img.shields.io/badge/Version-v0.13.0-informational?style=flat-square) ![AppVersion: v0.13.0](https://img.shields.io/badge/AppVersion-v0.13.0-informational?style=flat-square)
+![Version: v9.99.9-dev](https://img.shields.io/badge/Version-v9.99.9--dev-informational?style=flat-square) ![AppVersion: v9.99.9-dev](https://img.shields.io/badge/AppVersion-v9.99.9--dev-informational?style=flat-square)
 
 Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -55,7 +55,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [executors.kubectl-read-only.kubectl.namespaces.exclude](./values.yaml#L254) | list | `[]` | List of ignored Kubernetes Namespace. It can also contain a regex expressions:  `- "test-.*"` - to specify all Namespaces. |
 | [executors.kubectl-read-only.kubectl.enabled](./values.yaml#L256) | bool | `false` | If true, enables `kubectl` commands execution. |
 | [executors.kubectl-read-only.kubectl.commands.verbs](./values.yaml#L260) | list | `["api-resources","api-versions","cluster-info","describe","explain","get","logs","top"]` | Configures which `kubectl` methods are allowed. |
-| [executors.kubectl-read-only.kubectl.commands.resources](./values.yaml#L262) | list | `["deployments","pods","namespaces","daemonsets","statefulsets","storageclasses","nodes","configmaps","services"]` | Configures which K8s resource are allowed. |
+| [executors.kubectl-read-only.kubectl.commands.resources](./values.yaml#L262) | list | `["deployments","pods","namespaces","daemonsets","statefulsets","storageclasses","nodes","configmaps","services","ingresses"]` | Configures which K8s resource are allowed. |
 | [executors.kubectl-read-only.kubectl.defaultNamespace](./values.yaml#L264) | string | `"default"` | Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses the 'default'. |
 | [executors.kubectl-read-only.kubectl.restrictAccess](./values.yaml#L266) | bool | `false` | If true, enables commands execution from configured channel only. |
 | [existingCommunicationsSecretName](./values.yaml#L277) | string | `""` | Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace. To reload Botkube once it changes, add label `botkube.io/config-watch: "true"`.  |
@@ -160,12 +160,12 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 
 ### AWS IRSA on EKS support
 
-AWS has introduced IAM Role for Service Accounts in order to provide fine grained access. This is useful if you are looking to run Botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
+AWS has introduced IAM Role for Service Accounts in order to provide fine-grained access. This is useful if you are looking to run Botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
 
 Annotate the Botkube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding Botkube role to get this working.
 
 ```
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: "<role_arn_to_assume>"
+    eks.amazonaws.com/role-arn: "{role_arn_to_assume}"
 ```

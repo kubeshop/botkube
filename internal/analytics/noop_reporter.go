@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 var _ Reporter = &NoopReporter{}
@@ -24,7 +25,7 @@ func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.In
 }
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
-func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ bool) error {
+func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin, _ bool) error {
 	return nil
 }
 

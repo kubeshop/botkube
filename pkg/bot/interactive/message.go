@@ -38,6 +38,7 @@ type Message struct {
 	Type MessageType
 	Base
 	Sections          []Section
+	PlaintextInputs   LabelInputs
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
 }
@@ -45,6 +46,11 @@ type Message struct {
 // HasSections returns true if message has interactive sections.
 func (msg *Message) HasSections() bool {
 	return len(msg.Sections) != 0
+}
+
+// HasInputs returns true if message has interactive inputs.
+func (msg *Message) HasInputs() bool {
+	return len(msg.PlaintextInputs) != 0
 }
 
 // Select holds data related to the select drop-down.
@@ -74,9 +80,36 @@ type Body struct {
 // Section holds section related fields.
 type Section struct {
 	Base
-	Buttons     Buttons
-	MultiSelect MultiSelect
-	Selects     Selects
+	Buttons         Buttons
+	MultiSelect     MultiSelect
+	Selects         Selects
+	PlaintextInputs LabelInputs
+	TextFields      TextFields
+	Context         ContextItems
+}
+
+// LabelInputs holds the plain text input items.
+type LabelInputs []LabelInput
+
+// ContextItems holds context items.
+type ContextItems []ContextItem
+
+// TextFields holds text field items.
+type TextFields []TextField
+
+// TextField holds a text field data.
+type TextField struct {
+	Text string
+}
+
+// IsDefined returns true if there are any context items defined.
+func (c ContextItems) IsDefined() bool {
+	return len(c) > 0
+}
+
+// ContextItem holds context item.
+type ContextItem struct {
+	Text string
 }
 
 // Selects holds multiple Select objects.
@@ -84,6 +117,25 @@ type Selects struct {
 	// ID allows to identify a given block when we do the updated.
 	ID    string
 	Items []Select
+}
+
+// DispatchedInputAction defines when the action should be sent to our backend.
+type DispatchedInputAction string
+
+// Defines the possible options to dispatch the input action.
+const (
+	NoDispatchInputAction          DispatchedInputAction = ""
+	DispatchInputActionOnEnter     DispatchedInputAction = "on_enter_pressed"
+	DispatchInputActionOnCharacter DispatchedInputAction = "on_character_entered"
+)
+
+// LabelInput is used to create input elements to use in slack messages.
+type LabelInput struct {
+	// ID allows to carry the command that this input relates to.
+	ID               string
+	Text             string
+	Placeholder      string
+	DispatchedAction DispatchedInputAction
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -185,8 +237,8 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 	}
 }
 
-// ForCommand returns button command without description.
-func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
+// ForCommandWithoutDesc returns button command without description.
+func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -196,6 +248,22 @@ func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Butto
 		Name:    name,
 		Command: cmd,
 		Style:   bt,
+	}
+}
+
+// ForCommand returns button command.
+func (b *ButtonBuilder) ForCommand(name, cmd, desc string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
+	desc = fmt.Sprintf("%s %s", b.BotName, desc)
+	return Button{
+		Name:        name,
+		Command:     cmd,
+		Description: desc,
+		Style:       bt,
 	}
 }
 

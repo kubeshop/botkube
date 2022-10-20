@@ -179,7 +179,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
-		interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()),
+		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build(),
 	)
 	require.NoError(t, err)
 
@@ -203,7 +203,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.Help(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName())
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build()
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
@@ -268,6 +268,7 @@ func runBotTest(t *testing.T,
 			          - nodes
 			          - configmaps
 			          - services
+			          - ingresses
 			      defaultNamespace: default
 			      restrictAccess: false
 			    kubectl-wait-cmd:
@@ -281,6 +282,9 @@ func runBotTest(t *testing.T,
 			          - wait
 			        resources: []
 			      restrictAccess: false`))
+		expectedFilteredBody := codeBlock(heredoc.Doc(`
+			          - api-resources
+			          - api-versions`))
 		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {
@@ -292,6 +296,15 @@ func runBotTest(t *testing.T,
 		t.Run("With custom cluster name", func(t *testing.T) {
 			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
 			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+
+		t.Run("With custom cluster name and filter", func(t *testing.T) {
+			command := fmt.Sprintf("commands list --cluster-name %s --filter=api", appCfg.ClusterName)
+			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -313,9 +326,21 @@ func runBotTest(t *testing.T,
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-					strings.Contains(msg, "botkube")
+					strings.Contains(msg, "botkube"), 0, ""
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
+
+		t.Run("Get Deployment with matching filter", func(t *testing.T) {
+			command := fmt.Sprintf(`get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					strings.Contains(msg, "botkube"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -325,10 +350,23 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
-			assertionFn := func(msg string) bool {
+			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
-					strings.Contains(msg, "botkube-global-config")
+					strings.Contains(msg, "botkube-global-config"), 0, ""
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
+
+		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
+			command := fmt.Sprintf(`get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					!strings.Contains(msg, "kube-root-ca.crt") &&
+					!strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -345,15 +383,15 @@ func runBotTest(t *testing.T,
 			err = botDriver.WaitForMessagePostedWithFileUpload(botDriver.BotUserID(), botDriver.Channel().ID(), fileUploadAssertionFn)
 			assert.NoError(t, err)
 
-			assertionFn := func(msg string) bool {
-				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)))
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))), 0, ""
 			}
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
-			command := "get ingress"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'ingress' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			command := "get role"
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -394,9 +432,9 @@ func runBotTest(t *testing.T,
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
 				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						strings.Contains(msg, "deployment.apps/botkube condition met")
+						strings.Contains(msg, "deployment.apps/botkube condition met"), 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -426,11 +464,11 @@ func runBotTest(t *testing.T,
 
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
 				command := "get deploy -A"
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "local-path-provisioner") &&
 						strings.Contains(msg, "coredns") &&
-						strings.Contains(msg, "botkube")
+						strings.Contains(msg, "botkube"), 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -443,7 +481,7 @@ func runBotTest(t *testing.T,
 		for _, prefix := range k8sPrefixTests {
 			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
 				command := fmt.Sprintf("%s get pods --namespace %s", prefix, appCfg.Deployment.Namespace)
-				assertionFn := func(msg string) bool {
+				assertionFn := func(msg string) (bool, int, string) {
 					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
 					containAllColumn := true
 					for _, cn := range headerColumnNames {
@@ -452,7 +490,7 @@ func runBotTest(t *testing.T,
 						}
 					}
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						containAllColumn
+						containAllColumn, 0, ""
 				}
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -501,10 +539,15 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		attachAssertionFn := func(title, color, msg string) bool {
-			return title == "v1/configmaps created" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName) &&
-				color == botDriver.GetColorByLevel(config.Info)
+		attachAssertionFn := func(title, color, msg string) (bool, int, string) {
+			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			equal := title == "v1/configmaps created" && msg == expectedMsg && color == botDriver.GetColorByLevel(config.Info)
+			if msg != expectedMsg {
+				count := countMatchBlock(expectedMsg, msg)
+				msgDiff := diff(expectedMsg, msg)
+				return false, count, msgDiff
+			}
+			return equal, 0, ""
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
@@ -523,9 +566,15 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
-		attachAssertionFn = func(title, _, msg string) bool {
-			return title == "v1/configmaps updated" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
+			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			equal := title == "v1/configmaps updated" && msg == expectedMsg
+			if msg != expectedMsg {
+				count := countMatchBlock(expectedMsg, msg)
+				msgDiff := diff(expectedMsg, msg)
+				return false, count, msgDiff
+			}
+			return equal, 0, ""
 		}
 		err = botDriver.WaitForMessagesPostedOnChannelsWithAttachment(botDriver.BotUserID(), channelIDs, attachAssertionFn)
 		require.NoError(t, err)
@@ -571,9 +620,15 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in second channel...")
-		attachAssertionFn = func(title, _, msg string) bool {
-			return title == "v1/configmaps updated" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
+			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			equal := title == "v1/configmaps updated" && msg == expectedMsg
+			if msg != expectedMsg {
+				count := countMatchBlock(expectedMsg, msg)
+				msgDiff := diff(expectedMsg, msg)
+				return false, count, msgDiff
+			}
+			return equal, 0, ""
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 
@@ -612,18 +667,30 @@ func runBotTest(t *testing.T,
 		cfgMapAlreadyDeleted = true
 
 		t.Log("Expecting bot message on first channel...")
-		attachAssertionFn = func(title, _, msg string) bool {
-			return title == "v1/configmaps deleted" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
+			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			equal := title == "v1/configmaps deleted" && msg == expectedMsg
+			if msg != expectedMsg {
+				count := countMatchBlock(expectedMsg, msg)
+				msgDiff := diff(expectedMsg, msg)
+				return false, count, msgDiff
+			}
+			return equal, 0, ""
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		attachAssertionFn = func(title, _, msg string) bool {
-			return title == "v1/configmaps updated" &&
-				msg == fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
+			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			equal := title == "v1/configmaps updated" && msg == expectedMsg
+			if msg != expectedMsg {
+				count := countMatchBlock(expectedMsg, msg)
+				msgDiff := diff(expectedMsg, msg)
+				return false, count, msgDiff
+			}
+			return equal, 0, ""
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 		require.NoError(t, err)
@@ -651,12 +718,12 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot message...")
-		assertionFn := func(title, color, msg string) bool {
+		assertionFn := func(title, color, msg string) (bool, int, string) {
 			return title == "v1/pods created" &&
 				strings.Contains(msg, "Recommendations:") &&
 				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
 				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name)) &&
-				color == botDriver.GetColorByLevel(config.Info)
+				color == botDriver.GetColorByLevel(config.Info), 0, ""
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), assertionFn)
 		require.NoError(t, err)

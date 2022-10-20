@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 )
@@ -24,7 +25,7 @@ type DefaultExecutorFactory struct {
 	editExecutor      *EditExecutor
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
-	kubectlSurvey     *KubectlSurvey
+	kubectlCmdBuilder *KubectlCmdBuilder
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -38,11 +39,12 @@ type DefaultExecutorFactoryParams struct {
 	CfgManager        ConfigPersistenceManager
 	AnalyticsReporter AnalyticsReporter
 	NamespaceLister   NamespaceLister
+	CommandGuard      CommandGuard
 }
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute() interactive.Message
+	Execute(context.Context) interactive.Message
 }
 
 // ConfigPersistenceManager manages persistence of the configuration.
@@ -55,7 +57,14 @@ type ConfigPersistenceManager interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error
+	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
+}
+
+// CommandGuard is an interface that allows to check if a given command is allowed to be executed.
+type CommandGuard interface {
+	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
+	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+	FilterSupportedVerbs(allVerbs []string) []string
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
@@ -79,14 +88,15 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.CfgManager,
 			params.AnalyticsReporter,
 		),
-		kubectlSurvey: NewKubectlSurvey(
-			params.Log.WithField("component", "Notifier Executor"),
+		kubectlCmdBuilder: NewKubectlCmdBuilder(
+			params.Log.WithField("component", "Kubectl Command Builder"),
 			params.Merger,
 			kcExecutor,
 			params.NamespaceLister,
+			params.CommandGuard,
 		),
 		editExecutor: NewEditExecutor(
-			params.Log.WithField("component", "Notifier Executor"),
+			params.Log.WithField("component", "Botkube Edit Executor"),
 			params.AnalyticsReporter,
 			params.CfgManager,
 			params.Cfg,
@@ -99,12 +109,12 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 
 // Conversation contains details about the conversation.
 type Conversation struct {
-	Alias               string
-	ID                  string
-	ExecutorBindings    []string
-	IsAuthenticated     bool
-	IsButtonClickOrigin bool
-	State               *slack.BlockActionStates
+	Alias            string
+	ID               string
+	ExecutorBindings []string
+	IsAuthenticated  bool
+	CommandOrigin    command.Origin
+	State            *slack.BlockActionStates
 }
 
 // NewDefaultInput an input for NewDefault
@@ -130,7 +140,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
-		kubectlSurvey:     f.kubectlSurvey,
+		kubectlCmdBuilder: f.kubectlCmdBuilder,
 		user:              cfg.User,
 		notifierHandler:   cfg.NotifierHandler,
 		conversation:      cfg.Conversation,

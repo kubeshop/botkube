@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -24,7 +25,13 @@ import (
 //    - review all the methods and see if they can be simplified.
 
 // slackMaxMessageSize max size before a message should be uploaded as a file.
-const slackMaxMessageSize = 3990
+//
+// "The text for the block, in the form of a text object.
+//
+//	Maximum length for the text in this field is 3000 characters.  (..)"
+//
+// source: https://api.slack.com/reference/block-kit/blocks#section
+const slackMaxMessageSize = 3001
 
 var _ Bot = &Slack{}
 
@@ -138,7 +145,7 @@ func (b *Slack) Start(ctx context.Context) error {
 					ThreadTimeStamp: ev.ThreadTimestamp,
 					User:            ev.User,
 				}
-				err := b.handleMessage(sm)
+				err := b.handleMessage(ctx, sm)
 				if err != nil {
 					wrappedErr := fmt.Errorf("while handling message: %w", err)
 					b.log.Errorf(wrappedErr.Error())
@@ -208,7 +215,7 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 	return nil
 }
 
-func (b *Slack) handleMessage(msg slackMessage) error {
+func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(msg.Text)
 	if !found {
@@ -236,11 +243,12 @@ func (b *Slack) handleMessage(msg slackMessage) error {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  isAuthChannel,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
-	response := e.Execute()
+	response := e.Execute(ctx)
 	err = b.send(msg, request, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
@@ -261,7 +269,11 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
-		return uploadFileToSlack(msg.Channel, resp, b.client)
+		_, err := uploadFileToSlack(msg.Channel, resp, b.client, msg.ThreadTimeStamp)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	var options = []slack.MsgOption{slack.MsgOptionText(markdown, false), slack.MsgOptionAsUser(true)}
@@ -287,7 +299,7 @@ func (b *Slack) send(msg slackMessage, req string, resp interactive.Message, onl
 // SendEvent sends event notification to slack
 func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
-	attachment := b.renderer.RenderEventMessage(event)
+	attachment := b.renderer.RenderLegacyEventMessage(event)
 
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
@@ -373,19 +385,20 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client) error {
+func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client, ts string) (*slack.File, error) {
 	params := slack.FileUploadParameters{
-		Filename:       "Response.txt",
-		Title:          "Response.txt",
-		InitialComment: resp.Description,
-		Content:        interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:       []string{channel},
+		Filename:        "Response.txt",
+		Title:           "Response.txt",
+		InitialComment:  resp.Description,
+		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:        []string{channel},
+		ThreadTimestamp: ts,
 	}
 
-	_, err := client.UploadFile(params)
+	file, err := client.UploadFile(params)
 	if err != nil {
-		return fmt.Errorf("while uploading file: %w", err)
+		return nil, fmt.Errorf("while uploading file: %w", err)
 	}
 
-	return nil
+	return file, nil
 }

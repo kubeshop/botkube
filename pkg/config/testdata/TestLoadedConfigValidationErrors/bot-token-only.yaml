@@ -1,6 +1,6 @@
 communications: # req 1 elm.
   'default-workspace':
-    slack:
+    socketSlack:
       enabled: true
       channels:
         'alias':

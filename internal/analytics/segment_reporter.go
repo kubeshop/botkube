@@ -11,19 +11,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
 const (
 	kubeSystemNSName  = "kube-system"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
-)
-
-type commandOrigin string
-
-const (
-	buttonClickCommandOrigin commandOrigin = "buttonClick"
-	typedCommandOrigin       commandOrigin = "typed"
 )
 
 var (
@@ -66,15 +60,12 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string, isButtonClickOrigin bool) error {
-	origin := typedCommandOrigin
-	if isButtonClickOrigin {
-		origin = buttonClickCommandOrigin
-	}
+func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error {
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": platform,
 		"command":  command,
 		"origin":   origin,
+		"filtered": withFilter,
 	})
 }
 

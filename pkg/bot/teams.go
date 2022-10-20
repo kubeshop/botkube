@@ -20,6 +20,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -179,7 +180,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 
 	err = b.Adapter.ProcessActivity(ctx, activity, coreActivity.HandlerFuncs{
 		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			n, resp := b.processMessage(turn.Activity)
+			n, resp := b.processMessage(ctx, turn.Activity)
 			if n >= teamsMaxMessageSize {
 				if turn.Activity.Conversation.ConversationType == convTypePersonal {
 					// send file upload request
@@ -241,7 +242,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 			}
 
 			activity.Text = consentCtx.Command
-			_, resp := b.processMessage(activity)
+			_, resp := b.processMessage(ctx, activity)
 
 			actJSON, err := json.MarshalIndent(turn.Activity, "", "  ")
 			if err != nil {
@@ -275,7 +276,7 @@ func (b *Teams) processActivity(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (b *Teams) processMessage(activity schema.Activity) (int, string) {
+func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (int, string) {
 	trimmedMsg := b.trimBotMention(activity.Text)
 
 	// Multicluster is not supported for Teams
@@ -295,10 +296,11 @@ func (b *Teams) processMessage(activity schema.Activity) (int, string) {
 			IsAuthenticated:  true,
 			ID:               ref.ChannelID,
 			ExecutorBindings: b.bindings.Executors,
+			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: trimmedMsg,
 	})
-	return b.convertInteractiveMessage(e.Execute(), false)
+	return b.convertInteractiveMessage(e.Execute(ctx), false)
 }
 
 func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown bool) (int, string) {
@@ -580,4 +582,5 @@ var emojiMapping = map[string]string{
 	":white_check_mark:":        "✅",
 	":arrows_counterclockwise:": "🔄",
 	":exclamation:":             "❗",
+	":cricket:":                 "🦗",
 }

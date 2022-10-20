@@ -168,6 +168,39 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				testdataFile(t, "empty-executors-communications.yaml"),
 			},
 		},
+		{
+			name: "App token only",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token`),
+			configFiles: []string{
+				testdataFile(t, "app-token-only.yaml"),
+			},
+		},
+		{
+			name: "Bot token only",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token`),
+			configFiles: []string{
+				testdataFile(t, "bot-token-only.yaml"),
+			},
+		},
+		{
+			name: "no tokens",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 5 errors occurred:
+					* Key: 'Config.Communications[default-workspace].Slack.Token' Token is a required field
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token`),
+			configFiles: []string{
+				testdataFile(t, "no-token.yaml"),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
