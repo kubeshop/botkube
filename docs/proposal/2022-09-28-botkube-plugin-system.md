@@ -1,4 +1,4 @@
-# Event Manager and Executor Extensibility
+# Botkube Plugin System
 
 Created on `2022-09-28` by Huseyin BABAL ([@huseyinbabal](https://github.com/huseyinbabal))
 
