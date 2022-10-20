@@ -1,4 +1,4 @@
-# Event Manager Extensibility
+# Event Manager and Executor Extensibility
 
 Created on `2022-09-28` by Huseyin BABAL ([@huseyinbabal](https://github.com/huseyinbabal))
 
@@ -215,7 +215,7 @@ right now, we can automate and do find/replace whenever there is a change to plu
 ```
 
 ### How can I provide plugin configuration?
-If you use terraform before, they use a notation like `<pluginname>_...` to pass settings to specific plugin. So, in Botkube, if somebody provides `KUBERNETES_CONFIG_PATH=something`, the `kubernetes` plugin executable can be run as follows.
+If you use terraform before, they use a notation like `<type>_<pluginname>_...` to pass settings to specific plugin. So, in Botkube, if somebody provides `SOURCE_KUBERNETES_CONFIG_PATH=something`, the `kubernetes` `source` plugin executable can be run as follows.
 ```go
 client := plugin.NewClient(&plugin.ClientConfig{
     Plugins:          m.pluginMap(metadata),
@@ -269,6 +269,7 @@ If we agree on this design, we can extend this epic with following description t
   - You can see working example [here](https://github.com/huseyinbabal/botkube-plugins-playground/blob/main/plugin/manager.go)
 
 - [ ] Extract Kubernetes source feature as a plugin 
+  - Once we extract this as a plugin, it will be sub process in the pod that means it will use same service account as other plugin will. For now, we can assume that customer will prepare a unified role and attach it to service account. This is somethiing like using your workstation machine for kubectl, helm, and does not care which service account you use in the beginning.
   - Currently, Kubernetes source events are tightly coupled with Botkube, we can add sourcing mechanism as `kubernetes` plugin. You can see independent example [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubernetes)
   - It should be background compatible.
   - Plugin specific parameters should be passed during plugin initialization. Hashicorp's Go plugin system, runs plugin executable as sub process, so it also accepts exec arguments where we can resolve configuration and pass them as separate arguments
