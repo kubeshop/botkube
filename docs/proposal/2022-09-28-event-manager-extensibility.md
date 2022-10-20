@@ -146,7 +146,7 @@ to see we already have a registered plugin for this event or not.
 
 `time`: Event time in Unix time format to not deal with date parsing. 
 
-`data`: This is the event data that contains important information about source. what you see in `data` section is just example,
+`data`: This is the event data that contains important information about source. What you see in `data` section is just example,
 we can also add some kind of validation in Botkube to better use received data. For example, if we force user to send key value pairs,
 we can easily apply templating/filtering to this event to full-fill our future stories about sending custom notifications to slack.
 Data structure is strongly opened to suggestion.
@@ -188,6 +188,11 @@ customer specific build flows. For `kubectl` and `Kubernetes`, they are same for
 of those plugin to call via Hashicorp's plugin package. There is a Github Action for plugin release flow which you can see [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/.github/workflows/release.yaml). 
 In this flow, the only thing you need to do is pushing a new tag in a format `<plugin_name>/<version>` like `Kubernetes/v1.0.7`. This will build `Kubernetes` plugin, create a release with version
 `v1.0.7` and go binary executable will be attached to release artifacts. Notice that, those artifacts are used in consumer side to be used as parameter to Hashicorp's Go Plugin.
+We need to provide a clear definition about how to test plugins by integrating with Botkube core. With a clear templating and contribution guideline, this can be easily achieved. You can take a look how Keptn
+maintains plugins in separate repo, and they have a template for plugins [here](https://github.com/keptn-sandbox/keptn-service-template-go). In that template, you need to fulfill some testing scenarios to show your plugin works with Keptn(Botkube in our case).
+You can see additional advantages of using a separate repo for maintaining plugins as follows;
+- There will not be lots of releases belong to plugins like `kubernetes/v1.8.9`, `kubectl/v1.4.8` in our main Botkube repo, we will see only Botkube related releases.
+- Due to its nature, plugins can be written in different languages the ones support gRPC. If we maintain them all in Botkube's repo, there will be multiple language context that we need to deal while we are maintaingin Botkube core
 
 ### How can I know the metadata of plugins?
 In `Botkube-plugins` project, we have a plugin index file as you can also see it [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/index.json). That contains basic metadata of each plugin, and notice that they are managed manually
@@ -270,7 +275,7 @@ If we agree on this design, we can extend this epic with following description t
   - Plugin parameters will be documented in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repo, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
   - Data structure for events
     - Since each source plugin has different data structure, we cannot have a general data structure except we specified #Cloud Events. `data` field has free data structure, but we can convert them to map then extract 
-any section based on customer definition by using Go template. `data` field has free structure, but we can put mandatory fields in this struct like `message`, `user`, etc. Or we can put mandatory fields to cloud events schema as shown below.
+any section based on customer definition by using Go template. `data` field has free flat structure, a simple key-value pairs with one level, but we can put mandatory fields in this struct like `message`, `user`, etc. Or we can put mandatory fields to cloud events schema as shown below.
       ```json
       {
       "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",   
@@ -281,10 +286,8 @@ any section based on customer definition by using Go template. `data` field has 
       "user": "john",
       "data" : {                                         
         "namespace" : "Botkube",
-          "deployment" : {
-            "name" : "test",
-            "replicas" : 5
-          }
+        "deploymentName" : "test",
+        "replicas" : 5
         }
       }
       ```
