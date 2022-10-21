@@ -14,9 +14,12 @@ import (
 
 const (
 	incorrectFilterFlag     = "incorrect use of --filter flag: %s"
-	filterFlagParseErrorMsg = `incorrect use of --filter flag: could not parse flag in %s.\nerror: %s\nuse --filter="value" or --filter value`
-	missingCmdFilterValue   = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
-	multipleFilters         = "incorrect use of --filter flag: found more than one filter flag."
+	filterFlagParseErrorMsg = `incorrect use of --filter flag: could not parse flag in %s.
+
+error: %s
+Use --filter="value" or --filter value`
+	missingCmdFilterValue = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
+	multipleFilters       = "incorrect use of --filter flag: found more than one filter flag."
 )
 
 // executorFilter interface to implement to filter executor text based results
