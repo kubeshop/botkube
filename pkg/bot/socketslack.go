@@ -543,7 +543,7 @@ func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
 	case "button":
 		cmdOrigin = command.ButtonClickOrigin
 	case "plain_text_input":
-		cmd = fmt.Sprintf("%s%s", act.BlockID, strings.TrimSpace(act.Value))
+		cmd = fmt.Sprintf("%s%q", act.BlockID, strings.TrimSpace(act.Value))
 		cmdOrigin = command.PlainTextInputOrigin
 	}
 
