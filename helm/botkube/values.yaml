@@ -60,7 +60,6 @@ actions:
       run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
       resources: [ "deployments", "pods", "namespaces", "services", "ingresses" ]
       events: [ "create" ]
-      sources: [ ".*" ]
 
   ## EXAMPLE ONLY - OUT OF SCOPE: helm based action
   'decrease-elastic-cpu-limit':
@@ -73,7 +72,6 @@ actions:
         --set resources.limits.cpu='2G'
       resources: [ "nodes" ]
       events: [ "error" ]
-      sources: [ "k8s-err-events" ]
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
