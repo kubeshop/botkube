@@ -62,7 +62,7 @@ actions:
       events: [ "create" ]
       sources: [ ".*" ]
 
-  ## helm based action
+  ## EXAMPLE ONLY - OUT OF SCOPE: helm based action
   'decrease-elastic-cpu-limit':
     ## helm action configuration - requires that a helm executor with correct permission is available
     helm:
