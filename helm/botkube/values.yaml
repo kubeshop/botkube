@@ -58,6 +58,9 @@ actions:
     kubectl:
       enabled: true
       run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
+      resources: [ "deployments", "pods", "namespaces", "services", "ingresses" ]
+      events: [ "create" ]
+      sources: [ ".*" ]
 
   ## helm based action
   'decrease-elastic-cpu-limit':
@@ -68,6 +71,9 @@ actions:
         helm upgrade elasticsearch elasticsearch \
         --namespace elastic \
         --set resources.limits.cpu='2G'
+      resources: [ "nodes" ]
+      events: [ "error" ]
+      sources: [ "k8s-err-events" ]
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
@@ -117,9 +123,7 @@ sources:
       # These events are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own events object.
       events:
-        - create:
-          actions:
-            - 'show-created-resource'
+        - create
         - delete
         - error
 
@@ -228,10 +232,6 @@ sources:
         - name: v1/services
         - name: networking.k8s.io/v1/ingresses
         - name: v1/nodes
-          events:
-            - error:
-              actions:
-                - 'decrease-elastic-cpu-limit'
         - name: v1/namespaces
         - name: v1/persistentvolumes
         - name: v1/persistentvolumeclaims
