@@ -34,6 +34,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 			testdataFile(t, "config-slack-override.yaml"),
 			testdataFile(t, "analytics.yaml"),
 			testdataFile(t, "executors.yaml"),
+			testdataFile(t, "actions.yaml"),
 		}
 	})
 

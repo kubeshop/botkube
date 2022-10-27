@@ -1,0 +1,13 @@
+actions:
+  ## kubectl based action
+  'show-created-resource':
+    displayName: "Display created resource"
+    ## Kubectl action configuration - requires that a kubectl executor with correct permission is available
+    kubectl:
+      enabled: true
+      ## command to run
+      run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
+      # Target resources
+      resources: [ "deployments", "pods", "namespaces", "services", "ingresses" ]
+      # Target events
+      events: [ "create" ]

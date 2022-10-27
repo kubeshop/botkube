@@ -1,3 +1,17 @@
+actions:
+    show-created-resource:
+        displayName: Display created resource
+        kubectl:
+            enabled: true
+            run: kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}
+            events:
+                - create
+            resources:
+                - deployments
+                - pods
+                - namespaces
+                - services
+                - ingresses
 sources:
     k8s-events:
         displayName: ""

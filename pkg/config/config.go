@@ -124,6 +124,7 @@ const (
 
 // Config structure of configuration yaml file
 type Config struct {
+	Actions        map[string]Actions        `yaml:"actions" validate:"dive"`
 	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
@@ -167,6 +168,18 @@ type BotBindings struct {
 // SinkBindings contains configuration for possible Sink bindings.
 type SinkBindings struct {
 	Sources []string `yaml:"sources"`
+}
+
+type Actions struct {
+	DisplayName string        `yaml:"displayName"`
+	Kubectl     KubectlAction `yaml:"kubectl"`
+}
+
+type KubectlAction struct {
+	Enabled   bool                     `yaml:"enabled"`
+	Action    string                   `yaml:"run"`
+	Events    KubernetesResourceEvents `yaml:"events"`
+	Resources []string                 `yaml:"resources" validate:"dive"`
 }
 
 // Sources contains configuration for Botkube app sources.

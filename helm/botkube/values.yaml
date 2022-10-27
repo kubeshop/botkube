@@ -50,28 +50,25 @@ kubeconfig:
   ##    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
+# -- Map of actions. Action contains configuration for automations based on observed events.
+# The property name under `actions` object is an alias for a given configuration. You can define multiple actions configuration with different names.
+# @default -- See the `values.yaml` file for full object.
+#
 ## Format: actions.{alias}
 actions:
-  ## kubectl based action
+  ## kubectl based action.
   'show-created-resource':
-    ## Kubectl action configuration - requires that a kubectl executor with correct permission is available
+    displayName: "Display created resource"
+    ## Kubectl action configuration - requires that a kubectl executor with correct permission is available.
     kubectl:
+      # -- If true, enables the action.
       enabled: true
+      # -- A text value denoting the command run by this action, may contain even based templated values.
       run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
-      resources: [ "deployments", "pods", "namespaces", "services", "ingresses" ]
-      events: [ "create" ]
-
-  ## EXAMPLE ONLY - OUT OF SCOPE: helm based action
-  'decrease-elastic-cpu-limit':
-    ## helm action configuration - requires that a helm executor with correct permission is available
-    helm:
-      enabled: true
-      run: |
-        helm upgrade elasticsearch elasticsearch \
-        --namespace elastic \
-        --set resources.limits.cpu='2G'
-      resources: [ "nodes" ]
-      events: [ "error" ]
+      # -- Target resources for this action.
+      resources: ["deployments", "pods", "namespaces", "services", "ingresses"]
+      # -- Target events for this action.
+      events: ["create"]
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
