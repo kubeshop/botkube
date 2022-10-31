@@ -162,13 +162,7 @@ community-driven plugins and also some `api` related packages to help consumers 
 `Botkube-plugins-playground` is a sample project that shows how we can use `Botkube-plugins` repository as plugin marketplace. Now let's take a look `Botkube-plugins` project 
 to understand how it is structured.
 
-### Folder Structure
-![](./assets/plugin-system.png)
-The plugin system contains 2 packages: `api` and `plugins`. `plugins` package is for end users and they can come up with their own
-plugins to include them after PR approval. `api` package contains the logic to manage Botkube plugins. Let's deep dive those folders
-to understand them a bit better.
-
-#### API Folder
+#### `pkg/plugin` Folder
 This folder contains api packages to help consumers initialize plugins in client side. This package simply contains proto definitions to describe
 contract between client (Botkube) and server (Actual plugin). As you can guess, it become easier once we use gRPC since Hashicorp's plugin system works
 on RPC and the integration is so simple. 
@@ -185,14 +179,7 @@ customer specific build flows. For `kubectl` and `Kubernetes`, they are same for
 
 ### How to build plugins?
 `plugins` folder only contains the source code of the plugins, and consumer (Botkube or playground project on our case), needs the executable versions
-of those plugin to call via Hashicorp's plugin package. There is a Github Action for plugin release flow which you can see [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/.github/workflows/release.yaml). 
-In this flow, the only thing you need to do is pushing a new tag in a format `<plugin_name>/<version>` like `Kubernetes/v1.0.7`. This will build `Kubernetes` plugin, create a release with version
-`v1.0.7` and go binary executable will be attached to release artifacts. Notice that, those artifacts are used in consumer side to be used as parameter to Hashicorp's Go Plugin.
-We need to provide a clear definition about how to test plugins by integrating with Botkube core. With a clear templating and contribution guideline, this can be easily achieved. You can take a look how Keptn
-maintains plugins in separate repo, and they have a template for plugins [here](https://github.com/keptn-sandbox/keptn-service-template-go). In that template, you need to fulfill some testing scenarios to show your plugin works with Keptn(Botkube in our case).
-You can see additional advantages of using a separate repo for maintaining plugins as follows;
-- There will not be lots of releases belong to plugins like `kubernetes/v1.8.9`, `kubectl/v1.4.8` in our main Botkube repo, we will see only Botkube related releases.
-- Due to its nature, plugins can be written in different languages the ones support gRPC. If we maintain them all in Botkube's repo, there will be multiple language context that we need to deal while we are maintaingin Botkube core
+of those plugin to call via Hashicorp's plugin package. Plugins will be released with core Botkube release and they will be published as release artifacts to be able to download as plugin executable. 
 
 ### How can I know the metadata of plugins?
 In `Botkube-plugins` project, we have a plugin index file as you can also see it [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/index.json). That contains basic metadata of each plugin, and notice that they are managed manually
@@ -252,10 +239,6 @@ You can see a working example [here](https://github.com/huseyinbabal/Botkube-plu
 ### Consequences
 If we agree on this design, we can extend this epic with following description to come up with new tasks.
 
-- [ ] Maintain Botkube plugins under Kubeshop organization
-  - There is a working version of [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins), move it to Kubeshop Github organization
-  - Check module names in the [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) project and set repo owner parts as `kubeshop` after migrating to Kubeshop organization.
-
 - [ ] Add plugin contribution documentation
   - Prepare a documentation for adding new plugin to Botkube Plugins.
   - It should contain how to verify plugin functionality in PR checks.
@@ -313,6 +296,40 @@ This package has some limitations as follows;
 - Once a problem occurs in plugin, it also crashes the host process (your main program, which is Botkube in our case).
 - You can load the plugin during the initialization, then reload is not supported.
 - You need to maintain conflict of shared libraries.
+
+### -- Following items are initially discussed for external plugin management -- 
+### Folder Structure
+![](./assets/plugin-system.png)
+The plugin system contains 2 packages: `api` and `plugins`. `plugins` package is for end users and they can come up with their own
+plugins to include them after PR approval. `api` package contains the logic to manage Botkube plugins. Let's deep dive those folders
+to understand them a bit better.
+
+#### API Folder
+This folder contains api packages to help consumers initialize plugins in client side. This package simply contains proto definitions to describe
+contract between client (Botkube) and server (Actual plugin). As you can guess, it become easier once we use gRPC since Hashicorp's plugin system works
+on RPC and the integration is so simple.
+
+API folder contains `source` and `executor` folders to have more meaningful package names once we generate actual implementation of proto files. Apart from proto files,
+you can see base gRPC server and client implementations in `grpc.go` which is shared among plugins. `interface.go` contains the actual API to expose to consumers. Finally,
+`plugin.go` is for plugin definition which is a simple struct for Hashicorp's Go plugin system.
+
+#### Plugins Folder
+In this folder, you can see examples `kubectl` and `Kubernetes`. Each plugin has its own dedicated folders which are typically go module projects.
+Each plugin folder contains a simple Go file which contains the actual business logic of plugin. You can also see a `Makefile` to manage the build
+process of that plugin. They might not be a simple Go program, that's why there is no unified `Makefile` that builds any Go project, it can contain
+customer specific build flows. For `kubectl` and `Kubernetes`, they are same for now.
+
+### How to build plugins?
+`plugins` folder only contains the source code of the plugins, and consumer (Botkube or playground project on our case), needs the executable versions
+of those plugin to call via Hashicorp's plugin package. There is a Github Action for plugin release flow which you can see [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/.github/workflows/release.yaml).
+In this flow, the only thing you need to do is pushing a new tag in a format `<plugin_name>/<version>` like `Kubernetes/v1.0.7`. This will build `Kubernetes` plugin, create a release with version
+`v1.0.7` and go binary executable will be attached to release artifacts. Notice that, those artifacts are used in consumer side to be used as parameter to Hashicorp's Go Plugin.
+We need to provide a clear definition about how to test plugins by integrating with Botkube core. With a clear templating and contribution guideline, this can be easily achieved. You can take a look how Keptn
+maintains plugins in separate repo, and they have a template for plugins [here](https://github.com/keptn-sandbox/keptn-service-template-go). In that template, you need to fulfill some testing scenarios to show your plugin works with Keptn(Botkube in our case).
+You can see additional advantages of using a separate repo for maintaining plugins as follows;
+- There will not be lots of releases belong to plugins like `kubernetes/v1.8.9`, `kubectl/v1.4.8` in our main Botkube repo, we will see only Botkube related releases.
+- Due to its nature, plugins can be written in different languages the ones support gRPC. If we maintain them all in Botkube's repo, there will be multiple language context that we need to deal while we are maintaingin Botkube core
+
 <!--
 What other approaches did you consider, and why did you rule them out? These do
 not need to be as detailed as the proposal, but should include enough
