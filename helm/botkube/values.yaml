@@ -59,16 +59,33 @@ actions:
   ## kubectl based action.
   'show-created-resource':
     displayName: "Display created resource"
-    ## Kubectl action configuration - requires that a kubectl executor with correct permission is available.
-    kubectl:
+    # -- A text value denoting the command run by this action, may contain even based templated values.
+    # -- The executor is inferred directly from the command, e.g. here we require a kubectl executor
+    run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
+
+    ## kubernetes source configuration - requires that a kubernetes type source is available.
+    kubernetes:
       # -- If true, enables the action.
       enabled: true
-      # -- A text value denoting the command run by this action, may contain even based templated values.
-      run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
-      # -- Target resources for this action.
+      # -- Action is triggered for these resources.
       resources: ["deployments", "pods", "namespaces", "services", "ingresses"]
-      # -- Target events for this action.
+      # -- Action is triggered for these events.
       events: ["create"]
+      # -- Action is triggered for this namespace configuration.
+      namespaces: [ ]
+      # -- Action is triggered for this resource name, can use regex.
+      name: 'botkube'
+      # -- Action is triggered for this annotation.
+      annotation: ''
+
+    ## webhook source configuration - requires that a kubernetes type source is available.
+    webhook:
+      # -- If true, enables the action.
+      enabled: true
+      # -- Action is triggered for this payload.
+      payload: {}
+      # -- Action is triggered for these events.
+      event-types: [ "io.botkube.map.created" ]
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
