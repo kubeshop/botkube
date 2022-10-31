@@ -256,7 +256,7 @@ If we agree on this design, we can extend this epic with following description t
   - Currently, Kubernetes source events are tightly coupled with Botkube, we can add sourcing mechanism as `kubernetes` plugin. You can see independent example [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubernetes)
   - It should be background compatible.
   - Plugin specific parameters should be passed during plugin initialization. Hashicorp's Go plugin system, runs plugin executable as sub process, so it also accepts exec arguments where we can resolve configuration and pass them as separate arguments
-  - Plugin parameters will be documented in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repo, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
+  - Plugin parameters will be documented in plugin's README.md page, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
   - Data structure for events
     - Since each source plugin has different data structure, we cannot have a general data structure except we specified #Cloud Events. `data` field has free data structure, but we can convert them to map then extract 
 any section based on customer definition by using Go template. `data` field has free flat structure, a simple key-value pairs with one level, but we can put mandatory fields in this struct like `message`, `user`, etc. Or we can put mandatory fields to cloud events schema as shown below.
@@ -278,7 +278,7 @@ any section based on customer definition by using Go template. `data` field has 
 - [ ] Extract Kubectl executor feature as a plugin
   - Extract kubectl executor as plugin and maintain it in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repository.
   - Ensure it is background compatible.
-  - Plugin parameters will be documented in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repo, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159) 
+  - Plugin parameters will be documented in plugin's README.md page, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159) 
   
 - [ ] Keptn as an alternative source plugin
   - Once we have Botkube cloud events handler, we will be able to accepts from outside. However, we cannot have an endpoint that accepts all kind of data format. Assume that we have a payload format as described in Cloud Events section. In order to accept Keptn events, we can implement a Botkube plugin on Keptn, and this plugin will be responsible for taking events from Keptn, convert and send it to Botkbue.
