@@ -72,20 +72,11 @@ actions:
       # -- Action is triggered for these events.
       events: ["create"]
       # -- Action is triggered for this namespace configuration.
-      namespaces: [ ]
+      namespaces: {}
       # -- Action is triggered for this resource name, can use regex.
       name: 'botkube'
       # -- Action is triggered for this annotation.
       annotation: ''
-
-    ## webhook source configuration - requires that a kubernetes type source is available.
-    webhook:
-      # -- If true, enables the action.
-      enabled: true
-      # -- Action is triggered for this payload.
-      payload: {}
-      # -- Action is triggered for these events.
-      event-types: [ "io.botkube.map.created" ]
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.

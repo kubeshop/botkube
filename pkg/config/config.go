@@ -172,16 +172,19 @@ type SinkBindings struct {
 
 // Actions contains configuration for Botkube app event automations.
 type Actions struct {
-	DisplayName string        `yaml:"displayName"`
-	Kubectl     KubectlAction `yaml:"kubectl"`
+	DisplayName string           `yaml:"displayName"`
+	Action      string           `yaml:"run"`
+	Kubernetes  KubernetesAction `yaml:"kubernetes"`
 }
 
-// KubectlAction contains configuration for kubectl based actions.
-type KubectlAction struct {
-	Enabled   bool                     `yaml:"enabled"`
-	Action    string                   `yaml:"run"`
-	Events    KubernetesResourceEvents `yaml:"events"`
-	Resources []string                 `yaml:"resources" validate:"dive"`
+// KubernetesAction contains configuration for kubectl based actions.
+type KubernetesAction struct {
+	Enabled    bool                     `yaml:"enabled"`
+	Resources  []string                 `yaml:"resources" validate:"dive"`
+	Events     KubernetesResourceEvents `yaml:"events"`
+	Namespaces Namespaces               `yaml:"namespaces"`
+	Name       string                   `yaml:"name"`
+	Annotation string                   `yaml:"annotation"`
 }
 
 // Sources contains configuration for Botkube app sources.
