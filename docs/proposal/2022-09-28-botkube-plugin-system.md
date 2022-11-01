@@ -202,12 +202,12 @@ right now, we can automate and do find/replace whenever there is a change to plu
 ```
 
 ### How can I provide plugin configuration?
-If you use terraform before, they use a notation like `<type>_<pluginname>_...` to pass settings to specific plugin. So, in Botkube, if somebody provides `SOURCE_KUBERNETES_CONFIG_PATH=something`, the `kubernetes` `source` plugin executable can be run as follows.
+Since there can be multiple configurations for any plugin and we don't know what are the structure they have, we can accept a YAML string for the config and pass as shown below.
 ```go
 client := plugin.NewClient(&plugin.ClientConfig{
     Plugins:          m.pluginMap(metadata),
     VersionedPlugins: nil,
-    Cmd:              exec.Command(metadata.Path, "--config", "something"), // Plugin specific params goes here
+    Cmd:              exec.Command(metadata.Path, "--config", "config_yaml_string"),
     AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
     HandshakeConfig: plugin.HandshakeConfig{
         ProtocolVersion:  1,
