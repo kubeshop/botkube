@@ -1,0 +1,20 @@
+actions:
+  ## kubectl based action
+  'show-created-resource':
+    displayName: "Display created resource"
+    ## command to run
+    run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
+    ## Kubectl action configuration - requires that a kubectl executor with correct permission is available
+    kubernetes:
+      # -- If true, enables the action.
+      enabled: true
+      # -- Action is triggered for these resources.
+      resources: ["deployments", "pods", "namespaces", "services", "ingresses"]
+      # -- Action is triggered for these events.
+      events: ["create"]
+      # -- Action is triggered for this namespace configuration.
+      namespaces: {}
+      # -- Action is triggered for this resource name, can use regex.
+      name: 'botkube'
+      # -- Action is triggered for this annotation.
+      annotation: ''

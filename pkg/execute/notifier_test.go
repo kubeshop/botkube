@@ -83,6 +83,7 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 			ExpectedResult: heredoc.Doc(`
 				Showing config for cluster "cluster-name":
 
+				actions: {}
 				sources: {}
 				executors: {}
 				communications: {}
