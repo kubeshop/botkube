@@ -160,7 +160,11 @@ func (g *CommandGuard) GetResourceDetails(selectedVerb, resourceType string) (Re
 func (g *CommandGuard) GetServerResourceMap() (map[string]v1.APIResource, error) {
 	resList, err := g.discoveryCli.ServerPreferredResources()
 	if err != nil {
-		return nil, fmt.Errorf("while getting server resources: %w", err)
+		if !shouldIgnoreResourceListError(err) {
+			return nil, fmt.Errorf("while getting resource list from K8s cluster: %w", err)
+		}
+
+		g.log.Warnf("Ignoring error while getting resource list from K8s cluster: %s", err.Error())
 	}
 
 	resourceMap := make(map[string]v1.APIResource)

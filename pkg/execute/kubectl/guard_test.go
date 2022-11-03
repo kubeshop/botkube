@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
@@ -55,7 +57,30 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 			AllConfiguredResources: []string{"pods", "services", "nodes"},
 			FakeDiscoClient:        &fakeDisco{err: errors.New("test")},
 			ExpectedResult:         nil,
-			ExpectedErrMessage:     "while getting server resources: test",
+			ExpectedErrMessage:     "while getting resource list from K8s cluster: test",
+		},
+		{
+			Name:                   "Discovery API resource list ignored error",
+			SelectedVerb:           "get",
+			AllConfiguredResources: []string{"pods"},
+			FakeDiscoClient: &fakeDisco{
+				list: []*v1.APIResourceList{
+					{
+						GroupVersion: "v1",
+						APIResources: []v1.APIResource{
+							{Name: "pods", Namespaced: true, Kind: "Pod", Verbs: []string{"create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"}},
+						},
+					},
+				},
+				err: &discovery.ErrGroupDiscoveryFailed{
+					Groups: map[schema.GroupVersion]error{
+						{Group: "", Version: "external.metrics.k8s.io/v1beta1"}: errors.New("Got empty response for: external.metrics.k8s.io/v1beta1"),
+					},
+				}},
+			ExpectedResult: []kubectl.Resource{
+				{Name: "pods", Namespaced: true, SlashSeparatedInCommand: false},
+			},
+			ExpectedErrMessage: "",
 		},
 		{
 			Name:                   "Verb not supported",
@@ -317,7 +342,7 @@ type fakeDisco struct {
 
 func (f *fakeDisco) ServerPreferredResources() ([]*v1.APIResourceList, error) {
 	if f.err != nil {
-		return nil, f.err
+		return f.list, f.err
 	}
 
 	return f.list, nil
