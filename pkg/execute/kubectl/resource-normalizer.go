@@ -23,8 +23,13 @@ func NewResourceNormalizer(log logrus.FieldLogger, discoveryCli discovery.Discov
 
 	_, resourceList, err := discoveryCli.ServerGroupsAndResources()
 	if err != nil {
-		return ResourceNormalizer{}, fmt.Errorf("while getting resource list from K8s cluster: %w", err)
+		if !shouldIgnoreResourceListError(err) {
+			return ResourceNormalizer{}, fmt.Errorf("while getting resource list from K8s cluster: %w", err)
+		}
+
+		log.Warnf("Ignoring error while getting resource list from K8s cluster: %s", err.Error())
 	}
+
 	for _, resource := range resourceList {
 		for _, r := range resource.APIResources {
 			// Exclude subresources
@@ -52,4 +57,28 @@ func (r ResourceNormalizer) Normalize(in string) []string {
 		r.kindResourceMap[strings.ToLower(in)],
 	}
 	return variants
+}
+
+// shouldIgnoreResourceListError returns true if the error should be ignored. This is a workaround for client-go behavior,
+// which reports error on empty resource lists. However, some components can register empty lists for their resources.
+// See
+// See: https://github.com/kyverno/kyverno/issues/2267
+func shouldIgnoreResourceListError(err error) bool {
+	groupDiscoFailedErr, ok := err.(*discovery.ErrGroupDiscoveryFailed)
+	if !ok {
+		return false
+	}
+
+	for _, currentErr := range groupDiscoFailedErr.Groups {
+		// Unfortunately there isn't a nicer way to do this.
+		// See https://github.com/kubernetes/client-go/blob/release-1.25/discovery/cached/memory/memcache.go#L228
+		if strings.Contains(currentErr.Error(), "Got empty response for") {
+			// ignore it as it isn't necessarily an error
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
