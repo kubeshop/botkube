@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -51,6 +52,12 @@ type RecommendationFactory interface {
 	NewForSources(sources map[string]config.Sources, mapKeyOrder []string) (recommendation.AggregatedRunner, config.Recommendations)
 }
 
+// ActionProvider defines a provider that is responsible for automated actions.
+type ActionProvider interface {
+	RenderedActionsForEvent(event events.Event) ([]events.Action, error)
+	ExecuteEventAction(ctx context.Context, action events.Action) interactive.GenericMessage
+}
+
 // Controller watches Kubernetes resources and send events to notifiers.
 type Controller struct {
 	log                   logrus.FieldLogger
@@ -62,6 +69,7 @@ type Controller struct {
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
 	sourcesRouter         *sources.Router
+	actionProvider        ActionProvider
 
 	dynamicCli dynamic.Interface
 
@@ -79,6 +87,7 @@ func New(log logrus.FieldLogger,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
 	router *sources.Router,
+	actionProvider ActionProvider,
 	reporter AnalyticsReporter,
 ) *Controller {
 	return &Controller{
@@ -91,6 +100,7 @@ func New(log logrus.FieldLogger,
 		mapper:                mapper,
 		informersResyncPeriod: informersResyncPeriod,
 		sourcesRouter:         router,
+		actionProvider:        actionProvider,
 		reporter:              reporter,
 	}
 }
@@ -155,7 +165,7 @@ func (c *Controller) Start(ctx context.Context) error {
 					"event":    config.CreateEvent,
 					"object":   obj,
 				}).Debugf("Processing K8s resource...")
-				c.sendEvent(ctx, obj, resource, config.CreateEvent, sources, nil)
+				c.handleEvent(ctx, obj, resource, config.CreateEvent, sources, nil)
 			}
 		})
 
@@ -170,7 +180,7 @@ func (c *Controller) Start(ctx context.Context) error {
 					"event":    config.DeleteEvent,
 					"object":   obj,
 				}).Debugf("Processing K8s resource...")
-				c.sendEvent(ctx, obj, resource, config.DeleteEvent, sources, nil)
+				c.handleEvent(ctx, obj, resource, config.DeleteEvent, sources, nil)
 			}
 		})
 
@@ -185,7 +195,7 @@ func (c *Controller) Start(ctx context.Context) error {
 					"event":    config.UpdateEvent,
 					"object":   obj,
 				}).Debugf("Processing K8s resource...")
-				c.sendEvent(ctx, obj, resource, config.UpdateEvent, sources, updateDiffs)
+				c.handleEvent(ctx, obj, resource, config.UpdateEvent, sources, updateDiffs)
 			}
 		})
 
@@ -194,7 +204,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		config.ErrorEvent,
 		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
 			return func(obj interface{}) {
-				c.sendEvent(ctx, obj, resource, config.ErrorEvent, sources, nil)
+				c.handleEvent(ctx, obj, resource, config.ErrorEvent, sources, nil)
 			}
 		})
 
@@ -222,7 +232,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource string, eventType config.EventType, sources []string, updateDiffs []string) {
+func (c *Controller) handleEvent(ctx context.Context, obj interface{}, resource string, eventType config.EventType, sources []string, updateDiffs []string) {
 	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
@@ -235,16 +245,20 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 	// Create new event object
 	event, err := events.New(objectMeta, obj, eventType, resource, c.conf.Settings.ClusterName)
 	if err != nil {
-		c.log.Errorf("while creating new event: %w", err)
+		c.log.Errorf("while creating new event: %s", err.Error())
 		return
 	}
 
 	// Skip older events
-	if !event.TimeStamp.IsZero() {
-		if event.TimeStamp.Before(c.startTime) {
-			c.log.Debug("Skipping older events")
-			return
-		}
+	if !event.TimeStamp.IsZero() && event.TimeStamp.Before(c.startTime) {
+		c.log.Debug("Skipping older events")
+		return
+	}
+
+	event.Actions, err = c.actionProvider.RenderedActionsForEvent(event)
+	if err != nil {
+		c.log.Errorf("while getting rendered actions for event: %s", err.Error())
+		// continue processing event
 	}
 
 	// Check for significant Update Events in objects
@@ -305,6 +319,21 @@ func (c *Controller) sendEvent(ctx context.Context, obj interface{}, resource st
 				c.log.Errorf("while reporting analytics: %w", err)
 			}
 		}(n)
+	}
+
+	// execute actions
+	for _, action := range event.Actions {
+		c.log.Infof("Executing action %q (command: %q)...", action.DisplayName, action.Command)
+		genericMsg := c.actionProvider.ExecuteEventAction(ctx, action)
+		for _, n := range c.notifiers {
+			go func(n notifier.Notifier) {
+				defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
+				err := n.SendGenericMessage(ctx, genericMsg, sources)
+				if err != nil {
+					c.log.Errorf("while sending event: %s", err.Error())
+				}
+			}(n)
+		}
 	}
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/storage"
+	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -305,6 +306,7 @@ func run() error {
 	}
 
 	recommFactory := recommendation.NewFactory(logger.WithField(componentLogFieldKey, "Recommendations"), dynamicCli)
+	actionProvider := action.NewProvider(conf.Actions, executorFactory)
 
 	// Create and start controller
 	ctrl := controller.New(
@@ -317,6 +319,7 @@ func run() error {
 		mapper,
 		conf.Settings.InformersResyncPeriod,
 		router.BuildTable(conf),
+		actionProvider,
 		reporter,
 	)
 
@@ -429,7 +432,7 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifier
 		}
 
 		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, notifier.BotName()).Build()
-		err := notifier.SendMessage(ctx, help)
+		err := notifier.SendMessageToAll(ctx, help)
 		if err != nil {
 			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)
 		}

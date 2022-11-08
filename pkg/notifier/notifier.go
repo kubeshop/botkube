@@ -15,10 +15,13 @@ type Notifier interface {
 	// SendEvent notifies about new incoming event from source.
 	SendEvent(context.Context, events.Event, []string) error
 
-	// SendMessage is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
+	// SendMessageToAll is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
 	// TODO: Consider option per channel to turn on/off "announcements" (Botkube start/stop/upgrade, notify/config change).
-	SendMessage(context.Context, interactive.Message) error
+	SendMessageToAll(context.Context, interactive.Message) error
+
+	// SendGenericMessage sends a generic message for a given source bindings.
+	SendGenericMessage(context.Context, interactive.GenericMessage, []string) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration
@@ -35,7 +38,7 @@ func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string)
 
 	// Send message over notifiers
 	for _, n := range notifiers {
-		err := n.SendMessage(ctx, interactive.Message{
+		err := n.SendMessageToAll(ctx, interactive.Message{
 			Base: interactive.Base{
 				Body: interactive.Body{
 					Plaintext: msg,

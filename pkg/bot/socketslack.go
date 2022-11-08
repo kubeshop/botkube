@@ -2,11 +2,13 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -302,6 +304,8 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 		return nil
 	}
 
+	b.log.Debugf("Slack incoming Request: %s", request)
+
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately Botkube would need another scope (get all conversations).
@@ -329,7 +333,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
 	response := e.Execute(ctx)
-	err = b.send(event, request, response)
+	err = b.send(event, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -337,14 +341,13 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 	return nil
 }
 
-func (b *SocketSlack) send(event socketSlackMessage, req string, resp interactive.Message) error {
-	b.log.Debugf("Slack incoming Request: %s", req)
+func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) error {
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
-		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
+		return errors.New("while reading Slack response: empty response")
 	}
 
 	// Upload message as a file if too long
@@ -401,7 +404,7 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSo
 	b.log.Debugf("Sending to Slack: %+v", event)
 
 	errs := multierror.New()
-	for _, channelName := range b.getChannelsToNotify(event, eventSources) {
+	for _, channelName := range b.getChannelsToNotifyForEvent(event, eventSources) {
 		additionalSection := b.getInteractiveEventSectionIfShould(event, channelName)
 
 		var additionalSections []interactive.Section
@@ -454,12 +457,16 @@ func (b *SocketSlack) getInteractiveEventSectionIfShould(event events.Event, cha
 	return &section
 }
 
-func (b *SocketSlack) getChannelsToNotify(event events.Event, eventSources []string) []string {
+func (b *SocketSlack) getChannelsToNotifyForEvent(event events.Event, sourceBindings []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}
 	}
 
+	return b.getChannelsToNotify(sourceBindings)
+}
+
+func (b *SocketSlack) getChannelsToNotify(sourceBindings []string) []string {
 	var out []string
 	for _, cfg := range b.getChannels() {
 		if !cfg.notify {
@@ -467,7 +474,7 @@ func (b *SocketSlack) getChannelsToNotify(event events.Event, eventSources []str
 			continue
 		}
 
-		if !sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+		if !sliceutil.Intersect(sourceBindings, cfg.Bindings.Sources) {
 			continue
 		}
 
@@ -476,8 +483,33 @@ func (b *SocketSlack) getChannelsToNotify(event events.Event, eventSources []str
 	return out
 }
 
-// SendMessage sends message with interactive sections to Slack channels.
-func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.Message) error {
+// SendGenericMessage sends message with interactive sections to selectred Slack channels.
+func (b *SocketSlack) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
+	msg := genericMsg.ForBot(b.BotName())
+
+	errs := multierror.New()
+	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
+		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
+
+		msgMetadata := socketSlackMessage{
+			Channel:         channelName,
+			ThreadTimeStamp: "",
+			BlockID:         uuid.New().String(),
+			CommandOrigin:   command.AutomationOrigin,
+		}
+		err := b.send(msgMetadata, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q", channelName)
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// SendMessageToAll sends message with interactive sections to all Slack channels.
+func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name

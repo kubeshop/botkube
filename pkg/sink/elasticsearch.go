@@ -195,8 +195,13 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, event
 	return errs.ErrorOrNil()
 }
 
-// SendMessage is no-op
-func (e *Elasticsearch) SendMessage(_ context.Context, _ interactive.Message) error {
+// SendMessageToAll is no-op.
+func (e *Elasticsearch) SendMessageToAll(_ context.Context, _ interactive.Message) error {
+	return nil
+}
+
+// SendGenericMessage is no-op.
+func (e *Elasticsearch) SendGenericMessage(_ context.Context, _ interactive.GenericMessage, _ []string) error {
 	return nil
 }
 

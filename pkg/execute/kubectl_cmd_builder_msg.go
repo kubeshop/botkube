@@ -131,7 +131,7 @@ func FilterSection(botName string) interactive.LabelInput {
 		// instead of:
 		//   kc-cmd-builder --filter input string
 		// TODO: this can be fixed by smarter command parser.
-		ID: fmt.Sprintf("%s %s ", botName, filterPlaintextInputCommand),
+		Command: fmt.Sprintf("%s %s ", botName, filterPlaintextInputCommand),
 	}
 }
 
