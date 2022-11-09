@@ -306,7 +306,9 @@ func run() error {
 	}
 
 	recommFactory := recommendation.NewFactory(logger.WithField(componentLogFieldKey, "Recommendations"), dynamicCli)
-	actionProvider := action.NewProvider(conf.Actions, executorFactory)
+
+	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
+	router.AddEnabledActionBindings(conf.Actions)
 
 	// Create and start controller
 	ctrl := controller.New(

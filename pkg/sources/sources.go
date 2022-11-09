@@ -69,6 +69,18 @@ func (r *Router) AddCommunicationsBindings(c config.Communications) {
 	r.AddAnySinkBindings(c.Webhook.Bindings)
 }
 
+func (r *Router) AddEnabledActionBindings(c config.Actions) {
+	for _, act := range c {
+		if !act.Enabled {
+			continue
+		}
+
+		for _, sourceBinding := range act.Bindings.Sources {
+			r.bindings[sourceBinding] = struct{}{}
+		}
+	}
+}
+
 // AddAnyBindingsByName adds source binding names
 // to dictate which source bindings the router should use.
 func (r *Router) AddAnyBindingsByName(c config.IdentifiableMap[config.ChannelBindingsByName]) *Router {

@@ -42,7 +42,7 @@ func NewResourceNormalizer(log logrus.FieldLogger, discoveryCli discovery.Discov
 			}
 		}
 	}
-	log.Infof("Loaded resource mapping: %+v", resMapping)
+	log.Debugf("Loaded resource mapping: %+v", resMapping)
 	return resMapping, nil
 }
 

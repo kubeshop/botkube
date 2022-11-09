@@ -177,7 +177,7 @@ type Actions map[string]Action
 type Action struct {
 	Enabled     bool           `yaml:"enabled"`
 	DisplayName string         `yaml:"displayName"`
-	Run         string         `yaml:"run"`
+	Command     string         `yaml:"command" validate:"required_if=Enabled true"`
 	Bindings    ActionBindings `yaml:"bindings"`
 }
 
