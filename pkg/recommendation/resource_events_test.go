@@ -144,6 +144,28 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Expected:            false,
 		},
 		{
+			Name:        "User configured such event with source-wide namespace",
+			InputConfig: fixFullRecommendationConfig(),
+			InputEvent: events.Event{
+				Resource:  recommendation.PodResourceName(),
+				Namespace: "default",
+				Type:      config.CreateEvent,
+			},
+			InputSourceBindings: []string{"deployments", "pods-source-wide-ns"},
+			Expected:            false,
+		},
+		{
+			Name:        "User configured such event with source-wide namespace and resource ns override",
+			InputConfig: fixFullRecommendationConfig(),
+			InputEvent: events.Event{
+				Resource:  recommendation.PodResourceName(),
+				Namespace: "kube-system",
+				Type:      config.CreateEvent,
+			},
+			InputSourceBindings: []string{"deployments", "pods-ns-override"},
+			Expected:            false,
+		},
+		{
 			Name:        "User didn't configure such resource",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
@@ -222,6 +244,35 @@ func fixSources() map[string]config.Sources {
 						Name: recommendation.PodResourceName(),
 						Namespaces: config.Namespaces{
 							Include: []string{".*"},
+						},
+						Events: []config.EventType{config.AllEvent},
+					},
+				},
+			},
+		},
+		"pods-source-wide-ns": {
+			Kubernetes: config.KubernetesSource{
+				Namespaces: config.Namespaces{
+					Include: []string{".*"},
+				},
+				Resources: []config.Resource{
+					{
+						Name:   recommendation.PodResourceName(),
+						Events: []config.EventType{config.AllEvent},
+					},
+				},
+			},
+		},
+		"pods-ns-override": {
+			Kubernetes: config.KubernetesSource{
+				Namespaces: config.Namespaces{
+					Include: []string{"default"},
+				},
+				Resources: []config.Resource{
+					{
+						Name: recommendation.PodResourceName(),
+						Namespaces: config.Namespaces{
+							Include: []string{"kube-system"},
 						},
 						Events: []config.EventType{config.AllEvent},
 					},
