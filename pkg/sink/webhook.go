@@ -109,8 +109,13 @@ func (w *Webhook) SendEvent(ctx context.Context, event events.Event, eventSource
 	return nil
 }
 
-// SendMessage is no-op
-func (w *Webhook) SendMessage(_ context.Context, _ interactive.Message) error {
+// SendMessageToAll is no-op.
+func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.Message) error {
+	return nil
+}
+
+// SendGenericMessage is no-op.
+func (w *Webhook) SendGenericMessage(_ context.Context, _ interactive.GenericMessage, _ []string) error {
 	return nil
 }
 

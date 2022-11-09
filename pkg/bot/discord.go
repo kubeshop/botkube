@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -152,9 +153,29 @@ func (b *Discord) SendEvent(_ context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-// SendMessage sends interactive message to Discord channel.
+// SendGenericMessage sends interactive message to selected Discord channels.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendMessage(_ context.Context, msg interactive.Message) error {
+func (b *Discord) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
+	msg := genericMsg.ForBot(b.BotName())
+
+	errs := multierror.New()
+	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
+
+		err := b.send(channelID, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q", channelID)
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// SendMessageToAll sends interactive message to all Discord channels.
+// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
+func (b *Discord) SendMessageToAll(_ context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
@@ -182,14 +203,14 @@ func (b *Discord) Type() config.IntegrationType {
 }
 
 // TODO: Support custom routing via annotations for Discord as well
-func (b *Discord) getChannelsToNotify(eventSources []string) []string {
+func (b *Discord) getChannelsToNotify(sourceBindings []string) []string {
 	var out []string
 	for _, cfg := range b.getChannels() {
 		switch {
 		case !cfg.notify:
 			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 		default:
-			if sliceutil.Intersect(eventSources, cfg.Bindings.Sources) {
+			if sliceutil.Intersect(sourceBindings, cfg.Bindings.Sources) {
 				out = append(out, cfg.Identifier())
 			}
 		}
@@ -235,6 +256,8 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 		return nil
 	}
 
+	b.log.Debugf("Discord incoming Request: %s", req)
+
 	channel, isAuthChannel := b.getChannels()[dm.Event.ChannelID]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
@@ -253,7 +276,7 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	})
 
 	response := e.Execute(ctx)
-	err := b.send(dm.Event, req, response)
+	err := b.send(dm.Event.ChannelID, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -261,14 +284,13 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	return nil
 }
 
-func (b *Discord) send(event *discordgo.MessageCreate, req string, resp interactive.Message) error {
-	b.log.Debugf("Discord incoming Request: %s", req)
+func (b *Discord) send(channelID string, resp interactive.Message) error {
 	b.log.Debugf("Discord Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
-		return fmt.Errorf("while reading Slack response: empty response for request %q", req)
+		return errors.New("while reading Slack response: empty response")
 	}
 
 	// Upload message as a file if too long
@@ -282,13 +304,13 @@ func (b *Discord) send(event *discordgo.MessageCreate, req string, resp interact
 				},
 			},
 		}
-		if _, err := b.api.ChannelMessageSendComplex(event.ChannelID, params); err != nil {
+		if _, err := b.api.ChannelMessageSendComplex(channelID, params); err != nil {
 			return fmt.Errorf("while uploading file: %w", err)
 		}
 		return nil
 	}
 
-	if _, err := b.api.ChannelMessageSend(event.ChannelID, markdown); err != nil {
+	if _, err := b.api.ChannelMessageSend(channelID, markdown); err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
 	return nil

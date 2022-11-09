@@ -2,6 +2,7 @@ package interactive
 
 import (
 	"fmt"
+	"strings"
 )
 
 // ButtonStyle is a style of Button element.
@@ -33,6 +34,11 @@ const (
 	Popup MessageType = "form"
 )
 
+// GenericMessage returns a message which has customized content. For example, it returns a message with customized commands based on bot name.
+type GenericMessage interface {
+	ForBot(botName string) Message
+}
+
 // Message represents a generic message with interactive buttons.
 type Message struct {
 	Type MessageType
@@ -51,6 +57,18 @@ func (msg *Message) HasSections() bool {
 // HasInputs returns true if message has interactive inputs.
 func (msg *Message) HasInputs() bool {
 	return len(msg.PlaintextInputs) != 0
+}
+
+// ReplaceBotNameInCommands replaces bot name in commands.
+func (msg *Message) ReplaceBotNameInCommands(old, new string) {
+	for i := range msg.Sections {
+		msg.Sections[i].Buttons.ReplaceBotNameInCommands(old, new)
+		msg.Sections[i].MultiSelect.ReplaceBotNameInCommands(old, new)
+		msg.Sections[i].Selects.ReplaceBotNameInCommands(old, new)
+		msg.Sections[i].PlaintextInputs.ReplaceBotNameInCommands(old, new)
+	}
+
+	msg.PlaintextInputs.ReplaceBotNameInCommands(old, new)
 }
 
 // Select holds data related to the select drop-down.
@@ -91,6 +109,13 @@ type Section struct {
 // LabelInputs holds the plain text input items.
 type LabelInputs []LabelInput
 
+// ReplaceBotNameInCommands replaces bot name in commands.
+func (l *LabelInputs) ReplaceBotNameInCommands(old, new string) {
+	for i, labelInput := range *l {
+		(*l)[i].Command = strings.Replace(labelInput.Command, old, new, 1)
+	}
+}
+
 // ContextItems holds context items.
 type ContextItems []ContextItem
 
@@ -119,6 +144,13 @@ type Selects struct {
 	Items []Select
 }
 
+// ReplaceBotNameInCommands replaces bot name in commands.
+func (s *Selects) ReplaceBotNameInCommands(old, new string) {
+	for i, item := range s.Items {
+		s.Items[i].Command = strings.Replace(item.Command, old, new, 1)
+	}
+}
+
 // DispatchedInputAction defines when the action should be sent to our backend.
 type DispatchedInputAction string
 
@@ -131,8 +163,7 @@ const (
 
 // LabelInput is used to create input elements to use in slack messages.
 type LabelInput struct {
-	// ID allows to carry the command that this input relates to.
-	ID               string
+	Command          string
 	Text             string
 	Placeholder      string
 	DispatchedAction DispatchedInputAction
@@ -182,6 +213,11 @@ func (m *MultiSelect) AreOptionsDefined() bool {
 	return true
 }
 
+// ReplaceBotNameInCommands replaces bot name in commands.
+func (m *MultiSelect) ReplaceBotNameInCommands(old, new string) {
+	m.Command = strings.Replace(m.Command, old, new, 1)
+}
+
 // Buttons holds definition of interactive buttons.
 type Buttons []Button
 
@@ -197,6 +233,13 @@ func (s *Buttons) AtLeastOneButtonHasDescription() bool {
 	}
 
 	return false
+}
+
+// ReplaceBotNameInCommands replaces bot name in commands.
+func (s *Buttons) ReplaceBotNameInCommands(old, new string) {
+	for i, item := range *s {
+		(*s)[i].Command = strings.Replace(item.Command, old, new, 1)
+	}
 }
 
 // Button holds definition of action button.

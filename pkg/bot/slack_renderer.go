@@ -333,8 +333,8 @@ func (b *SlackRenderer) renderInput(s interactive.LabelInput) slack.Block {
 		label = slack.NewTextBlockObject(slack.PlainTextType, s.Text, false, false)
 	}
 
-	input := slack.NewPlainTextInputBlockElement(placeholder, s.ID)
-	block := slack.NewInputBlock(s.ID, label, nil, input)
+	input := slack.NewPlainTextInputBlockElement(placeholder, s.Command)
+	block := slack.NewInputBlock(s.Command, label, nil, input)
 
 	if s.DispatchedAction != "" {
 		input.DispatchActionConfig = &slack.DispatchActionConfig{

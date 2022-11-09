@@ -37,6 +37,15 @@ type Event struct {
 
 	Recommendations []string
 	Warnings        []string
+	Actions         []Action
+}
+
+// Action describes an automated action for a given event.
+type Action struct {
+	// Command is the command to be executed, with the bot.CrossPlatformBotName prefix.
+	Command          string
+	ExecutorBindings []string
+	DisplayName      string
 }
 
 // HasRecommendationsOrWarnings returns true if event has recommendations or warnings.

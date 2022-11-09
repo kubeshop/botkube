@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -22,7 +23,6 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//    - handle and send methods from `mattermostMessage` should be defined on Bot level,
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
@@ -66,12 +66,7 @@ type Mattermost struct {
 
 // mattermostMessage contains message details to execute command and send back the result
 type mattermostMessage struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-
 	Event         *model.WebSocketEvent
-	APIClient     *model.Client4
-	Request       string
 	IsAuthChannel bool
 }
 
@@ -207,26 +202,26 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 }
 
 // Check incoming message and take action
-func (mm *mattermostMessage) handleMessage(ctx context.Context, b *Mattermost) {
+func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) error {
 	post, err := postFromEvent(mm.Event)
 	if err != nil {
-		b.log.Error(err)
-		return
+		return fmt.Errorf("while getting post from event: %w", err)
 	}
 
 	// Handle message only if starts with mention
 	trimmedMsg, found := b.findAndTrimBotMention(post.Message)
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botName)
-		return
+		return nil
 	}
-	mm.Request = trimmedMsg
+	req := trimmedMsg
+	b.log.Debugf("Mattermost incoming Request: %s", req)
 
 	channelID := mm.Event.GetBroadcast().ChannelId
 	channel, exists := b.getChannels()[channelID]
 	mm.IsAuthChannel = exists
 
-	e := mm.executorFactory.NewDefault(execute.NewDefaultInput{
+	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
@@ -237,54 +232,57 @@ func (mm *mattermostMessage) handleMessage(ctx context.Context, b *Mattermost) {
 			IsAuthenticated:  mm.IsAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
 		},
-		Message: mm.Request,
+		Message: req,
 	})
 	response := e.Execute(ctx)
-	mm.sendMessage(b, response)
+	err = b.send(channelID, response)
+	if err != nil {
+		return fmt.Errorf("while sending message: %w", err)
+	}
+
+	return nil
 }
 
 // Send messages to Mattermost
-func (mm mattermostMessage) sendMessage(b *Mattermost, resp interactive.Message) {
-	mm.log.Debugf("Mattermost incoming Request: %s", mm.Request)
-	mm.log.Debugf("Mattermost Response: %s", resp)
+func (b *Mattermost) send(channelID string, resp interactive.Message) error {
+	b.log.Debugf("Mattermost Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
-		mm.log.Infof("Invalid request. Dumping the response. Request: %s", mm.Request)
-		return
+		return errors.New("while reading Mattermost response: empty response")
 	}
 
 	// Create file if message is too large
 	if len(markdown) >= mattermostMaxMessageSize {
-		uploadResponse, _, err := mm.APIClient.UploadFileAsRequestBody(
+		uploadResponse, _, err := b.apiClient.UploadFileAsRequestBody(
 			[]byte(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
-			mm.Event.GetBroadcast().ChannelId,
-			mm.Request,
+			channelID,
+			responseFileName,
 		)
 		if err != nil {
-			mm.log.Error("Error occurred while uploading file. Error: ", err)
-			return
+			return fmt.Errorf("while uploading file: %w", err)
 		}
 
 		post := &model.Post{}
-		post.ChannelId = mm.Event.GetBroadcast().ChannelId
+		post.ChannelId = channelID
 		post.Message = resp.Description
 		post.FileIds = []string{uploadResponse.FileInfos[0].Id}
 
-		if _, _, err := mm.APIClient.CreatePost(post); err != nil {
-			mm.log.Error("Failed to send attachment message. Error: ", err)
-			return
+		if _, _, err := b.apiClient.CreatePost(post); err != nil {
+			return fmt.Errorf("while sending attachment message: %w", err)
 		}
-		return
+
+		return nil
 	}
 
 	post := &model.Post{}
-	post.ChannelId = mm.Event.GetBroadcast().ChannelId
+	post.ChannelId = channelID
 	post.Message = markdown
-	if _, _, err := mm.APIClient.CreatePost(post); err != nil {
-		mm.log.Error("Failed to send message. Error: ", err)
+	if _, _, err := b.apiClient.CreatePost(post); err != nil {
+		b.log.Error("Failed to send message. Error: ", err)
 	}
+	return nil
 }
 
 // Check if Mattermost server is reachable
@@ -357,14 +355,15 @@ func (b *Mattermost) listen(ctx context.Context) {
 			if post.UserId == b.getUser().Id {
 				continue
 			}
-			mm := mattermostMessage{
-				log:             b.log,
-				executorFactory: b.executorFactory,
-				Event:           event,
-				IsAuthChannel:   false,
-				APIClient:       b.apiClient,
+			mm := &mattermostMessage{
+				Event:         event,
+				IsAuthChannel: false,
 			}
-			mm.handleMessage(ctx, b)
+			err = b.handleMessage(ctx, mm)
+			if err != nil {
+				wrappedErr := fmt.Errorf("while handling message: %w", err)
+				b.log.Errorf(wrappedErr.Error())
+			}
 		}
 	}
 }
@@ -375,7 +374,7 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 	attachment := b.formatAttachments(event)
 
 	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotify(event, eventSources) {
+	for _, channelID := range b.getChannelsToNotifyForEvent(event, eventSources) {
 		post := &model.Post{
 			Props: map[string]interface{}{
 				"attachments": attachment,
@@ -395,11 +394,16 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 	return errs.ErrorOrNil()
 }
 
-func (b *Mattermost) getChannelsToNotify(event events.Event, eventSources []string) []string {
+func (b *Mattermost) getChannelsToNotifyForEvent(event events.Event, sourceBindings []string) []string {
+	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}
 	}
 
+	return b.getChannelsToNotify(sourceBindings)
+}
+
+func (b *Mattermost) getChannelsToNotify(eventSources []string) []string {
 	var out []string
 	for _, cfg := range b.getChannels() {
 		switch {
@@ -414,8 +418,26 @@ func (b *Mattermost) getChannelsToNotify(event events.Event, eventSources []stri
 	return out
 }
 
-// SendMessage sends message to Mattermost channel
-func (b *Mattermost) SendMessage(_ context.Context, msg interactive.Message) error {
+// SendGenericMessage sends message to selected Mattermost channels.
+func (b *Mattermost) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
+	msg := genericMsg.ForBot(b.BotName())
+
+	errs := multierror.New()
+	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
+		err := b.send(channelID, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelID, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q", channelID)
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// SendMessageToAll sends message to all Mattermost channels.
+func (b *Mattermost) SendMessageToAll(_ context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID

@@ -28,6 +28,7 @@ import (
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
 //  - see if we cannot set conversation ref without waiting for `@Botkube notify start` message.
+//  - support source and executor bindings per channel
 //  - see if a public endpoint can be avoided to handle Teams messages.
 //  - see if we can use different library
 //  - split to multiple files in a separate package,
@@ -368,7 +369,7 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources 
 	}
 
 	errs := multierror.New()
-	for _, convRef := range b.getConversationRefsToNotify() {
+	for _, convRef := range b.getConversationRefsToNotify(eventSources) {
 		err := b.sendProactiveMessage(ctx, convRef, card)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", convRef.ChannelID, err))
@@ -381,8 +382,33 @@ func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-// SendMessage sends message to MS Teams.
-func (b *Teams) SendMessage(ctx context.Context, msg interactive.Message) error {
+// SendGenericMessage sends message to MS Teams to selected conversations.
+func (b *Teams) SendGenericMessage(ctx context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
+	msg := genericMsg.ForBot(b.BotName())
+
+	errs := multierror.New()
+	for _, ref := range b.getConversationRefsToNotify(sourceBindings) {
+		channelID := ref.ChannelID
+
+		_, converted := b.convertInteractiveMessage(msg, true)
+		b.log.Debugf("Sending message to channel %q: %+v", channelID, converted)
+		err := b.Adapter.ProactiveMessage(ctx, ref, coreActivity.HandlerFuncs{
+			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
+				return turn.SendActivity(coreActivity.MsgOptionText(converted))
+			},
+		})
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Teams message to channel %q: %w", channelID, err))
+			continue
+		}
+		b.log.Debugf("Message successfully sent to channel %q", channelID)
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// SendMessageToAll sends message to MS Teams to all conversations.
+func (b *Teams) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
 	errs := multierror.New()
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID
@@ -468,12 +494,15 @@ func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.Convers
 	return err
 }
 
-func (b *Teams) getConversationRefsToNotify() []schema.ConversationReference {
-	// TODO(https://github.com/kubeshop/botkube/issues/596): Support source bindings - filter events here or at source level and pass it every time via event property?
+func (b *Teams) getConversationRefsToNotify(sourceBindings []string) []schema.ConversationReference {
 	var convRefsToNotify []schema.ConversationReference
 	for _, convConfig := range b.getConversations() {
 		if !convConfig.notify {
 			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", convConfig.ref.ChannelID)
+			continue
+		}
+
+		if !sliceutil.Intersect(sourceBindings, b.bindings.Sources) {
 			continue
 		}
 

@@ -21,4 +21,7 @@ const (
 
 	// PlainTextInputOrigin is the value for Origin when the command was triggered by a plain text input.
 	PlainTextInputOrigin Origin = "plainTextInput"
+
+	// AutomationOrigin is the value for Origin when the command was triggered by an automation.
+	AutomationOrigin Origin = "automation"
 )
