@@ -1,21 +1,13 @@
 actions:
     show-created-resource:
+        enabled: true
         displayName: Display created resource
         run: kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}
-        kubernetes:
-            enabled: true
-            resources:
-                - deployments
-                - pods
-                - namespaces
-                - services
-                - ingresses
-            events:
-                - create
-            namespaces:
-                include: []
-            name: botkube
-            annotation: ""
+        bindings:
+            sources:
+                - k8s-err-events
+            executors:
+                - kubectl-read-only
 sources:
     k8s-events:
         displayName: ""

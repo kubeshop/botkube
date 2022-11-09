@@ -175,20 +175,14 @@ type Actions map[string]Action
 
 // Action contains configuration for Botkube app event automations.
 type Action struct {
-	DisplayName string           `yaml:"displayName"`
-	Run         string           `yaml:"run"`
-	Kubernetes  KubernetesAction `yaml:"kubernetes"`
+	Enabled     bool           `yaml:"enabled"`
+	DisplayName string         `yaml:"displayName"`
+	Run         string         `yaml:"run"`
+	Bindings    ActionBindings `yaml:"bindings"`
 }
 
-// KubernetesAction contains configuration for kubectl based actions.
-type KubernetesAction struct {
-	Enabled    bool                     `yaml:"enabled"`
-	Resources  []string                 `yaml:"resources" validate:"dive"`
-	Events     KubernetesResourceEvents `yaml:"events"`
-	Namespaces Namespaces               `yaml:"namespaces"`
-	Name       string                   `yaml:"name"`
-	Annotation string                   `yaml:"annotation"`
-}
+// ActionBindings contains configuration for action bindings.
+type ActionBindings BotBindings
 
 // Sources contains configuration for Botkube app sources.
 type Sources struct {
