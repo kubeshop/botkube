@@ -212,9 +212,16 @@ func (r *KubernetesSource) IsAllowed(resourceName, namespace string, eventType E
 	}
 
 	for _, resource := range r.Resources {
+		var namespaceAllowed bool
+		if resource.Namespaces.IsConfigured() {
+			namespaceAllowed = resource.Namespaces.IsAllowed(namespace)
+		} else {
+			namespaceAllowed = r.Namespaces.IsAllowed(namespace)
+		}
+
 		if resource.Name == resourceName &&
 			isEventAllowed(resource.Events) &&
-			resource.Namespaces.IsAllowed(namespace) {
+			namespaceAllowed {
 			return true
 		}
 	}
