@@ -21,6 +21,6 @@ communications: # req 1 elm.
             sources:
               - k8s-events
 executors:
-  kubectl-read-only:
+  kubectl-read-only: {}
 sources:
-  k8s-events:
+  k8s-events: {}
