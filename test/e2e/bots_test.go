@@ -729,10 +729,14 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot automation message...")
+		cmdHeaderWithAuthor := func(command, author string) string {
+			return fmt.Sprintf("`%s` on `%s` by %s", command, appCfg.ClusterName, author)
+		}
+		command := fmt.Sprintf(`kubectl get pod -n %s %s`, pod.Namespace, pod.Name)
 		automationAssertionFn := func(content string) (bool, int, string) {
-			return strings.Contains(content, fmt.Sprintf(`kubectl get pod -n %s %s on %s by Automation "Get created resource"`, pod.Namespace, pod.Name, appCfg.ClusterName)) &&
+			return strings.Contains(content, cmdHeaderWithAuthor(command, "Automation \"Get created resource\"")) &&
 					strings.Contains(content, "NAME") && strings.Contains(content, "READY") && strings.Contains(content, "STATUS") && // command output header
-					strings.Index(content, pod.Name) == 2, // command + 1 occurrence in the command output
+					strings.Count(content, pod.Name) == 2, // command + 1 occurrence in the command output
 				0, ""
 		}
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, automationAssertionFn)

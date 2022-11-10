@@ -273,7 +273,10 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	var fetchedMessages []slack.Message
 	var lastErr error
 	var diffMessage string
-	highestCommonBlockCount := -1 // a single message is fetched, always print diff
+	var highestCommonBlockCount int
+	if limitMessages == 1 {
+		highestCommonBlockCount = -1 // a single message is fetched, always print diff
+	}
 
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
@@ -291,12 +294,12 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 			}
 
 			if len(msg.Attachments) != 1 {
-				return false, nil
+				continue
 			}
 
 			attachment := msg.Attachments[0]
 			if len(attachment.Fields) != 1 {
-				return false, nil
+				continue
 			}
 
 			equal, commonCount, diffStr := assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value)
@@ -306,7 +309,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 					highestCommonBlockCount = commonCount
 					diffMessage = diffStr
 				}
-				return false, nil
+				continue
 			}
 
 			return true, nil

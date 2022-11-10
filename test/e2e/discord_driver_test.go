@@ -298,8 +298,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 			}
 
 			if len(msg.Embeds) != 1 {
-				lastErr = err
-				return false, nil
+				continue
 			}
 
 			embed := msg.Embeds[0]
