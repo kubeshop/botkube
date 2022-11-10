@@ -158,8 +158,16 @@ func sourcesForObjNamespace(ctx context.Context, routes []route, obj interface{}
 	}
 
 	targetNs := objectMeta.Namespace
-	log.Debugf("handling events for target Namespace: %s in routes: %+v", targetNs, routes)
+	if targetNs == "" {
+		log.Debugf("handling event for cluster-wide resource in routes: %+v", targetNs, routes)
+		for _, route := range routes {
+			out = append(out, route.source)
+		}
 
+		return out, nil
+	}
+
+	log.Debugf("handling events for target Namespace: %s in routes: %+v", targetNs, routes)
 	for _, route := range routes {
 		if route.namespaces.IsAllowed(targetNs) {
 			out = append(out, route.source)
