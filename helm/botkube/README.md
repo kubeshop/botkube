@@ -32,7 +32,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [kubeconfig.existingSecret](./values.yaml#L51) | string | `""` | A Secret containing a kubeconfig to use.  |
 | [actions](./values.yaml#L58) | object | See the `values.yaml` file for full object. | Map of actions. Action contains configuration for automations based on observed events. The property name under `actions` object is an alias for a given configuration. You can define multiple actions configuration with different names.   |
 | [actions.show-created-resource.enabled](./values.yaml#L62) | bool | `false` | If true, enables the action. |
-| [actions.show-created-resource.command](./values.yaml#L68) | string | `"kubectl get {{ .Event.TypeMeta.Kind | lower }} {{ if .Event.Namespace -}}-n {{ .Event.Namespace }}{{- end }} {{ .Event.Name }}"` | The executor is inferred directly from the command, e.g. here we require a kubectl executor |
+| [actions.show-created-resource.command](./values.yaml#L68) | string | `"kubectl describe {{ .Event.TypeMeta.Kind | lower }} {{ if .Event.Namespace -}}-n {{ .Event.Namespace }}{{- end }} {{ .Event.Name }}"` | The executor is inferred directly from the command, e.g. here we require a kubectl executor |
 | [actions.show-created-resource.bindings](./values.yaml#L71) | object | `{"executors":["kubectl-read-only"],"sources":["k8s-create-events"]}` | Bindings for a given action. |
 | [actions.show-created-resource.bindings.sources](./values.yaml#L73) | list | `["k8s-create-events"]` | Sources of events that trigger a given action. |
 | [actions.show-created-resource.bindings.executors](./values.yaml#L76) | list | `["kubectl-read-only"]` | Executors configuration for a given automation. |

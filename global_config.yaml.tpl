@@ -9,7 +9,7 @@ actions:
     displayName: "Display created resource"
     # A text value denoting the command run by this action, may contain even based templated values.
     # The executor is inferred directly from the command, e.g. here we require a kubectl executor
-    command: "kubectl get {{ .Event.TypeMeta.Kind | lower }} {{ if .Event.Namespace -}}-n {{ .Event.Namespace }}{{- end }} {{ .Event.Name }}"
+    command: "kubectl describe {{ .Event.TypeMeta.Kind | lower }} {{ if .Event.Namespace -}}-n {{ .Event.Namespace }}{{- end }} {{ .Event.Name }}"
 
     # Bindings for a given action.
     bindings:
@@ -43,10 +43,10 @@ actions:
 #
 # Format: source.{alias}
 sources:
-  'k8s-events':
-
+  'k8s-recommendation-events':
+    displayName: "Kubernetes Recommendations"
+    # Describes Kubernetes source configuration.
     kubernetes:
-
       # Describes configuration for various recommendation insights.
       recommendations:
         # Recommendations for Pod Kubernetes resource.
@@ -62,146 +62,54 @@ sources:
           # If true, notifies about Ingress resources with invalid TLS secret reference.
           tlsSecretValid: true
 
-      # New 'namespace' property.
-      # It can be overridden in the nested level.
-      # namespace:
-      #   include: [ ".*" ]
+  'k8s-all-events':
+    displayName: "Kubernetes Info"
+    # Describes Kubernetes source configuration.
+    kubernetes:
+      # Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # These namespaces are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own namespaces object.
+      namespaces: &k8s-events-namespaces
+        # Include contains a list of allowed Namespaces.
+        # It can also contain a regex expressions:
+        #  `- ".*"` - to specify all Namespaces.
+        include:
+          - ".*"
+        # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+        # It can also contain a regex expressions:
+        #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
+        # exclude: []
+
+      # Describes events for every Kubernetes resources you want to watch or exclude.
+      # These events are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own events object.
+      events:
+        - create
+        - delete
+        - error
+
+      # Describes the Kubernetes resources you want to watch.
       resources:
         - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
                                     # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-          namespaces:
-            # Include contains a list of allowed Namespaces.
-            # It can also contain a regex expressions:
-            #  - ".*" - to specify all Namespaces.
-            include:
-              - ".*"
-            # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
-            # It can also contain a regex expressions:
-            #  - "test-.*" - to specif all Namespaces with `test-` prefix.
-            #exclude: []
-          events:                   # List of lifecycle events you want to receive, e.g create, update, delete, error OR all
-            - create
-            - delete
-            - error
+
+        #  namespaces:             # Overrides 'source'.kubernetes.namespaces
+        #    include:
+        #      - ".*"
+        #    exclude: []
         - name: v1/services
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
-        - name: apps/v1/deployments
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - update
-            - delete
-            - error
-          updateSetting:
-            includeDiff: true
-            fields:
-              - spec.template.spec.containers[*].image
-              - status.availableReplicas
-        - name: apps/v1/statefulsets
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - update
-            - delete
-            - error
-          updateSetting:
-            includeDiff: true
-            fields:
-              - spec.template.spec.containers[*].image
-              - status.readyReplicas
         - name: networking.k8s.io/v1/ingresses
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
         - name: v1/nodes
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
         - name: v1/namespaces
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
         - name: v1/persistentvolumes
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
         - name: v1/persistentvolumeclaims
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
-        - name: v1/secrets
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
         - name: v1/configmaps
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - delete
-            - error
+        - name: rbac.authorization.k8s.io/v1/roles
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterroles
         - name: apps/v1/daemonsets
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
+          events: # Overrides 'source'.kubernetes.events
             - create
             - update
             - delete
@@ -212,12 +120,7 @@ sources:
               - spec.template.spec.containers[*].image
               - status.numberReady
         - name: batch/v1/jobs
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
+          events: # Overrides 'source'.kubernetes.events
             - create
             - update
             - delete
@@ -227,58 +130,96 @@ sources:
             fields:
               - spec.template.spec.containers[*].image
               - status.conditions[*].type
-        - name: rbac.authorization.k8s.io/v1/roles
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
+        - name: apps/v1/deployments
+          events: # Overrides 'source'.kubernetes.events
             - create
+            - update
             - delete
             - error
-        - name: rbac.authorization.k8s.io/v1/rolebindings
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.availableReplicas
+        - name: apps/v1/statefulsets
+          events: # Overrides 'source'.kubernetes.events
             - create
+            - update
             - delete
             - error
-        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-          namespaces:
-            include:
-              - ".*"
-            exclude:
-              -
-          events:
-            - create
-            - error
-        - name: v1/services
-          events:
-            - create
-            - delete
-            - error
-  'k8s-err-with-logs-events':
-    displayName: "Kubernetes Errors for resources with logs"
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.readyReplicas
+       ## Custom resource example
+       # - name: velero.io/v1/backups
+       #   namespaces:
+       #     include:
+       #       - ".*"
+       #     exclude:
+       #       -
+       #   events:
+       #     - create
+       #     - update
+       #     - delete
+       #     - error
+       #   updateSetting:
+       #     includeDiff: true
+       #     fields:
+       #       - status.phase
 
-    # -- Describes Kubernetes source configuration.
+  'k8s-err-events':
+    displayName: "Kubernetes Errors"
+
+    # Describes Kubernetes source configuration.
     kubernetes:
-      # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: *k8s-events-namespaces
 
-      # -- Describes events for every Kubernetes resources you want to watch or exclude.
+      # Describes events for every Kubernetes resources you want to watch or exclude.
       # These events are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own events object.
       events:
         - error
 
-      # -- Describes the Kubernetes resources you want to watch.
-      # @default -- See the `values.yaml` file for full object.
+      # Describes the Kubernetes resources you want to watch.
+      resources:
+        - name: v1/pods
+        - name: v1/services
+        - name: networking.k8s.io/v1/ingresses
+        - name: v1/nodes
+        - name: v1/namespaces
+        - name: v1/persistentvolumes
+        - name: v1/persistentvolumeclaims
+        - name: v1/configmaps
+        - name: rbac.authorization.k8s.io/v1/roles
+        - name: rbac.authorization.k8s.io/v1/rolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - name: rbac.authorization.k8s.io/v1/clusterroles
+        - name: apps/v1/deployments
+        - name: apps/v1/statefulsets
+        - name: apps/v1/daemonsets
+        - name: batch/v1/jobs
+  'k8s-err-with-logs-events':
+    displayName: "Kubernetes Errors for resources with logs"
+
+    # Describes Kubernetes source configuration.
+    kubernetes:
+      # Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # These namespaces are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own namespaces object.
+      namespaces: *k8s-events-namespaces
+
+      # Describes events for every Kubernetes resources you want to watch or exclude.
+      # These events are applied to every resource specified in the resources list.
+      # However, every specified resource can override this by using its own events object.
+      events:
+        - error
+
+      # Describes the Kubernetes resources you want to watch.
       resources:
         - name: v1/pods
         - name: apps/v1/deployments
@@ -290,21 +231,20 @@ sources:
   'k8s-create-events':
     displayName: "Kubernetes Resource Created Events"
 
-    # -- Describes Kubernetes source configuration.
+    # Describes Kubernetes source configuration.
     kubernetes:
-      # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
+      # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: *k8s-events-namespaces
 
-      # -- Describes events for every Kubernetes resources you want to watch or exclude.
+      # Describes events for every Kubernetes resources you want to watch or exclude.
       # These events are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own events object.
       events:
         - create
 
-      # -- Describes the Kubernetes resources you want to watch.
-      # @default -- See the `values.yaml` file for full object.
+      # Describes the Kubernetes resources you want to watch.
       resources:
         - name: v1/pods
         - name: v1/services
