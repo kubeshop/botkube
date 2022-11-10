@@ -413,7 +413,7 @@ type Communications struct {
 // Slack configuration to authentication and send notifications
 type Slack struct {
 	Enabled      bool                                   `yaml:"enabled"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 	Token        string                                 `yaml:"token,omitempty"`
 }
@@ -421,7 +421,7 @@ type Slack struct {
 // SocketSlack configuration to authentication and send notifications
 type SocketSlack struct {
 	Enabled      bool                                   `yaml:"enabled"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 	BotToken     string                                 `yaml:"botToken,omitempty"`
 	AppToken     string                                 `yaml:"appToken,omitempty"`
@@ -435,7 +435,7 @@ type Elasticsearch struct {
 	Server        string              `yaml:"server"`
 	SkipTLSVerify bool                `yaml:"skipTLSVerify"`
 	AWSSigning    AWSSigning          `yaml:"awsSigning"`
-	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 }
 
 // AWSSigning contains AWS configurations
@@ -462,7 +462,7 @@ type Mattermost struct {
 	URL          string                                 `yaml:"url"`
 	Token        string                                 `yaml:"token"`
 	Team         string                                 `yaml:"team"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	Notification Notification                           `yaml:"notification,omitempty"`
 }
 
@@ -476,7 +476,7 @@ type Teams struct {
 	MessagePath string `yaml:"messagePath,omitempty"`
 	// TODO: Be consistent with other communicators when MS Teams support multiple channels
 	//Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"`
-	Bindings     BotBindings  `yaml:"bindings"`
+	Bindings     BotBindings  `yaml:"bindings" validate:"required_if=Enabled true"`
 	Notification Notification `yaml:"notification,omitempty"`
 }
 
@@ -485,16 +485,15 @@ type Discord struct {
 	Enabled      bool                                 `yaml:"enabled"`
 	Token        string                               `yaml:"token"`
 	BotID        string                               `yaml:"botID"`
-	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,omitempty,min=1"`
+	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	Notification Notification                         `yaml:"notification,omitempty"`
 }
 
 // Webhook configuration to send notifications
 type Webhook struct {
-	Enabled bool   `yaml:"enabled"`
-	URL     string `yaml:"url"`
-	// TODO: not used yet.
-	Bindings SinkBindings
+	Enabled  bool         `yaml:"enabled"`
+	URL      string       `yaml:"url"`
+	Bindings SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
 }
 
 // Kubectl configuration for executing commands inside cluster

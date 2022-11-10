@@ -10,9 +10,7 @@ communications: # req 1 elm.
               - kubectl-read-only
             sources:
               - k8s-events
-
+      botToken: 'xoxb-SLACK_API_TOKEN'
       appToken: 'xapp-SLACK_API_TOKEN'
-executors:
-  kubectl-read-only:
 sources:
   k8s-events:

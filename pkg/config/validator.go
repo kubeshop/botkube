@@ -104,10 +104,11 @@ func registerNamespaceValidator(validate *validator.Validate, trans ut.Translato
 }
 
 func registerBindingsValidator(validate *validator.Validate, trans ut.Translator) error {
-	validate.RegisterStructValidation(bindingsStructValidator, Config{})
+	validate.RegisterStructValidation(botBindingsStructValidator, BotBindings{})
+	validate.RegisterStructValidation(sinkBindingsStructValidator, SinkBindings{})
 
 	registerFn := func(ut ut.Translator) error {
-		return ut.Add(invalidBindingTag, "{0} {1}", false)
+		return ut.Add(invalidBindingTag, "'{0}' binding not defined in {1}", false)
 	}
 
 	return validate.RegisterTranslation(invalidBindingTag, trans, registerFn, translateFunc)
@@ -181,80 +182,40 @@ func namespacesStructValidator(sl validator.StructLevel) {
 	}
 }
 
-func bindingsStructValidator(sl validator.StructLevel) {
-	conf, ok := sl.Current().Interface().(Config)
+func botBindingsStructValidator(sl validator.StructLevel) {
+	bindings, ok := sl.Current().Interface().(BotBindings)
 	if !ok {
 		return
 	}
-	for _, comm := range conf.Communications {
-		// slack
-		for _, ch := range comm.Slack.Channels {
-			for _, source := range ch.Bindings.Sources {
-				if _, ok := conf.Sources[source]; !ok {
-					sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("slack binding not defined: %s", source))
-				}
-			}
-			for _, executor := range ch.Bindings.Executors {
-				if _, ok := conf.Executors[executor]; !ok {
-					sl.ReportError(executor, executor, executor, invalidBindingTag, fmt.Sprintf("slack binding not defined: %s", executor))
-				}
-			}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
+	}
+
+	for _, source := range bindings.Sources {
+		if _, ok := conf.Sources[source]; !ok {
+			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
 		}
-		// socketSlack
-		for _, ch := range comm.SocketSlack.Channels {
-			for _, source := range ch.Bindings.Sources {
-				if _, ok := conf.Sources[source]; !ok {
-					sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("slack binding not defined: %s", source))
-				}
-			}
-			for _, executor := range ch.Bindings.Executors {
-				if _, ok := conf.Executors[executor]; !ok {
-					sl.ReportError(executor, executor, executor, invalidBindingTag, fmt.Sprintf("slack binding not defined: %s", executor))
-				}
-			}
+	}
+	for _, executor := range bindings.Executors {
+		if _, ok := conf.Executors[executor]; !ok {
+			sl.ReportError(bindings.Executors, executor, executor, invalidBindingTag, "Config.Executors")
 		}
-		// mattermost
-		for _, ch := range comm.Mattermost.Channels {
-			for _, source := range ch.Bindings.Sources {
-				if _, ok := conf.Sources[source]; !ok {
-					sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("mattermost binding not defined: %s", source))
-				}
-			}
-			for _, executor := range ch.Bindings.Executors {
-				if _, ok := conf.Executors[executor]; !ok {
-					sl.ReportError(executor, executor, executor, invalidBindingTag, fmt.Sprintf("mattermost binding not defined: %s", executor))
-				}
-			}
-		}
-		// discord
-		for _, ch := range comm.Discord.Channels {
-			for _, source := range ch.Bindings.Sources {
-				if _, ok := conf.Sources[source]; !ok {
-					sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("discord binding not defined: %s", source))
-				}
-			}
-			for _, executor := range ch.Bindings.Executors {
-				if _, ok := conf.Executors[executor]; !ok {
-					sl.ReportError(executor, executor, executor, invalidBindingTag, fmt.Sprintf("discord binding not defined: %s", executor))
-				}
-			}
-		}
-		// teams
-		for _, source := range comm.Teams.Bindings.Sources {
-			if _, ok := conf.Sources[source]; !ok {
-				sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("teams binding not defined: %s", source))
-			}
-		}
-		for _, executor := range comm.Teams.Bindings.Executors {
-			if _, ok := conf.Executors[executor]; !ok {
-				sl.ReportError(executor, executor, executor, invalidBindingTag, fmt.Sprintf("teams binding not defined: %s", executor))
-			}
-		}
-		// webhook
-		for _, source := range comm.Webhook.Bindings.Sources {
-			if _, ok := conf.Sources[source]; !ok {
-				sl.ReportError(source, source, source, invalidBindingTag, fmt.Sprintf("discord binding not defined: %s", source))
-			}
+	}
+}
+
+func sinkBindingsStructValidator(sl validator.StructLevel) {
+	bindings, ok := sl.Current().Interface().(SinkBindings)
+	if !ok {
+		return
+	}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
+	}
+	for _, source := range bindings.Sources {
+		if _, ok := conf.Sources[source]; !ok {
+			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
 		}
 	}
 }
