@@ -12,3 +12,7 @@ communications: # req 1 elm.
               - k8s-events
 
       appToken: 'xapp-SLACK_API_TOKEN'
+executors:
+  kubectl-read-only: {}
+sources:
+  k8s-events: {}

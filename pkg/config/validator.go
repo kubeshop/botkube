@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	nsIncludeTag   = "ns-include-regex"
-	appTokenPrefix = "xapp-"
-	botTokenPrefix = "xoxb-"
+	nsIncludeTag      = "ns-include-regex"
+	invalidBindingTag = "invalid_binding"
+	appTokenPrefix    = "xapp-"
+	botTokenPrefix    = "xoxb-"
 )
 
 var warnsOnlyTags = map[string]struct{}{
@@ -42,6 +43,9 @@ func ValidateStruct(in any) (ValidateResult, error) {
 		return ValidateResult{}, err
 	}
 	if err := registerNamespaceValidator(validate, trans); err != nil {
+		return ValidateResult{}, err
+	}
+	if err := registerBindingsValidator(validate, trans); err != nil {
 		return ValidateResult{}, err
 	}
 
@@ -97,6 +101,17 @@ func registerNamespaceValidator(validate *validator.Validate, trans ut.Translato
 	}
 
 	return validate.RegisterTranslation(nsIncludeTag, trans, registerFn, translateFunc)
+}
+
+func registerBindingsValidator(validate *validator.Validate, trans ut.Translator) error {
+	validate.RegisterStructValidation(botBindingsStructValidator, BotBindings{})
+	validate.RegisterStructValidation(sinkBindingsStructValidator, SinkBindings{})
+
+	registerFn := func(ut ut.Translator) error {
+		return ut.Add(invalidBindingTag, "'{0}' binding not defined in {1}", false)
+	}
+
+	return validate.RegisterTranslation(invalidBindingTag, trans, registerFn, translateFunc)
 }
 
 func slackStructTokenValidator(sl validator.StructLevel) {
@@ -164,6 +179,43 @@ func namespacesStructValidator(sl validator.StructLevel) {
 
 	if foundAllNamespaceIndicator() {
 		sl.ReportError(ns.Include, "Include", "Include", nsIncludeTag, "")
+	}
+}
+
+func botBindingsStructValidator(sl validator.StructLevel) {
+	bindings, ok := sl.Current().Interface().(BotBindings)
+	if !ok {
+		return
+	}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
+	}
+	for _, source := range bindings.Sources {
+		if _, ok := conf.Sources[source]; !ok {
+			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
+		}
+	}
+	for _, executor := range bindings.Executors {
+		if _, ok := conf.Executors[executor]; !ok {
+			sl.ReportError(bindings.Executors, executor, executor, invalidBindingTag, "Config.Executors")
+		}
+	}
+}
+
+func sinkBindingsStructValidator(sl validator.StructLevel) {
+	bindings, ok := sl.Current().Interface().(SinkBindings)
+	if !ok {
+		return
+	}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
+	}
+	for _, source := range bindings.Sources {
+		if _, ok := conf.Sources[source]; !ok {
+			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
+		}
 	}
 }
 

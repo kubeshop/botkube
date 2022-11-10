@@ -202,6 +202,24 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				testdataFile(t, "no-token.yaml"),
 			},
 		},
+		{
+			name: "missing executor",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
+			configFiles: []string{
+				testdataFile(t, "missing-executor.yaml"),
+			},
+		},
+		{
+			name: "missing source",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.k8s-events' 'k8s-events' binding not defined in Config.Sources`),
+			configFiles: []string{
+				testdataFile(t, "missing-source.yaml"),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
