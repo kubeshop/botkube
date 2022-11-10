@@ -182,7 +182,10 @@ type Action struct {
 }
 
 // ActionBindings contains configuration for action bindings.
-type ActionBindings BotBindings
+type ActionBindings struct {
+	Sources   []string `yaml:"sources"`
+	Executors []string `yaml:"executors"`
+}
 
 // Sources contains configuration for Botkube app sources.
 type Sources struct {

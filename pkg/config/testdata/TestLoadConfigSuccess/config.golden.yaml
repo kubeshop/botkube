@@ -5,7 +5,7 @@ actions:
         command: kubectl describe {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}
         bindings:
             sources:
-                - k8s-err-events
+                - k8s-events
             executors:
                 - kubectl-read-only
 sources:
@@ -418,7 +418,7 @@ settings:
         port: 0
         deployment: {}
     log:
-        level: error
+        level: info
         disableColors: false
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env

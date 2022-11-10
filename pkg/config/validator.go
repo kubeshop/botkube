@@ -105,6 +105,7 @@ func registerNamespaceValidator(validate *validator.Validate, trans ut.Translato
 
 func registerBindingsValidator(validate *validator.Validate, trans ut.Translator) error {
 	validate.RegisterStructValidation(botBindingsStructValidator, BotBindings{})
+	validate.RegisterStructValidation(actionBindingsStructValidator, ActionBindings{})
 	validate.RegisterStructValidation(sinkBindingsStructValidator, SinkBindings{})
 
 	registerFn := func(ut ut.Translator) error {
@@ -191,16 +192,21 @@ func botBindingsStructValidator(sl validator.StructLevel) {
 	if !ok {
 		return
 	}
-	for _, source := range bindings.Sources {
-		if _, ok := conf.Sources[source]; !ok {
-			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
-		}
+	validateSourceBindings(sl, conf.Sources, bindings.Sources)
+	validateExecutorBindings(sl, conf.Executors, bindings.Executors)
+}
+
+func actionBindingsStructValidator(sl validator.StructLevel) {
+	bindings, ok := sl.Current().Interface().(ActionBindings)
+	if !ok {
+		return
 	}
-	for _, executor := range bindings.Executors {
-		if _, ok := conf.Executors[executor]; !ok {
-			sl.ReportError(bindings.Executors, executor, executor, invalidBindingTag, "Config.Executors")
-		}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
 	}
+	validateSourceBindings(sl, conf.Sources, bindings.Sources)
+	validateExecutorBindings(sl, conf.Executors, bindings.Executors)
 }
 
 func sinkBindingsStructValidator(sl validator.StructLevel) {
@@ -212,9 +218,21 @@ func sinkBindingsStructValidator(sl validator.StructLevel) {
 	if !ok {
 		return
 	}
-	for _, source := range bindings.Sources {
-		if _, ok := conf.Sources[source]; !ok {
-			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
+	validateSourceBindings(sl, conf.Sources, bindings.Sources)
+}
+
+func validateSourceBindings(sl validator.StructLevel, sources map[string]Sources, bindings []string) {
+	for _, source := range bindings {
+		if _, ok := sources[source]; !ok {
+			sl.ReportError(bindings, source, source, invalidBindingTag, "Config.Sources")
+		}
+	}
+}
+
+func validateExecutorBindings(sl validator.StructLevel, executors map[string]Executors, bindings []string) {
+	for _, executor := range bindings {
+		if _, ok := executors[executor]; !ok {
+			sl.ReportError(bindings, executor, executor, invalidBindingTag, "Config.Executors")
 		}
 	}
 }
