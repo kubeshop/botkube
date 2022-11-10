@@ -2,7 +2,7 @@ actions:
   'show-created-resource':
     enabled: true
     displayName: "Display created resource"
-    run: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
+    command: "kubectl get {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
     bindings:
       sources:
         - k8s-err-events

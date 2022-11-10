@@ -59,7 +59,7 @@ actions:
   ## kubectl based action.
   'show-created-resource':
     # -- If true, enables the action.
-    enabled: true
+    enabled: false
 
     ## Action display name posted in the channels bound to the same source bindings.
     displayName: "Display created resource"
@@ -77,7 +77,7 @@ actions:
         - kubectl-read-only
   'show-logs-on-error':
     # -- If true, enables the action.
-    enabled: true
+    enabled: false
 
     ## Action display name posted in the channels bound to the same source bindings.
     displayName: "Show logs on error"
@@ -93,7 +93,6 @@ actions:
       # -- Executors configuration for a given automation.
       executors:
         - kubectl-read-only
-
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.

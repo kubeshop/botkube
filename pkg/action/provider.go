@@ -5,18 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	sprig "github.com/go-task/slim-sprig"
-	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/sliceutil"
-	"github.com/sirupsen/logrus"
 	"html/template"
 	"strings"
+
+	sprig "github.com/go-task/slim-sprig"
+	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 const (
@@ -34,14 +35,14 @@ type ExecutorFactory interface {
 
 // Provider provides automations for events.
 type Provider struct {
-	log logrus.FieldLogger
+	log             logrus.FieldLogger
 	cfg             config.Actions
 	executorFactory ExecutorFactory
 }
 
 // NewProvider returns new instance of Provider.
 func NewProvider(log logrus.FieldLogger, cfg config.Actions, executorFactory ExecutorFactory) *Provider {
-	return &Provider{log:log, cfg: cfg, executorFactory: executorFactory}
+	return &Provider{log: log, cfg: cfg, executorFactory: executorFactory}
 }
 
 // RenderedActionsForEvent finds and processes actions for given event.
@@ -70,7 +71,7 @@ func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []
 		p.log.Debugf("Rendered command: %q", renderedCmd)
 
 		actions = append(actions, events.Action{
-			DisplayName: action.DisplayName,
+			DisplayName:      action.DisplayName,
 			Command:          fmt.Sprintf("%s %s", universalBotNamePlaceholder, renderedCmd),
 			ExecutorBindings: action.Bindings.Executors,
 		})
@@ -105,17 +106,17 @@ type renderingData struct {
 	Event events.Event
 }
 
-func (p *Provider) renderActionCommand(action config.Action, data renderingData) (string, error)  {
+func (p *Provider) renderActionCommand(action config.Action, data renderingData) (string, error) {
 	tpl := template.New("action-cmd").Funcs(sprig.FuncMap())
 	tpl, err := tpl.Parse(action.Command)
 	if err != nil {
-		return "", fmt.Errorf("while parsing command template %q for Action %q: %w", action.Command,  action.DisplayName, err)
+		return "", fmt.Errorf("while parsing command template %q for Action %q: %w", action.Command, action.DisplayName, err)
 	}
 
 	var result bytes.Buffer
 	err = tpl.Execute(&result, data)
 	if err != nil {
-		return "", fmt.Errorf("while rendering command %q for Action %q: %w", action.Command,  action.DisplayName, err)
+		return "", fmt.Errorf("while rendering command %q for Action %q: %w", action.Command, action.DisplayName, err)
 	}
 
 	return result.String(), nil

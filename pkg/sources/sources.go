@@ -68,6 +68,7 @@ func (r *Router) AddCommunicationsBindings(c config.Communications) {
 	r.AddSinkBindingsIfConditionTrue(c.Webhook.Enabled, c.Webhook.Bindings)
 }
 
+// AddEnabledActionBindings adds source bindings for enabled Actions.
 func (r *Router) AddEnabledActionBindings(c config.Actions) {
 	for _, act := range c {
 		if !act.Enabled {

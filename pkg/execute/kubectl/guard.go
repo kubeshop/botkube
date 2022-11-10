@@ -52,7 +52,7 @@ var (
 		"deployments":  {"logs"},
 		"statefulsets": {"logs"},
 		"replicasets":  {"logs"},
-		"daemonsets":  {"logs"},
+		"daemonsets":   {"logs"},
 	}
 
 	// resourcelessVerbs contains verbs which are not resource-specific.
