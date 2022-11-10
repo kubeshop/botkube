@@ -9,7 +9,7 @@ actions:
     displayName: "Display created resource"
     # A text value denoting the command run by this action, may contain even based templated values.
     # The executor is inferred directly from the command, e.g. here we require a kubectl executor
-    command: "kubectl describe {{ .Event.TypeMeta.Kind | lower }} {{ if .Event.Namespace -}}-n {{ .Event.Namespace }}{{- end }} {{ .Event.Name }}"
+    command: "kubectl describe {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
 
     # Bindings for a given action.
     bindings:
@@ -251,13 +251,7 @@ sources:
         - name: networking.k8s.io/v1/ingresses
         - name: v1/nodes
         - name: v1/namespaces
-        - name: v1/persistentvolumes
-        - name: v1/persistentvolumeclaims
         - name: v1/configmaps
-        - name: rbac.authorization.k8s.io/v1/roles
-        - name: rbac.authorization.k8s.io/v1/rolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterroles
         - name: apps/v1/deployments
         - name: apps/v1/statefulsets
         - name: apps/v1/daemonsets
