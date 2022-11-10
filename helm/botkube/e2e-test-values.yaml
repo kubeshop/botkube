@@ -96,6 +96,15 @@ sources:
         - delete
       resources:
         - name: v1/configmaps
+  'k8s-pod-create-events':
+    kubernetes:
+      namespaces:
+        include:
+          - botkube
+      events:
+        - create
+      resources:
+        - name: v1/pods
 
   'k8s-updates':
     kubernetes:
@@ -159,6 +168,17 @@ executors:
       commands:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]
+
+actions:
+  'get-created-resource':
+    enabled: true
+    displayName: "Get created resource"
+    command: "kubectl get {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
+    bindings:
+      sources:
+        - k8s-pod-create-events
+      executors:
+        - kubectl-read-only
 
 filters:
   kubernetes:

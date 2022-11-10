@@ -265,7 +265,11 @@ func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 	return nil
 }
 
-func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
+func (s *slackTester) WaitForLastMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
+	return s.WaitForMessagePostedWithAttachment(userID, channelID, 1, assertFn)
+}
+
+func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn AttachmentAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
 	var diffMessage string
@@ -273,7 +277,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
-			ChannelID: channelID, Limit: 1,
+			ChannelID: channelID, Limit: limitMessages,
 		})
 		if err != nil {
 			lastErr = err
@@ -326,7 +330,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error {
 	errs := multierror.New()
 	for _, channelID := range channelIDs {
-		errs = multierror.Append(errs, s.WaitForMessagePostedWithAttachment(userID, channelID, assertFn))
+		errs = multierror.Append(errs, s.WaitForLastMessagePostedWithAttachment(userID, channelID, assertFn))
 	}
 
 	return errs.ErrorOrNil()
