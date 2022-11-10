@@ -13,4 +13,4 @@ communications: # req 1 elm.
       botToken: 'xoxb-SLACK_API_TOKEN'
       appToken: 'xapp-SLACK_API_TOKEN'
 executors:
-  kubectl-read-only:
+  kubectl-read-only: {}

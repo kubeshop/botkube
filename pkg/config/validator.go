@@ -191,7 +191,6 @@ func botBindingsStructValidator(sl validator.StructLevel) {
 	if !ok {
 		return
 	}
-
 	for _, source := range bindings.Sources {
 		if _, ok := conf.Sources[source]; !ok {
 			sl.ReportError(bindings.Sources, source, source, invalidBindingTag, "Config.Sources")
