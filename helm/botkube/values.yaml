@@ -56,11 +56,11 @@ kubeconfig:
 #
 ## Format: actions.{alias}
 actions:
-  'show-created-resource':
+  'describe-created-resource':
     # -- If true, enables the action.
     enabled: false
     # -- Action display name posted in the channels bound to the same source bindings.
-    displayName: "Display created resource"
+    displayName: "Describe created resource"
     # -- A text value denoting the command run by this action, may contain even based templated values.
     # The executor is inferred directly from the command, e.g. here we require a kubectl executor
     command: "kubectl describe {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
