@@ -177,12 +177,15 @@ type Actions map[string]Action
 type Action struct {
 	Enabled     bool           `yaml:"enabled"`
 	DisplayName string         `yaml:"displayName"`
-	Run         string         `yaml:"run"`
+	Command     string         `yaml:"command" validate:"required_if=Enabled true"`
 	Bindings    ActionBindings `yaml:"bindings"`
 }
 
 // ActionBindings contains configuration for action bindings.
-type ActionBindings BotBindings
+type ActionBindings struct {
+	Sources   []string `yaml:"sources"`
+	Executors []string `yaml:"executors"`
+}
 
 // Sources contains configuration for Botkube app sources.
 type Sources struct {
@@ -212,9 +215,16 @@ func (r *KubernetesSource) IsAllowed(resourceName, namespace string, eventType E
 	}
 
 	for _, resource := range r.Resources {
+		var namespaceAllowed bool
+		if resource.Namespaces.IsConfigured() {
+			namespaceAllowed = resource.Namespaces.IsAllowed(namespace)
+		} else {
+			namespaceAllowed = r.Namespaces.IsAllowed(namespace)
+		}
+
 		if resource.Name == resourceName &&
 			isEventAllowed(resource.Events) &&
-			resource.Namespaces.IsAllowed(namespace) {
+			namespaceAllowed {
 			return true
 		}
 	}

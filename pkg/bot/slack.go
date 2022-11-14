@@ -330,7 +330,7 @@ func (b *Slack) getChannelsToNotify(sourceBindings []string) []string {
 	var out []string
 	for _, cfg := range b.getChannels() {
 		if !cfg.notify {
-			b.log.Info("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
 			continue
 		}
 

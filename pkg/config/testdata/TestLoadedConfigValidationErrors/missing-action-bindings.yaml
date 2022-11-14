@@ -1,3 +1,5 @@
+communications:
+  'foo': {}
 actions:
   'show-created-resource':
     enabled: true
@@ -5,6 +7,6 @@ actions:
     command: "kubectl describe {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}"
     bindings:
       sources:
-        - k8s-events
+        - k8s-err-events
       executors:
         - kubectl-read-only

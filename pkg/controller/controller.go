@@ -54,7 +54,7 @@ type RecommendationFactory interface {
 
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {
-	RenderedActionsForEvent(event events.Event) ([]events.Action, error)
+	RenderedActionsForEvent(event events.Event, sourceBindings []string) ([]events.Action, error)
 	ExecuteEventAction(ctx context.Context, action events.Action) interactive.GenericMessage
 }
 
@@ -255,7 +255,7 @@ func (c *Controller) handleEvent(ctx context.Context, obj interface{}, resource 
 		return
 	}
 
-	event.Actions, err = c.actionProvider.RenderedActionsForEvent(event)
+	event.Actions, err = c.actionProvider.RenderedActionsForEvent(event, sources)
 	if err != nil {
 		c.log.Errorf("while getting rendered actions for event: %s", err.Error())
 		// continue processing event

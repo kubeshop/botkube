@@ -1,16 +1,23 @@
 package action
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"strings"
+
+	sprig "github.com/go-task/slim-sprig"
+	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 const (
@@ -28,31 +35,49 @@ type ExecutorFactory interface {
 
 // Provider provides automations for events.
 type Provider struct {
+	log             logrus.FieldLogger
 	cfg             config.Actions
 	executorFactory ExecutorFactory
 }
 
 // NewProvider returns new instance of Provider.
-func NewProvider(cfg config.Actions, executorFactory ExecutorFactory) *Provider {
-	return &Provider{cfg: cfg, executorFactory: executorFactory}
+func NewProvider(log logrus.FieldLogger, cfg config.Actions, executorFactory ExecutorFactory) *Provider {
+	return &Provider{log: log, cfg: cfg, executorFactory: executorFactory}
 }
 
 // RenderedActionsForEvent finds and processes actions for given event.
-// TODO: Implement this as a part of https://github.com/kubeshop/botkube/issues/831
-func (p *Provider) RenderedActionsForEvent(event events.Event) ([]events.Action, error) {
-	// 1. see if there are any actions for this event configured in config
-	// 2. filter out all actions that are not enabled and not applicable for this event
-	// 3. for each applicable action, render final command based on the event data
-
+func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []string) ([]events.Action, error) {
 	var actions []events.Action
-	//cmd := "kubectl get cm -A"
-	//actions = append(actions, events.Action{
-	//	DisplayName: "Sample",
-	//	Command:          fmt.Sprintf("%s %s", universalBotNamePlaceholder, cmd),
-	//	ExecutorBindings: []string{"kubectl-read-only"},
-	//})
+	errs := multierror.New()
+	for _, action := range p.cfg {
+		if !action.Enabled {
+			continue
+		}
 
-	return actions, nil
+		if !sliceutil.Intersect(sourceBindings, action.Bindings.Sources) {
+			continue
+		}
+
+		p.log.Debugf("Rendering Action %q (command: %q)...", action.DisplayName, action.Command)
+		renderingData := renderingData{
+			Event: event,
+		}
+		renderedCmd, err := p.renderActionCommand(action, renderingData)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+
+		p.log.Debugf("Rendered command: %q", renderedCmd)
+
+		actions = append(actions, events.Action{
+			DisplayName:      action.DisplayName,
+			Command:          fmt.Sprintf("%s %s", universalBotNamePlaceholder, renderedCmd),
+			ExecutorBindings: action.Bindings.Executors,
+		})
+	}
+
+	return actions, errs.ErrorOrNil()
 }
 
 // ExecuteEventAction executes action for given event.
@@ -75,6 +100,26 @@ func (p *Provider) ExecuteEventAction(ctx context.Context, action events.Action)
 	response := e.Execute(ctx)
 
 	return &genericMessage{response: response}
+}
+
+type renderingData struct {
+	Event events.Event
+}
+
+func (p *Provider) renderActionCommand(action config.Action, data renderingData) (string, error) {
+	tpl := template.New("action-cmd").Funcs(sprig.FuncMap())
+	tpl, err := tpl.Parse(action.Command)
+	if err != nil {
+		return "", fmt.Errorf("while parsing command template %q for Action %q: %w", action.Command, action.DisplayName, err)
+	}
+
+	var result bytes.Buffer
+	err = tpl.Execute(&result, data)
+	if err != nil {
+		return "", fmt.Errorf("while rendering command %q for Action %q: %w", action.Command, action.DisplayName, err)
+	}
+
+	return result.String(), nil
 }
 
 type genericMessage struct {

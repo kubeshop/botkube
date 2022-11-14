@@ -56,7 +56,8 @@ type BotDriver interface {
 	WaitForMessagePosted(userID, channel string, limitMessages int, assertFn MessageAssertion) error
 	WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error
 	WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error
-	WaitForMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
+	WaitForMessagePostedWithAttachment(userID, channel string, limitMessages int, assertFn AttachmentAssertion) error
+	WaitForLastMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
 	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
 	Channel() Channel
 	SecondChannel() Channel
