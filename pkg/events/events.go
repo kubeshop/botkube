@@ -130,6 +130,10 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 			event.TimeStamp = eventObj.Series.LastObservedTime.Time
 			event.Count = eventObj.Series.Count
 		}
+		if event.TimeStamp.IsZero() {
+			// still zero? try event time
+			event.TimeStamp = eventObj.EventTime.Time
+		}
 	}
 
 	return event, nil
