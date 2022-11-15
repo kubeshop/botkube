@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -28,6 +29,9 @@ var (
 const (
 	unsupportedCmdMsg   = "Command not supported. Please use 'help' to see supported commands."
 	filterNameMissing   = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
+	actionNameMissing   = "You forgot to pass action name. Please pass one of the following valid actions:\n\n%s"
+	actionEnabled       = "I have enabled '%s' action on '%s' cluster."
+	actionDisabled      = "Done. I won't run '%s' action on '%s' cluster."
 	filterEnabled       = "I have enabled '%s' filter on '%s' cluster."
 	filterDisabled      = "Done. I won't run '%s' filter on '%s' cluster."
 	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
@@ -49,6 +53,7 @@ const (
 type DefaultExecutor struct {
 	cfg               config.Config
 	filterEngine      filterengine.FilterEngine
+	actionManager     *ActionManager
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cmdRunner         CommandSeparateOutputRunner
@@ -97,22 +102,14 @@ func (flag CommandFlags) String() string {
 	return string(flag)
 }
 
-// FiltersAction for options in filter commands
-type FiltersAction string
+// CommandVerb are commands supported by the bot
+type CommandVerb string
 
-// Filter command options
+// CommandVerb command options
 const (
-	FilterList    FiltersAction = "list"
-	FilterEnable  FiltersAction = "enable"
-	FilterDisable FiltersAction = "disable"
-)
-
-// infoAction for options in Info commands
-type infoAction string
-
-// Info command options
-const (
-	infoList infoAction = "list"
+	CommandList    CommandVerb = "list"
+	CommandEnable  CommandVerb = "enable"
+	CommandDisable CommandVerb = "disable"
 )
 
 // Execute executes commands and returns output
@@ -181,6 +178,10 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	cmds := executorsRunner{
+		"actions": func() (interactive.Message, error) {
+			res, err := e.runActionCommand(ctx, args, clusterName)
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
+		},
 		"help": func() (interactive.Message, error) {
 			e.reportCommand(args[0], false)
 			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
@@ -284,13 +285,13 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 		e.reportCommand(cmdToReport, false)
 	}()
 
-	switch FiltersAction(args[1]) {
-	case FilterList:
+	switch CommandVerb(args[1]) {
+	case CommandList:
 		e.log.Debug("List filters")
 		return e.makeFiltersList(), nil
 
 	// Enable filter
-	case FilterEnable:
+	case CommandEnable:
 		const enabled = true
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
@@ -309,7 +310,7 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 		return fmt.Sprintf(filterEnabled, filterName, clusterName), nil
 
 	// Disable filter
-	case FilterDisable:
+	case CommandDisable:
 		const enabled = false
 		if len(args) < 3 {
 			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
@@ -332,6 +333,61 @@ func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, c
 	return "", errUnsupportedCommand
 }
 
+func (e *DefaultExecutor) runActionCommand(ctx context.Context, args []string, clusterName string) (string, error) {
+	if len(args) < 2 {
+		return "", errInvalidCommand
+	}
+
+	var cmdVerb = args[1]
+	defer func() {
+		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
+		e.reportCommand(cmdToReport, false)
+	}()
+
+	switch CommandVerb(args[1]) {
+	case CommandList:
+		e.log.Debug("List actions")
+		return e.actionManager.tabularOutput(), nil
+
+	// Enable action
+	case CommandEnable:
+		const enabled = true
+		if len(args) < 3 {
+			return fmt.Sprintf(actionNameMissing, e.actionManager.tabularOutput()), nil
+		}
+		actionName := args[2]
+		e.log.Debug("Enabling action...", actionName)
+
+		if changed := e.actionManager.enableAction(actionName); changed {
+			if err := e.cfgManager.PersistActionEnabled(ctx, actionName, enabled); err != nil {
+				return "", fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
+			}
+		}
+
+		return fmt.Sprintf(actionEnabled, actionName, clusterName), nil
+
+	// Disable action
+	case CommandDisable:
+		const enabled = false
+		if len(args) < 3 {
+			return fmt.Sprintf(actionNameMissing, e.actionManager.tabularOutput()), nil
+		}
+		actionName := args[2]
+		e.log.Debug("Disabling action...", actionName)
+
+		if changed := e.actionManager.disableAction(actionName); changed {
+			if err := e.cfgManager.PersistActionEnabled(ctx, actionName, enabled); err != nil {
+				return "", fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
+			}
+		}
+
+		return fmt.Sprintf(actionDisabled, actionName, clusterName), nil
+	}
+
+	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+	return "", errUnsupportedCommand
+}
+
 // runInfoCommand to list allowed commands
 func (e *DefaultExecutor) runInfoCommand(args []string, withFilter bool) (string, error) {
 	if len(args) < 2 {
@@ -343,8 +399,8 @@ func (e *DefaultExecutor) runInfoCommand(args []string, withFilter bool) (string
 		e.reportCommand(cmdToReport, withFilter)
 	}()
 
-	switch infoAction(cmdVerb) {
-	case infoList:
+	switch CommandVerb(cmdVerb) {
+	case CommandList:
 		enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
 		if err != nil {
 			return "", fmt.Errorf("while rendering namespace config: %s", err.Error())

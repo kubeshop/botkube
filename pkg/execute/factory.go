@@ -19,6 +19,7 @@ type DefaultExecutorFactory struct {
 	cmdRunner         CommandSeparateOutputRunner
 	cfg               config.Config
 	filterEngine      filterengine.FilterEngine
+	actionManager     *ActionManager
 	analyticsReporter AnalyticsReporter
 	notifierExecutor  *NotifierExecutor
 	kubectlExecutor   *Kubectl
@@ -34,6 +35,7 @@ type DefaultExecutorFactoryParams struct {
 	CmdRunner         CommandRunner
 	Cfg               config.Config
 	FilterEngine      filterengine.FilterEngine
+	ActionManager     *ActionManager
 	KcChecker         *kubectl.Checker
 	Merger            *kubectl.Merger
 	CfgManager        ConfigPersistenceManager
@@ -52,6 +54,7 @@ type ConfigPersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
+	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
@@ -81,6 +84,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		cmdRunner:         params.CmdRunner,
 		cfg:               params.Cfg,
 		filterEngine:      params.FilterEngine,
+		actionManager:     params.ActionManager,
 		analyticsReporter: params.AnalyticsReporter,
 		notifierExecutor: NewNotifierExecutor(
 			params.Log.WithField("component", "Notifier Executor"),
@@ -138,6 +142,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		notifierExecutor:  f.notifierExecutor,
 		editExecutor:      f.editExecutor,
 		filterEngine:      f.filterEngine,
+		actionManager:     f.actionManager,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,
 		kubectlCmdBuilder: f.kubectlCmdBuilder,

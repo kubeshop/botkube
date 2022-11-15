@@ -9,6 +9,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
+	github.com/gobeam/stringy v0.0.5
 	github.com/google/go-github/v44 v44.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.2
@@ -143,7 +144,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

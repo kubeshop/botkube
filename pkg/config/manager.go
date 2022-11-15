@@ -179,3 +179,18 @@ func (m *PersistenceManager) PersistFilterEnabled(ctx context.Context, name stri
 
 	return nil
 }
+
+func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
+	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
+
+	state, cm, err := cmStorage.Get(ctx)
+	if err != nil {
+		return err
+	}
+	if state.Actions == nil {
+		state.Actions = Actions{}
+	}
+
+	state.Actions.SetEnabled(name, enabled)
+	return cmStorage.Update(ctx, cm, state)
+}

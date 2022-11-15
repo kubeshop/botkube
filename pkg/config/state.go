@@ -14,6 +14,7 @@ import (
 // RuntimeState represents the runtime state.
 type RuntimeState struct {
 	Communications map[string]CommunicationsRuntimeState `yaml:"communications,omitempty"`
+	Actions        Actions                               `yaml:"actions,omitempty"`
 }
 
 // MarshalToMap marshals the runtime state to a string map.
@@ -113,7 +114,7 @@ func (s *configMapStorage[T]) Get(ctx context.Context) (T, *v1.ConfigMap, error)
 	var state T
 	runtimeStateStr, exists := cm.Data[s.cfg.FileName]
 	if !exists {
-		return emptyState, nil, nil
+		return emptyState, cm, nil
 	}
 
 	err = yaml.Unmarshal([]byte(runtimeStateStr), &state)

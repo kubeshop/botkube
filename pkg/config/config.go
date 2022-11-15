@@ -173,6 +173,17 @@ type SinkBindings struct {
 // Actions contains configuration for Botkube app event automations.
 type Actions map[string]Action
 
+func (a *Actions) SetEnabled(name string, enabled bool) {
+	local := *a
+	if action, ok := local[name]; ok {
+		action.Enabled = enabled
+		local[name] = action
+	} else {
+		local[name] = Action{Enabled: enabled}
+	}
+	a = &local
+}
+
 // Action contains configuration for Botkube app event automations.
 type Action struct {
 	Enabled     bool           `yaml:"enabled"`
