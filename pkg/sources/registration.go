@@ -157,32 +157,56 @@ func sourcesForObj(ctx context.Context, routes []route, obj interface{}, log log
 		return nil, err
 	}
 
-	// resource name
+	log.WithField("objectMeta", objectMeta).WithField("routes", routes).Debugf("handling event")
 
-
-	// annotations
-
-	// labels
-
-	// namespace
-	targetNs := objectMeta.Namespace
-	if targetNs == "" {
-		log.Debugf("handling event for cluster-wide resource in routes: %+v", targetNs, routes)
-		for _, route := range routes {
-			out = append(out, route.source)
-		}
-
-		return out, nil
-	}
-
-	log.Debugf("handling events for target Namespace: %s in routes: %+v", targetNs, routes)
 	for _, route := range routes {
-		if route.namespaces.IsAllowed(targetNs) {
-			out = append(out, route.source)
+		// resource name
+		if route.resourceName != "" && objectMeta.Name != route.resourceName {
+			continue
 		}
+
+		// namespace
+		if objectMeta.Namespace != "" && !route.namespaces.IsAllowed(objectMeta.Namespace) {
+			continue
+		}
+
+		// annotations
+		if !kvsSatisfiedForMap(route.annotations, objectMeta.Annotations) {
+			continue
+		}
+
+		// labels
+		if !kvsSatisfiedForMap(route.labels, objectMeta.Labels) {
+			continue
+		}
+
+		out = append(out, route.source)
 	}
 
 	return out, nil
+}
+
+func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
+	if len(expectedKV) == 0 {
+		return true
+	}
+
+	if len(obj) == 0 {
+		return false
+	}
+
+	for k, v := range expectedKV {
+		got, ok := obj[k]
+		if !ok {
+			return false
+		}
+
+		if got != v {
+			return false
+		}
+	}
+
+	return true
 }
 
 func qualifySourcesForUpdate(
@@ -241,3 +265,4 @@ func qualifySourcesForUpdate(
 
 	return sources, diffs, nil
 }
+

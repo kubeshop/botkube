@@ -233,7 +233,6 @@ func (c *Controller) Start(ctx context.Context) error {
 }
 
 func (c *Controller) handleEvent(ctx context.Context, obj interface{}, resource string, eventType config.EventType, sources []string, updateDiffs []string) {
-	// Filter namespaces
 	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
 	if err != nil {
 		c.log.Errorf("while getting object metadata: %s", err.Error())
