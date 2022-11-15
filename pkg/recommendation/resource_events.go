@@ -7,23 +7,23 @@ import (
 )
 
 const (
-	podsResourceName    = "v1/pods"
-	ingressResourceName = "networking.k8s.io/v1/ingresses"
+	podsResourceType    = "v1/pods"
+	ingressResourceType = "networking.k8s.io/v1/ingresses"
 )
 
 // ResourceEventsForConfig returns the resource event map for a given source recommendations config.
 func ResourceEventsForConfig(recCfg config.Recommendations) map[string]config.EventType {
-	resNames := make(map[string]config.EventType)
+	resTypes := make(map[string]config.EventType)
 
 	if ptr.IsTrue(recCfg.Ingress.TLSSecretValid) || ptr.IsTrue(recCfg.Ingress.BackendServiceValid) {
-		resNames[ingressResourceName] = config.CreateEvent
+		resTypes[ingressResourceType] = config.CreateEvent
 	}
 
 	if ptr.IsTrue(recCfg.Pod.NoLatestImageTag) || ptr.IsTrue(recCfg.Pod.LabelsSet) {
-		resNames[podsResourceName] = config.CreateEvent
+		resTypes[podsResourceType] = config.CreateEvent
 	}
 
-	return resNames
+	return resTypes
 }
 
 // ShouldIgnoreEvent returns true if user doesn't listen to events for a given resource, apart from enabled recommendations.

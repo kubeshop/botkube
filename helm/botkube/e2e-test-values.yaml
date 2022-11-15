@@ -68,38 +68,42 @@ sources:
       namespaces:
         include:
           - botkube
-      events:
-        - create
-        - update
-        - delete
+      event:
+        types:
+          - create
+          - update
+          - delete
       resources:
-        - name: v1/configmaps
+        - type: v1/configmaps
   'k8s-pod-create-events':
     kubernetes:
       namespaces:
         include:
           - botkube
-      events:
-        - create
+      event:
+        types:
+          - create
       resources:
-        - name: v1/pods
+        - type: v1/pods
 
   'k8s-updates':
     kubernetes:
       namespaces:
         include:
           - default
-      events:
-        - create
-        - update
-        - delete
+      event:
+        types:
+          - create
+          - update
+          - delete
       resources:
-        - name: v1/configmaps
+        - type: v1/configmaps
           namespaces:
             include:
               - botkube
-          events: # overrides top level `events` entry
-            - update
+          event: # overrides top level `event` entry
+            types:
+              - update
 executors:
   'kubectl-read-only':
     kubectl:

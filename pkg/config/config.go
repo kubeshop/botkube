@@ -195,23 +195,28 @@ type Sources struct {
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Recommendations Recommendations          `yaml:"recommendations"`
-	Events          KubernetesResourceEvents `yaml:"events"`
-	Resources       []Resource               `yaml:"resources" validate:"dive"`
-	Namespaces      Namespaces               `yaml:"namespaces"`
+	Recommendations Recommendations `yaml:"recommendations"`
+	Event           KubernetesEvent `yaml:"event"`
+	Resources       []Resource      `yaml:"resources" validate:"dive"`
+	Namespaces      Namespaces      `yaml:"namespaces"`
+}
+
+// KubernetesEvent contains configuration for Kubernetes events.
+type KubernetesEvent struct {
+	Types KubernetesResourceEventTypes `yaml:"types"`
 }
 
 // IsAllowed checks if a given resource event is allowed according to the configuration.
-func (r *KubernetesSource) IsAllowed(resourceName, namespace string, eventType EventType) bool {
+func (r *KubernetesSource) IsAllowed(resourceType, namespace string, eventType EventType) bool {
 	if r == nil || len(r.Resources) == 0 {
 		return false
 	}
 
-	isEventAllowed := func(resourceEvents KubernetesResourceEvents) bool {
+	isEventAllowed := func(resourceEvents KubernetesResourceEventTypes) bool {
 		if len(resourceEvents) > 0 { // if resource overrides the global events, use them
 			return resourceEvents.Contains(eventType)
 		}
-		return r.Events.Contains(eventType) // check global events
+		return r.Event.Types.Contains(eventType) // check global events
 	}
 
 	for _, resource := range r.Resources {
@@ -222,8 +227,8 @@ func (r *KubernetesSource) IsAllowed(resourceName, namespace string, eventType E
 			namespaceAllowed = r.Namespaces.IsAllowed(namespace)
 		}
 
-		if resource.Name == resourceName &&
-			isEventAllowed(resource.Events) &&
+		if resource.Type == resourceType &&
+			isEventAllowed(resource.Event.Types) &&
 			namespaceAllowed {
 			return true
 		}
@@ -297,18 +302,18 @@ type Analytics struct {
 
 // Resource contains resources to watch
 type Resource struct {
-	Name          string                   `yaml:"name"`
-	Namespaces    Namespaces               `yaml:"namespaces"`
-	Events        KubernetesResourceEvents `yaml:"events"`
-	UpdateSetting UpdateSetting            `yaml:"updateSetting"`
+	Type          string          `yaml:"type"`
+	Namespaces    Namespaces      `yaml:"namespaces"`
+	Event         KubernetesEvent `yaml:"event"`
+	UpdateSetting UpdateSetting   `yaml:"updateSetting"`
 }
 
-// KubernetesResourceEvents contains events to watch for a resource.
-type KubernetesResourceEvents []EventType
+// KubernetesResourceEventTypes contains events to watch for a resource.
+type KubernetesResourceEventTypes []EventType
 
 // Contains checks if event is contained in the events slice.
 // If the slice contains AllEvent, then the result is true.
-func (e *KubernetesResourceEvents) Contains(eventType EventType) bool {
+func (e *KubernetesResourceEventTypes) Contains(eventType EventType) bool {
 	if e == nil {
 		return false
 	}
