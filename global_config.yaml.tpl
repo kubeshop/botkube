@@ -38,10 +38,11 @@ actions:
       executors:
         - kubectl-read-only
 
-# Map of enabled sources. The `source` property name is an alias for a given configuration.
-# It's used as a binding reference.
+# Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
+# The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
+# Key name is used as a binding reference.
 #
-# Format: source.{alias}
+## Format: sources.{alias}
 sources:
   'k8s-recommendation-events':
     displayName: "Kubernetes Recommendations"
@@ -80,90 +81,96 @@ sources:
         #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
         # exclude: []
 
-      # Describes events for every Kubernetes resources you want to watch or exclude.
-      # These events are applied to every resource specified in the resources list.
-      # However, every specified resource can override this by using its own events object.
-      events:
-        - create
-        - delete
-        - error
+      # Describes event constraints for Kubernetes resources.
+      # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
+      event:
+        # Lists all event types to be watched.
+        types:
+          - create
+          - delete
+          - error
 
-      # Describes the Kubernetes resources you want to watch.
+      # Describes the Kubernetes resources to watch.
+      # Resources are identified by its type in `{group}/{version}/{kind (plural)}` format. Examples: `apps/v1/deployments`, `v1/pods`.
+      # Each resource can override the namespaces and event configuration by using dedicated `event` and `namespaces` field.
       resources:
-        - name: v1/pods             # Name of the resource. Resource name must be in group/version/resource (G/V/R) format
-                                    # resource name should be plural (e.g apps/v1/deployments, v1/pods)
-
+        - type: v1/pods
         #  namespaces:             # Overrides 'source'.kubernetes.namespaces
         #    include:
         #      - ".*"
         #    exclude: []
-        - name: v1/services
-        - name: networking.k8s.io/v1/ingresses
-        - name: v1/nodes
-        - name: v1/namespaces
-        - name: v1/persistentvolumes
-        - name: v1/persistentvolumeclaims
-        - name: v1/configmaps
-        - name: rbac.authorization.k8s.io/v1/roles
-        - name: rbac.authorization.k8s.io/v1/rolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterroles
-        - name: apps/v1/daemonsets
-          events: # Overrides 'source'.kubernetes.events
-            - create
-            - update
-            - delete
-            - error
+        - type: v1/services
+        - type: networking.k8s.io/v1/ingresses
+        - type: v1/nodes
+        - type: v1/namespaces
+        - type: v1/persistentvolumes
+        - type: v1/persistentvolumeclaims
+        - type: v1/configmaps
+        - type: rbac.authorization.k8s.io/v1/roles
+        - type: rbac.authorization.k8s.io/v1/rolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterroles
+        - type: apps/v1/daemonsets
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
           updateSetting:
             includeDiff: true
             fields:
               - spec.template.spec.containers[*].image
               - status.numberReady
-        - name: batch/v1/jobs
-          events: # Overrides 'source'.kubernetes.events
-            - create
-            - update
-            - delete
-            - error
+        - type: batch/v1/jobs
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
           updateSetting:
             includeDiff: true
             fields:
               - spec.template.spec.containers[*].image
               - status.conditions[*].type
-        - name: apps/v1/deployments
-          events: # Overrides 'source'.kubernetes.events
-            - create
-            - update
-            - delete
-            - error
+        - type: apps/v1/deployments
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
           updateSetting:
             includeDiff: true
             fields:
               - spec.template.spec.containers[*].image
               - status.availableReplicas
-        - name: apps/v1/statefulsets
-          events: # Overrides 'source'.kubernetes.events
-            - create
-            - update
-            - delete
-            - error
+        - type: apps/v1/statefulsets
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
           updateSetting:
             includeDiff: true
             fields:
               - spec.template.spec.containers[*].image
               - status.readyReplicas
        ## Custom resource example
-       # - name: velero.io/v1/backups
+       # - type: velero.io/v1/backups
        #   namespaces:
        #     include:
        #       - ".*"
        #     exclude:
        #       -
-       #   events:
-       #     - create
-       #     - update
-       #     - delete
-       #     - error
+       #   event:
+       #     types:
+       #       - create
+       #       - update
+       #       - delete
+       #       - error
        #   updateSetting:
        #     includeDiff: true
        #     fields:
@@ -179,30 +186,31 @@ sources:
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: *k8s-events-namespaces
 
-      # Describes events for every Kubernetes resources you want to watch or exclude.
-      # These events are applied to every resource specified in the resources list.
-      # However, every specified resource can override this by using its own events object.
-      events:
-        - error
+      # Describes event constraints for Kubernetes resources.
+      # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
+      event:
+        # Lists all event types to be watched.
+        types:
+          - error
 
       # Describes the Kubernetes resources you want to watch.
       resources:
-        - name: v1/pods
-        - name: v1/services
-        - name: networking.k8s.io/v1/ingresses
-        - name: v1/nodes
-        - name: v1/namespaces
-        - name: v1/persistentvolumes
-        - name: v1/persistentvolumeclaims
-        - name: v1/configmaps
-        - name: rbac.authorization.k8s.io/v1/roles
-        - name: rbac.authorization.k8s.io/v1/rolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-        - name: rbac.authorization.k8s.io/v1/clusterroles
-        - name: apps/v1/deployments
-        - name: apps/v1/statefulsets
-        - name: apps/v1/daemonsets
-        - name: batch/v1/jobs
+        - type: v1/pods
+        - type: v1/services
+        - type: networking.k8s.io/v1/ingresses
+        - type: v1/nodes
+        - type: v1/namespaces
+        - type: v1/persistentvolumes
+        - type: v1/persistentvolumeclaims
+        - type: v1/configmaps
+        - type: rbac.authorization.k8s.io/v1/roles
+        - type: rbac.authorization.k8s.io/v1/rolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterroles
+        - type: apps/v1/deployments
+        - type: apps/v1/statefulsets
+        - type: apps/v1/daemonsets
+        - type: batch/v1/jobs
   'k8s-err-with-logs-events':
     displayName: "Kubernetes Errors for resources with logs"
 
@@ -213,20 +221,21 @@ sources:
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: *k8s-events-namespaces
 
-      # Describes events for every Kubernetes resources you want to watch or exclude.
-      # These events are applied to every resource specified in the resources list.
-      # However, every specified resource can override this by using its own events object.
-      events:
-        - error
+      # Describes event constraints for Kubernetes resources.
+      # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
+      event:
+        # Lists all event types to be watched.
+        types:
+          - error
 
       # Describes the Kubernetes resources you want to watch.
       resources:
-        - name: v1/pods
-        - name: apps/v1/deployments
-        - name: apps/v1/statefulsets
-        - name: apps/v1/daemonsets
-        - name: batch/v1/jobs
-        # replicasets excluded on purpose - to not show logs twice for a given e.g. deployment + replicaset
+        - type: v1/pods
+        - type: apps/v1/deployments
+        - type: apps/v1/statefulsets
+        - type: apps/v1/daemonsets
+        - type: batch/v1/jobs
+        # `apps/v1/replicasets` excluded on purpose - to not show logs twice for a given higher-level resource (e.g. Deployment)
 
   'k8s-create-events':
     displayName: "Kubernetes Resource Created Events"
@@ -238,24 +247,25 @@ sources:
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: *k8s-events-namespaces
 
-      # Describes events for every Kubernetes resources you want to watch or exclude.
-      # These events are applied to every resource specified in the resources list.
-      # However, every specified resource can override this by using its own events object.
-      events:
-        - create
+      # Describes event constraints for Kubernetes resources.
+      # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
+      event:
+        # Lists all event types to be watched.
+        types:
+          - create
 
       # Describes the Kubernetes resources you want to watch.
       resources:
-        - name: v1/pods
-        - name: v1/services
-        - name: networking.k8s.io/v1/ingresses
-        - name: v1/nodes
-        - name: v1/namespaces
-        - name: v1/configmaps
-        - name: apps/v1/deployments
-        - name: apps/v1/statefulsets
-        - name: apps/v1/daemonsets
-        - name: batch/v1/jobs
+        - type: v1/pods
+        - type: v1/services
+        - type: networking.k8s.io/v1/ingresses
+        - type: v1/nodes
+        - type: v1/namespaces
+        - type: v1/configmaps
+        - type: apps/v1/deployments
+        - type: apps/v1/statefulsets
+        - type: apps/v1/daemonsets
+        - type: batch/v1/jobs
 
 # Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.

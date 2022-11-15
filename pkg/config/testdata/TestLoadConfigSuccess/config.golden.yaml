@@ -19,238 +19,167 @@ sources:
                 pod:
                     noLatestImageTag: false
                     labelsSet: true
-            events:
-                - create
-                - delete
-                - error
+            event:
+                types:
+                    - create
+                    - delete
+                    - error
             resources:
-                - name: v1/pods
+                - type: v1/pods
                   namespaces:
                     include: []
-                  events: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/services
+                - type: v1/services
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: apps/v1/deployments
+                - type: networking.k8s.io/v1/ingresses
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - update
-                    - delete
-                    - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.availableReplicas
-                    includeDiff: true
-                - name: apps/v1/statefulsets
-                  namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - update
-                    - delete
-                    - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.readyReplicas
-                    includeDiff: true
-                - name: networking.k8s.io/v1/ingresses
-                  namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/nodes
+                - type: v1/nodes
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/namespaces
+                - type: v1/namespaces
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/persistentvolumes
+                - type: v1/persistentvolumes
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/persistentvolumeclaims
+                - type: v1/persistentvolumeclaims
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/secrets
+                - type: v1/configmaps
                   namespaces:
                     include:
-                        - .*
+                        - default
                     exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                        - kube-system
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: v1/configmaps
+                - type: rbac.authorization.k8s.io/v1/roles
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
-                - name: apps/v1/daemonsets
+                - type: rbac.authorization.k8s.io/v1/rolebindings
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - update
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types: []
+                  updateSetting:
+                    fields: []
+                    includeDiff: false
+                - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+                  namespaces:
+                    include: []
+                  event:
+                    types: []
+                  updateSetting:
+                    fields: []
+                    includeDiff: false
+                - type: rbac.authorization.k8s.io/v1/clusterroles
+                  namespaces:
+                    include: []
+                  event:
+                    types: []
+                  updateSetting:
+                    fields: []
+                    includeDiff: false
+                - type: apps/v1/daemonsets
+                  namespaces:
+                    include: []
+                  event:
+                    types:
+                        - create
+                        - update
+                        - delete
+                        - error
                   updateSetting:
                     fields:
                         - spec.template.spec.containers[*].image
                         - status.numberReady
                     includeDiff: true
-                - name: batch/v1/jobs
+                - type: batch/v1/jobs
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - update
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types:
+                        - create
+                        - update
+                        - delete
+                        - error
                   updateSetting:
                     fields:
                         - spec.template.spec.containers[*].image
                         - status.conditions[*].type
                     includeDiff: true
-                - name: rbac.authorization.k8s.io/v1/roles
+                - type: apps/v1/deployments
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types:
+                        - create
+                        - update
+                        - delete
+                        - error
                   updateSetting:
-                    fields: []
-                    includeDiff: false
-                - name: rbac.authorization.k8s.io/v1/rolebindings
+                    fields:
+                        - spec.template.spec.containers[*].image
+                        - status.availableReplicas
+                    includeDiff: true
+                - type: apps/v1/statefulsets
                   namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
+                    include: []
+                  event:
+                    types:
+                        - create
+                        - update
+                        - delete
+                        - error
                   updateSetting:
-                    fields: []
-                    includeDiff: false
-                - name: rbac.authorization.k8s.io/v1/clusterrolebindings
-                  namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - name: rbac.authorization.k8s.io/v1/clusterroles
-                  namespaces:
-                    include:
-                        - .*
-                    exclude:
-                        - ""
-                  events:
-                    - create
-                    - delete
-                    - error
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
+                    fields:
+                        - spec.template.spec.containers[*].image
+                        - status.readyReplicas
+                    includeDiff: true
             namespaces:
                 include:
                     - .*

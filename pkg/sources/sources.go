@@ -259,20 +259,20 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 	out := map[string]map[config.EventType]struct{}{}
 	for _, srcGroupCfg := range sources {
 		for _, resource := range srcGroupCfg.Kubernetes.Resources {
-			if _, ok := out[resource.Name]; !ok {
-				out[resource.Name] = make(map[config.EventType]struct{})
+			if _, ok := out[resource.Type]; !ok {
+				out[resource.Type] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, resource.Events) {
-				out[resource.Name][e] = struct{}{}
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
+				out[resource.Type][e] = struct{}{}
 			}
 		}
 
 		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
-		for resourceName, eventType := range resForRecomms {
-			if _, ok := out[resourceName]; !ok {
-				out[resourceName] = make(map[config.EventType]struct{})
+		for resourceType, eventType := range resForRecomms {
+			if _, ok := out[resourceType]; !ok {
+				out[resourceType] = make(map[config.EventType]struct{})
 			}
-			out[resourceName][eventType] = struct{}{}
+			out[resourceType][eventType] = struct{}{}
 		}
 	}
 	return out
@@ -282,8 +282,8 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, r.Events) {
-				if resource != r.Name {
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
+				if resource != r.Type {
 					continue
 				}
 
@@ -307,13 +307,13 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	return out
 }
 
-func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceName string) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceType string) {
 	if routeMap == nil {
 		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
 	}
 
-	eventType, found := resForRecomms[resourceName]
+	eventType, found := resForRecomms[resourceType]
 	if !found {
 		return
 	}
@@ -383,7 +383,7 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEvents) []config.EventType {
+func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
 	checkEvents := globalEvents
 	if len(resourceEvents) > 0 {
 		checkEvents = resourceEvents

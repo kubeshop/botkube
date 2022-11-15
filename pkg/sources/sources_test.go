@@ -86,15 +86,17 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 						Kubernetes: config.KubernetesSource{
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
-										config.DeleteEvent,
-										config.UpdateEvent,
-										config.ErrorEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+											config.DeleteEvent,
+											config.UpdateEvent,
+											config.ErrorEvent,
+										},
 									},
 									UpdateSetting: config.UpdateSetting{
 										Fields:      []string{"status.availableReplicas"},
@@ -113,15 +115,17 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.DeleteEvent,
-								config.UpdateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.DeleteEvent,
+									config.UpdateEvent,
+									config.ErrorEvent,
+								},
 							},
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
@@ -142,21 +146,25 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.ErrorEvent,
+								},
 							},
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
-										config.DeleteEvent,
-										config.UpdateEvent,
-										config.ErrorEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+											config.DeleteEvent,
+											config.UpdateEvent,
+											config.ErrorEvent,
+										},
 									},
 									UpdateSetting: config.UpdateSetting{
 										Fields:      []string{"status.availableReplicas"},
@@ -202,15 +210,17 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 				Kubernetes: config.KubernetesSource{
 					Resources: []config.Resource{
 						{
-							Name: hasRoutes,
+							Type: hasRoutes,
 							Namespaces: config.Namespaces{
 								Include: []string{"default"},
 							},
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.DeleteEvent,
-								config.UpdateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.DeleteEvent,
+									config.UpdateEvent,
+									config.ErrorEvent,
+								},
 							},
 							UpdateSetting: config.UpdateSetting{
 								Fields:      []string{"status.availableReplicas"},
@@ -224,12 +234,14 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 				Kubernetes: config.KubernetesSource{
 					Resources: []config.Resource{
 						{
-							Name: hasNoRoutes,
+							Type: hasNoRoutes,
 							Namespaces: config.Namespaces{
 								Include: []string{"all"},
 							},
-							Events: []config.EventType{
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.ErrorEvent,
+								},
 							},
 							UpdateSetting: config.UpdateSetting{
 								Fields:      []string{""},
@@ -270,9 +282,11 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 							},
 							Resources: []config.Resource{
 								{
-									Name: "apps/v1/deployments",
-									Events: []config.EventType{
-										config.CreateEvent,
+									Type: "apps/v1/deployments",
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+										},
 									},
 								},
 							},
@@ -297,12 +311,14 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 							},
 							Resources: []config.Resource{
 								{
-									Name: "apps/v1/deployments",
+									Type: "apps/v1/deployments",
 									Namespaces: config.Namespaces{
 										Include: []string{".*"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+										},
 									},
 								},
 							},

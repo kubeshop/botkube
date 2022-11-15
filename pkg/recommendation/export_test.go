@@ -4,10 +4,10 @@ func (s *AggregatedRunner) Recommendations() []Recommendation {
 	return s.recommendations
 }
 
-func PodResourceName() string {
-	return podsResourceName
+func PodResourceType() string {
+	return podsResourceType
 }
 
-func IngressResourceName() string {
-	return ingressResourceName
+func IngressResourceType() string {
+	return ingressResourceType
 }

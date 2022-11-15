@@ -26,7 +26,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				recommendation.PodResourceName(): config.CreateEvent,
+				recommendation.PodResourceType(): config.CreateEvent,
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				recommendation.PodResourceName(): config.CreateEvent,
+				recommendation.PodResourceType(): config.CreateEvent,
 			},
 		},
 		{
@@ -48,7 +48,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				recommendation.IngressResourceName(): config.CreateEvent,
+				recommendation.IngressResourceType(): config.CreateEvent,
 			},
 		},
 		{
@@ -59,7 +59,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				recommendation.IngressResourceName(): config.CreateEvent,
+				recommendation.IngressResourceType(): config.CreateEvent,
 			},
 		},
 		{
@@ -73,8 +73,8 @@ func TestResourceEventsForConfig(t *testing.T) {
 				},
 			},
 			Expected: map[string]config.EventType{
-				recommendation.PodResourceName():     config.CreateEvent,
-				recommendation.IngressResourceName(): config.CreateEvent,
+				recommendation.PodResourceType():     config.CreateEvent,
+				recommendation.IngressResourceType(): config.CreateEvent,
 			},
 		},
 	}
@@ -127,7 +127,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "Different event",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource: recommendation.PodResourceName(),
+				Resource: recommendation.PodResourceType(),
 				Type:     config.UpdateEvent,
 			},
 			Expected: false,
@@ -136,7 +136,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User configured such event",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.PodResourceName(),
+				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -147,7 +147,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User configured such event with source-wide namespace",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.PodResourceName(),
+				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -158,7 +158,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User configured such event with source-wide namespace and resource ns override",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.PodResourceName(),
+				Resource:  recommendation.PodResourceType(),
 				Namespace: "kube-system",
 				Type:      config.CreateEvent,
 			},
@@ -169,7 +169,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such resource",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.IngressResourceName(),
+				Resource:  recommendation.IngressResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -180,7 +180,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such event - different namespace",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.PodResourceName(),
+				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -191,7 +191,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			Name:        "User didn't configure such event - different events",
 			InputConfig: fixFullRecommendationConfig(),
 			InputEvent: events.Event{
-				Resource:  recommendation.PodResourceName(),
+				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
 			},
@@ -230,9 +230,11 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name:       "v1/deployments",
+						Type:       "v1/deployments",
 						Namespaces: config.Namespaces{},
-						Events:     []config.EventType{config.AllEvent},
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.AllEvent},
+						},
 					},
 				},
 			},
@@ -241,11 +243,13 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: recommendation.PodResourceName(),
+						Type: recommendation.PodResourceType(),
 						Namespaces: config.Namespaces{
 							Include: []string{".*"},
 						},
-						Events: []config.EventType{config.AllEvent},
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.AllEvent},
+						},
 					},
 				},
 			},
@@ -257,8 +261,10 @@ func fixSources() map[string]config.Sources {
 				},
 				Resources: []config.Resource{
 					{
-						Name:   recommendation.PodResourceName(),
-						Events: []config.EventType{config.AllEvent},
+						Type: recommendation.PodResourceType(),
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.AllEvent},
+						},
 					},
 				},
 			},
@@ -270,11 +276,13 @@ func fixSources() map[string]config.Sources {
 				},
 				Resources: []config.Resource{
 					{
-						Name: recommendation.PodResourceName(),
+						Type: recommendation.PodResourceType(),
 						Namespaces: config.Namespaces{
 							Include: []string{"kube-system"},
 						},
-						Events: []config.EventType{config.AllEvent},
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.AllEvent},
+						},
 					},
 				},
 			},
@@ -283,11 +291,13 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: recommendation.PodResourceName(),
+						Type: recommendation.PodResourceType(),
 						Namespaces: config.Namespaces{
 							Include: []string{"kube-system"},
 						},
-						Events: []config.EventType{config.AllEvent},
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.AllEvent},
+						},
 					},
 				},
 			},
@@ -296,11 +306,13 @@ func fixSources() map[string]config.Sources {
 			Kubernetes: config.KubernetesSource{
 				Resources: []config.Resource{
 					{
-						Name: recommendation.PodResourceName(),
+						Type: recommendation.PodResourceType(),
 						Namespaces: config.Namespaces{
 							Include: []string{".*"},
 						},
-						Events: []config.EventType{config.UpdateEvent},
+						Event: config.KubernetesEvent{
+							Types: []config.EventType{config.UpdateEvent},
+						},
 					},
 				},
 			},
