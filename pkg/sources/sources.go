@@ -20,6 +20,9 @@ type eventHandler func(ctx context.Context, resource string, sources []string, u
 
 type route struct {
 	source        string
+	resourceName  string
+	labels        map[string]string
+	annotations   map[string]string
 	namespaces    config.Namespaces
 	updateSetting config.UpdateSetting
 }
@@ -287,8 +290,13 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 					continue
 				}
 
-				namespaces := sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces)
-				route := route{source: srcGroupName, namespaces: namespaces}
+				route := route{
+					source:      srcGroupName,
+					namespaces:  sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces),
+					annotations: sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
+					labels:      sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
+					resourceName: r.Name,
+				}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{
 						Fields:      r.UpdateSetting.Fields,
@@ -407,4 +415,12 @@ func sourceOrResourceNamespaces(sourceNs, resourceNs config.Namespaces) config.N
 		return resourceNs
 	}
 	return sourceNs
+}
+
+func sourceOrResourceStringMap(sourceMap, resourceMap map[string]string) map[string]string {
+	if len(resourceMap) > 0 {
+		return resourceMap
+	}
+
+	return sourceMap
 }

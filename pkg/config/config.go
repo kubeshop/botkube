@@ -195,14 +195,18 @@ type Sources struct {
 
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
-	Recommendations Recommendations `yaml:"recommendations"`
-	Event           KubernetesEvent `yaml:"event"`
-	Resources       []Resource      `yaml:"resources" validate:"dive"`
-	Namespaces      Namespaces      `yaml:"namespaces"`
+	Recommendations Recommendations   `yaml:"recommendations"`
+	Event           KubernetesEvent   `yaml:"event"`
+	Resources       []Resource        `yaml:"resources" validate:"dive"`
+	Namespaces      Namespaces        `yaml:"namespaces"`
+	Annotations     map[string]string `yaml:"annotations"`
+	Labels          map[string]string `yaml:"labels"`
 }
 
 // KubernetesEvent contains configuration for Kubernetes events.
 type KubernetesEvent struct {
+	Reason string `yaml:"reason"`
+	Message string `yaml:"message"`
 	Types KubernetesResourceEventTypes `yaml:"types"`
 }
 
@@ -302,10 +306,13 @@ type Analytics struct {
 
 // Resource contains resources to watch
 type Resource struct {
-	Type          string          `yaml:"type"`
-	Namespaces    Namespaces      `yaml:"namespaces"`
-	Event         KubernetesEvent `yaml:"event"`
-	UpdateSetting UpdateSetting   `yaml:"updateSetting"`
+	Type          string            `yaml:"type"`
+	Name          string            `yaml:"name"`
+	Namespaces    Namespaces        `yaml:"namespaces"`
+	Annotations   map[string]string `yaml:"annotations"`
+	Labels        map[string]string `yaml:"labels"`
+	Event         KubernetesEvent   `yaml:"event"`
+	UpdateSetting UpdateSetting     `yaml:"updateSetting"`
 }
 
 // KubernetesResourceEventTypes contains events to watch for a resource.

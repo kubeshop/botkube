@@ -31,7 +31,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, target c
 	case config.CreateEvent:
 		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+				sources, err := sourcesForObj(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 				if err != nil {
 					r.log.WithFields(logrus.Fields{
 						"eventHandler": config.CreateEvent,
@@ -49,7 +49,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, target c
 	case config.DeleteEvent:
 		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(obj interface{}) {
-				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+				sources, err := sourcesForObj(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 				if err != nil {
 					r.log.WithFields(logrus.Fields{
 						"eventHandler": config.DeleteEvent,
@@ -117,7 +117,7 @@ func (r registration) handleMapped(ctx context.Context, targetEvent config.Event
 			}
 
 			sourceRoutes := sourceRoutes(routeTable, gvrToString, targetEvent)
-			sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+			sources, err := sourcesForObj(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
 			if err != nil {
 				r.log.Errorf("cannot calculate sources for observed mapped resource event: %q in Add event handler: %s", targetEvent, err.Error())
 				return
@@ -148,7 +148,7 @@ func (r registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func sourcesForObjNamespace(ctx context.Context, routes []route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) ([]string, error) {
+func sourcesForObj(ctx context.Context, routes []route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) ([]string, error) {
 	var out []string
 
 	objectMeta, err := utils.GetObjectMetaData(ctx, cli, mapper, obj)
@@ -157,6 +157,14 @@ func sourcesForObjNamespace(ctx context.Context, routes []route, obj interface{}
 		return nil, err
 	}
 
+	// resource name
+
+
+	// annotations
+
+	// labels
+
+	// namespace
 	targetNs := objectMeta.Namespace
 	if targetNs == "" {
 		log.Debugf("handling event for cluster-wide resource in routes: %+v", targetNs, routes)
@@ -187,7 +195,7 @@ func qualifySourcesForUpdate(
 ) ([]string, []string, error) {
 	var sources, diffs []string
 
-	candidates, err := sourcesForObjNamespace(ctx, routes, newObj, log, mapper, cli)
+	candidates, err := sourcesForObj(ctx, routes, newObj, log, mapper, cli)
 	if err != nil {
 		return nil, nil, err
 	}
