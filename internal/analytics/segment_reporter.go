@@ -187,10 +187,16 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface)
 		return Identity{}, fmt.Errorf("while getting cluster ID: %w", err)
 	}
 
+	nodeCount, err := r.getNodeCount(ctx, k8sCli)
+	if err != nil {
+		return Identity{}, fmt.Errorf("while getting node count: %w", err)
+	}
+
 	return Identity{
 		ID:                clusterID,
 		KubernetesVersion: *k8sServerVersion,
 		BotkubeVersion:    version.Info(),
+		NodeCount:         nodeCount,
 	}, nil
 }
 
@@ -204,4 +210,14 @@ func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 	}
 
 	return string(kubeSystemNS.GetUID()), nil
+}
+
+func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.Interface) (int, error) {
+	nodeList, err := k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return 0, fmt.Errorf("while getting node count: %w", err)
+	}
+
+	return nodeList.Size(), nil
 }

@@ -11,6 +11,7 @@ type Identity struct {
 	ID                string
 	KubernetesVersion k8sVersion.Info
 	BotkubeVersion    version.Details
+	NodeCount         int
 }
 
 // TraitsMap returns a map with traits based on Identity struct fields.
@@ -18,5 +19,6 @@ func (i Identity) TraitsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"k8sVersion":     i.KubernetesVersion,
 		"botkubeVersion": i.BotkubeVersion,
+		"nodeCount":      i.NodeCount,
 	}
 }
