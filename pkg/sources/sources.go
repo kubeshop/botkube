@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -16,7 +17,7 @@ const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
-type eventHandler func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{})
+type eventHandler func(ctx context.Context, event events.Event, sources []string, updateDiffs []string)
 
 type route struct {
 	source        string
@@ -233,15 +234,15 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 	return nil
 }
 
-// HandleEvent allows router clients to create handlers that are
+// RegisterEventHandler allows router clients to create handlers that are
 // triggered for a target event.
-func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
-	for resource, informer := range r.registrations {
-		if !informer.canHandleEvent(target.String()) {
+func (r *Router) RegisterEventHandler(ctx context.Context, eventType config.EventType, handlerFn eventHandler) {
+	for resource, reg := range r.registrations {
+		if !reg.canHandleEvent(eventType.String()) {
 			continue
 		}
-		sourceRoutes := r.getSourceRoutes(resource, target)
-		informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
+		sourceRoutes := r.getSourceRoutes(resource, eventType)
+		reg.handleEvent(ctx, resource, eventType, sourceRoutes, handlerFn)
 	}
 }
 
@@ -291,10 +292,10 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 				}
 
 				route := route{
-					source:      srcGroupName,
-					namespaces:  sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces),
-					annotations: sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
-					labels:      sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
+					source:       srcGroupName,
+					namespaces:   sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces),
+					annotations:  sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
+					labels:       sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
 					resourceName: r.Name,
 				}
 				if e == config.UpdateEvent {

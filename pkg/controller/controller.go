@@ -22,7 +22,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sources"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const (
@@ -154,59 +153,24 @@ func (c *Controller) Start(ctx context.Context) error {
 		return err
 	}
 
-	c.sourcesRouter.HandleEvent(
-		ctx,
+	eventTypes := []config.EventType{
 		config.CreateEvent,
-		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
-			return func(obj interface{}) {
-				c.log.WithFields(logrus.Fields{
-					"resource": resource,
-					"sources":  sources,
-					"event":    config.CreateEvent,
-					"object":   obj,
-				}).Debugf("Processing K8s resource...")
-				c.handleEvent(ctx, obj, resource, config.CreateEvent, sources, nil)
-			}
-		})
-
-	c.sourcesRouter.HandleEvent(
-		ctx,
 		config.DeleteEvent,
-		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
-			return func(obj interface{}) {
-				c.log.WithFields(logrus.Fields{
-					"resource": resource,
-					"sources":  sources,
-					"event":    config.DeleteEvent,
-					"object":   obj,
-				}).Debugf("Processing K8s resource...")
-				c.handleEvent(ctx, obj, resource, config.DeleteEvent, sources, nil)
-			}
-		})
-
-	c.sourcesRouter.HandleEvent(
-		ctx,
 		config.UpdateEvent,
-		func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{}) {
-			return func(obj interface{}) {
-				c.log.WithFields(logrus.Fields{
-					"resource": resource,
-					"sources":  sources,
-					"event":    config.UpdateEvent,
-					"object":   obj,
-				}).Debugf("Processing K8s resource...")
-				c.handleEvent(ctx, obj, resource, config.UpdateEvent, sources, updateDiffs)
-			}
-		})
+	}
+	for _, eventType := range eventTypes {
+		c.sourcesRouter.RegisterEventHandler(
+			ctx,
+			eventType,
+			c.handleEvent,
+		)
+	}
 
 	c.sourcesRouter.HandleMappedEvent(
 		ctx,
 		config.ErrorEvent,
-		func(ctx context.Context, resource string, sources []string, _ []string) func(obj interface{}) {
-			return func(obj interface{}) {
-				c.handleEvent(ctx, obj, resource, config.ErrorEvent, sources, nil)
-			}
-		})
+		c.handleEvent,
+	)
 
 	c.log.Info("Sending welcome message...")
 	err = notifier.SendPlaintextMessage(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
@@ -232,21 +196,9 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) handleEvent(ctx context.Context, obj interface{}, resource string, eventType config.EventType, sources []string, updateDiffs []string) {
-	objectMeta, err := utils.GetObjectMetaData(ctx, c.dynamicCli, c.mapper, obj)
-	if err != nil {
-		c.log.Errorf("while getting object metadata: %s", err.Error())
-		return
-	}
-
-	c.log.Debugf("Processing %s to %s/%v in %s namespace", eventType, resource, objectMeta.Name, objectMeta.Namespace)
-
-	// Create new event object
-	event, err := events.New(objectMeta, obj, eventType, resource, c.conf.Settings.ClusterName)
-	if err != nil {
-		c.log.Errorf("while creating new event: %s", err.Error())
-		return
-	}
+func (c *Controller) handleEvent(ctx context.Context, event events.Event, sources, updateDiffs []string) {
+	c.log.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
+	c.enrichEventWithAdditionalMetadata(&event)
 
 	// Skip older events
 	if !event.TimeStamp.IsZero() && event.TimeStamp.Before(c.startTime) {
@@ -254,14 +206,15 @@ func (c *Controller) handleEvent(ctx context.Context, obj interface{}, resource 
 		return
 	}
 
-	event.Actions, err = c.actionProvider.RenderedActionsForEvent(event, sources)
+	actions, err := c.actionProvider.RenderedActionsForEvent(event, sources)
 	if err != nil {
 		c.log.Errorf("while getting rendered actions for event: %s", err.Error())
 		// continue processing event
 	}
+	event.Actions = actions
 
 	// Check for significant Update Events in objects
-	if eventType == config.UpdateEvent {
+	if event.Type == config.UpdateEvent {
 		switch {
 		case len(sources) == 0 && len(updateDiffs) == 0:
 			// skipping least significant update
@@ -360,4 +313,8 @@ func (c *Controller) strToGVR(arg string) (schema.GroupVersionResource, error) {
 	default:
 		return schema.GroupVersionResource{}, fmt.Errorf("invalid string: expected 2 or 3 parts when split by %q", separator)
 	}
+}
+
+func (c *Controller) enrichEventWithAdditionalMetadata(event *events.Event) {
+	event.Cluster = c.conf.Settings.ClusterName
 }

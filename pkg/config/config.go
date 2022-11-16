@@ -205,9 +205,9 @@ type KubernetesSource struct {
 
 // KubernetesEvent contains configuration for Kubernetes events.
 type KubernetesEvent struct {
-	Reason string `yaml:"reason"`
-	Message string `yaml:"message"`
-	Types KubernetesResourceEventTypes `yaml:"types"`
+	Reason  string                       `yaml:"reason"`
+	Message string                       `yaml:"message"`
+	Types   KubernetesResourceEventTypes `yaml:"types"`
 }
 
 // IsAllowed checks if a given resource event is allowed according to the configuration.

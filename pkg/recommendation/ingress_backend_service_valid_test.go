@@ -36,7 +36,7 @@ func TestIngressBackendServiceValid_Do_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	unstr := &unstructured.Unstructured{Object: unstrObj}
 
-	event, err := events.New(ingress.ObjectMeta, unstr, config.CreateEvent, "networking.k8s.io/v1/ingresses", "sample")
+	event, err := events.New(ingress.ObjectMeta, unstr, config.CreateEvent, "networking.k8s.io/v1/ingresses")
 	require.NoError(t, err)
 
 	// when
