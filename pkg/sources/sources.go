@@ -26,6 +26,7 @@ type route struct {
 	annotations   map[string]string
 	namespaces    config.Namespaces
 	updateSetting config.UpdateSetting
+	event         config.KubernetesEvent
 }
 
 func (r route) hasActionableUpdateSetting() bool {
@@ -297,6 +298,7 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 					annotations:  sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
 					labels:       sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
 					resourceName: r.Name,
+					event:        r.Event,
 				}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{

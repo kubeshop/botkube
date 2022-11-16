@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
@@ -45,7 +47,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, eventTyp
 		sources, diffs, err := r.qualifySourcesForEvent(event, newObj, oldObj, sourceRoutes)
 		if err != nil {
 			logger.Errorf("while getting sources for event: %s", err.Error())
-			return
+			// continue anyway, there could be still some sources to handle
 		}
 		if len(sources) == 0 {
 			return
@@ -107,7 +109,7 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 			sources, err := r.sourcesForEvent(sourceRoutes, event)
 			if err != nil {
 				r.log.Errorf("cannot calculate sources for observed mapped resource event: %q in Add event handler: %s", eventType, err.Error())
-				return
+				// continue anyway, there could be still some sources to handle
 			}
 			if len(sources) == 0 {
 				return
@@ -140,7 +142,30 @@ func (r registration) sourcesForEvent(routes []route, event events.Event) ([]str
 
 	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling event")
 
+	errs := multierror.New()
 	for _, route := range routes {
+		// event reason
+		match, err := matchRegexForStringIfDefined(route.event.Reason, event.Reason)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		if !match {
+			r.log.Debugf("Ignoring as reason %q doesn't match regex %q", event.Reason, route.event.Reason)
+			continue
+		}
+
+		// event message
+		match, err = matchRegexForStringsIfDefined(route.event.Message, event.Messages)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		if !match {
+			r.log.Debugf("Ignoring as messages %q don't match regex %q", strings.Join(event.Messages, ";"), route.event.Message)
+			continue
+		}
+
 		// resource name
 		if route.resourceName != "" && event.Name != route.resourceName {
 			continue
@@ -164,7 +189,30 @@ func (r registration) sourcesForEvent(routes []route, event events.Event) ([]str
 		out = append(out, route.source)
 	}
 
-	return out, nil
+	return out, errs.ErrorOrNil()
+}
+
+func matchRegexForStringIfDefined(regexStr, str string) (bool, error) {
+	return matchRegexForStringsIfDefined(regexStr, []string{str})
+}
+
+func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) {
+	if regexStr == "" {
+		return true, nil
+	}
+
+	regex, err := regexp.Compile(regexStr)
+	if err != nil {
+		return false, fmt.Errorf("while compiling reason regex: %w", err)
+	}
+
+	for _, s := range str {
+		if regex.MatchString(s) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
@@ -211,7 +259,7 @@ func (r registration) qualifySourcesForEvent(
 ) ([]string, []string, error) {
 	candidates, err := r.sourcesForEvent(routes, event)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("while getting sources for event: %w", err)
 	}
 
 	if event.Type == config.UpdateEvent {
