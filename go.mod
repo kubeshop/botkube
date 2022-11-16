@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/locales v0.14.0
 	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.0
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 	github.com/google/go-github/v44 v44.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.2

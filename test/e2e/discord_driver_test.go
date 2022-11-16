@@ -269,7 +269,11 @@ func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID str
 	return nil
 }
 
-func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
+func (d *discordTester) WaitForLastMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
+	return d.WaitForMessagePostedWithAttachment(userID, channelID, 1, assertFn)
+}
+
+func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn AttachmentAssertion) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
 	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
@@ -281,7 +285,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 	highestCommonBlockCount := -1 // a single message is fetched, always print diff
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
-		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
+		messages, err := d.cli.ChannelMessages(channelID, limitMessages, "", "", "")
 		if err != nil {
 			lastErr = err
 			return false, nil
@@ -294,8 +298,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 			}
 
 			if len(msg.Embeds) != 1 {
-				lastErr = err
-				return false, nil
+				continue
 			}
 
 			embed := msg.Embeds[0]
@@ -331,7 +334,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error {
 	errs := multierror.New()
 	for _, channelID := range channelIDs {
-		errs = multierror.Append(errs, d.WaitForMessagePostedWithAttachment(userID, channelID, assertFn))
+		errs = multierror.Append(errs, d.WaitForLastMessagePostedWithAttachment(userID, channelID, assertFn))
 	}
 
 	return errs.ErrorOrNil()

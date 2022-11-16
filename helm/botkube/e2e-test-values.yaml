@@ -17,30 +17,7 @@ communications:
               - kubectl-allow-all
             sources:
               - k8s-events
-        'secondary':
-          name: "" # Tests will override this temporarily
-          notification:
-            disabled: true
-          bindings:
-            executors:
-              - kubectl-read-only
-            sources:
-              - k8s-updates
-    socketSlack: # Configuration for the Slack app with Socket Mode support
-      enabled: false # Tests will override this temporarily
-      botToken: "" #  Provide a botToken for custom slack app
-      appToken: "" #  Provide an appToken for custom slack app
-      channels:
-        'default':
-          name: "" # Tests will override this temporarily
-          bindings:
-            executors:
-              - kubectl-read-only
-              - kubectl-wait-cmd
-              - kubectl-exec-cmd
-              - kubectl-allow-all
-            sources:
-              - k8s-events
+              - k8s-pod-create-events
         'secondary':
           name: "" # Tests will override this temporarily
           notification:
@@ -65,6 +42,7 @@ communications:
               - kubectl-allow-all
             sources:
               - k8s-events
+              - k8s-pod-create-events
         'secondary':
           id: "" # Tests will override this channel ID temporarily
           notification:
@@ -80,9 +58,6 @@ communications:
 sources:
   'k8s-events':
     kubernetes:
-      namespaces:
-        include:
-          - botkube
       recommendations:
         pod:
           noLatestImageTag: true
@@ -90,29 +65,45 @@ sources:
         ingress:
           backendServiceValid: false
           tlsSecretValid: false
-      events:
-        - create
-        - update
-        - delete
+      namespaces:
+        include:
+          - botkube
+      event:
+        types:
+          - create
+          - update
+          - delete
       resources:
-        - name: v1/configmaps
+        - type: v1/configmaps
+  'k8s-pod-create-events':
+    kubernetes:
+      namespaces:
+        include:
+          - botkube
+      event:
+        types:
+          - create
+      resources:
+        - type: v1/pods
 
   'k8s-updates':
     kubernetes:
       namespaces:
         include:
           - default
-      events:
-        - create
-        - update
-        - delete
+      event:
+        types:
+          - create
+          - update
+          - delete
       resources:
-        - name: v1/configmaps
+        - type: v1/configmaps
           namespaces:
             include:
               - botkube
-          events: # overrides top level `events` entry
-            - update
+          event: # overrides top level `event` entry
+            types:
+              - update
 executors:
   'kubectl-read-only':
     kubectl:
@@ -159,6 +150,17 @@ executors:
       commands:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]
+
+actions:
+  'get-created-resource':
+    enabled: true
+    displayName: "Get created resource"
+    command: "kubectl get {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
+    bindings:
+      sources:
+        - k8s-pod-create-events
+      executors:
+        - kubectl-read-only
 
 filters:
   kubernetes:

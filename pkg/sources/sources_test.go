@@ -13,10 +13,11 @@ import (
 func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
 	router := NewRouter(nil, nil, nil)
 
-	router.AddAnyBindings(config.BotBindings{
+	// condition satisfied
+	router.AddBindingsIfConditionTrue(true, config.BotBindings{
 		Sources: []string{"k8s-events"},
 	})
-	router.AddAnyBindingsByName(config.IdentifiableMap[config.ChannelBindingsByName]{
+	router.AddBindingsByNameIfConditionTrue(true, config.IdentifiableMap[config.ChannelBindingsByName]{
 		"this": config.ChannelBindingsByName{
 			Name: "channel-name",
 			Bindings: config.BotBindings{
@@ -24,11 +25,29 @@ func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
 			},
 		},
 	})
-	router.AddAnyBindingsByID(config.IdentifiableMap[config.ChannelBindingsByID]{
+	router.AddBindingsByIDIfConditionTrue(true, config.IdentifiableMap[config.ChannelBindingsByID]{
 		"that": config.ChannelBindingsByID{
 			ID: "channel-id",
 			Bindings: config.BotBindings{
 				Sources: []string{"k8s-events"},
+			},
+		},
+	})
+
+	// condition  not satisfied, should ignore bindings
+	router.AddBindingsIfConditionTrue(false, config.BotBindings{
+		Sources: []string{"false-k8s-events"},
+	})
+	router.AddBindingsByNameIfConditionTrue(false, config.IdentifiableMap[config.ChannelBindingsByName]{
+		"false-this": config.ChannelBindingsByName{
+			Name: "false-channel-name", Bindings: config.BotBindings{Sources: []string{"false-k8s-events"}},
+		},
+	})
+	router.AddBindingsByIDIfConditionTrue(false, config.IdentifiableMap[config.ChannelBindingsByID]{
+		"false-that": config.ChannelBindingsByID{
+			ID: "false-channel-id",
+			Bindings: config.BotBindings{
+				Sources: []string{"false-k8s-events"},
 			},
 		},
 	})
@@ -67,15 +86,17 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 						Kubernetes: config.KubernetesSource{
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
-										config.DeleteEvent,
-										config.UpdateEvent,
-										config.ErrorEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+											config.DeleteEvent,
+											config.UpdateEvent,
+											config.ErrorEvent,
+										},
 									},
 									UpdateSetting: config.UpdateSetting{
 										Fields:      []string{"status.availableReplicas"},
@@ -94,15 +115,17 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.DeleteEvent,
-								config.UpdateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.DeleteEvent,
+									config.UpdateEvent,
+									config.ErrorEvent,
+								},
 							},
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
@@ -123,21 +146,25 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.ErrorEvent,
+								},
 							},
 							Resources: []config.Resource{
 								{
-									Name: hasRoutes,
+									Type: hasRoutes,
 									Namespaces: config.Namespaces{
 										Include: []string{"default"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
-										config.DeleteEvent,
-										config.UpdateEvent,
-										config.ErrorEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+											config.DeleteEvent,
+											config.UpdateEvent,
+											config.ErrorEvent,
+										},
 									},
 									UpdateSetting: config.UpdateSetting{
 										Fields:      []string{"status.availableReplicas"},
@@ -154,7 +181,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			router := NewRouter(nil, nil, logger)
-			router.AddAnyBindings(config.BotBindings{
+			router.AddBindings(config.BotBindings{
 				Sources: []string{"k8s-events"},
 			})
 
@@ -173,7 +200,7 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 	hasNoRoutes := "v1/pods"
 
 	router := NewRouter(nil, nil, logger)
-	router.AddAnyBindings(config.BotBindings{
+	router.AddBindings(config.BotBindings{
 		Sources: []string{"k8s-events"},
 	})
 
@@ -183,15 +210,17 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 				Kubernetes: config.KubernetesSource{
 					Resources: []config.Resource{
 						{
-							Name: hasRoutes,
+							Type: hasRoutes,
 							Namespaces: config.Namespaces{
 								Include: []string{"default"},
 							},
-							Events: []config.EventType{
-								config.CreateEvent,
-								config.DeleteEvent,
-								config.UpdateEvent,
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.CreateEvent,
+									config.DeleteEvent,
+									config.UpdateEvent,
+									config.ErrorEvent,
+								},
 							},
 							UpdateSetting: config.UpdateSetting{
 								Fields:      []string{"status.availableReplicas"},
@@ -205,12 +234,14 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 				Kubernetes: config.KubernetesSource{
 					Resources: []config.Resource{
 						{
-							Name: hasNoRoutes,
+							Type: hasNoRoutes,
 							Namespaces: config.Namespaces{
 								Include: []string{"all"},
 							},
-							Events: []config.EventType{
-								config.ErrorEvent,
+							Event: config.KubernetesEvent{
+								Types: []config.EventType{
+									config.ErrorEvent,
+								},
 							},
 							UpdateSetting: config.UpdateSetting{
 								Fields:      []string{""},
@@ -251,9 +282,11 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 							},
 							Resources: []config.Resource{
 								{
-									Name: "apps/v1/deployments",
-									Events: []config.EventType{
-										config.CreateEvent,
+									Type: "apps/v1/deployments",
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+										},
 									},
 								},
 							},
@@ -278,12 +311,14 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 							},
 							Resources: []config.Resource{
 								{
-									Name: "apps/v1/deployments",
+									Type: "apps/v1/deployments",
 									Namespaces: config.Namespaces{
 										Include: []string{".*"},
 									},
-									Events: []config.EventType{
-										config.CreateEvent,
+									Event: config.KubernetesEvent{
+										Types: []config.EventType{
+											config.CreateEvent,
+										},
 									},
 								},
 							},
@@ -300,7 +335,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			routes := NewRouter(nil, nil, logger).
-				AddAnyBindings(config.BotBindings{Sources: []string{"k8s-events"}}).
+				AddBindings(config.BotBindings{Sources: []string{"k8s-events"}}).
 				BuildTable(tc.Input).
 				getSourceRoutes("apps/v1/deployments", config.CreateEvent)
 

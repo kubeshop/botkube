@@ -549,7 +549,7 @@ func runBotTest(t *testing.T,
 			}
 			return equal, 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -630,7 +630,7 @@ func runBotTest(t *testing.T,
 			}
 			return equal, 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 
 		t.Log("Starting notifier in first channel")
 		command = "notifier start"
@@ -677,7 +677,7 @@ func runBotTest(t *testing.T,
 			}
 			return equal, 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -692,11 +692,11 @@ func runBotTest(t *testing.T,
 			}
 			return equal, 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 		require.NoError(t, err)
 	})
 
-	t.Run("Recommendations", func(t *testing.T) {
+	t.Run("Recommendations and automations", func(t *testing.T) {
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")
@@ -717,7 +717,7 @@ func runBotTest(t *testing.T,
 
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
-		t.Log("Expecting bot message...")
+		t.Log("Expecting bot event message...")
 		assertionFn := func(title, color, msg string) (bool, int, string) {
 			return title == "v1/pods created" &&
 				strings.Contains(msg, "Recommendations:") &&
@@ -725,7 +725,21 @@ func runBotTest(t *testing.T,
 				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name)) &&
 				color == botDriver.GetColorByLevel(config.Info), 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), assertionFn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
+		require.NoError(t, err)
+
+		t.Log("Expecting bot automation message...")
+		cmdHeaderWithAuthor := func(command, author string) string {
+			return fmt.Sprintf("`%s` on `%s` by %s", command, appCfg.ClusterName, author)
+		}
+		command := fmt.Sprintf(`kubectl get pod -n %s %s`, pod.Namespace, pod.Name)
+		automationAssertionFn := func(content string) (bool, int, string) {
+			return strings.Contains(content, cmdHeaderWithAuthor(command, "Automation \"Get created resource\"")) &&
+					strings.Contains(content, "NAME") && strings.Contains(content, "READY") && strings.Contains(content, "STATUS") && // command output header
+					strings.Count(content, pod.Name) == 2, // command + 1 occurrence in the command output
+				0, ""
+		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
 	})
 }

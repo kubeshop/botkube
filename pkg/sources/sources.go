@@ -58,49 +58,98 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 
 // AddCommunicationsBindings adds source binding from a given communications
 func (r *Router) AddCommunicationsBindings(c config.Communications) {
-	r.AddAnyBindingsByName(c.Slack.Channels)
-	r.AddAnyBindingsByName(c.SocketSlack.Channels)
-	r.AddAnyBindingsByName(c.Mattermost.Channels)
-	r.AddAnyBindings(c.Teams.Bindings)
-	r.AddAnyBindingsByID(c.Discord.Channels)
-	for _, index := range c.Elasticsearch.Indices {
-		r.AddAnySinkBindings(index.Bindings)
-	}
-	r.AddAnySinkBindings(c.Webhook.Bindings)
+	r.AddBindingsByNameIfConditionTrue(c.Slack.Enabled, c.Slack.Channels)
+	r.AddBindingsByNameIfConditionTrue(c.SocketSlack.Enabled, c.SocketSlack.Channels)
+	r.AddBindingsByNameIfConditionTrue(c.Mattermost.Enabled, c.Mattermost.Channels)
+	r.AddBindingsIfConditionTrue(c.Teams.Enabled, c.Teams.Bindings)
+	r.AddBindingsByIDIfConditionTrue(c.Discord.Enabled, c.Discord.Channels)
+	r.AddElsIndexSinkBindingsIfConditionTrue(c.Elasticsearch.Enabled, c.Elasticsearch.Indices)
+
+	r.AddSinkBindingsIfConditionTrue(c.Webhook.Enabled, c.Webhook.Bindings)
 }
 
-// AddAnyBindingsByName adds source binding names
+// AddEnabledActionBindings adds source bindings for enabled Actions.
+func (r *Router) AddEnabledActionBindings(c config.Actions) {
+	for _, act := range c {
+		if !act.Enabled {
+			continue
+		}
+
+		for _, sourceBinding := range act.Bindings.Sources {
+			r.bindings[sourceBinding] = struct{}{}
+		}
+	}
+}
+
+// AddBindingsByNameIfConditionTrue adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindingsByName(c config.IdentifiableMap[config.ChannelBindingsByName]) *Router {
+func (r *Router) AddBindingsByNameIfConditionTrue(condition bool, c config.IdentifiableMap[config.ChannelBindingsByName]) *Router {
+	if !condition {
+		return r
+	}
+
 	for _, byName := range c {
-		r.AddAnyBindings(byName.Bindings)
+		r.AddBindings(byName.Bindings)
 	}
 	return r
 }
 
-// AddAnyBindingsByID adds source binding names
+// AddBindingsByIDIfConditionTrue adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindingsByID(c config.IdentifiableMap[config.ChannelBindingsByID]) *Router {
+func (r *Router) AddBindingsByIDIfConditionTrue(condition bool, c config.IdentifiableMap[config.ChannelBindingsByID]) *Router {
+	if !condition {
+		return r
+	}
+
 	for _, byID := range c {
-		r.AddAnyBindings(byID.Bindings)
+		r.AddBindings(byID.Bindings)
 	}
 	return r
 }
 
-// AddAnyBindings adds source binding names
+// AddBindingsIfConditionTrue adds source binding names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnyBindings(b config.BotBindings) *Router {
+func (r *Router) AddBindingsIfConditionTrue(condition bool, b config.BotBindings) *Router {
+	if !condition {
+		return r
+	}
+
+	return r.AddBindings(b)
+}
+
+// AddBindings adds source binding names
+// to dictate which source bindings the router should use.
+func (r *Router) AddBindings(b config.BotBindings) *Router {
 	for _, source := range b.Sources {
 		r.bindings[source] = struct{}{}
 	}
 	return r
 }
 
-// AddAnySinkBindings adds source bindings names
+// AddSinkBindingsIfConditionTrue adds source bindings names
 // to dictate which source bindings the router should use.
-func (r *Router) AddAnySinkBindings(b config.SinkBindings) *Router {
+func (r *Router) AddSinkBindingsIfConditionTrue(condition bool, b config.SinkBindings) *Router {
+	if !condition {
+		return r
+	}
+
 	for _, source := range b.Sources {
 		r.bindings[source] = struct{}{}
+	}
+	return r
+}
+
+// AddElsIndexSinkBindingsIfConditionTrue adds source bindings names
+// to dictate which source bindings the router should use.
+func (r *Router) AddElsIndexSinkBindingsIfConditionTrue(condition bool, b map[string]config.ELSIndex) *Router {
+	if !condition {
+		return r
+	}
+
+	for _, index := range b {
+		for _, source := range index.Bindings.Sources {
+			r.bindings[source] = struct{}{}
+		}
 	}
 	return r
 }
@@ -210,20 +259,20 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 	out := map[string]map[config.EventType]struct{}{}
 	for _, srcGroupCfg := range sources {
 		for _, resource := range srcGroupCfg.Kubernetes.Resources {
-			if _, ok := out[resource.Name]; !ok {
-				out[resource.Name] = make(map[config.EventType]struct{})
+			if _, ok := out[resource.Type]; !ok {
+				out[resource.Type] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, resource.Events) {
-				out[resource.Name][e] = struct{}{}
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
+				out[resource.Type][e] = struct{}{}
 			}
 		}
 
 		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
-		for resourceName, eventType := range resForRecomms {
-			if _, ok := out[resourceName]; !ok {
-				out[resourceName] = make(map[config.EventType]struct{})
+		for resourceType, eventType := range resForRecomms {
+			if _, ok := out[resourceType]; !ok {
+				out[resourceType] = make(map[config.EventType]struct{})
 			}
-			out[resourceName][eventType] = struct{}{}
+			out[resourceType][eventType] = struct{}{}
 		}
 	}
 	return out
@@ -233,8 +282,8 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Events, r.Events) {
-				if resource != r.Name {
+			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
+				if resource != r.Type {
 					continue
 				}
 
@@ -258,13 +307,13 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	return out
 }
 
-func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceName string) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceType string) {
 	if routeMap == nil {
 		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
 	}
 
-	eventType, found := resForRecomms[resourceName]
+	eventType, found := resForRecomms[resourceType]
 	if !found {
 		return
 	}
@@ -334,7 +383,7 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEvents) []config.EventType {
+func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
 	checkEvents := globalEvents
 	if len(resourceEvents) > 0 {
 		checkEvents = resourceEvents
