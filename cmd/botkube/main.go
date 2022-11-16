@@ -128,9 +128,6 @@ func run() error {
 	// Set up the filter engine
 	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf.Filters)
 
-	// Set up actions manager
-	actions := execute.NewActionManager(conf.Actions)
-
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
 
@@ -158,7 +155,6 @@ func run() error {
 			CmdRunner:         &execute.OSCommand{},
 			Cfg:               *conf,
 			FilterEngine:      filterEngine,
-			ActionManager:     actions,
 			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
 			Merger:            kcMerger,
 			CfgManager:        cfgManager,

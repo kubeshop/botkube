@@ -190,7 +190,21 @@ func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name stri
 	if state.Actions == nil {
 		state.Actions = Actions{}
 	}
-
-	state.Actions.SetEnabled(name, enabled)
+	if err := state.Actions.SetEnabled(name, enabled); err != nil {
+		return err
+	}
 	return cmStorage.Update(ctx, cm, state)
+}
+
+func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]bool, error) {
+	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
+	state, _, err := cmStorage.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	actions := make(map[string]bool)
+	for name, action := range state.Actions {
+		actions[name] = action.Enabled
+	}
+	return actions, nil
 }

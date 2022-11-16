@@ -35,3 +35,11 @@ func (f *fakeCfgPersistenceManager) PersistNotificationsEnabled(ctx context.Cont
 func (f *fakeCfgPersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
 	return nil
 }
+
+func (f *fakeCfgPersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
+	return nil
+}
+
+func (f *fakeCfgPersistenceManager) ListActions(ctx context.Context) (map[string]bool, error) {
+	return nil, nil
+}
