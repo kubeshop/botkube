@@ -13,6 +13,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/version"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 )
 
 const (
@@ -187,16 +188,17 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface)
 		return Identity{}, fmt.Errorf("while getting cluster ID: %w", err)
 	}
 
-	nodeCount, err := r.getNodeCount(ctx, k8sCli)
+	workerNodeCount, controlPlaneNodeCount, err := r.getNodeCount(ctx, k8sCli)
 	if err != nil {
 		return Identity{}, fmt.Errorf("while getting node count: %w", err)
 	}
 
 	return Identity{
-		ID:                clusterID,
-		KubernetesVersion: *k8sServerVersion,
-		BotkubeVersion:    version.Info(),
-		NodeCount:         nodeCount,
+		ID:                    clusterID,
+		KubernetesVersion:     *k8sServerVersion,
+		BotkubeVersion:        version.Info(),
+		WorkerNodeCount:       workerNodeCount,
+		ControlPlaneNodeCount: controlPlaneNodeCount,
 	}, nil
 }
 
@@ -212,12 +214,26 @@ func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 	return string(kubeSystemNS.GetUID()), nil
 }
 
-func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.Interface) (int, error) {
+func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.Interface) (int, int, error) {
 	nodeList, err := k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 
 	if err != nil {
-		return 0, fmt.Errorf("while getting node count: %w", err)
+		return 0, 0, fmt.Errorf("while getting node count: %w", err)
 	}
 
-	return nodeList.Size(), nil
+	var (
+		controlPlaneNodesCount int
+		workerNodesCount       int
+	)
+
+	for _, item := range nodeList.Items {
+		val, ok := item.Labels[kubeadmconstants.LabelNodeRoleControlPlane]
+		if !ok || val != "true" {
+			workerNodesCount++
+			continue
+		}
+		controlPlaneNodesCount++
+	}
+
+	return workerNodesCount, controlPlaneNodesCount, nil
 }

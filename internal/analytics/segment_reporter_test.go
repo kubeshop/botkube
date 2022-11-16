@@ -226,5 +226,7 @@ func fixIdentity() *analytics.Identity {
 			GitCommitID: "botkube-git-commit-id",
 			BuildDate:   "botkube-build-date",
 		},
+		WorkerNodeCount:       0,
+		ControlPlaneNodeCount: 0,
 	}
 }
