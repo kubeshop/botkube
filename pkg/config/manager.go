@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"errors"
+	"sort"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -202,9 +203,16 @@ func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]bool, 
 	if err != nil {
 		return nil, err
 	}
+	// sort keys
+	keys := make([]string, 0, len(state.Actions))
+	for k := range state.Actions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	// return results
 	actions := make(map[string]bool)
-	for name, action := range state.Actions {
-		actions[name] = action.Enabled
+	for _, name := range keys {
+		actions[name] = state.Actions[name].Enabled
 	}
 	return actions, nil
 }
