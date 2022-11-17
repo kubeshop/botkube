@@ -39,9 +39,41 @@ func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 			UID:  "ff68560b-44e8-4b0d-880b-e114f5d15933",
 		},
 	}
+	cpNode1 := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cp1",
+			Labels: map[string]string{
+				"node-role.kubernetes.io/control-plane": "true",
+			},
+		},
+	}
+	cpNode2 := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cp2",
+			Labels: map[string]string{
+				"node-role.kubernetes.io/master": "true",
+			},
+		},
+	}
+	wrkNode1 := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker1",
+		},
+	}
+	wrkNode2 := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker2",
+		},
+	}
+	wrkNode3 := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker3",
+		},
+	}
+
 	fakeIdentity := fixIdentity()
 
-	k8sCli := fake.NewSimpleClientset(&kubeSystemNs)
+	k8sCli := fake.NewSimpleClientset(&kubeSystemNs, &cpNode1, &cpNode2, &wrkNode1, &wrkNode2, &wrkNode3)
 	fakeDisco, ok := k8sCli.Discovery().(*fakediscovery.FakeDiscovery)
 	require.True(t, ok)
 

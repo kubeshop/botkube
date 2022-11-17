@@ -15,6 +15,11 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps", "secrets"]
     verbs: ["get", "watch", "list"]
+{{- if not .Values.analytics.disable }}
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+{{ end }}
 {{- if .Values.settings.lifecycleServer.enabled }}
   - apiGroups: ["apps"]
     resources: ["deployments"]

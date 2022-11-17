@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -19,6 +18,11 @@ import (
 const (
 	kubeSystemNSName  = "kube-system"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
+
+	// Source: https://github.com/kubernetes/kubernetes/blob/v1.25.4/cmd/kubeadm/app/constants/constants.go
+	// The labels were copied as it is problematic to add k8s.io/kubernetes dependency: https://github.com/kubernetes/kubernetes/issues/79384
+	controlPlaneNodeLabel           = "node-role.kubernetes.io/control-plane"
+	deprecatedControlPlaneNodeLabel = "node-role.kubernetes.io/master"
 )
 
 var (
@@ -216,7 +220,6 @@ func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 
 func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.Interface) (int, int, error) {
 	nodeList, err := k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 		return 0, 0, fmt.Errorf("while getting node count: %w", err)
 	}
@@ -227,12 +230,18 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	)
 
 	for _, item := range nodeList.Items {
-		val, ok := item.Labels[kubeadmconstants.LabelNodeRoleControlPlane]
-		if !ok || val != "true" {
-			workerNodesCount++
+		val, ok := item.Labels[controlPlaneNodeLabel]
+		if ok || val == "true" {
+			controlPlaneNodesCount++
 			continue
 		}
-		controlPlaneNodesCount++
+		val, ok = item.Labels[deprecatedControlPlaneNodeLabel]
+		if ok || val == "true" {
+			controlPlaneNodesCount++
+			continue
+		}
+
+		workerNodesCount++
 	}
 
 	return workerNodesCount, controlPlaneNodesCount, nil
