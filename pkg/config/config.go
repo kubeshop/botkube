@@ -210,6 +210,10 @@ type KubernetesEvent struct {
 	Types   KubernetesResourceEventTypes `yaml:"types"`
 }
 
+func (e KubernetesEvent) AreConstraintsDefined() bool {
+	return e.Reason != "" || e.Message != ""
+}
+
 // IsAllowed checks if a given resource event is allowed according to the configuration.
 func (r *KubernetesSource) IsAllowed(resourceType, namespace string, eventType EventType) bool {
 	if r == nil || len(r.Resources) == 0 {

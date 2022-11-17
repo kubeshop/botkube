@@ -20,8 +20,8 @@ sources:
                     noLatestImageTag: false
                     labelsSet: true
             event:
-                reason: ""
-                message: ""
+                reason: .*
+                message: ^Error .*
                 types:
                     - create
                     - delete
@@ -435,7 +435,7 @@ settings:
         port: 0
         deployment: {}
     log:
-        level: error
+        level: info
         disableColors: false
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env

@@ -117,6 +117,8 @@ sources:
           - ".*"
         exclude: []
       event:
+        reason: ".*"
+        message: "^Error .*"
         types:
           - create
           - delete

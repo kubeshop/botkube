@@ -167,7 +167,13 @@ func (r registration) sourcesForEvent(routes []route, event events.Event) ([]str
 		}
 
 		// resource name
-		if route.resourceName != "" && event.Name != route.resourceName {
+		match, err = matchRegexForStringIfDefined(route.resourceName, event.Name)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		if !match {
+			r.log.Debugf("Ignoring as resource name %q doesn't match regex %q", event.Name, route.resourceName)
 			continue
 		}
 
@@ -203,7 +209,7 @@ func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) 
 
 	regex, err := regexp.Compile(regexStr)
 	if err != nil {
-		return false, fmt.Errorf("while compiling reason regex: %w", err)
+		return false, fmt.Errorf("while compiling regex: %w", err)
 	}
 
 	for _, s := range str {

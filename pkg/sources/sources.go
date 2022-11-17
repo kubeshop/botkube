@@ -267,7 +267,7 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 			if _, ok := out[resource.Type]; !ok {
 				out[resource.Type] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
+			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
 				out[resource.Type][e] = struct{}{}
 			}
 		}
@@ -287,7 +287,7 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
+			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
 				if resource != r.Type {
 					continue
 				}
@@ -298,7 +298,7 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 					annotations:  sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
 					labels:       sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
 					resourceName: r.Name,
-					event:        r.Event,
+					event:        sourceOrResourceEvent(srcGroupCfg.Kubernetes.Event, r.Event),
 				}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{
@@ -394,7 +394,7 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
+func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
 	checkEvents := globalEvents
 	if len(resourceEvents) > 0 {
 		checkEvents = resourceEvents
@@ -426,4 +426,12 @@ func sourceOrResourceStringMap(sourceMap, resourceMap map[string]string) map[str
 	}
 
 	return sourceMap
+}
+
+func sourceOrResourceEvent(sourceEvent, resourceEvent config.KubernetesEvent) config.KubernetesEvent {
+	if resourceEvent.AreConstraintsDefined() {
+		return resourceEvent
+	}
+
+	return sourceEvent
 }
