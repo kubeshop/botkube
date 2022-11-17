@@ -10,6 +10,7 @@
 				"gitCommit": "none",
 				"buildDate": "unknown"
 			},
+			"controlPlaneNodeCount": 2,
 			"k8sVersion": {
 				"major": "k8s-major",
 				"minor": "k8s-minor",
@@ -20,7 +21,8 @@
 				"goVersion": "k8s-go-version",
 				"compiler": "k8s-compiler",
 				"platform": "k8s-platform"
-			}
+			},
+			"workerNodeCount": 3
 		}
 	}
 ]

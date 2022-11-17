@@ -8,15 +8,19 @@ import (
 
 // Identity defines an anonymous identity for a given installation.
 type Identity struct {
-	ID                string
-	KubernetesVersion k8sVersion.Info
-	BotkubeVersion    version.Details
+	ID                    string
+	KubernetesVersion     k8sVersion.Info
+	BotkubeVersion        version.Details
+	WorkerNodeCount       int
+	ControlPlaneNodeCount int
 }
 
 // TraitsMap returns a map with traits based on Identity struct fields.
 func (i Identity) TraitsMap() map[string]interface{} {
 	return map[string]interface{}{
-		"k8sVersion":     i.KubernetesVersion,
-		"botkubeVersion": i.BotkubeVersion,
+		"k8sVersion":            i.KubernetesVersion,
+		"botkubeVersion":        i.BotkubeVersion,
+		"workerNodeCount":       i.WorkerNodeCount,
+		"controlPlaneNodeCount": i.ControlPlaneNodeCount,
 	}
 }

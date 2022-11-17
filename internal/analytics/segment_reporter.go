@@ -18,6 +18,11 @@ import (
 const (
 	kubeSystemNSName  = "kube-system"
 	unknownIdentityID = "00000000-0000-0000-0000-000000000000"
+
+	// Source: https://github.com/kubernetes/kubernetes/blob/v1.25.4/cmd/kubeadm/app/constants/constants.go
+	// The labels were copied as it is problematic to add k8s.io/kubernetes dependency: https://github.com/kubernetes/kubernetes/issues/79384
+	controlPlaneNodeLabel           = "node-role.kubernetes.io/control-plane"
+	deprecatedControlPlaneNodeLabel = "node-role.kubernetes.io/master"
 )
 
 var (
@@ -187,10 +192,17 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface)
 		return Identity{}, fmt.Errorf("while getting cluster ID: %w", err)
 	}
 
+	workerNodeCount, controlPlaneNodeCount, err := r.getNodeCount(ctx, k8sCli)
+	if err != nil {
+		return Identity{}, fmt.Errorf("while getting node count: %w", err)
+	}
+
 	return Identity{
-		ID:                clusterID,
-		KubernetesVersion: *k8sServerVersion,
-		BotkubeVersion:    version.Info(),
+		ID:                    clusterID,
+		KubernetesVersion:     *k8sServerVersion,
+		BotkubeVersion:        version.Info(),
+		WorkerNodeCount:       workerNodeCount,
+		ControlPlaneNodeCount: controlPlaneNodeCount,
 	}, nil
 }
 
@@ -204,4 +216,33 @@ func (r *SegmentReporter) getClusterID(ctx context.Context, k8sCli kubernetes.In
 	}
 
 	return string(kubeSystemNS.GetUID()), nil
+}
+
+func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.Interface) (int, int, error) {
+	nodeList, err := k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, fmt.Errorf("while getting node count: %w", err)
+	}
+
+	var (
+		controlPlaneNodesCount int
+		workerNodesCount       int
+	)
+
+	for _, item := range nodeList.Items {
+		val, ok := item.Labels[controlPlaneNodeLabel]
+		if ok || val == "true" {
+			controlPlaneNodesCount++
+			continue
+		}
+		val, ok = item.Labels[deprecatedControlPlaneNodeLabel]
+		if ok || val == "true" {
+			controlPlaneNodesCount++
+			continue
+		}
+
+		workerNodesCount++
+	}
+
+	return workerNodesCount, controlPlaneNodesCount, nil
 }
