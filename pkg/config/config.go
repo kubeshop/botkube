@@ -210,6 +210,7 @@ type KubernetesEvent struct {
 	Types   KubernetesResourceEventTypes `yaml:"types"`
 }
 
+// AreConstraintsDefined checks if any of the event constraints are defined.
 func (e KubernetesEvent) AreConstraintsDefined() bool {
 	return e.Reason != "" || e.Message != ""
 }

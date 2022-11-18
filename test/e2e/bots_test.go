@@ -85,6 +85,9 @@ var (
 				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
 				exit status 1`)
+	configMapLabels = map[string]string{
+		"test.botkube.io": "true",
+	}
 )
 
 func TestSlack(t *testing.T) {
@@ -531,6 +534,7 @@ func runBotTest(t *testing.T,
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      botDriver.Channel().Name(),
 				Namespace: appCfg.Deployment.Namespace,
+				Labels:    configMapLabels,
 			},
 		}
 		cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})

@@ -435,7 +435,7 @@ settings:
         port: 0
         deployment: {}
     log:
-        level: info
+        level: error
         disableColors: false
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env
