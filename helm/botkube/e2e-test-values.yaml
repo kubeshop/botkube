@@ -17,6 +17,7 @@ communications:
               - kubectl-allow-all
             sources:
               - k8s-events
+              - k8s-annotated-cm-delete
               - k8s-pod-create-events
         'secondary':
           name: "" # Tests will override this temporarily
@@ -42,6 +43,7 @@ communications:
               - kubectl-allow-all
             sources:
               - k8s-events
+              - k8s-annotated-cm-delete
               - k8s-pod-create-events
         'secondary':
           id: "" # Tests will override this channel ID temporarily
@@ -72,9 +74,21 @@ sources:
         types:
           - create
           - update
+      resources:
+        - type: v1/configmaps
+  'k8s-annotated-cm-delete':
+    kubernetes:
+      namespaces:
+        include:
+          - botkube
+      labels:
+        test.botkube.io: "true"
+      event:
+        types:
           - delete
       resources:
         - type: v1/configmaps
+
   'k8s-pod-create-events':
     kubernetes:
       namespaces:

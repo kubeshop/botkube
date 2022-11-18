@@ -20,114 +20,181 @@ sources:
                     noLatestImageTag: false
                     labelsSet: true
             event:
+                reason: .*
+                message: ^Error .*
                 types:
                     - create
                     - delete
                     - error
             resources:
                 - type: v1/pods
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/services
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: networking.k8s.io/v1/ingresses
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/nodes
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: NodeNotReady
+                    message: status .*
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/namespaces
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/persistentvolumes
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/persistentvolumeclaims
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/configmaps
+                  name: ""
                   namespaces:
                     include:
                         - default
                     exclude:
                         - kube-system
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/roles
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/rolebindings
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/clusterroles
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: apps/v1/daemonsets
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types:
                         - create
                         - update
@@ -139,9 +206,16 @@ sources:
                         - status.numberReady
                     includeDiff: true
                 - type: batch/v1/jobs
+                  name: my-.*
                   namespaces:
                     include: []
+                  annotations:
+                    my-own-annotation: "true"
+                  labels:
+                    my-own-label: "true"
                   event:
+                    reason: ""
+                    message: ""
                     types:
                         - create
                         - update
@@ -153,9 +227,14 @@ sources:
                         - status.conditions[*].type
                     includeDiff: true
                 - type: apps/v1/deployments
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types:
                         - create
                         - update
@@ -167,9 +246,14 @@ sources:
                         - status.availableReplicas
                     includeDiff: true
                 - type: apps/v1/statefulsets
+                  name: ""
                   namespaces:
                     include: []
+                  annotations: {}
+                  labels: {}
                   event:
+                    reason: ""
+                    message: ""
                     types:
                         - create
                         - update
@@ -183,6 +267,10 @@ sources:
             namespaces:
                 include:
                     - .*
+            annotations:
+                my-annotation: "true"
+            labels:
+                my-label: "true"
 executors:
     kubectl-read-only:
         kubectl:

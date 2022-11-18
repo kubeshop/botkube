@@ -16,6 +16,7 @@ import (
 // Event to store required information from k8s objects
 type Event struct {
 	metaV1.TypeMeta
+	ObjectMeta metaV1.ObjectMeta
 
 	Code      string
 	Title     string
@@ -63,17 +64,17 @@ var LevelMap = map[config.EventType]config.Level{
 }
 
 // New extract required details from k8s object and returns new Event object
-func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource, clusterName string) (Event, error) {
-	objectTypeMeta := utils.GetObjectTypeMetaData(object)
+func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource string) (Event, error) {
+	typeMeta := utils.GetObjectTypeMetaData(object)
 	event := Event{
-		TypeMeta:  objectTypeMeta,
-		Object:    object,
-		Name:      objectMeta.Name,
-		Namespace: objectMeta.Namespace,
-		Level:     LevelMap[eventType],
-		Type:      eventType,
-		Cluster:   clusterName,
-		Resource:  resource,
+		TypeMeta:   typeMeta,
+		ObjectMeta: objectMeta,
+		Object:     object,
+		Name:       objectMeta.Name,
+		Namespace:  objectMeta.Namespace,
+		Level:      LevelMap[eventType],
+		Type:       eventType,
+		Resource:   resource,
 	}
 
 	// initialize event.TimeStamp with the time of event creation
@@ -100,7 +101,7 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 		event.Title = fmt.Sprintf("%s %sd", resource, eventType.String())
 	}
 
-	if objectTypeMeta.Kind == "Event" {
+	if typeMeta.Kind == "Event" {
 		var eventObj coreV1.Event
 
 		unstrObj, ok := object.(*unstructured.Unstructured)
@@ -129,6 +130,10 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 		if eventObj.LastTimestamp.IsZero() && eventObj.Series != nil {
 			event.TimeStamp = eventObj.Series.LastObservedTime.Time
 			event.Count = eventObj.Series.Count
+		}
+		if event.TimeStamp.IsZero() {
+			// still zero? try event time
+			event.TimeStamp = eventObj.EventTime.Time
 		}
 	}
 

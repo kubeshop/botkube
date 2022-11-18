@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -16,12 +17,16 @@ const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
-type eventHandler func(ctx context.Context, resource string, sources []string, updateDiffs []string) func(obj interface{})
+type eventHandler func(ctx context.Context, event events.Event, sources []string, updateDiffs []string)
 
 type route struct {
 	source        string
+	resourceName  string
+	labels        map[string]string
+	annotations   map[string]string
 	namespaces    config.Namespaces
 	updateSetting config.UpdateSetting
+	event         config.KubernetesEvent
 }
 
 func (r route) hasActionableUpdateSetting() bool {
@@ -230,15 +235,15 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 	return nil
 }
 
-// HandleEvent allows router clients to create handlers that are
+// RegisterEventHandler allows router clients to create handlers that are
 // triggered for a target event.
-func (r *Router) HandleEvent(ctx context.Context, target config.EventType, handlerFn eventHandler) {
-	for resource, informer := range r.registrations {
-		if !informer.canHandleEvent(target.String()) {
+func (r *Router) RegisterEventHandler(ctx context.Context, eventType config.EventType, handlerFn eventHandler) {
+	for resource, reg := range r.registrations {
+		if !reg.canHandleEvent(eventType.String()) {
 			continue
 		}
-		sourceRoutes := r.getSourceRoutes(resource, target)
-		informer.handleEvent(ctx, resource, target, sourceRoutes, handlerFn)
+		sourceRoutes := r.getSourceRoutes(resource, eventType)
+		reg.handleEvent(ctx, resource, eventType, sourceRoutes, handlerFn)
 	}
 }
 
@@ -262,7 +267,7 @@ func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
 			if _, ok := out[resource.Type]; !ok {
 				out[resource.Type] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
+			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
 				out[resource.Type][e] = struct{}{}
 			}
 		}
@@ -282,13 +287,19 @@ func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sou
 	out := make(map[config.EventType][]route)
 	for srcGroupName, srcGroupCfg := range sources {
 		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEvents(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
+			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
 				if resource != r.Type {
 					continue
 				}
 
-				namespaces := sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces)
-				route := route{source: srcGroupName, namespaces: namespaces}
+				route := route{
+					source:       srcGroupName,
+					namespaces:   sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces),
+					annotations:  sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
+					labels:       sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
+					resourceName: r.Name,
+					event:        sourceOrResourceEvent(srcGroupCfg.Kubernetes.Event, r.Event),
+				}
 				if e == config.UpdateEvent {
 					route.updateSetting = config.UpdateSetting{
 						Fields:      r.UpdateSetting.Fields,
@@ -383,7 +394,7 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEvents(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
+func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
 	checkEvents := globalEvents
 	if len(resourceEvents) > 0 {
 		checkEvents = resourceEvents
@@ -407,4 +418,20 @@ func sourceOrResourceNamespaces(sourceNs, resourceNs config.Namespaces) config.N
 		return resourceNs
 	}
 	return sourceNs
+}
+
+func sourceOrResourceStringMap(sourceMap, resourceMap map[string]string) map[string]string {
+	if len(resourceMap) > 0 {
+		return resourceMap
+	}
+
+	return sourceMap
+}
+
+func sourceOrResourceEvent(sourceEvent, resourceEvent config.KubernetesEvent) config.KubernetesEvent {
+	if resourceEvent.AreConstraintsDefined() {
+		return resourceEvent
+	}
+
+	return sourceEvent
 }

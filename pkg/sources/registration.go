@@ -2,7 +2,9 @@ package sources
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -13,6 +15,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/utils"
 )
 
@@ -26,66 +30,45 @@ type registration struct {
 	mappedEvent     config.EventType
 }
 
-func (r registration) handleEvent(ctx context.Context, resource string, target config.EventType, sourceRoutes []route, fn eventHandler) {
-	switch target {
-	case config.CreateEvent:
-		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
-				if err != nil {
-					r.log.WithFields(logrus.Fields{
-						"eventHandler": config.CreateEvent,
-						"resource":     resource,
-						"error":        err.Error(),
-					}).Errorf("Cannot calculate sources for observed resource.")
-					return
-				}
-				r.log.Debugf("handle Create event, resource: %q, sources: %+v", resource, sources)
-				if len(sources) > 0 {
-					fn(ctx, resource, sources, nil)(obj)
-				}
-			},
+func (r registration) handleEvent(ctx context.Context, resource string, eventType config.EventType, sourceRoutes []route, fn eventHandler) {
+	handleFunc := func(oldObj, newObj interface{}) {
+		logger := r.log.WithFields(logrus.Fields{
+			"eventHandler": eventType,
+			"resource":     resource,
+			"object":       newObj,
 		})
-	case config.DeleteEvent:
-		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			DeleteFunc: func(obj interface{}) {
-				sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
-				if err != nil {
-					r.log.WithFields(logrus.Fields{
-						"eventHandler": config.DeleteEvent,
-						"resource":     resource,
-						"error":        err.Error(),
-					}).Errorf("Cannot calculate sources for observed resource.")
-					return
-				}
-				r.log.Debugf("handle Delete event, resource: %q, sources: %+v", resource, sources)
-				if len(sources) > 0 {
-					fn(ctx, resource, sources, nil)(obj)
-				}
-			},
-		})
-	case config.UpdateEvent:
-		r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				sources, diffs, err := qualifySourcesForUpdate(ctx, newObj, oldObj, sourceRoutes, r.log, r.mapper, r.dynamicCli)
-				if err != nil {
-					r.log.WithFields(logrus.Fields{
-						"eventHandler": config.UpdateEvent,
-						"resource":     resource,
-						"error":        err.Error(),
-					}).Errorf("Cannot qualify sources for observed resource.")
-					return
-				}
-				r.log.Debugf("handle Update event, resource: %s, sources: %+v, diffs: %+v", resource, sources, diffs)
-				if len(sources) > 0 {
-					fn(ctx, resource, sources, diffs)(newObj)
-				}
-			},
-		})
+
+		event, err := r.eventForObj(ctx, newObj, eventType, resource)
+		if err != nil {
+			logger.Errorf("while creating new event: %s", err.Error())
+			return
+		}
+
+		sources, diffs, err := r.qualifySourcesForEvent(event, newObj, oldObj, sourceRoutes)
+		if err != nil {
+			logger.Errorf("while getting sources for event: %s", err.Error())
+			// continue anyway, there could be still some sources to handle
+		}
+		if len(sources) == 0 {
+			return
+		}
+		fn(ctx, event, sources, diffs)
 	}
+
+	var resourceEventHandlerFuncs cache.ResourceEventHandlerFuncs
+	switch eventType {
+	case config.CreateEvent:
+		resourceEventHandlerFuncs.AddFunc = func(obj interface{}) { handleFunc(nil, obj) }
+	case config.DeleteEvent:
+		resourceEventHandlerFuncs.DeleteFunc = func(obj interface{}) { handleFunc(nil, obj) }
+	case config.UpdateEvent:
+		resourceEventHandlerFuncs.UpdateFunc = handleFunc
+	}
+
+	r.informer.AddEventHandler(resourceEventHandlerFuncs)
 }
 
-func (r registration) handleMapped(ctx context.Context, targetEvent config.EventType, routeTable map[string][]entry, fn eventHandler) {
+func (r registration) handleMapped(ctx context.Context, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
 	r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -116,16 +99,22 @@ func (r registration) handleMapped(ctx context.Context, targetEvent config.Event
 				return
 			}
 
-			sourceRoutes := sourceRoutes(routeTable, gvrToString, targetEvent)
-			sources, err := sourcesForObjNamespace(ctx, sourceRoutes, obj, r.log, r.mapper, r.dynamicCli)
+			event, err := r.eventForObj(ctx, obj, eventType, gvrToString)
 			if err != nil {
-				r.log.Errorf("cannot calculate sources for observed mapped resource event: %q in Add event handler: %s", targetEvent, err.Error())
+				r.log.Errorf("while creating new event: %s", err.Error())
 				return
+			}
+
+			sourceRoutes := sourceRoutes(routeTable, gvrToString, eventType)
+			sources, err := r.sourcesForEvent(sourceRoutes, event)
+			if err != nil {
+				r.log.Errorf("cannot calculate sources for observed mapped resource event: %q in Add event handler: %s", eventType, err.Error())
+				// continue anyway, there could be still some sources to handle
 			}
 			if len(sources) == 0 {
 				return
 			}
-			fn(ctx, gvrToString, sources, nil)(obj)
+			fn(ctx, event, sources, nil)
 		},
 	})
 }
@@ -148,85 +137,186 @@ func (r registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func sourcesForObjNamespace(ctx context.Context, routes []route, obj interface{}, log logrus.FieldLogger, mapper meta.RESTMapper, cli dynamic.Interface) ([]string, error) {
+func (r registration) sourcesForEvent(routes []route, event events.Event) ([]string, error) {
 	var out []string
 
-	objectMeta, err := utils.GetObjectMetaData(ctx, cli, mapper, obj)
-	if err != nil {
-		log.Errorf("while getting object metadata: %s", err.Error())
-		return nil, err
-	}
+	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling event")
 
-	targetNs := objectMeta.Namespace
-	if targetNs == "" {
-		log.Debugf("handling event for cluster-wide resource in routes: %+v", targetNs, routes)
-		for _, route := range routes {
-			out = append(out, route.source)
-		}
-
-		return out, nil
-	}
-
-	log.Debugf("handling events for target Namespace: %s in routes: %+v", targetNs, routes)
+	errs := multierror.New()
 	for _, route := range routes {
-		if route.namespaces.IsAllowed(targetNs) {
-			out = append(out, route.source)
+		// event reason
+		match, err := matchRegexForStringIfDefined(route.event.Reason, event.Reason)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
 		}
+		if !match {
+			r.log.Debugf("Ignoring as reason %q doesn't match regex %q", event.Reason, route.event.Reason)
+			continue
+		}
+
+		// event message
+		match, err = matchRegexForStringsIfDefined(route.event.Message, event.Messages)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		if !match {
+			r.log.Debugf("Ignoring as messages %q don't match regex %q", strings.Join(event.Messages, ";"), route.event.Message)
+			continue
+		}
+
+		// resource name
+		match, err = matchRegexForStringIfDefined(route.resourceName, event.Name)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			continue
+		}
+		if !match {
+			r.log.Debugf("Ignoring as resource name %q doesn't match regex %q", event.Name, route.resourceName)
+			continue
+		}
+
+		// namespace
+		if event.Namespace != "" && !route.namespaces.IsAllowed(event.Namespace) {
+			continue
+		}
+
+		// annotations
+		if !kvsSatisfiedForMap(route.annotations, event.ObjectMeta.Annotations) {
+			continue
+		}
+
+		// labels
+		if !kvsSatisfiedForMap(route.labels, event.ObjectMeta.Labels) {
+			continue
+		}
+
+		out = append(out, route.source)
 	}
 
-	return out, nil
+	return out, errs.ErrorOrNil()
 }
 
-func qualifySourcesForUpdate(
-	ctx context.Context,
+func matchRegexForStringIfDefined(regexStr, str string) (bool, error) {
+	return matchRegexForStringsIfDefined(regexStr, []string{str})
+}
+
+func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) {
+	if regexStr == "" {
+		return true, nil
+	}
+
+	regex, err := regexp.Compile(regexStr)
+	if err != nil {
+		return false, fmt.Errorf("while compiling regex: %w", err)
+	}
+
+	for _, s := range str {
+		if regex.MatchString(s) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
+	if len(expectedKV) == 0 {
+		return true
+	}
+
+	if len(obj) == 0 {
+		return false
+	}
+
+	for k, v := range expectedKV {
+		got, ok := obj[k]
+		if !ok {
+			return false
+		}
+
+		if got != v {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (r registration) eventForObj(ctx context.Context, obj interface{}, eventType config.EventType, resource string) (events.Event, error) {
+	objectMeta, err := utils.GetObjectMetaData(ctx, r.dynamicCli, r.mapper, obj)
+	if err != nil {
+		return events.Event{}, fmt.Errorf("while getting object metadata: %s", err.Error())
+	}
+
+	event, err := events.New(objectMeta, obj, eventType, resource)
+	if err != nil {
+		return events.Event{}, fmt.Errorf("while creating new event: %s", err.Error())
+	}
+
+	return event, nil
+}
+
+func (r registration) qualifySourcesForEvent(
+	event events.Event,
 	newObj, oldObj interface{},
 	routes []route,
-	log logrus.FieldLogger,
-	mapper meta.RESTMapper,
-	cli dynamic.Interface,
+) ([]string, []string, error) {
+	candidates, err := r.sourcesForEvent(routes, event)
+	if err != nil {
+		return nil, nil, fmt.Errorf("while getting sources for event: %w", err)
+	}
+
+	if event.Type == config.UpdateEvent {
+		return r.qualifySourcesForUpdate(newObj, oldObj, routes, candidates)
+	}
+
+	return candidates, nil, nil
+}
+
+func (r registration) qualifySourcesForUpdate(
+	newObj, oldObj interface{},
+	routes []route,
+	candidates []string,
 ) ([]string, []string, error) {
 	var sources, diffs []string
-
-	candidates, err := sourcesForObjNamespace(ctx, routes, newObj, log, mapper, cli)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	var oldUnstruct, newUnstruct *unstructured.Unstructured
 	var ok bool
 
 	if oldUnstruct, ok = oldObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast old object to Unstructured.")
+		r.log.Error("Failed to typecast old object to Unstructured.")
 	}
 
 	if newUnstruct, ok = newObj.(*unstructured.Unstructured); !ok {
-		log.Error("Failed to typecast new object to Unstructured.")
+		r.log.Error("Failed to typecast new object to Unstructured.")
 	}
 
-	log.Debugf("qualifySourcesForUpdate source candidates: %+v", candidates)
+	r.log.Debugf("qualifySourcesForUpdate source candidates: %+v", candidates)
 
 	for _, source := range candidates {
-		for _, r := range routes {
-			if r.source != source {
+		for _, route := range routes {
+			if route.source != source {
 				continue
 			}
 
-			if !r.hasActionableUpdateSetting() {
-				log.Debugf("Qualified for update: source: %s, with no updateSettings set", source)
+			if !route.hasActionableUpdateSetting() {
+				r.log.Debugf("Qualified for update: source: %s, with no updateSettings set", source)
 				sources = append(sources, source)
 				continue
 			}
 
-			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, r.updateSetting)
+			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
 			if err != nil {
-				log.Errorf("while getting diff: %w", err)
+				r.log.Errorf("while getting diff: %w", err)
 			}
-			log.Debugf("About to qualify source: %s for update, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
+			r.log.Debugf("About to qualify source: %s for update, diff: %s, updateSetting: %+v", source, diff, route.updateSetting)
 
-			if len(diff) > 0 && r.updateSetting.IncludeDiff {
+			if len(diff) > 0 && route.updateSetting.IncludeDiff {
 				sources = append(sources, source)
 				diffs = append(diffs, diff)
-				log.Debugf("Qualified for update: source: %s for update, diff: %s, updateSetting: %+v", source, diff, r.updateSetting)
+				r.log.Debugf("Qualified for update: source: %s for update, diff: %s, updateSetting: %+v", source, diff, route.updateSetting)
 			}
 		}
 	}

@@ -144,10 +144,20 @@ sources:
           - create
           - delete
           - error
+        # -- Optional regex to filter events by event reason.
+        reason: ""
+        # -- Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.
+        message: ""
+
+      # -- Filters Kubernetes resources to watch by annotations.
+      annotations: {}
+      # -- Filters Kubernetes resources to watch by labels.
+      labels: {}
 
       # -- Describes the Kubernetes resources to watch.
       # Resources are identified by its type in `{group}/{version}/{kind (plural)}` format. Examples: `apps/v1/deployments`, `v1/pods`.
       # Each resource can override the namespaces and event configuration by using dedicated `event` and `namespaces` field.
+      # Also, each resource can specify its own `annotations`, `labels` and `name` regex.
       # @default -- See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
@@ -155,6 +165,15 @@ sources:
         #    include:
         #      - ".*"
         #    exclude: []
+        #  annotations: {}         # Overrides 'source'.kubernetes.annotations
+        #  labels: {}              # Overrides 'source'.kubernetes.labels
+        #  name: "" # Optional resource name regex.
+        #  event:
+        #    reason: ""            # Overrides 'source'.kubernetes.event.reason
+        #    message: ""           # Overrides 'source'.kubernetes.event.message
+        #    types:                # Overrides 'source'.kubernetes.event.types
+        #      - create
+
         - type: v1/services
         - type: networking.k8s.io/v1/ingresses
         - type: v1/nodes
