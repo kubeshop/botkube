@@ -1,11 +1,8 @@
-package utils
+package k8sutil
 
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strconv"
-	"strings"
 
 	coreV1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,8 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
-
-const hyperlinkRegex = `(?m)<http:\/\/[a-z.0-9\/\-_=]*\|([a-z.0-9\/\-_=]*)>`
 
 // GetObjectMetaData returns metadata of the given object
 func GetObjectMetaData(ctx context.Context, dynamicCli dynamic.Interface, mapper meta.RESTMapper, obj interface{}) (metaV1.ObjectMeta, error) {
@@ -48,7 +43,7 @@ func GetObjectMetaData(ctx context.Context, dynamicCli dynamic.Interface, mapper
 			return metaV1.ObjectMeta{}, fmt.Errorf("while transforming object type: %T into type %T: %w", obj, eventObj, err)
 		}
 
-		eventAnnotations, err := ExtractAnnotationsFromEvent(ctx, dynamicCli, mapper, &eventObj)
+		eventAnnotations, err := extractAnnotationsFromEvent(ctx, dynamicCli, mapper, &eventObj)
 		if err != nil {
 			return metaV1.ObjectMeta{}, err
 		}
@@ -70,22 +65,10 @@ func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
 	if !ok {
 		return metaV1.TypeMeta{}
 	}
-	k = k.DeepCopy()
 	return metaV1.TypeMeta{
 		APIVersion: k.GetAPIVersion(),
 		Kind:       k.GetKind(),
 	}
-}
-
-// DeleteDoubleWhiteSpace returns slice that removing whitespace from a arg slice
-func DeleteDoubleWhiteSpace(slice []string) []string {
-	var result []string
-	for _, s := range slice {
-		if len(s) != 0 {
-			result = append(result, s)
-		}
-	}
-	return result
 }
 
 // GetResourceFromKind returns resource name for given Kind
@@ -97,8 +80,13 @@ func GetResourceFromKind(mapper meta.RESTMapper, gvk schema.GroupVersionKind) (s
 	return mapping.Resource, nil
 }
 
-// ExtractAnnotationsFromEvent returns annotations of InvolvedObject for the given event
-func ExtractAnnotationsFromEvent(ctx context.Context, dynamicCli dynamic.Interface, mapper meta.RESTMapper, obj *coreV1.Event) (map[string]string, error) {
+// TransformIntoTypedObject uses unstructured interface and creates a typed object
+func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
+	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
+}
+
+// extractAnnotationsFromEvent returns annotations of a related resource for the given event.
+func extractAnnotationsFromEvent(ctx context.Context, dynamicCli dynamic.Interface, mapper meta.RESTMapper, obj *coreV1.Event) (map[string]string, error) {
 	gvr, err := GetResourceFromKind(mapper, obj.InvolvedObject.GroupVersionKind())
 	if err != nil {
 		return nil, err
@@ -112,60 +100,4 @@ func ExtractAnnotationsFromEvent(ctx context.Context, dynamicCli dynamic.Interfa
 		return nil, err
 	}
 	return annotations.GetAnnotations(), nil
-}
-
-// GetClusterNameFromKubectlCmd this will return cluster name from kubectl command
-func GetClusterNameFromKubectlCmd(cmd string) string {
-	r, _ := regexp.Compile(`--cluster-name[=|' ']([^\s]*)`)
-	//this gives 2 match with cluster name and without
-	matchedArray := r.FindStringSubmatch(cmd)
-	var s string
-	if len(matchedArray) >= 2 {
-		s = matchedArray[1]
-	}
-
-	str, err := strconv.Unquote(s)
-	if err != nil {
-		return s
-	}
-
-	return str
-}
-
-// GVRToString converts GVR formats to string
-func GVRToString(gvr schema.GroupVersionResource) string {
-	if gvr.Group == "" {
-		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
-	}
-	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
-}
-
-// TransformIntoTypedObject uses unstructured interface and creates a typed object
-func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
-	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
-}
-
-// Contains tells whether a contains x.
-func Contains(a []string, x string) bool {
-	for _, n := range a {
-		if strings.EqualFold(x, n) {
-			return true
-		}
-	}
-	return false
-}
-
-// RemoveAnyHyperlinks removes the hyperlink text from url
-func RemoveAnyHyperlinks(hyperlink string) string {
-	command := hyperlink
-	compiledRegex := regexp.MustCompile(hyperlinkRegex)
-	matched := compiledRegex.FindAllStringSubmatch(string(hyperlink), -1)
-	if len(matched) >= 1 {
-		for _, match := range matched {
-			if len(match) == 2 {
-				command = strings.ReplaceAll(command, match[0], match[1])
-			}
-		}
-	}
-	return command
 }

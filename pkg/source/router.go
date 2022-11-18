@@ -1,4 +1,4 @@
-package sources
+package source
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -17,7 +17,7 @@ const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
-type eventHandler func(ctx context.Context, event events.Event, sources []string, updateDiffs []string)
+type eventHandler func(ctx context.Context, event event.Event, sources []string, updateDiffs []string)
 
 type route struct {
 	source        string

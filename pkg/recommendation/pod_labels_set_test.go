@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -29,7 +29,7 @@ func TestPodLabelsSet_Do_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	unstr := &unstructured.Unstructured{Object: unstrObj}
 
-	event, err := events.New(pod.ObjectMeta, unstr, config.CreateEvent, "v1/pods")
+	event, err := event.New(pod.ObjectMeta, unstr, config.CreateEvent, "v1/pods")
 	require.NoError(t, err)
 
 	// when

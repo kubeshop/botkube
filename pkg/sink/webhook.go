@@ -12,7 +12,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -74,7 +74,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 }
 
 // SendEvent sends event notification to Webhook url
-func (w *Webhook) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
+func (w *Webhook) SendEvent(ctx context.Context, event event.Event, eventSources []string) (err error) {
 	if !sliceutil.Intersect(w.Bindings.Sources, eventSources) {
 		w.log.Debugf("Event sources do not match Webhook sources, event: %+v, eventSources: %+v", event, eventSources)
 		return nil

@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 const (
@@ -199,7 +199,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 // omitIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
 func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg *ExecutionCommandError) error {
-	if utils.GetClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
+	if getClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
 		return verboseMsg
 	}
 
@@ -309,7 +309,7 @@ func (e *Kubectl) findDefaultNamespace(bindings []string) string {
 
 // addNamespaceFlag add namespace to returned args list.
 func (e *Kubectl) addNamespaceFlag(args []string, defaultNamespace string) []string {
-	return append([]string{"-n", defaultNamespace}, utils.DeleteDoubleWhiteSpace(args)...)
+	return append([]string{"-n", defaultNamespace}, sliceutil.FilterEmptyStrings(args)...)
 }
 
 func (e *Kubectl) getResourceName(args []string) string {

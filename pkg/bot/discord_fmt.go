@@ -6,11 +6,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-func (b *Discord) formatMessage(event events.Event) discordgo.MessageSend {
+func (b *Discord) formatMessage(event event.Event) discordgo.MessageSend {
 	var messageEmbed discordgo.MessageEmbed
 
 	switch b.notification.Type {
@@ -35,7 +35,7 @@ func (b *Discord) formatMessage(event events.Event) discordgo.MessageSend {
 	}
 }
 
-func (b *Discord) longNotification(event events.Event) discordgo.MessageEmbed {
+func (b *Discord) longNotification(event event.Event) discordgo.MessageEmbed {
 	messageEmbed := discordgo.MessageEmbed{
 		Title: fmt.Sprintf("*%s*", event.Title),
 		Fields: []*discordgo.MessageEmbedField{
@@ -78,7 +78,7 @@ func (b *Discord) appendIfNotEmpty(fields []*discordgo.MessageEmbedField, in str
 	})
 }
 
-func (b *Discord) shortNotification(event events.Event) discordgo.MessageEmbed {
+func (b *Discord) shortNotification(event event.Event) discordgo.MessageEmbed {
 	return discordgo.MessageEmbed{
 		Title:       event.Title,
 		Description: formatx.ShortMessage(event),

@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 const bulletPointFmt = "- %s\n"
 
 // ShortMessage prepares message in short event format.
-func ShortMessage(event events.Event) string {
+func ShortMessage(event event.Event) string {
 	msg := ShortNotificationHeader(event)
 	msgAttachments := messageAttachments(event)
 
@@ -19,7 +19,7 @@ func ShortMessage(event events.Event) string {
 }
 
 // ShortNotificationHeader returns short header for event notification.
-func ShortNotificationHeader(event events.Event) string {
+func ShortNotificationHeader(event event.Event) string {
 	resourceName := event.Name
 	if event.Namespace != "" {
 		resourceName = fmt.Sprintf("%s/%s", event.Namespace, event.Name)
@@ -63,7 +63,7 @@ func ShortNotificationHeader(event events.Event) string {
 	return ""
 }
 
-func messageAttachments(event events.Event) string {
+func messageAttachments(event event.Event) string {
 	var additionalMsgStrBuilder strings.Builder
 	if len(event.Messages) > 0 {
 		additionalMsgStrBuilder.WriteString(JoinMessages(event.Messages))

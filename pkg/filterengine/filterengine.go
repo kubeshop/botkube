@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 // DefaultFilterEngine is a default implementation of the Filter Engine.
@@ -19,7 +19,7 @@ type DefaultFilterEngine struct {
 
 // FilterEngine has methods to register and run filters.
 type FilterEngine interface {
-	Run(context.Context, events.Event) events.Event
+	Run(context.Context, event.Event) event.Event
 	Register(...RegisteredFilter)
 	RegisteredFilters() []RegisteredFilter
 	SetFilter(string, bool) error
@@ -33,7 +33,7 @@ type RegisteredFilter struct {
 
 // Filter defines an event filter.
 type Filter interface {
-	Run(context.Context, *events.Event) error
+	Run(context.Context, *event.Event) error
 	Name() string
 	Describe() string
 }
@@ -47,7 +47,7 @@ func New(log logrus.FieldLogger) *DefaultFilterEngine {
 }
 
 // Run runs the registered filters always iterating over a slice of filters with sorted keys.
-func (f *DefaultFilterEngine) Run(ctx context.Context, event events.Event) events.Event {
+func (f *DefaultFilterEngine) Run(ctx context.Context, event event.Event) event.Event {
 	f.log.Debug("Running registered filters")
 	filters := f.RegisteredFilters()
 	f.log.Debugf("registered filters: %+v", filters)

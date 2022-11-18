@@ -7,19 +7,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 func TestAnonymizedEventDetailsFrom(t *testing.T) {
 	// given
 	testCases := []struct {
 		Name           string
-		InputEvent     events.Event
+		InputEvent     event.Event
 		ExpectedOutput analytics.EventDetails
 	}{
 		{
 			Name: "Allowed API Version",
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Type: "create",
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "apps/v1",
@@ -34,7 +34,7 @@ func TestAnonymizedEventDetailsFrom(t *testing.T) {
 		},
 		{
 			Name: "Disallowed API Version",
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Type: "create",
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "commercial.example.com/v1",

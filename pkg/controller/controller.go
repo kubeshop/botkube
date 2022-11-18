@@ -16,12 +16,12 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
-	"github.com/kubeshop/botkube/pkg/sources"
+	"github.com/kubeshop/botkube/pkg/source"
 )
 
 const (
@@ -53,8 +53,8 @@ type RecommendationFactory interface {
 
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {
-	RenderedActionsForEvent(event events.Event, sourceBindings []string) ([]events.Action, error)
-	ExecuteEventAction(ctx context.Context, action events.Action) interactive.GenericMessage
+	RenderedActionsForEvent(event event.Event, sourceBindings []string) ([]event.Action, error)
+	ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.
@@ -67,7 +67,7 @@ type Controller struct {
 	recommFactory         RecommendationFactory
 	filterEngine          filterengine.FilterEngine
 	informersResyncPeriod time.Duration
-	sourcesRouter         *sources.Router
+	sourcesRouter         *source.Router
 	actionProvider        ActionProvider
 
 	dynamicCli dynamic.Interface
@@ -85,7 +85,7 @@ func New(log logrus.FieldLogger,
 	dynamicCli dynamic.Interface,
 	mapper meta.RESTMapper,
 	informersResyncPeriod time.Duration,
-	router *sources.Router,
+	router *source.Router,
 	actionProvider ActionProvider,
 	reporter AnalyticsReporter,
 ) *Controller {
@@ -196,7 +196,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) handleEvent(ctx context.Context, event events.Event, sources, updateDiffs []string) {
+func (c *Controller) handleEvent(ctx context.Context, event event.Event, sources, updateDiffs []string) {
 	c.log.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
 	c.enrichEventWithAdditionalMetadata(&event)
 
@@ -315,6 +315,6 @@ func (c *Controller) strToGVR(arg string) (schema.GroupVersionResource, error) {
 	}
 }
 
-func (c *Controller) enrichEventWithAdditionalMetadata(event *events.Event) {
+func (c *Controller) enrichEventWithAdditionalMetadata(event *event.Event) {
 	event.Cluster = c.conf.Settings.ClusterName
 }

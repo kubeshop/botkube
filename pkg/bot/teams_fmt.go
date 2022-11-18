@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/format"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
@@ -20,7 +20,7 @@ var themeColor = map[config.Level]string{
 // TODO: Use dedicated types as a part of https://github.com/kubeshop/botkube/issues/667
 type fact map[string]interface{}
 
-func (b *Teams) formatMessage(event events.Event, notification config.Notification) map[string]interface{} {
+func (b *Teams) formatMessage(event event.Event, notification config.Notification) map[string]interface{} {
 	switch notification.Type {
 	case config.LongNotification:
 		return b.longNotification(event)
@@ -33,7 +33,7 @@ func (b *Teams) formatMessage(event events.Event, notification config.Notificati
 	}
 }
 
-func (b *Teams) shortNotification(event events.Event) map[string]interface{} {
+func (b *Teams) shortNotification(event event.Event) map[string]interface{} {
 	return map[string]interface{}{
 		"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
 		"type":    "AdaptiveCard",
@@ -55,7 +55,7 @@ func (b *Teams) shortNotification(event events.Event) map[string]interface{} {
 	}
 }
 
-func (b *Teams) longNotification(event events.Event) map[string]interface{} {
+func (b *Teams) longNotification(event event.Event) map[string]interface{} {
 	// TODO: Use dedicated types as a part of https://github.com/kubeshop/botkube/issues/667
 	card := map[string]interface{}{
 		"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",

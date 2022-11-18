@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/format"
 )
 
@@ -28,12 +28,12 @@ func TestShortMessage(t *testing.T) {
 		`) + "```"
 	testCases := []struct {
 		Name     string
-		Input    events.Event
+		Input    event.Event
 		Expected string
 	}{
 		{
 			Name: "Create event for cluster resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Namespace",
 					APIVersion: "v1",
@@ -49,7 +49,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Update event for namespaced resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",
@@ -66,7 +66,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Error event for cluster resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Namespace",
 					APIVersion: "v1",
@@ -82,7 +82,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Error event for namespaced resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",
@@ -99,7 +99,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Warning event for cluster resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Namespace",
 					APIVersion: "v1",
@@ -115,7 +115,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Warning event for namespaced resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",
@@ -132,7 +132,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Info event for namespaced resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",
@@ -149,7 +149,7 @@ func TestShortMessage(t *testing.T) {
 		},
 		{
 			Name: "Info event for namespaced resource",
-			Input: events.Event{
+			Input: event.Event{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",

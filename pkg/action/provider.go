@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -46,8 +46,8 @@ func NewProvider(log logrus.FieldLogger, cfg config.Actions, executorFactory Exe
 }
 
 // RenderedActionsForEvent finds and processes actions for given event.
-func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []string) ([]events.Action, error) {
-	var actions []events.Action
+func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []string) ([]event.Action, error) {
+	var actions []event.Action
 	errs := multierror.New()
 	for _, action := range p.cfg {
 		if !action.Enabled {
@@ -60,7 +60,7 @@ func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []
 
 		p.log.Debugf("Rendering Action %q (command: %q)...", action.DisplayName, action.Command)
 		renderingData := renderingData{
-			Event: event,
+			Event: e,
 		}
 		renderedCmd, err := p.renderActionCommand(action, renderingData)
 		if err != nil {
@@ -70,7 +70,7 @@ func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []
 
 		p.log.Debugf("Rendered command: %q", renderedCmd)
 
-		actions = append(actions, events.Action{
+		actions = append(actions, event.Action{
 			DisplayName:      action.DisplayName,
 			Command:          fmt.Sprintf("%s %s", universalBotNamePlaceholder, renderedCmd),
 			ExecutorBindings: action.Bindings.Executors,
@@ -82,7 +82,7 @@ func (p *Provider) RenderedActionsForEvent(event events.Event, sourceBindings []
 
 // ExecuteEventAction executes action for given event.
 // WARNING: The result interactive.Message contains BotNamePlaceholder, which should be replaced before sending the message.
-func (p *Provider) ExecuteEventAction(ctx context.Context, action events.Action) interactive.GenericMessage {
+func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage {
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
 			IsAuthenticated:  true,
@@ -103,7 +103,7 @@ func (p *Provider) ExecuteEventAction(ctx context.Context, action events.Action)
 }
 
 type renderingData struct {
-	Event events.Event
+	Event event.Event
 }
 
 func (p *Provider) renderActionCommand(action config.Action, data renderingData) (string, error) {

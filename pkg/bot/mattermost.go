@@ -15,7 +15,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -369,7 +369,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 }
 
 // SendEvent sends event notification to Mattermost
-func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSources []string) error {
+func (b *Mattermost) SendEvent(_ context.Context, event event.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Mattermost: %+v", event)
 	attachment := b.formatAttachments(event)
 
@@ -394,7 +394,7 @@ func (b *Mattermost) SendEvent(_ context.Context, event events.Event, eventSourc
 	return errs.ErrorOrNil()
 }
 
-func (b *Mattermost) getChannelsToNotifyForEvent(event events.Event, sourceBindings []string) []string {
+func (b *Mattermost) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}

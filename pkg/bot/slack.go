@@ -13,7 +13,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -299,7 +299,7 @@ func (b *Slack) send(msg slackMessage, resp interactive.Message, onlyVisibleToUs
 }
 
 // SendEvent sends event notification to slack
-func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
+func (b *Slack) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
 	attachment := b.renderer.RenderLegacyEventMessage(event)
 
@@ -317,7 +317,7 @@ func (b *Slack) SendEvent(ctx context.Context, event events.Event, eventSources 
 	return errs.ErrorOrNil()
 }
 
-func (b *Slack) getChannelsToNotifyForEvent(event events.Event, sourceBindings []string) []string {
+func (b *Slack) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}

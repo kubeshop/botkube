@@ -20,7 +20,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -174,7 +174,7 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 }
 
 // SendEvent sends event notification to Elasticsearch
-func (e *Elasticsearch) SendEvent(ctx context.Context, event events.Event, eventSources []string) (err error) {
+func (e *Elasticsearch) SendEvent(ctx context.Context, event event.Event, eventSources []string) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	errs := multierror.New()

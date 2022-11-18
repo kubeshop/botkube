@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 // Command defines a command that is executed by the app.
@@ -47,7 +47,7 @@ func NewCommander(log logrus.FieldLogger, merger EnabledKubectlMerger, guard Cmd
 }
 
 // GetCommandsForEvent returns a list of commands for the given event based on the executor bindings.
-func (c *Commander) GetCommandsForEvent(event events.Event, executorBindings []string) ([]Command, error) {
+func (c *Commander) GetCommandsForEvent(event event.Event, executorBindings []string) ([]Command, error) {
 	if event.Type == config.DeleteEvent {
 		c.log.Debug("Skipping commands for the DELETE type of event for %q...", event.Kind)
 		return nil, nil

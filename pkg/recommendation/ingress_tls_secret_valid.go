@@ -12,9 +12,9 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 const ingressTLSSecretValidName = "IngressTLSSecretValid"
@@ -30,8 +30,8 @@ func NewIngressTLSSecretValid(dynamicCli dynamic.Interface) *IngressTLSSecretVal
 }
 
 // Do executes the recommendation checks.
-func (f *IngressTLSSecretValid) Do(ctx context.Context, event events.Event) (Result, error) {
-	if event.Kind != "Ingress" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(event.Object).Kind == "Event" {
+func (f *IngressTLSSecretValid) Do(ctx context.Context, event event.Event) (Result, error) {
+	if event.Kind != "Ingress" || event.Type != config.CreateEvent || k8sutil.GetObjectTypeMetaData(event.Object).Kind == "Event" {
 		return Result{}, nil
 	}
 
@@ -41,7 +41,7 @@ func (f *IngressTLSSecretValid) Do(ctx context.Context, event events.Event) (Res
 	}
 
 	var ingress networkingv1.Ingress
-	err := utils.TransformIntoTypedObject(unstrObj, &ingress)
+	err := k8sutil.TransformIntoTypedObject(unstrObj, &ingress)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, ingress, err)
 	}

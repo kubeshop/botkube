@@ -7,11 +7,11 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
-func (b *Mattermost) formatAttachments(event events.Event) []*model.SlackAttachment {
+func (b *Mattermost) formatAttachments(event event.Event) []*model.SlackAttachment {
 	var fields []*model.SlackAttachmentField
 	switch b.notification.Type {
 	case config.LongNotification:
@@ -34,7 +34,7 @@ func (b *Mattermost) formatAttachments(event events.Event) []*model.SlackAttachm
 	}
 }
 
-func (b *Mattermost) longNotification(event events.Event) []*model.SlackAttachmentField {
+func (b *Mattermost) longNotification(event event.Event) []*model.SlackAttachmentField {
 	fields := []*model.SlackAttachmentField{
 		{
 			Title: "Kind",
@@ -70,7 +70,7 @@ func (b *Mattermost) appendIfNotEmpty(fields []*model.SlackAttachmentField, in s
 	})
 }
 
-func (b *Mattermost) shortNotification(event events.Event) []*model.SlackAttachmentField {
+func (b *Mattermost) shortNotification(event event.Event) []*model.SlackAttachmentField {
 	return []*model.SlackAttachmentField{
 		{
 			Value: formatx.ShortMessage(event),

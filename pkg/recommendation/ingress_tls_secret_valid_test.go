@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
@@ -35,7 +35,7 @@ func TestIngressTLSSecretValid_Do_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	unstr := &unstructured.Unstructured{Object: unstrObj}
 
-	event, err := events.New(ingress.ObjectMeta, unstr, config.CreateEvent, "networking.k8s.io/v1/ingresses")
+	event, err := event.New(ingress.ObjectMeta, unstr, config.CreateEvent, "networking.k8s.io/v1/ingresses")
 	require.NoError(t, err)
 
 	// when

@@ -42,7 +42,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
-	"github.com/kubeshop/botkube/pkg/sources"
+	"github.com/kubeshop/botkube/pkg/source"
 )
 
 const (
@@ -164,7 +164,7 @@ func run() error {
 		},
 	)
 
-	router := sources.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
+	router := source.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
 	var (
 		notifiers []notifier.Notifier

@@ -18,7 +18,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
@@ -355,7 +355,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 }
 
 // SendEvent sends event message via Bot interface
-func (b *Teams) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
+func (b *Teams) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Teams: %+v", event)
 	card := b.formatMessage(event, b.Notification)
 

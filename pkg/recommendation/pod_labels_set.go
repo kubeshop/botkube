@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 const podLabelsSetName = "PodLabelsSet"
@@ -23,7 +23,7 @@ func NewPodLabelsSet() *PodLabelsSet {
 }
 
 // Do executes the recommendation checks.
-func (f PodLabelsSet) Do(_ context.Context, event events.Event) (Result, error) {
+func (f PodLabelsSet) Do(_ context.Context, event event.Event) (Result, error) {
 	if event.Kind != "Pod" || event.Type != config.CreateEvent {
 		return Result{}, nil
 	}
@@ -34,7 +34,7 @@ func (f PodLabelsSet) Do(_ context.Context, event events.Event) (Result, error) 
 	}
 
 	var pod coreV1.Pod
-	err := utils.TransformIntoTypedObject(unstrObj, &pod)
+	err := k8sutil.TransformIntoTypedObject(unstrObj, &pod)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, pod, err)
 	}

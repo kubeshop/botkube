@@ -17,13 +17,13 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
@@ -35,7 +35,7 @@ var _ Bot = &SocketSlack{}
 
 // EventCommandProvider describes a provider for event commands.
 type EventCommandProvider interface {
-	GetCommandsForEvent(event events.Event, executorBindings []string) ([]kubectl.Command, error)
+	GetCommandsForEvent(event event.Event, executorBindings []string) ([]kubectl.Command, error)
 }
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
@@ -148,11 +148,11 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				}
 				websocketClient.Ack(*event.Request)
 				if eventsAPIEvent.Type == slackevents.CallbackEvent {
-					b.log.Debugf("Got callback event %s", utils.StructDumper().Sdump(eventsAPIEvent))
+					b.log.Debugf("Got callback event %s", format.StructDumper().Sdump(eventsAPIEvent))
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
-						b.log.Debugf("Got app mention %s", utils.StructDumper().Sdump(innerEvent))
+						b.log.Debugf("Got app mention %s", format.StructDumper().Sdump(innerEvent))
 						msg := socketSlackMessage{
 							Text:            ev.Text,
 							Channel:         ev.Channel,
@@ -176,7 +176,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 				switch callback.Type {
 				case slack.InteractionTypeBlockActions:
-					b.log.Debugf("Got block action %s", utils.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+					b.log.Debugf("Got block action %s", format.StructDumper().Sdump(callback.ActionCallback.BlockActions))
 
 					if len(callback.ActionCallback.BlockActions) != 1 {
 						b.log.Debug("Ignoring callback as the number of actions is different from 1")
@@ -400,7 +400,7 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) e
 }
 
 // SendEvent sends event notification to slack
-func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSources []string) error {
+func (b *SocketSlack) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
 	b.log.Debugf("Sending to Slack: %+v", event)
 
 	errs := multierror.New()
@@ -429,7 +429,7 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event events.Event, eventSo
 	return errs.ErrorOrNil()
 }
 
-func (b *SocketSlack) getInteractiveEventSectionIfShould(event events.Event, channelName string) *interactive.Section {
+func (b *SocketSlack) getInteractiveEventSectionIfShould(event event.Event, channelName string) *interactive.Section {
 	channel, isAuthChannel := b.getChannels()[channelName]
 	if !isAuthChannel {
 		return nil
@@ -457,7 +457,7 @@ func (b *SocketSlack) getInteractiveEventSectionIfShould(event events.Event, cha
 	return &section
 }
 
-func (b *SocketSlack) getChannelsToNotifyForEvent(event events.Event, sourceBindings []string) []string {
+func (b *SocketSlack) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
 	// support custom event routing
 	if event.Channel != "" {
 		return []string{event.Channel}

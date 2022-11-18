@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 )
@@ -97,19 +97,19 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		Name                string
 		InputConfig         config.Recommendations
 		InputSourceBindings []string
-		InputEvent          events.Event
+		InputEvent          event.Event
 		Expected            bool
 	}{
 		{
 			Name: "Has recommendations",
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Recommendations: []string{"message"},
 			},
 			Expected: false,
 		},
 		{
 			Name: "Has warnings",
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Warnings: []string{"message"},
 			},
 			Expected: false,
@@ -117,7 +117,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "Different resource",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource: "v1/deployments",
 				Type:     config.CreateEvent,
 			},
@@ -126,7 +126,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "Different event",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource: recommendation.PodResourceType(),
 				Type:     config.UpdateEvent,
 			},
@@ -135,7 +135,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User configured such event",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
@@ -146,7 +146,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User configured such event with source-wide namespace",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
@@ -157,7 +157,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User configured such event with source-wide namespace and resource ns override",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.PodResourceType(),
 				Namespace: "kube-system",
 				Type:      config.CreateEvent,
@@ -168,7 +168,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User didn't configure such resource",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.IngressResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
@@ -179,7 +179,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User didn't configure such event - different namespace",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,
@@ -190,7 +190,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 		{
 			Name:        "User didn't configure such event - different events",
 			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: events.Event{
+			InputEvent: event.Event{
 				Resource:  recommendation.PodResourceType(),
 				Namespace: "default",
 				Type:      config.CreateEvent,

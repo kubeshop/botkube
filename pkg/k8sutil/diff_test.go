@@ -1,4 +1,4 @@
-package utils
+package k8sutil_test
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 // Object mocks kubernetes objects
@@ -144,7 +145,7 @@ func TestDiff(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			actual, err := Diff(test.old, test.new, test.update)
+			actual, err := k8sutil.Diff(test.old, test.new, test.update)
 
 			if test.expectedErrMessage != "" {
 				require.Error(t, err)
@@ -158,7 +159,7 @@ func TestDiff(t *testing.T) {
 	}
 }
 
-// MockDiff mocks utils.Diff
+// MockDiff mocks diff.Diff
 func (e *ExpectedDiff) MockDiff() string {
 	if e.Path == "" {
 		return ""
