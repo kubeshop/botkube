@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -590,7 +591,7 @@ func TestPersistenceManager_ListActions(t *testing.T) {
 			Expected: map[string]bool{},
 		},
 		{
-			Name: "Empty runtime config",
+			Name: "Two actions expected",
 			InputCfgMap: &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      cfg.ConfigMap.Name,
@@ -618,6 +619,76 @@ func TestPersistenceManager_ListActions(t *testing.T) {
 			// when
 			actions, err := manager.ListActions(context.Background())
 			require.NoError(t, err)
+			assert.Equal(t, testCase.Expected, actions)
+		})
+	}
+}
+
+func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
+	// given
+	cfg := config.PartialPersistentConfig{
+		ConfigMap: config.K8sResourceRef{
+			Name:      "foo",
+			Namespace: "ns",
+		},
+		FileName: "_runtime_state.yaml",
+	}
+
+	testCases := []struct {
+		Name        string
+		ActionName  string
+		Enabled     bool
+		Expected    map[string]bool
+		InputCfgMap *v1.ConfigMap
+		Err         error
+	}{
+		{
+			Name:       "Action not defined",
+			ActionName: "bogus",
+			Enabled:    true,
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+			},
+			Expected: map[string]bool{},
+			Err:      fmt.Errorf("action with name \"bogus\" not found"),
+		},
+		{
+			Name:       "Enabled switch from true to false",
+			ActionName: "get-created-resource",
+			Enabled:    false,
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+				Data: map[string]string{
+					cfg.FileName: heredoc.Doc(`
+                      actions:
+                        get-created-resource:
+                          enabled: true
+                        get-deleted-resource:
+                          enabled: false
+					`),
+				},
+			},
+			Expected: map[string]bool{"get-created-resource": false, "get-deleted-resource": false},
+			Err:      nil,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			logger, _ := logtest.NewNullLogger()
+			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
+			manager := config.NewManager(logger, config.PersistentConfig{Runtime: cfg}, k8sCli)
+
+			err := manager.PersistActionEnabled(context.Background(), testCase.ActionName, testCase.Enabled)
+			assert.Equal(t, testCase.Err, err)
+
+			actions, err := manager.ListActions(context.Background())
+			assert.NoError(t, err)
 			assert.Equal(t, testCase.Expected, actions)
 		})
 	}
