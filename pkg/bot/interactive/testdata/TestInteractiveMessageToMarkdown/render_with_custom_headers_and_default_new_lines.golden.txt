@@ -22,6 +22,12 @@ Check the status of connected Kubernetes cluster(s).
 By default, Botkube will notify only about cluster errors and recommendations.
   - `@Botkube edit SourceBindings`
 
+*Manage automated actions*
+```
+@Botkube [list|enable|disable] action [action name]
+```
+  - `@Botkube list actions`
+
 *Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
   - `@Botkube kubectl get services`
