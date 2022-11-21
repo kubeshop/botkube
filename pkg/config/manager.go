@@ -181,6 +181,7 @@ func (m *PersistenceManager) PersistFilterEnabled(ctx context.Context, name stri
 	return nil
 }
 
+// PersistActionEnabled updates runtime config map with desired action.enabled parameter
 func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
 	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
 
@@ -197,6 +198,7 @@ func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name stri
 	return cmStorage.Update(ctx, cm, state)
 }
 
+// ListActions reads Actions from runtime config map
 func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]bool, error) {
 	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
 	state, _, err := cmStorage.Get(ctx)

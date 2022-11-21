@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -352,6 +353,41 @@ func TestSortCfgFiles(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			actual := config.SortCfgFiles(test.input)
 			assert.Equal(t, test.expected, actual)
+		})
+	}
+}
+
+func TestActionsSetEnabled(t *testing.T) {
+	tests := map[string]struct {
+		name    string
+		enabled bool
+		actions *config.Actions
+		err     error
+	}{
+		"Enable - changed": {
+			name:    "test",
+			enabled: true,
+			actions: &config.Actions{"test": config.Action{Enabled: false}},
+			err:     nil,
+		},
+		"Enable - already enabled": {
+			name:    "test",
+			enabled: true,
+			actions: &config.Actions{"test": config.Action{Enabled: true}},
+			err:     nil,
+		},
+		"Fail": {
+			name:    "test",
+			enabled: false,
+			actions: &config.Actions{"bogus": config.Action{Enabled: false}},
+			err:     fmt.Errorf("action with name %q not found", "test"),
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			e := test.actions.SetEnabled(test.name, test.enabled)
+			assert.Equal(t, test.err, e)
+			assert.Equal(t, test.enabled, (*test.actions)[test.name].Enabled)
 		})
 	}
 }

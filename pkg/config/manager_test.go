@@ -563,3 +563,62 @@ func TestPersistenceManager_PersistFilterEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestPersistenceManager_ListActions(t *testing.T) {
+	// given
+	cfg := config.PartialPersistentConfig{
+		ConfigMap: config.K8sResourceRef{
+			Name:      "foo",
+			Namespace: "ns",
+		},
+		FileName: "_runtime_state.yaml",
+	}
+
+	testCases := []struct {
+		Name        string
+		InputCfgMap *v1.ConfigMap
+		Expected    map[string]bool
+	}{
+		{
+			Name: "Empty runtime config",
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+			},
+			Expected: map[string]bool{},
+		},
+		{
+			Name: "Empty runtime config",
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+				Data: map[string]string{
+					cfg.FileName: heredoc.Doc(`
+                      actions:
+                        get-created-resource:
+                          enabled: true
+                        get-deleted-resource:
+                          enabled: false
+					`),
+				},
+			},
+			Expected: map[string]bool{"get-created-resource": true, "get-deleted-resource": false},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			logger, _ := logtest.NewNullLogger()
+			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
+			manager := config.NewManager(logger, config.PersistentConfig{Runtime: cfg}, k8sCli)
+
+			// when
+			actions, err := manager.ListActions(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, testCase.Expected, actions)
+		})
+	}
+}

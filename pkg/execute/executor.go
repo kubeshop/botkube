@@ -177,10 +177,6 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	cmds := executorsRunner{
-		"actions": func() (interactive.Message, error) {
-			res, err := e.runActionCommand(ctx, args, clusterName)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
-		},
 		"help": func() (interactive.Message, error) {
 			e.reportCommand(args[0], false)
 			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
@@ -210,6 +206,18 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		"feedback": func() (interactive.Message, error) {
 			e.reportCommand(args[0], false)
 			return interactive.Feedback(), nil
+		},
+		"list": func() (interactive.Message, error) {
+			res, err := e.runActionCommand(ctx, args, clusterName)
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
+		},
+		"enable": func() (interactive.Message, error) {
+			res, err := e.runActionCommand(ctx, args, clusterName)
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
+		},
+		"disable": func() (interactive.Message, error) {
+			res, err := e.runActionCommand(ctx, args, clusterName)
+			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 	}
 
@@ -337,9 +345,20 @@ func (e *DefaultExecutor) runActionCommand(ctx context.Context, args []string, c
 		return "", errInvalidCommand
 	}
 
-	var cmdVerb = args[1]
+	validSubCmd := false
+	for _, cmdName := range []string{"action", "actions", "act"} {
+		if args[1] == cmdName {
+			validSubCmd = true
+			break
+		}
+	}
+	if !validSubCmd {
+		return fmt.Sprintf("'%s' is not a valid subcommand", args[1]), nil
+	}
+
+	var cmdVerb = args[0]
 	defer func() {
-		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
+		cmdToReport := fmt.Sprintf("%s %s", args[1], cmdVerb)
 		e.reportCommand(cmdToReport, false)
 	}()
 
@@ -348,7 +367,7 @@ func (e *DefaultExecutor) runActionCommand(ctx context.Context, args []string, c
 		return "Failed to list actions", err
 	}
 
-	switch CommandVerb(args[1]) {
+	switch CommandVerb(cmdVerb) {
 	case CommandList:
 		e.log.Debug("List actions")
 		return actionsTabularOutput(actions), nil
