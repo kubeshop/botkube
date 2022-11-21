@@ -9,8 +9,8 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 const (
@@ -33,9 +33,9 @@ func NewObjectAnnotationChecker(log logrus.FieldLogger, dynamicCli dynamic.Inter
 }
 
 // Run filters and modifies event struct.
-func (f *ObjectAnnotationChecker) Run(ctx context.Context, event *events.Event) error {
+func (f *ObjectAnnotationChecker) Run(ctx context.Context, event *event.Event) error {
 	// get objects metadata
-	obj, err := utils.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, event.Object)
+	obj, err := k8sutil.GetObjectMetaData(ctx, f.dynamicCli, f.mapper, event.Object)
 	if err != nil {
 		return fmt.Errorf("while getting object metadata: %w", err)
 	}

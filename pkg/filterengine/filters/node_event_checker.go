@@ -6,8 +6,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 const (
@@ -28,9 +28,9 @@ func NewNodeEventsChecker(log logrus.FieldLogger) *NodeEventsChecker {
 }
 
 // Run filers and modifies event struct
-func (f *NodeEventsChecker) Run(_ context.Context, event *events.Event) error {
+func (f *NodeEventsChecker) Run(_ context.Context, event *event.Event) error {
 	// Check for Event object
-	if utils.GetObjectTypeMetaData(event.Object).Kind == "Event" {
+	if k8sutil.GetObjectTypeMetaData(event.Object).Kind == "Event" {
 		return nil
 	}
 

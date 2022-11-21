@@ -1,4 +1,4 @@
-package events
+package event
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 // Event to store required information from k8s objects
@@ -65,7 +65,7 @@ var LevelMap = map[config.EventType]config.Level{
 
 // New extract required details from k8s object and returns new Event object
 func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource string) (Event, error) {
-	typeMeta := utils.GetObjectTypeMetaData(object)
+	typeMeta := k8sutil.GetObjectTypeMetaData(object)
 	event := Event{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objectMeta,
@@ -109,7 +109,7 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 			return Event{}, fmt.Errorf("cannot convert type %T into *unstructured.Unstructured", object)
 		}
 
-		err := utils.TransformIntoTypedObject(unstrObj, &eventObj)
+		err := k8sutil.TransformIntoTypedObject(unstrObj, &eventObj)
 		if err != nil {
 			return Event{}, fmt.Errorf("while transforming object type %T into type: %T: %w", object, eventObj, err)
 		}

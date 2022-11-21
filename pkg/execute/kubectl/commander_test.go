@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
@@ -18,7 +18,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 	executorBindings := []string{"foo", "bar"}
 	testCases := []struct {
 		Name           string
-		Event          events.Event
+		Event          event.Event
 		MergedKubectls kubectl.EnabledKubectl
 		Guard          kubectl.CmdGuard
 
@@ -27,7 +27,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 	}{
 		{
 			Name: "Skip delete event",
-			Event: events.Event{
+			Event: event.Event{
 				Resource:  "apps/v1/deployments",
 				Name:      "foo",
 				Namespace: "default",
@@ -40,7 +40,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 		},
 		{
 			Name: "Resource not allowed",
-			Event: events.Event{
+			Event: event.Event{
 				Resource:  "apps/v1/deployments",
 				Name:      "foo",
 				Namespace: "default",
@@ -62,7 +62,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 		},
 		{
 			Name: "Namespaced resource",
-			Event: events.Event{
+			Event: event.Event{
 				Resource:  "v1/pods",
 				Name:      "foo",
 				Namespace: "default",
@@ -97,7 +97,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 		},
 		{
 			Name: "Cluster-wide resource",
-			Event: events.Event{
+			Event: event.Event{
 				Resource: "v1/nodes",
 				Name:     "foo",
 				Type:     config.UpdateEvent,

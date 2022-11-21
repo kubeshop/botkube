@@ -11,7 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
@@ -39,7 +39,7 @@ func NewSlackRenderer(notificationType config.Notification) *SlackRenderer {
 }
 
 // RenderLegacyEventMessage returns Slack message based on a given event.
-func (b *SlackRenderer) RenderLegacyEventMessage(event events.Event) slack.Attachment {
+func (b *SlackRenderer) RenderLegacyEventMessage(event event.Event) slack.Attachment {
 	var attachment slack.Attachment
 
 	switch b.notification.Type {
@@ -61,7 +61,7 @@ func (b *SlackRenderer) RenderLegacyEventMessage(event events.Event) slack.Attac
 }
 
 // RenderEventMessage returns Slack interactive message based on a given event.
-func (b *SlackRenderer) RenderEventMessage(event events.Event, additionalSections ...interactive.Section) interactive.Message {
+func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections ...interactive.Section) interactive.Message {
 	var sections []interactive.Section
 
 	switch b.notification.Type {
@@ -402,7 +402,7 @@ func (*SlackRenderer) plainTextBlock(msg string) *slack.TextBlockObject {
 	return slack.NewTextBlockObject(slack.PlainTextType, msg, false, false)
 }
 
-func (b *SlackRenderer) longNotificationSection(event events.Event) interactive.Section {
+func (b *SlackRenderer) longNotificationSection(event event.Event) interactive.Section {
 	section := b.baseNotificationSection(event)
 	section.TextFields = interactive.TextFields{
 		{Text: fmt.Sprintf("*Kind:* %s", event.Kind)},
@@ -428,7 +428,7 @@ func (b *SlackRenderer) appendTextFieldIfNotEmpty(fields []interactive.TextField
 	})
 }
 
-func (b *SlackRenderer) shortNotificationSection(event events.Event) interactive.Section {
+func (b *SlackRenderer) shortNotificationSection(event event.Event) interactive.Section {
 	section := b.baseNotificationSection(event)
 
 	header := formatx.ShortNotificationHeader(event)
@@ -448,7 +448,7 @@ func (b *SlackRenderer) shortNotificationSection(event events.Event) interactive
 	return section
 }
 
-func (b *SlackRenderer) baseNotificationSection(event events.Event) interactive.Section {
+func (b *SlackRenderer) baseNotificationSection(event event.Event) interactive.Section {
 	emoji := emojiForLevel[event.Level]
 	section := interactive.Section{
 		Base: interactive.Base{
@@ -467,7 +467,7 @@ func (b *SlackRenderer) baseNotificationSection(event events.Event) interactive.
 	return section
 }
 
-func (b *SlackRenderer) legacyLongNotification(event events.Event) slack.Attachment {
+func (b *SlackRenderer) legacyLongNotification(event event.Event) slack.Attachment {
 	attachment := slack.Attachment{
 		Pretext: fmt.Sprintf("*%s*", event.Title),
 		Fields: []slack.AttachmentField{
@@ -508,7 +508,7 @@ func (b *SlackRenderer) appendIfNotEmpty(fields []slack.AttachmentField, in stri
 	})
 }
 
-func (b *SlackRenderer) legacyShortNotification(event events.Event) slack.Attachment {
+func (b *SlackRenderer) legacyShortNotification(event event.Event) slack.Attachment {
 	return slack.Attachment{
 		Title: event.Title,
 		Fields: []slack.AttachmentField{

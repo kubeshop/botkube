@@ -17,7 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
@@ -118,10 +118,10 @@ const (
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	empty := interactive.Message{}
-	rawCmd := utils.RemoveAnyHyperlinks(e.message)
+	rawCmd := format.RemoveHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
 	clusterName := e.cfg.Settings.ClusterName
-	inClusterName := utils.GetClusterNameFromKubectlCmd(rawCmd)
+	inClusterName := getClusterNameFromKubectlCmd(rawCmd)
 	botName := e.notifierHandler.BotName()
 
 	execFilter, err := extractExecutorFilter(rawCmd)

@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
-	"github.com/kubeshop/botkube/pkg/utils"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 const podNoLatestImageTag = "PodNoLatestImageTag"
@@ -24,8 +24,8 @@ func NewPodNoLatestImageTag() *PodNoLatestImageTag {
 }
 
 // Do executes the recommendation checks.
-func (f *PodNoLatestImageTag) Do(_ context.Context, event events.Event) (Result, error) {
-	if event.Kind != "Pod" || event.Type != config.CreateEvent || utils.GetObjectTypeMetaData(event.Object).Kind == "Event" {
+func (f *PodNoLatestImageTag) Do(_ context.Context, event event.Event) (Result, error) {
+	if event.Kind != "Pod" || event.Type != config.CreateEvent || k8sutil.GetObjectTypeMetaData(event.Object).Kind == "Event" {
 		return Result{}, nil
 	}
 
@@ -35,7 +35,7 @@ func (f *PodNoLatestImageTag) Do(_ context.Context, event events.Event) (Result,
 	}
 
 	var pod coreV1.Pod
-	err := utils.TransformIntoTypedObject(unstrObj, &pod)
+	err := k8sutil.TransformIntoTypedObject(unstrObj, &pod)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, pod, err)
 	}

@@ -1,4 +1,4 @@
-package sources
+package source
 
 import (
 	"context"
@@ -11,13 +11,14 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/k8sutil"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/utils"
 )
 
 type registration struct {
@@ -72,7 +73,7 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 	r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
-			err := utils.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+			err := k8sutil.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
 				r.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 				return
@@ -84,7 +85,7 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 			}
 
 			// Find involved object type
-			gvr, err := utils.GetResourceFromKind(r.mapper, eventObj.InvolvedObject.GroupVersionKind())
+			gvr, err := k8sutil.GetResourceFromKind(r.mapper, eventObj.InvolvedObject.GroupVersionKind())
 			if err != nil {
 				r.log.Errorf("Failed to get involved object: %v", err)
 				return
@@ -94,18 +95,18 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 				return
 			}
 
-			gvrToString := utils.GVRToString(gvr)
-			if !r.includesSrcResource(gvrToString) {
+			gvrString := gvrToString(gvr)
+			if !r.includesSrcResource(gvrString) {
 				return
 			}
 
-			event, err := r.eventForObj(ctx, obj, eventType, gvrToString)
+			event, err := r.eventForObj(ctx, obj, eventType, gvrString)
 			if err != nil {
 				r.log.Errorf("while creating new event: %s", err.Error())
 				return
 			}
 
-			sourceRoutes := sourceRoutes(routeTable, gvrToString, eventType)
+			sourceRoutes := sourceRoutes(routeTable, gvrString, eventType)
 			sources, err := r.sourcesForEvent(sourceRoutes, event)
 			if err != nil {
 				r.log.Errorf("cannot calculate sources for observed mapped resource event: %q in Add event handler: %s", eventType, err.Error())
@@ -137,7 +138,7 @@ func (r registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func (r registration) sourcesForEvent(routes []route, event events.Event) ([]string, error) {
+func (r registration) sourcesForEvent(routes []route, event event.Event) ([]string, error) {
 	var out []string
 
 	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling event")
@@ -244,22 +245,22 @@ func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
 	return true
 }
 
-func (r registration) eventForObj(ctx context.Context, obj interface{}, eventType config.EventType, resource string) (events.Event, error) {
-	objectMeta, err := utils.GetObjectMetaData(ctx, r.dynamicCli, r.mapper, obj)
+func (r registration) eventForObj(ctx context.Context, obj interface{}, eventType config.EventType, resource string) (event.Event, error) {
+	objectMeta, err := k8sutil.GetObjectMetaData(ctx, r.dynamicCli, r.mapper, obj)
 	if err != nil {
-		return events.Event{}, fmt.Errorf("while getting object metadata: %s", err.Error())
+		return event.Event{}, fmt.Errorf("while getting object metadata: %s", err.Error())
 	}
 
-	event, err := events.New(objectMeta, obj, eventType, resource)
+	e, err := event.New(objectMeta, obj, eventType, resource)
 	if err != nil {
-		return events.Event{}, fmt.Errorf("while creating new event: %s", err.Error())
+		return event.Event{}, fmt.Errorf("while creating new event: %s", err.Error())
 	}
 
-	return event, nil
+	return e, nil
 }
 
 func (r registration) qualifySourcesForEvent(
-	event events.Event,
+	event event.Event,
 	newObj, oldObj interface{},
 	routes []route,
 ) ([]string, []string, error) {
@@ -307,7 +308,7 @@ func (r registration) qualifySourcesForUpdate(
 				continue
 			}
 
-			diff, err := utils.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
+			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
 			if err != nil {
 				r.log.Errorf("while getting diff: %w", err)
 			}
@@ -322,4 +323,12 @@ func (r registration) qualifySourcesForUpdate(
 	}
 
 	return sources, diffs, nil
+}
+
+// gvrToString converts GVR formats to string.
+func gvrToString(gvr schema.GroupVersionResource) string {
+	if gvr.Group == "" {
+		return fmt.Sprintf("%s/%s", gvr.Version, gvr.Resource)
+	}
+	return fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource)
 }

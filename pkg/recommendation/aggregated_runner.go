@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -22,7 +22,7 @@ func newAggregatedRunner(log logrus.FieldLogger, recommendations []Recommendatio
 }
 
 // Do runs all recommendations within the set.
-func (s AggregatedRunner) Do(ctx context.Context, event *events.Event) error {
+func (s AggregatedRunner) Do(ctx context.Context, event *event.Event) error {
 	if len(s.recommendations) == 0 {
 		s.log.Debug("No recommendations to run. Finishing...")
 		return nil

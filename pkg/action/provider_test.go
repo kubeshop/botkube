@@ -13,7 +13,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 )
@@ -23,9 +23,9 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 	testCases := []struct {
 		Name               string
 		Config             config.Actions
-		Event              events.Event
+		Event              event.Event
 		SourceBindings     []string
-		ExpectedResult     []events.Action
+		ExpectedResult     []event.Action
 		ExpectedErrMessage string
 	}{
 		{
@@ -33,7 +33,7 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 			Config:         fixActionsConfig(),
 			SourceBindings: []string{"success", "disabled"},
 			Event:          fixEvent("name"),
-			ExpectedResult: []events.Action{
+			ExpectedResult: []event.Action{
 				{
 					Command:          "{{BotName}} kubectl get po name",
 					ExecutorBindings: []string{"executor-binding1", "executor-binding2"},
@@ -53,7 +53,7 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 			Config:         fixActionsConfig(),
 			SourceBindings: []string{"success", "invalid-command"},
 			Event:          fixEvent("name"),
-			ExpectedResult: []events.Action{
+			ExpectedResult: []event.Action{
 				{
 					Command:          "{{BotName}} kubectl get po name",
 					ExecutorBindings: []string{"executor-binding1", "executor-binding2"},
@@ -90,7 +90,7 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 	// given
 	botName := "my-bot"
 	executorBindings := []string{"executor-binding1", "executor-binding2"}
-	eventAction := events.Action{
+	eventAction := event.Action{
 		Command:          "kubectl get po foo",
 		ExecutorBindings: executorBindings,
 		DisplayName:      "Test",
@@ -166,8 +166,8 @@ func fixActionsConfig() config.Actions {
 	}
 }
 
-func fixEvent(name string) events.Event {
-	return events.Event{
+func fixEvent(name string) event.Event {
+	return event.Event{
 		Name: name,
 	}
 }

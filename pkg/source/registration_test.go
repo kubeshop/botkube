@@ -1,4 +1,4 @@
-package sources
+package source
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 func TestSourcesForEvent(t *testing.T) {
@@ -19,7 +19,7 @@ func TestSourcesForEvent(t *testing.T) {
 	testCases := []struct {
 		Name               string
 		Routes             []route
-		Event              events.Event
+		Event              event.Event
 		ExpectedResult     []string
 		ExpectedErrMessage string
 	}{
@@ -39,7 +39,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces:   allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name:   "test-one",
 				Reason: "NodeNotReady",
 			},
@@ -61,7 +61,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces:   allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name:   "test-one",
 				Reason: "NodeNotReady",
 			},
@@ -95,7 +95,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name: "test-one",
 				Messages: []string{
 					"Status one",
@@ -123,7 +123,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name: "test-one",
 				Messages: []string{
 					"Status one",
@@ -150,7 +150,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces:   allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name: "test-one",
 			},
 			ExpectedResult: []string{"success"},
@@ -169,7 +169,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces:   allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name: "test-one",
 			},
 			ExpectedResult: []string{"success"},
@@ -189,7 +189,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: config.Namespaces{Include: []string{"^kube-.*"}},
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name:      "test-one",
 				Namespace: "botkube-one",
 			},
@@ -221,7 +221,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name:      "test-one",
 				Namespace: "botkube-one",
 				ObjectMeta: metav1.ObjectMeta{
@@ -260,7 +260,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 			},
-			Event: events.Event{
+			Event: event.Event{
 				Name:      "test-one",
 				Namespace: "botkube-one",
 				ObjectMeta: metav1.ObjectMeta{

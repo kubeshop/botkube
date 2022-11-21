@@ -7,13 +7,13 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Recommendation performs checks for a given event.
 type Recommendation interface {
-	Do(ctx context.Context, event events.Event) (Result, error)
+	Do(ctx context.Context, event event.Event) (Result, error)
 	Name() string
 }
 

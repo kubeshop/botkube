@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -134,7 +134,7 @@ func (b *Discord) Start(ctx context.Context) error {
 
 // SendEvent sends event notification to Discord ChannelID.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendEvent(_ context.Context, event events.Event, eventSources []string) (err error) {
+func (b *Discord) SendEvent(_ context.Context, event event.Event, eventSources []string) (err error) {
 	b.log.Debugf("Sending to Discord: %+v", event)
 
 	msgToSend := b.formatMessage(event)

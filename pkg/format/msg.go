@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubeshop/botkube/pkg/events"
+	"github.com/kubeshop/botkube/pkg/event"
 )
 
 // JoinMessages joins strings in slice with new line characters. It also appends a trailing newline at the end of message.
@@ -32,7 +32,7 @@ func joinMessages(msgs []string, msgPrefix string) string {
 }
 
 // BulletPointEventAttachments returns formatted lists of event messages, recommendations and warnings.
-func BulletPointEventAttachments(event events.Event) string {
+func BulletPointEventAttachments(event event.Event) string {
 	strBuilder := strings.Builder{}
 	writeStringIfNotEmpty(&strBuilder, "Messages", BulletPointListFromMessages(event.Messages))
 	writeStringIfNotEmpty(&strBuilder, "Recommendations", BulletPointListFromMessages(event.Recommendations))
