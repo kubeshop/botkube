@@ -50,7 +50,7 @@ kubeconfig:
   ##    config: {base64_encoded_kubeconfig}
   existingSecret: ""
 
-# -- Map of actions. Action contains configuration for automations based on observed events.
+# -- Map of actions. Action contains configuration for automation based on observed events.
 # The property name under `actions` object is an alias for a given configuration. You can define multiple actions configuration with different names.
 # @default -- See the `values.yaml` file for full object.
 #
@@ -61,16 +61,17 @@ actions:
     enabled: false
     # -- Action display name posted in the channels bound to the same source bindings.
     displayName: "Describe created resource"
-    # -- A text value denoting the command run by this action, may contain even based templated values.
-    # The executor is inferred directly from the command, e.g. here we require a kubectl executor
+    # -- Command to execute when the action is triggered. You can use Go template (https://pkg.go.dev/text/template) together with all helper functions defined by Slim-Sprig library (https://go-task.github.io/slim-sprig).
+    # You can use the `{{ .Event }}` variable, which contains the event object that triggered the action. See all available event properties on https://github.com/kubeshop/botkube/blob/main/pkg/event/event.go.
+    # @default -- See the `values.yaml` file for the command in the Go template form.
     command: "kubectl describe {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
 
     # -- Bindings for a given action.
     bindings:
-      # -- Sources of events that trigger a given action.
+      # -- Event sources that trigger a given action.
       sources:
         - k8s-create-events
-      # -- Executors configuration for a given automation.
+      # -- Executors configuration used to execute a configured command.
       executors:
         - kubectl-read-only
   'show-logs-on-error':
@@ -79,16 +80,17 @@ actions:
 
     # -- Action display name posted in the channels bound to the same source bindings.
     displayName: "Show logs on error"
-    # -- A text value denoting the command run by this action, may contain even based templated values.
-    # The executor is inferred directly from the command, e.g. here we require a kubectl executor
+    # -- Command to execute when the action is triggered. You can use Go template (https://pkg.go.dev/text/template) together with all helper functions defined by Slim-Sprig library (https://go-task.github.io/slim-sprig).
+    # You can use the `{{ .Event }}` variable, which contains the event object that triggered the action. See all available event properties on https://github.com/kubeshop/botkube/blob/main/pkg/event/event.go.
+    # @default -- See the `values.yaml` file for the command in the Go template form.
     command: "kubectl logs {{ .Event.TypeMeta.Kind | lower }}/{{ .Event.Name }} -n {{ .Event.Namespace }}"
 
     # -- Bindings for a given action.
     bindings:
-      # -- Sources of events that trigger a given action.
+      # -- Event sources that trigger a given action.
       sources:
         - k8s-err-with-logs-events
-      # -- Executors configuration for a given automation.
+      # -- Executors configuration used to execute a configured command.
       executors:
         - kubectl-read-only
 
@@ -102,6 +104,7 @@ sources:
   'k8s-recommendation-events':
     displayName: "Kubernetes Recommendations"
     # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
     kubernetes:
       # -- Describes configuration for various recommendation insights.
       recommendations:
@@ -121,6 +124,7 @@ sources:
   'k8s-all-events':
     displayName: "Kubernetes Info"
     # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -255,6 +259,7 @@ sources:
     displayName: "Kubernetes Errors"
 
     # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -291,6 +296,7 @@ sources:
     displayName: "Kubernetes Errors for resources with logs"
 
     # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -318,6 +324,7 @@ sources:
     displayName: "Kubernetes Resource Created Events"
 
     # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
     kubernetes:
       # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
