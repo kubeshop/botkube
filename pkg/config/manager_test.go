@@ -578,7 +578,7 @@ func TestPersistenceManager_ListActions(t *testing.T) {
 	testCases := []struct {
 		Name        string
 		InputCfgMap *v1.ConfigMap
-		Expected    map[string]bool
+		Expected    map[string]config.Action
 	}{
 		{
 			Name: "Empty runtime config",
@@ -588,7 +588,7 @@ func TestPersistenceManager_ListActions(t *testing.T) {
 					Namespace: cfg.ConfigMap.Namespace,
 				},
 			},
-			Expected: map[string]bool{},
+			Expected: map[string]config.Action{},
 		},
 		{
 			Name: "Two actions expected",
@@ -602,12 +602,17 @@ func TestPersistenceManager_ListActions(t *testing.T) {
                       actions:
                         get-created-resource:
                           enabled: true
+                          displayName: "get created resource"
                         get-deleted-resource:
                           enabled: false
+                          displayName: "get deleted resource"
 					`),
 				},
 			},
-			Expected: map[string]bool{"get-created-resource": true, "get-deleted-resource": false},
+			Expected: map[string]config.Action{
+				"get-created-resource": {Enabled: true, DisplayName: "get created resource"},
+				"get-deleted-resource": {Enabled: false, DisplayName: "get deleted resource"},
+			},
 		},
 	}
 	for _, testCase := range testCases {
@@ -638,7 +643,7 @@ func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
 		Name        string
 		ActionName  string
 		Enabled     bool
-		Expected    map[string]bool
+		Expected    map[string]config.Action
 		InputCfgMap *v1.ConfigMap
 		Err         error
 	}{
@@ -652,7 +657,7 @@ func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
 					Namespace: cfg.ConfigMap.Namespace,
 				},
 			},
-			Expected: map[string]bool{},
+			Expected: map[string]config.Action{},
 			Err:      fmt.Errorf("action with name \"bogus\" not found"),
 		},
 		{
@@ -669,13 +674,18 @@ func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
                       actions:
                         get-created-resource:
                           enabled: true
+                          displayName: "get created resource"
                         get-deleted-resource:
                           enabled: false
+                          displayName: "get deleted resource"
 					`),
 				},
 			},
-			Expected: map[string]bool{"get-created-resource": false, "get-deleted-resource": false},
-			Err:      nil,
+			Expected: map[string]config.Action{
+				"get-created-resource": {Enabled: false, DisplayName: "get created resource", Bindings: config.ActionBindings{Sources: []string{}, Executors: []string{}}},
+				"get-deleted-resource": {Enabled: false, DisplayName: "get deleted resource", Bindings: config.ActionBindings{Sources: []string{}, Executors: []string{}}},
+			},
+			Err: nil,
 		},
 	}
 	for _, testCase := range testCases {

@@ -53,7 +53,7 @@ type ConfigPersistenceManager interface {
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
-	ListActions(ctx context.Context) (map[string]bool, error)
+	ListActions(ctx context.Context) (map[string]config.Action, error)
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.

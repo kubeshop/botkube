@@ -24,6 +24,7 @@ data:
     {{- range $actionName,$action := $mergedRuntimeAction }}
       {{$actionName}}:
         enabled: {{ $action.enabled }}
+        displayName: {{ $action.displayName }}
     {{- end }}
     communications:
     {{- range $commGroupName,$commGroup := $mergedRuntimeCommunications }}

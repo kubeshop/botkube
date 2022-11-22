@@ -199,7 +199,7 @@ func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name stri
 }
 
 // ListActions reads Actions from runtime config map
-func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]bool, error) {
+func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]Action, error) {
 	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
 	state, _, err := cmStorage.Get(ctx)
 	if err != nil {
@@ -212,9 +212,9 @@ func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]bool, 
 	}
 	sort.Strings(keys)
 	// return results
-	actions := make(map[string]bool)
+	actions := make(map[string]Action)
 	for _, name := range keys {
-		actions[name] = state.Actions[name].Enabled
+		actions[name] = state.Actions[name]
 	}
 	return actions, nil
 }

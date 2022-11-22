@@ -40,6 +40,6 @@ func (f *fakeCfgPersistenceManager) PersistActionEnabled(ctx context.Context, na
 	return nil
 }
 
-func (f *fakeCfgPersistenceManager) ListActions(ctx context.Context) (map[string]bool, error) {
+func (f *fakeCfgPersistenceManager) ListActions(ctx context.Context) (map[string]config.Action, error) {
 	return nil, nil
 }

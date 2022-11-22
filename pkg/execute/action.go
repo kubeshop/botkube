@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"text/tabwriter"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func (e *DefaultExecutor) runActionCommand(ctx context.Context, args []string, clusterName string) (string, error) {
@@ -74,12 +76,12 @@ func (e *DefaultExecutor) runActionCommand(ctx context.Context, args []string, c
 	return "", errUnsupportedCommand
 }
 
-func actionsTabularOutput(actions map[string]bool) string {
+func actionsTabularOutput(actions map[string]config.Action) string {
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "ACTION\tENABLED")
-	for name, enabled := range actions {
-		fmt.Fprintf(w, "%s\t%v\n", name, enabled)
+	fmt.Fprintln(w, "ACTION\tENABLED \tDISPLAY NAME")
+	for name, action := range actions {
+		fmt.Fprintf(w, "%s\t%v \t%s\n", name, action.Enabled, action.DisplayName)
 	}
 	w.Flush()
 	return buf.String()
