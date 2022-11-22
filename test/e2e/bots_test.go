@@ -180,7 +180,7 @@ func runBotTest(t *testing.T,
 		return fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)
 	}
 
-	t.Run("List actions stored in runtime config map", func(t *testing.T) {
+	t.Run("List actions", func(t *testing.T) {
 		command := "list actions"
 		expectedBody := codeBlock(heredoc.Doc(`
 			ACTION                    ENABLED  DISPLAY NAME
