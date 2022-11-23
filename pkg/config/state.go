@@ -17,8 +17,10 @@ type RuntimeState struct {
 	Actions        ActionsRuntimeState                   `yaml:"actions,omitempty"`
 }
 
+// ActionsRuntimeState are the actions persisted in runtime state
 type ActionsRuntimeState map[string]ActionRuntimeState
 
+// ActionRuntimeState is the action persisted in runtime state
 type ActionRuntimeState struct {
 	Enabled bool `yaml:"enabled,omitempty"`
 }
