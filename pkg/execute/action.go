@@ -29,21 +29,11 @@ type ActionExecutor struct {
 
 // NewActionExecutor returns a new ActionExecutor instance.
 func NewActionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager ConfigPersistenceManager, cfg config.Config) *ActionExecutor {
-	// sort keys
-	keys := make([]string, 0, len(cfg.Actions))
-	for k := range cfg.Actions {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	actions := make(map[string]config.Action)
-	for _, name := range keys {
-		actions[name] = cfg.Actions[name]
-	}
 	return &ActionExecutor{
 		log:               log,
 		analyticsReporter: analyticsReporter,
 		cfgManager:        cfgManager,
-		actions:           actions,
+		actions:           cfg.Actions,
 	}
 }
 
@@ -71,13 +61,13 @@ func (a *ActionExecutor) Do(ctx context.Context, args []string, clusterName stri
 	switch CommandVerb(cmdVerb) {
 	case CommandList:
 		a.log.Debug("List actions")
-		return actionsTabularOutput(a.actions), nil
+		return a.ActionsTabularOutput(), nil
 
 	// Enable action
 	case CommandEnable:
 		const enabled = true
 		if len(args) < 3 {
-			return fmt.Sprintf(actionNameMissing, actionsTabularOutput(a.actions)), nil
+			return fmt.Sprintf(actionNameMissing, a.ActionsTabularOutput()), nil
 		}
 		actionName := args[2]
 		a.log.Debug("Enabling action...", actionName)
@@ -92,7 +82,7 @@ func (a *ActionExecutor) Do(ctx context.Context, args []string, clusterName stri
 	case CommandDisable:
 		const enabled = false
 		if len(args) < 3 {
-			return fmt.Sprintf(actionNameMissing, actionsTabularOutput(a.actions)), nil
+			return fmt.Sprintf(actionNameMissing, a.ActionsTabularOutput()), nil
 		}
 		actionName := args[2]
 		a.log.Debug("Disabling action...", actionName)
@@ -108,12 +98,20 @@ func (a *ActionExecutor) Do(ctx context.Context, args []string, clusterName stri
 	return "", errUnsupportedCommand
 }
 
-func actionsTabularOutput(actions map[string]config.Action) string {
+// ActionsTabularOutput sorts actions by key and returns a printable table
+func (a *ActionExecutor) ActionsTabularOutput() string {
+	// sort keys
+	keys := make([]string, 0, len(a.actions))
+	for k := range a.actions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "ACTION\tENABLED \tDISPLAY NAME")
-	for name, action := range actions {
-		fmt.Fprintf(w, "%s\t%v \t%s\n", name, action.Enabled, action.DisplayName)
+	for _, name := range keys {
+		fmt.Fprintf(w, "%s\t%v \t%s\n", name, a.actions[name].Enabled, a.actions[name].DisplayName)
 	}
 	w.Flush()
 	return buf.String()
