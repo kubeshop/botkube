@@ -173,17 +173,6 @@ type SinkBindings struct {
 // Actions contains configuration for Botkube app event automations.
 type Actions map[string]Action
 
-// SetEnabled sets Action "name" to "enabled" if action is found
-// otherwise returns error
-func (a *Actions) SetEnabled(name string, enabled bool) error {
-	if action, ok := (*a)[name]; ok {
-		action.Enabled = enabled
-		(*a)[name] = action
-		return nil
-	}
-	return fmt.Errorf("action with name %q not found", name)
-}
-
 // Action contains configuration for Botkube app event automations.
 type Action struct {
 	Enabled     bool           `yaml:"enabled"`

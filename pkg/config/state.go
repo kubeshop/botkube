@@ -14,7 +14,24 @@ import (
 // RuntimeState represents the runtime state.
 type RuntimeState struct {
 	Communications map[string]CommunicationsRuntimeState `yaml:"communications,omitempty"`
-	Actions        Actions                               `yaml:"actions,omitempty"`
+	Actions        ActionsRuntimeState                   `yaml:"actions,omitempty"`
+}
+
+type ActionsRuntimeState map[string]ActionRuntimeState
+
+type ActionRuntimeState struct {
+	Enabled bool `yaml:"enabled,omitempty"`
+}
+
+// SetEnabled sets ActionRuntimeState "name" to "enabled" if action is found
+// otherwise returns error
+func (a *ActionsRuntimeState) SetEnabled(name string, enabled bool) error {
+	if action, ok := (*a)[name]; ok {
+		action.Enabled = enabled
+		(*a)[name] = action
+		return nil
+	}
+	return fmt.Errorf("action with name %q not found", name)
 }
 
 // MarshalToMap marshals the runtime state to a string map.

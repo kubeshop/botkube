@@ -189,7 +189,7 @@ func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name stri
 		return err
 	}
 	if state.Actions == nil {
-		state.Actions = Actions{}
+		state.Actions = ActionsRuntimeState{}
 	}
 	if err := state.Actions.SetEnabled(name, enabled); err != nil {
 		return err
