@@ -118,6 +118,9 @@ func TestNotifierExecutor_Do_Success(t *testing.T) {
 				    enabled: false
 				    initialSyncTimeout: 0s
 				    tmpDir: ""
+				plugins:
+				    cacheDir: ""
+				    repositories: {}
 			`),
 			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
 		},

@@ -133,6 +133,13 @@ type Config struct {
 	Analytics     Analytics  `yaml:"analytics"`
 	Settings      Settings   `yaml:"settings"`
 	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
+	Plugins       Plugins    `yaml:"plugins"`
+}
+
+// Plugins holds Botkube plugins related configuration.
+type Plugins struct {
+	CacheDir     string            `yaml:"cacheDir"`
+	Repositories map[string]string `yaml:"repositories"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -270,9 +277,19 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
+// PluginsExecutors contains plugins executors configuration parameters defined in groups.
+type PluginsExecutors map[string]PluginExecutor
+
+// PluginExecutor contains plugin specific configuration.
+type PluginExecutor struct {
+	Enabled bool
+	Config  any
+}
+
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl `yaml:"kubectl"`
+	Kubectl Kubectl          `yaml:"kubectl"`
+	Plugins PluginsExecutors `koanf:",remain"`
 }
 
 // Filters contains configuration for built-in filters.
@@ -627,7 +644,7 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	var cfg Config
-	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "yaml"})
+	err = k.Unmarshal("", &cfg)
 	if err != nil {
 		return nil, LoadWithDefaultsDetails{}, err
 	}

@@ -38,8 +38,10 @@ type Config struct {
 			DiscordEnabledName            string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_ENABLED"`
 			DefaultDiscordChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"`
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
+			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE"`
 		}
 	}
+	Plugins   PluginsConfig
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
@@ -150,6 +152,12 @@ func runBotTest(t *testing.T,
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 
+	t.Log("Starting plugin server...")
+	indexEndpoint, startServerFn := NewPluginServer(appCfg.Plugins)
+	go func() {
+		require.NoError(t, startServerFn())
+	}()
+
 	t.Logf("Setting up test %s setup...", driverType)
 	botDriver.InitUsers(t)
 	cleanUpFns := botDriver.InitChannels(t)
@@ -169,7 +177,7 @@ func runBotTest(t *testing.T,
 
 	t.Log("Patching Deployment with test env variables...")
 	deployNsCli := k8sCli.AppsV1().Deployments(appCfg.Deployment.Namespace)
-	revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, botDriver.Type(), channels)
+	revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, botDriver.Type(), channels, indexEndpoint)
 	t.Cleanup(func() { revertDeployFn(t) })
 
 	t.Log("Waiting for Deployment")
@@ -220,10 +228,20 @@ func runBotTest(t *testing.T,
 
 	t.Run("Filters list", func(t *testing.T) {
 		command := "filters list"
-		expectedBody := codeBlock(heredoc.Doc(fmt.Sprintf(`
+		expectedBody := codeBlock(heredoc.Docf(`
 			FILTER                  ENABLED DESCRIPTION
 			NodeEventsChecker       false   Sends notifications on node level critical events.
-			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation)))
+			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation))
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Plugin execution", func(t *testing.T) {
+		command := "echo test"
+		expectedBody := codeBlock(command)
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)

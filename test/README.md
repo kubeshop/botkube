@@ -145,8 +145,26 @@ For example, if you're only running Discord tests, you can omit env var prefixed
       --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
       --set image.registry="${IMAGE_REGISTRY}" \
       --set image.repository="${IMAGE_REPOSITORY}" \
-      --set image.tag="${IMAGE_TAG}" 
+      --set image.tag="${IMAGE_TAG}"
     ```
+
+## Compile plugins
+
+We test also the Botkube plugins system. To compile Botkube plugins, run:
+
+```bash
+make build-plugins
+```
+
+By default, built plugins' binaries are available under `dist` directory. The e2e framework builds the plugins index file dynamically and starts the HTTP server that is later accessible from the k3d cluster.
+
+To override default settings, export following environment variables:
+
+```bash
+export PLUGINS_BINARIES_DIRECTORY="./dist"
+export PLUGINS_SERVER_HOST="http://host.k3d.internal" # on K3d enabling you to access your host system by referring to it as host.k3d.internal
+export PLUGINS_SERVER_PORT="3000"
+```
 
 ## Run the tests
 
@@ -176,7 +194,7 @@ Botkube tracks whether the initial help message was sent or not to minimise spam
 After running the tests for an e2e target, e.g. `make test-integration-slack`, please ensure this ConfigMap is removed before rerunning the test against another target, e.g. `make test-integration-discord`.
 
 ```bash
-kubectl delete cm botkube-system -n botkube # or the namespace where Botkube is installed 
+kubectl delete cm botkube-system -n botkube # or the namespace where Botkube is installed
 ```
 
-If you don't remove the ConfigMap, any e2e tests looking to verify that a help message is displayed will error. This also stops the rest of the e2e tests from running.  
+If you don't remove the ConfigMap, any e2e tests looking to verify that a help message is displayed will error. This also stops the rest of the e2e tests from running.

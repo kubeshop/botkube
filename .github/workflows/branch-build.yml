@@ -76,7 +76,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
-            
+
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -103,6 +103,16 @@ jobs:
            --set image.repository="${IMAGE_REPOSITORY}" \
            --set image.tag="${IMAGE_TAG}" \
 
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+
+      - name: Build all plugins into dist directory
+        run: |
+          make build-plugins
+
       - name: Run ${{ matrix.integration }} tests
         env:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
@@ -110,6 +120,7 @@ jobs:
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${GITHUB_SHA} - https://github.com/kubeshop/botkube/commit/${GITHUB_SHA}"
+          PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/dist
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}

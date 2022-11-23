@@ -24,6 +24,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
+	t.Setenv("BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE", "http://localhost:3000/botkube.yaml")
 
 	// when
 	gotCfg, _, err := config.LoadWithDefaults(func() []string {
@@ -45,6 +46,31 @@ func TestLoadConfigSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	golden.Assert(t, string(gotData), filepath.Join(t.Name(), "config.golden.yaml"))
+}
+
+func TestLoadConfigWithPlugins(t *testing.T) {
+	// given
+	expExecutorPlugin := config.PluginsExecutors{
+		"botkube/echo": {
+			Enabled: true,
+			Config: map[string]interface{}{
+				"changeResponseToUpperCase": true,
+			},
+		},
+	}
+
+	// when
+	gotCfg, _, err := config.LoadWithDefaults(func() []string {
+		return []string{
+			testdataFile(t, "config-all.yaml"),
+		}
+	})
+
+	//then
+	require.NoError(t, err)
+	require.NotNil(t, gotCfg)
+
+	assert.Equal(t, expExecutorPlugin, gotCfg.Executors["plugin-based"].Plugins)
 }
 
 func TestFromEnvOrFlag(t *testing.T) {

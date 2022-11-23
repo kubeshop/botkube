@@ -38,3 +38,5 @@ tags
 
 ./botkube
 ./botkube-test
+
+dist/

@@ -1,0 +1,17 @@
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: echo
+    binary: executor_echo_{{ .Os }}_{{ .Arch }}
+    no_unique_dist_dir: true
+    main: cmd/executor/echo/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64

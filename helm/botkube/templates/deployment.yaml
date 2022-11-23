@@ -54,6 +54,8 @@ spec:
           {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           {{ end }}
           volumeMounts:
+            - name: cache-volume
+              mountPath: /tmp
             - name: config-volume
               mountPath: "/config"
             - name: startup-config
@@ -131,6 +133,8 @@ spec:
         {{- end }}
       volumes:
         - name: cfg-watcher-tmp
+          emptyDir: {}
+        - name: cache-volume
           emptyDir: {}
         - name: config-volume
           projected:

@@ -92,6 +92,11 @@ build() {
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }
 
+build_plugins() {
+  prepare
+  goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot
+}
+
 build_single() {
   export IMAGE_TAG=v9.99.9-dev
   docker run --rm --privileged \
@@ -119,6 +124,9 @@ EOM
 case "${1}" in
   build)
     build
+    ;;
+  build_plugins)
+    build_plugins
     ;;
   build_single)
     build_single

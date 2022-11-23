@@ -104,6 +104,7 @@ communications: # req 1 elm.
 
 sources:
   'k8s-events':
+
     kubernetes:
       recommendations:
         pod:
@@ -115,7 +116,7 @@ sources:
       namespaces:
         include:
           - ".*"
-        exclude: []
+        exclude: [ ]
       event:
         reason: ".*"
         message: "^Error .*"
@@ -202,6 +203,7 @@ sources:
             fields:
               - spec.template.spec.containers[*].image
               - status.readyReplicas
+
 filters:
   kubernetes:
     objectAnnotationChecker: true

@@ -29,6 +29,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/lifecycle"
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot"
@@ -98,6 +99,15 @@ func run() error {
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
+	enabledPluginExecutors := plugin.GetAllEnabledAndUsedPlugins(conf)
+	pluginManager := plugin.NewManager(logger, conf.Plugins, enabledPluginExecutors)
+
+	err = pluginManager.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("while starting plugins manager: %w", err)
+	}
+	defer pluginManager.Shutdown()
+
 	// Prepare K8s clients and mapper
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
 	if err != nil {
@@ -161,6 +171,7 @@ func run() error {
 			AnalyticsReporter: reporter,
 			NamespaceLister:   k8sCli.CoreV1().Namespaces(),
 			CommandGuard:      cmdGuard,
+			PluginManager:     pluginManager,
 		},
 	)
 
