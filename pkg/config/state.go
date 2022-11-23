@@ -22,7 +22,7 @@ type ActionsRuntimeState map[string]ActionRuntimeState
 
 // ActionRuntimeState is the action persisted in runtime state
 type ActionRuntimeState struct {
-	Enabled bool `yaml:"enabled,omitempty"`
+	Enabled bool `yaml:"enabled"`
 }
 
 // SetEnabled sets ActionRuntimeState "name" to "enabled" if action is found
