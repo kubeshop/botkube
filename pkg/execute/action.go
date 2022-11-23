@@ -62,7 +62,10 @@ func (a *ActionExecutor) Do(ctx context.Context, args []string, clusterName stri
 	var cmdVerb = args[0]
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-		a.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.CommandOrigin, false)
+		e := a.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.CommandOrigin, false)
+		if e != nil {
+			a.log.Errorf("while reporting edit command: %s", e.Error())
+		}
 	}()
 
 	switch CommandVerb(cmdVerb) {
