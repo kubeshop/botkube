@@ -57,6 +57,7 @@ type DefaultExecutor struct {
 	cmdRunner         CommandSeparateOutputRunner
 	kubectlExecutor   *Kubectl
 	editExecutor      *EditExecutor
+	actionExecutor    *ActionExecutor
 	notifierExecutor  *NotifierExecutor
 	notifierHandler   NotifierHandler
 	message           string
@@ -207,15 +208,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			return interactive.Feedback(), nil
 		},
 		"list": func() (interactive.Message, error) {
-			res, err := e.runActionCommand(ctx, args, clusterName)
+			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
 			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"enable": func() (interactive.Message, error) {
-			res, err := e.runActionCommand(ctx, args, clusterName)
+			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
 			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 		"disable": func() (interactive.Message, error) {
-			res, err := e.runActionCommand(ctx, args, clusterName)
+			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
 			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
 		},
 	}

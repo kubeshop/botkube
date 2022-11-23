@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"errors"
-	"sort"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -196,25 +195,4 @@ func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name stri
 		return err
 	}
 	return cmStorage.Update(ctx, cm, state)
-}
-
-// ListActions reads Actions from runtime config map
-func (m *PersistenceManager) ListActions(ctx context.Context) (map[string]Action, error) {
-	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
-	state, _, err := cmStorage.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// sort keys
-	keys := make([]string, 0, len(state.Actions))
-	for k := range state.Actions {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	// return results
-	actions := make(map[string]Action)
-	for _, name := range keys {
-		actions[name] = state.Actions[name]
-	}
-	return actions, nil
 }
