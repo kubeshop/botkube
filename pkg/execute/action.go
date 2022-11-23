@@ -8,8 +8,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 var actionResourceNames = map[string]struct{}{
@@ -46,6 +47,7 @@ func NewActionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 	}
 }
 
+// Do executes a given action command based on args
 func (a *ActionExecutor) Do(ctx context.Context, args []string, clusterName string, conversation Conversation, platform config.CommPlatformIntegration) (string, error) {
 	if len(args) < 2 {
 		return "", errInvalidCommand
