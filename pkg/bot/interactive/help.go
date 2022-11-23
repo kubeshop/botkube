@@ -38,6 +38,7 @@ func (h *HelpMessage) Build() Message {
 	var sections = []getter{
 		h.cluster,
 		h.notificationSections,
+		h.actionSections,
 		h.kubectlSections,
 		h.filters,
 		h.feedback,
@@ -133,6 +134,22 @@ func (h *HelpMessage) notificationSections() []Section {
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithDescCmd("Adjust notifications", "edit SourceBindings", ButtonStylePrimary),
+			},
+		},
+	}
+}
+
+func (h *HelpMessage) actionSections() []Section {
+	return []Section{
+		{
+			Base: Base{
+				Header: "Manage automated actions",
+				Body: Body{
+					CodeBlock: fmt.Sprintf("%s [list|enable|disable] action [action name]\n", h.botName),
+				},
+			},
+			Buttons: []Button{
+				h.btnBuilder.ForCommandWithoutDesc("List available actions", "list actions"),
 			},
 		},
 	}

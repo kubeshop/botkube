@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -560,6 +561,73 @@ func TestPersistenceManager_PersistFilterEnabled(t *testing.T) {
 			cfgMap, err := k8sCli.CoreV1().ConfigMaps(cfg.ConfigMap.Namespace).Get(context.Background(), cfg.ConfigMap.Name, metav1.GetOptions{})
 			require.NoError(t, err)
 			assert.Equal(t, testCase.Expected, cfgMap)
+		})
+	}
+}
+
+func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
+	// given
+	cfg := config.PartialPersistentConfig{
+		ConfigMap: config.K8sResourceRef{
+			Name:      "foo",
+			Namespace: "ns",
+		},
+		FileName: "_runtime_state.yaml",
+	}
+
+	testCases := []struct {
+		Name        string
+		ActionName  string
+		Enabled     bool
+		Expected    map[string]config.Action
+		InputCfgMap *v1.ConfigMap
+		Err         error
+	}{
+		{
+			Name:       "Action not defined",
+			ActionName: "bogus",
+			Enabled:    true,
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+			},
+			Expected: map[string]config.Action{},
+			Err:      fmt.Errorf("action with name \"bogus\" not found"),
+		},
+		{
+			Name:       "Enabled switch from true to false",
+			ActionName: "get-created-resource",
+			Enabled:    false,
+			InputCfgMap: &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cfg.ConfigMap.Name,
+					Namespace: cfg.ConfigMap.Namespace,
+				},
+				Data: map[string]string{
+					cfg.FileName: heredoc.Doc(`
+                      actions:
+                        get-created-resource:
+                          enabled: true
+                          displayName: "get created resource"
+                        get-deleted-resource:
+                          enabled: false
+                          displayName: "get deleted resource"
+					`),
+				},
+			},
+			Err: nil,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			logger, _ := logtest.NewNullLogger()
+			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
+			manager := config.NewManager(logger, config.PersistentConfig{Runtime: cfg}, k8sCli)
+
+			err := manager.PersistActionEnabled(context.Background(), testCase.ActionName, testCase.Enabled)
+			assert.Equal(t, testCase.Err, err)
 		})
 	}
 }

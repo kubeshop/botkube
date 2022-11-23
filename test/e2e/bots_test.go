@@ -176,6 +176,23 @@ func runBotTest(t *testing.T,
 	err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 	require.NoError(t, err)
 
+	cmdHeader := func(command string) string {
+		return fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)
+	}
+
+	t.Run("List actions", func(t *testing.T) {
+		command := "list actions"
+		expectedBody := codeBlock(heredoc.Doc(`
+			ACTION                    ENABLED  DISPLAY NAME
+			describe-created-resource false    Describe created resource
+			get-created-resource      true     Get created resource
+			show-logs-on-error        false    Show logs on error`))
+
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		assert.NoError(t, err)
+	})
 	// TODO: configure and use MessageWaitTimeout from an (app) Config as it targets both Slack and Discord.
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
@@ -192,9 +209,6 @@ func runBotTest(t *testing.T,
 
 	t.Log("Running actual test cases")
 
-	cmdHeader := func(command string) string {
-		return fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName)
-	}
 	t.Run("Ping", func(t *testing.T) {
 		command := "ping"
 		expectedMessage := fmt.Sprintf("`ping` on `%s`\n```\npong", appCfg.ClusterName)
