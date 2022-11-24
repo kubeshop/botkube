@@ -118,13 +118,14 @@ func (h *HelpMessage) notificationSections() []Section {
 			Base: Base{
 				Header: "Manage incoming notifications",
 				Body: Body{
-					CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [start|stop|status|config] notifications\n", h.botName),
 				},
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "notifier start"),
-				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "notifier stop"),
-				h.btnBuilder.ForCommandWithoutDesc("Get status", "notifier status"),
+				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "start notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "stop notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "config"),
 			},
 		},
 		{
@@ -180,7 +181,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 					Description: "Alternatively use kubectl as usual with all supported commands",
 				},
 				Buttons: []Button{
-					h.btnBuilder.ForCommand("List commands", "commands list", "k | kc | kubectl [command] [options] [flags]"),
+					h.btnBuilder.ForCommand("List commands", "list commands", "k | kc | kubectl [command] [options] [flags]"),
 				},
 			},
 		}
@@ -204,7 +205,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 				Description: "To list all supported kubectl commands",
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithDescCmd("List commands", "commands list"),
+				h.btnBuilder.ForCommandWithDescCmd("List commands", "list commands"),
 			},
 		},
 	}

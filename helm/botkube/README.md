@@ -76,7 +76,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [sources.k8s-create-events.kubernetes.event](./values.yaml#L336) | object | `{"types":["create"]}` | Describes event constraints for Kubernetes resources. These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object. |
 | [sources.k8s-create-events.kubernetes.event.types](./values.yaml#L338) | list | `["create"]` | Lists all event types to be watched. |
 | [sources.k8s-create-events.kubernetes.resources](./values.yaml#L343) | list | See the `values.yaml` file for full object. | Describes the Kubernetes resources you want to watch. |
-| [filters](./values.yaml#L359) | object | See the `values.yaml` file for full object. | Filter settings for various sources. Currently, all filters are globally enabled or disabled. You can enable or disable filters with `@Botkube filters` commands. |
+| [filters](./values.yaml#L359) | object | See the `values.yaml` file for full object. | Filter settings for various sources. Currently, all filters are globally enabled or disabled. You can enable or disable filters with `@Botkube enable/disable filters` commands. |
 | [filters.kubernetes.objectAnnotationChecker](./values.yaml#L362) | bool | `true` | If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations. |
 | [filters.kubernetes.nodeEventsChecker](./values.yaml#L364) | bool | `true` | If true, filters out Node-related events that are not important. |
 | [executors](./values.yaml#L372) | object | See the `values.yaml` file for full object. | Map of executors. Executor contains configuration for running `kubectl` commands. The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names. Key name is used as a binding reference.   |
@@ -121,7 +121,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [communications.default-group.teams.appID](./values.yaml#L515) | string | `"APPLICATION_ID"` | The Botkube application ID generated while registering Bot to MS Teams. |
 | [communications.default-group.teams.appPassword](./values.yaml#L517) | string | `"APPLICATION_PASSWORD"` | The Botkube application password generated while registering Bot to MS Teams. |
 | [communications.default-group.teams.bindings.executors](./values.yaml#L520) | list | `["kubectl-read-only"]` | Executor bindings apply to all MS Teams channels where Botkube has access to. |
-| [communications.default-group.teams.bindings.sources](./values.yaml#L523) | list | `["k8s-err-events","k8s-recommendation-events"]` | Source bindings apply to all channels which have notification turned on with `@Botkube notifier start` command. |
+| [communications.default-group.teams.bindings.sources](./values.yaml#L523) | list | `["k8s-err-events","k8s-recommendation-events"]` | Source bindings apply to all channels which have notification turned on with `@Botkube start notifications` command. |
 | [communications.default-group.teams.messagePath](./values.yaml#L527) | string | `"/bots/teams"` | The path in endpoint URL provided while registering Botkube to MS Teams. |
 | [communications.default-group.teams.port](./values.yaml#L529) | int | `3978` | The Service port for bot endpoint on Botkube container. |
 | [communications.default-group.discord.enabled](./values.yaml#L534) | bool | `false` | If true, enables Discord bot. |

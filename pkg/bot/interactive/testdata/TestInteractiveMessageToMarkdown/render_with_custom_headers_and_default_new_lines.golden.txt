@@ -12,11 +12,12 @@ Check the status of connected Kubernetes cluster(s).
 
 *Manage incoming notifications*
 ```
-@Botkube notifier [start|stop|status]
+@Botkube [start|stop|status|config] notifications
 ```
-  - `@Botkube notifier start`
-  - `@Botkube notifier stop`
-  - `@Botkube notifier status`
+  - `@Botkube start notifications`
+  - `@Botkube stop notifications`
+  - `@Botkube status notifications`
+  - `@Botkube config`
 
 *Notification settings for this channel*
 By default, Botkube will notify only about cluster errors and recommendations.
@@ -39,7 +40,7 @@ You can run kubectl commands directly from Platform!
   - `@Botkube kubectl get deployments`
 
 To list all supported kubectl commands
-  - `@Botkube commands list`
+  - `@Botkube list commands`
 
 *Filters (advanced)*
 You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters

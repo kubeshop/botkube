@@ -48,7 +48,7 @@ executors:
         verbs: [ "exec" ]
         resources: [ ]`
 
-func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
+func TestCommandExecutor_getEnabledKubectlConfigs(t *testing.T) {
 	testCases := []struct {
 		name            string
 		executorsConfig string
@@ -141,15 +141,12 @@ func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			executors := fixExecutorsConfig(t, tc.executorsConfig)
-			executor := &DefaultExecutor{
+			executor := &CommandsExecutor{
 				merger: kubectl.NewMerger(executors),
-				conversation: Conversation{
-					ExecutorBindings: tc.bindings,
-				},
 			}
 
 			// when
-			res, err := executor.getEnabledKubectlExecutorsInChannel()
+			res, err := executor.getEnabledKubectlExecutorsInChannel(tc.bindings)
 
 			// then
 			require.NoError(t, err)

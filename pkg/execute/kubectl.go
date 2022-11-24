@@ -17,11 +17,16 @@ import (
 )
 
 const (
+	// KubectlBinary is absolute path of kubectl binary
+	KubectlBinary = "/usr/local/bin/kubectl"
+)
+
+const (
 	kubectlNotAuthorizedMsgFmt         = "Sorry, this channel is not authorized to execute kubectl command on cluster '%s'."
-	kubectlNotAllowedVerbMsgFmt        = "Sorry, the kubectl '%s' command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
-	kubectlNotAllowedVerbInAllNsMsgFmt = "Sorry, the kubectl '%s' command cannot be executed for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
-	kubectlNotAllowedKindMsgFmt        = "Sorry, the kubectl command is not authorized to work with '%s' resources in the '%s' Namespace on cluster '%s'. Use 'commands list' to see allowed commands."
-	kubectlNotAllowedKinInAllNsMsgFmt  = "Sorry, the kubectl command is not authorized to work with '%s' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands."
+	kubectlNotAllowedVerbMsgFmt        = "Sorry, the kubectl '%s' command cannot be executed in the '%s' Namespace on cluster '%s'. Use 'list commands' to see allowed commands."
+	kubectlNotAllowedVerbInAllNsMsgFmt = "Sorry, the kubectl '%s' command cannot be executed for all Namespaces on cluster '%s'. Use 'list commands' to see allowed commands."
+	kubectlNotAllowedKindMsgFmt        = "Sorry, the kubectl command is not authorized to work with '%s' resources in the '%s' Namespace on cluster '%s'. Use 'list commands' to see allowed commands."
+	kubectlNotAllowedKinInAllNsMsgFmt  = "Sorry, the kubectl command is not authorized to work with '%s' resources for all Namespaces on cluster '%s'. Use 'list commands' to see allowed commands."
 	kubectlFlagAfterVerbMsg            = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
 	kubectlDefaultNamespace            = "default"
 )
@@ -187,7 +192,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 	}
 
 	finalArgs := e.getFinalArgs(args)
-	out, err := e.cmdRunner.RunCombinedOutput(kubectlBinary, finalArgs)
+	out, err := e.cmdRunner.RunCombinedOutput(KubectlBinary, finalArgs)
 	out = color.ClearCode(out)
 	if err != nil {
 		return "", NewExecutionCommandError("%s%s", out, err.Error())

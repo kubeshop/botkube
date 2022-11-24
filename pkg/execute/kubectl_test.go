@@ -57,7 +57,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 					Resources: nil,
 				},
 			},
-			expErr: "Sorry, the kubectl command is not authorized to work with 'pod' resources in the 'foo' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl command is not authorized to work with 'pod' resources in the 'foo' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution if namespace is not allowed in config",
@@ -74,7 +74,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should use default Namespace from config if not specified in command",
@@ -92,7 +92,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'from-config' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'from-config' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should explicitly use 'default' Namespace if not specified both in command and config",
@@ -109,7 +109,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'default' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution in not allowed namespace",
@@ -126,7 +126,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution if all namespace are allowed but command namespace is explicitly ignored in config",
@@ -144,7 +144,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed in the 'team-b' Namespace on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Should forbid execution for all Namespaces",
@@ -161,7 +161,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 				},
 			},
 
-			expErr: "Sorry, the kubectl 'get' command cannot be executed for all Namespaces on cluster 'test'. Use 'commands list' to see allowed commands.",
+			expErr: "Sorry, the kubectl 'get' command cannot be executed for all Namespaces on cluster 'test'. Use 'list commands' to see allowed commands.",
 		},
 		{
 			name: "Known limitation (since v0.12.4): Return error if flag is added before resource name",

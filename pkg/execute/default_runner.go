@@ -55,6 +55,25 @@ type (
 	executorsRunner map[string]executorFunc
 )
 
+func newCmdsMapping(executors []CommandExecutor) map[CommandVerb]map[string]CommandFn {
+	cmdsMapping := make(map[CommandVerb]map[string]CommandFn)
+	for _, executor := range executors {
+		cmds := executor.Commands()
+		resNames := executor.ResourceNames()
+
+		for verb, cmdFn := range cmds {
+			if value := cmdsMapping[verb]; value == nil {
+				cmdsMapping[verb] = make(map[string]CommandFn)
+			}
+			for _, resName := range resNames {
+				// TODO: Handle conflicts - return error from the constructor
+				cmdsMapping[verb][resName] = cmdFn
+			}
+		}
+	}
+	return cmdsMapping
+}
+
 func (cmds executorsRunner) SelectAndRun(cmdVerb string) (interactive.Message, error) {
 	cmdVerb = strings.ToLower(cmdVerb)
 	fn, found := cmds[cmdVerb]

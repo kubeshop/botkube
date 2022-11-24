@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 const (
@@ -18,6 +19,13 @@ const (
 	notifierStatusMsgFmt               = "Notifications from cluster '%s' are %s here."
 	notifierNotConfiguredMsgFmt        = "I'm not configured to send notifications here ('%s') from cluster '%s', so you cannot turn them on or off."
 	notifierPersistenceNotSupportedFmt = "Platform %q doesn't support persistence for notifications. When Botkube Pod restarts, default notification settings will be applied for this platform."
+)
+
+var (
+	notifierStatusStrings = map[bool]string{
+		true:  "enabled",
+		false: "disabled",
+	}
 )
 
 // NotifierHandler handles disabling and enabling notifications for a given communication platform.
@@ -34,6 +42,7 @@ type NotifierHandler interface {
 var (
 	// ErrNotificationsNotConfigured describes an error when user wants to toggle on/off the notifications for not configured channel.
 	ErrNotificationsNotConfigured = errors.New("notifications not configured for this channel")
+	notifierResourcesNames        = []string{"notification", "notifications", "notif", ""}
 )
 
 // NotifierExecutor executes all commands that are related to notifications.
@@ -46,7 +55,7 @@ type NotifierExecutor struct {
 	cfg config.Config
 }
 
-// NewNotifierExecutor creates a new instance of NotifierExecutor.
+// NewNotifierExecutor creates a new instance of NotifierExecutor
 func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager ConfigPersistenceManager, analyticsReporter AnalyticsReporter) *NotifierExecutor {
 	return &NotifierExecutor{
 		log:               log,
@@ -56,94 +65,102 @@ func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager C
 	}
 }
 
-// Do executes a given Notifier command based on args.
-func (e *NotifierExecutor) Do(ctx context.Context, args []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, clusterName string, handler NotifierHandler) (string, error) {
-	if len(args) != 2 {
-		return "", errInvalidCommand
+// ResourceNames returns slice of resources the executor supports
+func (e *NotifierExecutor) ResourceNames() []string {
+	return notifierResourcesNames
+}
+
+// Commands returns slice of commands the executor supports
+func (e *NotifierExecutor) Commands() map[CommandVerb]CommandFn {
+	return map[CommandVerb]CommandFn{
+		CommandStart:      e.Start,
+		CommandStop:       e.Stop,
+		CommandStatus:     e.Status,
+		CommandShowConfig: e.ShowConfig,
 	}
+}
 
-	var cmdVerb = args[1]
-	var isUnknownVerb bool
-	defer func() {
-		if isUnknownVerb {
-			cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
+// Start starts the notifier
+func (e *NotifierExecutor) Start(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+
+	const enabled = true
+	err := cmdCtx.NotifierHandler.SetNotificationsEnabled(cmdCtx.Conversation.ID, enabled)
+	if err != nil {
+		if errors.Is(err, ErrNotificationsNotConfigured) {
+			msg := fmt.Sprintf(notifierNotConfiguredMsgFmt, cmdCtx.Conversation.ID, cmdCtx.ClusterName)
+			return respond(msg, cmdCtx), nil
 		}
-		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.CommandOrigin, false)
-		if err != nil {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while reporting notifier command: %s", err.Error())
-		}
-	}()
-
-	switch NotifierAction(strings.ToLower(cmdVerb)) {
-	case Start:
-		const enabled = true
-		err := handler.SetNotificationsEnabled(conversation.ID, enabled)
-		if err != nil {
-			if errors.Is(err, ErrNotificationsNotConfigured) {
-				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversation.ID, clusterName), nil
-			}
-
-			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
-		}
-
-		successMessage := fmt.Sprintf(notifierStartMsgFmt, clusterName)
-		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
-		if err != nil {
-			if err == config.ErrUnsupportedPlatform {
-				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
-				return successMessage, nil
-			}
-
-			return "", fmt.Errorf("while persisting configuration: %w", err)
-		}
-
-		return successMessage, nil
-	case Stop:
-		const enabled = false
-		err := handler.SetNotificationsEnabled(conversation.ID, enabled)
-		if err != nil {
-			if errors.Is(err, ErrNotificationsNotConfigured) {
-				return fmt.Sprintf(notifierNotConfiguredMsgFmt, conversation.ID, clusterName), nil
-			}
-
-			return "", fmt.Errorf("while setting notifications to %t: %w", enabled, err)
-		}
-
-		successMessage := fmt.Sprintf(notifierStopMsgFmt, clusterName)
-		err = e.cfgManager.PersistNotificationsEnabled(ctx, commGroupName, platform, conversation.Alias, enabled)
-		if err != nil {
-			if err == config.ErrUnsupportedPlatform {
-				e.log.Warnf(notifierPersistenceNotSupportedFmt, platform)
-				return successMessage, nil
-			}
-
-			return "", fmt.Errorf("while persisting configuration: %w", err)
-		}
-
-		return successMessage, nil
-	case Status:
-		enabled := handler.NotificationsEnabled(conversation.ID)
-
-		enabledStr := "enabled"
-		if !enabled {
-			enabledStr = "disabled"
-		}
-
-		return fmt.Sprintf(notifierStatusMsgFmt, clusterName, enabledStr), nil
-	case ShowConfig:
-		out, err := e.showControllerConfig()
-		if err != nil {
-			return "", fmt.Errorf("while executing 'showconfig' command: %w", err)
-		}
-
-		return fmt.Sprintf("Showing config for cluster %q:\n\n%s", clusterName, out), nil
-	default:
-		isUnknownVerb = true
+		return interactive.Message{}, fmt.Errorf("while setting notifications to %t: %w", enabled, err)
 	}
+	successMessage := fmt.Sprintf(notifierStartMsgFmt, cmdCtx.ClusterName)
+	err = e.cfgManager.PersistNotificationsEnabled(ctx, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation.Alias, enabled)
+	if err != nil {
+		if err == config.ErrUnsupportedPlatform {
+			e.log.Warnf(notifierPersistenceNotSupportedFmt, cmdCtx.Platform)
+			return respond(successMessage, cmdCtx), nil
+		}
+		return interactive.Message{}, fmt.Errorf("while persisting configuration: %w", err)
+	}
+	return respond(successMessage, cmdCtx), nil
+}
 
-	return "", errUnsupportedCommand
+// Stop stops the notifier
+func (e *NotifierExecutor) Stop(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+
+	const enabled = false
+	err := cmdCtx.NotifierHandler.SetNotificationsEnabled(cmdCtx.Conversation.ID, enabled)
+	if err != nil {
+		if errors.Is(err, ErrNotificationsNotConfigured) {
+			msg := fmt.Sprintf(notifierNotConfiguredMsgFmt, cmdCtx.Conversation.ID, cmdCtx.ClusterName)
+			return respond(msg, cmdCtx), nil
+		}
+		return interactive.Message{}, fmt.Errorf("while setting notifications to %t: %w", enabled, err)
+	}
+	successMessage := fmt.Sprintf(notifierStopMsgFmt, cmdCtx.ClusterName)
+	err = e.cfgManager.PersistNotificationsEnabled(ctx, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation.Alias, enabled)
+	if err != nil {
+		if err == config.ErrUnsupportedPlatform {
+			e.log.Warnf(notifierPersistenceNotSupportedFmt, cmdCtx.Platform)
+			return respond(successMessage, cmdCtx), nil
+		}
+		return interactive.Message{}, fmt.Errorf("while persisting configuration: %w", err)
+	}
+	return respond(successMessage, cmdCtx), nil
+}
+
+// Status returns the status of a notifier (per channel)
+func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	cmdVerb := cmdCtx.Args[0]
+	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+
+	enabled := cmdCtx.NotifierHandler.NotificationsEnabled(cmdCtx.Conversation.ID)
+	enabledStr := notifierStatusStrings[enabled]
+	msg := fmt.Sprintf(notifierStatusMsgFmt, cmdCtx.ClusterName, enabledStr)
+	return respond(msg, cmdCtx), nil
+}
+
+// ShowConfig returns Config in yaml format
+func (e *NotifierExecutor) ShowConfig(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	cmdVerb := cmdCtx.Args[0]
+	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+
+	out, err := e.showControllerConfig()
+	if err != nil {
+		return interactive.Message{}, fmt.Errorf("while executing 'showconfig' command: %w", err)
+	}
+	msg := fmt.Sprintf("Showing config for cluster %q:\n\n%s", cmdCtx.ClusterName, out)
+	return respond(msg, cmdCtx), nil
+}
+
+func (e *NotifierExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
+	if err != nil {
+		e.log.Errorf("while reporting edit command: %s", err.Error())
+	}
 }
 
 const redactedSecretStr = "*** REDACTED ***"

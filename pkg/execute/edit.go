@@ -22,17 +22,16 @@ const (
 	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source."
 )
 
-// EditResource defines the name of editable resource
-type EditResource string
+// ResourceNames returns slice of resources the executor supports
+func (e *EditExecutor) ResourceNames() []string {
+	return []string{"sourcebindings", "sourcebinding"}
+}
 
-const (
-	// SourceBindings define name of source binding resource
-	SourceBindings EditResource = "SourceBindings"
-)
-
-// Key returns normalized edit resource name.
-func (e EditResource) Key() string {
-	return strings.ToLower(string(e))
+// Commands returns slice of commands the executor supports
+func (e *EditExecutor) Commands() map[CommandVerb]CommandFn {
+	return map[CommandVerb]CommandFn{
+		CommandEdit: e.Edit,
+	}
 }
 
 // BindingsStorage provides functionality to persist source binding for a given channel.
@@ -69,39 +68,30 @@ func NewEditExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 	}
 }
 
-// Do executes a given edit command based on args.
-func (e *EditExecutor) Do(args []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
+// Edit executes a given edit command based on args.
+func (e *EditExecutor) Edit(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	var empty interactive.Message
 
-	if len(args) < 2 {
+	if len(cmdCtx.Args) < 2 {
 		return empty, errInvalidCommand
 	}
 
 	var (
-		cmdName = args[0]
-		cmdVerb = args[1]
-		cmdArgs = args[2:]
+		cmdName = cmdCtx.Args[0]
+		cmdVerb = cmdCtx.Args[1]
+		cmdArgs = cmdCtx.Args[2:]
 	)
 
 	defer func() {
 		cmdToReport := fmt.Sprintf("%s %s", cmdName, cmdVerb)
-		err := e.analyticsReporter.ReportCommand(platform, cmdToReport, conversation.CommandOrigin, false)
+		err := e.analyticsReporter.ReportCommand(cmdCtx.Platform, cmdToReport, cmdCtx.Conversation.CommandOrigin, false)
 		if err != nil {
 			e.log.Errorf("while reporting edit command: %s", err.Error())
 		}
 	}()
 
-	cmds := executorsRunner{
-		SourceBindings.Key(): func() (interactive.Message, error) {
-			return e.editSourceBindingHandler(cmdArgs, commGroupName, platform, conversation, userID, botName)
-		},
-	}
-
-	msg, err := cmds.SelectAndRun(cmdVerb)
+	msg, err := e.editSourceBindingHandler(cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User, cmdCtx.BotName)
 	if err != nil {
-		if err == errUnsupportedCommand {
-			cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-		}
 		return empty, err
 	}
 	return msg, nil
