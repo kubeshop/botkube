@@ -41,17 +41,18 @@ This section describes the necessary changes in the syntax. **It's backward comp
    plugins:
      cacheDir: "/tmp"
      repositories:
-       botkube: https://plugins.botkube.io/botkube.yaml
-       huseyinbabal: https://raw.githubusercontent.com/huseyinbabal/botkube-plugins/main/index.json
+       botkube:
+         url: https://plugins.botkube.io/botkube.yaml
+       huseyinbabal:
+         url: https://raw.githubusercontent.com/huseyinbabal/botkube-plugins/main/index.json
    ```
 
 2. The `executors` definition now can refer to the executor plugins specified in a given repository.
    ```yaml
    executors:
      'plugin-based':
-       botkube/kubectl:     # <repo>/<plugin> is syntax for plugin based executors
+       botkube/kubectl@v1.0.0:     # <repo>/<plugin>[@<version>] is syntax for plugin based executors. If version is not provided, the latest version from repository is used.
          enabled: true      # if not enabled we don't download and start a given plugin
-         version: v1.0.0    # if empty, the latest version is used
          config:            # plugin specific configuration
            namespaces:
              include: ["botkube", "default","ambassador"]
@@ -64,9 +65,8 @@ This section describes the necessary changes in the syntax. **It's backward comp
    ```yaml
    sources:
      'plugin-based':
-       botkube/kubernetes:
+       botkube/kubernetes@v1.0.0:
          enabled: true
-         version: v1.0.0
          config:
            recommendations:
              pod:
@@ -89,18 +89,16 @@ To enable a given plugin you need to specify it under the `executors` or `source
 ```yaml
 executors:
   'plugin-based':
-    botkube/kubectl:     # <repo>/<plugin> is syntax for plugin based executors
-      enabled: true      # if not enabled we don't download and start a given plugin
-      version: v1.0.0    # if empty, the latest version is used.
-      config:            # plugin specific configuration
-      # ...
+    botkube/kubectl@v1.0.0:    # <repo>/<plugin>[@<version>] is syntax for plugin based executors
+      enabled: true            # if not enabled we don't download and start a given plugin
+      config:                  # plugin specific configuration
+        # ...
 sources:
   'plugin-based':
-    botkube/kubernetes:
+    botkube/kubernetes:       # if version is not specified, the latest version is used.
       enabled: true
-      version: v1.0.0
       config:
-      # ...
+        # ...
 ```
 
 In this way you can:
@@ -111,30 +109,13 @@ In this way you can:
 
 ### Defining executors aliases
 
-Currently, the aliases are built-in into Botkube core logic. One option is to define them in the index file for a given executor:
-
-```yaml
-entries:
-  - name: "kubectl"
-    type: "executor"
-    description: "Kubectl executor plugin."
-    version: "v1.0.0"
-    aliases: [ "kc", "k" ]
-    links:
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
-```
-
-Optionally we can allow to override them when enabling a given plugin:
+Currently, the aliases are built-in into Botkube core logic. We can allow to specify them when enabling a given plugin:
 
 ```yaml
 executors:
   'plugin-based':
-    botkube/kubectl:
+    botkube/kubectl@v1.0.0:
       enabled: true
-      version: v1.0.0
       aliases: [ "kc", "k" ]
 ```
 
@@ -153,14 +134,20 @@ We introduce a basic validation to make sure that:
        type: "executor"
        description: "Kubectl executor plugin."
        version: "v1.0.0"
-       links:
-         - https://github.com/kubeshop/botkube/releases/download/v0.18.0/executor_kubectl-darwin-amd64
+       urls:
+         - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-amd64
+           platform:
+             architecture: amd64
+             os: darwin
      - name: "kubectl"
        type: "executor"
        description: "Kubectl executor plugin."
        version: "v1.0.0"
-       links:
-         - https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-amd64
+       urls:
+         - url: https://github.com/kubeshop/botkube/releases/download/v0.16.0/source_kubernetes-darwin-amd64
+           platform:
+             architecture: amd64
+             os: darwin
    ```
    </details>
 
@@ -185,9 +172,26 @@ We introduce a basic validation to make sure that:
            commands:
              verbs: ["get","logs","top"]
    ```
+	 ```yaml
+	 executors:
+		 'plugin-based':
+			 botkube/kubectl@v1.0.0:
+				 enabled: true
+				 config:
+					 namespaces:
+						 include: ["botkube", "default","ambassador"]
+					 commands:
+						 verbs: ["get","logs","top"]
+						 resources: ["pods","deployments","nodes","configmap"]
+			 botkube/kubectl@v1.2.0:  # not allowed as it is conflicting with already registered 'kubectl' from the Botkube repository in different version.
+				 enabled: true
+				 config:
+					 commands:
+						 verbs: ["get","logs","top"]
+	 ```
    </details>
 
-3. We cannot have bindings to the same executor but from different repositories:
+3. We cannot have bindings to the same executor but from different repositories or versions:
    <details>
      <summary>Example</summary>
 
@@ -214,36 +218,9 @@ We introduce a basic validation to make sure that:
          enabled: true
          config:
            # ...
-   ```
-   </details>
-
-4. We cannot have bindings to the same executor but with different version:
-   <details>
-     <summary>Example</summary>
-
-   ```yaml
-   communications:
-     default-group:
-       socketSlack:
+     'kubectl-deploy-rw':
+       botkube/kubectl@v1.0.0:
          enabled: true
-         channels:
-           default:
-             name: botkubers
-             bindings:
-               executors:            # such binding is not allowed as it has conflicting 'kubectl' executor versions
-                 - kubectl-read-only
-                 - kubectl-pods-rw
-   executors:
-     'kubectl-read-only':
-       botkube/kubectl:
-         enabled: true
-         version: 1.5.0
-         config:
-           # ...
-     'kubectl-pods-rw':
-       botkube/kubectl:
-         enabled: true
-         version: 1.1.0
          config:
            # ...
    ```
@@ -258,7 +235,7 @@ entries:
   - name: "kubectl"
     type: "executor"
     description: "Kubectl executor plugin."
-    links:
+    urls:
       - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
     jsonSchema:
       value: |-
@@ -317,7 +294,7 @@ kubectl exec -it $(kubectl get po -l app=botkube -n botkube -oname) -- rm -rf /t
 kubectl delete po -l app=botkube -n botkube
 ```
 
-Later we can provide a dedicated `@Botkube` command to simplify refreshing downloaded plugins. However, in the happy path scenarios no one should replace already release binaries.
+Later we can provide a dedicated `@Botkube` command to simplify refreshing downloaded plugins. However, in the happy path scenarios no one should replace already released binaries.
 
 ### Supporting multi OS and architectures
 
@@ -336,11 +313,23 @@ entries:
     type: "executor"
     description: "Kubectl executor plugin."
     version: "v1.0.0"
-    links:
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
+        platform:
+          architecture: amd64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
+        platform:
+          architecture: arm64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
+        platform:
+          architecture: amd64
+          os: linux
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+        platform:
+          architecture: arm64
+          os: linux
 ```
 
 In the first phase:
@@ -366,20 +355,44 @@ entries:
     type: "executor"
     description: "Kubectl executor plugin."
     version: "v1.0.0"
-    links:
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
+        platform:
+          architecture: amd64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
+        platform:
+          architecture: arm64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
+        platform:
+          architecture: amd64
+          os: linux
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+        platform:
+          architecture: arm64
+          os: linux
   - name: "kubernetes"
     type: "source"
     description: "Kubernetes source plugin."
     version: "v1.0.0"
-    links:
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-arm64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-linux-amd64
-      - https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-linux-arm64
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-amd64
+        platform:
+          architecture: amd64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-darwin-arm64
+        platform:
+          architecture: arm64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-linux-amd64
+        platform:
+          architecture: amd64
+          os: linux
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/source_kubernetes-linux-arm64
+        platform:
+          architecture: arm64
+          os: linux
 ```
 
 The index file can be generated automatically just by scanning directory where plugins binaries are stored.
@@ -495,4 +508,35 @@ spec:
   - Save to file and specify flag with path location.
 - Add additional method like `Initialize()/SetConfig()`
 
+### Defining executors aliases
+
+One option is to define them in the index file for a given executor or source:
+
+```yaml
+entries:
+  - name: "kubectl"
+    type: "executor"
+    description: "Kubectl executor plugin."
+    version: "v1.0.0"
+    aliases: [ "kc", "k" ]
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
+        platform:
+          architecture: amd64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
+        platform:
+          architecture: arm64
+          os: darwin
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
+        platform:
+          architecture: amd64
+          os: linux
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+        platform:
+          architecture: arm64
+          os: linux
+```
+
+Optionally
 </details>
