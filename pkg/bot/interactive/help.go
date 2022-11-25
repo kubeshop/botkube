@@ -157,7 +157,7 @@ func (h *HelpMessage) actionSections() []Section {
 
 func (h *HelpMessage) kubectlSections() []Section {
 	// TODO(https://github.com/kubeshop/botkube/issues/802): remove this warning in after releasing 0.17.
-	warn := ":warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.\n\n`@Botkube k get pods` instead of `@Botkube get pods`\n"
+	warn := ":warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.\n\ne.g. `@Botkube k get pods` instead of `@Botkube get pods`\n"
 
 	if h.platform == config.SocketSlackCommPlatformIntegration {
 		return []Section{
@@ -168,6 +168,9 @@ func (h *HelpMessage) kubectlSections() []Section {
 				},
 			},
 			{
+				Base: Base{
+					Description: "Build kubectl commands interactively",
+				},
 				Buttons: []Button{
 					h.btnBuilder.ForCommandWithDescCmd("kubectl", "kubectl", ButtonStylePrimary),
 				},

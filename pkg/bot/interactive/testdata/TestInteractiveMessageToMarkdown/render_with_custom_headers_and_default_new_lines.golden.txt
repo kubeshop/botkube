@@ -31,7 +31,7 @@ By default, Botkube will notify only about cluster errors and recommendations.
 *Run kubectl commands (if enabled)*
 :warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
 
-`@Botkube k get pods` instead of `@Botkube get pods`
+e.g. `@Botkube k get pods` instead of `@Botkube get pods`
 
 You can run kubectl commands directly from Platform!
   - `@Botkube kubectl get services`
