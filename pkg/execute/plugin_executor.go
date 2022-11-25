@@ -117,7 +117,7 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 				continue
 			}
 
-			_, pluginName, _ := plugin.DecomposePluginKey(pluginKey)
+			_, pluginName, _, _ := plugin.DecomposePluginKey(pluginKey)
 			if pluginName != cmdName {
 				continue
 			}

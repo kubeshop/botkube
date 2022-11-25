@@ -79,19 +79,28 @@ func buildIndex(urlBasePath string, dir string) (plugin.Index, error) {
 			continue
 		}
 
-		name := strings.TrimPrefix(entry.Name(), executorBinaryPrefix)
-		name, _, _ = strings.Cut(name, "_")
+		parts := strings.Split(entry.Name(), "_")
+		if len(parts) != 4 {
+			return plugin.Index{}, fmt.Errorf("path %s doesn't follow required pattern <plugin_type>_<plugin_name>_<os>_<arch>", entry.Name())
+		}
 
+		name, os, arch := parts[1], parts[2], parts[3]
 		item, found := entries[name]
 		if !found {
 			item = plugin.IndexEntry{
 				Name:        name,
 				Type:        plugin.TypeExecutor,
 				Description: "Executor description",
-				Version:     "0.1.0",
+				Version:     "v0.1.0",
 			}
 		}
-		item.Links = append(item.Links, fmt.Sprintf("%s/static/%s", urlBasePath, entry.Name()))
+		item.URLs = append(item.URLs, plugin.IndexURL{
+			URL: fmt.Sprintf("%s/static/%s", urlBasePath, entry.Name()),
+			Platform: plugin.IndexURLPlatform{
+				OS:   os,
+				Arch: arch,
+			},
+		})
 		entries[name] = item
 	}
 

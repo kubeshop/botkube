@@ -10,14 +10,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
@@ -126,7 +124,7 @@ func (m *Manager) Shutdown() {
 	wg.Wait()
 }
 
-func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToEnable []string, repo map[string][]IndexEntry) (map[string]string, error) {
+func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
 	loadedPlugins := map[string]string{}
 	for _, pluginKey := range pluginsToEnable {
 		candidates, found := repo[pluginKey]
@@ -136,23 +134,28 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 		// TODO(version): check if version is defined in plugin:
 		// - if yes, use it.
 		// - if not, find the latest version in the repository.
-		pluginInfo := candidates[0]
+		latestPluginInfo := candidates[0]
 
-		repoName, pluginName, err := DecomposePluginKey(pluginKey)
+		repoName, pluginName, ver, err := DecomposePluginKey(pluginKey)
 		if err != nil {
 			return nil, err
 		}
-		binPath := filepath.Join(m.cfg.CacheDir, repoName, fmt.Sprintf("%s_%s_%s", pluginType, pluginInfo.Version, pluginName))
+		// if plugin version not defined by user, use the latest one
+		if ver == "" {
+			ver = latestPluginInfo.Version
+		}
+
+		binPath := filepath.Join(m.cfg.CacheDir, repoName, fmt.Sprintf("%s_%s_%s", pluginType, ver, pluginName))
 
 		log := m.log.WithFields(logrus.Fields{
 			"plugin":  pluginKey,
-			"version": pluginInfo.Version,
+			"version": ver,
 			"binPath": binPath,
 		})
 
 		if _, err := os.Stat(binPath); os.IsNotExist(err) {
 			log.Debug("Executor plugin not found locally")
-			err := m.downloadPlugin(ctx, binPath, pluginInfo)
+			err := m.downloadPlugin(ctx, binPath, latestPluginInfo)
 			if err != nil {
 				return nil, fmt.Errorf("while fetching plugin %q binary: %w", pluginKey, err)
 			}
@@ -167,7 +170,7 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 }
 
 func (m *Manager) loadRepositoriesMetadata(ctx context.Context) error {
-	// index repositories metadata
+	rawIndexes := map[string][]byte{}
 	for repo, url := range m.cfg.Repositories {
 		path := filepath.Join(m.cfg.CacheDir, filepath.Clean(fmt.Sprintf("%s.yaml", repo)))
 		if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -181,27 +184,15 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("while reading index file: %w", err)
 		}
-		var index Index
-		if err := yaml.Unmarshal(data, &index); err != nil {
-			return fmt.Errorf("while unmarshaling index: %w", err)
-		}
 
-		for _, entry := range index.Entries {
-			key := BuildPluginKey(repo, entry.Name)
-			switch entry.Type {
-			case TypeExecutor:
-				m.executorsStore.Repository[key] = append(m.executorsStore.Repository[key], entry)
-			case TypeSource:
-				// TODO(plugin-sources): add me.
-			}
-		}
+		rawIndexes[repo] = data
 	}
 
-	// sort entries by version
-	for key := range m.executorsStore.Repository {
-		sort.Sort(byIndexEntryVersion(m.executorsStore.Repository[key]))
+	executorsRepos, err := newStoreRepository(rawIndexes)
+	if err != nil {
+		return fmt.Errorf("while building executors repository store: %w", err)
 	}
-	// TODO(plugin-sources): add sorting
+	m.executorsStore.Repository = executorsRepos
 
 	return nil
 }
@@ -279,25 +270,17 @@ func createGRPCClients[C any](bins map[string]string, dispenseType string) (map[
 	return out, nil
 }
 
-func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info IndexEntry) error {
+func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info storeEntry) error {
 	err := os.MkdirAll(filepath.Dir(binPath), dirPerms)
 	if err != nil {
 		return fmt.Errorf("while creating directory where plugin should be stored: %w", err)
 	}
 
-	suffix := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
-	getDownloadURL := func() string {
-		for _, url := range info.Links {
-			if strings.HasSuffix(url, suffix) {
-				return url
-			}
-		}
-		return ""
-	}
+	selector := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
-	url := getDownloadURL()
-	if url == "" {
-		return fmt.Errorf("cannot find download url with suffix %s", suffix)
+	url, found := info.URLs[selector]
+	if !found {
+		return fmt.Errorf("cannot find download url for %s", selector)
 	}
 
 	m.log.WithFields(logrus.Fields{

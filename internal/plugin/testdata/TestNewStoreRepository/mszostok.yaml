@@ -1,0 +1,48 @@
+entries:
+  - name: "echo"
+    type: "executor"
+    description: "Executor suitable for e2e testing. It returns the command that was send as an input."
+    version: "v1.0.2"
+    urls:
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-amd64
+        platform:
+          os: darwin
+          architecture: amd64
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-arm64
+        platform:
+          os: darwin
+          architecture: arm64
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-amd64
+        platform:
+          os: linux
+          architecture: amd64
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-arm64
+        platform:
+          os: linux
+          architecture: arm64
+
+  - name: "cm-watcher"
+    type: "source"
+    description: "Source suitable for e2e testing."
+    version: "v1.0.0"
+    urls:
+      # different url syntax
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_amd64_cmd-watcher
+        platform:
+          os: darwin
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_arm64_cmd-watcher
+        platform:
+          os: darwin
+          architecture: arm64
+      # different url syntax
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_md64_cmd-watcher
+        platform:
+          os: linux
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_rm64_cmd-watcher
+        platform:
+          os: linux
+          architecture: arm64
