@@ -4,7 +4,7 @@ We'd love your help!
 
 Botkube is [MIT Licensed](LICENSE) and accepts contributions via GitHub pull requests. This document outlines conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contributions accepted.
 
-We gratefully welcome improvements to [documentation](https://botkube.io/ "Go to documentation site") as well as to code.
+We gratefully welcome improvements to [documentation](https://docs.botkube.io/ "Go to documentation site") as well as to code.
 
 ## Contributing to documentation
 
@@ -65,7 +65,7 @@ This section describes how to build and run Botkube from source code.
      
      Where `{your_account}` is Docker hub or any other registry provider account to which you can push the image.
 
-2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
+2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://docs.botkube.io/docs/installation/). During the Helm chart installation step, set the following flags:
    
    ```sh
    export IMAGE_REGISTRY="{imageRegistry}" # e.g. docker.io
