@@ -27,7 +27,7 @@ const (
 	filterPlaintextInputCommand      = "kc-cmd-builder --filter-query"
 	kubectlCommandName               = "kubectl"
 	dropdownItemsLimit               = 100
-	noKubectlCommandsInChannel       = "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://botkube.io/docs/configuration/executor."
+	noKubectlCommandsInChannel       = "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://docs.botkube.io/configuration/executor."
 	kubectlMissingCommandMsg         = "Please specify the kubectl command"
 )
 

@@ -80,7 +80,7 @@ func (h *HelpMessage) filters() []Section {
 			Base: Base{
 				Header: "Filters (advanced)",
 				Body: Body{
-					Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters",
+					Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters",
 				},
 			},
 		},
@@ -104,7 +104,7 @@ func (h *HelpMessage) footer() []Section {
 	return []Section{
 		{
 			Buttons: []Button{
-				h.btnBuilder.ForURL("Read our docs", "https://botkube.io/docs"),
+				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io/docs"),
 				h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
 				h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 			},

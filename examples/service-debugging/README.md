@@ -24,7 +24,7 @@ k3d cluster create svc-debug
 
 ### Deploy Botkube
 
-1. Install [Botkube in your Slack workspace](https://botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace).
+1. Install [Botkube in your Slack workspace](https://docs.botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace).
 
 2. Export required environment variables:
 
@@ -166,7 +166,7 @@ During the short demo, you'll notice that:
 - You don't need to switch context - between Slack and your terminal
 - You can define different `kubectl` permissions per channel
 
-If you are very observant, you probably noticed that events were sent only to the team channel and not to the admin one. This is possible with a single Botkube instance. To learn more, check [Source and Executors Bindings](https://botkube.io/configuration/communication/#source-and-executor-bindings).
+If you are very observant, you probably noticed that events were sent only to the team channel and not to the admin one. This is possible with a single Botkube instance. To learn more, check [Source and Executors Bindings](https://docs.botkube.io/configuration/communication/#source-and-executor-bindings).
 
 ## Cleanup
 
