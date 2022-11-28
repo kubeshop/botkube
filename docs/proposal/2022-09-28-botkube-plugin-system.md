@@ -2,9 +2,9 @@
 
 Created on `2022-09-28` by Huseyin BABAL ([@huseyinbabal](https://github.com/huseyinbabal))
 
-| Status                                   |
-|------------------------------------------|
-| `PROPOSED/REJECTED/ACCEPTED/IMPLEMENTED` |
+| Status     |
+|------------|
+| `ACCEPTED` |
 
 ## Overview
 
@@ -37,13 +37,13 @@ General overview of the proposal and section with ToC
   * [Example](#example)
   * [Consequences](#consequences)
 - [Alternatives](#alternatives)
-  * [Golang and Extensibility](#golang-and-extensibility) 
+  * [Golang and Extensibility](#golang-and-extensibility)
 
 <!-- tocstop -->
 ## Motivation
 Currently, we have support for 5 integrations for Botkube and Botkube is designed to listen events from Kubernetes
-and execute kubectl commands. In this design documentation, we aim to provide an architecture where end users can 
-extend Botkube to have their integrations with respective configurations. Even this doc is initiated to extend event 
+and execute kubectl commands. In this design documentation, we aim to provide an architecture where end users can
+extend Botkube to have their integrations with respective configurations. Even this doc is initiated to extend event
 manager, having a general extension/plugin mechanism will bring a huge value to Botkube
 
 ### Goal
@@ -63,7 +63,7 @@ to call in runtime.
 
 ![](./assets/dependency-injection.png)
 
-Based on the above diagram, Botkube only knows `Source` interface, and calls `Consume()` method to execute the logic in 
+Based on the above diagram, Botkube only knows `Source` interface, and calls `Consume()` method to execute the logic in
 the real implementation. For example, if you register `KubernetesSource` implementation, Botkube can consume Kubernetes
 events. In same way, `PrometheusSource` can consume Prometheus events, or it can add an endpoint to Botkube to let Prometheus
 send alerts to this endpoint. Those examples can be extended, but is there another way to add those extensions in more detached way?
@@ -71,28 +71,28 @@ For example, instead of forcing to implement interfaces, what about we add plugi
 main process (Botkube in our case). By doing that, plugins and core Botkube implementation can be independent and easy to maintain.
 
 ### Hashicorp's Go Plugin
-There are several alternatives to plugin systems in Golang, but I want to focus specifically on 
-[Hashicorp's Go Plugin](https://github.com/hashicorp/go-plugin) system. In this plugin system, main application talks to 
-plugin via RPC. Botkube is a client in this case, and it calls plugin implementation via RPC and uses response returned from 
-plugin. It basically uses file descriptor in local file system to communicate like a local network connection. 
+There are several alternatives to plugin systems in Golang, but I want to focus specifically on
+[Hashicorp's Go Plugin](https://github.com/hashicorp/go-plugin) system. In this plugin system, main application talks to
+plugin via RPC. Botkube is a client in this case, and it calls plugin implementation via RPC and uses response returned from
+plugin. It basically uses file descriptor in local file system to communicate like a local network connection.
 
 ![](./assets/hashicorp-go-plugin-architecture.png)
 
 ### Source Plugin Structure
-In above diagram, RPC is the base protocol and in our case it is possible to use gRPC. If we think `KubernetesSource` again, 
+In above diagram, RPC is the base protocol and in our case it is possible to use gRPC. If we think `KubernetesSource` again,
 Botkube can connect to `KubernetesSource` plugin and think about this is a server-side streaming. The Kubernetes consuming logic is
 located in that plugin and whenever it gets an event from Kubernetes, it can stream it to client which is Botkube. The main
-advantage of this usage, we can use any language to implement a plugin which supports gRPC. 
+advantage of this usage, we can use any language to implement a plugin which supports gRPC.
 
 ![](./assets/kubernetes-source-plugin.png)
 
 Source plugin does not necessarily need to implement a logic since some sources may want to have just configuration for the plugin in
 Botkube. Instead of source logic, they may want to send events directly to Botkube
-with a payload in [cloud events schema format](https://cloudevents.io/) which we will see soon. 
+with a payload in [cloud events schema format](https://cloudevents.io/) which we will see soon.
 
 Events with cloudevents format can be easily consumed by Botkube once we have the handler. However, we may need to have custom
-handler like Prometheus. Prometheus has a special event format, and we can redirect that events to specific destination with 
-Prometheus job configuration. In Source Plugin architecture, it can also spin up a custom handler instead to handle Prometheus 
+handler like Prometheus. Prometheus has a special event format, and we can redirect that events to specific destination with
+Prometheus job configuration. In Source Plugin architecture, it can also spin up a custom handler instead to handle Prometheus
 event payload and process it in Botkube. This is a typical example to show how we can have a dynamic handling mechanism for Source Plugins.
 
 To sum up source plugin system;
@@ -103,7 +103,7 @@ To sum up source plugin system;
 
 ### Executor Plugin Structure
 Executor plugins would have nearly same flow as Source Plugins with a small difference. Executor plugins would be triggered
-whenever Botkube receives a command from end-user. So, once Botkube receives command, based on the command prefix it can 
+whenever Botkube receives a command from end-user. So, once Botkube receives command, based on the command prefix it can
 resolve which plugin to call and uses response on gRPC execution. Think about `KubectlExecutor`, once Botkube gets `kubectl get pods`
 it can resolve plugin by its prefix which is `kubectl` and call `KubectlExecutor` gRPC endpoint automatically and parses the response.
 As you can also see, Botkube does not need to know how `kubectl` works, it simply delegates all the responsibility to specific plugin.
@@ -113,8 +113,8 @@ As you can also see, Botkube does not need to know how `kubectl` works, it simpl
 ### Cloud Events
 Cloudevents schema has a proven standard for the cloud native industry where well-known products uses this schema to distribute their events
 via this contract. The main take of this, you don't need to re-invent wheel from scratch while you are designing your data format. In Botkube,
-we can also use [one of the Cloudevents SDK](https://github.com/cloudevents/sdk-go) to spin up an handler inside Botkube so that any cloudevents 
-compatible source can send data to Botkube. The main example to this is [Keptn](https://keptn.sh/), an open source application life-cycle orchestration tool, 
+we can also use [one of the Cloudevents SDK](https://github.com/cloudevents/sdk-go) to spin up an handler inside Botkube so that any cloudevents
+compatible source can send data to Botkube. The main example to this is [Keptn](https://keptn.sh/), an open source application life-cycle orchestration tool,
 they send events in cloudevents format. If we want to ship Keptn events to Botkube to be able to send notifications, we may need to add new integration to Keptn
 so that it will send events to Botkube `/events` endpoint which handles cloudevents.
 
@@ -122,11 +122,11 @@ so that it will send events to Botkube `/events` endpoint which handles cloudeve
 You will see very simple suggested event format for Botkube as shown below.
 ```json
 {
-  "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",   
-  "source" : "Kubernetes",     
-  "specversion" : "1.0",                             
-  "time" : "2022-03-23T14:35:39.738Z",               
-  "data" : {                                         
+  "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",
+  "source" : "Kubernetes",
+  "specversion" : "1.0",
+  "time" : "2022-03-23T14:35:39.738Z",
+  "data" : {
     "namespace" : "Botkube",
     "deployment" : {
       "name" : "test",
@@ -140,11 +140,11 @@ You will see very simple suggested event format for Botkube as shown below.
 be also ARN for example `ec2:myinstance:12345`.
 
 `source`: This refers to plugin name. Once Botkube receives and event on `/events` endpoint, `source` field would be validated
-to see we already have a registered plugin for this event or not. 
+to see we already have a registered plugin for this event or not.
 
 `specversion`: To have proper versioning for Botkube event format.
 
-`time`: Event time in Unix time format to not deal with date parsing. 
+`time`: Event time in Unix time format to not deal with date parsing.
 
 `data`: This is the event data that contains important information about source. What you see in `data` section is just example,
 we can also add some kind of validation in Botkube to better use received data. For example, if we force user to send key value pairs,
@@ -159,27 +159,27 @@ I haven't included the final structure for that, I believe it can be generated f
 The main motivation of the PoC is to come up with a simple playground project that explains how it looks like to have a plugin system for Botkube.
 There are 2 projects to better show the entire flow: `Botkube-plugins` (https://github.com/huseyinbabal/Botkube-plugins) and `Botkube-plugins-playground` (https://github.com/huseyinbabal/Botkube-plugins-playground). `Botkube-plugins` repository simply contains
 community-driven plugins and also some `api` related packages to help consumers (e.g. Botkube) to initialize plugin base to use as a pluggable component.
-`Botkube-plugins-playground` is a sample project that shows how we can use `Botkube-plugins` repository as plugin marketplace. Now let's take a look `Botkube-plugins` project 
+`Botkube-plugins-playground` is a sample project that shows how we can use `Botkube-plugins` repository as plugin marketplace. Now let's take a look `Botkube-plugins` project
 to understand how it is structured.
 
 #### `pkg/plugin` Folder
 This folder contains api packages to help consumers initialize plugins in client side. This package simply contains proto definitions to describe
 contract between client (Botkube) and server (Actual plugin). As you can guess, it become easier once we use gRPC since Hashicorp's plugin system works
-on RPC and the integration is so simple. 
+on RPC and the integration is so simple.
 
-API folder contains `source` and `executor` folders to have more meaningful package names once we generate actual implementation of proto files. Apart from proto files, 
+API folder contains `source` and `executor` folders to have more meaningful package names once we generate actual implementation of proto files. Apart from proto files,
 you can see base gRPC server and client implementations in `grpc.go` which is shared among plugins. `interface.go` contains the actual API to expose to consumers. Finally,
 `plugin.go` is for plugin definition which is a simple struct for Hashicorp's Go plugin system.
 
 #### Plugins Folder
-In this folder, you can see examples `kubectl` and `Kubernetes`. Each plugin has its own dedicated folders which are typically go module projects. 
+In this folder, you can see examples `kubectl` and `Kubernetes`. Each plugin has its own dedicated folders which are typically go module projects.
 Each plugin folder contains a simple Go file which contains the actual business logic of plugin. You can also see a `Makefile` to manage the build
 process of that plugin. They might not be a simple Go program, that's why there is no unified `Makefile` that builds any Go project, it can contain
-customer specific build flows. For `kubectl` and `Kubernetes`, they are same for now. 
+customer specific build flows. For `kubectl` and `Kubernetes`, they are same for now.
 
 ### How to build plugins?
 `plugins` folder only contains the source code of the plugins, and consumer (Botkube or playground project on our case), needs the executable versions
-of those plugin to call via Hashicorp's plugin package. Plugins will be released with core Botkube release and they will be published as release artifacts to be able to download as plugin executable. 
+of those plugin to call via Hashicorp's plugin package. Plugins will be released with core Botkube release and they will be published as release artifacts to be able to download as plugin executable.
 
 ### How can I know the metadata of plugins?
 In `Botkube-plugins` project, we have a plugin index file as you can also see it [here](https://github.com/huseyinbabal/Botkube-plugins/blob/main/index.json). That contains basic metadata of each plugin, and notice that they are managed manually
@@ -222,7 +222,7 @@ client := plugin.NewClient(&plugin.ClientConfig{
 ### How to install/uninstall plugins?
 Once you initialize plugin, it collects plugin metadatas from plugin index and initializes all of them by using Hashicorp's plugin system.
 Each plugin is downloaded to a local cache from Github artifacts. Most probably, in Botkube there will be a configuration section to decide
-enable/disable plugins. So, plugin executable is in local cache, and disable might be removing it from plugin list, so that Botkube will not initialize it on next 
+enable/disable plugins. So, plugin executable is in local cache, and disable might be removing it from plugin list, so that Botkube will not initialize it on next
 restart. we can enable disable plugins dynamically by using Hashicorp's Go plugin API, but I haven't experimented it. At worst case, we can update configuration and restart Botkube app.
 
 ### How to Upgrade Plugins?
@@ -244,31 +244,31 @@ If we agree on this design, we can extend this epic with following description t
   - It should contain how to verify plugin functionality in PR checks.
   - Boilerplate template for plugin development. Please refer [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubectl) for an example.
   - Once needed, provide a mocking mechanism to write tests for specific plugin.
-  
+
 - [ ] Add plugin manager to Botkube
   - Plugin manager can accept plugin configuration with name and version.
   - It should download plugin executable by using name and version to specified local folder before running Botkube application
   - There should be a caching mechanism to not download same version again.
   - You can see working example [here](https://github.com/huseyinbabal/botkube-plugins-playground/blob/main/plugin/manager.go)
 
-- [ ] Extract Kubernetes source feature as a plugin 
+- [ ] Extract Kubernetes source feature as a plugin
   - Once we extract this as a plugin, it will be sub process in the pod that means it will use same service account as other plugin will. For now, we can assume that customer will prepare a unified role and attach it to service account. This is somethiing like using your workstation machine for kubectl, helm, and does not care which service account you use in the beginning.
   - Currently, Kubernetes source events are tightly coupled with Botkube, we can add sourcing mechanism as `kubernetes` plugin. You can see independent example [here](https://github.com/huseyinbabal/botkube-plugins/tree/main/plugins/kubernetes)
   - It should be background compatible.
   - Plugin specific parameters should be passed during plugin initialization. Hashicorp's Go plugin system, runs plugin executable as sub process, so it also accepts exec arguments where we can resolve configuration and pass them as separate arguments
   - Plugin parameters will be documented in plugin's README.md page, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
   - Data structure for events
-    - Since each source plugin has different data structure, we cannot have a general data structure except we specified #Cloud Events. `data` field has free data structure, but we can convert them to map then extract 
+    - Since each source plugin has different data structure, we cannot have a general data structure except we specified #Cloud Events. `data` field has free data structure, but we can convert them to map then extract
 any section based on customer definition by using Go template. `data` field has free flat structure, a simple key-value pairs with one level, but we can put mandatory fields in this struct like `message`, `user`, etc. Or we can put mandatory fields to cloud events schema as shown below.
       ```json
       {
-      "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",   
-      "source" : "Kubernetes",     
-      "specversion" : "1.0",                             
-      "time" : "2022-03-23T14:35:39.738Z",               
+      "id" : "e2361318-e50b-472e-8b17-13dbac1daac1",
+      "source" : "Kubernetes",
+      "specversion" : "1.0",
+      "time" : "2022-03-23T14:35:39.738Z",
       "message": "DB instance not found",
       "user": "john",
-      "data" : {                                         
+      "data" : {
         "namespace" : "Botkube",
         "deploymentName" : "test",
         "replicas" : 5
@@ -278,17 +278,17 @@ any section based on customer definition by using Go template. `data` field has 
 - [ ] Extract Kubectl executor feature as a plugin
   - Extract kubectl executor as plugin and maintain it in [botkube-plugins](https://github.com/huseyinbabal/botkube-plugins) repository.
   - Ensure it is background compatible.
-  - Plugin parameters will be documented in plugin's README.md page, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159) 
-  
+  - Plugin parameters will be documented in plugin's README.md page, and they can be provided from Botkube as an environment variable like `KUBERNETES_...` so that they can be passed to executable [in this line](https://github.com/huseyinbabal/botkube-plugins-playground/blob/c85cb7b84296a2f41c2dcdd8cac77c0e9dd9c69a/plugin/manager.go#L159)
+
 - [ ] Keptn as an alternative source plugin
   - Once we have Botkube cloud events handler, we will be able to accepts from outside. However, we cannot have an endpoint that accepts all kind of data format. Assume that we have a payload format as described in Cloud Events section. In order to accept Keptn events, we can implement a Botkube plugin on Keptn, and this plugin will be responsible for taking events from Keptn, convert and send it to Botkbue.
-  - Implement a Keptn plugin on their plugin marketplace by following their [guidelines](https://keptn.sh/docs/integrations/#contributing) 
+  - Implement a Keptn plugin on their plugin marketplace by following their [guidelines](https://keptn.sh/docs/integrations/#contributing)
 
 - [ ] Helm as alternative executor plugin
   - Implement Helm plugin for Botkube
   - Design a configuration structure for helm executor plugin
   - Document it in [botkube-plugins](https://keptn.sh/docs/integrations/#contributing) repository.
- 
+
 ## Alternatives
 ### Golang and Extensibility
 Golang has [plugin](https://pkg.go.dev/plugin) package which you can use to add an extension system to your existing Go project.
@@ -297,7 +297,7 @@ This package has some limitations as follows;
 - You can load the plugin during the initialization, then reload is not supported.
 - You need to maintain conflict of shared libraries.
 
-### -- Following items are initially discussed for external plugin management -- 
+### -- Following items are initially discussed for external plugin management --
 ### Folder Structure
 ![](./assets/plugin-system.png)
 The plugin system contains 2 packages: `api` and `plugins`. `plugins` package is for end users and they can come up with their own
