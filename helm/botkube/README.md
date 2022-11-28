@@ -178,7 +178,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [serviceAccount.name](./values.yaml#L793) | string | `""` | The name of the service account to use. If not set, a name is generated using the fullname template. |
 | [serviceAccount.annotations](./values.yaml#L795) | object | `{}` | Extra annotations for the ServiceAccount. |
 | [extraObjects](./values.yaml#L798) | list | `[]` | Extra Kubernetes resources to create. Helm templating is allowed as it is evaluated before creating the resources. |
-| [analytics.disable](./values.yaml#L826) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://botkube.io/privacy#privacy-policy). |
+| [analytics.disable](./values.yaml#L826) | bool | `false` | If true, sending anonymous analytics is disabled. To learn what date we collect, see [Privacy Policy](https://docs.botkube.io/privacy#privacy-policy). |
 | [configWatcher.enabled](./values.yaml#L831) | bool | `true` | If true, restarts the Botkube Pod on config changes. |
 | [configWatcher.tmpDir](./values.yaml#L833) | string | `"/tmp/watched-cfg/"` | Directory, where watched configuration resources are stored. |
 | [configWatcher.initialSyncTimeout](./values.yaml#L836) | int | `0` | Timeout for the initial Config Watcher sync. If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload Botkube app during the first few seconds after Botkube startup. |

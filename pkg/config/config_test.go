@@ -200,7 +200,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
-					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token`),
 			configFiles: []string{
 				testdataFile(t, "app-token-only.yaml"),
 			},
@@ -210,7 +210,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
-					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token`),
 			configFiles: []string{
 				testdataFile(t, "bot-token-only.yaml"),
 			},
@@ -222,8 +222,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 					* Key: 'Config.Communications[default-workspace].Slack.Token' Token is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
-					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token
-					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token
+					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token`),
 			configFiles: []string{
 				testdataFile(t, "no-token.yaml"),
 			},

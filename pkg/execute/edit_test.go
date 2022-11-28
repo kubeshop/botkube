@@ -176,7 +176,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
+					Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 				},
 			},
 		},
@@ -187,7 +187,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 			expErr: nil,
 			expMsg: interactive.Message{
 				Base: interactive.Base{
-					Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://botkube.io/docs/configuration/source.",
+					Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 				},
 			},
 		},
