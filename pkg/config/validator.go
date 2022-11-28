@@ -128,7 +128,7 @@ func slackStructTokenValidator(sl validator.StructLevel) {
 	}
 
 	if !strings.HasPrefix(slack.Token, botTokenPrefix) {
-		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/slack/#install-botkube-slack-app-to-your-slack-workspace", botTokenPrefix)
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace", botTokenPrefix)
 		sl.ReportError(slack.Token, "Token", "Token", "invalid_slack_token", msg)
 	}
 }
@@ -149,12 +149,12 @@ func socketSlackStructTokenValidator(sl validator.StructLevel) {
 	}
 
 	if !strings.HasPrefix(slack.BotToken, botTokenPrefix) {
-		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/socketslack/#obtain-bot-token", botTokenPrefix)
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token", botTokenPrefix)
 		sl.ReportError(slack.BotToken, "BotToken", "BotToken", "invalid_slack_token", msg)
 	}
 
 	if !strings.HasPrefix(slack.AppToken, appTokenPrefix) {
-		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://botkube.io/docs/installation/socketslack/#generate-and-obtain-app-level-token", appTokenPrefix)
+		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token", appTokenPrefix)
 		sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
 	}
 }

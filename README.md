@@ -37,11 +37,11 @@ You can also execute `kubectl` commands on K8s cluster via Botkube which helps d
 
 ## Getting started
 
-Please follow [this](https://botkube.io/installation/) for a complete Botkube installation guide.
+Please follow [this](https://docs.botkube.io/installation/) for a complete Botkube installation guide.
 
 ## Documentation
 
-For full documentation, visit [botkube.io](https://botkube.io). The documentation sources reside on the [botkube-docs](https://github.com/kubeshop/botkube-docs) repository under **content** directory.
+For full documentation, visit [botkube.io](https://docs.botkube.io). The documentation sources reside on the [botkube-docs](https://github.com/kubeshop/botkube-docs) repository under **content** directory.
 
 ## Features
 
@@ -49,7 +49,7 @@ For full documentation, visit [botkube.io](https://botkube.io). The documentatio
 
 ### Execute `kubectl` commands
 
-The same `kubectl` capabilities inside your favorite communicator. You do not have to learn anything new! Plus, you can configure which `kubectl` commands Botkube can execute. See [configuration](https://botkube.io/configuration/resource/) for details.
+The same `kubectl` capabilities inside your favorite communicator. You do not have to learn anything new! Plus, you can configure which `kubectl` commands Botkube can execute. See [configuration](https://docs.botkube.io/configuration/) for details.
 
 <br /><br />
 
@@ -57,7 +57,7 @@ The same `kubectl` capabilities inside your favorite communicator. You do not ha
 
 ### Use multiple communication platforms
 
-Botkube integrates with Slack, Discord, Mattermost, Microsoft Teams, ElasticSearch and outgoing webhook. See [configuration](https://botkube.io/configuration/communication/) syntax for details.
+Botkube integrates with Slack, Discord, Mattermost, Microsoft Teams, ElasticSearch and outgoing webhook. See [configuration](https://docs.botkube.io/configuration/communication/) syntax for details.
 
 <br /><br />
 
