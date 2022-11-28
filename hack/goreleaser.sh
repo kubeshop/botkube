@@ -93,7 +93,6 @@ build() {
 }
 
 build_plugins() {
-  prepare
   goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot
 }
 

@@ -99,7 +99,8 @@ func run() error {
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	enabledPluginExecutors := plugin.GetAllEnabledAndUsedPlugins(conf)
+	collector := plugin.NewCollector(logger)
+	enabledPluginExecutors := collector.GetAllEnabledAndUsedPlugins(conf)
 	pluginManager := plugin.NewManager(logger, conf.Plugins, enabledPluginExecutors)
 
 	err = pluginManager.Start(ctx)

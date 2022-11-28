@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,9 +21,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
-
-// ErrNotStartedPluginManager is an error returned when Plugin Manager was not yet started and initialized successfully.
-var ErrNotStartedPluginManager = errors.New("plugin manager is not started yet")
 
 const (
 	executorPluginName = "executor"
@@ -75,7 +71,22 @@ func (m *Manager) Start(ctx context.Context) error {
 		"enabledExecutors": strings.Join(m.executorsToEnable, ","),
 	}).Info("Starting Plugin Manager for all enabled plugins")
 
-	if err := m.loadRepositoriesMetadata(ctx); err != nil {
+	err := m.start(ctx, false)
+	switch {
+	case err == nil:
+	case IsNotFoundError(err):
+		m.log.Infof("%s. Retrying Plugin Manager start with forced repo index update.", err)
+		return m.start(ctx, true)
+	default:
+		return err
+	}
+
+	m.isStarted.Store(true)
+	return nil
+}
+
+func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
+	if err := m.loadRepositoriesMetadata(ctx, forceUpdate); err != nil {
 		return err
 	}
 
@@ -83,13 +94,12 @@ func (m *Manager) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	executorClients, err := createGRPCClients[executor.Executor](executorPlugins, executorPluginName)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
 	m.executorsStore.EnabledPlugins = executorClients
-
-	m.isStarted.Store(true)
 	return nil
 }
 
@@ -129,7 +139,7 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 	for _, pluginKey := range pluginsToEnable {
 		candidates, found := repo[pluginKey]
 		if !found || len(candidates) == 0 {
-			return nil, fmt.Errorf("not found %q plugin in any repository", pluginKey)
+			return nil, NewNotFoundPluginError("not found %q plugin in any repository", pluginKey)
 		}
 		// TODO(version): check if version is defined in plugin:
 		// - if yes, use it.
@@ -169,11 +179,18 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 	return loadedPlugins, nil
 }
 
-func (m *Manager) loadRepositoriesMetadata(ctx context.Context) error {
+func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool) error {
 	rawIndexes := map[string][]byte{}
 	for repo, url := range m.cfg.Repositories {
 		path := filepath.Join(m.cfg.CacheDir, filepath.Clean(fmt.Sprintf("%s.yaml", repo)))
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+
+		if _, err := os.Stat(path); forceUpdate || os.IsNotExist(err) {
+			m.log.WithFields(logrus.Fields{
+				"repo":        repo,
+				"url":         url,
+				"forceUpdate": forceUpdate,
+			}).Debug("Downloading repository index")
+
 			err := m.fetchIndex(ctx, path, url)
 			if err != nil {
 				return fmt.Errorf("while fetching index for %q repository: %w", repo, err)
@@ -280,7 +297,7 @@ func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info store
 
 	url, found := info.URLs[selector]
 	if !found {
-		return fmt.Errorf("cannot find download url for %s", selector)
+		return NewNotFoundPluginError("cannot find download url for %s", selector)
 	}
 
 	m.log.WithFields(logrus.Fields{

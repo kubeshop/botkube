@@ -42,6 +42,7 @@ communications:
               - kubectl-wait-cmd
               - kubectl-exec-cmd
               - kubectl-allow-all
+              - plugin-based
             sources:
               - k8s-events
               - k8s-annotated-cm-delete
@@ -166,8 +167,8 @@ executors:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]
 
-  'plugin-based': # FIXME: this should be generic? how we know which executors are enabled? what about settings?
-    botkube/echo: # <repo>/<plugin_name> is syntax for plugin based executors
+  'plugin-based':
+    botkube/echo:
       enabled: true
       config:
         changeResponseToUpperCase: true

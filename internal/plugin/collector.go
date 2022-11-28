@@ -1,12 +1,24 @@
 package plugin
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+// Collector provides functionality to collect all enabled plugins based on the Botkube configuration.
+type Collector struct {
+	log logrus.FieldLogger
+}
+
+// NewCollector returns a new Collector instance.
+func NewCollector(log logrus.FieldLogger) *Collector {
+	return &Collector{log: log}
+}
+
 // GetAllEnabledAndUsedPlugins returns the list of all plugins that are both enabled and bind to at
 // least one communicator that is also enabled.
-func GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
+func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
 	// Collect all used executor
 	bindExecutors := map[string]struct{}{}
 
@@ -50,11 +62,19 @@ func GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
 	var usedExecutorPlugins []string
 	for groupName, groupItems := range cfg.Executors {
 		for name, executor := range groupItems.Plugins {
+			l := c.log.WithFields(logrus.Fields{
+				"groupName": groupName,
+				"pluginKey": name,
+			})
+
 			if !executor.Enabled {
+				l.Debug("Executor plugin defined but not enabled.")
 				continue
 			}
+
 			_, found := bindExecutors[groupName]
 			if !found {
+				l.Debug("Executor plugin defined and enabled but not used by any platform")
 				continue
 			}
 
