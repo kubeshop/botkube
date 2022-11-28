@@ -14,7 +14,7 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
 
 ### Prerequisites
 
-- Botkube bot app configured for a Slack workspace according to the [instruction](https://docs.botkube.io/installation/slack/)
+- Botkube bot app configured for a Slack workspace according to the [instruction](https://docs.botkube.io/0.15/installation/slack/)
 - Botkube tester app configured according to the [instruction](#configure-tester-slack-application)
 
 ### Configure Tester Slack application
