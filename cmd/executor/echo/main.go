@@ -30,7 +30,7 @@ func (EchoExecutor) Execute(_ context.Context, req *executor.ExecuteRequest) (*e
 	}
 
 	return &executor.ExecuteResponse{
-		Data: data,
+		Data: data + "v2",
 	}, nil
 }
 

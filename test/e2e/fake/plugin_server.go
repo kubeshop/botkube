@@ -1,4 +1,4 @@
-package e2e
+package fake
 
 import (
 	"fmt"
@@ -15,18 +15,22 @@ import (
 
 const (
 	executorBinaryPrefix = "executor_"
+	sourceBinaryPrefix   = "source_"
 	indexFileEndpoint    = "/botkube.yaml"
 )
 
-type PluginsConfig struct {
-	BinariesDirectory string `envconfig:"default=dist"`
-	Server            struct {
+type (
+	PluginConfig struct {
+		BinariesDirectory string
+		Server            PluginServer
+	}
+	PluginServer struct {
 		Host string `envconfig:"default=http://host.k3d.internal"`
 		Port int    `envconfig:"default=3000"`
 	}
-}
+)
 
-func NewPluginServer(cfg PluginsConfig) (string, func() error) {
+func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	fs := http.FileServer(http.Dir(cfg.BinariesDirectory))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
@@ -75,33 +79,19 @@ func buildIndex(urlBasePath string, dir string) (plugin.Index, error) {
 		if entry.IsDir() {
 			continue
 		}
-		if !strings.HasPrefix(entry.Name(), executorBinaryPrefix) {
-			continue
-		}
 
-		parts := strings.Split(entry.Name(), "_")
-		if len(parts) != 4 {
-			return plugin.Index{}, fmt.Errorf("path %s doesn't follow required pattern <plugin_type>_<plugin_name>_<os>_<arch>", entry.Name())
-		}
-
-		name, os, arch := parts[1], parts[2], parts[3]
-		item, found := entries[name]
-		if !found {
-			item = plugin.IndexEntry{
-				Name:        name,
-				Type:        plugin.TypeExecutor,
-				Description: "Executor description",
-				Version:     "v0.1.0",
+		switch {
+		case strings.HasPrefix(entry.Name(), executorBinaryPrefix):
+			err := appendEntry(entries, entry.Name(), "Executor description", urlBasePath, plugin.TypeExecutor)
+			if err != nil {
+				return plugin.Index{}, err
+			}
+		case strings.HasPrefix(entry.Name(), sourceBinaryPrefix):
+			err := appendEntry(entries, entry.Name(), "Source description", urlBasePath, plugin.TypeSource)
+			if err != nil {
+				return plugin.Index{}, err
 			}
 		}
-		item.URLs = append(item.URLs, plugin.IndexURL{
-			URL: fmt.Sprintf("%s/static/%s", urlBasePath, entry.Name()),
-			Platform: plugin.IndexURLPlatform{
-				OS:   os,
-				Arch: arch,
-			},
-		})
-		entries[name] = item
 	}
 
 	var out plugin.Index
@@ -109,4 +99,32 @@ func buildIndex(urlBasePath string, dir string) (plugin.Index, error) {
 		out.Entries = append(out.Entries, item)
 	}
 	return out, nil
+}
+
+func appendEntry(entries map[string]plugin.IndexEntry, entryName, desc, urlBasePath string, pluginType plugin.Type) error {
+	parts := strings.Split(entryName, "_")
+	if len(parts) != 4 {
+		return fmt.Errorf("path %s doesn't follow required pattern <plugin_type>_<plugin_name>_<os>_<arch>", entryName)
+	}
+
+	name, os, arch := parts[1], parts[2], parts[3]
+	item, found := entries[name]
+	if !found {
+		item = plugin.IndexEntry{
+			Name:        name,
+			Type:        pluginType,
+			Description: desc,
+			Version:     "v0.1.0",
+		}
+	}
+	item.URLs = append(item.URLs, plugin.IndexURL{
+		URL: fmt.Sprintf("%s/static/%s", urlBasePath, entryName),
+		Platform: plugin.IndexURLPlatform{
+			OS:   os,
+			Arch: arch,
+		},
+	})
+	entries[name] = item
+
+	return nil
 }

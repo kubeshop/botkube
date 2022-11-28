@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "pkg/api/source";
+
+package source;
+
+message StreamResponse {
+	// Output represents the streamed Source events. It is from start of Source execution.
+	bytes output = 1;
+}
+
+service Source {
+  rpc Stream(google.protobuf.Empty) returns (stream StreamResponse) {}
+}

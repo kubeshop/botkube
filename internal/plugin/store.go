@@ -41,42 +41,53 @@ func newStore[T any]() store[T] {
 	}
 }
 
-func newStoreRepository(indexes map[string][]byte) (storeRepository, error) {
-	executorsRepository := storeRepository{}
+func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepository, error) {
+	var (
+		executorsRepositories = storeRepository{}
+		sourcesRepositories   = storeRepository{}
+	)
 
 	for repo, data := range indexes {
 		var index Index
 		if err := yaml.Unmarshal(data, &index); err != nil {
-			return nil, fmt.Errorf("while unmarshaling index: %w", err)
+			fmt.Println(string(data))
+			return nil, nil, fmt.Errorf("while unmarshaling index: %w", err)
 		}
 
 		for _, entry := range index.Entries {
 			// omit version, as we want to collect plugins with different version together
 			key, err := BuildPluginKey(repo, entry.Name, "")
 			if err != nil {
-				return nil, fmt.Errorf("while building key for entry in %s repository: %w", repo, err)
+				return nil, nil, fmt.Errorf("while building key for entry in %s repository: %w", repo, err)
 			}
 
 			switch entry.Type {
 			case TypeExecutor:
-				executorsRepository[key] = append(executorsRepository[key], storeEntry{
+				executorsRepositories[key] = append(executorsRepositories[key], storeEntry{
 					Description: entry.Description,
 					Version:     entry.Version,
 					URLs:        mapBinaryURLs(entry.URLs),
 				})
 			case TypeSource:
-				// TODO(plugin-sources): add me.
+				sourcesRepositories[key] = append(sourcesRepositories[key], storeEntry{
+					Description: entry.Description,
+					Version:     entry.Version,
+					URLs:        mapBinaryURLs(entry.URLs),
+				})
 			}
 		}
 	}
 
 	// sort loaded entries by version
-	for key := range executorsRepository {
-		sort.Sort(byIndexEntryVersion(executorsRepository[key]))
+	for key := range executorsRepositories {
+		sort.Sort(byIndexEntryVersion(executorsRepositories[key]))
 	}
-	// TODO(plugin-sources): add sorting
 
-	return executorsRepository, nil
+	for key := range sourcesRepositories {
+		sort.Sort(byIndexEntryVersion(sourcesRepositories[key]))
+	}
+
+	return executorsRepositories, sourcesRepositories, nil
 }
 
 func mapBinaryURLs(in []IndexURL) map[string]string {

@@ -54,7 +54,7 @@ func TestNewStoreRepository(t *testing.T) {
 	}
 
 	// when
-	executors, err := newStoreRepository(repositories)
+	executors, _, err := newStoreRepositories(repositories)
 
 	// then
 	require.NoError(t, err)

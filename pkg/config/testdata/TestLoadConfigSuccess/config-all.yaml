@@ -104,6 +104,7 @@ communications: # req 1 elm.
 
 sources:
   'k8s-events':
+    displayName: "Plugins & Builtins"
 
     kubernetes:
       recommendations:
@@ -203,6 +204,11 @@ sources:
             fields:
               - spec.template.spec.containers[*].image
               - status.readyReplicas
+
+    botkube/keptn:
+      enabled: true
+      config:
+        field: value
 
 filters:
   kubernetes:

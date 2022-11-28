@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources build-plugins
+.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources build-plugins build-plugins-single
 
 # Show this help.
 help:
@@ -28,9 +28,16 @@ build: pre-build
 	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
 	@echo "Build completed successfully"
 
+# Build Botkube official plugins for all supported platforms.
 build-plugins: pre-build
 	@echo "Building plugins binaries"
 	@./hack/goreleaser.sh build_plugins
+	@echo "Build completed successfully"
+
+# Build Botkube official plugins only for current GOOS and GOARCH.
+build-plugins-single: pre-build
+	@echo "Building single target plugins binaries"
+	@./hack/goreleaser.sh build_plugins_single
 	@echo "Build completed successfully"
 
 # Build the image

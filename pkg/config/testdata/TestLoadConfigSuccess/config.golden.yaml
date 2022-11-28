@@ -10,7 +10,7 @@ actions:
                 - kubectl-read-only
 sources:
     k8s-events:
-        displayName: ""
+        displayName: Plugins & Builtins
         kubernetes:
             recommendations:
                 ingress:
@@ -271,6 +271,11 @@ sources:
                 my-annotation: "true"
             labels:
                 my-label: "true"
+        plugins:
+            botkube/keptn:
+                enabled: true
+                config:
+                    field: value
 executors:
     kubectl-read-only:
         kubectl:

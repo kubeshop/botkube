@@ -30,6 +30,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/internal/source"
 	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot"
@@ -43,7 +44,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
-	"github.com/kubeshop/botkube/pkg/source"
 )
 
 const (
@@ -100,8 +100,8 @@ func run() error {
 	errGroup, ctx := errgroup.WithContext(ctx)
 
 	collector := plugin.NewCollector(logger)
-	enabledPluginExecutors := collector.GetAllEnabledAndUsedPlugins(conf)
-	pluginManager := plugin.NewManager(logger, conf.Plugins, enabledPluginExecutors)
+	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
+	pluginManager := plugin.NewManager(logger, conf.Plugins, enabledPluginExecutors, enabledPluginSources)
 
 	err = pluginManager.Start(ctx)
 	if err != nil {
@@ -321,6 +321,13 @@ func run() error {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 	router.AddEnabledActionBindings(conf.Actions)
+
+	// TODO: temporary dispatcher for events
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, enabledPluginSources)
+	err = sourcePluginDispatcher.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
+	}
 
 	// Create and start controller
 	ctrl := controller.New(

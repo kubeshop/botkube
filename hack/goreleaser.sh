@@ -96,6 +96,10 @@ build_plugins() {
   goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot
 }
 
+build_plugins_single() {
+  goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot --single-target
+}
+
 build_single() {
   export IMAGE_TAG=v9.99.9-dev
   docker run --rm --privileged \
@@ -126,6 +130,9 @@ case "${1}" in
     ;;
   build_plugins)
     build_plugins
+    ;;
+  build_plugins_single)
+    build_plugins_single
     ;;
   build_single)
     build_single

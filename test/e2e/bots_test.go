@@ -22,6 +22,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine/filters"
+	"github.com/kubeshop/botkube/test/e2e/fake"
 )
 
 type Config struct {
@@ -41,7 +42,7 @@ type Config struct {
 			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE"`
 		}
 	}
-	Plugins   PluginsConfig
+	Plugins   fake.PluginConfig
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
@@ -153,7 +154,7 @@ func runBotTest(t *testing.T,
 	require.NoError(t, err)
 
 	t.Log("Starting plugin server...")
-	indexEndpoint, startServerFn := NewPluginServer(appCfg.Plugins)
+	indexEndpoint, startServerFn := fake.NewPluginServer(appCfg.Plugins)
 	go func() {
 		require.NoError(t, startServerFn())
 	}()

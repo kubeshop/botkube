@@ -18,12 +18,14 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const (
 	executorPluginName = "executor"
+	sourcePluginName   = "source"
 	dirPerms           = 0o775
 	binPerms           = 0o755
 	filePerms          = 0o664
@@ -33,8 +35,7 @@ const (
 // This map is used in order to identify a plugin called Dispense.
 // This map is globally available and must stay consistent in order for all the plugins to work.
 var pluginMap = map[string]plugin.Plugin{
-	// TODO(plugin-sources): add me:
-	//sourcePluginName:   &source.Plugin{},
+	sourcePluginName:   &source.Plugin{},
 	executorPluginName: &executor.Plugin{},
 }
 
@@ -47,28 +48,34 @@ type Manager struct {
 
 	executorsToEnable []string
 	executorsStore    store[executor.Executor]
+
+	sourcesStore    store[source.Source]
+	sourcesToEnable []string
 }
 
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, cfg config.Plugins, executors []string) *Manager {
+func NewManager(logger logrus.FieldLogger, cfg config.Plugins, executors, sources []string) *Manager {
 	return &Manager{
 		cfg:               cfg,
 		httpClient:        newHTTPClient(),
 		executorsToEnable: executors,
 		executorsStore:    newStore[executor.Executor](),
+		sourcesToEnable:   sources,
+		sourcesStore:      newStore[source.Source](),
 		log:               logger.WithField("component", "Plugin Manager"),
 	}
 }
 
 // Start downloads and starts all enabled plugins.
 func (m *Manager) Start(ctx context.Context) error {
-	if len(m.executorsToEnable) == 0 {
+	if len(m.executorsToEnable) == 0 && len(m.sourcesToEnable) == 0 {
 		m.log.Info("No external plugins are enabled.")
 		return nil
 	}
 
 	m.log.WithFields(logrus.Fields{
 		"enabledExecutors": strings.Join(m.executorsToEnable, ","),
+		"enabledSources":   strings.Join(m.sourcesToEnable, ","),
 	}).Info("Starting Plugin Manager for all enabled plugins")
 
 	err := m.start(ctx, false)
@@ -100,6 +107,17 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
 	m.executorsStore.EnabledPlugins = executorClients
+
+	sourcesPlugins, err := m.loadPlugins(ctx, sourcePluginName, m.sourcesToEnable, m.sourcesStore.Repository)
+	if err != nil {
+		return err
+	}
+	sourcesClients, err := createGRPCClients[source.Source](sourcesPlugins, sourcePluginName)
+	if err != nil {
+		return fmt.Errorf("while creating source plugins: %w", err)
+	}
+	m.sourcesStore.EnabledPlugins = sourcesClients
+
 	return nil
 }
 
@@ -111,7 +129,21 @@ func (m *Manager) GetExecutor(name string) (executor.Executor, error) {
 
 	client, found := m.executorsStore.EnabledPlugins[name]
 	if !found || client.Client == nil {
-		return nil, fmt.Errorf("client for plugin %q not found", name)
+		return nil, fmt.Errorf("client for executor plugin %q not found", name)
+	}
+
+	return client.Client, nil
+}
+
+// GetSource returns the source client for a given plugin.
+func (m *Manager) GetSource(name string) (source.Source, error) {
+	if !m.isStarted.Load() {
+		return nil, ErrNotStartedPluginManager
+	}
+
+	client, found := m.sourcesStore.EnabledPlugins[name]
+	if !found || client.Client == nil {
+		return nil, fmt.Errorf("client for source plugin %q not found", name)
 	}
 
 	return client.Client, nil
@@ -121,7 +153,13 @@ func (m *Manager) GetExecutor(name string) (executor.Executor, error) {
 // This method blocks until all cleanup is finished.
 func (m *Manager) Shutdown() {
 	var wg sync.WaitGroup
-	for _, p := range m.executorsStore.EnabledPlugins {
+	releasePlugins(&wg, m.sourcesStore.EnabledPlugins)
+	releasePlugins(&wg, m.executorsStore.EnabledPlugins)
+	wg.Wait()
+}
+
+func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins storePlugins[T]) {
+	for _, p := range enabledPlugins {
 		wg.Add(1)
 
 		go func(close func()) {
@@ -131,7 +169,6 @@ func (m *Manager) Shutdown() {
 			wg.Done()
 		}(p.Cleanup)
 	}
-	wg.Wait()
 }
 
 func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
@@ -205,11 +242,12 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool
 		rawIndexes[repo] = data
 	}
 
-	executorsRepos, err := newStoreRepository(rawIndexes)
+	executorsRepos, sourcesRepos, err := newStoreRepositories(rawIndexes)
 	if err != nil {
-		return fmt.Errorf("while building executors repository store: %w", err)
+		return fmt.Errorf("while building repositories store: %w", err)
 	}
 	m.executorsStore.Repository = executorsRepos
+	m.sourcesStore.Repository = sourcesRepos
 
 	return nil
 }
