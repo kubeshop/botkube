@@ -104,7 +104,7 @@ func (h *HelpMessage) footer() []Section {
 	return []Section{
 		{
 			Buttons: []Button{
-				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io/docs"),
+				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
 				h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
 				h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 			},
