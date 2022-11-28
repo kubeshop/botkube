@@ -4,7 +4,7 @@ Created on 2022-11-22 by Mateusz Szostok ([@mszostok](https://github.com/mszosto
 
 | Status     |
 |------------|
-| `PROPOSED` |
+| `ACCEPTED` |
 
 <!-- TOC -->
   * [New syntax](#new-syntax)
