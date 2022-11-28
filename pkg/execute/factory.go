@@ -23,6 +23,7 @@ type DefaultExecutorFactory struct {
 	notifierExecutor  *NotifierExecutor
 	kubectlExecutor   *Kubectl
 	editExecutor      *EditExecutor
+	actionExecutor    *ActionExecutor
 	merger            *kubectl.Merger
 	cfgManager        ConfigPersistenceManager
 	kubectlCmdBuilder *KubectlCmdBuilder
@@ -52,6 +53,7 @@ type ConfigPersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
+	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
@@ -101,6 +103,12 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.CfgManager,
 			params.Cfg,
 		),
+		actionExecutor: NewActionExecutor(
+			params.Log.WithField("component", "Botkube Action Executor"),
+			params.AnalyticsReporter,
+			params.CfgManager,
+			params.Cfg,
+		),
 		merger:          params.Merger,
 		cfgManager:      params.CfgManager,
 		kubectlExecutor: kcExecutor,
@@ -137,6 +145,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		kubectlExecutor:   f.kubectlExecutor,
 		notifierExecutor:  f.notifierExecutor,
 		editExecutor:      f.editExecutor,
+		actionExecutor:    f.actionExecutor,
 		filterEngine:      f.filterEngine,
 		merger:            f.merger,
 		cfgManager:        f.cfgManager,

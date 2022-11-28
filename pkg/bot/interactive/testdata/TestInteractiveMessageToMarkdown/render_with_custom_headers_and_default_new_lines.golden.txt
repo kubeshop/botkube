@@ -22,7 +22,17 @@ Check the status of connected Kubernetes cluster(s).
 By default, Botkube will notify only about cluster errors and recommendations.
   - `@Botkube edit SourceBindings`
 
+*Manage automated actions*
+```
+@Botkube [list|enable|disable] action [action name]
+```
+  - `@Botkube list actions`
+
 *Run kubectl commands (if enabled)*
+:warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
+
+e.g. `@Botkube k get pods` instead of `@Botkube get pods`
+
 You can run kubectl commands directly from Platform!
   - `@Botkube kubectl get services`
   - `@Botkube kubectl get pods`
@@ -32,11 +42,11 @@ To list all supported kubectl commands
   - `@Botkube commands list`
 
 *Filters (advanced)*
-You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters
+You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters
 
 *Angry? Amazed?*
 Give feedback: https://feedback.botkube.io
 
-Read our docs: https://botkube.io/docs
+Read our docs: https://docs.botkube.io
 Join our Slack: https://join.botkube.io
 Follow us on Twitter: https://twitter.com/botkube_io

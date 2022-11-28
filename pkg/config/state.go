@@ -14,6 +14,26 @@ import (
 // RuntimeState represents the runtime state.
 type RuntimeState struct {
 	Communications map[string]CommunicationsRuntimeState `yaml:"communications,omitempty"`
+	Actions        ActionsRuntimeState                   `yaml:"actions,omitempty"`
+}
+
+// ActionsRuntimeState are the actions persisted in runtime state
+type ActionsRuntimeState map[string]ActionRuntimeState
+
+// ActionRuntimeState is the action persisted in runtime state
+type ActionRuntimeState struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+// SetEnabled sets ActionRuntimeState "name" to "enabled" if action is found
+// otherwise returns error
+func (a *ActionsRuntimeState) SetEnabled(name string, enabled bool) error {
+	if action, ok := (*a)[name]; ok {
+		action.Enabled = enabled
+		(*a)[name] = action
+		return nil
+	}
+	return fmt.Errorf("action with name %q not found", name)
 }
 
 // MarshalToMap marshals the runtime state to a string map.
@@ -113,7 +133,7 @@ func (s *configMapStorage[T]) Get(ctx context.Context) (T, *v1.ConfigMap, error)
 	var state T
 	runtimeStateStr, exists := cm.Data[s.cfg.FileName]
 	if !exists {
-		return emptyState, nil, nil
+		return emptyState, cm, nil
 	}
 
 	err = yaml.Unmarshal([]byte(runtimeStateStr), &state)

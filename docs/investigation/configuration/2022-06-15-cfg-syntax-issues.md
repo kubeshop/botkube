@@ -345,7 +345,7 @@ The API is cleaner, but we still need to be able to configure a given "notifier/
 
 ### Issues
 
-- You are not able to "disable/enable" them via config. It needs to be done via [`@Botkube filters list/disable/enable`](https://botkube.io/usage/#manage-filters) command.
+- You are not able to "disable/enable" them via config. It needs to be done via [`@Botkube filters list/disable/enable`](https://docs.botkube.io/usage/filters/#manage-filters) command.
 - The filter package holds not only functionality to "filter" objects but also to mutate or validate them. For example:
 
     | Name                          | Type      | Description                                                                                                         |

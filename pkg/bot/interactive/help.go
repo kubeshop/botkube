@@ -38,6 +38,7 @@ func (h *HelpMessage) Build() Message {
 	var sections = []getter{
 		h.cluster,
 		h.notificationSections,
+		h.actionSections,
 		h.kubectlSections,
 		h.filters,
 		h.feedback,
@@ -79,7 +80,7 @@ func (h *HelpMessage) filters() []Section {
 			Base: Base{
 				Header: "Filters (advanced)",
 				Body: Body{
-					Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://botkube.io/filters",
+					Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters",
 				},
 			},
 		},
@@ -103,7 +104,7 @@ func (h *HelpMessage) footer() []Section {
 	return []Section{
 		{
 			Buttons: []Button{
-				h.btnBuilder.ForURL("Read our docs", "https://botkube.io/docs"),
+				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
 				h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
 				h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 			},
@@ -138,12 +139,37 @@ func (h *HelpMessage) notificationSections() []Section {
 	}
 }
 
+func (h *HelpMessage) actionSections() []Section {
+	return []Section{
+		{
+			Base: Base{
+				Header: "Manage automated actions",
+				Body: Body{
+					CodeBlock: fmt.Sprintf("%s [list|enable|disable] action [action name]\n", h.botName),
+				},
+			},
+			Buttons: []Button{
+				h.btnBuilder.ForCommandWithoutDesc("List available actions", "list actions"),
+			},
+		},
+	}
+}
+
 func (h *HelpMessage) kubectlSections() []Section {
+	// TODO(https://github.com/kubeshop/botkube/issues/802): remove this warning in after releasing 0.17.
+	warn := ":warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.\n\ne.g. `@Botkube k get pods` instead of `@Botkube get pods`\n"
+
 	if h.platform == config.SocketSlackCommPlatformIntegration {
 		return []Section{
 			{
 				Base: Base{
-					Header: "Interactive kubectl - no typing!",
+					Header:      "Interactive kubectl - no typing!",
+					Description: warn,
+				},
+			},
+			{
+				Base: Base{
+					Description: "Build kubectl commands interactively",
 				},
 				Buttons: []Button{
 					h.btnBuilder.ForCommandWithDescCmd("kubectl", "kubectl", ButtonStylePrimary),
@@ -165,7 +191,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 		{
 			Base: Base{
 				Header:      "Run kubectl commands (if enabled)",
-				Description: fmt.Sprintf("You can run kubectl commands directly from %s!", cases.Title(language.English).String(string(h.platform))),
+				Description: fmt.Sprintf("%s\nYou can run kubectl commands directly from %s!", warn, cases.Title(language.English).String(string(h.platform))),
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get services"),
