@@ -119,6 +119,8 @@ executors:
       aliases: [ "kc", "k" ]
 ```
 
+With such configuration, the `kubectl` executor plugin can be used with the following command prefixes: `kubectl`, `kc` and `k`.
+
 ### Validating plugin configuration
 
 We introduce a basic validation to make sure that:
@@ -172,23 +174,23 @@ We introduce a basic validation to make sure that:
            commands:
              verbs: ["get","logs","top"]
    ```
-	 ```yaml
-	 executors:
-		 'plugin-based':
-			 botkube/kubectl@v1.0.0:
-				 enabled: true
-				 config:
-					 namespaces:
-						 include: ["botkube", "default","ambassador"]
-					 commands:
-						 verbs: ["get","logs","top"]
-						 resources: ["pods","deployments","nodes","configmap"]
-			 botkube/kubectl@v1.2.0:  # not allowed as it is conflicting with already registered 'kubectl' from the Botkube repository in different version.
-				 enabled: true
-				 config:
-					 commands:
-						 verbs: ["get","logs","top"]
-	 ```
+   ```yaml
+   executors:
+     'plugin-based':
+       botkube/kubectl@v1.0.0:
+         enabled: true
+         config:
+           namespaces:
+             include: ["botkube", "default","ambassador"]
+           commands:
+             verbs: ["get","logs","top"]
+             resources: ["pods","deployments","nodes","configmap"]
+       botkube/kubectl@v1.2.0:  # not allowed as it is conflicting with already registered 'kubectl' from the Botkube repository in different version.
+         enabled: true
+         config:
+           commands:
+             verbs: ["get","logs","top"]
+   ```
    </details>
 
 3. We cannot have bindings to the same executor but from different repositories or versions:
@@ -271,8 +273,8 @@ Current Botkube implementation allows you to specify different executor and sour
 
 To support the same experience for plugins, we need to pass a list of configuration each time we run the:
 
-- `Execute` method for executor plugins
-- `Source` method for source plugins
+- `Execute` method for executor plugins, invoked when user runs a given command,
+- `Source` method for source plugins, invoked during Botkube startup.
 
 We pass an array of strings, so later they can be unmarshalled by a given plugin and merged based on custom business logic.
 
@@ -418,14 +420,13 @@ cache-dir
 
 Before downloading index file or plugin binaries, Botkube checks whether a given file already exist. If yes, no action is taken.
 
-### Do we want to decouple the interfaces between plugin Go implementation and gRPC?
+### Decoupling interfaces between Go implementation and gRPC
 
-I don't have a strong opinion here. For now, I reuse the generated struct from the Protocol Buffers.
+For now, we will reuse the generated struct from the Protocol Buffers.
 
-### Do we want to have a separate go mod for each executor/source?
+### Separate Go modules for each plugin
 
-I don't have a strong opinion here. For now, just for the sake of simplicity I would stay with shared dependencies as long as we don't extract full the `kubectl` executor and `kubernetes` source as external plugins.
-Later we can revisit this decision.
+For now, we'll keep the shared dependencies as long as we don't extract the `kubectl` executor and `kubernetes` source as external plugins. Later we can revisit this decision as it can bring additional benefits, such as shorter build time and reduced binary size.
 
 ### Botkube directory structure
 
@@ -451,7 +452,7 @@ Later we can revisit this decision.
 
 ## Alternatives
 
-Other approaches that I consider but were introducing too many complications.
+Other approaches that were considered but rejected because of the complexity.
 
 <details>
   <summary>Discarded alternative</summary>
@@ -538,5 +539,6 @@ entries:
           os: linux
 ```
 
-Optionally
+Another option is to use the `aliases/prefixes` property not only to specify the aliases for a given plugin but also the plugin name too. As a result, we can avoid conflicts when the same name is used for a different executors. This can be added later, once requested by end-users.
+
 </details>
