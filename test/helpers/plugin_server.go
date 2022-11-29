@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubeshop/botkube/test/e2e/fake"
+	"github.com/kubeshop/botkube/test/fake"
 )
 
 func main() {

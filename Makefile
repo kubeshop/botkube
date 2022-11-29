@@ -18,10 +18,10 @@ test: system-check
 	@go test -v  -race ./...
 
 test-integration-slack: system-check
-	@go test -v -tags=integration -race -count=1 ./test/... -run "TestSlack"
+	@go test -v -tags=integration -race -count=1 ./test/e2e/... -run "TestSlack"
 
 test-integration-discord: system-check
-	@go test -v -tags=integration -race -count=1 ./test/... -run "TestDiscord"
+	@go test -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
 
 # Build the binary
 build: pre-build

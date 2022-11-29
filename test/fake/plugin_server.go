@@ -20,16 +20,20 @@ const (
 )
 
 type (
+	// PluginConfig holds configuration for fake plugin server.
 	PluginConfig struct {
 		BinariesDirectory string
 		Server            PluginServer
 	}
+
+	// PluginServer holds configuration for HTTP plugin server.
 	PluginServer struct {
 		Host string `envconfig:"default=http://host.k3d.internal"`
 		Port int    `envconfig:"default=3000"`
 	}
 )
 
+// NewPluginServer return function to start the fake plugin HTTP server.
 func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	fs := http.FileServer(http.Dir(cfg.BinariesDirectory))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))

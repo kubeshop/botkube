@@ -20,6 +20,7 @@ communications:
               - k8s-events
               - k8s-annotated-cm-delete
               - k8s-pod-create-events
+              - plugin-based
         'secondary':
           name: "" # Tests will override this temporarily
           notification:
@@ -47,6 +48,7 @@ communications:
               - k8s-events
               - k8s-annotated-cm-delete
               - k8s-pod-create-events
+              - plugin-based
         'secondary':
           id: "" # Tests will override this channel ID temporarily
           notification:
@@ -120,6 +122,13 @@ sources:
           event: # overrides top level `event` entry
             types:
               - update
+
+  'plugin-based':
+    botkube/cm-watcher:
+      enabled: true
+      config:
+        configMapName: cm-watcher-trigger
+
 executors:
   'kubectl-read-only':
     kubectl:

@@ -323,7 +323,7 @@ func run() error {
 	router.AddEnabledActionBindings(conf.Actions)
 
 	// TODO: temporary dispatcher for events
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, enabledPluginSources)
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, conf)
 	err = sourcePluginDispatcher.Start(ctx)
 	if err != nil {
 		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
