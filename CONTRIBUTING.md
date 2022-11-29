@@ -151,7 +151,7 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    export BOTKUBE_PLUGINS_CACHE__DIR="/tmp/plugins"
    ```
 
-3. Each time you make a change to [source](cmd/source) or [executors](cmd/executor) plugins, run:
+3. In other terminal window, run:
 
    ```bash
    # rebuild plugins only for current GOOS and GOARCH
@@ -161,6 +161,9 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    # start botkube to download fresh plugins
    ./botkube
    ```
+
+   > **Note**
+   > Each time you make a change to the [source](cmd/source) or [executors](cmd/executor) plugins re-run the above command.
 
 ## Making A Change
 
