@@ -9,5 +9,8 @@ settings:
     name: botkube-system
     namespace: botkube
 
+plugins:
+  cacheDir: "/tmp"
+
 analytics:
   disable: false

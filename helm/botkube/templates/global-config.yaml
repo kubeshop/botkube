@@ -28,5 +28,8 @@ data:
     configWatcher:
       {{- .Values.configWatcher | toYaml | nindent 6 }}
 
+    plugins:
+      {{- .Values.plugins | toYaml | nindent 6 }}
+
     analytics:
       disable: {{ .Values.analytics.disable }}

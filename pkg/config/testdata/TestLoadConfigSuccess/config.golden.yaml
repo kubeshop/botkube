@@ -304,6 +304,15 @@ executors:
                     - nodes
             defaultNamespace: default
             restrictAccess: false
+        plugins: {}
+    plugin-based:
+        kubectl:
+            enabled: false
+        plugins:
+            botkube/echo:
+                enabled: true
+                config:
+                    changeResponseToUpperCase: true
 communications:
     default-workspace:
         slack:
@@ -443,3 +452,7 @@ configWatcher:
     enabled: false
     initialSyncTimeout: 0s
     tmpDir: ""
+plugins:
+    cacheDir: /tmp
+    repositories:
+        botkube: http://localhost:3000/botkube.yaml

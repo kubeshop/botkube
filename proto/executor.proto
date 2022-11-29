@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "pkg/api/executor";
+
+package executor;
+
+service Executor {
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
+}
+
+message ExecuteRequest {
+  string command = 1;
+}
+
+message ExecuteResponse {
+  string data = 1;
+}

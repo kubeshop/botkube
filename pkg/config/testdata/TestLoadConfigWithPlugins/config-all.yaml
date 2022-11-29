@@ -1,3 +1,32 @@
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      token: 'SLACK_API_TOKEN'
+      notification:
+        type: short
+
+sources:
+  'k8s-events':
+
+    kubernetes:
+      events:
+        - create
+        - delete
+        - error
+      namespaces:
+        include: [ ".*" ]
+      resources:
+        - name: v1/pods
+
 executors:
   'kubectl-read-only':
     # Kubectl executor configs

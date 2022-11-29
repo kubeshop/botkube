@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"botkube.io/demo/internal/meme"
 	"github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
+
+	"botkube.io/demo/internal/meme"
 )
 
 // Config holds the application configuration.

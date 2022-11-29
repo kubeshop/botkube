@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -56,6 +57,7 @@ type DefaultExecutor struct {
 	analyticsReporter AnalyticsReporter
 	cmdRunner         CommandSeparateOutputRunner
 	kubectlExecutor   *Kubectl
+	pluginExecutor    *PluginExecutor
 	editExecutor      *EditExecutor
 	actionExecutor    *ActionExecutor
 	notifierExecutor  *NotifierExecutor
@@ -125,7 +127,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return e.respond(err.Error(), rawCmd, "", botName)
 	}
 
-	args := strings.Fields(rawCmd)
+	args, err := shellwords.Parse(strings.TrimSpace(execFilter.FilteredCommand()))
+	if err != nil {
+		e.log.Errorf("while parsing command %q: %s", execFilter.FilteredCommand(), err.Error())
+		return e.respond("Cannot parse command. Please use 'help' to see supported commands.", rawCmd, "", botName)
+	}
+
 	if len(args) == 0 {
 		if e.conversation.IsAuthenticated {
 			return interactive.Message{
@@ -174,6 +181,24 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			return empty
 		}
 		return out
+	}
+
+	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, args)
+	if err != nil {
+		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+		e.log.Errorf("while checking if it's a plugin command: %s", err.Error())
+		return empty
+	}
+
+	if isPluginCmd {
+		e.reportCommand(e.pluginExecutor.GetCommandPrefix(args), execFilter.IsActive())
+		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, args, execFilter.FilteredCommand())
+		if err != nil {
+			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
+			e.log.Errorf("while executing plugin: %s", err.Error())
+			return empty
+		}
+		return e.respond(execFilter.Apply(out), rawCmd, execFilter.FilteredCommand(), botName)
 	}
 
 	cmds := executorsRunner{
@@ -410,6 +435,7 @@ func (e *DefaultExecutor) findK8sVersion() (string, error) {
 
 	return ver, nil
 }
+
 func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
 	k8sVersion, err := e.findK8sVersion()
 	if err != nil {

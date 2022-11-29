@@ -19,7 +19,7 @@ import (
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 )
 
-func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, driverType DriverType, channels map[string]Channel) func(t *testing.T) {
+func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, driverType DriverType, channels map[string]Channel, pluginRepoURL string) func(t *testing.T) {
 	t.Helper()
 
 	deployment, err := deployNsCli.Get(context.Background(), appCfg.Deployment.Name, metav1.GetOptions{})
@@ -49,7 +49,12 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		require.NoError(t, err)
 	}
 
-	var newEnvs []v1.EnvVar
+	newEnvs := []v1.EnvVar{
+		{
+			Name:  appCfg.Deployment.Envs.BotkubePluginRepoURL,
+			Value: pluginRepoURL,
+		},
+	}
 
 	if len(channels) > 0 && driverType == SlackBot {
 		slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName

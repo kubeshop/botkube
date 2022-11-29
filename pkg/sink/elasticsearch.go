@@ -131,6 +131,7 @@ type mapping struct {
 type settings struct {
 	Index index `json:"index"`
 }
+
 type index struct {
 	Shards   int `json:"number_of_shards"`
 	Replicas int `json:"number_of_replicas"`
