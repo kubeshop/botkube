@@ -40,7 +40,7 @@ type CMWatcher struct{}
 
 // Stream returns a given command as response.
 func (CMWatcher) Stream(ctx context.Context) (source.StreamOutput, error) {
-	// TODO: in request we should receive the executor configuration.
+	// TODO: in request we should receive the source configurations.
 	cfg := Config{
 		ConfigMap: Object{
 			Name:      "cm-watcher-trigger",

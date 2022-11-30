@@ -145,6 +145,9 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    go run test/helpers/plugin_server.go
    ```
 
+	 > **Note**
+	 > If Botkube runs inside the k3d cluster, export the `PLUGIN_SERVER_HOST=http://host.k3d.internal` environment variable.
+
 2. Export Botkube plugins cache directory:
 
    ```bash

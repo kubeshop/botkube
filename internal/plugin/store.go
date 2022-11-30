@@ -50,7 +50,6 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 	for repo, data := range indexes {
 		var index Index
 		if err := yaml.Unmarshal(data, &index); err != nil {
-			fmt.Println(string(data))
 			return nil, nil, fmt.Errorf("while unmarshaling index: %w", err)
 		}
 

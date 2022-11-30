@@ -322,7 +322,6 @@ func run() error {
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 	router.AddEnabledActionBindings(conf.Actions)
 
-	// TODO: temporary dispatcher for events
 	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, conf)
 	err = sourcePluginDispatcher.Start(ctx)
 	if err != nil {

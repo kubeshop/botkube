@@ -14,6 +14,8 @@ communications:
   default-group:
     socketSlack:
       enabled: true
+      appToken: "xapp-testing"
+      botToken: "xoxb-testing"
       channels:
         all:  # proces1 - should use the same process as #random channel as sources order is the same
           name: all

@@ -12,11 +12,16 @@ func main() {
 	dir, err := os.Getwd()
 	exitOnErr(err)
 
+	host := os.Getenv("PLUGIN_SERVER_HOST")
+	if host == "" {
+		host = "http://localhost"
+	}
+
 	binDir := filepath.Join(dir, "dist")
 	indexEndpoint, startServerFn := fake.NewPluginServer(fake.PluginConfig{
 		BinariesDirectory: binDir,
 		Server: fake.PluginServer{
-			Host: "http://localhost",
+			Host: host,
 			Port: 3000,
 		},
 	})
