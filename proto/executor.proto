@@ -4,14 +4,17 @@ option go_package = "pkg/api/executor";
 
 package executor;
 
-service Executor {
-  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
-}
-
 message ExecuteRequest {
-  string command = 1;
+	// Holds the exact command that was specified by the user.
+	string command = 1;
+	// Holds list of config YAML definitions in order specified by user
+	repeated bytes configs = 2;
 }
 
 message ExecuteResponse {
-  string data = 1;
+	string data = 1;
+}
+
+service Executor {
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
 }

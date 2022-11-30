@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-plugin"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -25,7 +26,7 @@ const pluginName = "cm-watcher"
 type (
 	// Config holds executor configuration.
 	Config struct {
-		ConfigMap Object
+		ConfigMap Object `yaml:"configMap"`
 	}
 	// Object holds information about object to watch.
 	Object struct {
@@ -39,21 +40,40 @@ type (
 type CMWatcher struct{}
 
 // Stream returns a given command as response.
-func (CMWatcher) Stream(ctx context.Context) (source.StreamOutput, error) {
-	// TODO: in request we should receive the source configurations.
-	cfg := Config{
+func (CMWatcher) Stream(ctx context.Context, configs [][]byte) (source.StreamOutput, error) {
+	// default config
+	finalCfg := Config{
 		ConfigMap: Object{
 			Name:      "cm-watcher-trigger",
-			Namespace: "botkube",
+			Namespace: "default",
 			Event:     "ADDED",
 		},
+	}
+
+	// In our case we don't have complex merge strategy,
+	// the last one that was specified wins :)
+	for _, rawCfg := range configs {
+		var cfg Config
+		err := yaml.Unmarshal(rawCfg, &cfg)
+		if err != nil {
+			return source.StreamOutput{}, err
+		}
+		if cfg.ConfigMap.Name != "" {
+			finalCfg.ConfigMap.Name = cfg.ConfigMap.Name
+		}
+		if cfg.ConfigMap.Namespace != "" {
+			finalCfg.ConfigMap.Namespace = cfg.ConfigMap.Namespace
+		}
+		if cfg.ConfigMap.Event != "" {
+			finalCfg.ConfigMap.Event = cfg.ConfigMap.Event
+		}
 	}
 
 	out := source.StreamOutput{
 		Output: make(chan []byte),
 	}
 
-	go listenEvents(ctx, cfg.ConfigMap, out.Output)
+	go listenEvents(ctx, finalCfg.ConfigMap, out.Output)
 
 	return out, nil
 }

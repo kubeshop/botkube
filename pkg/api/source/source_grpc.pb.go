@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SourceClient interface {
-	Stream(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Source_StreamClient, error)
+	Stream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (Source_StreamClient, error)
 }
 
 type sourceClient struct {
@@ -34,7 +33,7 @@ func NewSourceClient(cc grpc.ClientConnInterface) SourceClient {
 	return &sourceClient{cc}
 }
 
-func (c *sourceClient) Stream(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Source_StreamClient, error) {
+func (c *sourceClient) Stream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (Source_StreamClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/source.Source/Stream", opts...)
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func (x *sourceStreamClient) Recv() (*StreamResponse, error) {
 // All implementations must embed UnimplementedSourceServer
 // for forward compatibility
 type SourceServer interface {
-	Stream(*emptypb.Empty, Source_StreamServer) error
+	Stream(*StreamRequest, Source_StreamServer) error
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -78,7 +77,7 @@ type SourceServer interface {
 type UnimplementedSourceServer struct {
 }
 
-func (UnimplementedSourceServer) Stream(*emptypb.Empty, Source_StreamServer) error {
+func (UnimplementedSourceServer) Stream(*StreamRequest, Source_StreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method Stream not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
@@ -95,7 +94,7 @@ func RegisterSourceServer(s grpc.ServiceRegistrar, srv SourceServer) {
 }
 
 func _Source_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(StreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}

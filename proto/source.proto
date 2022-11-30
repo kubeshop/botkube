@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
 option go_package = "pkg/api/source";
 
 package source;
@@ -11,6 +9,11 @@ message StreamResponse {
 	bytes output = 1;
 }
 
+message StreamRequest {
+	// Holds list of config YAML definitions in order specified by user
+	repeated bytes configs = 1;
+}
+
 service Source {
-  rpc Stream(google.protobuf.Empty) returns (stream StreamResponse) {}
+  rpc Stream(StreamRequest) returns (stream StreamResponse) {}
 }

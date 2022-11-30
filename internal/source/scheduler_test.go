@@ -9,6 +9,7 @@ import (
 	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -31,11 +32,11 @@ func TestStartingUniqueProcesses(t *testing.T) {
 		"botkube/keptn@v1.0.0; keptn-us-east-2":                     {},
 	}
 
-	assertStarter := func(ctx context.Context, pluginName string, pluginConfigs []any, sources []string) error {
+	assertStarter := func(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error {
 		// then configs are specified in a proper order
-		var expConfigs []any
+		var expConfigs [][]byte
 		for _, sourceName := range sources {
-			expConfigs = append(expConfigs, givenCfg.Sources[sourceName].Plugins[pluginName].Config)
+			expConfigs = append(expConfigs, mustYAMLMarshal(t, givenCfg.Sources[sourceName].Plugins[pluginName].Config))
 		}
 		assert.Equal(t, expConfigs, pluginConfigs)
 
@@ -52,14 +53,28 @@ func TestStartingUniqueProcesses(t *testing.T) {
 	}
 
 	// when
-	dispatcher := NewDispatcher(logger, nil, nil, givenCfg)
-	dispatcher.starter = assertStarter
+	scheduler := NewScheduler(logger, givenCfg, fakeDispatcherFunc(assertStarter))
 
-	err = dispatcher.Start(context.Background())
+	err = scheduler.Start(context.Background())
 	require.NoError(t, err)
+}
+
+func mustYAMLMarshal(t *testing.T, in any) []byte {
+	raw, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	return raw
 }
 
 func testdataFile(t *testing.T, name string) string {
 	t.Helper()
 	return filepath.Join("testdata", t.Name(), name)
+}
+
+// The fakeDispatcherFunc type is an adapter to allow the use of
+// ordinary functions as Dispatcher handlers.
+type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error
+
+// ServeHTTP calls f(w, r).
+func (f fakeDispatcherFunc) Dispatch(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error {
+	return f(ctx, pluginName, pluginConfigs, sources)
 }

@@ -245,7 +245,7 @@ func runBotTest(t *testing.T,
 	t.Run("Botkube Plugins", func(t *testing.T) {
 		t.Run("Echo Executor", func(t *testing.T) {
 			command := "echo test"
-			expectedBody := codeBlock(command)
+			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)

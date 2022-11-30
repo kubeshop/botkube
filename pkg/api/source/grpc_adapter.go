@@ -7,14 +7,13 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
 )
 
 // Source defines the Botkube source plugin functionality.
 type Source interface {
-	Stream(ctx context.Context) (StreamOutput, error)
+	Stream(ctx context.Context, configs [][]byte) (StreamOutput, error)
 }
 
 // StreamOutput contains the stream data.
@@ -63,8 +62,10 @@ type grpcClient struct {
 	client SourceClient
 }
 
-func (p *grpcClient) Stream(ctx context.Context) (StreamOutput, error) {
-	stream, err := p.client.Stream(ctx, &emptypb.Empty{})
+func (p *grpcClient) Stream(ctx context.Context, configs [][]byte) (StreamOutput, error) {
+	stream, err := p.client.Stream(ctx, &StreamRequest{
+		Configs: configs,
+	})
 	if err != nil {
 		return StreamOutput{}, err
 	}
@@ -101,12 +102,12 @@ type grpcServer struct {
 	Source Source
 }
 
-func (p *grpcServer) Stream(_ *emptypb.Empty, gstream Source_StreamServer) error {
+func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) error {
 	ctx := gstream.Context()
 
 	// It's up to the 'Stream' method to close the returned channels as it sends the data to it.
 	// We can only use 'ctx' to cancel streaming and release associated resources.
-	stream, err := p.Source.Stream(ctx)
+	stream, err := p.Source.Stream(ctx, req.Configs)
 	if err != nil {
 		return err
 	}

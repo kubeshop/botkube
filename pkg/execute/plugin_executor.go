@@ -69,11 +69,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		return "", fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
-	// TODO(configure plugin): Execute RPC with all data:
-	//  - command
-	//  - all configuration but in proper order (so it can be merged properly)
-	_ = configs
-	resp, err := cli.Execute(ctx, &executor.ExecuteRequest{Command: command})
+	resp, err := cli.Execute(ctx, &executor.ExecuteRequest{
+		Command: command,
+		Configs: configs,
+	})
 	if err != nil {
 		return "", fmt.Errorf("while executing gRPC call: %w", err)
 	}
@@ -81,20 +80,22 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 	return resp.Data, nil
 }
 
-func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([]string, error) {
-	var configs []string
+func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([][]byte, error) {
+	var configs [][]byte
 
 	for _, plugin := range plugins {
 		if plugin.Config == nil {
 			continue
 		}
 
+		// Unfortunately we need marshal it to get the raw data:
+		// https://github.com/go-yaml/yaml/issues/13
 		raw, err := yaml.Marshal(plugin.Config)
 		if err != nil {
 			return nil, err
 		}
 
-		configs = append(configs, string(raw))
+		configs = append(configs, raw)
 	}
 
 	return configs, nil
