@@ -50,6 +50,15 @@ func TestLoadConfigSuccess(t *testing.T) {
 
 func TestLoadConfigWithPlugins(t *testing.T) {
 	// given
+	expSourcePlugin := config.PluginsExecutors{
+		"botkube/keptn": {
+			Enabled: true,
+			Config: map[string]interface{}{
+				"field": "value",
+			},
+		},
+	}
+
 	expExecutorPlugin := config.PluginsExecutors{
 		"botkube/echo": {
 			Enabled: true,
@@ -70,6 +79,7 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, gotCfg)
 
+	assert.Equal(t, expSourcePlugin, gotCfg.Sources["k8s-events"].Plugins)
 	assert.Equal(t, expExecutorPlugin, gotCfg.Executors["plugin-based"].Plugins)
 }
 

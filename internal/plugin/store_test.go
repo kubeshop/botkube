@@ -52,13 +52,50 @@ func TestNewStoreRepository(t *testing.T) {
 			},
 		},
 	}
+	expectedSources := storeRepository{
+		"botkube/kubernetes": {
+			{
+				Description: "Kubernetes source",
+				Version:     "v1.0.0",
+				URLs: map[string]string{
+					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes",
+					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_arm64_source_kubernetes",
+					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_md64_source_kubernetes",
+					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_rm64_source_kubernetes",
+				},
+			},
+			{
+				Description: "Kubernetes source",
+				Version:     "0.1.0", // should support also version without `v`
+				URLs: map[string]string{
+					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_amd64_source_kubernetes",
+					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_arm64_source_kubernetes",
+					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_md64_source_kubernetes",
+					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes",
+				},
+			},
+		},
+		"mszostok/cm-watcher": {
+			{
+				Description: "Source suitable for e2e testing.",
+				Version:     "v1.0.0",
+				URLs: map[string]string{
+					"darwin/amd64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_amd64_cmd-watcher",
+					"darwin/arm64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_arm64_cmd-watcher",
+					"linux/amd64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_md64_cmd-watcher",
+					"linux/arm64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_rm64_cmd-watcher",
+				},
+			},
+		},
+	}
 
 	// when
-	executors, err := newStoreRepository(repositories)
+	executors, sources, err := newStoreRepositories(repositories)
 
 	// then
 	require.NoError(t, err)
 	assert.Equal(t, executors, expectedExecutors)
+	assert.Equal(t, sources, expectedSources)
 }
 
 func loadTestdataFile(t *testing.T, name string) []byte {

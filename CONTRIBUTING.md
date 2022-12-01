@@ -36,7 +36,7 @@ This section describes how to build and run Botkube from source code.
      This is ideal for running Botkube on a local cluster, e.g. using [kind](https://kind.sigs.k8s.io) or [`minikube`](https://minikube.sigs.k8s.io/docs/).
 
      Remember to set the `IMAGE_PLATFORM` env var to your target architecture. By default, the build targets `linux/amd64`.
-     
+
      For example, the command below builds the `linux/arm64` target:
 
         ```sh
@@ -62,23 +62,23 @@ This section describes how to build and run Botkube from source code.
      docker tag ghcr.io/kubeshop/botkube:v9.99.9-dev-amd64 {your_account}/botkube:v9.99.9-dev
      docker push {your_account}/botkube:v9.99.9-dev
      ```
-     
+
      Where `{your_account}` is Docker hub or any other registry provider account to which you can push the image.
 
 2. Install Botkube with any of communication platform configured, according to [the installation instructions](https://docs.botkube.io/installation/). During the Helm chart installation step, set the following flags:
-   
+
    ```sh
    export IMAGE_REGISTRY="{imageRegistry}" # e.g. docker.io
    export IMAGE_PULL_POLICY="{pullPolicy}" # e.g. Always or IfNotPresent
-   
+
    --set image.registry=${IMAGE_REGISTRY} \
    --set image.repository={your_account}/botkube \
    --set image.tag=v9.99.9-dev \
    --set image.pullPolicy=${IMAGE_PULL_POLICY}
    ```
-   
+
    Check [values.yaml](./helm/botkube/values.yaml) for default options.
-   
+
 ### Build and run locally
 
 For faster development, you can also build and run Botkube outside K8s cluster.
@@ -129,6 +129,44 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    ```sh
    ./botkube
    ```
+
+#### Develop Botkube plugins
+
+**Prerequisite**
+
+- Being able to start the Botkube binary locally.
+- [GoReleaser](https://goreleaser.com/install/)
+
+**Steps**
+
+1. Start fake plugins server to serve binaries from [`dist`](dist) folder:
+
+   ```bash
+   go run test/helpers/plugin_server.go
+   ```
+
+	 > **Note**
+	 > If Botkube runs inside the k3d cluster, export the `PLUGIN_SERVER_HOST=http://host.k3d.internal` environment variable.
+
+2. Export Botkube plugins cache directory:
+
+   ```bash
+   export BOTKUBE_PLUGINS_CACHE__DIR="/tmp/plugins"
+   ```
+
+3. In other terminal window, run:
+
+   ```bash
+   # rebuild plugins only for current GOOS and GOARCH
+   make build-plugins-single &&
+   # remove cached plugins
+   rm -rf $BOTKUBE_PLUGINS_CACHE__DIR &&
+   # start botkube to download fresh plugins
+   ./botkube
+   ```
+
+   > **Note**
+   > Each time you make a change to the [source](cmd/source) or [executors](cmd/executor) plugins re-run the above command.
 
 ## Making A Change
 

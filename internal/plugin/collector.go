@@ -18,14 +18,20 @@ func NewCollector(log logrus.FieldLogger) *Collector {
 
 // GetAllEnabledAndUsedPlugins returns the list of all plugins that are both enabled and bind to at
 // least one communicator that is also enabled.
-func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
-	// Collect all used executor
-	bindExecutors := map[string]struct{}{}
+func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, []string) {
+	// Collect all used executor/sources
+	var (
+		bindExecutors = map[string]struct{}{}
+		bindSources   = map[string]struct{}{}
+	)
 
 	collect := func(channels config.IdentifiableMap[config.ChannelBindingsByName]) {
 		for _, bindings := range channels {
 			for _, name := range bindings.Bindings.Executors {
 				bindExecutors[name] = struct{}{}
+			}
+			for _, name := range bindings.Bindings.Sources {
+				bindSources[name] = struct{}{}
 			}
 		}
 	}
@@ -47,12 +53,18 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
 			for _, name := range commGroupCfg.Teams.Bindings.Executors {
 				bindExecutors[name] = struct{}{}
 			}
+			for _, name := range commGroupCfg.Teams.Bindings.Sources {
+				bindSources[name] = struct{}{}
+			}
 		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, bindings := range commGroupCfg.Discord.Channels {
 				for _, name := range bindings.Bindings.Executors {
 					bindExecutors[name] = struct{}{}
+				}
+				for _, name := range bindings.Bindings.Sources {
+					bindSources[name] = struct{}{}
 				}
 			}
 		}
@@ -82,5 +94,20 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) []string {
 		}
 	}
 
-	return usedExecutorPlugins
+	// Collect all sources that are both enabled and bind to at least one communicator that is enabled.
+	var usedSourcePlugins []string
+	for groupName, groupItems := range cfg.Sources {
+		for name, source := range groupItems.Plugins {
+			if !source.Enabled {
+				continue
+			}
+			_, found := bindSources[groupName]
+			if !found {
+				continue
+			}
+
+			usedSourcePlugins = append(usedSourcePlugins, name)
+		}
+	}
+	return usedExecutorPlugins, usedSourcePlugins
 }

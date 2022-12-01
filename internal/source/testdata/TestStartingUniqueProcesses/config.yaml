@@ -1,0 +1,48 @@
+sources:
+  'keptn-us-east-2':
+    botkube/keptn@v1.0.0:
+      enabled: true
+      config:
+        url: 'keptn-us-east-2.local'
+  'keptn-eu-central-1':
+    botkube/keptn@v1.0.0:
+      enabled: true
+      config:
+        url: 'keptn-eu-central-1.local'
+
+communications:
+  default-group:
+    socketSlack:
+      enabled: true
+      appToken: "xapp-testing"
+      botToken: "xoxb-testing"
+      channels:
+        all:  # proces1 - should use the same process as #random channel as sources order is the same
+          name: all
+          bindings:
+            sources:
+              - 'keptn-us-east-2'
+              - 'keptn-eu-central-1'
+        random: # proces1 -should use the same process as #all channel as sources order is the same
+          name: random
+          bindings:
+            sources: # get events from 2 regions
+              - 'keptn-us-east-2'
+              - 'keptn-eu-central-1'
+        general: # proces2 - should use different process than #all and #random channels as sources order is different
+          name: general
+          bindings:
+            sources: # get events from 2 regions
+              - 'keptn-eu-central-1'
+              - 'keptn-us-east-2'
+
+        eu: # proces3 - should use different process as it has only once source
+          name: eu
+          bindings:
+            sources: # get even only from eu
+              - 'keptn-eu-central-1'
+        us: # proces4 - should use different process as it has only once source
+          name: us
+          bindings:
+            sources: # get even only from us
+              - 'keptn-us-east-2'

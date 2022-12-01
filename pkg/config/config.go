@@ -198,6 +198,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
+	Plugins     PluginsExecutors `koanf:",remain"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.

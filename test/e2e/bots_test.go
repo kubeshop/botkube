@@ -22,6 +22,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/filterengine/filters"
+	"github.com/kubeshop/botkube/test/fake"
 )
 
 type Config struct {
@@ -41,7 +42,7 @@ type Config struct {
 			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE"`
 		}
 	}
-	Plugins   PluginsConfig
+	Plugins   fake.PluginConfig
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
@@ -153,7 +154,7 @@ func runBotTest(t *testing.T,
 	require.NoError(t, err)
 
 	t.Log("Starting plugin server...")
-	indexEndpoint, startServerFn := NewPluginServer(appCfg.Plugins)
+	indexEndpoint, startServerFn := fake.NewPluginServer(appCfg.Plugins)
 	go func() {
 		require.NoError(t, startServerFn())
 	}()
@@ -239,14 +240,43 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 	})
 
-	t.Run("Plugin execution", func(t *testing.T) {
-		command := "echo test"
-		expectedBody := codeBlock(command)
-		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+	// Those are a temporary tests. When we will extract kubectl and kubernetes as plugins
+	// they won't be needed anymore.
+	t.Run("Botkube Plugins", func(t *testing.T) {
+		t.Run("Echo Executor", func(t *testing.T) {
+			command := "echo test"
+			expectedBody := codeBlock(command)
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-		assert.NoError(t, err)
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+		t.Run("ConfigMap watcher source", func(t *testing.T) {
+			t.Log("Creating sample ConfigMap...")
+			cfgMap := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cm-watcher-trigger",
+					Namespace: appCfg.Deployment.Namespace,
+					// for now, it allows us to disable the built-in kubernetes source and make sure that
+					// only the plugged one will respond
+					Annotations: map[string]string{
+						"botkube.io/disable": "true",
+					},
+				},
+			}
+
+			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+			cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, nil) })
+
+			t.Log("Expecting bot message channel...")
+			expectedMsg := fmt.Sprintf("Detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMsg)
+			require.NoError(t, err)
+		})
 	})
 
 	t.Run("Commands list", func(t *testing.T) {

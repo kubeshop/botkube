@@ -16,6 +16,7 @@ communications: # req 1 elm.
 
 sources:
   'k8s-events':
+    displayName: "Plugins & Builtins"
 
     kubernetes:
       events:
@@ -26,6 +27,12 @@ sources:
         include: [ ".*" ]
       resources:
         - name: v1/pods
+
+    botkube/keptn:
+      enabled: true
+      config:
+        field: value
+
 
 executors:
   'kubectl-read-only':

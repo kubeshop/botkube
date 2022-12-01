@@ -17,3 +17,17 @@ builds:
       - arm64
     goarm:
       - 7
+  - id: cm-watcher
+    binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
+    no_unique_dist_dir: true
+    main: cmd/source/cm-watcher/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
