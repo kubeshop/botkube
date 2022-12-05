@@ -18,6 +18,7 @@ const (
 	invalidBindingTag           = "invalid_binding"
 	conflictingPluginRepoTag    = "conflicting_plugin_repo"
 	conflictingPluginVersionTag = "conflicting_plugin_version"
+	invalidPluginDefinitionTag  = "invalid_plugin_definition"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
 )
@@ -106,8 +107,9 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 
 	return registerTranslation(validate, trans, map[string]string{
 		invalidBindingTag:           "'{0}' binding not defined in {1}",
-		conflictingPluginRepoTag:    "'{0}' {1}",
-		conflictingPluginVersionTag: "'{0}' {1}",
+		conflictingPluginRepoTag:    "{0}{1}",
+		conflictingPluginVersionTag: "{0}{1}",
+		invalidPluginDefinitionTag:  "{0}{1}",
 	})
 }
 

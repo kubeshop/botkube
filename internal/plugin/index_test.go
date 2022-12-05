@@ -1,4 +1,4 @@
-package plugin_test
+package plugin
 
 import (
 	"testing"
@@ -6,214 +6,47 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/kubeshop/botkube/pkg/config"
+	"gopkg.in/yaml.v3"
 )
 
-func TestBuildPluginKey(t *testing.T) {
-	type given struct {
-		repoName   string
-		pluginName string
-		version    string
-	}
-	t.Run("Success", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			given  given
-			expKey string
-		}{
-			{
-				name: "build key with all properties",
-				given: given{
-					repoName:   "hakuna",
-					pluginName: "kubectl",
-					version:    "v1.0.0",
-				},
-				expKey: "hakuna/kubectl@v1.0.0",
-			},
-			{
-				name: "build key without version",
-				given: given{
-					repoName:   "hakuna",
-					pluginName: "kubectl",
-				},
-				expKey: "hakuna/kubectl",
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				// when
-				gotKey, err := config.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
-
-				// then
-				require.NoError(t, err)
-				assert.Equal(t, tc.expKey, gotKey)
-			})
-		}
-	})
-
-	t.Run("Errors", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			given  given
-			expErr string
-		}{
-			{
-				name: "should report error when all properties are empty",
-				given: given{
-					repoName:   "",
-					pluginName: "",
-				},
-				expErr: heredoc.Doc(`
-					2 errors occurred:
-						* repository name is required
-						* plugin name is required`),
-			},
-			{
-				name: "should report error repo name is empty",
-				given: given{
-					repoName:   "",
-					pluginName: "kubectl",
-				},
-				expErr: heredoc.Doc(`
-					1 error occurred:
-						* repository name is required`),
-			},
-			{
-				name: "should report error plugin name is empty",
-				given: given{
-					repoName:   "repository",
-					pluginName: "",
-				},
-				expErr: heredoc.Doc(`
-					1 error occurred:
-						* plugin name is required`),
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				// when
-				gotKey, err := config.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
-
-				// then
-				assert.Empty(t, gotKey)
-				assert.EqualError(t, err, tc.expErr)
-			})
-		}
-	})
-}
-
-func TestDecomposePluginKey(t *testing.T) {
-	type expected struct {
-		repoName   string
-		pluginName string
-		version    string
-	}
-
-	t.Run("Success", func(t *testing.T) {
-		tests := []struct {
-			name     string
-			givenKey string
-			exp      expected
-		}{
-			{
-				name:     "should decompose full key name",
-				givenKey: "hakuna/kubectl@v1.0.0",
-				exp: expected{
-					repoName:   "hakuna",
-					pluginName: "kubectl",
-					version:    "v1.0.0",
-				},
-			},
-			{
-				name:     "should decompose key without version",
-				givenKey: "hakuna/kubectl",
-				exp: expected{
-					repoName:   "hakuna",
-					pluginName: "kubectl",
-					version:    "",
-				},
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				// when
-				gotRepo, gotPlugin, gotVer, err := config.DecomposePluginKey(tc.givenKey)
-
-				// then
-				require.NoError(t, err)
-
-				assert.Equal(t, tc.exp.repoName, gotRepo)
-				assert.Equal(t, tc.exp.pluginName, gotPlugin)
-				assert.Equal(t, tc.exp.version, gotVer)
-			})
-		}
-	})
-
-	t.Run("Errors", func(t *testing.T) {
-		tests := []struct {
-			name     string
-			givenKey string
-			expErr   string
-		}{
-			{
-				name:     "should report error of wrong pattern",
-				givenKey: "kubectl@v1.0.0",
-				expErr:   `plugin key "kubectl@v1.0.0" doesn't follow required {repo_name}/{plugin_name} syntax`,
-			},
-			{
-				name:     "should report error about missing plugin name",
-				givenKey: "test/@v1.0.0",
-				expErr: heredoc.Doc(`
-					1 error occurred:
-						* plugin name is required`),
-			},
-			{
-				name:     "should report error about missing repo name",
-				givenKey: "/kubectl@v1.0.0",
-				expErr: heredoc.Doc(`
-					1 error occurred:
-						* repository name is required`),
-			},
-			{
-				name:     "should report error about missing repo and plugin names",
-				givenKey: "/@v1.0.0",
-				expErr: heredoc.Doc(`
-					2 errors occurred:
-						* repository name is required
-						* plugin name is required`),
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				// when
-				gotRepo, gotPlugin, gotVer, err := config.DecomposePluginKey(tc.givenKey)
-
-				// then
-				assert.Empty(t, gotRepo)
-				assert.Empty(t, gotPlugin)
-				assert.Empty(t, gotVer)
-
-				assert.EqualError(t, err, tc.expErr)
-			})
-		}
-	})
-}
-
-// TestBuildAndDecomposePluginKey test that Decompose and Build respect the same contract.
-func TestBuildAndDecomposePluginKey(t *testing.T) {
+func TestValidateIndexErrors(t *testing.T) {
 	// given
-	const key = "botkube/kubectl@v1.0.0"
+	rawCfg := loadTestdataFile(t, "invalid.yaml")
+	var givenIndex Index
+	err := yaml.Unmarshal(rawCfg, &givenIndex)
+	require.NoError(t, err)
+
+	expErrorMsg := heredoc.Doc(`
+		5 errors occurred:
+			* entries[2]: 1 error occurred:
+				* conflicts with the 1st entry as both have the same type, name, and version
+			* entries[4]: 1 error occurred:
+				* conflicts with the 3rd entry as both have the same type, name, and version
+			* entries[5]: 1 error occurred:
+				* field version cannot be empty
+			* entries[6]: 1 error occurred:
+				* field type cannot be empty
+			* entries[7]: 1 error occurred:
+				* field name cannot be empty`)
 
 	// when
-	repo, pluginName, ver, err := config.DecomposePluginKey(key)
+	err = givenIndex.Validate()
+
 	// then
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), expErrorMsg)
+}
+
+func TestValidateIndexSuccess(t *testing.T) {
+	// given
+	rawCfg := loadTestdataFile(t, "valid.yaml")
+	var givenIndex Index
+	err := yaml.Unmarshal(rawCfg, &givenIndex)
 	require.NoError(t, err)
 
 	// when
-	gotKey, err := config.BuildPluginKey(repo, pluginName, ver)
+	err = givenIndex.Validate()
 
-	//then
-	require.NoError(t, err)
-	assert.Equal(t, key, gotKey)
+	// then
+	assert.NoError(t, err)
 }

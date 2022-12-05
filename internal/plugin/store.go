@@ -6,8 +6,6 @@ import (
 
 	semver "github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
-
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type (
@@ -55,22 +53,20 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 			return nil, nil, fmt.Errorf("while unmarshaling index: %w", err)
 		}
 
-		for _, entry := range index.Entries {
-			// omit version, as we want to collect plugins with different version together
-			key, err := config.BuildPluginKey(repo, entry.Name, "")
-			if err != nil {
-				return nil, nil, fmt.Errorf("while building key for entry in %s repository: %w", repo, err)
-			}
+		if err := index.Validate(); err != nil {
+			return nil, nil, fmt.Errorf("while validating %s index: %w", repo, err)
+		}
 
+		for _, entry := range index.Entries {
 			switch entry.Type {
 			case TypeExecutor:
-				executorsRepositories[key] = append(executorsRepositories[key], storeEntry{
+				executorsRepositories.Insert(repo, entry.Name, storeEntry{
 					Description: entry.Description,
 					Version:     entry.Version,
 					URLs:        mapBinaryURLs(entry.URLs),
 				})
 			case TypeSource:
-				sourcesRepositories[key] = append(sourcesRepositories[key], storeEntry{
+				sourcesRepositories.Insert(repo, entry.Name, storeEntry{
 					Description: entry.Description,
 					Version:     entry.Version,
 					URLs:        mapBinaryURLs(entry.URLs),
@@ -89,6 +85,30 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 	}
 
 	return executorsRepositories, sourcesRepositories, nil
+}
+
+func (s storeRepository) Insert(repo, name string, entry storeEntry) {
+	if s == nil {
+		return
+	}
+	key := s.key(repo, name)
+
+	s[key] = append(s[key], entry)
+}
+
+func (s storeRepository) Get(repo, name string) ([]storeEntry, bool) {
+	if s == nil {
+		return nil, false
+	}
+
+	key := s.key(repo, name)
+	entry, found := s[key]
+	return entry, found
+}
+
+// omit version, as we want to collect plugins with different version together
+func (s storeRepository) key(repo, name string) string {
+	return fmt.Sprintf("%s/%s", repo, name)
 }
 
 func mapBinaryURLs(in []IndexURL) map[string]string {

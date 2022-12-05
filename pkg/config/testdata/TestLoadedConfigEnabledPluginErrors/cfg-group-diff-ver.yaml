@@ -1,7 +1,7 @@
 ## Scenario: configure plugins from different repositories under the same configuration group
 
 executors:
-  'duplicated-names':
+  'wrong-vers':
     botkube/kubectl:
       enabled: true
       config: { }
@@ -10,7 +10,7 @@ executors:
       config: { }
 
 sources:
-  'duplicated-names':
+  'wrong-vers':
     botkube/prometheus@v1.0.0:
       enabled: true
       config: { }

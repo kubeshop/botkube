@@ -8,22 +8,9 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
+	"github.com/kubeshop/botkube/internal/stringx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
-
-// BuildPluginKey returns plugin key with the following format:
-// <repo>/<plugin>[@<version>]
-func BuildPluginKey(repo, plugin, ver string) (string, error) {
-	if err := validatePluginProperties(repo, plugin); err != nil {
-		return "", err
-	}
-
-	base := repo + "/" + plugin
-	if ver != "" {
-		base += "@" + ver
-	}
-	return base, nil
-}
 
 // DecomposePluginKey extract details from plugin key.
 func DecomposePluginKey(key string) (string, string, string, error) {
@@ -35,7 +22,7 @@ func DecomposePluginKey(key string) (string, string, string, error) {
 	name, ver, _ := strings.Cut(name, "@")
 
 	if err := validatePluginProperties(repo, name); err != nil {
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("doesn't follow required {repo_name}/{plugin_name} syntax: %v", err)
 	}
 
 	return repo, name, ver, nil
@@ -84,17 +71,17 @@ func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []s
 
 		if alreadyIndexed.Repo != newEntry.Repo {
 			msg := fmt.Sprintf("conflicts with already bind %q plugin from %q repository. Bind it to a different channel, or change it to the one from the %q repository, or remove it.", name, alreadyIndexed.Repo, alreadyIndexed.Repo)
-			sl.ReportError(key, key, key, conflictingPluginRepoTag, msg)
+			sl.ReportError(key, "", key, conflictingPluginRepoTag, msg)
 			continue
 		}
 		if alreadyIndexed.Version != newEntry.Version {
-			verInfo := "the latest version" // if version not specified, we search for the latest plugin version in a given repository.
+			verInfo := "latest" // if version not specified, we search for the latest plugin version in a given repository.
 			if alreadyIndexed.Version != "" {
-				verInfo = fmt.Sprintf("the %q version", alreadyIndexed.Version)
+				verInfo = fmt.Sprintf("%q", alreadyIndexed.Version)
 			}
-			msg := fmt.Sprintf("conflicts with already bind %q plugin in %s. Bind it to a different channel, or change it to %s, or remove it.", name, verInfo, verInfo)
+			msg := fmt.Sprintf("conflicts with already bind %q plugin in the %s version. Bind it to a different channel, or change it to the %s version, or remove it.", name, verInfo, verInfo)
 
-			sl.ReportError(key, key, key, conflictingPluginVersionTag, msg)
+			sl.ReportError(key, "", key, conflictingPluginVersionTag, msg)
 		}
 	}
 }
@@ -115,7 +102,7 @@ func validatePlugins(sl validator.StructLevel, pluginConfigs PluginsExecutors) {
 	for _, key := range enabledPluginsViaBindings {
 		repo, name, ver, err := DecomposePluginKey(key)
 		if err != nil {
-			// TODO: problems with keys are reported already via 'executor' configuration validator
+			sl.ReportError(key, "", key, invalidPluginDefinitionTag, stringx.IndentAfterLine(err.Error(), 1, "\t"))
 			continue
 		}
 
@@ -132,17 +119,17 @@ func validatePlugins(sl validator.StructLevel, pluginConfigs PluginsExecutors) {
 
 		if alreadyIndexed.Repo != newEntry.Repo {
 			msg := fmt.Sprintf("conflicts with already defined %q plugin from %q repository. Extract it to a dedicated configuration group or remove it from this one.", name, alreadyIndexed.Repo)
-			sl.ReportError(key, key, key, conflictingPluginRepoTag, msg)
+			sl.ReportError(key, "", key, conflictingPluginRepoTag, msg)
 			continue
 		}
 		if alreadyIndexed.Version != newEntry.Version {
-			verInfo := "the latest version" // if version not specified, we search for the latest plugin version in a given repository.
+			verInfo := "latest" // if version not specified, we search for the latest plugin version in a given repository.
 			if alreadyIndexed.Version != "" {
-				verInfo = fmt.Sprintf("the %q version", alreadyIndexed.Version)
+				verInfo = fmt.Sprintf("%q", alreadyIndexed.Version)
 			}
-			msg := fmt.Sprintf("conflicts with already defined %q plugin in %s. Extract it to a dedicated configuration group or remove it from this one.", name, verInfo)
+			msg := fmt.Sprintf("conflicts with already defined %q plugin in the %s version. Extract it to a dedicated configuration group or remove it from this one.", name, verInfo)
 
-			sl.ReportError(key, key, key, conflictingPluginVersionTag, msg)
+			sl.ReportError(key, "", key, conflictingPluginVersionTag, msg)
 		}
 	}
 }

@@ -1,0 +1,88 @@
+entries:
+  - description: "Missing URL property"
+    name: "kubectl"
+    type: "executor"
+    version: "v1.0.0"
+  - description: "Kubectl executor plugin."
+    name: "kubectl"
+    type: "executor"
+    version: "v1.5.0"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-amd64
+        platform:
+          os: darwin
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-arm64
+        platform:
+          os: darwin
+          architecture: arm64
+  - description: "Has the same fields as the 2nd entry"
+    name: "kubectl"
+    type: "executor"
+    version: "v1.5.0"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-amd64
+        platform:
+          os: darwin
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-arm64
+        platform:
+          os: darwin
+          architecture: arm64
+  - description: "Kubernetes source"
+    name: "kubernetes"
+    type: "source"
+    version: "v1.0.0"
+    urls:
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: amd64
+
+  - description: "Has the same fields as the 4th entry"
+    name: "kubernetes"
+    type: "source"
+    version: "v1.0.0"
+    urls:
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: amd64
+  - description: "Missing version"
+    name: "kubernetes"
+    type: "source"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
+
+  - description: "Missing type"
+    name: "kubernetes"
+    version: "v1.0.0"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
+
+  - description: "Missing name"
+    version: "v1.0.0"
+    type: "source"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
+
+  - description: "Wrong type"
+    version: "v1.0.0"
+    name: "kubectl"
+    type: "exec"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
