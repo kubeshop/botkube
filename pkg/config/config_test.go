@@ -315,6 +315,79 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 	}
 }
 
+func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
+	// given
+	tests := []struct {
+		name        string
+		expErrMsg   string
+		configFiles []string
+	}{
+		{
+			name: "should report an issue with bindings for same plugin name but coming from two different repositories",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/prometheus@v1.2.0' 'mszostok/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin from "botkube" repository. Bind it to a different channel, or change it to the one from the "botkube" repository, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/kubectl@v1.0.0' 'mszostok/kubectl@v1.0.0' conflicts with already bind "kubectl" plugin from "botkube" repository. Bind it to a different channel, or change it to the one from the "botkube" repository, or remove it.`),
+			configFiles: []string{
+				testdataFile(t, "bind-diff-repo.yaml"),
+			},
+		},
+		{
+			name: "should report an issue with bindings for plugins coming from the same repository but one refers to the latest version",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/prometheus@v1.2.0' 'botkube/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin in the latest version. Bind it to a different channel, or change it to the latest version, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/kubectl@v1.0.0' 'botkube/kubectl@v1.0.0' conflicts with already bind "kubectl" plugin in the latest version. Bind it to a different channel, or change it to the latest version, or remove it.`),
+			configFiles: []string{
+				testdataFile(t, "bind-diff-ver-latest.yaml"),
+			},
+		},
+		{
+			name: "should report an issue with bindings for plugins coming from the same repository but with different version",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/prometheus@v1.2.0' 'botkube/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin in the "v1.0.0" version. Bind it to a different channel, or change it to the "v1.0.0" version, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/kubectl@v2.0.0' 'botkube/kubectl@v2.0.0' conflicts with already bind "kubectl" plugin in the "v1.0.0" version. Bind it to a different channel, or change it to the "v1.0.0" version, or remove it.`),
+			configFiles: []string{
+				testdataFile(t, "bind-diff-ver.yaml"),
+			},
+		},
+		{
+			name: "should report an issue with source configuration group that imports the same plugin from different repositories",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Sources[duplicated-names].mszostok/prometheus@v1.2.0' 'mszostok/prometheus@v1.2.0' conflicts with already defined "prometheus" plugin from "botkube" repository. Extract it to a dedicated configuration group or remove it from this one.
+					* Key: 'Config.Executors[duplicated-names].mszostok/kubectl' 'mszostok/kubectl' conflicts with already defined "kubectl" plugin from "botkube" repository. Extract it to a dedicated configuration group or remove it from this one.`),
+			configFiles: []string{
+				testdataFile(t, "cfg-group-diff-repo.yaml"),
+			},
+		},
+		{
+			name: "should report an issue with source configuration group that imports plugins from the same repository but with different version",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 2 errors occurred:
+					* Key: 'Config.Sources[duplicated-names].botkube/prometheus@v1.2.0' 'botkube/prometheus@v1.2.0' conflicts with already defined "prometheus" plugin in the "v1.0.0" version. Extract it to a dedicated configuration group or remove it from this one.
+					* Key: 'Config.Executors[duplicated-names].botkube/kubectl@v1.0.0' 'botkube/kubectl@v1.0.0' conflicts with already defined "kubectl" plugin in the latest version. Extract it to a dedicated configuration group or remove it from this one.`),
+			configFiles: []string{
+				testdataFile(t, "cfg-group-diff-ver.yaml"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// when
+			cfg, details, err := config.LoadWithDefaults(func() []string {
+				return tc.configFiles
+			})
+
+			// then
+			assert.Nil(t, cfg)
+			assert.NoError(t, details.ValidateWarnings)
+			assert.Equal(t, err.Error(), tc.expErrMsg)
+		})
+	}
+}
+
 func testdataFile(t *testing.T, name string) string {
 	t.Helper()
 	return filepath.Join("testdata", t.Name(), name)

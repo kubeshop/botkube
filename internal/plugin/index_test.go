@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestBuildPluginKey(t *testing.T) {
@@ -43,7 +43,7 @@ func TestBuildPluginKey(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				// when
-				gotKey, err := plugin.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
+				gotKey, err := config.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
 
 				// then
 				require.NoError(t, err)
@@ -93,7 +93,7 @@ func TestBuildPluginKey(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				// when
-				gotKey, err := plugin.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
+				gotKey, err := config.BuildPluginKey(tc.given.repoName, tc.given.pluginName, tc.given.version)
 
 				// then
 				assert.Empty(t, gotKey)
@@ -138,7 +138,7 @@ func TestDecomposePluginKey(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				// when
-				gotRepo, gotPlugin, gotVer, err := plugin.DecomposePluginKey(tc.givenKey)
+				gotRepo, gotPlugin, gotVer, err := config.DecomposePluginKey(tc.givenKey)
 
 				// then
 				require.NoError(t, err)
@@ -187,7 +187,7 @@ func TestDecomposePluginKey(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				// when
-				gotRepo, gotPlugin, gotVer, err := plugin.DecomposePluginKey(tc.givenKey)
+				gotRepo, gotPlugin, gotVer, err := config.DecomposePluginKey(tc.givenKey)
 
 				// then
 				assert.Empty(t, gotRepo)
@@ -206,12 +206,12 @@ func TestBuildAndDecomposePluginKey(t *testing.T) {
 	const key = "botkube/kubectl@v1.0.0"
 
 	// when
-	repo, pluginName, ver, err := plugin.DecomposePluginKey(key)
+	repo, pluginName, ver, err := config.DecomposePluginKey(key)
 	// then
 	require.NoError(t, err)
 
 	// when
-	gotKey, err := plugin.BuildPluginKey(repo, pluginName, ver)
+	gotKey, err := config.BuildPluginKey(repo, pluginName, ver)
 
 	//then
 	require.NoError(t, err)

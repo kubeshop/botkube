@@ -6,6 +6,8 @@ import (
 
 	semver "github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type (
@@ -55,7 +57,7 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 
 		for _, entry := range index.Entries {
 			// omit version, as we want to collect plugins with different version together
-			key, err := BuildPluginKey(repo, entry.Name, "")
+			key, err := config.BuildPluginKey(repo, entry.Name, "")
 			if err != nil {
 				return nil, nil, fmt.Errorf("while building key for entry in %s repository: %w", repo, err)
 			}

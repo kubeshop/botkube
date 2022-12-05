@@ -1,13 +1,5 @@
 package plugin
 
-import (
-	"errors"
-	"fmt"
-	"strings"
-
-	"github.com/kubeshop/botkube/pkg/multierror"
-)
-
 // Type represents the plugin type.
 type Type string
 
@@ -44,44 +36,3 @@ type (
 		Arch string `yaml:"architecture"`
 	}
 )
-
-// BuildPluginKey returns plugin key with the following format:
-// <repo>/<plugin>[@<version>]
-func BuildPluginKey(repo, plugin, ver string) (string, error) {
-	if err := validate(repo, plugin); err != nil {
-		return "", err
-	}
-
-	base := repo + "/" + plugin
-	if ver != "" {
-		base += "@" + ver
-	}
-	return base, nil
-}
-
-// DecomposePluginKey extract details from plugin key.
-func DecomposePluginKey(key string) (string, string, string, error) {
-	repo, name, found := strings.Cut(key, "/")
-	if !found {
-		return "", "", "", fmt.Errorf("plugin key %q doesn't follow required {repo_name}/{plugin_name} syntax", key)
-	}
-
-	name, ver, _ := strings.Cut(name, "@")
-
-	if err := validate(repo, name); err != nil {
-		return "", "", "", err
-	}
-
-	return repo, name, ver, nil
-}
-
-func validate(repo, plugin string) error {
-	issues := multierror.New()
-	if repo == "" {
-		issues = multierror.Append(issues, errors.New("repository name is required"))
-	}
-	if plugin == "" {
-		issues = multierror.Append(issues, errors.New("plugin name is required"))
-	}
-	return issues.ErrorOrNil()
-}

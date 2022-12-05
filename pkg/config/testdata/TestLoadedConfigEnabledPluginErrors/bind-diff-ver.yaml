@@ -1,0 +1,39 @@
+## Scenario: Bindings with different versions
+
+communications:
+  default-workspace:
+    socketSlack:
+      enabled: true
+      botToken: xoxb-token
+      appToken: xapp-token
+      channels:
+        versions:
+          name: SLACK_CHANNEL
+          bindings:
+            sources:
+              - us-east-2
+              - eu-central-1
+            executors:
+              - bkc-ver-1
+              - bkc-ver-2
+
+executors:
+  'bkc-ver-1':
+    botkube/kubectl@v1.0.0:
+      enabled: true
+      config: { }
+
+  'bkc-ver-2':
+    botkube/kubectl@v2.0.0:
+      enabled: true
+      config: { }
+
+sources:
+  'us-east-2':
+    botkube/prometheus@v1.0.0:
+      enabled: true
+      config: { }
+  'eu-central-1':
+    botkube/prometheus@v1.2.0:
+      enabled: true
+      config: { }

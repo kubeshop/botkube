@@ -183,7 +183,7 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 		// - if not, find the latest version in the repository.
 		latestPluginInfo := candidates[0]
 
-		repoName, pluginName, ver, err := DecomposePluginKey(pluginKey)
+		repoName, pluginName, ver, err := config.DecomposePluginKey(pluginKey)
 		if err != nil {
 			return nil, err
 		}
