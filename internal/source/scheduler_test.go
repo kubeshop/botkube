@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -32,11 +33,13 @@ func TestStartingUniqueProcesses(t *testing.T) {
 		"botkube/keptn@v1.0.0; keptn-us-east-2":                     {},
 	}
 
-	assertStarter := func(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error {
+	assertStarter := func(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
 		// then configs are specified in a proper order
-		var expConfigs [][]byte
+		var expConfigs []*source.Config
 		for _, sourceName := range sources {
-			expConfigs = append(expConfigs, mustYAMLMarshal(t, givenCfg.Sources[sourceName].Plugins[pluginName].Config))
+			expConfigs = append(expConfigs, &source.Config{
+				RawYAML: mustYAMLMarshal(t, givenCfg.Sources[sourceName].Plugins[pluginName].Config),
+			})
 		}
 		assert.Equal(t, expConfigs, pluginConfigs)
 
@@ -72,9 +75,9 @@ func testdataFile(t *testing.T, name string) string {
 
 // The fakeDispatcherFunc type is an adapter to allow the use of
 // ordinary functions as Dispatcher handlers.
-type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error
+type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error
 
 // ServeHTTP calls f(w, r).
-func (f fakeDispatcherFunc) Dispatch(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error {
+func (f fakeDispatcherFunc) Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
 	return f(ctx, pluginName, pluginConfigs, sources)
 }

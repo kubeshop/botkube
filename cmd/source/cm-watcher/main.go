@@ -40,7 +40,7 @@ type (
 type CMWatcher struct{}
 
 // Stream returns a given command as response.
-func (CMWatcher) Stream(ctx context.Context, configs [][]byte) (source.StreamOutput, error) {
+func (CMWatcher) Stream(ctx context.Context, configs []*source.Config) (source.StreamOutput, error) {
 	// default config
 	finalCfg := Config{
 		ConfigMap: Object{
@@ -52,9 +52,9 @@ func (CMWatcher) Stream(ctx context.Context, configs [][]byte) (source.StreamOut
 
 	// In our case we don't have complex merge strategy,
 	// the last one that was specified wins :)
-	for _, rawCfg := range configs {
+	for _, inputCfg := range configs {
 		var cfg Config
-		err := yaml.Unmarshal(rawCfg, &cfg)
+		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
 		if err != nil {
 			return source.StreamOutput{}, err
 		}
@@ -99,7 +99,7 @@ func listenEvents(ctx context.Context, obj Object, sink chan<- []byte) {
 	infiniteWatch := func(event watch.Event) (bool, error) {
 		if event.Type == obj.Event {
 			cm := event.Object.(*corev1.ConfigMap)
-			msg := fmt.Sprintf("Detected `%s` event on `%s/%s`", obj.Event, cm.Namespace, cm.Name)
+			msg := fmt.Sprintf("Plugin %s detected `%s` event on `%s/%s`", pluginName, obj.Event, cm.Namespace, cm.Name)
 			sink <- []byte(msg)
 		}
 

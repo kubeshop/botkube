@@ -218,17 +218,17 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToE
 
 func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool) error {
 	rawIndexes := map[string][]byte{}
-	for repo, url := range m.cfg.Repositories {
+	for repo, entry := range m.cfg.Repositories {
 		path := filepath.Join(m.cfg.CacheDir, filepath.Clean(fmt.Sprintf("%s.yaml", repo)))
 
 		if _, err := os.Stat(path); forceUpdate || os.IsNotExist(err) {
 			m.log.WithFields(logrus.Fields{
 				"repo":        repo,
-				"url":         url,
+				"url":         entry.URL,
 				"forceUpdate": forceUpdate,
 			}).Debug("Downloading repository index")
 
-			err := m.fetchIndex(ctx, path, url)
+			err := m.fetchIndex(ctx, path, entry.URL)
 			if err != nil {
 				return fmt.Errorf("while fetching index for %q repository: %w", repo, err)
 			}

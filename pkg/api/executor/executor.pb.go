@@ -20,21 +20,69 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Config struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// RawYAML contains the Executor configuration in YAML definitions.
+	RawYAML []byte `protobuf:"bytes,1,opt,name=rawYAML,proto3" json:"rawYAML,omitempty"`
+}
+
+func (x *Config) Reset() {
+	*x = Config{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_executor_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Config) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Config) ProtoMessage() {}
+
+func (x *Config) ProtoReflect() protoreflect.Message {
+	mi := &file_executor_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Config.ProtoReflect.Descriptor instead.
+func (*Config) Descriptor() ([]byte, []int) {
+	return file_executor_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Config) GetRawYAML() []byte {
+	if x != nil {
+		return x.RawYAML
+	}
+	return nil
+}
+
 type ExecuteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Holds the exact command that was specified by the user.
+	// Commands represents the exact command that was specified by the user.
 	Command string `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
-	// Holds list of config YAML definitions in order specified by user
-	Configs [][]byte `protobuf:"bytes,2,rep,name=configs,proto3" json:"configs,omitempty"`
+	// Configs is a list of Executor configurations specified by users.
+	Configs []*Config `protobuf:"bytes,2,rep,name=configs,proto3" json:"configs,omitempty"`
 }
 
 func (x *ExecuteRequest) Reset() {
 	*x = ExecuteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_executor_proto_msgTypes[0]
+		mi := &file_executor_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -47,7 +95,7 @@ func (x *ExecuteRequest) String() string {
 func (*ExecuteRequest) ProtoMessage() {}
 
 func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_executor_proto_msgTypes[0]
+	mi := &file_executor_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +108,7 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_executor_proto_rawDescGZIP(), []int{0}
+	return file_executor_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ExecuteRequest) GetCommand() string {
@@ -70,7 +118,7 @@ func (x *ExecuteRequest) GetCommand() string {
 	return ""
 }
 
-func (x *ExecuteRequest) GetConfigs() [][]byte {
+func (x *ExecuteRequest) GetConfigs() []*Config {
 	if x != nil {
 		return x.Configs
 	}
@@ -88,7 +136,7 @@ type ExecuteResponse struct {
 func (x *ExecuteResponse) Reset() {
 	*x = ExecuteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_executor_proto_msgTypes[1]
+		mi := &file_executor_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -101,7 +149,7 @@ func (x *ExecuteResponse) String() string {
 func (*ExecuteResponse) ProtoMessage() {}
 
 func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_executor_proto_msgTypes[1]
+	mi := &file_executor_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,7 +162,7 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_executor_proto_rawDescGZIP(), []int{1}
+	return file_executor_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ExecuteResponse) GetData() string {
@@ -128,21 +176,24 @@ var File_executor_proto protoreflect.FileDescriptor
 
 var file_executor_proto_rawDesc = []byte{
 	0x0a, 0x0e, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x12, 0x08, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x22, 0x44, 0x0a, 0x0e, 0x45, 0x78,
-	0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07,
-	0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63,
-	0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
-	0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x73,
-	0x22, 0x25, 0x0a, 0x0f, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0x4c, 0x0a, 0x08, 0x45, 0x78, 0x65, 0x63, 0x75,
-	0x74, 0x6f, 0x72, 0x12, 0x40, 0x0a, 0x07, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x12, 0x18,
+	0x12, 0x08, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x22, 0x22, 0x0a, 0x06, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x12, 0x18, 0x0a, 0x07, 0x72, 0x61, 0x77, 0x59, 0x41, 0x4d, 0x4c, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x72, 0x61, 0x77, 0x59, 0x41, 0x4d, 0x4c, 0x22, 0x56,
+	0x0a, 0x0e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x2a, 0x0a, 0x07, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x65, 0x78,
+	0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x07, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x73, 0x22, 0x25, 0x0a, 0x0f, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74,
+	0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0x4c, 0x0a,
+	0x08, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x12, 0x40, 0x0a, 0x07, 0x45, 0x78, 0x65,
+	0x63, 0x75, 0x74, 0x65, 0x12, 0x18, 0x2e, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x2e,
+	0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x19,
 	0x2e, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x2e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x19, 0x2e, 0x65, 0x78, 0x65, 0x63, 0x75,
-	0x74, 0x6f, 0x72, 0x2e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x12, 0x5a, 0x10, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69,
-	0x2f, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x12, 0x5a, 0x10, 0x70,
+	0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x6f, 0x72, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -157,19 +208,21 @@ func file_executor_proto_rawDescGZIP() []byte {
 	return file_executor_proto_rawDescData
 }
 
-var file_executor_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_executor_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_executor_proto_goTypes = []interface{}{
-	(*ExecuteRequest)(nil),  // 0: executor.ExecuteRequest
-	(*ExecuteResponse)(nil), // 1: executor.ExecuteResponse
+	(*Config)(nil),          // 0: executor.Config
+	(*ExecuteRequest)(nil),  // 1: executor.ExecuteRequest
+	(*ExecuteResponse)(nil), // 2: executor.ExecuteResponse
 }
 var file_executor_proto_depIdxs = []int32{
-	0, // 0: executor.Executor.Execute:input_type -> executor.ExecuteRequest
-	1, // 1: executor.Executor.Execute:output_type -> executor.ExecuteResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: executor.ExecuteRequest.configs:type_name -> executor.Config
+	1, // 1: executor.Executor.Execute:input_type -> executor.ExecuteRequest
+	2, // 2: executor.Executor.Execute:output_type -> executor.ExecuteResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_executor_proto_init() }
@@ -179,7 +232,7 @@ func file_executor_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_executor_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExecuteRequest); i {
+			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -191,6 +244,18 @@ func file_executor_proto_init() {
 			}
 		}
 		file_executor_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExecuteRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_executor_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ExecuteResponse); i {
 			case 0:
 				return &v.state
@@ -209,7 +274,7 @@ func file_executor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_executor_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

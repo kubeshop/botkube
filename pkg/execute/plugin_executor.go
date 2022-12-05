@@ -80,8 +80,8 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 	return resp.Data, nil
 }
 
-func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([][]byte, error) {
-	var configs [][]byte
+func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([]*executor.Config, error) {
+	var configs []*executor.Config
 
 	for _, plugin := range plugins {
 		if plugin.Config == nil {
@@ -95,7 +95,9 @@ func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([][]by
 			return nil, err
 		}
 
-		configs = append(configs, raw)
+		configs = append(configs, &executor.Config{
+			RawYAML: raw,
+		})
 	}
 
 	return configs, nil

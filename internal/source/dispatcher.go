@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
@@ -30,7 +31,7 @@ func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manage
 // Dispatch starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
 // Once we will have the gRPC contract established with proper Cloud Event schema, we should move also this logic here:
 // https://github.com/kubeshop/botkube/blob/525c737956ff820a09321879284037da8bf5d647/pkg/controller/controller.go#L200-L253
-func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error {
+func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
 	log := d.log.WithFields(logrus.Fields{
 		"pluginName": pluginName,
 		"sources":    sources,

@@ -25,9 +25,9 @@ func (EchoExecutor) Execute(_ context.Context, req *executor.ExecuteRequest) (*e
 	// In our case we don't have complex merge strategy,
 	// the last one that was specified wins :)
 	finalCfg := Config{}
-	for _, rawCfg := range req.Configs {
+	for _, inputCfg := range req.Configs {
 		var cfg Config
-		err := yaml.Unmarshal(rawCfg, &cfg)
+		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
 		if err != nil {
 			return nil, err
 		}

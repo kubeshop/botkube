@@ -4,16 +4,21 @@ option go_package = "pkg/api/source";
 
 package source;
 
+message Config {
+	// RawYAML contains the Source configuration in YAML definitions.
+	bytes rawYAML = 1;
+}
+
+message StreamRequest {
+	// Configs is a list of Source configurations specified by users.
+	repeated Config configs = 1;
+}
+
 message StreamResponse {
 	// Output represents the streamed Source events. It is from start of Source execution.
 	bytes output = 1;
 }
 
-message StreamRequest {
-	// Holds list of config YAML definitions in order specified by user
-	repeated bytes configs = 1;
-}
-
 service Source {
-  rpc Stream(StreamRequest) returns (stream StreamResponse) {}
+	rpc Stream(StreamRequest) returns (stream StreamResponse) {}
 }

@@ -8,11 +8,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type pluginDispatcher interface {
-	Dispatch(ctx context.Context, pluginName string, pluginConfigs [][]byte, sources []string) error
+	Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error
 }
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
@@ -95,7 +96,7 @@ func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
 
 	// Holds the array of configs for a given plugin.
 	// For example, ['botkube/kubernetes@v1.0.0']->[]{"cfg1", "cfg2"}
-	sourcePluginConfigs := map[string][][]byte{}
+	sourcePluginConfigs := map[string][]*source.Config{}
 	for _, sourceCfgGroupName := range bindSources {
 		plugins := d.cfg.Sources[sourceCfgGroupName].Plugins
 		for pluginName, pluginCfg := range plugins {
@@ -105,11 +106,13 @@ func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
 
 			// Unfortunately we need marshal it to get the raw data:
 			// https://github.com/go-yaml/yaml/issues/13
-			rawCfg, err := yaml.Marshal(pluginCfg.Config)
+			rawYAML, err := yaml.Marshal(pluginCfg.Config)
 			if err != nil {
 				return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, sourceCfgGroupName, err)
 			}
-			sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], rawCfg)
+			sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], &source.Config{
+				RawYAML: rawYAML,
+			})
 		}
 	}
 

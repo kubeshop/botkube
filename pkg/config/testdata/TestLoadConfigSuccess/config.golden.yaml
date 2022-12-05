@@ -460,4 +460,5 @@ configWatcher:
 plugins:
     cacheDir: /tmp
     repositories:
-        botkube: http://localhost:3000/botkube.yaml
+        botkube:
+            url: http://localhost:3000/botkube.yaml

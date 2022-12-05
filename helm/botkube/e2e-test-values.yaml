@@ -188,7 +188,8 @@ executors:
 plugins:
   cacheDir: "/tmp"
   repositories:
-    botkube: http://host.k3d.internal:3000/botkube.yaml
+    botkube:
+      url: http://host.k3d.internal:3000/botkube.yaml
 
 actions:
   'get-created-resource':

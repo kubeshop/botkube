@@ -13,7 +13,7 @@ import (
 
 // Source defines the Botkube source plugin functionality.
 type Source interface {
-	Stream(ctx context.Context, configs [][]byte) (StreamOutput, error)
+	Stream(ctx context.Context, configs []*Config) (StreamOutput, error)
 }
 
 // StreamOutput contains the stream data.
@@ -62,7 +62,7 @@ type grpcClient struct {
 	client SourceClient
 }
 
-func (p *grpcClient) Stream(ctx context.Context, configs [][]byte) (StreamOutput, error) {
+func (p *grpcClient) Stream(ctx context.Context, configs []*Config) (StreamOutput, error) {
 	stream, err := p.client.Stream(ctx, &StreamRequest{
 		Configs: configs,
 	})
