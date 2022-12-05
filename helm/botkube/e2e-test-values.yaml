@@ -127,7 +127,10 @@ sources:
     botkube/cm-watcher:
       enabled: true
       config:
-        configMapName: cm-watcher-trigger
+        configMap:
+          name: cm-watcher-trigger
+          namespace: botkube
+          event: ADDED
 
 executors:
   'kubectl-read-only':
@@ -185,7 +188,8 @@ executors:
 plugins:
   cacheDir: "/tmp"
   repositories:
-    botkube: http://host.k3d.internal:3000/botkube.yaml
+    botkube:
+      url: http://host.k3d.internal:3000/botkube.yaml
 
 actions:
   'get-created-resource':

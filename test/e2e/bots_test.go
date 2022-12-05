@@ -39,7 +39,7 @@ type Config struct {
 			DiscordEnabledName            string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_ENABLED"`
 			DefaultDiscordChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"`
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
-			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE"`
+			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"`
 		}
 	}
 	Plugins   fake.PluginConfig
@@ -245,7 +245,7 @@ func runBotTest(t *testing.T,
 	t.Run("Botkube Plugins", func(t *testing.T) {
 		t.Run("Echo Executor", func(t *testing.T) {
 			command := "echo test"
-			expectedBody := codeBlock(command)
+			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -273,7 +273,7 @@ func runBotTest(t *testing.T,
 			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, nil) })
 
 			t.Log("Expecting bot message channel...")
-			expectedMsg := fmt.Sprintf("Detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
+			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMsg)
 			require.NoError(t, err)
 		})

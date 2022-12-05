@@ -1,10 +1,18 @@
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
 option go_package = "pkg/api/source";
 
 package source;
+
+message Config {
+	// RawYAML contains the Source configuration in YAML definitions.
+	bytes rawYAML = 1;
+}
+
+message StreamRequest {
+	// Configs is a list of Source configurations specified by users.
+	repeated Config configs = 1;
+}
 
 message StreamResponse {
 	// Output represents the streamed Source events. It is from start of Source execution.
@@ -12,5 +20,5 @@ message StreamResponse {
 }
 
 service Source {
-  rpc Stream(google.protobuf.Empty) returns (stream StreamResponse) {}
+	rpc Stream(StreamRequest) returns (stream StreamResponse) {}
 }

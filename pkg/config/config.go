@@ -138,8 +138,13 @@ type Config struct {
 
 // Plugins holds Botkube plugins related configuration.
 type Plugins struct {
-	CacheDir     string            `yaml:"cacheDir"`
-	Repositories map[string]string `yaml:"repositories"`
+	CacheDir     string                         `yaml:"cacheDir"`
+	Repositories map[string]PluginsRepositories `yaml:"repositories"`
+}
+
+// PluginsRepositories holds the Plugin repository information.
+type PluginsRepositories struct {
+	URL string `yaml:"url"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.

@@ -322,8 +322,9 @@ func run() error {
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 	router.AddEnabledActionBindings(conf.Actions)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, conf)
-	err = sourcePluginDispatcher.Start(ctx)
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager)
+	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
+	err = scheduler.Start(ctx)
 	if err != nil {
 		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
 	}
