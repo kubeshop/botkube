@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -23,10 +23,7 @@ import (
 const testingBotName = "@BKTesting"
 
 func TestCommandPreview(t *testing.T) {
-	var (
-		logger, _   = logtest.NewNullLogger()
-		fixBindings = []string{"kc-read-only", "kc-delete-pod"}
-	)
+	fixBindings := []string{"kc-read-only", "kc-delete-pod"}
 
 	tests := []struct {
 		name string
@@ -70,7 +67,7 @@ func TestCommandPreview(t *testing.T) {
 				kcMerger      = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
 			)
 
-			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 			// when
 			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header")
@@ -188,8 +185,6 @@ func TestCommandBuilderCanHandleAndGetPrefix(t *testing.T) {
 }
 
 func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-
 	platforms := []config.CommPlatformIntegration{
 		config.SlackCommPlatformIntegration,
 		config.MattermostCommPlatformIntegration,
@@ -202,7 +197,7 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 		t.Run(fmt.Sprintf("Should ignore %s", platform), func(t *testing.T) {
 			// given
 			const cmdHeader = "header"
-			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, nil, nil, nil, nil)
+			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), nil, nil, nil, nil)
 
 			// when
 			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader)
@@ -224,9 +219,8 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 func TestShouldReturnInitialMessage(t *testing.T) {
 	// given
 	var (
-		logger, _            = logtest.NewNullLogger()
 		kcMerger             = newFakeKcMerger([]string{"get", "describe"}, []string{"deployments", "pods"})
-		kcCmdBuilderExecutor = execute.NewKubectlCmdBuilder(logger, kcMerger, nil, nil, &FakeCommandGuard{})
+		kcCmdBuilderExecutor = execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, nil, nil, &FakeCommandGuard{})
 		expMsg               = fixInitialBuilderMessage()
 	)
 
@@ -247,7 +241,6 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 	// given
 	var (
-		logger, _  = logtest.NewNullLogger()
 		state      = fixStateForAllDropdowns()
 		kcExecutor = &fakeErrorKcExecutor{}
 		nsLister   = &fakeNamespaceLister{}
@@ -256,7 +249,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		expMsg     = fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
 	)
 
-	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(logger, kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
+	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 	// when
 	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header")

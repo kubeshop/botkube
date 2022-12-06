@@ -24,19 +24,17 @@ import (
 )
 
 const (
-	executorPluginName = "executor"
-	sourcePluginName   = "source"
-	dirPerms           = 0o775
-	binPerms           = 0o755
-	filePerms          = 0o664
+	dirPerms  = 0o775
+	binPerms  = 0o755
+	filePerms = 0o664
 )
 
 // pluginMap is the map of plugins we can dispense.
 // This map is used in order to identify a plugin called Dispense.
 // This map is globally available and must stay consistent in order for all the plugins to work.
 var pluginMap = map[string]plugin.Plugin{
-	sourcePluginName:   &source.Plugin{},
-	executorPluginName: &executor.Plugin{},
+	TypeSource.String():   &source.Plugin{},
+	TypeExecutor.String(): &executor.Plugin{},
 }
 
 // Manager provides functionality for managing executor and source plugins.
@@ -97,22 +95,22 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return err
 	}
 
-	executorPlugins, err := m.loadPlugins(ctx, executorPluginName, m.executorsToEnable, m.executorsStore.Repository)
+	executorPlugins, err := m.loadPlugins(ctx, TypeExecutor, m.executorsToEnable, m.executorsStore.Repository)
 	if err != nil {
 		return err
 	}
 
-	executorClients, err := createGRPCClients[executor.Executor](executorPlugins, executorPluginName)
+	executorClients, err := createGRPCClients[executor.Executor](m.log, executorPlugins, TypeExecutor)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
 	m.executorsStore.EnabledPlugins = executorClients
 
-	sourcesPlugins, err := m.loadPlugins(ctx, sourcePluginName, m.sourcesToEnable, m.sourcesStore.Repository)
+	sourcesPlugins, err := m.loadPlugins(ctx, TypeSource, m.sourcesToEnable, m.sourcesStore.Repository)
 	if err != nil {
 		return err
 	}
-	sourcesClients, err := createGRPCClients[source.Source](sourcesPlugins, sourcePluginName)
+	sourcesClients, err := createGRPCClients[source.Source](m.log, sourcesPlugins, TypeSource)
 	if err != nil {
 		return fmt.Errorf("while creating source plugins: %w", err)
 	}
@@ -171,7 +169,7 @@ func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins storePlugins[T]) {
 	}
 }
 
-func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
+func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
 	loadedPlugins := map[string]string{}
 	for _, pluginKey := range pluginsToEnable {
 		repoName, pluginName, ver, err := config.DecomposePluginKey(pluginKey)
@@ -285,10 +283,12 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 	return nil
 }
 
-func createGRPCClients[C any](bins map[string]string, dispenseType string) (map[string]enabledPlugins[C], error) {
+func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string, pluginType Type) (map[string]enabledPlugins[C], error) {
 	out := map[string]enabledPlugins[C]{}
 
 	for key, path := range bins {
+		pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, key, pluginType)
+
 		cli := plugin.NewClient(&plugin.ClientConfig{
 			Plugins: pluginMap,
 			//nolint:gosec // warns us about 'Subprocess launching with variable', but we are the one that created that variable.
@@ -299,6 +299,10 @@ func createGRPCClients[C any](bins map[string]string, dispenseType string) (map[
 				MagicCookieKey:   api.HandshakeConfig.MagicCookieKey,
 				MagicCookieValue: api.HandshakeConfig.MagicCookieValue,
 			},
+
+			Logger:     pluginLogger,
+			SyncStdout: stdoutLogger,
+			SyncStderr: stderrLogger,
 		})
 
 		rpcClient, err := cli.Client()
@@ -306,7 +310,7 @@ func createGRPCClients[C any](bins map[string]string, dispenseType string) (map[
 			return nil, err
 		}
 
-		raw, err := rpcClient.Dispense(dispenseType)
+		raw, err := rpcClient.Dispense(pluginType.String())
 		if err != nil {
 			return nil, err
 		}

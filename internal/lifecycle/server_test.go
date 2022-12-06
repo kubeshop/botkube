@@ -8,13 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -40,12 +40,12 @@ func TestNewReloadHandler_HappyPath(t *testing.T) {
 		assert.Equal(t, expectedMsg, msg)
 		return nil
 	})
-	logger, _ := logtest.NewNullLogger()
+
 	k8sCli := fake.NewSimpleClientset(inputDeploy)
 
 	req := httptest.NewRequest(http.MethodPost, "/reload", nil)
 	writer := httptest.NewRecorder()
-	handler := newReloadHandler(logger, k8sCli, deployCfg, clusterName, sendMsgFn)
+	handler := newReloadHandler(loggerx.NewNoop(), k8sCli, deployCfg, clusterName, sendMsgFn)
 
 	// when
 	handler(writer, req)

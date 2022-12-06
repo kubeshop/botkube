@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -125,11 +125,9 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			log, _ := logtest.NewNullLogger()
-
 			fakeStorage := &fakeBindingsStorage{}
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, fakeStorage, tc.config)
+			executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, fakeStorage, tc.config)
 			cmdCtx := CommandContext{
 				Args:          args,
 				CommGroupName: groupName,
@@ -190,10 +188,8 @@ func TestSourceBindingsErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			log, _ := logtest.NewNullLogger()
-
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, config.Config{})
+			executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, config.Config{})
 			cmdCtx := CommandContext{
 				Args:          args,
 				CommGroupName: groupName,
@@ -214,8 +210,6 @@ func TestSourceBindingsErrors(t *testing.T) {
 
 func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 	// given
-	log, _ := logtest.NewNullLogger()
-
 	args := strings.Fields(strings.TrimSpace(`edit SourceBindings`))
 	cfg := config.Config{
 		Sources: map[string]config.Sources{
@@ -272,7 +266,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		},
 	}
 
-	executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
+	executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, cfg)
 	cmdCtx := CommandContext{
 		Args:          args,
 		CommGroupName: groupName,
@@ -291,8 +285,6 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 
 func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T) {
 	// given
-	log, _ := logtest.NewNullLogger()
-
 	args := strings.Fields(strings.TrimSpace(`edit SourceBindings`))
 	cfg := config.Config{
 		Sources: map[string]config.Sources{
@@ -338,7 +330,7 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		},
 	}
 
-	executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
+	executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, cfg)
 	cmdCtx := CommandContext{
 		Args:          args,
 		CommGroupName: groupName,

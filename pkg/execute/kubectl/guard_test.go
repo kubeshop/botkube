@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
@@ -105,8 +105,7 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
-			cmdGuard := kubectl.NewCommandGuard(logger, tc.FakeDiscoClient)
+			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), tc.FakeDiscoClient)
 
 			// when
 			result, err := cmdGuard.GetAllowedResourcesForVerb(tc.SelectedVerb, tc.AllConfiguredResources)
@@ -153,7 +152,6 @@ func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
 			fakeDisco := &fakeDisco{
 				list: []*v1.APIResourceList{
 					{GroupVersion: "v1", APIResources: []v1.APIResource{
@@ -161,7 +159,7 @@ func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
 					}},
 				},
 			}
-			cmdGuard := kubectl.NewCommandGuard(logger, fakeDisco)
+			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), fakeDisco)
 
 			// when
 			result, err := cmdGuard.GetResourceDetails(tc.SelectedVerb, tc.ResourceType)
@@ -205,9 +203,7 @@ func TestCommandGuard_GetServerResourceMap_HappyPath(t *testing.T) {
 			},
 		},
 	}
-	logger, _ := logtest.NewNullLogger()
-
-	cmdGuard := kubectl.NewCommandGuard(logger, fakeDisco)
+	cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), fakeDisco)
 
 	// when
 
@@ -316,8 +312,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
-			cmdGuard := kubectl.NewCommandGuard(logger, nil)
+			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), nil)
 
 			// when
 			result, err := cmdGuard.GetResourceDetailsFromMap(tc.SelectedVerb, tc.ResourceType, tc.ResourceMap)

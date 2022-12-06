@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 //go:embed default.yaml
@@ -570,18 +572,15 @@ type CfgWatcher struct {
 
 // Settings contains Botkube's related configuration.
 type Settings struct {
-	ClusterName      string           `yaml:"clusterName"`
-	UpgradeNotifier  bool             `yaml:"upgradeNotifier"`
-	SystemConfigMap  K8sResourceRef   `yaml:"systemConfigMap"`
-	PersistentConfig PersistentConfig `yaml:"persistentConfig"`
-	MetricsPort      string           `yaml:"metricsPort"`
-	LifecycleServer  LifecycleServer  `yaml:"lifecycleServer"`
-	Log              struct {
-		Level         string `yaml:"level"`
-		DisableColors bool   `yaml:"disableColors"`
-	} `yaml:"log"`
-	InformersResyncPeriod time.Duration `yaml:"informersResyncPeriod"`
-	Kubeconfig            string        `yaml:"kubeconfig"`
+	ClusterName           string           `yaml:"clusterName"`
+	UpgradeNotifier       bool             `yaml:"upgradeNotifier"`
+	SystemConfigMap       K8sResourceRef   `yaml:"systemConfigMap"`
+	PersistentConfig      PersistentConfig `yaml:"persistentConfig"`
+	MetricsPort           string           `yaml:"metricsPort"`
+	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
+	Log                   loggerx.Config   `yaml:"log"`
+	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
+	Kubeconfig            string           `yaml:"kubeconfig"`
 }
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.

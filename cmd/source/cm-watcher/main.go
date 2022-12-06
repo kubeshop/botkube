@@ -68,8 +68,9 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 		var cfg Config
 		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
 		if err != nil {
-			return source.StreamOutput{}, err
+			return source.StreamOutput{}, fmt.Errorf("while unmarshaling cm-watcher config: %w", err)
 		}
+
 		if cfg.ConfigMap.Name != "" {
 			finalCfg.ConfigMap.Name = cfg.ConfigMap.Name
 		}

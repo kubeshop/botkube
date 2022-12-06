@@ -33,6 +33,11 @@ func (t Type) IsValid() bool {
 	return false
 }
 
+// String returns a string type representation.
+func (t Type) String() string {
+	return string(t)
+}
+
 type (
 	// Index defines the plugin repository index.
 	Index struct {

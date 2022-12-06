@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -19,7 +19,6 @@ const (
 )
 
 var (
-	log, _          = logtest.NewNullLogger()
 	notifierTestCfg = config.Config{
 		Settings: config.Settings{
 			ClusterName: "foo",
@@ -86,7 +85,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			msg, err := e.Start(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -160,7 +159,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			msg, err := e.Stop(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -199,7 +198,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			msg, err := e.Status(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
 			assert.Contains(t, msg.Body.CodeBlock, tc.Status)

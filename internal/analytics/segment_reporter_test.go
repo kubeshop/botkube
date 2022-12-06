@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	segment "github.com/segmentio/analytics-go"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/golden"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -224,9 +224,8 @@ func TestSegmentReporter_ReportFatalError(t *testing.T) {
 }
 
 func fakeSegmentReporterWithIdentity(identity *analytics.Identity) (*analytics.SegmentReporter, *fakeSegmentCli) {
-	logger, _ := logtest.NewNullLogger()
 	segmentCli := &fakeSegmentCli{}
-	segmentReporter := analytics.NewSegmentReporter(logger, segmentCli)
+	segmentReporter := analytics.NewSegmentReporter(loggerx.NewNoop(), segmentCli)
 	segmentReporter.SetIdentity(identity)
 
 	return segmentReporter, segmentCli

@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -189,7 +189,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
                               sources:
                                 - old
                                 - older
-                                - oldest               
+                                - oldest
 					`),
 				},
 			},
@@ -249,9 +249,8 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(logger, config.PersistentConfig{Runtime: cfg}, k8sCli)
+			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli)
 
 			// when
 			err := manager.PersistSourceBindings(context.Background(), commGroupName, testCase.InputPlatform, testCase.InputChannel, testCase.InputSourceBindings)
@@ -403,9 +402,8 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(logger, config.PersistentConfig{Startup: cfg}, k8sCli)
+			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Startup: cfg}, k8sCli)
 
 			// when
 			err := manager.PersistNotificationsEnabled(context.Background(), commGroupName, testCase.InputPlatform, testCase.InputChannel, testCase.InputEnabled)
@@ -542,9 +540,8 @@ func TestPersistenceManager_PersistFilterEnabled(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(logger, config.PersistentConfig{Startup: cfg}, k8sCli)
+			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Startup: cfg}, k8sCli)
 
 			// when
 			err := manager.PersistFilterEnabled(context.Background(), testCase.InputName, testCase.InputEnabled)
@@ -622,9 +619,8 @@ func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(logger, config.PersistentConfig{Runtime: cfg}, k8sCli)
+			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli)
 
 			err := manager.PersistActionEnabled(context.Background(), testCase.ActionName, testCase.Enabled)
 			assert.Equal(t, testCase.Err, err)
