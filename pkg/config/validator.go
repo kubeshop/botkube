@@ -14,10 +14,13 @@ import (
 )
 
 const (
-	nsIncludeTag      = "ns-include-regex"
-	invalidBindingTag = "invalid_binding"
-	appTokenPrefix    = "xapp-"
-	botTokenPrefix    = "xoxb-"
+	nsIncludeTag                = "ns-include-regex"
+	invalidBindingTag           = "invalid_binding"
+	conflictingPluginRepoTag    = "conflicting_plugin_repo"
+	conflictingPluginVersionTag = "conflicting_plugin_version"
+	invalidPluginDefinitionTag  = "invalid_plugin_definition"
+	appTokenPrefix              = "xapp-"
+	botTokenPrefix              = "xoxb-"
 )
 
 var warnsOnlyTags = map[string]struct{}{
@@ -51,6 +54,8 @@ func ValidateStruct(in any) (ValidateResult, error) {
 
 	validate.RegisterStructValidation(slackStructTokenValidator, Slack{})
 	validate.RegisterStructValidation(socketSlackStructTokenValidator, SocketSlack{})
+	validate.RegisterStructValidation(sourceStructValidator, Sources{})
+	validate.RegisterStructValidation(executorStructValidator, Executors{})
 
 	err := validate.Struct(in)
 	if err == nil {
@@ -80,15 +85,9 @@ func ValidateStruct(in any) (ValidateResult, error) {
 }
 
 func registerCustomTranslations(validate *validator.Validate, trans ut.Translator) error {
-	startsWith := func(ut ut.Translator) error {
-		return ut.Add("invalid_slack_token", "{0} {1}", false)
-	}
-
-	if err := validate.RegisterTranslation("invalid_slack_token", trans, startsWith, translateFunc); err != nil {
-		return err
-	}
-
-	return nil
+	return registerTranslation(validate, trans, map[string]string{
+		"invalid_slack_token": "{0} {1}",
+	})
 }
 
 func registerNamespaceValidator(validate *validator.Validate, trans ut.Translator) error {
@@ -96,11 +95,9 @@ func registerNamespaceValidator(validate *validator.Validate, trans ut.Translato
 	// internally dereferences it.
 	validate.RegisterStructValidation(namespacesStructValidator, Namespaces{})
 
-	registerFn := func(ut ut.Translator) error {
-		return ut.Add(nsIncludeTag, "{0} matches both all and exact namespaces", false)
-	}
-
-	return validate.RegisterTranslation(nsIncludeTag, trans, registerFn, translateFunc)
+	return registerTranslation(validate, trans, map[string]string{
+		nsIncludeTag: "{0} matches both all and exact namespaces",
+	})
 }
 
 func registerBindingsValidator(validate *validator.Validate, trans ut.Translator) error {
@@ -108,11 +105,12 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 	validate.RegisterStructValidation(actionBindingsStructValidator, ActionBindings{})
 	validate.RegisterStructValidation(sinkBindingsStructValidator, SinkBindings{})
 
-	registerFn := func(ut ut.Translator) error {
-		return ut.Add(invalidBindingTag, "'{0}' binding not defined in {1}", false)
-	}
-
-	return validate.RegisterTranslation(invalidBindingTag, trans, registerFn, translateFunc)
+	return registerTranslation(validate, trans, map[string]string{
+		invalidBindingTag:           "'{0}' binding not defined in {1}",
+		conflictingPluginRepoTag:    "{0}{1}",
+		conflictingPluginVersionTag: "{0}{1}",
+		invalidPluginDefinitionTag:  "{0}{1}",
+	})
 }
 
 func slackStructTokenValidator(sl validator.StructLevel) {
@@ -183,6 +181,24 @@ func namespacesStructValidator(sl validator.StructLevel) {
 	}
 }
 
+func sourceStructValidator(sl validator.StructLevel) {
+	sources, ok := sl.Current().Interface().(Sources)
+	if !ok {
+		return
+	}
+
+	validatePlugins(sl, sources.Plugins)
+}
+
+func executorStructValidator(sl validator.StructLevel) {
+	executor, ok := sl.Current().Interface().(Executors)
+	if !ok {
+		return
+	}
+
+	validatePlugins(sl, executor.Plugins)
+}
+
 func botBindingsStructValidator(sl validator.StructLevel) {
 	bindings, ok := sl.Current().Interface().(BotBindings)
 	if !ok {
@@ -222,19 +238,57 @@ func sinkBindingsStructValidator(sl validator.StructLevel) {
 }
 
 func validateSourceBindings(sl validator.StructLevel, sources map[string]Sources, bindings []string) {
+	var enabledPluginsViaBindings []string
 	for _, source := range bindings {
-		if _, ok := sources[source]; !ok {
+		sourceConf, ok := sources[source]
+		if !ok {
 			sl.ReportError(bindings, source, source, invalidBindingTag, "Config.Sources")
 		}
+		for pluginKey, plugin := range sourceConf.Plugins {
+			if !plugin.Enabled {
+				continue
+			}
+
+			enabledPluginsViaBindings = append(enabledPluginsViaBindings, pluginKey)
+		}
 	}
+
+	validateBindPlugins(sl, enabledPluginsViaBindings)
 }
 
 func validateExecutorBindings(sl validator.StructLevel, executors map[string]Executors, bindings []string) {
+	var enabledPluginsViaBindings []string
 	for _, executor := range bindings {
-		if _, ok := executors[executor]; !ok {
+		execConf, ok := executors[executor]
+		if !ok {
 			sl.ReportError(bindings, executor, executor, invalidBindingTag, "Config.Executors")
 		}
+
+		for pluginKey, plugin := range execConf.Plugins {
+			if !plugin.Enabled {
+				continue
+			}
+
+			enabledPluginsViaBindings = append(enabledPluginsViaBindings, pluginKey)
+		}
 	}
+
+	validateBindPlugins(sl, enabledPluginsViaBindings)
+}
+
+func registerTranslation(validate *validator.Validate, translator ut.Translator, translation map[string]string) error {
+	for tag, text := range translation {
+		registerFn := func(ut ut.Translator) error {
+			return ut.Add(tag, text, false)
+		}
+
+		err := validate.RegisterTranslation(tag, translator, registerFn, translateFunc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // copied from: https://github.com/go-playground/validator/blob/9e2ea4038020b5c7e3802a21cfa4e3afcfdcd276/translations/en/en.go#L1391-L1399

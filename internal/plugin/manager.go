@@ -174,19 +174,19 @@ func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins storePlugins[T]) {
 func (m *Manager) loadPlugins(ctx context.Context, pluginType string, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
 	loadedPlugins := map[string]string{}
 	for _, pluginKey := range pluginsToEnable {
-		candidates, found := repo[pluginKey]
-		if !found || len(candidates) == 0 {
-			return nil, NewNotFoundPluginError("not found %q plugin in any repository", pluginKey)
-		}
-		// TODO(version): check if version is defined in plugin:
-		// - if yes, use it.
-		// - if not, find the latest version in the repository.
-		latestPluginInfo := candidates[0]
-
-		repoName, pluginName, ver, err := DecomposePluginKey(pluginKey)
+		repoName, pluginName, ver, err := config.DecomposePluginKey(pluginKey)
 		if err != nil {
 			return nil, err
 		}
+
+		candidates, found := repo.Get(repoName, pluginName)
+		if !found || len(candidates) == 0 {
+			return nil, NewNotFoundPluginError("not found %q plugin in any repository", pluginKey)
+		}
+
+		// entries are sorted by version, first is the latest one.
+		latestPluginInfo := candidates[0]
+
 		// if plugin version not defined by user, use the latest one
 		if ver == "" {
 			ver = latestPluginInfo.Version

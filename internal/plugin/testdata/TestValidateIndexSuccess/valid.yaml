@@ -1,0 +1,94 @@
+entries:
+  - name: "kubectl"
+    type: "executor"
+    description: "Kubectl executor plugin."
+    version: "v1.0.0"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64
+        platform:
+          os: darwin
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64
+        platform:
+          os: darwin
+          architecture: arm64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64
+        platform:
+          os: linux
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64
+        platform:
+          os: linux
+          architecture: arm64
+  - name: "kubectl"
+    type: "executor"
+    description: "Kubectl executor plugin."
+    version: "v1.5.0"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-amd64
+        platform:
+          os: darwin
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-arm64
+        platform:
+          os: darwin
+          architecture: arm64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-amd64
+        platform:
+          os: linux
+          architecture: amd64
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-arm64
+        platform:
+          os: linux
+          architecture: arm64
+  - name: "kubernetes"
+    type: "source"
+    description: "Kubernetes source"
+    version: "v1.0.0"
+    urls:
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_arm64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: arm64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_md64_source_kubernetes
+        platform:
+          os: linux
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
+
+  - name: "kubernetes"
+    type: "source"
+    description: "Kubernetes source"
+    version: "0.1.0" # should support also without the `v`
+    urls:
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_amd64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_arm64_source_kubernetes
+        platform:
+          os: darwin
+          architecture: arm64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_md64_source_kubernetes
+        platform:
+          os: linux
+          architecture: amd64
+      # different url syntax
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64

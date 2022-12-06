@@ -74,7 +74,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		Configs: configs,
 	})
 	if err != nil {
-		return "", fmt.Errorf("while executing gRPC call: %w", err)
+		return "", NewExecutionCommandError(err.Error())
 	}
 
 	return resp.Data, nil
@@ -120,7 +120,7 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 				continue
 			}
 
-			_, pluginName, _, _ := plugin.DecomposePluginKey(pluginKey)
+			_, pluginName, _, _ := config.DecomposePluginKey(pluginKey)
 			if pluginName != cmdName {
 				continue
 			}
