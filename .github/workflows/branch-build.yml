@@ -60,6 +60,9 @@ jobs:
       packages: read
 
     strategy:
+      # make the jobs independent
+      fail-fast: false
+
       matrix:
         integration:
           - slack
