@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	feedbackResourcesNames = []string{""}
+	feedbackResourcesNames = noResourceNames
 )
 
 // FeedbackExecutor executes all commands that are related to feedback.

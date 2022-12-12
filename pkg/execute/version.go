@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	versionResourcesNames = []string{""}
+	versionResourcesNames = noResourceNames
 )
 
 // VersionExecutor executes all commands that are related to version.

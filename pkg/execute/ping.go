@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	pingResourcesNames = []string{""}
+	pingResourcesNames = noResourceNames
 )
 
 // PingExecutor executes all commands that are related to ping.

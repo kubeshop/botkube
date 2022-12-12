@@ -58,7 +58,7 @@ func (e *ActionExecutor) Commands() map[CommandVerb]CommandFn {
 
 // List returns a tabular representation of Actions
 func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List actions")
 	return respond(e.ActionsTabularOutput(), cmdCtx), nil
@@ -67,7 +67,7 @@ func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 // Enable enables given action in the runtime config map
 func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	const enabled = true
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {
@@ -85,7 +85,7 @@ func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 // Disable disables given action in the runtime config map
 func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	const enabled = false
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {

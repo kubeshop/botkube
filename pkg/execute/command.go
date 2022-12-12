@@ -14,6 +14,12 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
+const (
+	// Currently we support only `kubectl, so we
+	// override the message to human-readable command name.
+	humanReadableCommandListName = "Available kubectl commands"
+)
+
 var (
 	commandResourcesNames = []string{"command", "commands", "cmd", "cmds"}
 )
@@ -48,14 +54,14 @@ func (e *CommandsExecutor) Commands() map[CommandVerb]CommandFn {
 
 // List provides the list of allowed commands
 func (e *CommandsExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel(cmdCtx.Conversation.ExecutorBindings)
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while rendering namespace config: %s", err.Error())
+		return interactive.Message{}, fmt.Errorf("while rendering enabled executors: %s", err.Error())
 	}
-	return respond(cmdCtx.ExecutorFilter.Apply(enabledKubectls), cmdCtx, humanReadableCommandListName), nil
+	return respond(enabledKubectls, cmdCtx, humanReadableCommandListName), nil
 }
 
 func (e *CommandsExecutor) getEnabledKubectlExecutorsInChannel(executorBindings []string) (string, error) {

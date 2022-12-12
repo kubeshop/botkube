@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	helpResourcesNames = []string{""}
+	helpResourcesNames = noResourceNames
 )
 
 // HelpExecutor executes all commands that are related to help

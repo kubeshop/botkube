@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -50,16 +49,12 @@ type NotifierExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cfgManager        ConfigPersistenceManager
-
-	// Used for deprecated showControllerConfig function.
-	cfg config.Config
 }
 
 // NewNotifierExecutor creates a new instance of NotifierExecutor
-func NewNotifierExecutor(log logrus.FieldLogger, cfg config.Config, cfgManager ConfigPersistenceManager, analyticsReporter AnalyticsReporter) *NotifierExecutor {
+func NewNotifierExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager ConfigPersistenceManager, cfg config.Config) *NotifierExecutor {
 	return &NotifierExecutor{
 		log:               log,
-		cfg:               cfg,
 		cfgManager:        cfgManager,
 		analyticsReporter: analyticsReporter,
 	}
@@ -73,16 +68,15 @@ func (e *NotifierExecutor) ResourceNames() []string {
 // Commands returns slice of commands the executor supports
 func (e *NotifierExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
-		CommandStart:      e.Start,
-		CommandStop:       e.Stop,
-		CommandStatus:     e.Status,
-		CommandShowConfig: e.ShowConfig,
+		CommandStart:  e.Start,
+		CommandStop:   e.Stop,
+		CommandStatus: e.Status,
 	}
 }
 
 // Start starts the notifier
 func (e *NotifierExecutor) Start(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	const enabled = true
@@ -108,7 +102,7 @@ func (e *NotifierExecutor) Start(ctx context.Context, cmdCtx CommandContext) (in
 
 // Stop stops the notifier
 func (e *NotifierExecutor) Stop(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	const enabled = false
@@ -143,51 +137,9 @@ func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (i
 	return respond(msg, cmdCtx), nil
 }
 
-// ShowConfig returns Config in yaml format
-func (e *NotifierExecutor) ShowConfig(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb := cmdCtx.Args[0]
-	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
-
-	out, err := e.showControllerConfig()
-	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while executing 'showconfig' command: %w", err)
-	}
-	msg := fmt.Sprintf("Showing config for cluster %q:\n\n%s", cmdCtx.ClusterName, out)
-	return respond(msg, cmdCtx), nil
-}
-
 func (e *NotifierExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
 		e.log.Errorf("while reporting edit command: %s", err.Error())
 	}
-}
-
-const redactedSecretStr = "*** REDACTED ***"
-
-// Deprecated: this function doesn't fit in the scope of notifier. It was moved from legacy reasons, but it will be removed in future.
-func (e *NotifierExecutor) showControllerConfig() (string, error) {
-	cfg := e.cfg
-
-	// hide sensitive info
-	// TODO: avoid printing sensitive data without need to resetting them manually (which is an error-prone approach)
-	for key, old := range cfg.Communications {
-		old.Slack.Token = redactedSecretStr
-		old.SocketSlack.AppToken = redactedSecretStr
-		old.SocketSlack.BotToken = redactedSecretStr
-		old.Elasticsearch.Password = redactedSecretStr
-		old.Discord.Token = redactedSecretStr
-		old.Mattermost.Token = redactedSecretStr
-		old.Teams.AppPassword = redactedSecretStr
-
-		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
-		cfg.Communications[key] = old
-	}
-
-	b, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }

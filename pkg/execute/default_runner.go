@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -66,7 +67,9 @@ func newCmdsMapping(executors []CommandExecutor) map[CommandVerb]map[string]Comm
 				cmdsMapping[verb] = make(map[string]CommandFn)
 			}
 			for _, resName := range resNames {
-				// TODO: Handle conflicts - return error from the constructor
+				if _, ok := cmdsMapping[verb][resName]; ok {
+					panic(fmt.Sprintf("Command collision: tried to register '%s %s', but it already exists", verb, resName))
+				}
 				cmdsMapping[verb][resName] = cmdFn
 			}
 		}

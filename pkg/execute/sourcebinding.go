@@ -1,10 +1,12 @@
 package execute
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sort"
 	"strings"
+	"text/tabwriter"
 	"unicode"
 
 	"github.com/dustin/go-humanize/english"
@@ -22,15 +24,20 @@ const (
 	unknownSourcesMsgFmt             = ":exclamation: The %s %s not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source."
 )
 
+var (
+	sourceBindingResourcesNames = []string{"sourcebindings", "sourcebinding"}
+)
+
 // ResourceNames returns slice of resources the executor supports
-func (e *EditExecutor) ResourceNames() []string {
-	return []string{"sourcebindings", "sourcebinding"}
+func (e *SourceBindingExecutor) ResourceNames() []string {
+	return sourceBindingResourcesNames
 }
 
 // Commands returns slice of commands the executor supports
-func (e *EditExecutor) Commands() map[CommandVerb]CommandFn {
+func (e *SourceBindingExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
-		CommandEdit: e.Edit,
+		CommandEdit:   e.Edit,
+		CommandStatus: e.Status,
 	}
 }
 
@@ -39,8 +46,8 @@ type BindingsStorage interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 }
 
-// EditExecutor provides functionality to run all Botkube edit related commands.
-type EditExecutor struct {
+// SourceBindingExecutor provides functionality to run all Botkube SourceBinding related commands.
+type SourceBindingExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cfgManager        BindingsStorage
@@ -48,8 +55,8 @@ type EditExecutor struct {
 	cfg               config.Config
 }
 
-// NewEditExecutor returns a new EditExecutor instance.
-func NewEditExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager BindingsStorage, cfg config.Config) *EditExecutor {
+// NewSourceBindingExecutor returns a new SourceBindingExecutor instance.
+func NewSourceBindingExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager BindingsStorage, cfg config.Config) *SourceBindingExecutor {
 	normalizedSource := map[string]string{}
 	for key, item := range cfg.Sources {
 		displayName := item.DisplayName
@@ -59,7 +66,7 @@ func NewEditExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 		normalizedSource[key] = displayName
 	}
 
-	return &EditExecutor{
+	return &SourceBindingExecutor{
 		log:               log,
 		analyticsReporter: analyticsReporter,
 		cfgManager:        cfgManager,
@@ -68,8 +75,26 @@ func NewEditExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 	}
 }
 
-// Edit executes a given edit command based on args.
-func (e *EditExecutor) Edit(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+// Status returns all sources per given channel
+func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	sources := e.currentlySelectedOptions(cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation.ID)
+	if len(sources) == 0 {
+		return interactive.Message{}, nil
+	}
+	sort.Strings(sources)
+
+	buf := new(bytes.Buffer)
+	w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "NAME")
+	for _, name := range sources {
+		fmt.Fprintf(w, "%s\n", name)
+	}
+	w.Flush()
+	return respond(buf.String(), cmdCtx), nil
+}
+
+// Edit executes the edit command based on args.
+func (e *SourceBindingExecutor) Edit(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if len(cmdCtx.Args) < 2 {
@@ -97,7 +122,7 @@ func (e *EditExecutor) Edit(_ context.Context, cmdCtx CommandContext) (interacti
 	return msg, nil
 }
 
-func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
+func (e *SourceBindingExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	sourceBindings, err := e.normalizeSourceItems(cmdArgs)
@@ -106,7 +131,7 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 	}
 
 	if len(sourceBindings) == 0 {
-		selectedOptions := e.currentlySelectedOptions(commGroupName, platform, conversation.ID)
+		selectedOptions := e.mapToOptions(e.currentlySelectedOptions(commGroupName, platform, conversation.ID))
 		return interactive.Message{
 			Type: interactive.Popup,
 			Base: interactive.Base{
@@ -148,12 +173,12 @@ func (e *EditExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName 
 
 	return interactive.Message{
 		Base: interactive.Base{
-			Description: e.getEditedSourceBindingsMsg(userID, sourceList),
+			Description: e.getSourceBindingedSourceBindingsMsg(userID, sourceList),
 		},
 	}, nil
 }
 
-func (e *EditExecutor) getEditedSourceBindingsMsg(userID, sourceList string) string {
+func (e *SourceBindingExecutor) getSourceBindingedSourceBindingsMsg(userID, sourceList string) string {
 	if !e.cfg.ConfigWatcher.Enabled {
 		return fmt.Sprintf(editedSourcesMsgWithoutReloadFmt, userID, sourceList)
 	}
@@ -161,7 +186,7 @@ func (e *EditExecutor) getEditedSourceBindingsMsg(userID, sourceList string) str
 	return fmt.Sprintf(editedSourcesMsgFmt, userID, sourceList)
 }
 
-func (e *EditExecutor) generateUnknownMessage(unknown []string) interactive.Message {
+func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interactive.Message {
 	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.Message{
@@ -171,7 +196,7 @@ func (e *EditExecutor) generateUnknownMessage(unknown []string) interactive.Mess
 	}
 }
 
-func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform config.CommPlatformIntegration, conversationID string) []interactive.OptionItem {
+func (e *SourceBindingExecutor) currentlySelectedOptions(commGroupName string, platform config.CommPlatformIntegration, conversationID string) []string {
 	switch platform {
 	case config.SlackCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].Slack.Channels
@@ -179,7 +204,7 @@ func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform c
 			if channel.Identifier() != conversationID {
 				continue
 			}
-			return e.mapToOptions(channel.Bindings.Sources)
+			return channel.Bindings.Sources
 		}
 	case config.SocketSlackCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].SocketSlack.Channels
@@ -187,7 +212,7 @@ func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform c
 			if channel.Identifier() != conversationID {
 				continue
 			}
-			return e.mapToOptions(channel.Bindings.Sources)
+			return channel.Bindings.Sources
 		}
 	case config.MattermostCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].Mattermost.Channels
@@ -195,7 +220,7 @@ func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform c
 			if channel.Identifier() != conversationID {
 				continue
 			}
-			return e.mapToOptions(channel.Bindings.Sources)
+			return channel.Bindings.Sources
 		}
 	case config.DiscordCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].Mattermost.Channels
@@ -203,15 +228,15 @@ func (e *EditExecutor) currentlySelectedOptions(commGroupName string, platform c
 			if channel.Identifier() != conversationID {
 				continue
 			}
-			return e.mapToOptions(channel.Bindings.Sources)
+			return channel.Bindings.Sources
 		}
 	case config.TeamsCommPlatformIntegration:
-		return e.mapToOptions(e.cfg.Communications[commGroupName].Teams.Bindings.Sources)
+		return e.cfg.Communications[commGroupName].Teams.Bindings.Sources
 	}
 	return nil
 }
 
-func (e *EditExecutor) mapToDisplayNames(in []string) []string {
+func (e *SourceBindingExecutor) mapToDisplayNames(in []string) []string {
 	var out []string
 	for _, key := range in {
 		out = append(out, e.sources[key])
@@ -219,7 +244,7 @@ func (e *EditExecutor) mapToDisplayNames(in []string) []string {
 	return out
 }
 
-func (e *EditExecutor) mapToOptions(in []string) []interactive.OptionItem {
+func (e *SourceBindingExecutor) mapToOptions(in []string) []interactive.OptionItem {
 	var options []interactive.OptionItem
 	for _, key := range in {
 		displayName, found := e.sources[key]
@@ -234,7 +259,7 @@ func (e *EditExecutor) mapToOptions(in []string) []interactive.OptionItem {
 	return options
 }
 
-func (e *EditExecutor) allOptions() []interactive.OptionItem {
+func (e *SourceBindingExecutor) allOptions() []interactive.OptionItem {
 	var options []interactive.OptionItem
 	for key, displayName := range e.sources {
 		options = append(options, interactive.OptionItem{
@@ -249,7 +274,7 @@ func (e *EditExecutor) allOptions() []interactive.OptionItem {
 	return options
 }
 
-func (*EditExecutor) normalizeSourceItems(args []string) ([]string, error) {
+func (*SourceBindingExecutor) normalizeSourceItems(args []string) ([]string, error) {
 	var out []string
 	for _, item := range args {
 		// Case: "foo,baz,bar"
@@ -284,7 +309,7 @@ func (*EditExecutor) normalizeSourceItems(args []string) ([]string, error) {
 	return out, nil
 }
 
-func (e *EditExecutor) getUnknownInputSourceBindings(sources []string) []string {
+func (e *SourceBindingExecutor) getUnknownInputSourceBindings(sources []string) []string {
 	var out []string
 	for _, item := range sources {
 		_, found := e.sources[item]
@@ -296,7 +321,7 @@ func (e *EditExecutor) getUnknownInputSourceBindings(sources []string) []string 
 	return out
 }
 
-func (*EditExecutor) quoteEachItem(in []string) []string {
+func (*SourceBindingExecutor) quoteEachItem(in []string) []string {
 	for idx := range in {
 		in[idx] = fmt.Sprintf("`%s`", in[idx])
 	}

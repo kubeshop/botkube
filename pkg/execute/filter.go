@@ -60,16 +60,16 @@ func (e *FilterExecutor) Commands() map[CommandVerb]CommandFn {
 
 // List returns a tabular representation of Filters
 func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List filters")
-	return respond(cmdCtx.ExecutorFilter.Apply(e.TabularOutput()), cmdCtx), nil
+	return respond(e.TabularOutput(), cmdCtx), nil
 }
 
 // Enable enables given filter in the startup config map
 func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	const enabled = true
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {
@@ -92,7 +92,7 @@ func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 // Disable disables given filter in the startup config map
 func (e *FilterExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	const enabled = false
-	cmdVerb, cmdRes := cmdCtx.Args[0], cmdCtx.Args[1]
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 

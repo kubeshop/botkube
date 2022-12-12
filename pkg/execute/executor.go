@@ -28,12 +28,9 @@ const (
 
 	anonymizedInvalidVerb = "{invalid verb}"
 
-	// Currently we support only `kubectl, so we
-	// override the message to human-readable command name.
-	humanReadableCommandListName = "Available kubectl commands"
-
 	lineLimitToShowFilter = 16
 
+	// TODO: build the help msg dynamically
 	helpMessageList = `@Botkube list [resource]
 
 Available resources:
@@ -60,6 +57,8 @@ filters | filter | fil    disable available filters`
 )
 
 var (
+	// noResourceNames is used for commands that have no resources defined
+	noResourceNames       = []string{""}
 	clusterNameFlagRegex  = regexp.MustCompile(`--cluster-name[=|\s]+\S+`)
 	availableHelpMessages = map[CommandVerb]string{
 		CommandList:    helpMessageList,
@@ -71,31 +70,32 @@ var (
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	cfg               config.Config
-	filterEngine      filterengine.FilterEngine
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	kubectlExecutor   *Kubectl
-	pluginExecutor    *PluginExecutor
-	editExecutor      *EditExecutor
-	actionExecutor    *ActionExecutor
-	commandExecutor   *CommandsExecutor
-	filterExecutor    *FilterExecutor
-	pingExecutor      *PingExecutor
-	versionExecutor   *VersionExecutor
-	helpExecutor      *HelpExecutor
-	feedbackExecutor  *FeedbackExecutor
-	notifierExecutor  *NotifierExecutor
-	notifierHandler   NotifierHandler
-	message           string
-	platform          config.CommPlatformIntegration
-	conversation      Conversation
-	merger            *kubectl.Merger
-	cfgManager        ConfigPersistenceManager
-	commGroupName     string
-	user              string
-	kubectlCmdBuilder *KubectlCmdBuilder
-	cmdsMapping       map[CommandVerb]map[string]CommandFn
+	cfg                   config.Config
+	filterEngine          filterengine.FilterEngine
+	log                   logrus.FieldLogger
+	analyticsReporter     AnalyticsReporter
+	kubectlExecutor       *Kubectl
+	pluginExecutor        *PluginExecutor
+	sourceBindingExecutor *SourceBindingExecutor
+	actionExecutor        *ActionExecutor
+	commandExecutor       *CommandsExecutor
+	filterExecutor        *FilterExecutor
+	pingExecutor          *PingExecutor
+	versionExecutor       *VersionExecutor
+	helpExecutor          *HelpExecutor
+	feedbackExecutor      *FeedbackExecutor
+	notifierExecutor      *NotifierExecutor
+	configExecutor        *ConfigExecutor
+	notifierHandler       NotifierHandler
+	message               string
+	platform              config.CommPlatformIntegration
+	conversation          Conversation
+	merger                *kubectl.Merger
+	cfgManager            ConfigPersistenceManager
+	commGroupName         string
+	user                  string
+	kubectlCmdBuilder     *KubectlCmdBuilder
+	cmdsMapping           map[CommandVerb]map[string]CommandFn
 }
 
 // CommandFlags creates custom type for flags in botkube
@@ -119,18 +119,18 @@ type CommandVerb string
 
 // CommandVerb command options
 const (
-	CommandPing       CommandVerb = "ping"
-	CommandHelp       CommandVerb = "help"
-	CommandVersion    CommandVerb = "version"
-	CommandFeedback   CommandVerb = "feedback"
-	CommandList       CommandVerb = "list"
-	CommandEnable     CommandVerb = "enable"
-	CommandDisable    CommandVerb = "disable"
-	CommandEdit       CommandVerb = "edit"
-	CommandStart      CommandVerb = "start"
-	CommandStop       CommandVerb = "stop"
-	CommandStatus     CommandVerb = "status"
-	CommandShowConfig CommandVerb = "config"
+	CommandPing     CommandVerb = "ping"
+	CommandHelp     CommandVerb = "help"
+	CommandVersion  CommandVerb = "version"
+	CommandFeedback CommandVerb = "feedback"
+	CommandList     CommandVerb = "list"
+	CommandEnable   CommandVerb = "enable"
+	CommandDisable  CommandVerb = "disable"
+	CommandEdit     CommandVerb = "edit"
+	CommandStart    CommandVerb = "start"
+	CommandStop     CommandVerb = "stop"
+	CommandStatus   CommandVerb = "status"
+	CommandConfig   CommandVerb = "config"
 )
 
 // CommandExecutor defines command structure for executors
@@ -255,30 +255,30 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return respond(execFilter.Apply(out), cmdCtx)
 	}
 
-	cleanArgs, err := removeFlags(args)
+	cleanArgs, err := removeBotkubeRelatedFlags(args)
 	if err != nil {
-		e.log.Errorf("while removing flags from arguments: %s", err.Error())
+		e.log.Errorf("while removing Botkube related flags from arguments: %s", err.Error())
 		return empty
 	}
 
-	cmdVerb := strings.ToLower(cleanArgs[0])
+	cmdVerb := CommandVerb(strings.ToLower(cleanArgs[0]))
 	var cmdRes string
 	if len(cleanArgs) > 1 {
 		cmdRes = strings.ToLower(cleanArgs[1])
 	}
 
-	resources, found := e.cmdsMapping[CommandVerb(cmdVerb)]
+	resources, found := e.cmdsMapping[cmdVerb]
 	if !found {
+		e.reportCommand(anonymizedInvalidVerb, false)
 		e.log.Infof("received unsupported command: %q", execFilter.FilteredCommand())
 		return respond(unsupportedCmdMsg, cmdCtx)
 	}
 
 	fn, found := resources[cmdRes]
 	if !found {
-		e.reportCommand(anonymizedInvalidVerb, false)
 		e.log.Infof("received unsupported resource: %q", execFilter.FilteredCommand())
 		msg := incompleteCmdMsg
-		if helpMessage, ok := availableHelpMessages[CommandVerb(cmdVerb)]; ok {
+		if helpMessage, ok := availableHelpMessages[cmdVerb]; ok {
 			msg = helpMessage
 		}
 		return respond(msg, cmdCtx)
@@ -302,7 +302,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	return msg
 }
 
-func removeFlags(args []string) ([]string, error) {
+func removeBotkubeRelatedFlags(args []string) ([]string, error) {
 	line := strings.Join(args, " ")
 	matches := clusterNameFlagRegex.FindAllString(line, -1)
 
@@ -313,6 +313,7 @@ func removeFlags(args []string) ([]string, error) {
 }
 
 func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) interactive.Message {
+	msg = cmdCtx.ExecutorFilter.Apply(msg)
 	msgBody := interactive.Body{
 		CodeBlock: msg,
 	}
@@ -369,4 +370,14 @@ func filterInput(id, botName string) interactive.LabelInput {
 		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",
 	}
+}
+
+func parseCmdVerb(args []string) (cmd, verb string) {
+	if len(args) > 0 {
+		cmd = strings.ToLower(args[0])
+	}
+	if len(args) > 1 {
+		verb = strings.ToLower(args[1])
+	}
+	return
 }

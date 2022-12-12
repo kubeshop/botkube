@@ -16,25 +16,26 @@ import (
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.
 type DefaultExecutorFactory struct {
-	log               logrus.FieldLogger
-	cfg               config.Config
-	filterEngine      filterengine.FilterEngine
-	analyticsReporter AnalyticsReporter
-	notifierExecutor  *NotifierExecutor
-	kubectlExecutor   *Kubectl
-	pluginExecutor    *PluginExecutor
-	editExecutor      *EditExecutor
-	actionExecutor    *ActionExecutor
-	commandExecutor   *CommandsExecutor
-	filterExecutor    *FilterExecutor
-	pingExecutor      *PingExecutor
-	versionExecutor   *VersionExecutor
-	helpExecutor      *HelpExecutor
-	feedbackExecutor  *FeedbackExecutor
-	merger            *kubectl.Merger
-	cfgManager        ConfigPersistenceManager
-	kubectlCmdBuilder *KubectlCmdBuilder
-	cmdsMapping       map[CommandVerb]map[string]CommandFn
+	log                   logrus.FieldLogger
+	cfg                   config.Config
+	filterEngine          filterengine.FilterEngine
+	analyticsReporter     AnalyticsReporter
+	notifierExecutor      *NotifierExecutor
+	kubectlExecutor       *Kubectl
+	pluginExecutor        *PluginExecutor
+	sourceBindingExecutor *SourceBindingExecutor
+	actionExecutor        *ActionExecutor
+	commandExecutor       *CommandsExecutor
+	filterExecutor        *FilterExecutor
+	pingExecutor          *PingExecutor
+	versionExecutor       *VersionExecutor
+	helpExecutor          *HelpExecutor
+	feedbackExecutor      *FeedbackExecutor
+	configExecutor        *ConfigExecutor
+	merger                *kubectl.Merger
+	cfgManager            ConfigPersistenceManager
+	kubectlCmdBuilder     *KubectlCmdBuilder
+	cmdsMapping           map[CommandVerb]map[string]CommandFn
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -94,8 +95,8 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		params.CfgManager,
 		params.Cfg,
 	)
-	editExecutor := NewEditExecutor(
-		params.Log.WithField("component", "Botkube Edit Executor"),
+	sourceBindingExecutor := NewSourceBindingExecutor(
+		params.Log.WithField("component", "Botkube SourceBinding Executor"),
 		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
@@ -127,18 +128,23 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 	)
 	notifierExecutor := NewNotifierExecutor(
 		params.Log.WithField("component", "Notifier Executor"),
-		params.Cfg,
-		params.CfgManager,
 		params.AnalyticsReporter,
+		params.CfgManager,
+		params.Cfg,
 	)
 	helpExecutor := NewHelpExecutor(
 		params.Log.WithField("component", "Botkube Help Executor"),
 		params.AnalyticsReporter,
 	)
+	configExecutor := NewConfigExecutor(
+		params.Log.WithField("component", "Botkube Config Executor"),
+		params.AnalyticsReporter,
+		params.Cfg,
+	)
 
 	executors := []CommandExecutor{
 		actionExecutor,
-		editExecutor,
+		sourceBindingExecutor,
 		commandExecutor,
 		filterExecutor,
 		pingExecutor,
@@ -146,6 +152,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		helpExecutor,
 		feedbackExecutor,
 		notifierExecutor,
+		configExecutor,
 	}
 	return &DefaultExecutorFactory{
 		log:               params.Log,
@@ -165,18 +172,19 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 			params.Cfg,
 			params.PluginManager,
 		),
-		editExecutor:     editExecutor,
-		actionExecutor:   actionExecutor,
-		commandExecutor:  commandExecutor,
-		filterExecutor:   filterExecutor,
-		pingExecutor:     pingExecutor,
-		versionExecutor:  versionExecutor,
-		helpExecutor:     helpExecutor,
-		feedbackExecutor: feedbackExecutor,
-		merger:           params.Merger,
-		cfgManager:       params.CfgManager,
-		kubectlExecutor:  kcExecutor,
-		cmdsMapping:      newCmdsMapping(executors),
+		sourceBindingExecutor: sourceBindingExecutor,
+		actionExecutor:        actionExecutor,
+		commandExecutor:       commandExecutor,
+		filterExecutor:        filterExecutor,
+		pingExecutor:          pingExecutor,
+		versionExecutor:       versionExecutor,
+		helpExecutor:          helpExecutor,
+		feedbackExecutor:      feedbackExecutor,
+		configExecutor:        configExecutor,
+		merger:                params.Merger,
+		cfgManager:            params.CfgManager,
+		kubectlExecutor:       kcExecutor,
+		cmdsMapping:           newCmdsMapping(executors),
 	}
 }
 
@@ -203,30 +211,31 @@ type NewDefaultInput struct {
 // NewDefault creates new Default Executor.
 func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 	return &DefaultExecutor{
-		log:               f.log,
-		cfg:               f.cfg,
-		analyticsReporter: f.analyticsReporter,
-		kubectlExecutor:   f.kubectlExecutor,
-		pluginExecutor:    f.pluginExecutor,
-		notifierExecutor:  f.notifierExecutor,
-		editExecutor:      f.editExecutor,
-		actionExecutor:    f.actionExecutor,
-		commandExecutor:   f.commandExecutor,
-		filterExecutor:    f.filterExecutor,
-		filterEngine:      f.filterEngine,
-		pingExecutor:      f.pingExecutor,
-		versionExecutor:   f.versionExecutor,
-		helpExecutor:      f.helpExecutor,
-		feedbackExecutor:  f.feedbackExecutor,
-		merger:            f.merger,
-		cfgManager:        f.cfgManager,
-		kubectlCmdBuilder: f.kubectlCmdBuilder,
-		cmdsMapping:       f.cmdsMapping,
-		user:              cfg.User,
-		notifierHandler:   cfg.NotifierHandler,
-		conversation:      cfg.Conversation,
-		message:           cfg.Message,
-		platform:          cfg.Platform,
-		commGroupName:     cfg.CommGroupName,
+		log:                   f.log,
+		cfg:                   f.cfg,
+		analyticsReporter:     f.analyticsReporter,
+		kubectlExecutor:       f.kubectlExecutor,
+		pluginExecutor:        f.pluginExecutor,
+		notifierExecutor:      f.notifierExecutor,
+		sourceBindingExecutor: f.sourceBindingExecutor,
+		actionExecutor:        f.actionExecutor,
+		commandExecutor:       f.commandExecutor,
+		filterExecutor:        f.filterExecutor,
+		filterEngine:          f.filterEngine,
+		pingExecutor:          f.pingExecutor,
+		versionExecutor:       f.versionExecutor,
+		helpExecutor:          f.helpExecutor,
+		feedbackExecutor:      f.feedbackExecutor,
+		configExecutor:        f.configExecutor,
+		merger:                f.merger,
+		cfgManager:            f.cfgManager,
+		kubectlCmdBuilder:     f.kubectlCmdBuilder,
+		cmdsMapping:           f.cmdsMapping,
+		user:                  cfg.User,
+		notifierHandler:       cfg.NotifierHandler,
+		conversation:          cfg.Conversation,
+		message:               cfg.Message,
+		platform:              cfg.Platform,
+		commGroupName:         cfg.CommGroupName,
 	}
 }
