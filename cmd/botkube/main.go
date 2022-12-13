@@ -169,7 +169,7 @@ func run() error {
 
 	// Create executor factory
 	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, k8sCli)
-	executorFactory := execute.NewExecutorFactory(
+	executorFactory, err := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
 			CmdRunner:         runner,
@@ -185,6 +185,10 @@ func run() error {
 			BotKubeVersion:    botkubeVersion,
 		},
 	)
+
+	if err != nil {
+		return reportFatalError("while creating executor factory", err)
+	}
 
 	router := source.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 

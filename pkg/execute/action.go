@@ -123,6 +123,6 @@ func (e *ActionExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin com
 	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
-		e.log.Errorf("while reporting edit command: %s", err.Error())
+		e.log.Errorf("while reporting action command: %s", err.Error())
 	}
 }

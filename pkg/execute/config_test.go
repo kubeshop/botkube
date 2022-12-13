@@ -37,8 +37,6 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 				},
 			},
 			ExpectedResult: heredoc.Doc(`
-						Showing config for cluster "foo":
-
 						actions: {}
 						sources: {}
 						executors: {}

@@ -134,6 +134,6 @@ func (e *FilterExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin com
 	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
-		e.log.Errorf("while reporting edit command: %s", err.Error())
+		e.log.Errorf("while reporting filter command: %s", err.Error())
 	}
 }

@@ -81,7 +81,7 @@ type CommandGuard interface {
 }
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
-func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFactory {
+func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFactory, error) {
 	kcExecutor := NewKubectl(
 		params.Log.WithField("component", "Kubectl Executor"),
 		params.Cfg,
@@ -154,6 +154,10 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		notifierExecutor,
 		configExecutor,
 	}
+	mappings, err := newCmdsMapping(executors)
+	if err != nil {
+		return nil, err
+	}
 	return &DefaultExecutorFactory{
 		log:               params.Log,
 		cfg:               params.Cfg,
@@ -184,8 +188,8 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) *DefaultExecutorFac
 		merger:                params.Merger,
 		cfgManager:            params.CfgManager,
 		kubectlExecutor:       kcExecutor,
-		cmdsMapping:           newCmdsMapping(executors),
-	}
+		cmdsMapping:           mappings,
+	}, nil
 }
 
 // Conversation contains details about the conversation.

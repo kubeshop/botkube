@@ -128,7 +128,7 @@ func (e *NotifierExecutor) Stop(ctx context.Context, cmdCtx CommandContext) (int
 
 // Status returns the status of a notifier (per channel)
 func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb := cmdCtx.Args[0]
+	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	enabled := cmdCtx.NotifierHandler.NotificationsEnabled(cmdCtx.Conversation.ID)
@@ -140,6 +140,6 @@ func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (i
 func (e *NotifierExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
-		e.log.Errorf("while reporting edit command: %s", err.Error())
+		e.log.Errorf("while reporting notification command: %s", err.Error())
 	}
 }

@@ -173,12 +173,12 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(cmdArgs []string, commG
 
 	return interactive.Message{
 		Base: interactive.Base{
-			Description: e.getSourceBindingedSourceBindingsMsg(userID, sourceList),
+			Description: e.getEditedSourceBindingsMsg(userID, sourceList),
 		},
 	}, nil
 }
 
-func (e *SourceBindingExecutor) getSourceBindingedSourceBindingsMsg(userID, sourceList string) string {
+func (e *SourceBindingExecutor) getEditedSourceBindingsMsg(userID, sourceList string) string {
 	if !e.cfg.ConfigWatcher.Enabled {
 		return fmt.Sprintf(editedSourcesMsgWithoutReloadFmt, userID, sourceList)
 	}

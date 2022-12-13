@@ -48,28 +48,26 @@ func (e *ConfigExecutor) Commands() map[CommandVerb]CommandFn {
 
 // Config returns Config in yaml format
 func (e *ConfigExecutor) Config(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb := cmdCtx.Args[0]
+	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
-	out, err := e.showControllerConfig()
+	cfg, err := e.renderBotkubeConfiguration()
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while executing 'showconfig' command: %w", err)
+		return interactive.Message{}, fmt.Errorf("while rendering Botkube configuration: %w", err)
 	}
-	msg := fmt.Sprintf("Showing config for cluster %q:\n\n%s", cmdCtx.ClusterName, out)
-	return respond(msg, cmdCtx), nil
+	return respond(cfg, cmdCtx), nil
 }
 
 func (e *ConfigExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
-		e.log.Errorf("while reporting edit command: %s", err.Error())
+		e.log.Errorf("while reporting config command: %s", err.Error())
 	}
 }
 
 const redactedSecretStr = "*** REDACTED ***"
 
-// Deprecated: this function doesn't fit in the scope of notifier. It was moved from legacy reasons, but it will be removed in future.
-func (e *ConfigExecutor) showControllerConfig() (string, error) {
+func (e *ConfigExecutor) renderBotkubeConfiguration() (string, error) {
 	cfg := e.cfg
 
 	// hide sensitive info

@@ -42,7 +42,8 @@ func (e *FeedbackExecutor) Commands() map[CommandVerb]CommandFn {
 
 // Feedback responds with a feedback form URL
 func (e *FeedbackExecutor) Feedback(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	e.reportCommand(cmdCtx.Args[0], cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
+	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	return interactive.Feedback(), nil
 }
 

@@ -42,13 +42,14 @@ func (e *HelpExecutor) Commands() map[CommandVerb]CommandFn {
 
 // Help returns new help message
 func (e *HelpExecutor) Help(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	e.reportCommand(cmdCtx.Args[0], cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
+	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, cmdCtx.BotName).Build(), nil
 }
 
 func (e *HelpExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
-		e.log.Errorf("while reporting edit command: %s", err.Error())
+		e.log.Errorf("while reporting help command: %s", err.Error())
 	}
 }

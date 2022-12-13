@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 // CommandRunner provides functionality to run arbitrary commands.
@@ -56,7 +57,8 @@ type (
 	executorsRunner map[string]executorFunc
 )
 
-func newCmdsMapping(executors []CommandExecutor) map[CommandVerb]map[string]CommandFn {
+func newCmdsMapping(executors []CommandExecutor) (map[CommandVerb]map[string]CommandFn, error) {
+	mappingsErrs := multierror.New()
 	cmdsMapping := make(map[CommandVerb]map[string]CommandFn)
 	for _, executor := range executors {
 		cmds := executor.Commands()
@@ -68,13 +70,13 @@ func newCmdsMapping(executors []CommandExecutor) map[CommandVerb]map[string]Comm
 			}
 			for _, resName := range resNames {
 				if _, ok := cmdsMapping[verb][resName]; ok {
-					panic(fmt.Sprintf("Command collision: tried to register '%s %s', but it already exists", verb, resName))
+					mappingsErrs = multierror.Append(mappingsErrs, fmt.Errorf("Command collision: tried to register '%s %s', but it already exists", verb, resName))
 				}
 				cmdsMapping[verb][resName] = cmdFn
 			}
 		}
 	}
-	return cmdsMapping
+	return cmdsMapping, mappingsErrs.ErrorOrNil()
 }
 
 func (cmds executorsRunner) SelectAndRun(cmdVerb string) (interactive.Message, error) {

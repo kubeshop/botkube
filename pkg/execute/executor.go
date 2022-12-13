@@ -35,7 +35,7 @@ const (
 
 Available resources:
 actions  | action  | act          list available automations
-filters  | filter  | fil          list available filters
+filters  | filter  | flr          list available filters
 commands | command | cmds | cmd   list enabled executors`
 
 	helpMessageEdit = `@Botkube edit [resource]
@@ -276,6 +276,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	fn, found := resources[cmdRes]
 	if !found {
+		e.reportCommand(fmt.Sprintf("%s {invalid resource}", cmdVerb), false)
 		e.log.Infof("received unsupported resource: %q", execFilter.FilteredCommand())
 		msg := incompleteCmdMsg
 		if helpMessage, ok := availableHelpMessages[cmdVerb]; ok {

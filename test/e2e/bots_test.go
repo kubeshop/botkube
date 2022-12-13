@@ -336,7 +336,7 @@ func runBotTest(t *testing.T,
 			      restrictAccess: false`))
 		expectedFilteredBody := codeBlock(heredoc.Doc(`
 			          - api-resources
-			          - api-versions`))
+			                    - api-versions`))
 		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {

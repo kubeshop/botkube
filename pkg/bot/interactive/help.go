@@ -39,6 +39,7 @@ func (h *HelpMessage) Build() Message {
 		h.cluster,
 		h.notificationSections,
 		h.actionSections,
+		h.configSections,
 		h.kubectlSections,
 		h.filters,
 		h.feedback,
@@ -118,14 +119,13 @@ func (h *HelpMessage) notificationSections() []Section {
 			Base: Base{
 				Header: "Manage incoming notifications",
 				Body: Body{
-					CodeBlock: fmt.Sprintf("%s [start|stop|status|config] notifications\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [start|stop|status] notifications\n", h.botName),
 				},
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "start notifications"),
 				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "stop notifications"),
 				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "config"),
 			},
 		},
 		{
@@ -151,6 +151,22 @@ func (h *HelpMessage) actionSections() []Section {
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithoutDesc("List available actions", "list actions"),
+			},
+		},
+	}
+}
+
+func (h *HelpMessage) configSections() []Section {
+	return []Section{
+		{
+			Base: Base{
+				Header: "View current Botkube configuration",
+				Body: Body{
+					CodeBlock: fmt.Sprintf("%s config\n", h.botName),
+				},
+			},
+			Buttons: []Button{
+				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "config"),
 			},
 		},
 	}
