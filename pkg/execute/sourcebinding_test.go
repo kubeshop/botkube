@@ -129,15 +129,22 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 
 			fakeStorage := &fakeBindingsStorage{}
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, fakeStorage, tc.config)
-
+			executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, fakeStorage, tc.config)
+			cmdCtx := CommandContext{
+				Args:          args,
+				CommGroupName: groupName,
+				Platform:      platform,
+				Conversation:  conversation,
+				User:          userID,
+				BotName:       botName,
+			}
 			expMessage := interactive.Message{
 				Base: interactive.Base{
 					Description: tc.message,
 				},
 			}
 			// when
-			msg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
+			msg, err := executor.Edit(context.Background(), cmdCtx)
 
 			// then
 			require.NoError(t, err)
@@ -157,18 +164,6 @@ func TestSourceBindingsErrors(t *testing.T) {
 		expErr  error
 		expMsg  interactive.Message
 	}{
-		{
-			name:    "Wrong resource name",
-			command: `edit Source Bindings "bar,xyz"`,
-
-			expErr: errUnsupportedCommand,
-		},
-		{
-			name:    "Typo in resource name",
-			command: `edit SourceBindnigs bar,xyz`,
-
-			expErr: errUnsupportedCommand,
-		},
 		{
 			name:    "Unknown source name",
 			command: `edit SourceBindings something-else`,
@@ -198,10 +193,17 @@ func TestSourceBindingsErrors(t *testing.T) {
 			log, _ := logtest.NewNullLogger()
 
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, config.Config{})
-
+			executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, config.Config{})
+			cmdCtx := CommandContext{
+				Args:          args,
+				CommGroupName: groupName,
+				Platform:      platform,
+				Conversation:  conversation,
+				User:          userID,
+				BotName:       botName,
+			}
 			// when
-			msg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
+			msg, err := executor.Edit(context.Background(), cmdCtx)
 
 			// then
 			assert.ErrorIs(t, err, tc.expErr)
@@ -270,10 +272,17 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		},
 	}
 
-	executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
-
+	executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
+	cmdCtx := CommandContext{
+		Args:          args,
+		CommGroupName: groupName,
+		Platform:      platform,
+		Conversation:  conversation,
+		User:          userID,
+		BotName:       botName,
+	}
 	// when
-	gotMsg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
+	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
 
 	// then
 	assert.NoError(t, err)
@@ -329,10 +338,17 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		},
 	}
 
-	executor := NewEditExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
-
+	executor := NewSourceBindingExecutor(log, &fakeAnalyticsReporter{}, nil, cfg)
+	cmdCtx := CommandContext{
+		Args:          args,
+		CommGroupName: groupName,
+		Platform:      platform,
+		Conversation:  conversation,
+		User:          userID,
+		BotName:       botName,
+	}
 	// when
-	gotMsg, err := executor.Do(args, groupName, platform, conversation, userID, botName)
+	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
 
 	// then
 	assert.NoError(t, err)

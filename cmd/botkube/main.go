@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,6 +45,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 const (
@@ -158,12 +160,19 @@ func run() error {
 	cmdGuard := kubectl.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
 	commander := kubectl.NewCommander(logger.WithField(componentLogFieldKey, "Commander"), kcMerger, cmdGuard)
 
+	runner := &execute.OSCommand{}
+	k8sVersion, err := findK8sVersion(runner)
+	if err != nil {
+		return reportFatalError("while fetching kubernetes version", err)
+	}
+	botkubeVersion := findBotkubeVersion(k8sVersion)
+
 	// Create executor factory
 	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, k8sCli)
-	executorFactory := execute.NewExecutorFactory(
+	executorFactory, err := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
-			CmdRunner:         &execute.OSCommand{},
+			CmdRunner:         runner,
 			Cfg:               *conf,
 			FilterEngine:      filterEngine,
 			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
@@ -173,8 +182,13 @@ func run() error {
 			NamespaceLister:   k8sCli.CoreV1().Namespaces(),
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
+			BotKubeVersion:    botkubeVersion,
 		},
 	)
+
+	if err != nil {
+		return reportFatalError("while creating executor factory", err)
+	}
 
 	router := source.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
 
@@ -461,4 +475,43 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifier
 	}
 
 	return s.MarkHelpAsSent(ctx, sent)
+}
+
+func findK8sVersion(runner *execute.OSCommand) (string, error) {
+	type kubectlVersionOutput struct {
+		Server struct {
+			GitVersion string `json:"gitVersion"`
+		} `json:"serverVersion"`
+	}
+
+	args := []string{"-c", fmt.Sprintf("%s version --output=json", execute.KubectlBinary)}
+	stdout, stderr, err := runner.RunSeparateOutput("sh", args)
+	if err != nil {
+		return "", fmt.Errorf("unable to execute kubectl version: %w [%q]", err, stderr)
+	}
+
+	var out kubectlVersionOutput
+	err = json.Unmarshal([]byte(stdout), &out)
+	if err != nil {
+		return "", err
+	}
+	if out.Server.GitVersion == "" {
+		return "", fmt.Errorf("unable to unmarshal server git version from %q", stdout)
+	}
+
+	ver := out.Server.GitVersion
+	if stderr != "" {
+		ver += "\n" + stderr
+	}
+
+	return ver, nil
+}
+
+func findBotkubeVersion(k8sVersion string) (versions string) {
+	botkubeVersion := version.Short()
+	if len(botkubeVersion) == 0 {
+		botkubeVersion = "Unknown"
+	}
+
+	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVersion, botkubeVersion)
 }

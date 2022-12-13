@@ -1,17 +1,14 @@
 package execute
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -19,21 +16,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
-	"github.com/kubeshop/botkube/pkg/version"
-)
-
-var (
-	kubectlBinary = "/usr/local/bin/kubectl"
 )
 
 const (
 	unsupportedCmdMsg   = "Command not supported. Please use 'help' to see supported commands."
-	filterNameMissing   = "You forgot to pass filter name. Please pass one of the following valid filters:\n\n%s"
-	actionNameMissing   = "You forgot to pass action name. Please pass one of the following valid actions:\n\n%s"
-	actionEnabled       = "I have enabled '%s' action on '%s' cluster."
-	actionDisabled      = "Done. I won't run '%s' action on '%s' cluster."
-	filterEnabled       = "I have enabled '%s' filter on '%s' cluster."
-	filterDisabled      = "Done. I won't run '%s' filter on '%s' cluster."
 	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
 	emptyResponseMsg    = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
 
@@ -42,49 +28,74 @@ const (
 
 	anonymizedInvalidVerb = "{invalid verb}"
 
-	// Currently we support only `kubectl, so we
-	// override the message to human-readable command name.
-	humanReadableCommandListName = "Available kubectl commands"
-
 	lineLimitToShowFilter = 16
+
+	// TODO: build the help msg dynamically
+	helpMessageList = `@Botkube list [resource]
+
+Available resources:
+actions  | action  | act          list available automations
+filters  | filter  | flr          list available filters
+commands | command | cmds | cmd   list enabled executors`
+
+	helpMessageEdit = `@Botkube edit [resource]
+
+Available resources:
+sourcebindings | actsourcebinding   edit source bindings`
+
+	helpMessageEnable = `@Botkube enable [resource]
+
+Available resources:
+actions | action | act    enable available automations
+filters | filter | fil    enable available filters`
+
+	helpMessageDisable = `@Botkube disable [resource]
+
+Available resources:
+actions | action | act    disable available automations
+filters | filter | fil    disable available filters`
+)
+
+var (
+	// noResourceNames is used for commands that have no resources defined
+	noResourceNames       = []string{""}
+	clusterNameFlagRegex  = regexp.MustCompile(`--cluster-name[=|\s]+\S+`)
+	availableHelpMessages = map[CommandVerb]string{
+		CommandList:    helpMessageList,
+		CommandEnable:  helpMessageEnable,
+		CommandDisable: helpMessageDisable,
+		CommandEdit:    helpMessageEdit,
+	}
 )
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
-	cfg               config.Config
-	filterEngine      filterengine.FilterEngine
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cmdRunner         CommandSeparateOutputRunner
-	kubectlExecutor   *Kubectl
-	pluginExecutor    *PluginExecutor
-	editExecutor      *EditExecutor
-	actionExecutor    *ActionExecutor
-	notifierExecutor  *NotifierExecutor
-	notifierHandler   NotifierHandler
-	message           string
-	platform          config.CommPlatformIntegration
-	conversation      Conversation
-	merger            *kubectl.Merger
-	cfgManager        ConfigPersistenceManager
-	commGroupName     string
-	user              string
-	kubectlCmdBuilder *KubectlCmdBuilder
-}
-
-// NotifierAction creates custom type for notifier actions
-type NotifierAction string
-
-// Defines constants for notifier actions
-const (
-	Start      NotifierAction = "start"
-	Stop       NotifierAction = "stop"
-	Status     NotifierAction = "status"
-	ShowConfig NotifierAction = "showconfig"
-)
-
-func (action NotifierAction) String() string {
-	return string(action)
+	cfg                   config.Config
+	filterEngine          filterengine.FilterEngine
+	log                   logrus.FieldLogger
+	analyticsReporter     AnalyticsReporter
+	kubectlExecutor       *Kubectl
+	pluginExecutor        *PluginExecutor
+	sourceBindingExecutor *SourceBindingExecutor
+	actionExecutor        *ActionExecutor
+	commandExecutor       *CommandsExecutor
+	filterExecutor        *FilterExecutor
+	pingExecutor          *PingExecutor
+	versionExecutor       *VersionExecutor
+	helpExecutor          *HelpExecutor
+	feedbackExecutor      *FeedbackExecutor
+	notifierExecutor      *NotifierExecutor
+	configExecutor        *ConfigExecutor
+	notifierHandler       NotifierHandler
+	message               string
+	platform              config.CommPlatformIntegration
+	conversation          Conversation
+	merger                *kubectl.Merger
+	cfgManager            ConfigPersistenceManager
+	commGroupName         string
+	user                  string
+	kubectlCmdBuilder     *KubectlCmdBuilder
+	cmdsMapping           map[CommandVerb]map[string]CommandFn
 }
 
 // CommandFlags creates custom type for flags in botkube
@@ -108,10 +119,42 @@ type CommandVerb string
 
 // CommandVerb command options
 const (
-	CommandList    CommandVerb = "list"
-	CommandEnable  CommandVerb = "enable"
-	CommandDisable CommandVerb = "disable"
+	CommandPing     CommandVerb = "ping"
+	CommandHelp     CommandVerb = "help"
+	CommandVersion  CommandVerb = "version"
+	CommandFeedback CommandVerb = "feedback"
+	CommandList     CommandVerb = "list"
+	CommandEnable   CommandVerb = "enable"
+	CommandDisable  CommandVerb = "disable"
+	CommandEdit     CommandVerb = "edit"
+	CommandStart    CommandVerb = "start"
+	CommandStop     CommandVerb = "stop"
+	CommandStatus   CommandVerb = "status"
+	CommandConfig   CommandVerb = "config"
 )
+
+// CommandExecutor defines command structure for executors
+type CommandExecutor interface {
+	Commands() map[CommandVerb]CommandFn
+	ResourceNames() []string
+}
+
+// CommandFn is a single command (eg. List())
+type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error)
+
+// CommandContext contains the context for CommandFn
+type CommandContext struct {
+	Args            []string
+	ClusterName     string
+	CommGroupName   string
+	BotName         string
+	RawCmd          string
+	User            string
+	Conversation    Conversation
+	Platform        config.CommPlatformIntegration
+	ExecutorFilter  executorFilter
+	NotifierHandler NotifierHandler
+}
 
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
@@ -121,16 +164,26 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	clusterName := e.cfg.Settings.ClusterName
 	inClusterName := getClusterNameFromKubectlCmd(rawCmd)
 	botName := e.notifierHandler.BotName()
-
+	cmdCtx := CommandContext{
+		ClusterName:     clusterName,
+		CommGroupName:   e.commGroupName,
+		BotName:         botName,
+		RawCmd:          rawCmd,
+		User:            e.user,
+		Conversation:    e.conversation,
+		Platform:        e.platform,
+		NotifierHandler: e.notifierHandler,
+	}
 	execFilter, err := extractExecutorFilter(rawCmd)
 	if err != nil {
-		return e.respond(err.Error(), rawCmd, "", botName)
+		return respond(err.Error(), cmdCtx)
 	}
+	cmdCtx.ExecutorFilter = execFilter
 
 	args, err := shellwords.Parse(strings.TrimSpace(execFilter.FilteredCommand()))
 	if err != nil {
 		e.log.Errorf("while parsing command %q: %s", execFilter.FilteredCommand(), err.Error())
-		return e.respond("Cannot parse command. Please use 'help' to see supported commands.", rawCmd, "", botName)
+		return respond("Cannot parse command. Please use 'help' to see supported commands.", cmdCtx)
 	}
 
 	if len(args) == 0 {
@@ -143,6 +196,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		}
 		return empty // this prevents all bots on all clusters to answer something
 	}
+	cmdCtx.Args = args
 
 	if inClusterName != "" && inClusterName != clusterName {
 		e.log.WithFields(logrus.Fields{
@@ -158,13 +212,13 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
-			return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
+			return respond(err.Error(), cmdCtx)
 		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return e.respond(execFilter.Apply(out), rawCmd, execFilter.FilteredCommand(), botName)
+		return respond(execFilter.Apply(out), cmdCtx)
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -174,7 +228,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	if e.kubectlCmdBuilder.CanHandle(args) {
 		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args), false)
-		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, e.header(rawCmd))
+		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, header(cmdCtx))
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -198,73 +252,69 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			e.log.Errorf("while executing plugin: %s", err.Error())
 			return empty
 		}
-		return e.respond(execFilter.Apply(out), rawCmd, execFilter.FilteredCommand(), botName)
+		return respond(execFilter.Apply(out), cmdCtx)
 	}
 
-	cmds := executorsRunner{
-		"help": func() (interactive.Message, error) {
-			e.reportCommand(args[0], false)
-			return interactive.NewHelpMessage(e.platform, clusterName, botName).Build(), nil
-		},
-		"ping": func() (interactive.Message, error) {
-			res := e.runVersionCommand("ping")
-			return e.respond(fmt.Sprintf("pong\n\n%s", res), rawCmd, execFilter.FilteredCommand(), botName), nil
-		},
-		"version": func() (interactive.Message, error) {
-			return e.respond(e.runVersionCommand("version"), rawCmd, execFilter.FilteredCommand(), botName), nil
-		},
-		"filters": func() (interactive.Message, error) {
-			res, err := e.runFilterCommand(ctx, args, clusterName)
-			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName), err
-		},
-		"commands": func() (interactive.Message, error) {
-			res, err := e.runInfoCommand(args, execFilter.IsActive())
-			return e.respond(execFilter.Apply(res), rawCmd, execFilter.FilteredCommand(), botName, humanReadableCommandListName), err
-		},
-		"notifier": func() (interactive.Message, error) {
-			res, err := e.notifierExecutor.Do(ctx, args, e.commGroupName, e.platform, e.conversation, clusterName, e.notifierHandler)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
-		},
-		"edit": func() (interactive.Message, error) {
-			return e.editExecutor.Do(args, e.commGroupName, e.platform, e.conversation, e.user, botName)
-		},
-		"feedback": func() (interactive.Message, error) {
-			e.reportCommand(args[0], false)
-			return interactive.Feedback(), nil
-		},
-		"list": func() (interactive.Message, error) {
-			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
-		},
-		"enable": func() (interactive.Message, error) {
-			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
-		},
-		"disable": func() (interactive.Message, error) {
-			res, err := e.actionExecutor.Do(ctx, args, clusterName, e.conversation, e.platform)
-			return e.respond(res, rawCmd, execFilter.FilteredCommand(), botName), err
-		},
+	cleanArgs, err := removeBotkubeRelatedFlags(args)
+	if err != nil {
+		e.log.Errorf("while removing Botkube related flags from arguments: %s", err.Error())
+		return empty
 	}
 
-	msg, err := cmds.SelectAndRun(args[0])
+	cmdVerb := CommandVerb(strings.ToLower(cleanArgs[0]))
+	var cmdRes string
+	if len(cleanArgs) > 1 {
+		cmdRes = strings.ToLower(cleanArgs[1])
+	}
+
+	resources, found := e.cmdsMapping[cmdVerb]
+	if !found {
+		e.reportCommand(anonymizedInvalidVerb, false)
+		e.log.Infof("received unsupported command: %q", execFilter.FilteredCommand())
+		return respond(unsupportedCmdMsg, cmdCtx)
+	}
+
+	fn, found := resources[cmdRes]
+	if !found {
+		e.reportCommand(fmt.Sprintf("%s {invalid resource}", cmdVerb), false)
+		e.log.Infof("received unsupported resource: %q", execFilter.FilteredCommand())
+		msg := incompleteCmdMsg
+		if helpMessage, ok := availableHelpMessages[cmdVerb]; ok {
+			msg = helpMessage
+		}
+		return respond(msg, cmdCtx)
+	}
+
+	msg, err := fn(ctx, cmdCtx)
 	switch {
 	case err == nil:
 	case errors.Is(err, errInvalidCommand):
-		return e.respond(incompleteCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
+		return respond(incompleteCmdMsg, cmdCtx)
 	case errors.Is(err, errUnsupportedCommand):
-		return e.respond(unsupportedCmdMsg, rawCmd, execFilter.FilteredCommand(), botName)
+		return respond(unsupportedCmdMsg, cmdCtx)
 	case IsExecutionCommandError(err):
-		return e.respond(err.Error(), rawCmd, execFilter.FilteredCommand(), botName)
+		return respond(err.Error(), cmdCtx)
 	default:
 		e.log.Errorf("while executing command %q: %s", execFilter.FilteredCommand(), err.Error())
-		internalErrorMsg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
-		return e.respond(internalErrorMsg, rawCmd, execFilter.FilteredCommand(), botName)
+		msg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
+		return respond(msg, cmdCtx)
 	}
 
 	return msg
 }
 
-func (e *DefaultExecutor) respond(msg string, rawCmd string, filteredCmd string, botName string, overrideCommand ...string) interactive.Message {
+func removeBotkubeRelatedFlags(args []string) ([]string, error) {
+	line := strings.Join(args, " ")
+	matches := clusterNameFlagRegex.FindAllString(line, -1)
+
+	for _, match := range matches {
+		line = strings.Replace(line, match, "", 1)
+	}
+	return shellwords.Parse(line)
+}
+
+func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) interactive.Message {
+	msg = cmdCtx.ExecutorFilter.Apply(msg)
 	msgBody := interactive.Body{
 		CodeBlock: msg,
 	}
@@ -276,25 +326,27 @@ func (e *DefaultExecutor) respond(msg string, rawCmd string, filteredCmd string,
 
 	message := interactive.Message{
 		Base: interactive.Base{
-			Description: e.header(rawCmd, overrideCommand...),
+			Description: header(cmdCtx, overrideCommand...),
 			Body:        msgBody,
 		},
 	}
 	// Show Filter Input if command response is more than `lineLimitToShowFilter`
 	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-		message.PlaintextInputs = append(message.PlaintextInputs, e.filterInput(filteredCmd, botName))
+		message.PlaintextInputs = append(message.PlaintextInputs,
+			filterInput(cmdCtx.ExecutorFilter.FilteredCommand(),
+				cmdCtx.BotName))
 	}
 	return message
 }
 
-func (e *DefaultExecutor) header(command string, overrideName ...string) string {
-	cmd := fmt.Sprintf("`%s`", strings.TrimSpace(command))
+func header(cmdCtx CommandContext, overrideName ...string) string {
+	cmd := fmt.Sprintf("`%s`", strings.TrimSpace(cmdCtx.RawCmd))
 	if len(overrideName) > 0 {
 		cmd = strings.TrimSpace(strings.Join(overrideName, " "))
 	}
 
-	out := fmt.Sprintf("%s on `%s`", cmd, e.cfg.Settings.ClusterName)
-	return e.appendByUserOnlyIfNeeded(out)
+	out := fmt.Sprintf("%s on `%s`", cmd, cmdCtx.ClusterName)
+	return appendByUserOnlyIfNeeded(out, cmdCtx.User, cmdCtx.Conversation.CommandOrigin)
 }
 
 func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
@@ -304,196 +356,29 @@ func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
 	}
 }
 
-// TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
-// runFilterCommand to list, enable or disable filters
-func (e *DefaultExecutor) runFilterCommand(ctx context.Context, args []string, clusterName string) (string, error) {
-	if len(args) < 2 {
-		return "", errInvalidCommand
-	}
-
-	var cmdVerb = args[1]
-	defer func() {
-		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport, false)
-	}()
-
-	switch CommandVerb(args[1]) {
-	case CommandList:
-		e.log.Debug("List filters")
-		return e.makeFiltersList(), nil
-
-	// Enable filter
-	case CommandEnable:
-		const enabled = true
-		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
-		}
-		filterName := args[2]
-		e.log.Debug("Enabling filter...", filterName)
-		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error(), nil
-		}
-
-		err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
-		if err != nil {
-			return "", fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
-		}
-
-		return fmt.Sprintf(filterEnabled, filterName, clusterName), nil
-
-	// Disable filter
-	case CommandDisable:
-		const enabled = false
-		if len(args) < 3 {
-			return fmt.Sprintf(filterNameMissing, e.makeFiltersList()), nil
-		}
-		filterName := args[2]
-		e.log.Debug("Disabling filter...", filterName)
-		if err := e.filterEngine.SetFilter(filterName, enabled); err != nil {
-			return err.Error(), nil
-		}
-
-		err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
-		if err != nil {
-			return "", fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
-		}
-
-		return fmt.Sprintf(filterDisabled, filterName, clusterName), nil
-	}
-
-	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return "", errUnsupportedCommand
-}
-
-// runInfoCommand to list allowed commands
-func (e *DefaultExecutor) runInfoCommand(args []string, withFilter bool) (string, error) {
-	if len(args) < 2 {
-		return "", errInvalidCommand
-	}
-	var cmdVerb = args[1]
-	defer func() {
-		cmdToReport := fmt.Sprintf("%s %s", args[0], cmdVerb)
-		e.reportCommand(cmdToReport, withFilter)
-	}()
-
-	switch CommandVerb(cmdVerb) {
-	case CommandList:
-		enabledKubectls, err := e.getEnabledKubectlExecutorsInChannel()
-		if err != nil {
-			return "", fmt.Errorf("while rendering namespace config: %s", err.Error())
-		}
-
-		return enabledKubectls, nil
-	}
-
-	cmdVerb = anonymizedInvalidVerb // prevent passing any personal information
-	return "", errUnsupportedCommand
-}
-
-// Use tabwriter to display string in tabular form
-// https://golang.org/pkg/text/tabwriter
-func (e *DefaultExecutor) makeFiltersList() string {
-	buf := new(bytes.Buffer)
-	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-
-	fmt.Fprintln(w, "FILTER\tENABLED\tDESCRIPTION")
-	for _, filter := range e.filterEngine.RegisteredFilters() {
-		fmt.Fprintf(w, "%s\t%v\t%s\n", filter.Name(), filter.Enabled, filter.Describe())
-	}
-
-	w.Flush()
-	return buf.String()
-}
-
-type kubectlVersionOutput struct {
-	Server struct {
-		GitVersion string `json:"gitVersion"`
-	} `json:"serverVersion"`
-}
-
-func (e *DefaultExecutor) findK8sVersion() (string, error) {
-	args := []string{"-c", fmt.Sprintf("%s version --output=json", kubectlBinary)}
-	stdout, stderr, err := e.cmdRunner.RunSeparateOutput("sh", args)
-	e.log.Debugf("Raw kubectl version output: %q", stdout)
-	if err != nil {
-		return "", fmt.Errorf("unable to execute kubectl version: %w [%q]", err, stderr)
-	}
-
-	var out kubectlVersionOutput
-	err = json.Unmarshal([]byte(stdout), &out)
-	if err != nil {
-		return "", err
-	}
-	if out.Server.GitVersion == "" {
-		return "", fmt.Errorf("unable to unmarshal server git version from %q", stdout)
-	}
-
-	ver := out.Server.GitVersion
-	if stderr != "" {
-		ver += "\n" + stderr
-	}
-
-	return ver, nil
-}
-
-func (e *DefaultExecutor) findBotkubeVersion() (versions string) {
-	k8sVersion, err := e.findK8sVersion()
-	if err != nil {
-		e.log.Warn(fmt.Sprintf("Failed to get Kubernetes version: %s", err.Error()))
-		k8sVersion = "Unknown"
-	}
-
-	botkubeVersion := version.Short()
-	if len(botkubeVersion) == 0 {
-		botkubeVersion = "Unknown"
-	}
-
-	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVersion, botkubeVersion)
-}
-
-func (e *DefaultExecutor) runVersionCommand(cmd string) string {
-	err := e.analyticsReporter.ReportCommand(e.platform, cmd, e.conversation.CommandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting version command: %s", err.Error())
-	}
-
-	return e.findBotkubeVersion()
-}
-
-func (e *DefaultExecutor) getEnabledKubectlExecutorsInChannel() (string, error) {
-	type kubectlCollection map[string]config.Kubectl
-
-	enabledKubectls := e.merger.GetAllEnabled(e.conversation.ExecutorBindings)
-	out := map[string]map[string]kubectlCollection{
-		"Enabled executors": {
-			"kubectl": enabledKubectls,
-		},
-	}
-
-	var buff strings.Builder
-	encode := yaml.NewEncoder(&buff)
-	encode.SetIndent(2)
-	err := encode.Encode(out)
-	if err != nil {
-		return "", err
-	}
-
-	return buff.String(), nil
-}
-
 // appendByUserOnlyIfNeeded returns the "by Foo" only if the command was executed via button.
-func (e *DefaultExecutor) appendByUserOnlyIfNeeded(cmd string) string {
-	if e.user == "" || e.conversation.CommandOrigin == command.TypedOrigin {
+func appendByUserOnlyIfNeeded(cmd, user string, origin command.Origin) string {
+	if user == "" || origin == command.TypedOrigin {
 		return cmd
 	}
-	return fmt.Sprintf("%s by %s", cmd, e.user)
+	return fmt.Sprintf("%s by %s", cmd, user)
 }
 
-func (e *DefaultExecutor) filterInput(id, botName string) interactive.LabelInput {
+func filterInput(id, botName string) interactive.LabelInput {
 	return interactive.LabelInput{
 		Command:          fmt.Sprintf("%s %s --filter=", botName, id),
 		DispatchedAction: interactive.DispatchInputActionOnEnter,
 		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",
 	}
+}
+
+func parseCmdVerb(args []string) (cmd, verb string) {
+	if len(args) > 0 {
+		cmd = strings.ToLower(args[0])
+	}
+	if len(args) > 1 {
+		verb = strings.ToLower(args[1])
+	}
+	return
 }

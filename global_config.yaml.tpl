@@ -269,7 +269,7 @@ sources:
 
 # Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
-# You can enable or disable filters with `@Botkube filters` commands.
+# You can enable or disable filters with `@Botkube enable/disable filters` commands.
 filters:
   kubernetes:
     # If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.

@@ -39,6 +39,7 @@ func (h *HelpMessage) Build() Message {
 		h.cluster,
 		h.notificationSections,
 		h.actionSections,
+		h.configSections,
 		h.kubectlSections,
 		h.filters,
 		h.feedback,
@@ -118,13 +119,13 @@ func (h *HelpMessage) notificationSections() []Section {
 			Base: Base{
 				Header: "Manage incoming notifications",
 				Body: Body{
-					CodeBlock: fmt.Sprintf("%s notifier [start|stop|status]\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [start|stop|status] notifications\n", h.botName),
 				},
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "notifier start"),
-				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "notifier stop"),
-				h.btnBuilder.ForCommandWithoutDesc("Get status", "notifier status"),
+				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "start notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "stop notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
 			},
 		},
 		{
@@ -155,6 +156,22 @@ func (h *HelpMessage) actionSections() []Section {
 	}
 }
 
+func (h *HelpMessage) configSections() []Section {
+	return []Section{
+		{
+			Base: Base{
+				Header: "View current Botkube configuration",
+				Body: Body{
+					CodeBlock: fmt.Sprintf("%s config\n", h.botName),
+				},
+			},
+			Buttons: []Button{
+				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "config"),
+			},
+		},
+	}
+}
+
 func (h *HelpMessage) kubectlSections() []Section {
 	// TODO(https://github.com/kubeshop/botkube/issues/802): remove this warning in after releasing 0.17.
 	warn := ":warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.\n\ne.g. `@Botkube k get pods` instead of `@Botkube get pods`\n"
@@ -180,7 +197,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 					Description: "Alternatively use kubectl as usual with all supported commands",
 				},
 				Buttons: []Button{
-					h.btnBuilder.ForCommand("List commands", "commands list", "k | kc | kubectl [command] [options] [flags]"),
+					h.btnBuilder.ForCommand("List commands", "list commands", "k | kc | kubectl [command] [options] [flags]"),
 				},
 			},
 		}
@@ -204,7 +221,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 				Description: "To list all supported kubectl commands",
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithDescCmd("List commands", "commands list"),
+				h.btnBuilder.ForCommandWithDescCmd("List commands", "list commands"),
 			},
 		},
 	}

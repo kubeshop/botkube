@@ -228,7 +228,7 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Filters list", func(t *testing.T) {
-		command := "filters list"
+		command := "list filters"
 		expectedBody := codeBlock(heredoc.Docf(`
 			FILTER                  ENABLED DESCRIPTION
 			NodeEventsChecker       false   Sends notifications on node level critical events.
@@ -279,8 +279,8 @@ func runBotTest(t *testing.T,
 		})
 	})
 
-	t.Run("Commands list", func(t *testing.T) {
-		command := "commands list"
+	t.Run("List commands", func(t *testing.T) {
+		command := "list commands"
 		expectedBody := codeBlock(heredoc.Doc(`
 			Enabled executors:
 			  kubectl:
@@ -336,7 +336,7 @@ func runBotTest(t *testing.T,
 			      restrictAccess: false`))
 		expectedFilteredBody := codeBlock(heredoc.Doc(`
 			          - api-resources
-			          - api-versions`))
+			                    - api-versions`))
 		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 		t.Run("With default cluster", func(t *testing.T) {
@@ -346,7 +346,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("With custom cluster name", func(t *testing.T) {
-			command := fmt.Sprintf("commands list --cluster-name %s", appCfg.ClusterName)
+			command := fmt.Sprintf("list commands --cluster-name %s", appCfg.ClusterName)
 			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -355,7 +355,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("With custom cluster name and filter", func(t *testing.T) {
-			command := fmt.Sprintf("commands list --cluster-name %s --filter=api", appCfg.ClusterName)
+			command := fmt.Sprintf("list commands --cluster-name %s --filter=api", appCfg.ClusterName)
 			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -364,7 +364,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
-			command := "commands list --cluster-name non-existing"
+			command := "list commands --cluster-name non-existing"
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			t.Log("Ensuring bot didn't post anything new...")
@@ -443,7 +443,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get role"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -473,7 +473,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "get po --namespace team-b"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -506,7 +506,7 @@ func runBotTest(t *testing.T,
 
 			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
 				command := "get pods -A"
-				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'commands list' to see allowed commands.", appCfg.ClusterName))
+				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -554,7 +554,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
 		t.Log("Getting notifier status from second channel...")
-		command := "notifier status"
+		command := "status notifications"
 		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -563,7 +563,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Starting notifier in second channel...")
-		command = "notifier start"
+		command = "start notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -633,7 +633,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier in first channel...")
-		command = "notifier stop"
+		command = "stop notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -642,7 +642,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
-		command = "notifier status"
+		command = "status notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -651,7 +651,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from first channel...")
-		command = "notifier status"
+		command = "status notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -686,7 +686,7 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 
 		t.Log("Starting notifier in first channel")
-		command = "notifier start"
+		command = "start notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 

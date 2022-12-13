@@ -354,7 +354,7 @@ sources:
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
-# You can enable or disable filters with `@Botkube filters` commands.
+# You can enable or disable filters with `@Botkube enable/disable filters` commands.
 # @default -- See the `values.yaml` file for full object.
 filters:
   kubernetes:
@@ -519,7 +519,7 @@ communications:
         # -- Executor bindings apply to all MS Teams channels where Botkube has access to.
         executors:
           - kubectl-read-only
-        # -- Source bindings apply to all channels which have notification turned on with `@Botkube notifier start` command.
+        # -- Source bindings apply to all channels which have notification turned on with `@Botkube start notifications` command.
         sources:
           - k8s-err-events
           - k8s-recommendation-events

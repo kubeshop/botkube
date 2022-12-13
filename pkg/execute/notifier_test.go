@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/MakeNowJust/heredoc"
 	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,164 +11,198 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-func TestNotifierExecutor_Do_Success(t *testing.T) {
-	// given
-	log, _ := logtest.NewNullLogger()
-	platform := config.SlackCommPlatformIntegration
-	channelAlias := "alias"
-	commGroupName := "comm-group"
-	clusterName := "cluster-name"
-	statusArgs := []string{"notifier", "status"}
-	cfg := config.Config{
+const (
+	channelAlias  = "alias"
+	commGroupName = "comm-group"
+	clusterName   = "cluster-name"
+	testPlatform  = config.SlackCommPlatformIntegration
+)
+
+var (
+	log, _          = logtest.NewNullLogger()
+	notifierTestCfg = config.Config{
 		Settings: config.Settings{
 			ClusterName: "foo",
 		},
 	}
+)
 
+func TestNotifierExecutorStart(t *testing.T) {
 	testCases := []struct {
-		Name                 string
-		InputArgs            []string
-		InputNotifierHandler NotifierHandler
-		Conversation         Conversation
-		ExpectedResult       string
-		ExpectedStatusAfter  string
-		ExpectedErrorMessage string
+		Name           string
+		CmdCtx         CommandContext
+		ExpectedResult string
+		ExpectedError  string
+		Status         string
 	}{
 		{
-			Name:         "Start",
-			InputArgs:    []string{"notifier", "start"},
-			Conversation: Conversation{Alias: channelAlias, ID: "conv-id"},
-			InputNotifierHandler: &fakeNotifierHandler{
-				conf: map[string]bool{"conv-id": false},
+			Name: "Existing channel",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"start", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: channelAlias, ID: "conv-id"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
 			},
-			ExpectedResult:      `Brace yourselves, incoming notifications from cluster 'cluster-name'.`,
-			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are enabled here.`,
+			ExpectedResult: `Brace yourselves, incoming notifications from cluster 'cluster-name'.`,
+			Status:         "enabled",
+			ExpectedError:  "",
 		},
 		{
-			Name:         "Start for non-configured channel",
-			InputArgs:    []string{"notifier", "start"},
-			Conversation: Conversation{Alias: channelAlias, ID: "non-existing"},
-			InputNotifierHandler: &fakeNotifierHandler{
-				conf: map[string]bool{"conv-id": false},
+			Name: "Expecting failure: channel wrong ID",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"start", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: channelAlias, ID: "bogus"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
 			},
-			ExpectedResult:      `I'm not configured to send notifications here ('non-existing') from cluster 'cluster-name', so you cannot turn them on or off.`,
-			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
+			ExpectedResult: `I'm not configured to send notifications here ('bogus') from cluster 'cluster-name', so you cannot turn them on or off.`,
 		},
 		{
-			Name:         "Stop",
-			Conversation: Conversation{Alias: channelAlias, ID: "conv-id"},
-			InputArgs:    []string{"notifier", "stop"},
-			InputNotifierHandler: &fakeNotifierHandler{
-				conf: map[string]bool{"conv-id": true},
+			Name: "Expecting failure: channel wrong alias",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"start", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: "bogus", ID: "conv-id"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
 			},
-			ExpectedResult:      `Sure! I won't send you notifications from cluster 'cluster-name' here.`,
-			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
-		},
-		{
-			Name:         "Stop for non-configured channel",
-			Conversation: Conversation{Alias: channelAlias, ID: "non-existing"},
-			InputArgs:    []string{"notifier", "stop"},
-			InputNotifierHandler: &fakeNotifierHandler{conf: map[string]bool{
-				"conv-id": true,
-			}},
-			ExpectedResult:      `I'm not configured to send notifications here ('non-existing') from cluster 'cluster-name', so you cannot turn them on or off.`,
-			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
-		},
-		{
-			Name:                 "Show config",
-			Conversation:         Conversation{Alias: channelAlias, ID: "conv-id"},
-			InputArgs:            []string{"notifier", "showconfig"},
-			InputNotifierHandler: &fakeNotifierHandler{},
-			ExpectedResult: heredoc.Doc(`
-				Showing config for cluster "cluster-name":
-
-				actions: {}
-				sources: {}
-				executors: {}
-				communications: {}
-				filters:
-				    kubernetes:
-				        objectAnnotationChecker: false
-				        nodeEventsChecker: false
-				analytics:
-				    disable: false
-				settings:
-				    clusterName: foo
-				    upgradeNotifier: false
-				    systemConfigMap: {}
-				    persistentConfig:
-				        startup:
-				            fileName: ""
-				            configMap: {}
-				        runtime:
-				            fileName: ""
-				            configMap: {}
-				    metricsPort: ""
-				    lifecycleServer:
-				        enabled: false
-				        port: 0
-				        deployment: {}
-				    log:
-				        level: ""
-				        disableColors: false
-				    informersResyncPeriod: 0s
-				    kubeconfig: ""
-				configWatcher:
-				    enabled: false
-				    initialSyncTimeout: 0s
-				    tmpDir: ""
-				plugins:
-				    cacheDir: ""
-				    repositories: {}
-			`),
-			ExpectedStatusAfter: `Notifications from cluster 'cluster-name' are disabled here.`,
-		},
-		{
-			Name:                 "Invalid verb",
-			InputArgs:            []string{"notifier", "foo"},
-			ExpectedErrorMessage: "unsupported command",
-		},
-		{
-			Name:                 "Invalid command 1",
-			InputArgs:            []string{"notifier"},
-			ExpectedErrorMessage: "invalid command",
-		},
-		{
-			Name:                 "Invalid command 2",
-			InputArgs:            []string{"notifier", "stop", "stop", "stop", "please", "stop!!!!1111111oneoneone"},
-			ExpectedErrorMessage: "invalid command",
+			ExpectedResult: "",
+			ExpectedError:  "while persisting configuration: different alias",
 		},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(log, cfg, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, &fakeAnalyticsReporter{})
-
-			// execute command
-
-			// when
-			actual, err := e.Do(context.Background(), tc.InputArgs, commGroupName, platform, tc.Conversation, clusterName, tc.InputNotifierHandler)
-
-			// then
-
-			if tc.ExpectedErrorMessage != "" {
-				// error case
-				require.NotNil(t, err)
-				assert.EqualError(t, err, tc.ExpectedErrorMessage)
+			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			msg, err := e.Start(context.Background(), tc.CmdCtx)
+			if err != nil {
+				assert.EqualError(t, err, tc.ExpectedError)
 				return
 			}
+			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)
 
-			// success case
-			require.Nil(t, err)
-			assert.Equal(t, tc.ExpectedResult, actual)
+			msg, err = e.Status(context.Background(), tc.CmdCtx)
+			require.NoError(t, err)
+			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
+		})
+	}
+}
 
-			// get status after executing a given command
+func TestNotifierExecutorStop(t *testing.T) {
+	testCases := []struct {
+		Name           string
+		CmdCtx         CommandContext
+		ExpectedResult string
+		ExpectedError  string
+		Status         string
+	}{
+		{
+			Name: "Existing channel",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"stop", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: channelAlias, ID: "conv-id"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": true},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+			},
+			ExpectedResult: `Sure! I won't send you notifications from cluster 'cluster-name' here.`,
+			Status:         "disabled",
+			ExpectedError:  "",
+		},
+		{
+			Name: "Expecting failure: channel wrong ID",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"stop", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: channelAlias, ID: "bogus"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+			},
+			ExpectedResult: `I'm not configured to send notifications here ('bogus') from cluster 'cluster-name', so you cannot turn them on or off.`,
+		},
+		{
+			Name: "Expecting failure: channel wrong alias",
+			CmdCtx: CommandContext{
+				ClusterName:   clusterName,
+				Args:          []string{"stop", "notifications"},
+				CommGroupName: commGroupName,
+				Platform:      testPlatform,
+				Conversation:  Conversation{Alias: "bogus", ID: "conv-id"},
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+			},
+			ExpectedResult: "",
+			ExpectedError:  "while persisting configuration: different alias",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			msg, err := e.Stop(context.Background(), tc.CmdCtx)
+			if err != nil {
+				assert.EqualError(t, err, tc.ExpectedError)
+				return
+			}
+			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)
 
-			// when
-			actual, err = e.Do(context.Background(), statusArgs, commGroupName, platform, tc.Conversation, clusterName, tc.InputNotifierHandler)
-			// then
-			require.Nil(t, err)
-			assert.Equal(t, tc.ExpectedStatusAfter, actual)
+			msg, err = e.Status(context.Background(), tc.CmdCtx)
+			require.NoError(t, err)
+			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
+		})
+	}
+}
+
+// Notifier is mocked here - most of the logic needs to be tested in respective implementations
+func TestNotifierExecutorStatus(t *testing.T) {
+	testCases := []struct {
+		Name   string
+		CmdCtx CommandContext
+		Status string
+	}{
+		{
+			Name: "Is disabled",
+			CmdCtx: CommandContext{
+				Args:         []string{"status"},
+				Conversation: Conversation{ID: "conv-id"},
+				Platform:     testPlatform,
+				ClusterName:  clusterName,
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "status"),
+			},
+			Status: "disabled",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			e := NewNotifierExecutor(log, &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			msg, err := e.Status(context.Background(), tc.CmdCtx)
+			require.NoError(t, err)
+			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
 		})
 	}
 }

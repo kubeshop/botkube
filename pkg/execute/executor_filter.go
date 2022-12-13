@@ -89,7 +89,7 @@ func (f *executorTextFilter) Apply(text string) string {
 	for scanner.Scan() {
 		scanned := scanner.Bytes()
 		if bytes.Contains(scanned, f.value) {
-			out.Write(bytes.TrimSpace(scanned))
+			out.Write(scanned)
 			out.WriteString("\n")
 		}
 	}

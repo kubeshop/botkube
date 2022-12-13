@@ -1,169 +1,53 @@
 package execute
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/MakeNowJust/heredoc"
-	"github.com/stretchr/testify/assert"
+	"github.com/mattn/go-shellwords"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
-
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
-var rawExecutorsConfig = `
-executors:
-  'kubectl-team-a':
-    kubectl:
-      enabled: true
-      namespaces:
-        include: [ "team-a" ]
-      commands:
-        verbs: [ "get" ]
-        resources: [ "deployments" ]
-      defaultNamespace: "team-a"
-  'kubectl-team-b':
-    kubectl:
-      enabled: true
-      namespaces:
-        include: [ "team-b" ]
-      commands:
-        verbs: [ "get", "describe" ]
-        resources: [ "deployments", "pods" ]
-  'kubectl-global':
-    kubectl:
-      enabled: true
-      namespaces:
-        include: [ ".*" ]
-      commands:
-        verbs: [ "logs", "top" ]
-        resources: [ ]
-  'kubectl-exec':
-    kubectl:
-      enabled: false
-      namespaces:
-        include: [ ".*" ]
-      commands:
-        verbs: [ "exec" ]
-        resources: [ ]`
-
-func TestDefaultExecutor_getEnabledKubectlConfigs(t *testing.T) {
+func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 	testCases := []struct {
-		name            string
-		executorsConfig string
-		bindings        []string
-
-		expOutput string
+		Name           string
+		Input          string
+		ExpectedResult []string
 	}{
 		{
-			name:            "All bindings specified",
-			executorsConfig: rawExecutorsConfig,
-			bindings: []string{
-				"kubectl-team-a",
-				"kubectl-team-b",
-				"kubectl-global",
-				"kubectl-exec",
-			},
-			expOutput: heredoc.Doc(`
-           Enabled executors:
-             kubectl:
-               kubectl-global:
-                 namespaces:
-                   include:
-                     - .*
-                 enabled: true
-                 commands:
-                   verbs:
-                     - logs
-                     - top
-                   resources: []
-               kubectl-team-a:
-                 namespaces:
-                   include:
-                     - team-a
-                 enabled: true
-                 commands:
-                   verbs:
-                     - get
-                   resources:
-                     - deployments
-                 defaultNamespace: team-a
-               kubectl-team-b:
-                 namespaces:
-                   include:
-                     - team-b
-                 enabled: true
-                 commands:
-                   verbs:
-                     - get
-                     - describe
-                   resources:
-                     - deployments
-                     - pods
-           `),
+			Name:           "No input",
+			Input:          "@botkube help",
+			ExpectedResult: []string{"@botkube", "help"},
 		},
 		{
-			name:            "One enabled binding specified",
-			executorsConfig: rawExecutorsConfig,
-			bindings: []string{
-				"kubectl-team-a",
-			},
-			expOutput: heredoc.Doc(`
-           Enabled executors:
-             kubectl:
-               kubectl-team-a:
-                 namespaces:
-                   include:
-                     - team-a
-                 enabled: true
-                 commands:
-                   verbs:
-                     - get
-                   resources:
-                     - deployments
-                 defaultNamespace: team-a
-           `),
+			Name:           "Equals sign",
+			Input:          "@botkube help --cluster-name=foo",
+			ExpectedResult: []string{"@botkube", "help"},
 		},
 		{
-			name:            "One disabled binding specified",
-			executorsConfig: rawExecutorsConfig,
-			bindings: []string{
-				"kubectl-exec",
-			},
-			expOutput: heredoc.Doc(`
-           Enabled executors:
-             kubectl: {}
-           `),
+			Name:           "Whitespace",
+			Input:          "@botkube help --cluster-name foo",
+			ExpectedResult: []string{"@botkube", "help"},
+		},
+		{
+			Name:           "Combination",
+			Input:          "@botkube help --cluster-name foo1 --cluster-name=foo2",
+			ExpectedResult: []string{"@botkube", "help"},
+		},
+		{
+			Name:           "Kubectl",
+			Input:          "@botkube kc get po --cluster-name foo -n default",
+			ExpectedResult: []string{"@botkube", "kc", "get", "po", "-n", "default"},
 		},
 	}
+
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			executors := fixExecutorsConfig(t, tc.executorsConfig)
-			executor := &DefaultExecutor{
-				merger: kubectl.NewMerger(executors),
-				conversation: Conversation{
-					ExecutorBindings: tc.bindings,
-				},
-			}
-
-			// when
-			res, err := executor.getEnabledKubectlExecutorsInChannel()
-
-			// then
+		t.Run(tc.Name, func(t *testing.T) {
+			args, err := shellwords.Parse(strings.TrimSpace(tc.Input))
 			require.NoError(t, err)
-			assert.Equal(t, tc.expOutput, res)
+			result, err := removeBotkubeRelatedFlags(args)
+			require.NoError(t, err)
+			require.ElementsMatch(t, result, tc.ExpectedResult)
 		})
 	}
-}
-
-func fixExecutorsConfig(t *testing.T, raw string) map[string]config.Executors {
-	t.Helper()
-
-	var givenCfg config.Config
-	err := yaml.Unmarshal([]byte(raw), &givenCfg)
-	require.NoError(t, err)
-
-	return givenCfg.Executors
 }
