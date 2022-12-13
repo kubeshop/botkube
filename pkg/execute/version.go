@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	versionResourcesNames = noResourceNames
+	versionFeatureName = FeatureName{Name: noFeature}
 )
 
 // VersionExecutor executes all commands that are related to version.
@@ -30,9 +30,9 @@ func NewVersionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsRepor
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *VersionExecutor) ResourceNames() []string {
-	return versionResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *VersionExecutor) FeatureName() FeatureName {
+	return versionFeatureName
 }
 
 // Commands returns slice of commands the executor supports

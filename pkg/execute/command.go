@@ -21,7 +21,10 @@ const (
 )
 
 var (
-	commandResourcesNames = []string{"command", "commands", "cmd", "cmds"}
+	commandFeatureName = FeatureName{
+		Name:    "command",
+		Aliases: []string{"commands", "cmd", "cmds"},
+	}
 )
 
 // CommandsExecutor executes all commands that are related to command
@@ -40,9 +43,9 @@ func NewCommandsExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsRepo
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *CommandsExecutor) ResourceNames() []string {
-	return commandResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *CommandsExecutor) FeatureName() FeatureName {
+	return commandFeatureName
 }
 
 // Commands returns slice of commands the executor supports

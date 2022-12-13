@@ -25,12 +25,15 @@ const (
 )
 
 var (
-	sourceBindingResourcesNames = []string{"sourcebindings", "sourcebinding"}
+	sourceBindingFeatureName = FeatureName{
+		Name:    "sourcebinding",
+		Aliases: []string{"sourcebindings"},
+	}
 )
 
-// ResourceNames returns slice of resources the executor supports
-func (e *SourceBindingExecutor) ResourceNames() []string {
-	return sourceBindingResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *SourceBindingExecutor) FeatureName() FeatureName {
+	return sourceBindingFeatureName
 }
 
 // Commands returns slice of commands the executor supports

@@ -184,7 +184,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 		{
 			Name: "Is disabled",
 			CmdCtx: CommandContext{
-				Args:         []string{"status"},
+				Args:         []string{"status", "notifications"},
 				Conversation: Conversation{ID: "conv-id"},
 				Platform:     testPlatform,
 				ClusterName:  clusterName,
@@ -195,10 +195,27 @@ func TestNotifierExecutorStatus(t *testing.T) {
 			},
 			Status: "disabled",
 		},
+		{
+			Name: "Contains help message",
+			CmdCtx: CommandContext{
+				Args:         []string{"status"},
+				Conversation: Conversation{ID: "conv-id"},
+				Platform:     testPlatform,
+				ClusterName:  clusterName,
+				NotifierHandler: &fakeNotifierHandler{
+					conf: map[string]bool{"conv-id": false},
+				},
+				ExecutorFilter: newExecutorTextFilter("", "status"),
+			},
+			Status: "notifications",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			mapping, err := NewCmdsMapping([]CommandExecutor{e})
+			require.NoError(t, err)
+			tc.CmdCtx.Mapping = mapping
 			msg, err := e.Status(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
 			assert.Contains(t, msg.Body.CodeBlock, tc.Status)

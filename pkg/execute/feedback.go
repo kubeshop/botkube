@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	feedbackResourcesNames = noResourceNames
+	feedbackFeatureName = FeatureName{Name: noFeature}
 )
 
 // FeedbackExecutor executes all commands that are related to feedback.
@@ -28,9 +28,9 @@ func NewFeedbackExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsRepo
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *FeedbackExecutor) ResourceNames() []string {
-	return feedbackResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *FeedbackExecutor) FeatureName() FeatureName {
+	return feedbackFeatureName
 }
 
 // Commands returns slice of commands the executor supports

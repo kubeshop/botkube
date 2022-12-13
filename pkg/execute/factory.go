@@ -35,7 +35,7 @@ type DefaultExecutorFactory struct {
 	merger                *kubectl.Merger
 	cfgManager            ConfigPersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
-	cmdsMapping           map[CommandVerb]map[string]CommandFn
+	cmdsMapping           *CommandMapping
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -154,7 +154,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		notifierExecutor,
 		configExecutor,
 	}
-	mappings, err := newCmdsMapping(executors)
+	mappings, err := NewCmdsMapping(executors)
 	if err != nil {
 		return nil, err
 	}

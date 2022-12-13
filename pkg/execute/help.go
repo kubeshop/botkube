@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	helpResourcesNames = noResourceNames
+	helpFeatureName = FeatureName{Name: noFeature}
 )
 
 // HelpExecutor executes all commands that are related to help
@@ -28,9 +28,9 @@ func NewHelpExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *HelpExecutor) ResourceNames() []string {
-	return helpResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *HelpExecutor) FeatureName() FeatureName {
+	return helpFeatureName
 }
 
 // Commands returns slice of commands the executor supports

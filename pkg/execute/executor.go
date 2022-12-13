@@ -23,49 +23,13 @@ const (
 	internalErrorMsgFmt = "Sorry, an internal error occurred while executing your command for the '%s' cluster :( See the logs for more details."
 	emptyResponseMsg    = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
 
-	// incompleteCmdMsg incomplete command response message
-	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
-
 	anonymizedInvalidVerb = "{invalid verb}"
 
 	lineLimitToShowFilter = 16
-
-	// TODO: build the help msg dynamically
-	helpMessageList = `@Botkube list [resource]
-
-Available resources:
-actions  | action  | act          list available automations
-filters  | filter  | flr          list available filters
-commands | command | cmds | cmd   list enabled executors`
-
-	helpMessageEdit = `@Botkube edit [resource]
-
-Available resources:
-sourcebindings | actsourcebinding   edit source bindings`
-
-	helpMessageEnable = `@Botkube enable [resource]
-
-Available resources:
-actions | action | act    enable available automations
-filters | filter | fil    enable available filters`
-
-	helpMessageDisable = `@Botkube disable [resource]
-
-Available resources:
-actions | action | act    disable available automations
-filters | filter | fil    disable available filters`
 )
 
 var (
-	// noResourceNames is used for commands that have no resources defined
-	noResourceNames       = []string{""}
-	clusterNameFlagRegex  = regexp.MustCompile(`--cluster-name[=|\s]+\S+`)
-	availableHelpMessages = map[CommandVerb]string{
-		CommandList:    helpMessageList,
-		CommandEnable:  helpMessageEnable,
-		CommandDisable: helpMessageDisable,
-		CommandEdit:    helpMessageEdit,
-	}
+	clusterNameFlagRegex = regexp.MustCompile(`--cluster-name[=|\s]+\S+`)
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -95,7 +59,7 @@ type DefaultExecutor struct {
 	commGroupName         string
 	user                  string
 	kubectlCmdBuilder     *KubectlCmdBuilder
-	cmdsMapping           map[CommandVerb]map[string]CommandFn
+	cmdsMapping           *CommandMapping
 }
 
 // CommandFlags creates custom type for flags in botkube
@@ -112,48 +76,6 @@ const (
 
 func (flag CommandFlags) String() string {
 	return string(flag)
-}
-
-// CommandVerb are commands supported by the bot
-type CommandVerb string
-
-// CommandVerb command options
-const (
-	CommandPing     CommandVerb = "ping"
-	CommandHelp     CommandVerb = "help"
-	CommandVersion  CommandVerb = "version"
-	CommandFeedback CommandVerb = "feedback"
-	CommandList     CommandVerb = "list"
-	CommandEnable   CommandVerb = "enable"
-	CommandDisable  CommandVerb = "disable"
-	CommandEdit     CommandVerb = "edit"
-	CommandStart    CommandVerb = "start"
-	CommandStop     CommandVerb = "stop"
-	CommandStatus   CommandVerb = "status"
-	CommandConfig   CommandVerb = "config"
-)
-
-// CommandExecutor defines command structure for executors
-type CommandExecutor interface {
-	Commands() map[CommandVerb]CommandFn
-	ResourceNames() []string
-}
-
-// CommandFn is a single command (eg. List())
-type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error)
-
-// CommandContext contains the context for CommandFn
-type CommandContext struct {
-	Args            []string
-	ClusterName     string
-	CommGroupName   string
-	BotName         string
-	RawCmd          string
-	User            string
-	Conversation    Conversation
-	Platform        config.CommPlatformIntegration
-	ExecutorFilter  executorFilter
-	NotifierHandler NotifierHandler
 }
 
 // Execute executes commands and returns output
@@ -173,6 +95,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		Conversation:    e.conversation,
 		Platform:        e.platform,
 		NotifierHandler: e.notifierHandler,
+		Mapping:         e.cmdsMapping,
 	}
 	execFilter, err := extractExecutorFilter(rawCmd)
 	if err != nil {
@@ -267,21 +190,17 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		cmdRes = strings.ToLower(cleanArgs[1])
 	}
 
-	resources, found := e.cmdsMapping[cmdVerb]
-	if !found {
+	fn, foundRes, foundFn := e.cmdsMapping.FindFn(cmdVerb, cmdRes)
+	if !foundRes {
 		e.reportCommand(anonymizedInvalidVerb, false)
 		e.log.Infof("received unsupported command: %q", execFilter.FilteredCommand())
 		return respond(unsupportedCmdMsg, cmdCtx)
 	}
 
-	fn, found := resources[cmdRes]
-	if !found {
-		e.reportCommand(fmt.Sprintf("%s {invalid resource}", cmdVerb), false)
+	if !foundFn {
+		e.reportCommand(fmt.Sprintf("%s {invalid feature}", cmdVerb), false)
 		e.log.Infof("received unsupported resource: %q", execFilter.FilteredCommand())
-		msg := incompleteCmdMsg
-		if helpMessage, ok := availableHelpMessages[cmdVerb]; ok {
-			msg = helpMessage
-		}
+		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb, botName)
 		return respond(msg, cmdCtx)
 	}
 
