@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option go_package = "pkg/api/executor";
 
 package executor;
@@ -20,6 +22,12 @@ message ExecuteResponse {
 	string data = 1;
 }
 
+message MetadataResponse {
+	string version = 1;
+	string description = 2;
+}
+
 service Executor {
 	rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
+	rpc Metadata(google.protobuf.Empty) returns (MetadataResponse) {}
 }

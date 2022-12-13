@@ -7,21 +7,31 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
 )
 
 // Source defines the Botkube source plugin functionality.
 type Source interface {
-	Stream(ctx context.Context, configs []*Config) (StreamOutput, error)
+	Stream(context.Context, StreamInput) (StreamOutput, error)
+	Metadata(context.Context) (api.MetadataOutput, error)
 }
 
-// StreamOutput contains the stream data.
-type StreamOutput struct {
-	// Output represents the streamed events. It is from start of plugin execution.
-	Output chan []byte
-	// TODO: we should consider adding error feedback channel too.
-}
+type (
+	// StreamInput holds the input of the Stream function.
+	StreamInput struct {
+		// Configs is a list of Source configurations specified by users.
+		Configs []*Config
+	}
+
+	// StreamOutput holds the output of the Stream function.
+	StreamOutput struct {
+		// Output represents the streamed events. It is from start of plugin execution.
+		Output chan []byte
+		// TODO: we should consider adding error feedback channel too.
+	}
+)
 
 // ProtocolVersion is the version that must match between Botkube core
 // and Botkube plugins. This should be bumped whenever a change happens in
@@ -62,9 +72,9 @@ type grpcClient struct {
 	client SourceClient
 }
 
-func (p *grpcClient) Stream(ctx context.Context, configs []*Config) (StreamOutput, error) {
+func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, error) {
 	stream, err := p.client.Stream(ctx, &StreamRequest{
-		Configs: configs,
+		Configs: in.Configs,
 	})
 	if err != nil {
 		return StreamOutput{}, err
@@ -97,9 +107,32 @@ func (p *grpcClient) Stream(ctx context.Context, configs []*Config) (StreamOutpu
 	return out, nil
 }
 
+func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
+	resp, err := p.client.Metadata(ctx, &emptypb.Empty{})
+	if err != nil {
+		return api.MetadataOutput{}, err
+	}
+
+	return api.MetadataOutput{
+		Version:     resp.Version,
+		Description: resp.Description,
+	}, nil
+}
+
 type grpcServer struct {
 	UnimplementedSourceServer
 	Source Source
+}
+
+func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataResponse, error) {
+	meta, err := p.Source.Metadata(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &MetadataResponse{
+		Version:     meta.Version,
+		Description: meta.Description,
+	}, nil
 }
 
 func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) error {
@@ -107,7 +140,9 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 
 	// It's up to the 'Stream' method to close the returned channels as it sends the data to it.
 	// We can only use 'ctx' to cancel streaming and release associated resources.
-	stream, err := p.Source.Stream(ctx, req.Configs)
+	stream, err := p.Source.Stream(ctx, StreamInput{
+		Configs: req.Configs,
+	})
 	if err != nil {
 		return err
 	}

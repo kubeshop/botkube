@@ -1,10 +1,10 @@
 # ConfigMap watcher source
 
-ConfigMap watcher source is the example Botkube source used during [e2e tests](../../../test/e2e).
+Kubernetes ConfigMap watcher is an example Botkube source plugin used during [e2e tests](../../../test/e2e). It's not meant for production usage.
 
 ## Configuration parameters
 
-The configuration should be specified in YAML format. Such parameters are supported:
+The configuration should be specified in the YAML format. Such parameters are supported:
 
 ```yaml
 configMap:

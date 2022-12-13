@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option go_package = "pkg/api/source";
 
 package source;
@@ -19,6 +21,15 @@ message StreamResponse {
 	bytes output = 1;
 }
 
+
+message MetadataResponse {
+	// Version is a version of a given plugin. It should follow the SemVer syntax.
+	string version = 1;
+	// Descriptions is a description of a given plugin.
+	string description = 2;
+}
+
 service Source {
 	rpc Stream(StreamRequest) returns (stream StreamResponse) {}
+	rpc Metadata(google.protobuf.Empty) returns (MetadataResponse) {}
 }
