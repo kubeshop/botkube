@@ -69,7 +69,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		return "", fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
-	resp, err := cli.Execute(ctx, &executor.ExecuteRequest{
+	resp, err := cli.Execute(ctx, executor.ExecuteInput{
 		Command: command,
 		Configs: configs,
 	})

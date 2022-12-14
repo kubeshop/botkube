@@ -314,7 +314,7 @@ func createGRPCClients[C any](bins map[string]string, dispenseType string) (map[
 		concreteCli, ok := raw.(C)
 		if !ok {
 			cli.Kill()
-			return nil, fmt.Errorf("registered client doesn't implemented executor interface")
+			return nil, fmt.Errorf("registered client doesn't implement required %s interface", dispenseType)
 		}
 		out[key] = enabledPlugins[C]{
 			Client:  concreteCli,

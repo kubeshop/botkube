@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ExecutorClient interface {
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
+	Metadata(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MetadataResponse, error)
 }
 
 type executorClient struct {
@@ -42,11 +44,21 @@ func (c *executorClient) Execute(ctx context.Context, in *ExecuteRequest, opts .
 	return out, nil
 }
 
+func (c *executorClient) Metadata(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MetadataResponse, error) {
+	out := new(MetadataResponse)
+	err := c.cc.Invoke(ctx, "/executor.Executor/Metadata", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExecutorServer is the server API for Executor service.
 // All implementations must embed UnimplementedExecutorServer
 // for forward compatibility
 type ExecutorServer interface {
 	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
+	Metadata(context.Context, *emptypb.Empty) (*MetadataResponse, error)
 	mustEmbedUnimplementedExecutorServer()
 }
 
@@ -56,6 +68,9 @@ type UnimplementedExecutorServer struct {
 
 func (UnimplementedExecutorServer) Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedExecutorServer) Metadata(context.Context, *emptypb.Empty) (*MetadataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Metadata not implemented")
 }
 func (UnimplementedExecutorServer) mustEmbedUnimplementedExecutorServer() {}
 
@@ -88,6 +103,24 @@ func _Executor_Execute_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Executor_Metadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExecutorServer).Metadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/executor.Executor/Metadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExecutorServer).Metadata(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Executor_ServiceDesc is the grpc.ServiceDesc for Executor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +131,10 @@ var Executor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Execute",
 			Handler:    _Executor_Execute_Handler,
+		},
+		{
+			MethodName: "Metadata",
+			Handler:    _Executor_Metadata_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

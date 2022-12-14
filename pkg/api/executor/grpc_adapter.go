@@ -5,14 +5,32 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
 )
 
 // Executor defines the Botkube executor plugin functionality.
 type Executor interface {
-	Execute(ctx context.Context, req *ExecuteRequest) (*ExecuteResponse, error)
+	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
+	Metadata(ctx context.Context) (api.MetadataOutput, error)
 }
+
+type (
+	// ExecuteInput holds the input of the Execute function.
+	ExecuteInput struct {
+		// Command holds the command to be executed.
+		Command string
+		// Configs is a list of Executor configurations specified by users.
+		Configs []*Config
+	}
+
+	// ExecuteOutput holds the output of the Execute function.
+	ExecuteOutput struct {
+		// Data represent the output of processing a given input command.
+		Data string
+	}
+)
 
 // ProtocolVersion is the version that must match between Botkube core
 // and Botkube plugins. This should be bumped whenever a change happens in
@@ -53,12 +71,29 @@ type grpcClient struct {
 	client ExecutorClient
 }
 
-func (p *grpcClient) Execute(ctx context.Context, req *ExecuteRequest) (*ExecuteResponse, error) {
-	res, err := p.client.Execute(ctx, req)
+func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutput, error) {
+	res, err := p.client.Execute(ctx, &ExecuteRequest{
+		Command: in.Command,
+		Configs: in.Configs,
+	})
 	if err != nil {
-		return nil, err
+		return ExecuteOutput{}, err
 	}
-	return res, nil
+	return ExecuteOutput{
+		Data: res.Data,
+	}, nil
+}
+
+func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
+	resp, err := p.client.Metadata(ctx, &emptypb.Empty{})
+	if err != nil {
+		return api.MetadataOutput{}, err
+	}
+
+	return api.MetadataOutput{
+		Version:     resp.Version,
+		Description: resp.Description,
+	}, nil
 }
 
 type grpcServer struct {
@@ -67,7 +102,27 @@ type grpcServer struct {
 }
 
 func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*ExecuteResponse, error) {
-	return p.Impl.Execute(ctx, request)
+	out, err := p.Impl.Execute(ctx, ExecuteInput{
+		Command: request.Command,
+		Configs: request.Configs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &ExecuteResponse{
+		Data: out.Data,
+	}, nil
+}
+
+func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataResponse, error) {
+	out, err := p.Impl.Metadata(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &MetadataResponse{
+		Version:     out.Version,
+		Description: out.Description,
+	}, nil
 }
 
 // Serve serves given plugins.

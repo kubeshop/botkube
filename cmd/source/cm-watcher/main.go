@@ -18,8 +18,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
+
+// version is set via ldflags by GoReleaser.
+var version = "dev"
 
 const pluginName = "cm-watcher"
 
@@ -39,8 +43,16 @@ type (
 // CMWatcher implements Botkube source plugin.
 type CMWatcher struct{}
 
-// Stream returns a given command as response.
-func (CMWatcher) Stream(ctx context.Context, configs []*source.Config) (source.StreamOutput, error) {
+// Metadata returns details about ConfigMap watcher plugin.
+func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
+	return api.MetadataOutput{
+		Version:     version,
+		Description: "Kubernetes ConfigMap watcher is an example Botkube source plugin used during e2e tests. It's not meant for production usage.",
+	}, nil
+}
+
+// Stream sends an event when a given ConfigMap is matched against the criteria defined in config.
+func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.StreamOutput, error) {
 	// default config
 	finalCfg := Config{
 		ConfigMap: Object{
@@ -52,7 +64,7 @@ func (CMWatcher) Stream(ctx context.Context, configs []*source.Config) (source.S
 
 	// In our case we don't have complex merge strategy,
 	// the last one that was specified wins :)
-	for _, inputCfg := range configs {
+	for _, inputCfg := range in.Configs {
 		var cfg Config
 		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
 		if err != nil {

@@ -44,7 +44,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 		return fmt.Errorf("while getting source client for %s: %w", pluginName, err)
 	}
 
-	out, err := sourceClient.Stream(ctx, pluginConfigs)
+	out, err := sourceClient.Stream(ctx, source.StreamInput{
+		Configs: pluginConfigs,
+	})
 	if err != nil {
 		return fmt.Errorf("while opening stream for %s: %w", pluginName, err)
 	}
