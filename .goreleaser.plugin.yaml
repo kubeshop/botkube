@@ -1,33 +1,37 @@
+# GoReleaser already creates Botkube artifacts in the ./dist folder.
+# To not override them during release, we use a different folder
+dist: plugin-dist
+
 before:
   hooks:
     - go mod download
 
 builds:
   - id: echo
-    binary: executor_echo_{{ .Os }}_{{ .Arch }}
-    no_unique_dist_dir: true
     main: cmd/executor/echo/main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: cm-watcher
-    binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
+    binary: executor_echo_{{ .Os }}_{{ .Arch }}
+
     no_unique_dist_dir: true
-    main: cmd/source/cm-watcher/main.go
-    env:
+    env: &env
       - CGO_ENABLED=0
-    goos:
+    goos: &goos
       - linux
       - darwin
-    goarch:
+    goarch: &goarch
       - amd64
       - arm64
-    goarm:
+    goarm: &goarm
       - 7
+
+  - id: cm-watcher
+    main: cmd/source/cm-watcher/main.go
+    binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env: *env
+    goos: *goos
+    goarch: *goarch
+    goarm: *goarm
+
+snapshot:
+  name_template: 'v{{ .Version }}'

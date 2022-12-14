@@ -156,12 +156,12 @@ We test also the Botkube plugins system. To compile Botkube plugins, run:
 make build-plugins
 ```
 
-By default, built plugins' binaries are available under `dist` directory. The e2e framework builds the plugins index file dynamically and starts the HTTP server that is later accessible from the k3d cluster.
+By default, built plugins' binaries are available under `plugin-dist` directory. The e2e framework builds the plugins index file dynamically and starts the HTTP server that is later accessible from the k3d cluster.
 
 To override default settings, export following environment variables:
 
 ```bash
-export PLUGINS_BINARIES_DIRECTORY="./dist"
+export PLUGINS_BINARIES_DIRECTORY="./plugin-dist"
 export PLUGINS_SERVER_HOST="http://host.k3d.internal" # on K3d enabling you to access your host system by referring to it as host.k3d.internal
 export PLUGINS_SERVER_PORT="3000"
 ```

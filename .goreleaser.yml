@@ -27,20 +27,26 @@ builds:
       - arm64
     goarm:
       - 7
-archives:
-  - id: my-archive
-    builds:
-      - botkube
+
 snapshot:
   name_template: "{{ .Env.IMAGE_TAG }}"
+
 release:
   # If set to true, will not auto-publish the release.
   draft: true
   prerelease: auto
-  ids:
-    - botkube
+
+  # Add extra pre-existing files to the release.
+  # Prerequisites:
+  # - build plugin binaries
+  # - build plugin index.yaml
+  extra_files:
+    - glob: ./plugin-dist/executor_*
+    - glob: ./plugin-dist/source_*
+    - glob: ./plugins-index.yaml
+
 changelog:
-  skip: true
+  skip: false
 
 dockers:
   - image_templates:
