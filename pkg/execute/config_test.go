@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -79,7 +80,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewConfigExecutor(log, &fakeAnalyticsReporter{}, tc.Cfg)
+			e := NewConfigExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.Cfg)
 			msg, err := e.Config(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
 			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)

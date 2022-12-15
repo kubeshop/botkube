@@ -318,7 +318,7 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 		concreteCli, ok := raw.(C)
 		if !ok {
 			cli.Kill()
-			return nil, fmt.Errorf("registered client doesn't implement required %s interface", dispenseType)
+			return nil, fmt.Errorf("registered client doesn't implement required %s interface", pluginType.String())
 		}
 		out[key] = enabledPlugins[C]{
 			Client:  concreteCli,

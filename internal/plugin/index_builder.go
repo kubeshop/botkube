@@ -21,7 +21,7 @@ type pluginBinariesIndex struct {
 	BinaryPath string
 	OS         string
 	Arch       string
-	Type       string
+	Type       Type
 }
 
 // IndexBuilder provides functionality to generate plugin index.
@@ -90,7 +90,7 @@ func (*IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath stri
 	return urls
 }
 
-func (*IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (string, string, error) {
+func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (string, string, error) {
 	os, arch := runtime.GOOS, runtime.GOARCH
 
 	for _, item := range bins {
@@ -99,14 +99,14 @@ func (*IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (
 		}
 
 		bins := map[string]string{
-			item.Type: filepath.Join(dir, item.BinaryPath),
+			item.Type.String(): filepath.Join(dir, item.BinaryPath),
 		}
-		clients, err := createGRPCClients[metadataGetter](bins, item.Type)
+		clients, err := createGRPCClients[metadataGetter](i.log, bins, item.Type)
 		if err != nil {
 			return "", "", fmt.Errorf("while creating gRPC client: %w", err)
 		}
 
-		cli := clients[item.Type]
+		cli := clients[item.Type.String()]
 		meta, err := cli.Client.Metadata(context.Background())
 		if err != nil {
 			return "", "", fmt.Errorf("while calling metadata RPC: %w", err)
@@ -124,7 +124,7 @@ func (*IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (
 }
 
 func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex, entryName string) error {
-	if !strings.HasPrefix(entryName, executorPluginName) && !strings.HasPrefix(entryName, sourcePluginName) {
+	if !strings.HasPrefix(entryName, TypeExecutor.String()) && !strings.HasPrefix(entryName, TypeSource.String()) {
 		i.log.WithField("file", entryName).Debug("Ignoring file as not recognized as plugin")
 		return nil
 	}
@@ -146,7 +146,7 @@ func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex
 	entries[key] = append(entries[key], pluginBinariesIndex{
 		BinaryPath: entryName,
 		OS:         os,
-		Type:       pType,
+		Type:       Type(pType),
 		Arch:       arch,
 	})
 
