@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/execute/params"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
 )
@@ -67,7 +68,6 @@ type CommandFlags string
 
 // Defines botkube flags
 const (
-	ClusterFlag    CommandFlags = "--cluster-name"
 	FollowFlag     CommandFlags = "--follow"
 	AbbrFollowFlag CommandFlags = "-f"
 	WatchFlag      CommandFlags = "--watch"
@@ -84,28 +84,32 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	rawCmd := format.RemoveHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
 	clusterName := e.cfg.Settings.ClusterName
-	inClusterName := getClusterNameFromKubectlCmd(rawCmd)
-	botName := e.notifierHandler.BotName()
+
 	cmdCtx := CommandContext{
 		ClusterName:     clusterName,
-		CommGroupName:   e.commGroupName,
-		BotName:         botName,
 		RawCmd:          rawCmd,
+		CommGroupName:   e.commGroupName,
+		BotName:         e.notifierHandler.BotName(),
 		User:            e.user,
 		Conversation:    e.conversation,
 		Platform:        e.platform,
 		NotifierHandler: e.notifierHandler,
 		Mapping:         e.cmdsMapping,
 	}
-	execFilter, err := extractExecutorFilter(rawCmd)
-	if err != nil {
-		return respond(err.Error(), cmdCtx)
-	}
-	cmdCtx.ExecutorFilter = execFilter
 
-	args, err := shellwords.Parse(strings.TrimSpace(execFilter.FilteredCommand()))
+	params, err := params.RemoveBotkubeRelatedFlags(rawCmd)
 	if err != nil {
-		e.log.Errorf("while parsing command %q: %s", execFilter.FilteredCommand(), err.Error())
+		e.log.Errorf("while parsing command flags %q: %s", rawCmd, err.Error())
+		return respond(err.Error(), CommandContext{})
+	}
+
+	cmdCtx.CleanCmd = params.CleanCmd
+	cmdCtx.ClusterName = params.ClusterName
+	cmdCtx.ExecutorFilter = newExecutorTextFilter(params.Filter)
+
+	args, err := shellwords.Parse(strings.TrimSpace(params.CleanCmd))
+	if err != nil {
+		e.log.Errorf("while parsing command %q: %s", params.CleanCmd, err.Error())
 		return respond("Cannot parse command. Please use 'help' to see supported commands.", cmdCtx)
 	}
 
@@ -121,17 +125,17 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 	cmdCtx.Args = args
 
-	if inClusterName != "" && inClusterName != clusterName {
+	if params.ClusterName != "" && params.ClusterName != clusterName {
 		e.log.WithFields(logrus.Fields{
 			"config-cluster-name":  clusterName,
-			"command-cluster-name": inClusterName,
+			"command-cluster-name": params.ClusterName,
 		}).Debugf("Specified cluster name doesn't match ours. Ignoring further execution...")
 		return empty // user specified different target cluster
 	}
 
 	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), execFilter.IsActive())
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, execFilter.FilteredCommand(), e.conversation.IsAuthenticated)
+		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), cmdCtx.ExecutorFilter.IsActive())
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, params.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
@@ -141,7 +145,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			e.log.Errorf("while executing kubectl: %s", err.Error())
 			return empty
 		}
-		return respond(execFilter.Apply(out), cmdCtx)
+		return respond(out, cmdCtx)
 	}
 
 	// commands below are executed only if the channel is authorized
@@ -151,7 +155,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	if e.kubectlCmdBuilder.CanHandle(args) {
 		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args), false)
-		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, botName, header(cmdCtx))
+		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, cmdCtx.BotName, header(cmdCtx), cmdCtx)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -168,39 +172,33 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if isPluginCmd {
-		e.reportCommand(e.pluginExecutor.GetCommandPrefix(args), execFilter.IsActive())
-		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, args, execFilter.FilteredCommand())
+		e.reportCommand(e.pluginExecutor.GetCommandPrefix(args), cmdCtx.ExecutorFilter.IsActive())
+		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, args, params.CleanCmd)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing plugin: %s", err.Error())
 			return empty
 		}
-		return respond(execFilter.Apply(out), cmdCtx)
+		return respond(out, cmdCtx)
 	}
 
-	cleanArgs, err := removeBotkubeRelatedFlags(args)
-	if err != nil {
-		e.log.Errorf("while removing Botkube related flags from arguments: %s", err.Error())
-		return empty
-	}
-
-	cmdVerb := CommandVerb(strings.ToLower(cleanArgs[0]))
+	cmdVerb := CommandVerb(strings.ToLower(args[0]))
 	var cmdRes string
-	if len(cleanArgs) > 1 {
-		cmdRes = strings.ToLower(cleanArgs[1])
+	if len(args) > 1 {
+		cmdRes = strings.ToLower(args[1])
 	}
 
 	fn, foundRes, foundFn := e.cmdsMapping.FindFn(cmdVerb, cmdRes)
 	if !foundRes {
 		e.reportCommand(anonymizedInvalidVerb, false)
-		e.log.Infof("received unsupported command: %q", execFilter.FilteredCommand())
+		e.log.Infof("received unsupported command: %q", params.CleanCmd)
 		return respond(unsupportedCmdMsg, cmdCtx)
 	}
 
 	if !foundFn {
 		e.reportCommand(fmt.Sprintf("%s {invalid feature}", cmdVerb), false)
-		e.log.Infof("received unsupported resource: %q", execFilter.FilteredCommand())
-		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb, botName)
+		e.log.Infof("received unsupported resource: %q", cmdCtx.CleanCmd)
+		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb, cmdCtx.BotName)
 		return respond(msg, cmdCtx)
 	}
 
@@ -214,22 +212,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	case IsExecutionCommandError(err):
 		return respond(err.Error(), cmdCtx)
 	default:
-		e.log.Errorf("while executing command %q: %s", execFilter.FilteredCommand(), err.Error())
+		e.log.Errorf("while executing command %q: %s", params.CleanCmd, err.Error())
 		msg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
 		return respond(msg, cmdCtx)
 	}
 
 	return msg
-}
-
-func removeBotkubeRelatedFlags(args []string) ([]string, error) {
-	line := strings.Join(args, " ")
-	matches := clusterNameFlagRegex.FindAllString(line, -1)
-
-	for _, match := range matches {
-		line = strings.Replace(line, match, "", 1)
-	}
-	return shellwords.Parse(line)
 }
 
 func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) interactive.Message {
@@ -252,7 +240,7 @@ func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) inter
 	// Show Filter Input if command response is more than `lineLimitToShowFilter`
 	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
 		message.PlaintextInputs = append(message.PlaintextInputs,
-			filterInput(cmdCtx.ExecutorFilter.FilteredCommand(),
+			filterInput(cmdCtx.CleanCmd,
 				cmdCtx.BotName))
 	}
 	return message

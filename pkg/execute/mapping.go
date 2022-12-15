@@ -54,6 +54,8 @@ type CommandContext struct {
 	CommGroupName   string
 	BotName         string
 	RawCmd          string
+	CleanCmd        string
+	WithClusterName string
 	User            string
 	Conversation    Conversation
 	Platform        config.CommPlatformIntegration

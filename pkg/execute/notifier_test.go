@@ -45,7 +45,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: `Brace yourselves, incoming notifications from cluster 'cluster-name'.`,
 			Status:         "enabled",
@@ -62,7 +62,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: `I'm not configured to send notifications here ('bogus') from cluster 'cluster-name', so you cannot turn them on or off.`,
 		},
@@ -77,7 +77,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "start notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: "",
 			ExpectedError:  "while persisting configuration: different alias",
@@ -119,7 +119,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": true},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: `Sure! I won't send you notifications from cluster 'cluster-name' here.`,
 			Status:         "disabled",
@@ -136,7 +136,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: `I'm not configured to send notifications here ('bogus') from cluster 'cluster-name', so you cannot turn them on or off.`,
 		},
@@ -151,7 +151,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "stop notifications"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			ExpectedResult: "",
 			ExpectedError:  "while persisting configuration: different alias",
@@ -191,7 +191,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "status"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			Status: "disabled",
 		},

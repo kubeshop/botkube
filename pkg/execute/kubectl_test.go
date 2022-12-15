@@ -18,6 +18,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		name string
 
 		command              string
+		clusterName          string
 		channelNotAuthorized bool
 		kubectlCfg           config.Kubectl
 		expKubectlExecuted   bool
@@ -27,6 +28,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			name: "Should forbid execution from not authorized channel when restrictions are enabled",
 
 			command:              "get pod --cluster-name test",
+			clusterName:          "test",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
@@ -196,7 +198,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 
 			// when
 			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
-			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized)
+			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized, CommandContext{WithClusterName: tc.clusterName})
 
 			// then
 			assert.True(t, canHandle, "it should be able to handle the execution")
@@ -354,7 +356,7 @@ func TestKubectlExecute(t *testing.T) {
 
 			// when
 			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
-			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized)
+			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized, CommandContext{})
 
 			// then
 			assert.True(t, canHandle, "it should be able to handle the execution")

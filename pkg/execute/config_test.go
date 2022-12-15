@@ -30,7 +30,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 				Conversation:   Conversation{Alias: channelAlias, ID: "conv-id"},
 				Platform:       config.SlackCommPlatformIntegration,
 				ClusterName:    configTestClusterName,
-				ExecutorFilter: newExecutorTextFilter("", "config"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			Cfg: config.Config{
 				Settings: config.Settings{
