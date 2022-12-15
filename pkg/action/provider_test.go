@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -68,8 +68,7 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			log, _ := logtest.NewNullLogger()
-			provider := action.NewProvider(log, tc.Config, nil)
+			provider := action.NewProvider(loggerx.NewNoop(), tc.Config, nil)
 
 			// when
 			result, err := provider.RenderedActionsForEvent(tc.Event, tc.SourceBindings)
@@ -110,9 +109,9 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 		Message: "kubectl get po foo",
 		User:    `Automation "Test"`,
 	}
-	log, _ := logtest.NewNullLogger()
+
 	execFactory := &fakeFactory{t: t, expectedInput: expectedExecutorInput}
-	provider := action.NewProvider(log, config.Actions{}, execFactory)
+	provider := action.NewProvider(loggerx.NewNoop(), config.Actions{}, execFactory)
 
 	// when
 	res := provider.ExecuteEventAction(context.Background(), eventAction)

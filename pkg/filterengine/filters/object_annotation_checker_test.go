@@ -3,8 +3,9 @@ package filters
 import (
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 func TestIsObjectNotifDisabled(t *testing.T) {
@@ -20,8 +21,7 @@ func TestIsObjectNotifDisabled(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			log, _ := logtest.NewNullLogger()
-			f := NewObjectAnnotationChecker(log, nil, nil)
+			f := NewObjectAnnotationChecker(loggerx.NewNoop(), nil, nil)
 
 			if actual := f.isObjectNotifDisabled(test.annotation); actual != test.expected {
 				t.Errorf("expected: %+v != actual: %+v\n", test.expected, actual)
@@ -44,8 +44,7 @@ func TestReconfigureChannel(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			log, _ := logtest.NewNullLogger()
-			f := NewObjectAnnotationChecker(log, nil, nil)
+			f := NewObjectAnnotationChecker(loggerx.NewNoop(), nil, nil)
 
 			if actualChannel, actualBool := f.reconfigureChannel(test.objectMeta); actualBool != test.expectedBool {
 				if actualChannel != test.expectedChannel {

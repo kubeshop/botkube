@@ -4,18 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestKubectlExecuteErrors(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-
 	tests := []struct {
 		name string
 
@@ -191,7 +189,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 
 			wasKubectlExecuted := false
 
-			executor := NewKubectl(logger, cfg, merger, kcChecker, cmdCombinedFunc(func(command string, args []string) (string, error) {
+			executor := NewKubectl(loggerx.NewNoop(), cfg, merger, kcChecker, cmdCombinedFunc(func(command string, args []string) (string, error) {
 				wasKubectlExecuted = true
 				return "kubectl executed", nil
 			}))
@@ -211,8 +209,6 @@ func TestKubectlExecuteErrors(t *testing.T) {
 }
 
 func TestKubectlExecute(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-
 	tests := []struct {
 		name string
 
@@ -351,7 +347,7 @@ func TestKubectlExecute(t *testing.T) {
 
 			wasKubectlExecuted := false
 
-			executor := NewKubectl(logger, cfg, merger, kcChecker, cmdCombinedFunc(func(command string, args []string) (string, error) {
+			executor := NewKubectl(loggerx.NewNoop(), cfg, merger, kcChecker, cmdCombinedFunc(func(command string, args []string) (string, error) {
 				wasKubectlExecuted = true
 				return "kubectl executed", nil
 			}))
@@ -370,8 +366,6 @@ func TestKubectlExecute(t *testing.T) {
 }
 
 func TestKubectlCanHandle(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-
 	tests := []struct {
 		name string
 
@@ -435,7 +429,7 @@ func TestKubectlCanHandle(t *testing.T) {
 			merger := kubectl.NewMerger(cfg.Executors)
 			kcChecker := kubectl.NewChecker(nil)
 
-			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
 			// when
 			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
@@ -473,7 +467,6 @@ func TestKubectlGetVerb(t *testing.T) {
 			expectedVerb: "get",
 		},
 	}
-	logger, _ := logtest.NewNullLogger()
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
 		Namespaces: config.Namespaces{
@@ -490,7 +483,7 @@ func TestKubectlGetVerb(t *testing.T) {
 			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
 			merger := kubectl.NewMerger(cfg.Executors)
 			kcChecker := kubectl.NewChecker(nil)
-			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
 			args := strings.Fields(tc.command)
 			verb := executor.GetVerb(args)
@@ -527,7 +520,6 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 			expected: "k get",
 		},
 	}
-	logger, _ := logtest.NewNullLogger()
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
 		Namespaces: config.Namespaces{
@@ -544,7 +536,7 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
 			merger := kubectl.NewMerger(cfg.Executors)
 			kcChecker := kubectl.NewChecker(nil)
-			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
 			args := strings.Fields(tc.command)
 			verb := executor.GetCommandPrefix(args)
@@ -581,7 +573,6 @@ func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 			expected: "get pods --cluster-name test",
 		},
 	}
-	logger, _ := logtest.NewNullLogger()
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
 		Namespaces: config.Namespaces{
@@ -599,7 +590,7 @@ func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
 			merger := kubectl.NewMerger(cfg.Executors)
 			kcChecker := kubectl.NewChecker(nil)
-			executor := NewKubectl(logger, config.Config{}, merger, kcChecker, nil)
+			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
 			// when
 			verb, err := executor.getArgsWithoutAlias(tc.command)

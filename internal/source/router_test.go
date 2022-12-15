@@ -3,10 +3,10 @@ package source
 import (
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -72,7 +72,6 @@ func TestRouter_GetBoundSources_UsesAddedBindings(t *testing.T) {
 
 func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 	const hasRoutes = "apps/v1/deployments"
-	logger, _ := logtest.NewNullLogger()
 
 	tests := []struct {
 		name     string
@@ -180,7 +179,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			router := NewRouter(nil, nil, logger)
+			router := NewRouter(nil, nil, loggerx.NewNoop())
 			router.AddBindings(config.BotBindings{
 				Sources: []string{"k8s-events"},
 			})
@@ -195,11 +194,10 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 }
 
 func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
 	hasRoutes := "apps/v1/deployments"
 	hasNoRoutes := "v1/pods"
 
-	router := NewRouter(nil, nil, logger)
+	router := NewRouter(nil, nil, loggerx.NewNoop())
 	router.AddBindings(config.BotBindings{
 		Sources: []string{"k8s-events"},
 	})
@@ -263,8 +261,6 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 }
 
 func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-
 	testCases := []struct {
 		Name     string
 		Input    *config.Config
@@ -334,7 +330,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			routes := NewRouter(nil, nil, logger).
+			routes := NewRouter(nil, nil, loggerx.NewNoop()).
 				AddBindings(config.BotBindings{Sources: []string{"k8s-events"}}).
 				BuildTable(tc.Input).
 				getSourceRoutes("apps/v1/deployments", config.CreateEvent)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/go-github/v44/github"
@@ -30,6 +29,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/lifecycle"
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/internal/source"
 	"github.com/kubeshop/botkube/internal/storage"
@@ -71,7 +71,7 @@ func run() error {
 		return fmt.Errorf("while loading app configuration: %w", err)
 	}
 
-	logger := newLogger(conf.Settings.Log.Level, conf.Settings.Log.DisableColors)
+	logger := loggerx.New(conf.Settings.Log)
 
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
@@ -369,23 +369,6 @@ func run() error {
 	}
 
 	return nil
-}
-
-func newLogger(logLevelStr string, logDisableColors bool) *logrus.Logger {
-	logger := logrus.New()
-	// Output to stdout instead of the default stderr
-	logger.SetOutput(os.Stdout)
-
-	// Only logger the warning severity or above.
-	logLevel, err := logrus.ParseLevel(logLevelStr)
-	if err != nil {
-		// Set Info level as a default
-		logLevel = logrus.InfoLevel
-	}
-	logger.SetLevel(logLevel)
-	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: logDisableColors}
-
-	return logger
 }
 
 func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {

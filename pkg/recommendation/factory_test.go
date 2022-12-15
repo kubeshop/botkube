@@ -3,10 +3,10 @@ package recommendation_test
 import (
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/recommendation"
@@ -75,8 +75,7 @@ func TestFactory_NewForSources(t *testing.T) {
 		},
 	}
 
-	logger, _ := logtest.NewNullLogger()
-	factory := recommendation.NewFactory(logger, nil)
+	factory := recommendation.NewFactory(loggerx.NewNoop(), nil)
 
 	// when
 	recRunner, recCfg := factory.NewForSources(sources, mapKeyOrder)

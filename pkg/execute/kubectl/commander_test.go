@@ -3,11 +3,11 @@ package kubectl_test
 import (
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
@@ -132,8 +132,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			logger, _ := logtest.NewNullLogger()
-			cmder := kubectl.NewCommander(logger, &fakeMerger{res: tc.MergedKubectls}, tc.Guard)
+			cmder := kubectl.NewCommander(loggerx.NewNoop(), &fakeMerger{res: tc.MergedKubectls}, tc.Guard)
 
 			// when
 			result, err := cmder.GetCommandsForEvent(tc.Event, executorBindings)

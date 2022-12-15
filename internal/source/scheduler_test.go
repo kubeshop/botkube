@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -23,8 +23,6 @@ func TestStartingUniqueProcesses(t *testing.T) {
 		}
 	})
 	require.NoError(t, err)
-
-	logger, _ := logtest.NewNullLogger()
 
 	expectedProcesses := map[string]struct{}{
 		"botkube/keptn@v1.0.0; keptn-us-east-2; keptn-eu-central-1": {},
@@ -56,7 +54,7 @@ func TestStartingUniqueProcesses(t *testing.T) {
 	}
 
 	// when
-	scheduler := NewScheduler(logger, givenCfg, fakeDispatcherFunc(assertStarter))
+	scheduler := NewScheduler(loggerx.NewNoop(), givenCfg, fakeDispatcherFunc(assertStarter))
 
 	err = scheduler.Start(context.Background())
 	require.NoError(t, err)

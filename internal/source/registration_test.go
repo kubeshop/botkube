@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 )
@@ -277,9 +277,8 @@ func TestSourcesForEvent(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
-			log, _ := logtest.NewNullLogger()
 			reg := registration{
-				log: log,
+				log: loggerx.NewNoop(),
 			}
 
 			// when

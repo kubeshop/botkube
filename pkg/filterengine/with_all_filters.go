@@ -15,7 +15,7 @@ const (
 )
 
 // WithAllFilters returns new DefaultFilterEngine instance with all filters registered.
-func WithAllFilters(logger *logrus.Logger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, cfg config.Filters) *DefaultFilterEngine {
+func WithAllFilters(logger logrus.FieldLogger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, cfg config.Filters) *DefaultFilterEngine {
 	filterEngine := New(logger.WithField(componentLogFieldKey, "Filter Engine"))
 	filterEngine.Register([]RegisteredFilter{
 		{
