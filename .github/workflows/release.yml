@@ -47,57 +47,34 @@ jobs:
           BASE_TAG=$(echo "${{ github.ref_name }}" | awk -F- '{print $1}')
           git fetch origin "refs/notes/*:refs/notes/*"
           BASE_VERSION=$(echo "${BASE_TAG}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
-          PREV_VERSION=$(echo $(git log --pretty=format:"%N" --show-notes="release-${BASE_VERSION}") | awk -F',' '{ print $1 }' | awk NF | awk '{ print $2 }') 
+          PREV_VERSION=$(echo $(git log --pretty=format:"%N" --show-notes="release-${BASE_VERSION}") | awk -F',' '{ print $1 }' | awk NF | awk '{ print $2 }')
           echo ::set-output name=previous-version::$PREV_VERSION
 
-      - name: Run GoReleaser
+      - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
-          args: release --rm-dist
+          install-only: true
+          version: latest
+
+      - name: Build plugins and generate plugins index.yaml
+        env:
+          PLUGIN_DOWNLOAD_URL_BASE_PATH: "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+        run: |
+          make gen-plugins-index
+
+      - name: Generate changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/$GITHUB_REPOSITORY/releases/generate-notes \
+            -f tag_name="${GITHUB_REF#refs/tags/}" \
+            -f target_commitish="${{ steps.prev-version.outputs.previous-version }}" \
+            -q .body > CHANGELOG.md
+
+      - name: Publish draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
-
-      - name: Extract Tag name
-        id: draft-release-tag-name
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          export URL=$(gh api \
-          -H "Accept: application/vnd.github+json" \
-          /repos/$GITHUB_REPOSITORY/releases --jq '.[] | select(.tag_name == "${{ github.ref_name }}") | .html_url')
-          export TAG="${URL##*/}"
-          echo "Found tag: $TAG"
-          echo ::set-output name=tag::$TAG
-
-      - name: Create release
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          script: |
-            try {
-              const releaseNotes = await github.rest.repos.generateReleaseNotes({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag_name: "${{ steps.draft-release-tag-name.outputs.tag }}",
-                previous_tag_name: "${{ steps.prev-version.outputs.previous-version }}"
-              });
-              const release = await github.rest.repos.getReleaseByTag({
-                tag: "${{ steps.draft-release-tag-name.outputs.tag }}",
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-              });
-              await github.rest.repos.updateRelease({
-                release_id: release.data.id,
-                draft: false,
-                name: "${{ github.ref_name }}",
-                owner: context.repo.owner,
-                prerelease: true,
-                repo: context.repo.repo,
-                tag_name: "${{ github.ref_name }}",
-                body: releaseNotes.data.body
-              });
-            } catch (error) {
-              core.setFailed(error.message);
-            }
+          goreleaser release --rm-dist --release-notes=CHANGELOG.md

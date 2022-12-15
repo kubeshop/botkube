@@ -39,4 +39,8 @@ tags
 ./botkube
 ./botkube-test
 
+# Release
 dist/
+plugin-dist/
+plugins-index.yaml
+CHANGELOG.md

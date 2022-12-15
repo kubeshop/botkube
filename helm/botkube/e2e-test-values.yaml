@@ -180,7 +180,7 @@ executors:
         resources: [ "deployments" ]
 
   'plugin-based':
-    botkube/echo@v0.1.0:
+    botkube/echo@v1.0.1-devel:
       enabled: true
       config:
         changeResponseToUpperCase: true

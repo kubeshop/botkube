@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources build-plugins build-plugins-single
+.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single
 
 # Show this help.
 help:
@@ -79,6 +79,10 @@ system-check:
 # Generate gRPC Go code for client and server.
 gen-grpc-resources:
 	@./hack/gen-grpc-resources.sh
+
+# Generate plugins YAML index file.
+gen-plugins-index: build-plugins
+	go run ./hack/gen-plugin-index.go
 
 # Pre-build checks
 pre-build: system-check

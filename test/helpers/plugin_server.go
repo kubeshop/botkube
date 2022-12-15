@@ -17,7 +17,7 @@ func main() {
 		host = "http://localhost"
 	}
 
-	binDir := filepath.Join(dir, "dist")
+	binDir := filepath.Join(dir, "plugin-dist")
 	indexEndpoint, startServerFn := fake.NewPluginServer(fake.PluginConfig{
 		BinariesDirectory: binDir,
 		Server: fake.PluginServer{
