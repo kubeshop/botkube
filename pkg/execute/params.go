@@ -25,28 +25,28 @@ var (
 	clusterNameFlagRegex = regexp.MustCompile(`--cluster-name[=|\s]*(\S*)`)
 )
 
-// OptionalParams contains cmd line arguments for executors
-type OptionalParams struct {
+// Flags contains cmd line arguments for executors.
+type Flags struct {
 	CleanCmd     string
 	Filter       string
 	ClusterName  string
 	TokenizedCmd []string
 }
 
-// ParseBotkubeFlags parses raw cmd and removes optional params with flags
-func ParseBotkubeFlags(cmd string) (OptionalParams, error) {
+// ParseFlags parses raw cmd and removes optional params with flags.
+func ParseFlags(cmd string) (Flags, error) {
 	groups := clusterNameFlagRegex.FindAllStringSubmatch(cmd, -1)
 	cmd, clusterName := extractParam(cmd, groups)
 
 	cmd, filter, err := extractFilterParam(cmd)
 	if err != nil {
-		return OptionalParams{}, err
+		return Flags{}, err
 	}
 	tokenized, err := shellwords.Parse(strings.TrimSpace(cmd))
 	if err != nil {
-		return OptionalParams{}, errors.New(cantParseCmd)
+		return Flags{}, errors.New(cantParseCmd)
 	}
-	return OptionalParams{
+	return Flags{
 		CleanCmd:     cmd,
 		Filter:       filter,
 		ClusterName:  clusterName,

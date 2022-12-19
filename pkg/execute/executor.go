@@ -88,14 +88,14 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		Mapping:         e.cmdsMapping,
 	}
 
-	flags, err := ParseBotkubeFlags(rawCmd)
+	flags, err := ParseFlags(rawCmd)
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", rawCmd, err.Error())
 		return respond(err.Error(), cmdCtx)
 	}
 
 	cmdCtx.CleanCmd = flags.CleanCmd
-	cmdCtx.ClusterName = flags.ClusterName
+	cmdCtx.ProvidedClusterName = flags.ClusterName
 	cmdCtx.Args = flags.TokenizedCmd
 	cmdCtx.ExecutorFilter = newExecutorTextFilter(flags.Filter)
 

@@ -102,7 +102,7 @@ func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			p, err := ParseBotkubeFlags(tc.Input)
+			p, err := ParseFlags(tc.Input)
 			require.NoError(t, err)
 			require.Equal(t, tc.Cmd, p.CleanCmd)
 			require.Equal(t, tc.ClusterName, p.ClusterName)
@@ -140,7 +140,7 @@ func TestExtractExecutorFilter_WithErrors(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, err := ParseBotkubeFlags(tc.Cmd)
+			_, err := ParseFlags(tc.Cmd)
 			assert.ErrorContains(t, err, tc.ErrMsg)
 		})
 	}
