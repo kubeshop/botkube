@@ -86,7 +86,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
-			msg, err := e.Start(context.Background(), tc.CmdCtx)
+			msg, err := e.Enable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
 				return
@@ -160,7 +160,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
-			msg, err := e.Stop(context.Background(), tc.CmdCtx)
+			msg, err := e.Disable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
 				return

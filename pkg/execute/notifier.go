@@ -71,14 +71,14 @@ func (e *NotifierExecutor) FeatureName() FeatureName {
 // Commands returns slice of commands the executor supports
 func (e *NotifierExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
-		CommandStart:  e.Start,
-		CommandStop:   e.Stop,
-		CommandStatus: e.Status,
+		CommandEnable:  e.Enable,
+		CommandDisable: e.Disable,
+		CommandStatus:  e.Status,
 	}
 }
 
-// Start starts the notifier
-func (e *NotifierExecutor) Start(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+// Enable starts the notifier
+func (e *NotifierExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
@@ -103,8 +103,8 @@ func (e *NotifierExecutor) Start(ctx context.Context, cmdCtx CommandContext) (in
 	return respond(successMessage, cmdCtx), nil
 }
 
-// Stop stops the notifier
-func (e *NotifierExecutor) Stop(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+// Disable stops the notifier
+func (e *NotifierExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 

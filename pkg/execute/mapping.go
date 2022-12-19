@@ -32,8 +32,6 @@ const (
 	CommandEnable   CommandVerb = "enable"
 	CommandDisable  CommandVerb = "disable"
 	CommandEdit     CommandVerb = "edit"
-	CommandStart    CommandVerb = "start"
-	CommandStop     CommandVerb = "stop"
 	CommandStatus   CommandVerb = "status"
 	CommandConfig   CommandVerb = "config"
 )
