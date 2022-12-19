@@ -198,7 +198,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 
 			// when
 			canHandle := executor.CanHandle(fixBindingsNames, strings.Fields(strings.TrimSpace(tc.command)))
-			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized, CommandContext{WithClusterName: tc.clusterName})
+			gotOutMsg, err := executor.Execute(fixBindingsNames, tc.command, !tc.channelNotAuthorized, CommandContext{ProvidedClusterName: tc.clusterName, ClusterName: tc.clusterName})
 
 			// then
 			assert.True(t, canHandle, "it should be able to handle the execution")

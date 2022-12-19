@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
-	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/execute/params"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
 )
@@ -27,10 +24,6 @@ const (
 	anonymizedInvalidVerb = "{invalid verb}"
 
 	lineLimitToShowFilter = 16
-)
-
-var (
-	clusterNameFlagRegex = regexp.MustCompile(`--cluster-name[=|\s]+\S+`)
 )
 
 // DefaultExecutor is a default implementations of Executor
@@ -83,10 +76,8 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	empty := interactive.Message{}
 	rawCmd := format.RemoveHyperlinks(e.message)
 	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
-	clusterName := e.cfg.Settings.ClusterName
-
 	cmdCtx := CommandContext{
-		ClusterName:     clusterName,
+		ClusterName:     e.cfg.Settings.ClusterName,
 		RawCmd:          rawCmd,
 		CommGroupName:   e.commGroupName,
 		BotName:         e.notifierHandler.BotName(),
@@ -97,23 +88,18 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		Mapping:         e.cmdsMapping,
 	}
 
-	params, err := params.RemoveBotkubeRelatedFlags(rawCmd)
+	flags, err := ParseBotkubeFlags(rawCmd)
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", rawCmd, err.Error())
-		return respond(err.Error(), CommandContext{})
+		return respond(err.Error(), cmdCtx)
 	}
 
-	cmdCtx.CleanCmd = params.CleanCmd
-	cmdCtx.ClusterName = params.ClusterName
-	cmdCtx.ExecutorFilter = newExecutorTextFilter(params.Filter)
+	cmdCtx.CleanCmd = flags.CleanCmd
+	cmdCtx.ClusterName = flags.ClusterName
+	cmdCtx.Args = flags.TokenizedCmd
+	cmdCtx.ExecutorFilter = newExecutorTextFilter(flags.Filter)
 
-	args, err := shellwords.Parse(strings.TrimSpace(params.CleanCmd))
-	if err != nil {
-		e.log.Errorf("while parsing command %q: %s", params.CleanCmd, err.Error())
-		return respond("Cannot parse command. Please use 'help' to see supported commands.", cmdCtx)
-	}
-
-	if len(args) == 0 {
+	if len(cmdCtx.Args) == 0 {
 		if e.conversation.IsAuthenticated {
 			return interactive.Message{
 				Base: interactive.Base{
@@ -123,19 +109,18 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		}
 		return empty // this prevents all bots on all clusters to answer something
 	}
-	cmdCtx.Args = args
 
-	if params.ClusterName != "" && params.ClusterName != clusterName {
+	if !cmdCtx.ProvidedClusterNameEqualOrEmpty() {
 		e.log.WithFields(logrus.Fields{
-			"config-cluster-name":  clusterName,
-			"command-cluster-name": params.ClusterName,
+			"config-cluster-name":  cmdCtx.ClusterName,
+			"command-cluster-name": cmdCtx.ProvidedClusterName,
 		}).Debugf("Specified cluster name doesn't match ours. Ignoring further execution...")
 		return empty // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, args) {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(args), cmdCtx.ExecutorFilter.IsActive())
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, params.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
+	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args) {
+		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, cmdCtx.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
@@ -153,9 +138,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return empty
 	}
 
-	if e.kubectlCmdBuilder.CanHandle(args) {
-		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(args), false)
-		out, err := e.kubectlCmdBuilder.Do(ctx, args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, cmdCtx.BotName, header(cmdCtx), cmdCtx)
+	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) {
+		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false)
+		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, cmdCtx.BotName, header(cmdCtx), cmdCtx)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -164,7 +149,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return out
 	}
 
-	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, args)
+	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
 	if err != nil {
 		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 		e.log.Errorf("while checking if it's a plugin command: %s", err.Error())
@@ -172,8 +157,8 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if isPluginCmd {
-		e.reportCommand(e.pluginExecutor.GetCommandPrefix(args), cmdCtx.ExecutorFilter.IsActive())
-		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, args, params.CleanCmd)
+		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing plugin: %s", err.Error())
@@ -182,16 +167,16 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return respond(out, cmdCtx)
 	}
 
-	cmdVerb := CommandVerb(strings.ToLower(args[0]))
+	cmdVerb := CommandVerb(strings.ToLower(cmdCtx.Args[0]))
 	var cmdRes string
-	if len(args) > 1 {
-		cmdRes = strings.ToLower(args[1])
+	if len(cmdCtx.Args) > 1 {
+		cmdRes = strings.ToLower(cmdCtx.Args[1])
 	}
 
 	fn, foundRes, foundFn := e.cmdsMapping.FindFn(cmdVerb, cmdRes)
 	if !foundRes {
 		e.reportCommand(anonymizedInvalidVerb, false)
-		e.log.Infof("received unsupported command: %q", params.CleanCmd)
+		e.log.Infof("received unsupported command: %q", cmdCtx.CleanCmd)
 		return respond(unsupportedCmdMsg, cmdCtx)
 	}
 
@@ -212,8 +197,8 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	case IsExecutionCommandError(err):
 		return respond(err.Error(), cmdCtx)
 	default:
-		e.log.Errorf("while executing command %q: %s", params.CleanCmd, err.Error())
-		msg := fmt.Sprintf(internalErrorMsgFmt, clusterName)
+		e.log.Errorf("while executing command %q: %s", cmdCtx.CleanCmd, err.Error())
+		msg := fmt.Sprintf(internalErrorMsgFmt, cmdCtx.ClusterName)
 		return respond(msg, cmdCtx)
 	}
 

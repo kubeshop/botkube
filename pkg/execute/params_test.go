@@ -1,4 +1,4 @@
-package params
+package execute
 
 import (
 	"testing"
@@ -85,10 +85,24 @@ func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 			ClusterName: "foo1",
 			Filter:      "api",
 		},
+		{
+			Name:        "Extract double quoted text filter with special characters",
+			Input:       `@botkube help --cluster-name="api" --filter="botkube.   . [] *?   ^  ===== /test/"`,
+			Cmd:         "@botkube help",
+			ClusterName: "api",
+			Filter:      "botkube.   . [] *?   ^  ===== /test/",
+		},
+		{
+			Name:        "Extract double quoted text filter with a file path",
+			Input:       `@botkube help --cluster-name="api" --filter="=./Users/botkube/somefile.txt [info]"`,
+			Cmd:         "@botkube help",
+			ClusterName: "api",
+			Filter:      "=./Users/botkube/somefile.txt [info]",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			p, err := RemoveBotkubeRelatedFlags(tc.Input)
+			p, err := ParseBotkubeFlags(tc.Input)
 			require.NoError(t, err)
 			require.Equal(t, tc.Cmd, p.CleanCmd)
 			require.Equal(t, tc.ClusterName, p.ClusterName)
@@ -126,7 +140,7 @@ func TestExtractExecutorFilter_WithErrors(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, err := RemoveBotkubeRelatedFlags(tc.Cmd)
+			_, err := ParseBotkubeFlags(tc.Cmd)
 			assert.ErrorContains(t, err, tc.ErrMsg)
 		})
 	}

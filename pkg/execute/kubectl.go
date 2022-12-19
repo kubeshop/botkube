@@ -204,7 +204,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool,
 // omitIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
 func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, verboseMsg *ExecutionCommandError, cmdCtx CommandContext) error {
-	if cmdCtx.WithClusterName == e.cfg.Settings.ClusterName {
+	if cmdCtx.ProvidedClusterNameEqual() {
 		return verboseMsg
 	}
 

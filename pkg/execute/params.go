@@ -1,4 +1,4 @@
-package params
+package execute
 
 import (
 	"errors"
@@ -12,12 +12,13 @@ import (
 )
 
 const (
+	cantParseCmd            = "cannot parse command. Please use 'help' to see supported commands"
 	incorrectFilterFlag     = "incorrect use of --filter flag: %s"
+	missingCmdFilterValue   = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
+	multipleFilters         = "incorrect use of --filter flag: found more than one filter flag"
 	filterFlagParseErrorMsg = `incorrect use of --filter flag: could not parse flag in %s
 error: %s
 Use --filter="value" or --filter value`
-	missingCmdFilterValue = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
-	multipleFilters       = "incorrect use of --filter flag: found more than one filter flag"
 )
 
 var (
@@ -26,24 +27,30 @@ var (
 
 // OptionalParams contains cmd line arguments for executors
 type OptionalParams struct {
-	CleanCmd    string
-	Filter      string
-	ClusterName string
+	CleanCmd     string
+	Filter       string
+	ClusterName  string
+	TokenizedCmd []string
 }
 
-// RemoveBotkubeRelatedFlags parses raw cmd and removes optional params with flags
-func RemoveBotkubeRelatedFlags(cmd string) (OptionalParams, error) {
+// ParseBotkubeFlags parses raw cmd and removes optional params with flags
+func ParseBotkubeFlags(cmd string) (OptionalParams, error) {
 	groups := clusterNameFlagRegex.FindAllStringSubmatch(cmd, -1)
-	cmd, withClusterName := extractParam(cmd, groups)
+	cmd, clusterName := extractParam(cmd, groups)
 
-	cmd, withFilter, err := extractFilterParam(cmd)
+	cmd, filter, err := extractFilterParam(cmd)
 	if err != nil {
 		return OptionalParams{}, err
 	}
+	tokenized, err := shellwords.Parse(strings.TrimSpace(cmd))
+	if err != nil {
+		return OptionalParams{}, errors.New(cantParseCmd)
+	}
 	return OptionalParams{
-		CleanCmd:    cmd,
-		Filter:      withFilter,
-		ClusterName: withClusterName,
+		CleanCmd:     cmd,
+		Filter:       filter,
+		ClusterName:  clusterName,
+		TokenizedCmd: tokenized,
 	}, nil
 }
 

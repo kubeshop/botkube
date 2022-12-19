@@ -184,7 +184,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 		{
 			Name: "Is disabled",
 			CmdCtx: CommandContext{
-				Args:         []string{"status", "notifications"},
+				Args:         []string{"status"},
 				Conversation: Conversation{ID: "conv-id"},
 				Platform:     testPlatform,
 				ClusterName:  clusterName,
@@ -205,7 +205,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 				NotifierHandler: &fakeNotifierHandler{
 					conf: map[string]bool{"conv-id": false},
 				},
-				ExecutorFilter: newExecutorTextFilter("", "status"),
+				ExecutorFilter: newExecutorTextFilter(""),
 			},
 			Status: "notifications",
 		},
