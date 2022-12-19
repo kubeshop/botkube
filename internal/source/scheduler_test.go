@@ -2,7 +2,6 @@ package source
 
 import (
 	"context"
-	intConfig "github.com/kubeshop/botkube/internal/config"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"

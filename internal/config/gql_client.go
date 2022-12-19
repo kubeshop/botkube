@@ -2,36 +2,43 @@ package config
 
 import (
 	"context"
+
 	"github.com/hasura/go-graphql-client"
 )
 
-type option func(*GqlClient)
+// Option GraphQL client options
+type Option func(*GqlClient)
 
-func WithApiUrl(url string) option {
+// WithAPIURL configures ApiURL for GraphQL endpoint
+func WithAPIURL(url string) Option {
 	return func(client *GqlClient) {
-		client.ApiURL = url
+		client.APIURL = url
 	}
 }
 
+// GqlClient GraphQL client
 type GqlClient struct {
 	Gql    *graphql.Client
-	ApiURL string
+	APIURL string
 }
 
-func NewGqlClient(options ...option) *GqlClient {
+// NewGqlClient initializes GraphQL client
+func NewGqlClient(options ...Option) *GqlClient {
 	c := &GqlClient{}
 	for _, opt := range options {
 		opt(c)
 	}
 	return &GqlClient{
-		Gql: graphql.NewClient(c.ApiURL, nil),
+		Gql: graphql.NewClient(c.APIURL, nil),
 	}
 }
 
+// Deployment returns deployment with Botkube configuration
 type Deployment struct {
 	BotkubeConfig string
 }
 
+// GetDeployment retrieves deployment by id
 func (c *GqlClient) GetDeployment(ctx context.Context, id string) (Deployment, error) {
 	var query struct {
 		Deployment Deployment `graphql:"deployment(id: $id)"`

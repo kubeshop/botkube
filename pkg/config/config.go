@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/config"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +19,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
+	"github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/loggerx"
 )
 

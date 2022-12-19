@@ -3,18 +3,23 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
+
+	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
 
+// GqlProvider is GraphQL provider
 type GqlProvider struct {
 	gqlClient *GqlClient
 }
 
+// NewGqlProvider initializes new GraphQL config source provider
 func NewGqlProvider(gql *GqlClient) *GqlProvider {
 	return &GqlProvider{gqlClient: gql}
 }
+
+// Configs returns list of config files
 func (g *GqlProvider) Configs(ctx context.Context) ([]string, error) {
 	d := os.Getenv("CONFIG_SOURCE_IDENTIFIER")
 	if d == "" {

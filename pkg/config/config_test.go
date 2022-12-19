@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	intConfig "github.com/kubeshop/botkube/internal/config"
 	"path/filepath"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/golden"
 
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 

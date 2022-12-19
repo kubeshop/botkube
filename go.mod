@@ -26,6 +26,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/muesli/reflow v0.3.0
 	github.com/olivere/elastic v6.2.37+incompatible
+	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sanity-io/litter v1.5.5
@@ -49,6 +50,7 @@ require (
 	k8s.io/kubectl v0.25.4
 	k8s.io/utils v0.0.0-20221108210102-8e77b1f39fe2
 	sigs.k8s.io/controller-runtime v0.13.1
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -136,7 +138,6 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
@@ -179,7 +180,6 @@ require (
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 go 1.19
