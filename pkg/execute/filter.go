@@ -21,7 +21,10 @@ const (
 )
 
 var (
-	filterResourcesNames = []string{"filter", "filters", "flr"}
+	filterFeatureName = FeatureName{
+		Name:    "filter",
+		Aliases: []string{"filters", "flr"},
+	}
 )
 
 // TODO: Refactor as a part of https://github.com/kubeshop/botkube/issues/657
@@ -44,11 +47,6 @@ func NewFilterExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *FilterExecutor) ResourceNames() []string {
-	return filterResourcesNames
-}
-
 // Commands returns slice of commands the executor supports
 func (e *FilterExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
@@ -56,6 +54,11 @@ func (e *FilterExecutor) Commands() map[CommandVerb]CommandFn {
 		CommandEnable:  e.Enable,
 		CommandDisable: e.Disable,
 	}
+}
+
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *FilterExecutor) FeatureName() FeatureName {
+	return filterFeatureName
 }
 
 // List returns a tabular representation of Filters

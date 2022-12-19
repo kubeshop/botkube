@@ -193,6 +193,10 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
+
+	expected := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build()
+	t.Log(expected)
+
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
 		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build(),

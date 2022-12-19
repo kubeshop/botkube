@@ -21,7 +21,10 @@ const (
 )
 
 var (
-	actionResourcesNames = []string{"action", "actions", "act"}
+	actionFeatureName = FeatureName{
+		Name:    "action",
+		Aliases: []string{"actions", "act"},
+	}
 )
 
 // ActionExecutor executes all commands that are related to actions.
@@ -42,11 +45,6 @@ func NewActionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *ActionExecutor) ResourceNames() []string {
-	return actionResourcesNames
-}
-
 // Commands returns slice of commands the executor supports
 func (e *ActionExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
@@ -54,6 +52,11 @@ func (e *ActionExecutor) Commands() map[CommandVerb]CommandFn {
 		CommandEnable:  e.Enable,
 		CommandDisable: e.Disable,
 	}
+}
+
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *ActionExecutor) FeatureName() FeatureName {
+	return actionFeatureName
 }
 
 // List returns a tabular representation of Actions

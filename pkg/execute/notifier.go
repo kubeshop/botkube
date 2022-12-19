@@ -41,7 +41,10 @@ type NotifierHandler interface {
 var (
 	// ErrNotificationsNotConfigured describes an error when user wants to toggle on/off the notifications for not configured channel.
 	ErrNotificationsNotConfigured = errors.New("notifications not configured for this channel")
-	notifierResourcesNames        = []string{"notification", "notifications", "notif", ""}
+	notifierFeatureName           = FeatureName{
+		Name:    "notification",
+		Aliases: []string{"notifications", "notif", ""},
+	}
 )
 
 // NotifierExecutor executes all commands that are related to notifications.
@@ -60,9 +63,9 @@ func NewNotifierExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsRepo
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *NotifierExecutor) ResourceNames() []string {
-	return notifierResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *NotifierExecutor) FeatureName() FeatureName {
+	return notifierFeatureName
 }
 
 // Commands returns slice of commands the executor supports
@@ -128,12 +131,16 @@ func (e *NotifierExecutor) Stop(ctx context.Context, cmdCtx CommandContext) (int
 
 // Status returns the status of a notifier (per channel)
 func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	enabled := cmdCtx.NotifierHandler.NotificationsEnabled(cmdCtx.Conversation.ID)
 	enabledStr := notifierStatusStrings[enabled]
 	msg := fmt.Sprintf(notifierStatusMsgFmt, cmdCtx.ClusterName, enabledStr)
+	if cmdRes == "" {
+		helpMsg := cmdCtx.Mapping.HelpMessageForVerb(CommandVerb(cmdVerb), cmdCtx.BotName)
+		msg = fmt.Sprintf("%s\n\n%s\n", msg, helpMsg)
+	}
 	return respond(msg, cmdCtx), nil
 }
 

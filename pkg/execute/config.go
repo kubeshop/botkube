@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	configResourcesNames = noResourceNames
+	configFeatureName = FeatureName{Name: noFeature}
 )
 
 // ConfigExecutor executes all commands that are related to config
@@ -34,9 +34,9 @@ func NewConfigExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *ConfigExecutor) ResourceNames() []string {
-	return configResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *ConfigExecutor) FeatureName() FeatureName {
+	return configFeatureName
 }
 
 // Commands returns slice of commands the executor supports

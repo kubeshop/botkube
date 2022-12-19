@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	pingResourcesNames = noResourceNames
+	pingFeatureName = FeatureName{Name: noFeature}
 )
 
 // PingExecutor executes all commands that are related to ping.
@@ -31,9 +31,9 @@ func NewPingExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 	}
 }
 
-// ResourceNames returns slice of resources the executor supports
-func (e *PingExecutor) ResourceNames() []string {
-	return pingResourcesNames
+// FeatureName returns the name and aliases of the feature provided by this executor
+func (e *PingExecutor) FeatureName() FeatureName {
+	return pingFeatureName
 }
 
 // Commands returns slice of commands the executor supports
