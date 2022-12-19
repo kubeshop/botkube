@@ -346,7 +346,6 @@ func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, cha
 		if !strings.EqualFold(markdown, msg) {
 			count := countMatchBlock(markdown, msg)
 			msgDiff := diff(markdown, msg)
-			fmt.Printf("DIFF:\n%s\n", msgDiff)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
