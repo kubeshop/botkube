@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/go-github/v44/github"
@@ -66,7 +68,8 @@ func main() {
 func run() error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	conf, confDetails, err := config.LoadWithDefaults(config.FromEnvOrFlag)
+	gql := intConfig.NewGqlClient(intConfig.WithApiUrl(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
+	conf, confDetails, err := config.LoadWithDefaults(config.FromProvider, gql)
 	if err != nil {
 		return fmt.Errorf("while loading app configuration: %w", err)
 	}

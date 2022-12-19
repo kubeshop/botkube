@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"path/filepath"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL", "http://localhost:3000/botkube.yaml")
 
 	// when
-	gotCfg, _, err := config.LoadWithDefaults(func() []string {
+	gotCfg, _, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
 		return []string{
 			testdataFile(t, "_aaa-special-file.yaml"),
 			testdataFile(t, "config-all.yaml"),
@@ -36,8 +37,8 @@ func TestLoadConfigSuccess(t *testing.T) {
 			testdataFile(t, "analytics.yaml"),
 			testdataFile(t, "executors.yaml"),
 			testdataFile(t, "actions.yaml"),
-		}
-	})
+		}, nil
+	}, nil)
 
 	//then
 	require.NoError(t, err)
@@ -69,11 +70,11 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 	}
 
 	// when
-	gotCfg, _, err := config.LoadWithDefaults(func() []string {
+	gotCfg, _, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
 		return []string{
 			testdataFile(t, "config-all.yaml"),
-		}
-	})
+		}, nil
+	}, nil)
 
 	//then
 	require.NoError(t, err)
@@ -95,7 +96,8 @@ func TestFromEnvOrFlag(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "configs/first.yaml,configs/second.yaml,configs/third.yaml")
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigPaths, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
 		assert.Equal(t, expConfigPaths, gotConfigPaths)
@@ -109,7 +111,8 @@ func TestFromEnvOrFlag(t *testing.T) {
 		require.NoError(t, err)
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigPaths, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
 		assert.Equal(t, expConfigPaths, gotConfigPaths)
@@ -126,7 +129,8 @@ func TestFromEnvOrFlag(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "configs/first.yaml,configs/second.yaml,configs/third.yaml")
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigPaths, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
 		assert.Equal(t, expConfigPaths, gotConfigPaths)
@@ -270,9 +274,9 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
+				return tc.configFiles, nil
+			}, nil)
 
 			// then
 			assert.Nil(t, cfg)
@@ -303,9 +307,9 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
+				return tc.configFiles, nil
+			}, nil)
 
 			// then
 			assert.NotNil(t, cfg)
@@ -399,9 +403,9 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
+				return tc.configFiles, nil
+			}, nil)
 
 			// then
 			assert.Nil(t, cfg)

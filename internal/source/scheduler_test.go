@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,11 +18,11 @@ import (
 
 func TestStartingUniqueProcesses(t *testing.T) {
 	// given
-	givenCfg, _, err := config.LoadWithDefaults(func() []string {
+	givenCfg, _, err := config.LoadWithDefaults(func(*intConfig.GqlClient) ([]string, error) {
 		return []string{
 			testdataFile(t, "config.yaml"),
-		}
-	})
+		}, nil
+	}, nil)
 	require.NoError(t, err)
 
 	expectedProcesses := map[string]struct{}{

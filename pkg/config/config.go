@@ -1,8 +1,10 @@
 package config
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/config"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -613,7 +615,7 @@ func (eventType EventType) String() string {
 }
 
 // PathsGetter returns the list of absolute paths to the config files.
-type PathsGetter func() []string
+type PathsGetter func(*config.GqlClient) ([]string, error)
 
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
@@ -621,8 +623,11 @@ type LoadWithDefaultsDetails struct {
 }
 
 // LoadWithDefaults loads new configuration from files and environment variables.
-func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails, error) {
-	configPaths := getCfgPaths()
+func LoadWithDefaults(getCfgPaths PathsGetter, gql *config.GqlClient) (*Config, LoadWithDefaultsDetails, error) {
+	configPaths, err := getCfgPaths(gql)
+	if err != nil {
+		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("while getting config paths: %w", err)
+	}
 	k := koanf.New(configDelimiter)
 
 	// load default settings
@@ -639,7 +644,7 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}
 
 	// LoadWithDefaults environment variables and merge into the loaded config.
-	err := k.Load(env.Provider(
+	err = k.Load(env.Provider(
 		configEnvVariablePrefix,
 		configDelimiter,
 		normalizeConfigEnvName,
@@ -667,15 +672,18 @@ func LoadWithDefaults(getCfgPaths PathsGetter) (*Config, LoadWithDefaultsDetails
 	}, nil
 }
 
-// FromEnvOrFlag resolves and returns paths for config files.
+// FromProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func FromEnvOrFlag() []string {
-	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
-	if envCfgs != "" {
-		return strings.Split(envCfgs, ",")
+func FromProvider(gql *config.GqlClient) ([]string, error) {
+	var provider config.Provider
+	if os.Getenv("CONFIG_SOURCE_IDENTIFIER") != "" {
+		provider = config.NewGqlProvider(gql)
+	} else if os.Getenv("BOTKUBE_CONFIG_PATHS") != "" {
+		provider = config.NewEnvProvider()
+	} else {
+		provider = config.NewStaticProvider(configPathsFlag)
 	}
-
-	return configPathsFlag
+	return provider.Configs(context.Background())
 }
 
 // RegisterFlags registers config related flags.
