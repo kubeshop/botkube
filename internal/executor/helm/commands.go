@@ -18,6 +18,7 @@ type Commands struct {
 }
 
 func parseRawCommand(rawCmd string) (Commands, []string, error) {
+	rawCmd = strings.TrimSpace(rawCmd)
 	if !strings.HasPrefix(rawCmd, PluginName) {
 		return Commands{}, nil, errors.New("the input command does not target the Helm plugin executor")
 	}
@@ -33,10 +34,31 @@ func parseRawCommand(rawCmd string) (Commands, []string, error) {
 	if err != nil {
 		return helmCmd, nil, err
 	}
-	err = p.Parse(args)
+	err = p.Parse(renameVersionFlag(args))
 	if err != nil {
 		return helmCmd, nil, err
 	}
 
 	return helmCmd, args, nil
+}
+
+// The go-arg library is handling the `--version` flag internally, see:
+// https://github.com/alexflint/go-arg/blob/727f8533acca70ca429dce4bfea729a6af75c3f7/parse.go#L610
+//
+// In case of Helm the `--version` flag has a different purpose, so we just remove it for now.
+func renameVersionFlag(args []string) []string {
+	for idx := range args {
+		if !strings.HasPrefix(args[idx], "--version") {
+			continue
+		}
+		prev := idx
+		next := idx + 1
+
+		if !strings.Contains(args[idx], "=") { // val is in next arg: --version 1.2.3
+			next = next + 1
+		}
+
+		return append(args[:prev], args[next:]...)
+	}
+	return args
 }

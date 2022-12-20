@@ -292,7 +292,7 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 		cli := plugin.NewClient(&plugin.ClientConfig{
 			Plugins: pluginMap,
 			//nolint:gosec // warns us about 'Subprocess launching with variable', but we are the one that created that variable.
-			Cmd:              exec.Command(path),
+			Cmd:              newPluginOSRunCommand(path),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			HandshakeConfig: plugin.HandshakeConfig{
 				ProtocolVersion:  executor.ProtocolVersion,
@@ -328,6 +328,15 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 	}
 
 	return out, nil
+}
+
+func newPluginOSRunCommand(path string) *exec.Cmd {
+	cmd := exec.Command(path)
+	val, found := os.LookupEnv("KUBECONFIG")
+	if found {
+		cmd.Env = []string{fmt.Sprintf("KUBECONFIG=%s", val)}
+	}
+	return cmd
 }
 
 func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info storeEntry) error {

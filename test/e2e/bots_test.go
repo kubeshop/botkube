@@ -264,6 +264,50 @@ func runBotTest(t *testing.T,
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
+		t.Run("Helm Executor", func(t *testing.T) {
+			command := "helm install --help"
+			expectedBody := heredoc.Doc(`
+				This command installs a chart archive.
+
+				There are two different ways you to install a Helm chart:
+				1. By absolute URL: helm install mynginx <https://example.com/charts/nginx-1.2.3.tgz>
+				2. By chart reference and repo url: helm install --repo <https://example.com/charts/> mynginx nginx
+
+				Usage:
+				    helm install [NAME] [CHART] [flags]
+
+				Flags:
+				    --create-namespace
+				    --generate-name,-g
+				    --dependency-update
+				    --description
+				    --devel
+				    --disable-openapi-validation
+				    --dry-run
+				    --insecure-skip-tls-verify
+				    --name-template
+				    --no-hooks
+				    --pass-credentials
+				    --password
+				    --post-renderer
+				    --post-renderer-args
+				    --render-subchart-notes
+				    --replace
+				    --repo
+				    --set
+				    --set-json
+				    --set-string
+				    --skip-crds
+				    --timeout
+				    --username
+				    --verify
+				    --version`)
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
 		t.Run("ConfigMap watcher source", func(t *testing.T) {
 			t.Log("Creating sample ConfigMap...")
 			cfgMap := &v1.ConfigMap{

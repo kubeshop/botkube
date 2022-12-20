@@ -35,6 +35,11 @@ func TestExecutorHelmInstall(t *testing.T) {
 			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx",
 			expCommand:   "install --repo https://example.com/charts/ mynginx nginx",
 		},
+		{
+			name:         "install by chart reference and repo URL and with a given version",
+			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
+			expCommand:   "install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -66,6 +71,45 @@ func TestExecutorHelmInstall(t *testing.T) {
 }
 
 func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
+	tests := []struct {
+		name         string
+		inputCommand string
+		expErrMsg    string
+	}{
+		{
+			name:         "report issue about unknown flag",
+			inputCommand: "helm install postgresql https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --some-random-flag",
+			expErrMsg:    "while parsing input command: unknown argument --some-random-flag",
+		},
+		{
+			name:         "report issue known but not supported flag",
+			inputCommand: "helm install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --generate-name --wait",
+			expErrMsg:    `The "--wait" flag is not supported by the Botkube Helm plugin. Please remove it.`,
+		},
+		{
+			name:         "install by OCI registry",
+			inputCommand: "helm install mynginx --version 1.2.3 oci://example.com/charts/nginx",
+			expErrMsg:    "Installing Helm chart from OCI registry is not supported.",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			hExec := NewExecutor("testing")
+			hExec.runHelmCLIBinary = noopRunHelmCLIBinary
+
+			// when
+			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
+				Command: tc.inputCommand,
+			})
+
+			// then
+			require.EqualError(t, err, tc.expErrMsg)
+			assert.Empty(t, out.Data)
+		})
+	}
+}
+func TestExecutorHelmInstallHelp(t *testing.T) {
 	goldenFilepath := fmt.Sprintf("%s.txt", t.Name())
 	tests := []struct {
 		name         string

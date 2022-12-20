@@ -15,18 +15,34 @@ func TestRemoveHyperlinks(t *testing.T) {
 	}
 
 	tests := []test{
-		{input: "get <http://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com> --cluster-name <http://xyz.alpha-sense.org|xyz.alpha-sense.org>",
-			expected: "get prometheuses.monitoring.coreos.com --cluster-name xyz.alpha-sense.org"},
-		{input: "get <http://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com>",
-			expected: "get prometheuses.monitoring.coreos.com"},
-		{input: "get <https://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com>",
-			expected: "get prometheuses.monitoring.coreos.com"},
-		{input: "get pods --cluster-name <http://xyz.alpha-sense.org|xyz.alpha-sense.org>",
-			expected: "get pods --cluster-name xyz.alpha-sense.org"},
-		{input: "get pods -n=default",
-			expected: "get pods -n=default"},
-		{input: "get pods",
-			expected: "get pods"},
+		{
+			input:    "get <http://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com> --cluster-name <http://xyz.alpha-sense.org|xyz.alpha-sense.org>",
+			expected: "get prometheuses.monitoring.coreos.com --cluster-name xyz.alpha-sense.org",
+		},
+		{
+			input:    "get <http://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com>",
+			expected: "get prometheuses.monitoring.coreos.com",
+		},
+		{
+			input:    "get <https://prometheuses.monitoring.coreos.com|prometheuses.monitoring.coreos.com>",
+			expected: "get prometheuses.monitoring.coreos.com",
+		},
+		{
+			input:    "get <https://prometheuses.monitoring.coreos.com>",
+			expected: "get https://prometheuses.monitoring.coreos.com",
+		},
+		{
+			input:    "get pods --cluster-name <http://xyz.alpha-sense.org|xyz.alpha-sense.org>",
+			expected: "get pods --cluster-name xyz.alpha-sense.org",
+		},
+		{
+			input:    "get pods -n=default",
+			expected: "get pods -n=default",
+		},
+		{
+			input:    "get pods",
+			expected: "get pods",
+		},
 	}
 
 	for _, ts := range tests {

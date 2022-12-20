@@ -56,7 +56,7 @@ type SupportedInstallFlags struct {
 
 // Validate validates that all installation parameters are valid.
 func (i InstallCommand) Validate() error {
-	if strings.Contains(i.Chart, "oci://") {
+	if strings.HasPrefix(i.Chart, "oci://") {
 		return errors.New("Installing Helm chart from OCI registry is not supported.")
 	}
 	if err := i.NotSupportedInstallFlags.Validate(); err != nil {

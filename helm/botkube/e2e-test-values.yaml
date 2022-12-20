@@ -185,6 +185,9 @@ executors:
       config:
         changeResponseToUpperCase: true
 
+    botkube/helm:
+      enabled: true
+
 plugins:
   cacheDir: "/tmp"
   repositories:
