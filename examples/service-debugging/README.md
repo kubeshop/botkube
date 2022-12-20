@@ -47,7 +47,7 @@ k3d cluster create svc-debug
 4. Deploy Botkube:
 
    ```bash
-   helm install botkube --version v0.13.0 --namespace botkube --create-namespace \
+   helm install botkube --version v0.16.0 --namespace botkube --create-namespace \
    -f ./examples/service-debugging/botkube-values.yaml \
    --set communications.default-group.slack.token=${SLACK_BOT_TOKEN} \
    --set communications.default-group.slack.channels.default.name=${TEAM_SLACK_CHANNEL} \
@@ -83,19 +83,19 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 4. For now, we don't know too much about the error itself. To learn more, let's check the `meme` Pod logs:
 
    ```
-   @Botkube logs -l app=meme
+   @Botkube kubectl logs -l app=meme
    ```
 
 5. From the logs, we learned that the `meme` Pod cannot call the `quote` Pod using the defined Service URL. To be able to call the `quote` Pod, we definitely need to have the `quote` Service defined. To get all Services, run:
 
    ```
-   @Botkube get services
+   @Botkube kubectl get services
    ```
 
 6. We can see that the `quote` Service is there, so we need to dig deeper into the configuration. Let's describe the Service to check if there are any endpoints:
 
    ```
-   @Botkube describe svc quote
+   @Botkube kubectl describe svc quote
    ```
 
    Now it gets interesting: there are no endpoints, which means there isn't a single Pod that is matched by the Service selectors.
@@ -103,7 +103,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 7. We need to check whether the `quote` Pod is up and running:
 
    ```
-   @Botkube get pods
+   @Botkube kubectl get pods
    ```
 
    💡 The `quote` Pod is up and running, so it might be a problem with incorrect labels.
@@ -111,7 +111,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 8. There is a handy `--show-lables` flag which allows us to check that easily:
 
    ```
-   @Botkube get po {quote_pod_name} --show-labels
+   @Botkube kubectl get po {quote_pod_name} --show-labels
    ```
 
    🎉 We got it! The bug was found. The problem is the incorrect labels. The `quote` Service only matches Pods with the `app=quote` label, this is missing from our Pod!
@@ -119,7 +119,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 9. Add the missing label to the `quote` Pod:
 
    ```
-   @Botkube label pod {quote_pod_name} app=quote
+   @Botkube kubectl label pod {quote_pod_name} app=quote
    ```
 
    If you execute that command in the team channel, you will get an error. This is yet another Botkube feature, it allows you to define executor permissions per channel.
@@ -129,13 +129,13 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 11. Once again, try to add a label to the `quote` Pod:
 
     ```
-    @Botkube label pod {quote_pod_name} app=quote
+    @Botkube kubectl label pod {quote_pod_name} app=quote
     ```
 
 12. Restart the `meme` Pod:
 
     ```
-    @Botkube delete po -l app=meme
+    @Botkube kubectl delete po -l app=meme
     ```
     > **Note**
     > The `quote` Pod is managed by Deployment, so once we delete the Pod, it will be automatically recreated.
@@ -143,7 +143,7 @@ In this scenario, we will learn how to react to the error event sent on Slack ch
 13. Run `logs` to confirm that `http://quote/quote` is reachable now:
 
     ```
-    @Botkube logs -l app=meme
+    @Botkube kubectl logs -l app=meme
     ```
 
 14. **(Optional)** From your terminal, forward the `meme` Service to your localhost:

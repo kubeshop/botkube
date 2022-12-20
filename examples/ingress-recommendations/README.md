@@ -89,7 +89,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
 1. Deploy Botkube:
 
   ```bash
-  helm install botkube --namespace botkube ./helm/botkube -f ./examples/ingress-recommendations/botkube-values.yaml --set communications.default-group.slack.token=$SLACK_BOT_TOKEN --set communications.default-group.slack.channels.default.name=$SLACK_CHANNEL --wait --create-namespace 
+  helm install botkube --namespace botkube ./helm/botkube -f ./examples/ingress-recommendations/botkube-values.yaml --set communications.default-group.slack.token=$SLACK_BOT_TOKEN --set communications.default-group.slack.channels.default.name=$SLACK_CHANNEL --wait --create-namespace
   ```
 
 ### Deploy example app
@@ -109,14 +109,14 @@ In this scenario, we will expose the example application under the `https://exam
 1. To expose the app, we need an Ingress resource. Post the following command on Slack to create it with Botkube:
 
   ```
-  @Botkube create ingress meme --class ngnix --rule example.botkube.local/*=meme:80
+  @Botkube kubectl create ingress meme --class ngnix --rule example.botkube.local/*=meme:80
   ```
 
 1. See the Botkube warning on the Slack channel.
 1. Oh, snap! We forgot to create a Service. Let's create it:
 
   ```
-  @Botkube expose deployment meme --name=meme --target-port 9090 --port 8080 --type NodePort
+  @Botkube kubectl expose deployment meme --name=meme --target-port 9090 --port 8080 --type NodePort
   ```
 
 1. Alright, let's see if the app works now: https://example.botkube.local/meme
@@ -126,35 +126,35 @@ In this scenario, we will expose the example application under the `https://exam
 1. Let's describe the Ingress:
 
   ```
-  @Botkube describe ingress meme
+  @Botkube kubectl describe ingress meme
   ```
 
 1. Oh, there's a typo in the `ingressClassName`! It should be `nginx` instead of `ngnix`! 🤯
 1. Let's delete it and create once more:
 
   ```
-  @Botkube delete ingress meme
-  @Botkube create ingress meme --class nginx --rule example.botkube.local/*=meme:80
+  @Botkube kubectl delete ingress meme
+  @Botkube kubectl create ingress meme --class nginx --rule example.botkube.local/*=meme:80
   ```
 
 1. See the Botkube warning on the Slack channel.
 1. Confirm with:
 
   ```
-  @Botkube describe service meme
+  @Botkube kubectl describe service meme
   ```
-1. Ah, wrong Service port - in Ingress we referred port `80`, but the service port is `8080`... 🤦 
+1. Ah, wrong Service port - in Ingress we referred port `80`, but the service port is `8080`... 🤦
 
   Let's delete the service:
 
   ```
-  @Botkube delete service meme
+  @Botkube kubectl delete service meme
   ```
 
 1. Create the Service again, but this time with proper port:
 
   ```
-  @Botkube expose deployment meme --name=meme --target-port 9090 --port 80 --type NodePort
+  @Botkube kubectl expose deployment meme --name=meme --target-port 9090 --port 80 --type NodePort
   ```
 
 1. Navigate to https://example.botkube.local/meme.
