@@ -20,7 +20,7 @@ type SupportedInstallFlags struct {
 	DependencyUpdate         bool          `arg:"--dependency-update"`
 	DescriptionD             string        `arg:"--description"`
 	Devel                    bool          `arg:"--devel"`
-	DisableOpenapiValidation bool          `arg:"--disable-openapi-validation"`
+	DisableOpenAPIValidation bool          `arg:"--disable-openapi-validation"`
 	DryRun                   bool          `arg:"--dry-run"`
 	InsecureSkipTLSVerify    bool          `arg:"--insecure-skip-tls-verify"`
 	NameTemplate             string        `arg:"--name-template"`
@@ -35,12 +35,11 @@ type SupportedInstallFlags struct {
 	Set                      []string      `arg:"--set"`
 	SetJSON                  []string      `arg:"--set-json"`
 	SetString                []string      `arg:"--set-string"`
-	SkipCrds                 bool          `arg:"--skip-crds"`
+	SkipCRDs                 bool          `arg:"--skip-crds"`
 	Timeout                  time.Duration `arg:"--timeout duration"`
 	Username                 string        `arg:"--username"`
 	Verify                   bool          `arg:"--verify"`
 	Version                  string        `arg:"--version"`
-	Output                   string        `arg:"-o,--output"`
 }
 
 type NotSupportedInstallFlags struct {
@@ -53,6 +52,7 @@ type NotSupportedInstallFlags struct {
 	Values      []string `arg:"-f,--values"`
 	Wait        bool     `arg:"--wait"`
 	WaitForJobs bool     `arg:"--wait-for-jobs"`
+	Output      string   `arg:"-o,--output"`
 }
 
 var emptySupportedFlags NotSupportedInstallFlags

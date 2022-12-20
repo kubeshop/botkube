@@ -2,12 +2,8 @@ package helm
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
@@ -25,10 +21,8 @@ import (
 //      helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
 // 2. By chart reference and repo url:
 //      helm install --repo https://example.com/charts/ mynginx nginx
-// 3. By OCI registries:
-//      helm install mynginx --version 1.2.3 oci://example.com/charts/nginx
 
-func runInstall(args []string, client *action.Install, valueOpts *values.Options, out io.Writer) (*release.Release, error) {
+func runInstall(ctx context.Context, args []string, client *action.Install, valueOpts *values.Options, out io.Writer) (*release.Release, error) {
 	var settings = cli.New()
 
 	log.Printf("Original chart version: %q", client.Version)
@@ -100,23 +94,6 @@ func runInstall(args []string, client *action.Install, valueOpts *values.Options
 		}
 	}
 
-	client.Namespace = settings.Namespace()
-
-	// Create context and prepare the handle of SIGTERM
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	// Set up channel on which to send signal notifications.
-	// We must use a buffered channel or risk missing the signal
-	// if we're not ready to receive when the signal is sent.
-	cSignal := make(chan os.Signal, 2)
-	signal.Notify(cSignal, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-cSignal
-		fmt.Fprintf(out, "Release %s has been cancelled.\n", args[0])
-		cancel()
-	}()
-
 	return client.RunWithContext(ctx, chartRequested, vals)
 }
 
@@ -126,4 +103,39 @@ func checkIfInstallable(ch *chart.Chart) error {
 		return nil
 	}
 	return errors.Errorf("%s charts are not installable", ch.Metadata.Type)
+}
+
+func newInstallClient(installArgs *InstallCmd, actionConfig *action.Configuration) *action.Install {
+	client := action.NewInstall(actionConfig)
+	client.CreateNamespace = installArgs.CreateNamespace
+	client.DryRun = installArgs.DryRun
+	client.DisableHooks = installArgs.NoHooks
+	client.Replace = installArgs.Replace
+	client.Wait = installArgs.Wait
+	client.WaitForJobs = installArgs.WaitForJobs
+	client.Devel = installArgs.Devel
+	client.DependencyUpdate = installArgs.DependencyUpdate
+	client.Timeout = installArgs.Timeout
+	//client.Namespace =
+	client.GenerateName = installArgs.GenerateName
+	client.NameTemplate = installArgs.NameTemplate
+	client.Description = installArgs.DescriptionD
+	client.OutputDir = installArgs.Output
+	client.Atomic = installArgs.Atomic
+	client.SkipCRDs = installArgs.SkipCRDs
+	client.DisableOpenAPIValidation = installArgs.DisableOpenAPIValidation
+
+	client.CaFile = installArgs.CaFile
+	client.CertFile = installArgs.CertFile
+	client.KeyFile = installArgs.KeyFile
+	client.InsecureSkipTLSverify = installArgs.InsecureSkipTLSVerify
+	client.Keyring = installArgs.Keyring
+	client.Password = installArgs.Password
+	client.PassCredentialsAll = installArgs.PassCredentials
+	client.RepoURL = installArgs.Repo
+	client.Username = installArgs.Username
+	client.Verify = installArgs.Verify
+	client.Version = installArgs.Version
+
+	return client
 }

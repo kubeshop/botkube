@@ -30,6 +30,20 @@ func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
 		Description: "Echo is an example Botkube executor plugin used during e2e tests. It's not meant for production usage.",
+		Dependencies: map[string]Foo{
+			"helm_v3.2.0": {
+				url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_helm-darwin-amd64
+				platform:
+				os: darwin
+				architecture: amd64
+			},
+			"argo": {
+				url: https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_helm-darwin-amd64
+				platform:
+				os: darwin
+				architecture: amd64
+			},
+		},
 	}, nil
 }
 

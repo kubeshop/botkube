@@ -3,10 +3,22 @@ package helm
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/alexflint/go-arg"
+	"github.com/mattn/go-shellwords"
+	"helm.sh/helm/v3/pkg/cli/values"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 )
+
+type helm struct {
+	Install   *InstallCmd `arg:"subcommand:install"`
+	Namespace string      `arg:"--namespace,-n"`
+}
 
 var _ executor.Executor = &Executor{}
 
@@ -24,8 +36,6 @@ func (Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 }
 
 // install, uninstall, upgrade, rollback, list, version, test, status
-//   --repo - custom flag which adds the repo for a short period of time
-//   support --set for now
 //   ensure multiline commands work properly
 
 // Execute returns a given command as response.
@@ -37,6 +47,79 @@ func (Executor) Execute(_ context.Context, in executor.ExecuteInput) (executor.E
 
 	_ = cfg
 
+	k8sCfg, err := config.GetConfig()
+	if err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
+	var args helm
+	p, err := arg.NewParser(arg.Config{
+		Program: "helm",
+	}, &args)
+	if err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
+	argsss, err := shellwords.Parse(in.Command)
+	if err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+	fmt.Println(argsss)
+	err = p.Parse(argsss)
+	switch err {
+	case nil, arg.ErrHelp, arg.ErrVersion:
+		// ignore
+		fmt.Println("err", err)
+	default:
+		fmt.Println(p.SubcommandNames())
+		return executor.ExecuteOutput{}, err
+	}
+
+	actionConfig, err := NewActionConfig(k8sCfg, args.Namespace)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while creating action configuration: %w", err)
+	}
+
+	switch {
+	case args.Install != nil:
+		if err == arg.ErrHelp {
+			p.WriteHelp(os.Stdout)
+			return executor.ExecuteOutput{
+				Data: "help",
+			}, nil
+		}
+
+		err := args.Install.Validate()
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
+
+		client := newInstallClient(args.Install, actionConfig)
+		valueOpts := &values.Options{
+			ValueFiles:   args.Install.Values,
+			StringValues: args.Install.SetString,
+			Values:       args.Install.Set,
+			FileValues:   args.Install.SetFile,
+			JSONValues:   args.Install.SetJSON,
+		}
+		client.Namespace = args.Namespace
+
+		var installArgs []string
+		if args.Install.Name != "" {
+			installArgs = append(installArgs, args.Install.Name)
+		}
+		if args.Install.Chart != "" {
+			installArgs = append(installArgs, args.Install.Chart)
+		}
+
+		var buff strings.Builder
+		rel, err := runInstall(context.Background(), installArgs, client, valueOpts, &buff)
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
+
+		fmt.Println(rel.Info.Notes)
+	}
 	return executor.ExecuteOutput{
 		Data: "data",
 	}, nil
@@ -67,7 +150,6 @@ func (Executor) Execute(_ context.Context, in executor.ExecuteInput) (executor.E
 //      --registry-config string          path to the registry config file (default "/Users/mszostok/Library/Preferences/helm/registry/config.json")
 //      --repository-cache string         path to the file containing cached repository indexes (default "/Users/mszostok/Library/Caches/helm/repository")
 //      --repository-config string        path to the file containing repository names and URLs (default "/Users/mszostok/Library/Preferences/helm/repositories.yaml")
-
 
 // Flags:
 //      --create-namespace                           create the release namespace if not present
