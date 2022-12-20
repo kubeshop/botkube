@@ -11,7 +11,7 @@ communications:
             sources:
               - 'k8s-events'
       notification:
-        type: short    
+        type: short
 
 sources:
   'k8s-events':
@@ -49,8 +49,10 @@ sources:
             - error
 settings:
   clusterName: example
-  configWatcher: true
   upgradeNotifier: false
+
+configWatcher:
+  enabled: false
 
 executors:
   'kubectl-example':
