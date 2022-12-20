@@ -343,15 +343,6 @@ func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info store
 		return NewNotFoundPluginError("cannot find download url for %s", selector)
 	}
 
-	// collect all deps
-	// flat them by version
-	// install in /tmp/plugins-bin
-	// make sure that PATH=/tmp/plugins-bin for each executed plugin
-	if helm not found on path {
-		$PATH=/tmp/plugins-bin
-		//download
-	}
-
 	m.log.WithFields(logrus.Fields{
 		"url":     url,
 		"binPath": binPath,

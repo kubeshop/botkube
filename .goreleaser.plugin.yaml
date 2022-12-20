@@ -23,6 +23,16 @@ builds:
     goarm: &goarm
       - 7
 
+  - id: helm
+    main: cmd/executor/helm/main.go
+    binary: executor_helm_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env: *env
+    goos: *goos
+    goarch: *goarch
+    goarm: *goarm
+
   - id: cm-watcher
     main: cmd/source/cm-watcher/main.go
     binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}

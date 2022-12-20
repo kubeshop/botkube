@@ -1,141 +1,144 @@
 package helm
 
 import (
-	"context"
-	"io"
-	"log"
+	"errors"
+	"fmt"
+	"reflect"
+	"strings"
+	"time"
 
-	"github.com/pkg/errors"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/cli/values"
-	"helm.sh/helm/v3/pkg/downloader"
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/release"
+	"github.com/MakeNowJust/heredoc"
+	"github.com/muesli/reflow/indent"
 )
 
-// Supported options:
-// 1. By absolute URL:
-//      helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
-// 2. By chart reference and repo url:
-//      helm install --repo https://example.com/charts/ mynginx nginx
+const tagArgName = "arg"
 
-func runInstall(ctx context.Context, args []string, client *action.Install, valueOpts *values.Options, out io.Writer) (*release.Release, error) {
-	var settings = cli.New()
+// InstallCommand holds possible installation options such as positional arguments and supported flags
+// Syntax:
+//
+//	helm install [NAME] [CHART] [flags]
+type InstallCommand struct {
+	Name  string `arg:"positional"`
+	Chart string `arg:"positional"`
 
-	log.Printf("Original chart version: %q", client.Version)
-	if client.Version == "" && client.Devel {
-		log.Printf("setting version to >0.0.0-0")
-		client.Version = ">0.0.0-0"
+	SupportedInstallFlags
+	NotSupportedInstallFlags
+}
+
+// SupportedInstallFlags represent flags that are supported both by Helm CLI and Helm Plugin.
+type SupportedInstallFlags struct {
+	CreateNamespace          bool          `arg:"--create-namespace"`
+	GenerateName             bool          `arg:"--generate-name,-g"`
+	DependencyUpdate         bool          `arg:"--dependency-update"`
+	DescriptionD             string        `arg:"--description"`
+	Devel                    bool          `arg:"--devel"`
+	DisableOpenAPIValidation bool          `arg:"--disable-openapi-validation"`
+	DryRun                   bool          `arg:"--dry-run"`
+	InsecureSkipTLSVerify    bool          `arg:"--insecure-skip-tls-verify"`
+	NameTemplate             string        `arg:"--name-template"`
+	NoHooks                  bool          `arg:"--no-hooks"`
+	PassCredentials          bool          `arg:"--pass-credentials"`
+	Password                 string        `arg:"--password"`
+	PostRenderer             string        `arg:"--post-renderer"`
+	PostRendererArgs         []string      `arg:"--post-renderer-args"`
+	RenderSubChartNotes      bool          `arg:"--render-subchart-notes"`
+	Replace                  bool          `arg:"--replace"`
+	Repo                     string        `arg:"--repo"`
+	Set                      []string      `arg:"--set"`
+	SetJSON                  []string      `arg:"--set-json"`
+	SetString                []string      `arg:"--set-string"`
+	SkipCRDs                 bool          `arg:"--skip-crds"`
+	Timeout                  time.Duration `arg:"--timeout"`
+	Username                 string        `arg:"--username"`
+	Verify                   bool          `arg:"--verify"`
+	Version                  string        `arg:"--version"`
+}
+
+// Validate validates that all installation parameters are valid.
+func (i InstallCommand) Validate() error {
+	if strings.Contains(i.Chart, "oci://") {
+		return errors.New("Installing Helm chart from OCI registry is not supported.")
+	}
+	if err := i.NotSupportedInstallFlags.Validate(); err != nil {
+		return err
 	}
 
-	name, chart, err := client.NameAndChart(args)
-	if err != nil {
-		return nil, err
-	}
-	client.ReleaseName = name
+	return nil
+}
 
-	cp, err := client.ChartPathOptions.LocateChart(chart, settings)
-	if err != nil {
-		return nil, err
-	}
+// NotSupportedInstallFlags represents flags supported by Helm CLI but not by Helm Plugin.
+type NotSupportedInstallFlags struct {
+	Atomic      bool     `arg:"--atomic"`
+	CaFile      string   `arg:"--ca-file"`
+	CertFile    string   `arg:"--cert-file"`
+	KeyFile     string   `arg:"--key-file"`
+	Keyring     string   `arg:"--keyring"`
+	SetFile     []string `arg:"--set-file"`
+	Values      []string `arg:"-f,--values"`
+	Wait        bool     `arg:"--wait"`
+	WaitForJobs bool     `arg:"--wait-for-jobs"`
+	Output      string   `arg:"-o,--output"`
+}
 
-	log.Printf("CHART PATH: %s\n", cp)
+// Validate returns an error if some unsupported flags were specified.
+func (f NotSupportedInstallFlags) Validate() error {
+	var setFlags []string
+	vv := reflect.ValueOf(f)
+	fields := reflect.VisibleFields(reflect.TypeOf(f))
 
-	p := getter.All(settings)
-	vals, err := valueOpts.MergeValues(p)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check chart dependencies to make sure all are present in /charts
-	chartRequested, err := loader.Load(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := checkIfInstallable(chartRequested); err != nil {
-		return nil, err
-	}
-
-	if chartRequested.Metadata.Deprecated {
-		log.Println("This chart is deprecated") // warn
-	}
-
-	if req := chartRequested.Metadata.Dependencies; req != nil {
-		// If CheckDependencies returns an error, we have unfulfilled dependencies.
-		// As of Helm 2.4.0, this is treated as a stopping condition:
-		// https://github.com/helm/helm/issues/2209
-		if err := action.CheckDependencies(chartRequested, req); err != nil {
-			err = errors.Wrap(err, "An error occurred while checking for chart dependencies. You may need to run `helm dependency build` to fetch missing dependencies")
-			if client.DependencyUpdate {
-				man := &downloader.Manager{
-					Out:              out,
-					ChartPath:        cp,
-					Keyring:          client.ChartPathOptions.Keyring,
-					SkipUpdate:       false,
-					Getters:          p,
-					RepositoryConfig: settings.RepositoryConfig,
-					RepositoryCache:  settings.RepositoryCache,
-					Debug:            settings.Debug,
-				}
-				if err := man.Update(); err != nil {
-					return nil, err
-				}
-				// Reload the chart with the updated Chart.lock file.
-				if chartRequested, err = loader.Load(cp); err != nil {
-					return nil, errors.Wrap(err, "failed reloading chart after repo update")
-				}
-			} else {
-				return nil, err
-			}
+	for _, field := range fields {
+		flagName, _ := field.Tag.Lookup(tagArgName)
+		if vv.FieldByIndex(field.Index).IsZero() {
+			continue
 		}
+
+		setFlags = append(setFlags, flagName)
 	}
 
-	return client.RunWithContext(ctx, chartRequested, vals)
-}
-
-func checkIfInstallable(ch *chart.Chart) error {
-	switch ch.Metadata.Type {
-	case "", "application":
-		return nil
+	if len(setFlags) > 0 {
+		return newUnsupportedFlagsError(setFlags)
 	}
-	return errors.Errorf("%s charts are not installable", ch.Metadata.Type)
+	return nil
 }
 
-func newInstallClient(installArgs *InstallCmd, actionConfig *action.Configuration) *action.Install {
-	client := action.NewInstall(actionConfig)
-	client.CreateNamespace = installArgs.CreateNamespace
-	client.DryRun = installArgs.DryRun
-	client.DisableHooks = installArgs.NoHooks
-	client.Replace = installArgs.Replace
-	client.Wait = installArgs.Wait
-	client.WaitForJobs = installArgs.WaitForJobs
-	client.Devel = installArgs.Devel
-	client.DependencyUpdate = installArgs.DependencyUpdate
-	client.Timeout = installArgs.Timeout
-	//client.Namespace =
-	client.GenerateName = installArgs.GenerateName
-	client.NameTemplate = installArgs.NameTemplate
-	client.Description = installArgs.DescriptionD
-	client.OutputDir = installArgs.Output
-	client.Atomic = installArgs.Atomic
-	client.SkipCRDs = installArgs.SkipCRDs
-	client.DisableOpenAPIValidation = installArgs.DisableOpenAPIValidation
+func newUnsupportedFlagsError(flags []string) error {
+	if len(flags) == 1 {
+		return fmt.Errorf("The %q flag is not supported by the Botkube Helm plugin. Please remove it.", flags[0])
+	}
 
-	client.CaFile = installArgs.CaFile
-	client.CertFile = installArgs.CertFile
-	client.KeyFile = installArgs.KeyFile
-	client.InsecureSkipTLSverify = installArgs.InsecureSkipTLSVerify
-	client.Keyring = installArgs.Keyring
-	client.Password = installArgs.Password
-	client.PassCredentialsAll = installArgs.PassCredentials
-	client.RepoURL = installArgs.Repo
-	client.Username = installArgs.Username
-	client.Verify = installArgs.Verify
-	client.Version = installArgs.Version
+	points := make([]string, len(flags))
+	for i, err := range flags {
+		points[i] = fmt.Sprintf("* %s", err)
+	}
 
-	return client
+	return fmt.Errorf(
+		"Those flags are not supported by the Botkube Helm Plugin:\n\t%s\nPlease remove them.",
+		strings.Join(points, "\n\t"))
+}
+
+func renderSupportedFlags() string {
+	var flags []string
+	fields := reflect.VisibleFields(reflect.TypeOf(SupportedInstallFlags{}))
+	for _, field := range fields {
+		flagName, _ := field.Tag.Lookup(tagArgName)
+		flags = append(flags, flagName)
+	}
+
+	return strings.Join(flags, "\n")
+}
+
+func helpInstall() string {
+	return heredoc.Docf(`
+		This command installs a chart archive.
+
+		There are two different ways you to install a Helm chart:
+		1. By absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
+		2. By chart reference and repo url: helm install --repo https://example.com/charts/ mynginx nginx
+
+		Usage:
+		    helm install [NAME] [CHART] [flags]
+
+		Flags:
+		%s
+	`, indent.String(renderSupportedFlags(), 4))
 }
