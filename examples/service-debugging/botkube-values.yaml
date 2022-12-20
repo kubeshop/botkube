@@ -76,8 +76,10 @@ communications:
 
 settings:
   clusterName: gke-stage
-  configWatcher: false
   upgradeNotifier: false
+
+configWatcher:
+  enabled: false
 
 # -- Role Based Access for Botkube Pod.
 # [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
