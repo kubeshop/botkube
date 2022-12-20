@@ -68,8 +68,8 @@ func main() {
 func run() error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	gql := intConfig.NewGqlClient(intConfig.WithAPIURL(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
-	conf, confDetails, err := config.LoadWithDefaults(config.FromProvider, gql)
+	var gqlClient intConfig.GqlClient = intConfig.NewGqlClient(intConfig.WithAPIURL(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
+	conf, confDetails, err := config.LoadWithDefaults(config.FromProvider, &gqlClient)
 	if err != nil {
 		return fmt.Errorf("while loading app configuration: %w", err)
 	}

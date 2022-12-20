@@ -615,7 +615,7 @@ func (eventType EventType) String() string {
 }
 
 // PathsGetter returns the list of absolute paths to the config files.
-type PathsGetter func(*config.GqlClient) ([]string, error)
+type PathsGetter func(client *config.GqlClient) ([]string, error)
 
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
@@ -677,7 +677,7 @@ func LoadWithDefaults(getCfgPaths PathsGetter, gql *config.GqlClient) (*Config, 
 func FromProvider(gql *config.GqlClient) ([]string, error) {
 	var provider config.Provider
 	if os.Getenv("CONFIG_SOURCE_IDENTIFIER") != "" {
-		provider = config.NewGqlProvider(gql)
+		provider = config.NewGqlProvider(*gql)
 	} else if os.Getenv("BOTKUBE_CONFIG_PATHS") != "" {
 		provider = config.NewEnvProvider()
 	} else {

@@ -11,12 +11,12 @@ import (
 
 // GqlProvider is GraphQL provider
 type GqlProvider struct {
-	gqlClient *GqlClient
+	GqlClient GqlClient
 }
 
 // NewGqlProvider initializes new GraphQL config source provider
-func NewGqlProvider(gql *GqlClient) *GqlProvider {
-	return &GqlProvider{gqlClient: gql}
+func NewGqlProvider(gql GqlClient) *GqlProvider {
+	return &GqlProvider{GqlClient: gql}
 }
 
 // Configs returns list of config files
@@ -25,7 +25,7 @@ func (g *GqlProvider) Configs(ctx context.Context) ([]string, error) {
 	if d == "" {
 		return nil, nil
 	}
-	deployment, err := g.gqlClient.GetDeployment(ctx, d)
+	deployment, err := g.GqlClient.GetDeployment(ctx, d)
 	if err != nil {
 		return nil, errors.Wrapf(err, "while getting deployment with id %s", d)
 	}

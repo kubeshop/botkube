@@ -6,29 +6,34 @@ import (
 	"github.com/hasura/go-graphql-client"
 )
 
+// GqlClient GraphQL client
+type GqlClient interface {
+	GetDeployment(ctx context.Context, id string) (Deployment, error)
+}
+
 // Option GraphQL client options
-type Option func(*GqlClient)
+type Option func(*Gql)
 
 // WithAPIURL configures ApiURL for GraphQL endpoint
 func WithAPIURL(url string) Option {
-	return func(client *GqlClient) {
+	return func(client *Gql) {
 		client.APIURL = url
 	}
 }
 
-// GqlClient GraphQL client
-type GqlClient struct {
+// Gql GraphQL client data structure
+type Gql struct {
 	Gql    *graphql.Client
 	APIURL string
 }
 
 // NewGqlClient initializes GraphQL client
-func NewGqlClient(options ...Option) *GqlClient {
-	c := &GqlClient{}
+func NewGqlClient(options ...Option) *Gql {
+	c := &Gql{}
 	for _, opt := range options {
 		opt(c)
 	}
-	return &GqlClient{
+	return &Gql{
 		Gql: graphql.NewClient(c.APIURL, nil),
 	}
 }
@@ -39,7 +44,7 @@ type Deployment struct {
 }
 
 // GetDeployment retrieves deployment by id
-func (c *GqlClient) GetDeployment(ctx context.Context, id string) (Deployment, error) {
+func (c *Gql) GetDeployment(ctx context.Context, id string) (Deployment, error) {
 	var query struct {
 		Deployment Deployment `graphql:"deployment(id: $id)"`
 	}
