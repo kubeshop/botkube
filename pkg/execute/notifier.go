@@ -80,7 +80,7 @@ func (e *NotifierExecutor) Commands() map[CommandVerb]CommandFn {
 // Enable starts the notifier
 func (e *NotifierExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	const enabled = true
 	err := cmdCtx.NotifierHandler.SetNotificationsEnabled(cmdCtx.Conversation.ID, enabled)
@@ -106,7 +106,7 @@ func (e *NotifierExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (i
 // Disable stops the notifier
 func (e *NotifierExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(fmt.Sprintf("%s %s", cmdVerb, cmdRes), cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	const enabled = false
 	err := cmdCtx.NotifierHandler.SetNotificationsEnabled(cmdCtx.Conversation.ID, enabled)
@@ -132,7 +132,7 @@ func (e *NotifierExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (
 // Status returns the status of a notifier (per channel)
 func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	enabled := cmdCtx.NotifierHandler.NotificationsEnabled(cmdCtx.Conversation.ID)
 	enabledStr := notifierStatusStrings[enabled]
@@ -144,7 +144,11 @@ func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (i
 	return respond(msg, cmdCtx), nil
 }
 
-func (e *NotifierExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+func (e *NotifierExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+	cmdToReport := cmdVerb
+	if cmdRes != "" {
+		cmdToReport = fmt.Sprintf("%s %s", cmdVerb, cmdRes)
+	}
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
 		e.log.Errorf("while reporting notification command: %s", err.Error())

@@ -51,8 +51,8 @@ func (e *ConfigExecutor) Commands() map[CommandVerb]CommandFn {
 
 // Show returns Config in yaml format
 func (e *ConfigExecutor) Show(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
+	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	cfg, err := e.renderBotkubeConfiguration()
 	if err != nil {
@@ -61,7 +61,8 @@ func (e *ConfigExecutor) Show(ctx context.Context, cmdCtx CommandContext) (inter
 	return respond(cfg, cmdCtx), nil
 }
 
-func (e *ConfigExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+func (e *ConfigExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
 		e.log.Errorf("while reporting config command: %s", err.Error())
