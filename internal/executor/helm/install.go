@@ -3,15 +3,12 @@ package helm
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/muesli/reflow/indent"
 )
-
-const tagArgName = "arg"
 
 // InstallCommand holds possible installation options such as positional arguments and supported flags
 // Syntax:
@@ -25,12 +22,24 @@ type InstallCommand struct {
 	NotSupportedInstallFlags
 }
 
+// Validate validates that all installation parameters are valid.
+func (i InstallCommand) Validate() error {
+	if strings.HasPrefix(i.Chart, "oci://") {
+		return errors.New("Installing Helm chart from OCI registry is not supported.")
+	}
+	if err := returnErrorOfAllSetFlags(i.NotSupportedInstallFlags); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // SupportedInstallFlags represent flags that are supported both by Helm CLI and Helm Plugin.
 type SupportedInstallFlags struct {
 	CreateNamespace          bool          `arg:"--create-namespace"`
 	GenerateName             bool          `arg:"--generate-name,-g"`
 	DependencyUpdate         bool          `arg:"--dependency-update"`
-	DescriptionD             string        `arg:"--description"`
+	Description              string        `arg:"--description"`
 	Devel                    bool          `arg:"--devel"`
 	DisableOpenAPIValidation bool          `arg:"--disable-openapi-validation"`
 	DryRun                   bool          `arg:"--dry-run"`
@@ -52,18 +61,7 @@ type SupportedInstallFlags struct {
 	Username                 string        `arg:"--username"`
 	Verify                   bool          `arg:"--verify"`
 	Version                  string        `arg:"--version"`
-}
-
-// Validate validates that all installation parameters are valid.
-func (i InstallCommand) Validate() error {
-	if strings.HasPrefix(i.Chart, "oci://") {
-		return errors.New("Installing Helm chart from OCI registry is not supported.")
-	}
-	if err := i.NotSupportedInstallFlags.Validate(); err != nil {
-		return err
-	}
-
-	return nil
+	Output                   string        `arg:"-o,--output"`
 }
 
 // NotSupportedInstallFlags represents flags supported by Helm CLI but not by Helm Plugin.
@@ -77,28 +75,6 @@ type NotSupportedInstallFlags struct {
 	Values      []string `arg:"-f,--values"`
 	Wait        bool     `arg:"--wait"`
 	WaitForJobs bool     `arg:"--wait-for-jobs"`
-	Output      string   `arg:"-o,--output"`
-}
-
-// Validate returns an error if some unsupported flags were specified.
-func (f NotSupportedInstallFlags) Validate() error {
-	var setFlags []string
-	vv := reflect.ValueOf(f)
-	fields := reflect.VisibleFields(reflect.TypeOf(f))
-
-	for _, field := range fields {
-		flagName, _ := field.Tag.Lookup(tagArgName)
-		if vv.FieldByIndex(field.Index).IsZero() {
-			continue
-		}
-
-		setFlags = append(setFlags, flagName)
-	}
-
-	if len(setFlags) > 0 {
-		return newUnsupportedFlagsError(setFlags)
-	}
-	return nil
 }
 
 func newUnsupportedFlagsError(flags []string) error {
@@ -116,17 +92,6 @@ func newUnsupportedFlagsError(flags []string) error {
 		strings.Join(points, "\n\t"))
 }
 
-func renderSupportedFlags() string {
-	var flags []string
-	fields := reflect.VisibleFields(reflect.TypeOf(SupportedInstallFlags{}))
-	for _, field := range fields {
-		flagName, _ := field.Tag.Lookup(tagArgName)
-		flags = append(flags, flagName)
-	}
-
-	return strings.Join(flags, "\n")
-}
-
 func helpInstall() string {
 	return heredoc.Docf(`
 		This command installs a chart archive.
@@ -140,5 +105,5 @@ func helpInstall() string {
 
 		Flags:
 		%s
-	`, indent.String(renderSupportedFlags(), 4))
+	`, indent.String(renderSupportedFlags(SupportedInstallFlags{}), 4))
 }

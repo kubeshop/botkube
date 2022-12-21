@@ -45,9 +45,9 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 //
 // Supported commands:
 // - install
+// - uninstall
 //
 // TODO:
-// - uninstall
 // - upgrade
 // - rollback
 // - list
@@ -75,6 +75,8 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	switch {
 	case helmCmd.Install != nil:
 		return e.handleHelmInstall(ctx, cfg, wasHelpRequested, helmCmd.Install, args)
+	case helmCmd.Uninstall != nil:
+		return e.handleHelmUninstall(ctx, cfg, wasHelpRequested, helmCmd.Uninstall, args)
 	default:
 		return executor.ExecuteOutput{
 			Data: "Command not supported",
@@ -92,6 +94,29 @@ func (e *Executor) handleHelmInstall(ctx context.Context, cfg Config, wasHelpReq
 	if wasHelpRequested {
 		return executor.ExecuteOutput{
 			Data: helpInstall(),
+		}, nil
+	}
+
+	err := install.Validate()
+	if err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
+	out, err := e.runHelmCLIBinary(ctx, cfg, args)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("%s: %s", err.Error(), out)
+	}
+
+	return executor.ExecuteOutput{
+		Data: out,
+	}, nil
+}
+
+// handleHelmUninstall construct a Helm CLI command and run it.
+func (e *Executor) handleHelmUninstall(ctx context.Context, cfg Config, wasHelpRequested bool, install *UninstallCommand, args []string) (executor.ExecuteOutput, error) {
+	if wasHelpRequested {
+		return executor.ExecuteOutput{
+			Data: helpUninstall(),
 		}, nil
 	}
 

@@ -10,7 +10,9 @@ import (
 
 // Commands defines all supported Helm plugin subcommands and their flags.
 type Commands struct {
-	Install *InstallCommand `arg:"subcommand:install"`
+	Install   *InstallCommand   `arg:"subcommand:install"`
+	Uninstall *UninstallCommand `arg:"subcommand:uninstall"`
+
 	// Global Helm plugin plugins
 	Namespace  string `arg:"--namespace,-n"`
 	Debug      bool   `arg:"--debug"`
