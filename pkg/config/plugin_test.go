@@ -64,27 +64,27 @@ func TestDecomposePluginKey(t *testing.T) {
 			{
 				name:     "should report error of wrong pattern",
 				givenKey: "kubectl@v1.0.0",
-				expErr:   `plugin key "kubectl@v1.0.0" doesn't follow required {repo_name}/{plugin_name} syntax`,
+				expErr:   `plugin key "kubectl@v1.0.0" doesn't follow the required {repo_name}/{plugin_name} syntax`,
 			},
 			{
 				name:     "should report error about missing plugin name",
 				givenKey: "test/@v1.0.0",
 				expErr: heredoc.Doc(`
-					doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* plugin name is required`),
 			},
 			{
 				name:     "should report error about missing repo name",
 				givenKey: "/kubectl@v1.0.0",
 				expErr: heredoc.Doc(`
-					doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* repository name is required`),
 			},
 			{
 				name:     "should report error about missing repo and plugin names",
 				givenKey: "/@v1.0.0",
 				expErr: heredoc.Doc(`
-					doesn't follow required {repo_name}/{plugin_name} syntax: 2 errors occurred:
+					doesn't follow the required {repo_name}/{plugin_name} syntax: 2 errors occurred:
 						* repository name is required
 						* plugin name is required`),
 			},

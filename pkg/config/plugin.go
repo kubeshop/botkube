@@ -16,13 +16,13 @@ import (
 func DecomposePluginKey(key string) (string, string, string, error) {
 	repo, name, found := strings.Cut(key, "/")
 	if !found {
-		return "", "", "", fmt.Errorf("plugin key %q doesn't follow required {repo_name}/{plugin_name} syntax", key)
+		return "", "", "", fmt.Errorf("plugin key %q doesn't follow the required {repo_name}/{plugin_name} syntax", key)
 	}
 
 	name, ver, _ := strings.Cut(name, "@")
 
 	if err := validatePluginProperties(repo, name); err != nil {
-		return "", "", "", fmt.Errorf("doesn't follow required {repo_name}/{plugin_name} syntax: %v", err)
+		return "", "", "", fmt.Errorf("doesn't follow the required {repo_name}/{plugin_name} syntax: %v", err)
 	}
 
 	return repo, name, ver, nil
@@ -70,7 +70,7 @@ func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []s
 		}
 
 		if alreadyIndexed.Repo != newEntry.Repo {
-			msg := fmt.Sprintf("conflicts with already bind %q plugin from %q repository. Bind it to a different channel, or change it to the one from the %q repository, or remove it.", name, alreadyIndexed.Repo, alreadyIndexed.Repo)
+			msg := fmt.Sprintf("conflicts with already bound %q plugin from %q repository. Bind it to a different channel, change it to the one from the %q repository, or remove it.", name, alreadyIndexed.Repo, alreadyIndexed.Repo)
 			sl.ReportError(key, "", key, conflictingPluginRepoTag, msg)
 			continue
 		}
@@ -79,7 +79,7 @@ func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []s
 			if alreadyIndexed.Version != "" {
 				verInfo = fmt.Sprintf("%q", alreadyIndexed.Version)
 			}
-			msg := fmt.Sprintf("conflicts with already bind %q plugin in the %s version. Bind it to a different channel, or change it to the %s version, or remove it.", name, verInfo, verInfo)
+			msg := fmt.Sprintf("conflicts with already bound %q plugin in the %s version. Bind it to a different channel, change it to the %s version, or remove it.", name, verInfo, verInfo)
 
 			sl.ReportError(key, "", key, conflictingPluginVersionTag, msg)
 		}

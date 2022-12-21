@@ -326,8 +326,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 			name: "should report an issue with bindings for same plugin name but coming from two different repositories",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin from "botkube" repository. Bind it to a different channel, or change it to the one from the "botkube" repository, or remove it.
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/kubectl@v1.0.0' conflicts with already bind "kubectl" plugin from "botkube" repository. Bind it to a different channel, or change it to the one from the "botkube" repository, or remove it.`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin from "botkube" repository. Bind it to a different channel, change it to the one from the "botkube" repository, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/kubectl@v1.0.0' conflicts with already bound "kubectl" plugin from "botkube" repository. Bind it to a different channel, change it to the one from the "botkube" repository, or remove it.`),
 			configFiles: []string{
 				testdataFile(t, "bind-diff-repo.yaml"),
 			},
@@ -336,8 +336,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 			name: "should report an issue with bindings for plugins coming from the same repository but one refers to the latest version",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin in the latest version. Bind it to a different channel, or change it to the latest version, or remove it.
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/kubectl@v1.0.0' conflicts with already bind "kubectl" plugin in the latest version. Bind it to a different channel, or change it to the latest version, or remove it.`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin in the latest version. Bind it to a different channel, change it to the latest version, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/kubectl@v1.0.0' conflicts with already bound "kubectl" plugin in the latest version. Bind it to a different channel, change it to the latest version, or remove it.`),
 			configFiles: []string{
 				testdataFile(t, "bind-diff-ver-latest.yaml"),
 			},
@@ -346,8 +346,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 			name: "should report an issue with bindings for plugins coming from the same repository but with different version",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/prometheus@v1.2.0' conflicts with already bind "prometheus" plugin in the "v1.0.0" version. Bind it to a different channel, or change it to the "v1.0.0" version, or remove it.
-					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/kubectl@v2.0.0' conflicts with already bind "kubectl" plugin in the "v1.0.0" version. Bind it to a different channel, or change it to the "v1.0.0" version, or remove it.`),
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin in the "v1.0.0" version. Bind it to a different channel, change it to the "v1.0.0" version, or remove it.
+					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/kubectl@v2.0.0' conflicts with already bound "kubectl" plugin in the "v1.0.0" version. Bind it to a different channel, change it to the "v1.0.0" version, or remove it.`),
 			configFiles: []string{
 				testdataFile(t, "bind-diff-ver.yaml"),
 			},
@@ -376,20 +376,20 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 			name: "should report an issue with source configuration group that imports plugins with wrong syntax",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 7 errors occurred:
-					* Key: 'Config.Sources[wrong-name]./@v1.2.0' doesn't follow required {repo_name}/{plugin_name} syntax: 2 errors occurred:
+					* Key: 'Config.Sources[wrong-name]./@v1.2.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 2 errors occurred:
 						* repository name is required
 						* plugin name is required
-					* Key: 'Config.Sources[wrong-name]./prometheus@v1.2.0' doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					* Key: 'Config.Sources[wrong-name]./prometheus@v1.2.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* repository name is required
-					* Key: 'Config.Sources[wrong-name].botkube/@v1.0.0' doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					* Key: 'Config.Sources[wrong-name].botkube/@v1.0.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* plugin name is required
-					* Key: 'Config.Executors[wrong-name]./@v1.0.0' doesn't follow required {repo_name}/{plugin_name} syntax: 2 errors occurred:
+					* Key: 'Config.Executors[wrong-name]./@v1.0.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 2 errors occurred:
 						* repository name is required
 						* plugin name is required
-					* Key: 'Config.Executors[wrong-name]./kubectl@v1.0.0' doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					* Key: 'Config.Executors[wrong-name]./kubectl@v1.0.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* repository name is required
-					* Key: 'Config.Executors[wrong-name].some-3rd-plugin' plugin key "some-3rd-plugin" doesn't follow required {repo_name}/{plugin_name} syntax
-					* Key: 'Config.Executors[wrong-name].testing/@v1.0.0' doesn't follow required {repo_name}/{plugin_name} syntax: 1 error occurred:
+					* Key: 'Config.Executors[wrong-name].some-3rd-plugin' plugin key "some-3rd-plugin" doesn't follow the required {repo_name}/{plugin_name} syntax
+					* Key: 'Config.Executors[wrong-name].testing/@v1.0.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* plugin name is required`),
 			configFiles: []string{
 				testdataFile(t, "cfg-group-wrong-plugin-def.yaml"),
