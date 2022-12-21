@@ -75,8 +75,8 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	switch {
 	case helmCmd.Install != nil:
 		return e.handleHelmInstall(ctx, cfg, wasHelpRequested, helmCmd.Install, args)
-	case helmCmd.Uninstall != nil:
-		return e.handleHelmUninstall(ctx, cfg, wasHelpRequested, helmCmd.Uninstall, args)
+	case helmCmd.UninstallCommandAliases.Get() != nil:
+		return e.handleHelmUninstall(ctx, cfg, wasHelpRequested, helmCmd.UninstallCommandAliases.Get(), args)
 	default:
 		return executor.ExecuteOutput{
 			Data: "Command not supported",

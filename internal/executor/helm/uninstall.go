@@ -7,14 +7,35 @@ import (
 	"github.com/muesli/reflow/indent"
 )
 
+// UninstallCommandAliases
+type UninstallCommandAliases struct {
+	Uninstall *UninstallCommand `arg:"subcommand:uninstall"`
+	Un        *UninstallCommand `arg:"subcommand:un"`
+	Delete    *UninstallCommand `arg:"subcommand:delete"`
+	Del       *UninstallCommand `arg:"subcommand:del"`
+}
+
+func (u UninstallCommandAliases) Get() *UninstallCommand {
+	if u.Uninstall != nil {
+		return u.Uninstall
+	}
+	if u.Un != nil {
+		return u.Un
+	}
+	if u.Delete != nil {
+		return u.Delete
+	}
+	if u.Del != nil {
+		return u.Del
+	}
+
+	return nil
+}
+
 // UninstallCommand holds possible uninstallation options such as positional arguments and supported flags
 // Syntax:
 //
 //	helm uninstall RELEASE_NAME [...] [flags]
-//
-// TODO:
-//
-//	uninstall, del, delete, un
 type UninstallCommand struct {
 	Name []string `arg:"positional"`
 
@@ -50,6 +71,9 @@ func helpUninstall() string {
 
 		Usage:
 		    helm uninstall RELEASE_NAME [...] [flags]
+
+		Aliases:
+		    uninstall, del, delete, un
 
 		Flags:
 		%s

@@ -10,8 +10,9 @@ import (
 
 // Config holds Helm plugin configuration parameters.
 type Config struct {
-	HelmDriver   string
-	HelmCacheDir string
+	HelmDriver    string
+	HelmCacheDir  string
+	HelmConfigDir string
 }
 
 // Validate validates the Helm configuration parameters.
@@ -27,8 +28,9 @@ func (c *Config) Validate() error {
 // MergeConfigs merges the Helm configuration.
 func MergeConfigs(configs []*executor.Config) (Config, error) {
 	out := Config{
-		HelmDriver:   "configmap",
-		HelmCacheDir: "/tmp/helm/.cache",
+		HelmDriver:    "secret",
+		HelmCacheDir:  "/tmp/helm/.cache",
+		HelmConfigDir: "/tmp/helm/",
 	}
 	for _, rawCfg := range configs {
 		var cfg Config
