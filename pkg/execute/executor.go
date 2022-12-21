@@ -91,7 +91,14 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	flags, err := ParseFlags(rawCmd)
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", rawCmd, err.Error())
-		return respond(err.Error(), cmdCtx)
+		return interactive.Message{
+			Base: interactive.Base{
+				Description: header(cmdCtx),
+				Body: interactive.Body{
+					Plaintext: err.Error(),
+				},
+			},
+		}
 	}
 
 	cmdCtx.CleanCmd = flags.CleanCmd
@@ -159,9 +166,13 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	if isPluginCmd {
 		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
-		if err != nil {
+		switch {
+		case err == nil:
+		case IsExecutionCommandError(err):
+			return respond(err.Error(), cmdCtx)
+		default:
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while executing plugin: %s", err.Error())
+			e.log.Errorf("while executing command %q: %s", cmdCtx.CleanCmd, err.Error())
 			return empty
 		}
 		return respond(out, cmdCtx)

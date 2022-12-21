@@ -47,3 +47,9 @@ linters-settings:
   gocyclo:
     # https://github.com/kubeshop/botkube/issues/745
     min-complexity: 40
+  revive:
+    rules:
+      # Disable warns about capitalized and ended with punctuation error messages
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-strings
+      - name: error-strings
+        disabled: true

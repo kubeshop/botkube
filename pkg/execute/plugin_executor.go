@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -52,7 +53,7 @@ func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 // Execute executes plugin executor based on a given command.
 func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []string, command string) (string, error) {
 	e.log.WithFields(logrus.Fields{
-		"bindings": command,
+		"bindings": bindings,
 		"command":  command,
 	}).Debugf("Handling plugin command...")
 
@@ -74,7 +75,11 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		Configs: configs,
 	})
 	if err != nil {
-		return "", NewExecutionCommandError(err.Error())
+		s, ok := status.FromError(err)
+		if !ok {
+			return "", NewExecutionCommandError(err.Error())
+		}
+		return "", NewExecutionCommandError(s.Message())
 	}
 
 	return resp.Data, nil

@@ -237,6 +237,8 @@ func (e *Kubectl) getFinalArgs(args []string) []string {
 // If `--namespace/-n` was not found, returns empty string.
 func (e *Kubectl) getNamespaceFlag(args []string) (string, error) {
 	f := pflag.NewFlagSet("extract-ns", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
 	// ignore unknown flags errors, e.g. `--cluster-name` etc.
 	f.ParseErrorsWhitelist.UnknownFlags = true
 
@@ -252,6 +254,8 @@ func (e *Kubectl) getNamespaceFlag(args []string) (string, error) {
 // If `--A, --all-namespaces` was not found, returns empty string.
 func (e *Kubectl) getAllNamespaceFlag(args []string) (bool, error) {
 	f := pflag.NewFlagSet("extract-ns", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
 	// ignore unknown flags errors, e.g. `--cluster-name` etc.
 	f.ParseErrorsWhitelist.UnknownFlags = true
 

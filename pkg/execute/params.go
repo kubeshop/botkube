@@ -78,6 +78,8 @@ func extractFilterParam(cmd string) (string, string, error) {
 	var filters []string
 	args, _ := shellwords.Parse(cmd)
 	f := pflag.NewFlagSet("extract-filters", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
 	f.ParseErrorsWhitelist.UnknownFlags = true
 	f.StringArrayVar(&filters, "filter", []string{}, "Output filter")
 	if err := f.Parse(args); err != nil {

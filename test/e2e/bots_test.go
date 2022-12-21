@@ -161,6 +161,7 @@ func runBotTest(t *testing.T,
 
 	t.Logf("Setting up test %s setup...", driverType)
 	botDriver.InitUsers(t)
+
 	cleanUpFns := botDriver.InitChannels(t)
 	for _, fn := range cleanUpFns {
 		t.Cleanup(fn)
@@ -243,9 +244,18 @@ func runBotTest(t *testing.T,
 	// Those are a temporary tests. When we will extract kubectl and kubernetes as plugins
 	// they won't be needed anymore.
 	t.Run("Botkube Plugins", func(t *testing.T) {
-		t.Run("Echo Executor", func(t *testing.T) {
+		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
 			expectedBody := codeBlock(strings.ToUpper(command))
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+		t.Run("Echo Executor failure", func(t *testing.T) {
+			command := "echo @fail"
+			expectedBody := codeBlock("The @fail label was specified. Failing execution.")
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
