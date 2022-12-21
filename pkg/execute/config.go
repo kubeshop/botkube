@@ -13,7 +13,10 @@ import (
 )
 
 var (
-	configFeatureName = FeatureName{Name: noFeature}
+	configFeatureName = FeatureName{
+		Name:    "config",
+		Aliases: []string{"cfg", "configuration"},
+	}
 )
 
 // ConfigExecutor executes all commands that are related to config
@@ -42,12 +45,12 @@ func (e *ConfigExecutor) FeatureName() FeatureName {
 // Commands returns slice of commands the executor supports
 func (e *ConfigExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
-		CommandConfig: e.Config,
+		CommandShow: e.Show,
 	}
 }
 
-// Config returns Config in yaml format
-func (e *ConfigExecutor) Config(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+// Show returns Config in yaml format
+func (e *ConfigExecutor) Show(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 

@@ -33,7 +33,7 @@ const (
 	CommandDisable  CommandVerb = "disable"
 	CommandEdit     CommandVerb = "edit"
 	CommandStatus   CommandVerb = "status"
-	CommandConfig   CommandVerb = "config"
+	CommandShow     CommandVerb = "show"
 )
 
 // CommandExecutor defines command structure for executors
