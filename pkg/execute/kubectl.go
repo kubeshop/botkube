@@ -134,7 +134,7 @@ func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
 // This method should be called ONLY if:
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
-func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool) (string, error) {
+func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool, cmdCtx CommandContext) (string, error) {
 	log := e.log.WithFields(logrus.Fields{
 		"isAuthChannel": isAuthChannel,
 		"command":       command,
@@ -166,7 +166,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 	if !isAuthChannel && kcConfig.RestrictAccess {
 		msg := NewExecutionCommandError(kubectlNotAuthorizedMsgFmt, clusterName)
-		return "", e.omitIfWeAreNotExplicitlyTargetCluster(log, command, msg)
+		return "", e.omitIfWeAreNotExplicitlyTargetCluster(log, msg, cmdCtx)
 	}
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
@@ -203,8 +203,8 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool)
 
 // omitIfWeAreNotExplicitlyTargetCluster returns verboseMsg if there is explicit '--cluster-name' flag that matches this cluster.
 // It's useful if we want to be more verbose, but we also don't want to spam if we are not the target one.
-func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd string, verboseMsg *ExecutionCommandError) error {
-	if getClusterNameFromKubectlCmd(cmd) == e.cfg.Settings.ClusterName {
+func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, verboseMsg *ExecutionCommandError, cmdCtx CommandContext) error {
+	if cmdCtx.ProvidedClusterNameEqual() {
 		return verboseMsg
 	}
 
@@ -221,29 +221,15 @@ func (e *Kubectl) omitIfWeAreNotExplicitlyTargetCluster(log *logrus.Entry, cmd s
 func (e *Kubectl) getFinalArgs(args []string) []string {
 	// Remove unnecessary flags
 	var finalArgs []string
-	isClusterNameArg := false
 	for _, arg := range args {
-		if isClusterNameArg {
-			isClusterNameArg = false
-			continue
-		}
 		if arg == AbbrFollowFlag.String() || strings.HasPrefix(arg, FollowFlag.String()) {
 			continue
 		}
 		if arg == AbbrWatchFlag.String() || strings.HasPrefix(arg, WatchFlag.String()) {
 			continue
 		}
-		// Remove --cluster-name flag and it's value
-		if strings.HasPrefix(arg, ClusterFlag.String()) {
-			// Check if flag value in current or next argument and compare with config.settings.clusterName
-			if arg == ClusterFlag.String() {
-				isClusterNameArg = true
-			}
-			continue
-		}
 		finalArgs = append(finalArgs, arg)
 	}
-
 	return finalArgs
 }
 

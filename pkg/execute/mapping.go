@@ -49,17 +49,30 @@ type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Mes
 
 // CommandContext contains the context for CommandFn
 type CommandContext struct {
-	Args            []string
-	ClusterName     string
-	CommGroupName   string
-	BotName         string
-	RawCmd          string
-	User            string
-	Conversation    Conversation
-	Platform        config.CommPlatformIntegration
-	ExecutorFilter  executorFilter
-	NotifierHandler NotifierHandler
-	Mapping         *CommandMapping
+	Args                []string
+	ClusterName         string
+	CommGroupName       string
+	BotName             string
+	RawCmd              string
+	CleanCmd            string
+	ProvidedClusterName string
+	User                string
+	Conversation        Conversation
+	Platform            config.CommPlatformIntegration
+	ExecutorFilter      executorFilter
+	NotifierHandler     NotifierHandler
+	Mapping             *CommandMapping
+}
+
+// ProvidedClusterNameEqualOrEmpty returns true when provided cluster name is empty
+// or when provided cluster name is equal to cluster name
+func (cmdCtx CommandContext) ProvidedClusterNameEqualOrEmpty() bool {
+	return cmdCtx.ProvidedClusterName == "" || cmdCtx.ProvidedClusterNameEqual()
+}
+
+// ProvidedClusterNameEqual returns true when provided cluster name is equal to cluster name
+func (cmdCtx CommandContext) ProvidedClusterNameEqual() bool {
+	return cmdCtx.ProvidedClusterName == cmdCtx.ClusterName
 }
 
 // FeatureName defines the name and aliases for a feature

@@ -46,7 +46,7 @@ type (
 		MergeAllEnabled(includeBindings []string) kubectl.EnabledKubectl
 	}
 	kcExecutor interface {
-		Execute(bindings []string, command string, isAuthChannel bool) (string, error)
+		Execute(bindings []string, command string, isAuthChannel bool, cmdCtx CommandContext) (string, error)
 	}
 	// NamespaceLister provides an option to list all namespaces in a given cluster.
 	NamespaceLister interface {
@@ -107,7 +107,7 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 // Do executes a given kc-cmd-builder command based on args.
 //
 // TODO: once we will have a real use-case, we should abstract the Slack state and introduce our own model.
-func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string) (interactive.Message, error) {
+func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string, cmdCtx CommandContext) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if platform != config.SocketSlackCommPlatformIntegration {
@@ -140,26 +140,26 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	cmds := executorsRunner{
 		verbsDropdownCommand: func() (interactive.Message, error) {
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceTypesDropdownCommand: func() (interactive.Message, error) {
 			// the resource type was selected, so clear resource name from command preview.
 			stateDetails.resourceName = ""
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceNamesDropdownCommand: func() (interactive.Message, error) {
 			// this is called only when the resource name is directly selected from dropdown, so we need to include
 			// it in command preview.
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceNamespaceDropdownCommand: func() (interactive.Message, error) {
 			// when the namespace was changed, there is a small chance that resource name will be still matching,
 			// we will need to do the external call to check that. For now, we clear resource name from command preview.
 			stateDetails.resourceName = ""
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		filterPlaintextInputCommand: func() (interactive.Message, error) {
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes)
+			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 	}
 
@@ -196,7 +196,7 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string) (interactive.Message, error) {
+func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string, cmdCtx CommandContext) (interactive.Message, error) {
 	var empty interactive.Message
 
 	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
@@ -247,7 +247,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	//   1. Verb requires resource types
 	//   2. Selected resource type is still valid for the selected verb
 	var (
-		resNames = e.tryToGetResourceNamesSelect(botName, bindings, stateDetails)
+		resNames = e.tryToGetResourceNamesSelect(botName, bindings, stateDetails, cmdCtx)
 		nsNames  = e.tryToGetNamespaceSelect(ctx, botName, bindings, stateDetails)
 	)
 
@@ -270,7 +270,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	), nil
 }
 
-func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails) *interactive.Select {
+func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails, cmdCtx CommandContext) *interactive.Select {
 	if state.resourceType == "" {
 		return EmptyResourceNameDropdown()
 	}
@@ -279,7 +279,7 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 		cmd = fmt.Sprintf("%s -n %s", cmd, state.namespace)
 	}
 
-	out, err := e.kcExecutor.Execute(bindings, cmd, true)
+	out, err := e.kcExecutor.Execute(bindings, cmd, true, cmdCtx)
 	if err != nil {
 		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
 		return EmptyResourceNameDropdown()

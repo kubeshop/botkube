@@ -70,7 +70,7 @@ func TestCommandPreview(t *testing.T) {
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header")
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header", execute.CommandContext{})
 
 			// then
 			require.NoError(t, err)
@@ -200,7 +200,7 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), nil, nil, nil, nil)
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader)
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader, execute.CommandContext{})
 
 			// then
 			require.NoError(t, err)
@@ -226,7 +226,7 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 
 	// when command args are not specified
 	cmd := []string{"kc-cmd-builder"}
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName, "cmdHeader")
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName, "cmdHeader", execute.CommandContext{})
 
 	// then
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 	// when
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header")
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header", execute.CommandContext{})
 
 	// then
 	require.NoError(t, err)
@@ -475,7 +475,7 @@ type fakeKcExecutor struct {
 	bindings []string
 }
 
-func (r *fakeKcExecutor) Execute(bindings []string, command string, isAuthChannel bool) (string, error) {
+func (r *fakeKcExecutor) Execute(bindings []string, command string, isAuthChannel bool, _ execute.CommandContext) (string, error) {
 	r.bindings = bindings
 	r.command = command
 	r.isAuthed = isAuthChannel
@@ -485,7 +485,7 @@ func (r *fakeKcExecutor) Execute(bindings []string, command string, isAuthChanne
 
 type fakeErrorKcExecutor struct{}
 
-func (r *fakeErrorKcExecutor) Execute(_ []string, _ string, _ bool) (string, error) {
+func (r *fakeErrorKcExecutor) Execute(_ []string, _ string, _ bool, _ execute.CommandContext) (string, error) {
 	return "", errors.New("fake error")
 }
 
