@@ -266,12 +266,12 @@ func runBotTest(t *testing.T,
 		})
 		t.Run("Helm Executor", func(t *testing.T) {
 			command := "helm install --help"
-			expectedBody := heredoc.Doc(`
-				This command installs a chart archive.
+			expectedBody := codeBlock(heredoc.Doc(`
+				Installs a chart archive.
 
 				There are two different ways you to install a Helm chart:
-				1. By absolute URL: helm install mynginx <https://example.com/charts/nginx-1.2.3.tgz>
-				2. By chart reference and repo url: helm install --repo <https://example.com/charts/> mynginx nginx
+				1. By absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
+				2. By chart reference and repo url: helm install --repo https://example.com/charts/ mynginx nginx
 
 				Usage:
 				    helm install [NAME] [CHART] [flags]
@@ -301,7 +301,8 @@ func runBotTest(t *testing.T,
 				    --timeout
 				    --username
 				    --verify
-				    --version`)
+				    --version
+				    -o,--output`))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)

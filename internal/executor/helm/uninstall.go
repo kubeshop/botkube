@@ -7,7 +7,8 @@ import (
 	"github.com/muesli/reflow/indent"
 )
 
-// UninstallCommandAliases
+// UninstallCommandAliases holds different names for uninstall subcommand.
+// Unfortunately, it's a go-arg limitation that we cannot on a single entry have subcommand aliases.
 type UninstallCommandAliases struct {
 	Uninstall *UninstallCommand `arg:"subcommand:uninstall"`
 	Un        *UninstallCommand `arg:"subcommand:un"`
@@ -15,6 +16,7 @@ type UninstallCommandAliases struct {
 	Del       *UninstallCommand `arg:"subcommand:del"`
 }
 
+// Get returns UninstallCommand that were unpacked based on the alias used by user.
 func (u UninstallCommandAliases) Get() *UninstallCommand {
 	if u.Uninstall != nil {
 		return u.Uninstall
@@ -32,7 +34,7 @@ func (u UninstallCommandAliases) Get() *UninstallCommand {
 	return nil
 }
 
-// UninstallCommand holds possible uninstallation options such as positional arguments and supported flags
+// UninstallCommand holds possible uninstallation options such as positional arguments and supported flags.
 // Syntax:
 //
 //	helm uninstall RELEASE_NAME [...] [flags]
@@ -48,23 +50,10 @@ func (i UninstallCommand) Validate() error {
 	return returnErrorOfAllSetFlags(i.NotSupportedUninstallFlags)
 }
 
-// SupportedUninstallFlags represent flags that are supported both by Helm CLI and Helm Plugin.
-type SupportedUninstallFlags struct {
-	Description string        `arg:"--description"`
-	DryRun      bool          `arg:"--dry-run"`
-	KeepHistory bool          `arg:"--keep-history"`
-	NoHooks     bool          `arg:"--no-hooks"`
-	Timeout     time.Duration `arg:"--timeout"`
-}
-
-// NotSupportedUninstallFlags represents flags supported by Helm CLI but not by Helm Plugin.
-type NotSupportedUninstallFlags struct {
-	Wait bool `arg:"--wait"`
-}
-
-func helpUninstall() string {
+// Help returns command help message.
+func (UninstallCommand) Help() string {
 	return heredoc.Docf(`
-		This command takes a release name and uninstalls the release.
+		Uninstalls a given Helm release.
 
 		It removes all of the resources associated with the last release of the chart
 		as well as the release history, freeing it up for future use.
@@ -78,4 +67,18 @@ func helpUninstall() string {
 		Flags:
 		%s
 	`, indent.String(renderSupportedFlags(SupportedUninstallFlags{}), 4))
+}
+
+// SupportedUninstallFlags represent flags that are supported both by Helm CLI and Helm Plugin.
+type SupportedUninstallFlags struct {
+	Description string        `arg:"--description"`
+	DryRun      bool          `arg:"--dry-run"`
+	KeepHistory bool          `arg:"--keep-history"`
+	NoHooks     bool          `arg:"--no-hooks"`
+	Timeout     time.Duration `arg:"--timeout"`
+}
+
+// NotSupportedUninstallFlags represents flags supported by Helm CLI but not by Helm Plugin.
+type NotSupportedUninstallFlags struct {
+	Wait bool `arg:"--wait"`
 }

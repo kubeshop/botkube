@@ -11,11 +11,15 @@ import (
 )
 
 const (
-	helmBinaryName = "helm"
-
 	// PluginName is the name of the Helm Botkube plugin.
-	PluginName = "helm"
+	PluginName     = "helm"
+	helmBinaryName = "helm"
 )
+
+type command interface {
+	Validate() error
+	Help() string
+}
 
 var _ executor.Executor = &Executor{}
 
@@ -37,7 +41,7 @@ func NewExecutor(ver string) *Executor {
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     e.pluginVersion,
-		Description: "TBD",
+		Description: "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.",
 	}, nil
 }
 
@@ -46,14 +50,12 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // Supported commands:
 // - install
 // - uninstall
-//
-// TODO:
-// - upgrade
-// - rollback
 // - list
 // - version
-// - test
 // - status
+// - test
+// - rollback
+// - upgrade
 func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	cfg, err := MergeConfigs(in.Configs)
 	if err != nil {
@@ -74,60 +76,44 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 
 	switch {
 	case helmCmd.Install != nil:
-		return e.handleHelmInstall(ctx, cfg, wasHelpRequested, helmCmd.Install, args)
+		return e.handleHelmCommand(ctx, helmCmd.Install, cfg, wasHelpRequested, args)
 	case helmCmd.UninstallCommandAliases.Get() != nil:
-		return e.handleHelmUninstall(ctx, cfg, wasHelpRequested, helmCmd.UninstallCommandAliases.Get(), args)
+		return e.handleHelmCommand(ctx, helmCmd.UninstallCommandAliases.Get(), cfg, wasHelpRequested, args)
+	case helmCmd.ListCommandAliases.Get() != nil:
+		return e.handleHelmCommand(ctx, helmCmd.ListCommandAliases.Get(), cfg, wasHelpRequested, args)
+	case helmCmd.Version != nil:
+		return e.handleHelmCommand(ctx, helmCmd.Version, cfg, wasHelpRequested, args)
+	case helmCmd.Status != nil:
+		return e.handleHelmCommand(ctx, helmCmd.Status, cfg, wasHelpRequested, args)
+	case helmCmd.Test != nil:
+		return e.handleHelmCommand(ctx, helmCmd.Test, cfg, wasHelpRequested, args)
+	case helmCmd.Rollback != nil:
+		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, args)
+	case helmCmd.Upgrade != nil:
+		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, args)
 	default:
 		return executor.ExecuteOutput{
-			Data: "Command not supported",
+			Data: "Helm command not supported",
 		}, nil
 	}
 }
 
-// handleHelmInstall construct a Helm CLI command and run it.
-// Supported options:
-//  1. By absolute URL:
-//     helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
-//  2. By chart reference and repo url:
-//     helm install --repo https://example.com/charts/ mynginx nginx
-func (e *Executor) handleHelmInstall(ctx context.Context, cfg Config, wasHelpRequested bool, install *InstallCommand, args []string) (executor.ExecuteOutput, error) {
+// handleHelmList construct a Helm CLI command and run it.
+func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, args []string) (executor.ExecuteOutput, error) {
 	if wasHelpRequested {
 		return executor.ExecuteOutput{
-			Data: helpInstall(),
+			Data: cmd.Help(),
 		}, nil
 	}
 
-	err := install.Validate()
+	err := cmd.Validate()
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
 	out, err := e.runHelmCLIBinary(ctx, cfg, args)
 	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("%s: %s", err.Error(), out)
-	}
-
-	return executor.ExecuteOutput{
-		Data: out,
-	}, nil
-}
-
-// handleHelmUninstall construct a Helm CLI command and run it.
-func (e *Executor) handleHelmUninstall(ctx context.Context, cfg Config, wasHelpRequested bool, install *UninstallCommand, args []string) (executor.ExecuteOutput, error) {
-	if wasHelpRequested {
-		return executor.ExecuteOutput{
-			Data: helpUninstall(),
-		}, nil
-	}
-
-	err := install.Validate()
-	if err != nil {
-		return executor.ExecuteOutput{}, err
-	}
-
-	out, err := e.runHelmCLIBinary(ctx, cfg, args)
-	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("%s: %s", err.Error(), out)
+		return executor.ExecuteOutput{}, fmt.Errorf("%s\n%s", out, err.Error())
 	}
 
 	return executor.ExecuteOutput{

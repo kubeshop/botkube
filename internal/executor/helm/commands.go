@@ -8,12 +8,20 @@ import (
 	"github.com/mattn/go-shellwords"
 )
 
-// Commands defines all supported Helm plugin subcommands and their flags.
+// Commands defines all supported Helm plugin commands and their flags.
 type Commands struct {
-	Install *InstallCommand `arg:"subcommand:install"`
-	UninstallCommandAliases
+	Install  *InstallCommand  `arg:"subcommand:install"`
+	Version  *VersionCommand  `arg:"subcommand:version"`
+	Status   *StatusCommand   `arg:"subcommand:status"`
+	Test     *TestCommand     `arg:"subcommand:test"`
+	Rollback *RollbackCommand `arg:"subcommand:rollback"`
+	Upgrade  *UpgradeCommand  `arg:"subcommand:upgrade"`
 
-	// Global Helm plugin plugins
+	// embed on the root of the Command struct to inline all aliases.
+	UninstallCommandAliases
+	ListCommandAliases
+
+	// global Helm plugin flags
 	Namespace  string `arg:"--namespace,-n"`
 	Debug      bool   `arg:"--debug"`
 	BurstLimit int    `arg:"--burst-limit"`

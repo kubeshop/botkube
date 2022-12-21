@@ -25,7 +25,6 @@ func TestValidateNotSupportedFlags(t *testing.T) {
 				Values:      []string{"./values.yaml"},
 				Wait:        true,
 				WaitForJobs: true,
-				Output:      "yaml",
 			},
 			errMsg: heredoc.Doc(`
 					Those flags are not supported by the Botkube Helm Plugin:
@@ -38,7 +37,6 @@ func TestValidateNotSupportedFlags(t *testing.T) {
 						* -f,--values
 						* --wait
 						* --wait-for-jobs
-						* -o,--output
 					Please remove them.`),
 		},
 		{

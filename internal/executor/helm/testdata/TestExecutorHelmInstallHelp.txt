@@ -1,4 +1,4 @@
-This command installs a chart archive.
+Installs a chart archive.
 
 There are two different ways you to install a Helm chart:
 1. By absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz
@@ -33,3 +33,4 @@ Flags:
     --username
     --verify
     --version
+    -o,--output

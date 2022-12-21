@@ -16,6 +16,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -155,6 +156,7 @@ func (s *slackTester) WaitForLastMessageContains(userID, channelID, expectedMsgS
 func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		msg = s.trimNewLine(msg)
+		msg = format.RemoveHyperlinks(msg) // normalize the message URLs
 		if msg != expectedMsg {
 			count := countMatchBlock(expectedMsg, msg)
 			msgDiff := diff(expectedMsg, msg)
