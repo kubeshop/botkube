@@ -108,11 +108,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	if len(cmdCtx.Args) == 0 {
 		if e.conversation.IsAuthenticated {
-			return interactive.Message{
-				Base: interactive.Base{
-					Description: unsupportedCmdMsg,
-				},
+			msg, err := e.helpExecutor.Help(ctx, cmdCtx)
+			if err != nil {
+				e.log.Errorf("while getting help message: %s", err.Error())
+				return respond(err.Error(), cmdCtx)
 			}
+			return msg
 		}
 		return empty // this prevents all bots on all clusters to answer something
 	}

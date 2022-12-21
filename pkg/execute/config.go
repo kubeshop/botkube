@@ -13,7 +13,10 @@ import (
 )
 
 var (
-	configFeatureName = FeatureName{Name: noFeature}
+	configFeatureName = FeatureName{
+		Name:    "config",
+		Aliases: []string{"cfg", "configuration"},
+	}
 )
 
 // ConfigExecutor executes all commands that are related to config
@@ -42,14 +45,14 @@ func (e *ConfigExecutor) FeatureName() FeatureName {
 // Commands returns slice of commands the executor supports
 func (e *ConfigExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
-		CommandConfig: e.Config,
+		CommandShow: e.Show,
 	}
 }
 
-// Config returns Config in yaml format
-func (e *ConfigExecutor) Config(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
+// Show returns Config in yaml format
+func (e *ConfigExecutor) Show(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
+	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	cfg, err := e.renderBotkubeConfiguration()
 	if err != nil {
@@ -58,7 +61,8 @@ func (e *ConfigExecutor) Config(ctx context.Context, cmdCtx CommandContext) (int
 	return respond(cfg, cmdCtx), nil
 }
 
-func (e *ConfigExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+func (e *ConfigExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
+	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
 	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
 	if err != nil {
 		e.log.Errorf("while reporting config command: %s", err.Error())

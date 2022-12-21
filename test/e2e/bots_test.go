@@ -575,7 +575,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Starting notifier in second channel...")
-		command = "start notifications"
+		command = "enable notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -645,7 +645,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier in first channel...")
-		command = "stop notifications"
+		command = "disable notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -698,7 +698,7 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
 
 		t.Log("Starting notifier in first channel")
-		command = "start notifications"
+		command = "enable notifications"
 		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
