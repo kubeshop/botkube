@@ -87,10 +87,10 @@ func (d *discordTester) SecondChannel() Channel {
 func (d *discordTester) InitUsers(t *testing.T) {
 	t.Helper()
 	d.botUserID = d.findUserID(t, d.cfg.BotName)
-	assert.NotEmpty(t, d.botUserID, "could not find discord botUserID with name: %s", d.cfg.BotName)
+	require.NotEmpty(t, d.botUserID, "could not find discord botUserID with name: %s", d.cfg.BotName)
 
 	d.testerUserID = d.findUserID(t, d.cfg.TesterName)
-	assert.NotEmpty(t, d.testerUserID, "could not find discord testerUserID with name: %s", d.cfg.TesterName)
+	require.NotEmpty(t, d.testerUserID, "could not find discord testerUserID with name: %s", d.cfg.TesterName)
 }
 
 func (d *discordTester) InitChannels(t *testing.T) []func() {
@@ -369,11 +369,11 @@ func (d *discordTester) GetColorByLevel(level config.Level) string {
 }
 
 func (d *discordTester) findUserID(t *testing.T, name string) string {
-	t.Log("Getting users...")
-	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 5)
+	t.Logf("Getting user %q...", name)
+	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 50)
 	require.NoError(t, err)
 
-	t.Logf("Finding user ID by name %q...", name)
+	t.Logf("Finding user ID in %v...", res)
 	for _, m := range res {
 		if !strings.EqualFold(name, m.User.Username) {
 			continue

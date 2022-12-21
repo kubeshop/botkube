@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -50,6 +51,10 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	}
 
 	data := in.Command
+	if strings.Contains(data, "@fail") {
+		return executor.ExecuteOutput{}, errors.New("The @fail label was specified. Failing execution.")
+	}
+
 	if finalCfg.ChangeResponseToUpperCase != nil && *finalCfg.ChangeResponseToUpperCase {
 		data = strings.ToUpper(data)
 	}
