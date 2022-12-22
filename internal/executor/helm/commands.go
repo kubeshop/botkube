@@ -49,7 +49,7 @@ func parseRawCommand(rawCmd string) (Commands, []string, error) {
 	if err != nil {
 		return helmCmd, nil, err
 	}
-	err = p.Parse(renameVersionFlag(args))
+	err = p.Parse(removeVersionFlag(args))
 	if err != nil {
 		return helmCmd, nil, err
 	}
@@ -61,7 +61,7 @@ func parseRawCommand(rawCmd string) (Commands, []string, error) {
 // https://github.com/alexflint/go-arg/blob/727f8533acca70ca429dce4bfea729a6af75c3f7/parse.go#L610
 //
 // In case of Helm the `--version` flag has a different purpose, so we just remove it for now.
-func renameVersionFlag(args []string) []string {
+func removeVersionFlag(args []string) []string {
 	for idx := range args {
 		if !strings.HasPrefix(args[idx], "--version") {
 			continue
@@ -73,6 +73,9 @@ func renameVersionFlag(args []string) []string {
 			next = next + 1
 		}
 
+		if next > len(args) {
+			next = len(args)
+		}
 		return append(args[:prev], args[next:]...)
 	}
 	return args

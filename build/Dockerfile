@@ -23,6 +23,7 @@ RUN MACH=$(uname -m); if [[ ${MACH} == "aarch64" ]]; then ARCH=arm64; \
     wget https://get.helm.sh/helm-v3.10.3-linux-${ARCH}.tar.gz && \
     tar -zxvf helm-v3.10.3-linux-${ARCH}.tar.gz && \
     mv linux-${ARCH}/helm /usr/local/bin/helm && \
+    rm helm-v3.10.3-linux-${ARCH}.tar.gz && \
     chmod +x /usr/local/bin/helm
 
 # Create Non Privileged user
