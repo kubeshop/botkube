@@ -91,6 +91,10 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, args)
 	case helmCmd.Upgrade != nil:
 		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, args)
+	case helmCmd.Help != nil, wasHelpRequested:
+		return executor.ExecuteOutput{
+			Data: helmCmd.Help.Help(),
+		}, nil
 	default:
 		return executor.ExecuteOutput{
 			Data: "Helm command not supported",
