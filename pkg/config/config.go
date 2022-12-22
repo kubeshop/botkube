@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/knadh/koanf"
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
@@ -29,11 +27,10 @@ var defaultConfiguration []byte
 var configPathsFlag []string
 
 const (
-	configEnvVariablePrefix     = "BOTKUBE_"
-	configDelimiter             = "."
-	camelCaseDelimiter          = "__"
-	nestedFieldDelimiter        = "_"
-	specialConfigFileNamePrefix = "_"
+	configEnvVariablePrefix = "BOTKUBE_"
+	configDelimiter         = "."
+	camelCaseDelimiter      = "__"
+	nestedFieldDelimiter    = "_"
 )
 
 const (
@@ -614,20 +611,13 @@ func (eventType EventType) String() string {
 	return string(eventType)
 }
 
-// PathsGetter returns the list of absolute paths to the config files.
-type PathsGetter func(client *config.GqlClient) ([]string, error)
-
 // LoadWithDefaultsDetails holds the LoadWithDefaults function details.
 type LoadWithDefaultsDetails struct {
 	ValidateWarnings error
 }
 
 // LoadWithDefaults loads new configuration from files and environment variables.
-func LoadWithDefaults(getCfgPaths PathsGetter, gql *config.GqlClient) (*Config, LoadWithDefaultsDetails, error) {
-	configPaths, err := getCfgPaths(gql)
-	if err != nil {
-		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("while getting config paths: %w", err)
-	}
+func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error) {
 	k := koanf.New(configDelimiter)
 
 	// load default settings
@@ -635,16 +625,15 @@ func LoadWithDefaults(getCfgPaths PathsGetter, gql *config.GqlClient) (*Config, 
 		return nil, LoadWithDefaultsDetails{}, fmt.Errorf("while loading default configuration: %w", err)
 	}
 
-	// merge with user conf files
-	configPaths = sortCfgFiles(configPaths)
-	for _, path := range configPaths {
-		if err := k.Load(file.Provider(filepath.Clean(path)), koanfyaml.Parser()); err != nil {
+	// merge with user configs
+	for _, rawCfg := range configs {
+		if err := k.Load(rawbytes.Provider(rawCfg), koanfyaml.Parser()); err != nil {
 			return nil, LoadWithDefaultsDetails{}, err
 		}
 	}
 
 	// LoadWithDefaults environment variables and merge into the loaded config.
-	err = k.Load(env.Provider(
+	err := k.Load(env.Provider(
 		configEnvVariablePrefix,
 		configDelimiter,
 		normalizeConfigEnvName,
@@ -674,14 +663,14 @@ func LoadWithDefaults(getCfgPaths PathsGetter, gql *config.GqlClient) (*Config, 
 
 // FromProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func FromProvider(gql *config.GqlClient) ([]string, error) {
+func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
 	var provider config.Provider
 	if os.Getenv("CONFIG_SOURCE_IDENTIFIER") != "" {
 		provider = config.NewGqlProvider(*gql)
 	} else if os.Getenv("BOTKUBE_CONFIG_PATHS") != "" {
 		provider = config.NewEnvProvider()
 	} else {
-		provider = config.NewStaticProvider(configPathsFlag)
+		provider = config.NewFileSystemProvider(configPathsFlag)
 	}
 	return provider.Configs(context.Background())
 }
@@ -706,24 +695,6 @@ func normalizeConfigEnvName(name string) string {
 	}
 
 	return strings.ReplaceAll(buff.String(), nestedFieldDelimiter, configDelimiter)
-}
-
-// sortCfgFiles sorts the config files so that the files that has specialConfigFileNamePrefix are moved to the end of the slice.
-func sortCfgFiles(paths []string) []string {
-	var ordinaryCfgFiles []string
-	var specialCfgFiles []string
-	for _, path := range paths {
-		_, filename := filepath.Split(path)
-
-		if strings.HasPrefix(filename, specialConfigFileNamePrefix) {
-			specialCfgFiles = append(specialCfgFiles, path)
-			continue
-		}
-
-		ordinaryCfgFiles = append(ordinaryCfgFiles, path)
-	}
-
-	return append(ordinaryCfgFiles, specialCfgFiles...)
 }
 
 // IdentifiableMap provides an option to construct an indexable map for identifiable items.

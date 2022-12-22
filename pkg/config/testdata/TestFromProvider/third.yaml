@@ -1,0 +1,5 @@
+plugins:
+  cacheDir: /tmp
+  repositories:
+    botkube:
+      url: http://localhost:3000/botkube.yaml

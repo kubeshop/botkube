@@ -4,8 +4,6 @@ import (
 	"context"
 	"os"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // EnvProvider environment config source provider
@@ -18,10 +16,9 @@ func NewEnvProvider() *EnvProvider {
 }
 
 // Configs returns list of config file locations
-func (e *EnvProvider) Configs(ctx context.Context) ([]string, error) {
+func (e *EnvProvider) Configs(ctx context.Context) (YAMLFiles, error) {
 	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
-	if envCfgs != "" {
-		return strings.Split(envCfgs, ","), nil
-	}
-	return nil, errors.New("failed to get config files from environment variable")
+	configPaths := strings.Split(envCfgs, ",")
+
+	return NewFileSystemProvider(configPaths).Configs(ctx)
 }

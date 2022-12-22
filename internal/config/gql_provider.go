@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
@@ -20,7 +19,7 @@ func NewGqlProvider(gql GqlClient) *GqlProvider {
 }
 
 // Configs returns list of config files
-func (g *GqlProvider) Configs(ctx context.Context) ([]string, error) {
+func (g *GqlProvider) Configs(ctx context.Context) (YAMLFiles, error) {
 	d := os.Getenv("CONFIG_SOURCE_IDENTIFIER")
 	if d == "" {
 		return nil, nil
@@ -33,13 +32,8 @@ func (g *GqlProvider) Configs(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "while converting json to yaml for deployment with id %s", d)
 	}
-	temp, err := os.CreateTemp("/tmp", fmt.Sprintf("botkube-%s", d))
-	if err != nil {
-		return nil, errors.Wrapf(err, "while creating configuration yaml file for deployment with id %s", d)
-	}
-	_, err = temp.Write(conf)
-	if err != nil {
-		return nil, errors.Wrapf(err, "while adding configuration to %s for deployment with id %s", temp.Name(), d)
-	}
-	return []string{temp.Name()}, nil
+
+	return [][]byte{
+		conf,
+	}, nil
 }

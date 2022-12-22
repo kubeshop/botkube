@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,7 @@ import (
 
 func TestEnvProviderSuccess(t *testing.T) {
 	//given
-	t.Setenv("BOTKUBE_CONFIG_PATHS", "/tmp/a.yaml")
+	t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestEnvProviderSuccess/config.yaml")
 
 	// when
 	p := NewEnvProvider()
@@ -17,7 +18,9 @@ func TestEnvProviderSuccess(t *testing.T) {
 
 	// then
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"/tmp/a.yaml"}, configs)
+	content, err := os.ReadFile("testdata/TestEnvProviderSuccess/config.yaml")
+	assert.NoError(t, err)
+	assert.Equal(t, content, configs[0])
 }
 
 func TestEnvProviderErr(t *testing.T) {
@@ -26,5 +29,5 @@ func TestEnvProviderErr(t *testing.T) {
 	_, err := p.Configs(context.Background())
 
 	// then
-	assert.Equal(t, "failed to get config files from environment variable", err.Error())
+	assert.Equal(t, "while reading a file: read .: is a directory", err.Error())
 }
