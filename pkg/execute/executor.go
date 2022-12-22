@@ -36,7 +36,6 @@ type DefaultExecutor struct {
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
-	commandExecutor       *CommandsExecutor
 	filterExecutor        *FilterExecutor
 	pingExecutor          *PingExecutor
 	versionExecutor       *VersionExecutor
@@ -44,6 +43,8 @@ type DefaultExecutor struct {
 	feedbackExecutor      *FeedbackExecutor
 	notifierExecutor      *NotifierExecutor
 	configExecutor        *ConfigExecutor
+	execExecutor          *ExecExecutor
+	sourceExecutor        *SourceExecutor
 	notifierHandler       NotifierHandler
 	message               string
 	platform              config.CommPlatformIntegration
@@ -217,7 +218,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	return msg
 }
 
-func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) interactive.Message {
+func respond(msg string, cmdCtx CommandContext) interactive.Message {
 	msg = cmdCtx.ExecutorFilter.Apply(msg)
 	msgBody := interactive.Body{
 		CodeBlock: msg,
@@ -230,7 +231,7 @@ func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) inter
 
 	message := interactive.Message{
 		Base: interactive.Base{
-			Description: header(cmdCtx, overrideCommand...),
+			Description: header(cmdCtx),
 			Body:        msgBody,
 		},
 	}
@@ -243,12 +244,8 @@ func respond(msg string, cmdCtx CommandContext, overrideCommand ...string) inter
 	return message
 }
 
-func header(cmdCtx CommandContext, overrideName ...string) string {
+func header(cmdCtx CommandContext) string {
 	cmd := fmt.Sprintf("`%s`", strings.TrimSpace(cmdCtx.RawCmd))
-	if len(overrideName) > 0 {
-		cmd = strings.TrimSpace(strings.Join(overrideName, " "))
-	}
-
 	out := fmt.Sprintf("%s on `%s`", cmd, cmdCtx.ClusterName)
 	return appendByUserOnlyIfNeeded(out, cmdCtx.User, cmdCtx.Conversation.CommandOrigin)
 }

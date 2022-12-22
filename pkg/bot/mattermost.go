@@ -229,6 +229,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 			Alias:            channel.alias,
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
+			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  mm.IsAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
 		},

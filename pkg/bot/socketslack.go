@@ -325,6 +325,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			Alias:            channel.alias,
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
+			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    event.CommandOrigin,
 			State:            event.State,

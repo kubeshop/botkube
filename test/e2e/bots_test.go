@@ -336,84 +336,21 @@ func runBotTest(t *testing.T,
 		})
 	})
 
-	t.Run("List commands", func(t *testing.T) {
-		command := "list commands"
-		expectedBody := codeBlock(heredoc.Doc(`
-			Enabled executors:
-			  kubectl:
-			    kubectl-allow-all:
-			      namespaces:
-			        include:
-			          - .*
-			      enabled: true
-			      commands:
-			        verbs:
-			          - get
-			        resources:
-			          - deployments
-			    kubectl-read-only:
-			      namespaces:
-			        include:
-			          - botkube
-			          - default
-			      enabled: true
-			      commands:
-			        verbs:
-			          - api-resources
-			          - api-versions
-			          - cluster-info
-			          - describe
-			          - explain
-			          - get
-			          - logs
-			          - top
-			        resources:
-			          - deployments
-			          - pods
-			          - namespaces
-			          - daemonsets
-			          - statefulsets
-			          - storageclasses
-			          - nodes
-			          - configmaps
-			          - services
-			          - ingresses
-			      defaultNamespace: default
-			      restrictAccess: false
-			    kubectl-wait-cmd:
-			      namespaces:
-			        include:
-			          - botkube
-			          - default
-			      enabled: true
-			      commands:
-			        verbs:
-			          - wait
-			        resources: []
-			      restrictAccess: false`))
-		expectedFilteredBody := codeBlock(heredoc.Doc(`
-			          - api-resources
-			                    - api-versions`))
-		expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
-
-		t.Run("With default cluster", func(t *testing.T) {
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-			assert.NoError(t, err)
-		})
-
-		t.Run("With custom cluster name", func(t *testing.T) {
-			command := fmt.Sprintf("list commands --cluster-name %s", appCfg.ClusterName)
-			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedBody)
+	t.Run("Show config", func(t *testing.T) {
+		t.Run("With custom cluster name and filter", func(t *testing.T) {
+			command := fmt.Sprintf("show config --filter=cacheDir --cluster-name %s", appCfg.ClusterName)
+			expectedFilteredBody := codeBlock(heredoc.Doc(`cacheDir: /tmp`))
+			expectedMessage := fmt.Sprintf("`show config --filter=cacheDir --cluster-name %s` on `%s`\n%s", appCfg.ClusterName, appCfg.ClusterName, expectedFilteredBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
-		t.Run("With custom cluster name and filter", func(t *testing.T) {
-			command := fmt.Sprintf("list commands --cluster-name %s --filter=api", appCfg.ClusterName)
-			expectedMessage := fmt.Sprintf("Available kubectl commands on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
+		t.Run("With filter", func(t *testing.T) {
+			command := "show config --filter=cacheDir"
+			expectedFilteredBody := codeBlock(heredoc.Doc(`cacheDir: /tmp`))
+			expectedMessage := fmt.Sprintf("`show config --filter=cacheDir` on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
@@ -421,7 +358,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
-			command := "list commands --cluster-name non-existing"
+			command := "show config --cluster-name non-existing"
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			t.Log("Ensuring bot didn't post anything new...")
@@ -860,6 +797,42 @@ func runBotTest(t *testing.T,
 			describe-created-resource false    Describe created resource
 			get-created-resource      true     Get created resource
 			show-logs-on-error        false    Show logs on error`))
+
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		assert.NoError(t, err)
+	})
+
+	t.Run("List executors", func(t *testing.T) {
+		command := "list executors"
+		expectedBody := codeBlock(heredoc.Doc(`
+			EXECUTOR                  ENABLED
+			botkube/echo@v1.0.1-devel true
+			botkube/helm              true
+			kubectl-allow-all         true
+			kubectl-exec-cmd          false
+			kubectl-read-only         true
+			kubectl-wait-cmd          true`))
+
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		assert.NoError(t, err)
+	})
+
+	t.Run("List sources", func(t *testing.T) {
+		command := "list sources"
+		expectedBody := codeBlock(heredoc.Doc(`
+		SOURCE ENABLED DISPLAY NAME`))
+		if botDriver.Type() == DiscordBot {
+			expectedBody = codeBlock(heredoc.Doc(`
+			SOURCE                  ENABLED DISPLAY NAME
+			botkube/cm-watcher      true    
+			k8s-annotated-cm-delete true    
+			k8s-events              true    
+			k8s-pod-create-events   true`))
+		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
