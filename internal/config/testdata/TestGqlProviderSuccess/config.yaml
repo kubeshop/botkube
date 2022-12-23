@@ -1,0 +1,58 @@
+communications:
+  default-group:
+    socketSlack:
+      appToken: xapp-1-A047D1ZJ03B-4262138376928
+      botToken: xoxb-3933899240838
+      channels:
+        botkube-demo:
+          bindings:
+            executors:
+            - kubectl-read-only
+            sources:
+            - kubernetes-info
+          name: botkube-demo
+          notification:
+            disabled: false
+      enabled: true
+executors:
+  kubectl-read-only:
+    kubectl:
+      commands:
+        resources:
+        - deployments
+        - pods
+        - namespaces
+        - daemonsets
+        - statefulsets
+        - storageclasses
+        - nodes
+        verbs:
+        - api-resources
+        - api-versions
+        - cluster-info
+        - describe
+        - diff
+        - explain
+        - get
+        - logs
+        - top
+        - auth
+      defaultNamespace: default
+      enabled: true
+      namespaces:
+        include:
+        - .*
+      restrictAccess: false
+settings:
+  clusterName: qa
+sources:
+  kubernetes-info:
+    displayName: Kubernetes Information
+    kubernetes:
+      recommendations:
+        ingress:
+          backendServiceValid: true
+          tlsSecretValid: true
+        pod:
+          labelsSet: true
+          noLatestImageTag: true

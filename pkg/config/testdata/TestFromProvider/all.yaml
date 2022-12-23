@@ -1,0 +1,17 @@
+analytics:
+  disable: true
+actions:
+  show-created-resource:
+    enabled: true
+    displayName: Display created resource
+    command: kubectl describe {{.Event.ResourceType}} -n {{.Event.Namespace}} {{.Event.Name}}
+    bindings:
+      sources:
+        - k8s-events
+      executors:
+        - kubectl-read-only
+plugins:
+  cacheDir: /tmp
+  repositories:
+    botkube:
+      url: http://localhost:3000/botkube.yaml

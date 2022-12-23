@@ -1,0 +1,216 @@
+communications: # req 1 elm.
+  'default-workspace':
+    slack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      token: 'SLACK_API_TOKEN'
+      notification:
+        type: short
+    socketSlack:
+      enabled: true
+      channels:
+        alias:
+          name: SLACK_CHANNEL
+          notification:
+            disabled: false
+          bindings:
+            sources:
+              - k8s-events
+            executors:
+              - kubectl-read-only
+      notification:
+        type: short
+      botToken: 'SLACK_BOT_TOKEN'
+      appToken: 'SLACK_APP_TOKEN'
+
+    mattermost:
+      enabled: false
+      url: 'MATTERMOST_SERVER_URL'
+      token: 'MATTERMOST_TOKEN'
+      team: 'MATTERMOST_TEAM'
+      channels:
+        'alias':
+          name: 'MATTERMOST_CHANNEL'
+          notification:
+            disabled: true
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    teams:
+      enabled: false
+      appID: 'APPLICATION_ID'
+      appPassword: 'APPLICATION_PASSWORD'
+      bindings:
+        executors:
+          - kubectl-read-only
+        sources:
+          - k8s-events
+      notification:
+        type: short
+      port: 3978
+
+    discord:
+      enabled: false
+      token: 'DISCORD_TOKEN'
+      botID: 'DISCORD_BOT_ID'
+      channels:
+        'alias':
+          id: 'DISCORD_CHANNEL_ID'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+    elasticsearch:
+      enabled: false
+      awsSigning:
+        enabled: false
+        awsRegion: 'us-east-1'
+        roleArn: ''
+      server: 'ELASTICSEARCH_ADDRESS'
+      username: 'ELASTICSEARCH_USERNAME'
+      password: 'ELASTICSEARCH_PASSWORD'
+      skipTLSVerify: false
+      indices:
+        'alias':
+          name: botkube
+          type: botkube-event
+          shards: 1
+          bindings:
+            sources:
+              - "k8s-events"
+
+    webhook:
+      enabled: false
+      url: 'WEBHOOK_URL'
+      bindings:
+        sources:
+          - k8s-events
+
+sources:
+  'k8s-events':
+    displayName: "Plugins & Builtins"
+
+    kubernetes:
+      recommendations:
+        pod:
+          noLatestImageTag: false
+          labelsSet: true
+        ingress:
+          backendServiceValid: true
+          tlsSecretValid: false
+      namespaces:
+        include:
+          - ".*"
+        exclude: [ ]
+      event:
+        reason: ".*"
+        message: "^Error .*"
+        types:
+          - create
+          - delete
+          - error
+      annotations:
+        my-annotation: "true"
+      labels:
+        my-label: "true"
+
+      resources:
+        - type: v1/pods
+        - type: v1/services
+        - type: networking.k8s.io/v1/ingresses
+        - type: v1/nodes
+          event:
+            reason: NodeNotReady
+            message: "status .*"
+        - type: v1/namespaces
+        - type: v1/persistentvolumes
+        - type: v1/persistentvolumeclaims
+        - type: v1/configmaps
+          namespaces: # Overrides 'source.kubernetes.namespaces
+            include:
+              - "default"
+            exclude:
+              - "kube-system"
+        - type: rbac.authorization.k8s.io/v1/roles
+        - type: rbac.authorization.k8s.io/v1/rolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+        - type: rbac.authorization.k8s.io/v1/clusterroles
+        - type: apps/v1/daemonsets
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.numberReady
+        - type: batch/v1/jobs
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
+          annotations: # Overrides 'source'.kubernetes.annotations
+            my-own-annotation: "true"
+          labels: # Overrides 'source'.kubernetes.labels
+            my-own-label: "true"
+          name: "my-.*"
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.conditions[*].type
+        - type: apps/v1/deployments
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.availableReplicas
+        - type: apps/v1/statefulsets
+          event: # Overrides 'source'.kubernetes.event
+            types:
+              - create
+              - update
+              - delete
+              - error
+          updateSetting:
+            includeDiff: true
+            fields:
+              - spec.template.spec.containers[*].image
+              - status.readyReplicas
+
+    botkube/keptn:
+      enabled: true
+      config:
+        field: value
+
+filters:
+  kubernetes:
+    objectAnnotationChecker: true
+    nodeEventsChecker: false

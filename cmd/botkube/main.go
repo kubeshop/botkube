@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/go-github/v44/github"
@@ -28,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -66,9 +68,15 @@ func main() {
 func run() error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	conf, confDetails, err := config.LoadWithDefaults(config.FromEnvOrFlag)
+	var gqlClient intconfig.GqlClient = intconfig.NewGqlClient(intconfig.WithAPIURL(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
+	configs, err := config.FromProvider(&gqlClient)
 	if err != nil {
-		return fmt.Errorf("while loading app configuration: %w", err)
+		return fmt.Errorf("while loading configuration files: %w", err)
+	}
+
+	conf, confDetails, err := config.LoadWithDefaults(configs)
+	if err != nil {
+		return fmt.Errorf("while merging app configuration: %w", err)
 	}
 
 	logger := loggerx.New(conf.Settings.Log)

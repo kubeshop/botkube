@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -17,11 +19,10 @@ import (
 
 func TestStartingUniqueProcesses(t *testing.T) {
 	// given
-	givenCfg, _, err := config.LoadWithDefaults(func() []string {
-		return []string{
-			testdataFile(t, "config.yaml"),
-		}
-	})
+	files := intConfig.YAMLFiles{
+		readTestdataFile(t, "config.yaml"),
+	}
+	givenCfg, _, err := config.LoadWithDefaults(files)
 	require.NoError(t, err)
 
 	expectedProcesses := map[string]struct{}{
@@ -66,9 +67,12 @@ func mustYAMLMarshal(t *testing.T, in any) []byte {
 	return raw
 }
 
-func testdataFile(t *testing.T, name string) string {
+func readTestdataFile(t *testing.T, name string) []byte {
 	t.Helper()
-	return filepath.Join("testdata", t.Name(), name)
+	path := filepath.Join("testdata", t.Name(), name)
+	out, err := os.ReadFile(filepath.Clean(path))
+	require.NoError(t, err)
+	return out
 }
 
 // The fakeDispatcherFunc type is an adapter to allow the use of

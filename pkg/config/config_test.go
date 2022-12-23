@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/golden"
 
+	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -27,17 +29,17 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL", "http://localhost:3000/botkube.yaml")
 
 	// when
-	gotCfg, _, err := config.LoadWithDefaults(func() []string {
-		return []string{
-			testdataFile(t, "_aaa-special-file.yaml"),
-			testdataFile(t, "config-all.yaml"),
-			testdataFile(t, "config-global.yaml"),
-			testdataFile(t, "config-slack-override.yaml"),
-			testdataFile(t, "analytics.yaml"),
-			testdataFile(t, "executors.yaml"),
-			testdataFile(t, "actions.yaml"),
-		}
-	})
+	files := intConfig.YAMLFiles{
+		readTestdataFile(t, "config-all.yaml"),
+		readTestdataFile(t, "config-global.yaml"),
+		readTestdataFile(t, "config-slack-override.yaml"),
+		readTestdataFile(t, "analytics.yaml"),
+		readTestdataFile(t, "executors.yaml"),
+		readTestdataFile(t, "actions.yaml"),
+		readTestdataFile(t, "_aaa-special-file.yaml"),
+	}
+	// sorted was extracted ...
+	gotCfg, _, err := config.LoadWithDefaults(files)
 
 	//then
 	require.NoError(t, err)
@@ -68,12 +70,12 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 		},
 	}
 
+	files := intConfig.YAMLFiles{
+		readTestdataFile(t, "config-all.yaml"),
+	}
+
 	// when
-	gotCfg, _, err := config.LoadWithDefaults(func() []string {
-		return []string{
-			testdataFile(t, "config-all.yaml"),
-		}
-	})
+	gotCfg, _, err := config.LoadWithDefaults(files)
 
 	//then
 	require.NoError(t, err)
@@ -83,36 +85,36 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 	assert.Equal(t, expExecutorPlugin, gotCfg.Executors["plugin-based"].Plugins)
 }
 
-func TestFromEnvOrFlag(t *testing.T) {
-	var expConfigPaths = []string{
-		"configs/first.yaml",
-		"configs/second.yaml",
-		"configs/third.yaml",
-	}
-
+func TestFromProvider(t *testing.T) {
 	t.Run("from envs variable only", func(t *testing.T) {
 		// given
-		t.Setenv("BOTKUBE_CONFIG_PATHS", "configs/first.yaml,configs/second.yaml,configs/third.yaml")
+		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigs, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
-		assert.Equal(t, expConfigPaths, gotConfigPaths)
+		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
+		assert.NoError(t, err)
+		assert.Equal(t, c, gotConfigs.Merge())
 	})
 
 	t.Run("from CLI flag only", func(t *testing.T) {
 		// given
 		fSet := pflag.NewFlagSet("testing", pflag.ContinueOnError)
 		config.RegisterFlags(fSet)
-		err := fSet.Parse([]string{"--config=configs/first.yaml,configs/second.yaml", "--config", "configs/third.yaml"})
+		err := fSet.Parse([]string{"--config=testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml", "--config", "testdata/TestFromProvider/third.yaml"})
 		require.NoError(t, err)
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigs, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
-		assert.Equal(t, expConfigPaths, gotConfigPaths)
+		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
+		assert.NoError(t, err)
+		assert.Equal(t, c, gotConfigs.Merge())
 	})
 
 	t.Run("should honor env variable over the CLI flag", func(t *testing.T) {
@@ -120,16 +122,19 @@ func TestFromEnvOrFlag(t *testing.T) {
 		fSet := pflag.NewFlagSet("testing", pflag.ContinueOnError)
 		config.RegisterFlags(fSet)
 
-		err := fSet.Parse([]string{"--config=configs/from-cli-flag.yaml,configs/from-cli-flag-second.yaml"})
+		err := fSet.Parse([]string{"--config=testdata/TestFromProvider/from-cli-flag.yaml,testdata/TestFromProvider/from-cli-flag-second.yaml"})
 		require.NoError(t, err)
 
-		t.Setenv("BOTKUBE_CONFIG_PATHS", "configs/first.yaml,configs/second.yaml,configs/third.yaml")
+		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		gotConfigPaths := config.FromEnvOrFlag()
+		gotConfigs, err := config.FromProvider(nil)
+		assert.NoError(t, err)
 
 		// then
-		assert.Equal(t, expConfigPaths, gotConfigPaths)
+		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
+		assert.NoError(t, err)
+		assert.Equal(t, c, gotConfigs.Merge())
 	})
 }
 
@@ -185,24 +190,24 @@ func TestNormalizeConfigEnvName(t *testing.T) {
 func TestLoadedConfigValidationErrors(t *testing.T) {
 	// given
 	tests := []struct {
-		name        string
-		expErrMsg   string
-		configFiles []string
+		name      string
+		expErrMsg string
+		configs   [][]byte
 	}{
 		{
 			name: "no config files",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Communications' Communications is a required field`),
-			configFiles: nil,
+			configs: nil,
 		},
 		{
 			name: "empty executors and communications settings",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Communications' Communications must contain at least 1 item`),
-			configFiles: []string{
-				testdataFile(t, "empty-executors-communications.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "empty-executors-communications.yaml"),
 			},
 		},
 		{
@@ -211,8 +216,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token`),
-			configFiles: []string{
-				testdataFile(t, "app-token-only.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "app-token-only.yaml"),
 			},
 		},
 		{
@@ -221,8 +226,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token`),
-			configFiles: []string{
-				testdataFile(t, "bot-token-only.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "bot-token-only.yaml"),
 			},
 		},
 		{
@@ -234,8 +239,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken must have the xapp- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token`),
-			configFiles: []string{
-				testdataFile(t, "no-token.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "no-token.yaml"),
 			},
 		},
 		{
@@ -243,8 +248,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
-			configFiles: []string{
-				testdataFile(t, "missing-executor.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "missing-executor.yaml"),
 			},
 		},
 		{
@@ -252,8 +257,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.k8s-events' 'k8s-events' binding not defined in Config.Sources`),
-			configFiles: []string{
-				testdataFile(t, "missing-source.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "missing-source.yaml"),
 			},
 		},
 		{
@@ -262,17 +267,15 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Actions[show-created-resource].Bindings.k8s-err-events' 'k8s-err-events' binding not defined in Config.Sources
 					* Key: 'Config.Actions[show-created-resource].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
-			configFiles: []string{
-				testdataFile(t, "missing-action-bindings.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "missing-action-bindings.yaml"),
 			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(tc.configs)
 
 			// then
 			assert.Nil(t, cfg)
@@ -285,9 +288,9 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 func TestLoadedConfigValidationWarnings(t *testing.T) {
 	// given
 	tests := []struct {
-		name        string
-		expWarnMsg  string
-		configFiles []string
+		name       string
+		expWarnMsg string
+		configs    [][]byte
 	}{
 		{
 			name: "executor specifies all and exact namespace in include property",
@@ -295,17 +298,15 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 				2 errors occurred:
 					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include matches both all and exact namespaces
 					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include matches both all and exact namespaces`),
-			configFiles: []string{
-				testdataFile(t, "executors-include-warning.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "executors-include-warning.yaml"),
 			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(tc.configs)
 
 			// then
 			assert.NotNil(t, cfg)
@@ -318,9 +319,9 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 	// given
 	tests := []struct {
-		name        string
-		expErrMsg   string
-		configFiles []string
+		name      string
+		expErrMsg string
+		configs   [][]byte
 	}{
 		{
 			name: "should report an issue with bindings for same plugin name but coming from two different repositories",
@@ -328,8 +329,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin from "botkube" repository. Bind it to a different channel, change it to the one from the "botkube" repository, or remove it.
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[alias].Bindings.mszostok/kubectl@v1.0.0' conflicts with already bound "kubectl" plugin from "botkube" repository. Bind it to a different channel, change it to the one from the "botkube" repository, or remove it.`),
-			configFiles: []string{
-				testdataFile(t, "bind-diff-repo.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "bind-diff-repo.yaml"),
 			},
 		},
 		{
@@ -338,8 +339,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin in the latest version. Bind it to a different channel, change it to the latest version, or remove it.
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[latest].Bindings.botkube/kubectl@v1.0.0' conflicts with already bound "kubectl" plugin in the latest version. Bind it to a different channel, change it to the latest version, or remove it.`),
-			configFiles: []string{
-				testdataFile(t, "bind-diff-ver-latest.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "bind-diff-ver-latest.yaml"),
 			},
 		},
 		{
@@ -348,8 +349,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/prometheus@v1.2.0' conflicts with already bound "prometheus" plugin in the "v1.0.0" version. Bind it to a different channel, change it to the "v1.0.0" version, or remove it.
 					* Key: 'Config.Communications[default-workspace].SocketSlack.Channels[versions].Bindings.botkube/kubectl@v2.0.0' conflicts with already bound "kubectl" plugin in the "v1.0.0" version. Bind it to a different channel, change it to the "v1.0.0" version, or remove it.`),
-			configFiles: []string{
-				testdataFile(t, "bind-diff-ver.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "bind-diff-ver.yaml"),
 			},
 		},
 		{
@@ -358,8 +359,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Sources[duplicated-names].mszostok/prometheus@v1.2.0' conflicts with already defined "prometheus" plugin from "botkube" repository. Extract it to a dedicated configuration group or remove it from this one.
 					* Key: 'Config.Executors[duplicated-names].mszostok/kubectl' conflicts with already defined "kubectl" plugin from "botkube" repository. Extract it to a dedicated configuration group or remove it from this one.`),
-			configFiles: []string{
-				testdataFile(t, "cfg-group-diff-repo.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "cfg-group-diff-repo.yaml"),
 			},
 		},
 		{
@@ -368,8 +369,8 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 				found critical validation errors: 2 errors occurred:
 					* Key: 'Config.Sources[wrong-vers].botkube/prometheus@v1.2.0' conflicts with already defined "prometheus" plugin in the "v1.0.0" version. Extract it to a dedicated configuration group or remove it from this one.
 					* Key: 'Config.Executors[wrong-vers].botkube/kubectl@v1.0.0' conflicts with already defined "kubectl" plugin in the latest version. Extract it to a dedicated configuration group or remove it from this one.`),
-			configFiles: []string{
-				testdataFile(t, "cfg-group-diff-ver.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "cfg-group-diff-ver.yaml"),
 			},
 		},
 		{
@@ -391,17 +392,15 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 					* Key: 'Config.Executors[wrong-name].some-3rd-plugin' plugin key "some-3rd-plugin" doesn't follow the required {repo_name}/{plugin_name} syntax
 					* Key: 'Config.Executors[wrong-name].testing/@v1.0.0' doesn't follow the required {repo_name}/{plugin_name} syntax: 1 error occurred:
 						* plugin name is required`),
-			configFiles: []string{
-				testdataFile(t, "cfg-group-wrong-plugin-def.yaml"),
+			configs: [][]byte{
+				readTestdataFile(t, "cfg-group-wrong-plugin-def.yaml"),
 			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			cfg, details, err := config.LoadWithDefaults(func() []string {
-				return tc.configFiles
-			})
+			cfg, details, err := config.LoadWithDefaults(tc.configs)
 
 			// then
 			assert.Nil(t, cfg)
@@ -411,9 +410,12 @@ func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 	}
 }
 
-func testdataFile(t *testing.T, name string) string {
+func readTestdataFile(t *testing.T, name string) []byte {
 	t.Helper()
-	return filepath.Join("testdata", t.Name(), name)
+	path := filepath.Join("testdata", t.Name(), name)
+	out, err := os.ReadFile(filepath.Clean(path))
+	require.NoError(t, err)
+	return out
 }
 
 func TestIsNamespaceAllowed(t *testing.T) {
@@ -460,30 +462,6 @@ func TestIsNamespaceAllowed(t *testing.T) {
 			if actual != test.isAllowed {
 				t.Errorf("expected: %v != actual: %v\n", test.isAllowed, actual)
 			}
-		})
-	}
-}
-
-func TestSortCfgFiles(t *testing.T) {
-	tests := map[string]struct {
-		input    []string
-		expected []string
-	}{
-		"No special files": {
-			input:    []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/_bar/baz.yaml"},
-			expected: []string{"config.yaml", ".bar.yaml", "/_foo/bar.yaml", "/_bar/baz.yaml"},
-		},
-		"Special files": {
-			input:    []string{"_test.yaml", "config.yaml", "_foo.yaml", ".bar.yaml", "/bar/_baz.yaml"},
-			expected: []string{"config.yaml", ".bar.yaml", "_test.yaml", "_foo.yaml", "/bar/_baz.yaml"},
-		},
-	}
-
-	for name, test := range tests {
-		name, test := name, test
-		t.Run(name, func(t *testing.T) {
-			actual := config.SortCfgFiles(test.input)
-			assert.Equal(t, test.expected, actual)
 		})
 	}
 }
