@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	intConfig "github.com/kubeshop/botkube/internal/config"
+	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -68,7 +68,7 @@ func main() {
 func run() error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	var gqlClient intConfig.GqlClient = intConfig.NewGqlClient(intConfig.WithAPIURL(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
+	var gqlClient intconfig.GqlClient = intconfig.NewGqlClient(intconfig.WithAPIURL(os.Getenv("CONFIG_SOURCE_ENDPOINT")))
 	configs, err := config.FromProvider(&gqlClient)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
