@@ -396,6 +396,19 @@ executors:
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
 
+  'helm':
+    ## Helm executor configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/helm:
+      # -- If true, enables `helm` commands execution.
+      enabled: false
+      config:
+        # -- Allowed values are configmap, secret, memory.
+        helmDriver: "secret"
+        # -- Location for storing Helm configuration.
+        helmConfigDir: "/tmp/helm/"
+        # -- Location for storing cached files. Must be under the Helm config directory.
+        helmCacheDir: "/tmp/helm/.cache"
 
 # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
 # To reload Botkube once it changes, add label `botkube.io/config-watch: "true"`.
@@ -843,3 +856,13 @@ configWatcher:
     tag: ignore-initial-events
     # -- Config watcher image pull policy.
     pullPolicy: IfNotPresent
+
+# -- Configuration for Botkube executors and sources plugins.
+plugins:
+  # -- Directory, where downloaded plugins are cached.
+  cacheDir: "/tmp"
+  # -- List of plugins repositories.
+  repositories:
+    # -- This repository serves officially supported Botkube plugins.
+    botkube:
+      url: https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml
