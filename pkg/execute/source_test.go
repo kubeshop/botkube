@@ -33,9 +33,10 @@ func TestSourceExecutor(t *testing.T) {
 				},
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
-			expOutput: heredoc.Doc(`SOURCE         ENABLED DISPLAY NAME
-            kubectl-team-a true    kubectl-team-a
-            kubectl-team-b true    kubectl-team-b`),
+			expOutput: heredoc.Doc(`
+			SOURCE         ENABLED DISPLAY NAME
+			kubectl-team-a true    kubectl-team-a
+			kubectl-team-b true    kubectl-team-b`),
 		},
 		{
 			name: "two sources with plugin",
@@ -58,10 +59,11 @@ func TestSourceExecutor(t *testing.T) {
 				},
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugin-a"},
-			expOutput: heredoc.Doc(`SOURCE         ENABLED DISPLAY NAME
-            kubectl-team-a true    kubectl-team-a
-            kubectl-team-b true    kubectl-team-b
-            plugin-a       true    plugin-a`),
+			expOutput: heredoc.Doc(`
+			SOURCE         ENABLED DISPLAY NAME
+			kubectl-team-a true    kubectl-team-a
+			kubectl-team-b true    kubectl-team-b
+			plugin-a       true    plugin-a`),
 		},
 	}
 	for _, tc := range testCases {

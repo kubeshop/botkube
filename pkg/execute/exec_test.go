@@ -44,7 +44,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 				kubectl-team-b false`),
 		},
 		{
-			name: "two executors with plugin",
+			name: "executors and plugins",
 			cfg: config.Config{
 				Executors: map[string]config.Executors{
 					"kubectl-exec-cmd": {
@@ -63,7 +63,6 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 							Enabled: true,
 						},
 					},
-
 					"botkube/helm": {
 						Plugins: config.PluginsExecutors{
 							"botkube/helm": config.PluginExecutor{
