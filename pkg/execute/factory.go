@@ -25,13 +25,14 @@ type DefaultExecutorFactory struct {
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
-	commandExecutor       *CommandsExecutor
 	filterExecutor        *FilterExecutor
 	pingExecutor          *PingExecutor
 	versionExecutor       *VersionExecutor
 	helpExecutor          *HelpExecutor
 	feedbackExecutor      *FeedbackExecutor
 	configExecutor        *ConfigExecutor
+	execExecutor          *ExecExecutor
+	sourceExecutor        *SourceExecutor
 	merger                *kubectl.Merger
 	cfgManager            ConfigPersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
@@ -101,11 +102,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		params.CfgManager,
 		params.Cfg,
 	)
-	commandExecutor := NewCommandsExecutor(
-		params.Log.WithField("component", "Botkube Command Executor"),
-		params.AnalyticsReporter,
-		params.Merger,
-	)
 	filterExecutor := NewFilterExecutor(
 		params.Log.WithField("component", "Botkube Filter Executor"),
 		params.AnalyticsReporter,
@@ -141,11 +137,20 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		params.AnalyticsReporter,
 		params.Cfg,
 	)
+	execExecutor := NewExecExecutor(
+		params.Log.WithField("component", "Botkube Executor Bindings Executor"),
+		params.AnalyticsReporter,
+		params.Cfg,
+	)
+	sourceExecutor := NewSourceExecutor(
+		params.Log.WithField("component", "Botkube Source Bindings Executor"),
+		params.AnalyticsReporter,
+		params.Cfg,
+	)
 
 	executors := []CommandExecutor{
 		actionExecutor,
 		sourceBindingExecutor,
-		commandExecutor,
 		filterExecutor,
 		pingExecutor,
 		versionExecutor,
@@ -153,6 +158,8 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		feedbackExecutor,
 		notifierExecutor,
 		configExecutor,
+		execExecutor,
+		sourceExecutor,
 	}
 	mappings, err := NewCmdsMapping(executors)
 	if err != nil {
@@ -178,13 +185,14 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		),
 		sourceBindingExecutor: sourceBindingExecutor,
 		actionExecutor:        actionExecutor,
-		commandExecutor:       commandExecutor,
 		filterExecutor:        filterExecutor,
 		pingExecutor:          pingExecutor,
 		versionExecutor:       versionExecutor,
 		helpExecutor:          helpExecutor,
 		feedbackExecutor:      feedbackExecutor,
 		configExecutor:        configExecutor,
+		execExecutor:          execExecutor,
+		sourceExecutor:        sourceExecutor,
 		merger:                params.Merger,
 		cfgManager:            params.CfgManager,
 		kubectlExecutor:       kcExecutor,
@@ -197,6 +205,7 @@ type Conversation struct {
 	Alias            string
 	ID               string
 	ExecutorBindings []string
+	SourceBindings   []string
 	IsAuthenticated  bool
 	CommandOrigin    command.Origin
 	State            *slack.BlockActionStates
@@ -223,7 +232,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		notifierExecutor:      f.notifierExecutor,
 		sourceBindingExecutor: f.sourceBindingExecutor,
 		actionExecutor:        f.actionExecutor,
-		commandExecutor:       f.commandExecutor,
 		filterExecutor:        f.filterExecutor,
 		filterEngine:          f.filterEngine,
 		pingExecutor:          f.pingExecutor,
@@ -231,6 +239,8 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		helpExecutor:          f.helpExecutor,
 		feedbackExecutor:      f.feedbackExecutor,
 		configExecutor:        f.configExecutor,
+		execExecutor:          f.execExecutor,
+		sourceExecutor:        f.sourceExecutor,
 		merger:                f.merger,
 		cfgManager:            f.cfgManager,
 		kubectlCmdBuilder:     f.kubectlCmdBuilder,

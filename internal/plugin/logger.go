@@ -52,7 +52,7 @@ func getPluginLogLevel(logger logrus.FieldLogger, pluginKey string, pluginType T
 	logLevel := os.Getenv(envName)
 
 	if logLevel == "" {
-		logger.Info("Explicitly using Info level as custom log level was not set by %q environment variable", envName)
+		logger.Infof("Explicitly using Info level as custom log level was not set by %q environment variable", envName)
 		return logrus.InfoLevel
 	}
 

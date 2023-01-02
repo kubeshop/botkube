@@ -297,6 +297,7 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 			IsAuthenticated:  true,
 			ID:               ref.ChannelID,
 			ExecutorBindings: b.bindings.Executors,
+			SourceBindings:   b.bindings.Sources,
 			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: trimmedMsg,

@@ -268,6 +268,7 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 			Alias:            channel.alias,
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
+			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
 		},
