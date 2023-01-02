@@ -200,6 +200,8 @@ type Conversation struct {
 	IsAuthenticated  bool
 	CommandOrigin    command.Origin
 	State            *slack.BlockActionStates
+	UserEmail        string
+	UserGroup        string
 }
 
 // NewDefaultInput an input for NewDefault

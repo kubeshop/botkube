@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
@@ -65,6 +66,9 @@ type socketSlackMessage struct {
 	State           *slack.BlockActionStates
 	ResponseURL     string
 	BlockID         string
+
+	UserGroup string
+	UserEmail string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -152,6 +156,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
+						log.Printf(">>>> slack message: %s\n", format.StructDumper().Sdump(eventsAPIEvent))
 						b.log.Debugf("Got app mention %s", format.StructDumper().Sdump(innerEvent))
 						msg := socketSlackMessage{
 							Text:            ev.Text,
@@ -160,6 +165,26 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							User:            ev.User,
 							CommandOrigin:   command.TypedOrigin,
 						}
+
+						user, err := b.client.GetUserInfo(ev.User)
+						if err != nil {
+							b.log.Errorf("while getting user: %s", err.Error())
+						}
+						log.Printf(">>>> slack user: %s\n", format.StructDumper().Sdump(user))
+
+						conv, err := b.client.GetConversationInfo(msg.Channel, false)
+						if err != nil {
+							b.log.Errorf("while getting conversation info: %s", err.Error())
+						}
+
+						log.Printf(">>>> slack conv: %s\n", format.StructDumper().Sdump(conv))
+
+						userEmail := user.Profile.Email
+						userGroup := conv.Name
+
+						msg.UserEmail = userEmail
+						msg.UserGroup = userGroup
+
 						if err := b.handleMessage(ctx, msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
 						}
@@ -328,6 +353,8 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    event.CommandOrigin,
 			State:            event.State,
+			UserEmail:        event.UserEmail,
+			UserGroup:        event.UserGroup,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),

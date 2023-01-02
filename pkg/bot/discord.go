@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -104,6 +106,8 @@ func (b *Discord) Start(ctx context.Context) error {
 		msg := discordMessage{
 			Event: m,
 		}
+
+		log.Printf(">>>> discord message: %s\n", format.StructDumper().Sdump(m))
 		if err := b.handleMessage(ctx, msg); err != nil {
 			b.log.Errorf("Message handling error: %s", err.Error())
 		}

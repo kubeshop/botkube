@@ -12,6 +12,9 @@ rules:
 {{- with .Values.rbac.rules }}
 {{- toYaml . | nindent 2 }}
 {{- end }}
+  - apiGroups: [ "" ]
+    resources: [ "users", "groups" ]
+    verbs: [ "impersonate" ]
 {{- if .Values.podSecurityPolicy.enabled }}
   - apiGroups: ["extensions"]
     resourceNames: ["botkube-psp"]

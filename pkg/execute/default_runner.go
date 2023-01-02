@@ -15,7 +15,7 @@ type CommandRunner interface {
 
 // CommandCombinedOutputRunner provides functionality to run arbitrary commands.
 type CommandCombinedOutputRunner interface {
-	RunCombinedOutput(command string, args []string) (string, error)
+	RunCombinedOutput(command string, args []string, envs []string) (string, error)
 }
 
 // CommandSeparateOutputRunner provides functionality to run arbitrary commands.
@@ -43,9 +43,10 @@ func (*OSCommand) RunSeparateOutput(command string, args []string) (string, stri
 }
 
 // RunCombinedOutput runs a given command and returns its combined standard output and standard error.
-func (*OSCommand) RunCombinedOutput(command string, args []string) (string, error) {
+func (*OSCommand) RunCombinedOutput(command string, args []string, additionalEnvs []string) (string, error) {
 	// #nosec G204
 	cmd := exec.Command(command, args...)
+	cmd.Env = append(cmd.Env, additionalEnvs...)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }

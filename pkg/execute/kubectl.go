@@ -2,6 +2,8 @@ package execute
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"unicode"
 
@@ -9,10 +11,14 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/strings/slices"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
@@ -135,12 +141,12 @@ func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
 // - we are a target cluster,
 // - and Kubectl.CanHandle returned true.
 func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool, cmdCtx CommandContext) (string, error) {
-	log := e.log.WithFields(logrus.Fields{
+	logger := e.log.WithFields(logrus.Fields{
 		"isAuthChannel": isAuthChannel,
 		"command":       command,
 	})
 
-	log.Debugf("Handling command...")
+	logger.Debugf("Handling command...")
 
 	args, err := e.getArgsWithoutAlias(command)
 	if err != nil {
@@ -166,7 +172,7 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool,
 
 	if !isAuthChannel && kcConfig.RestrictAccess {
 		msg := NewExecutionCommandError(kubectlNotAuthorizedMsgFmt, clusterName)
-		return "", e.omitIfWeAreNotExplicitlyTargetCluster(log, msg, cmdCtx)
+		return "", e.omitIfWeAreNotExplicitlyTargetCluster(logger, msg, cmdCtx)
 	}
 
 	if !e.kcChecker.IsVerbAllowedInNs(kcConfig, verb) {
@@ -191,8 +197,24 @@ func (e *Kubectl) Execute(bindings []string, command string, isAuthChannel bool,
 		}
 	}
 
+	// of course this needs to be moved to global executor to ensure each execution of any plugin has its own kubeconfig
+	kcPath, err := generateKubeconfig(cmdCtx.Conversation.UserEmail, cmdCtx.Conversation.UserGroup)
+	if err != nil {
+		return "", fmt.Errorf("while generating kubeconfig: %w", err)
+	}
+	defer func() {
+		log.Println("Removing kubeconfig")
+		err = os.Remove(kcPath)
+		if err != nil {
+			log.Printf("while removing kubeconfig file: %v", err)
+		}
+	}()
+
+	kcConfigPath := "/tmp/kubeconfig"
+	additionalEnvs := []string{fmt.Sprintf("KUBECONFIG=%s", kcConfigPath)}
+
 	finalArgs := e.getFinalArgs(args)
-	out, err := e.cmdRunner.RunCombinedOutput(KubectlBinary, finalArgs)
+	out, err := e.cmdRunner.RunCombinedOutput(KubectlBinary, finalArgs, additionalEnvs)
 	out = color.ClearCode(out)
 	if err != nil {
 		return "", NewExecutionCommandError("%s%s", out, err.Error())
@@ -318,4 +340,52 @@ func (e *Kubectl) getResourceName(args []string) string {
 func (e *Kubectl) validResourceName(resource string) bool {
 	// ensures that resource name starts with letter
 	return unicode.IsLetter(rune(resource[0]))
+}
+
+func generateKubeconfig(userEmail, userGroup string) (string, error) {
+	restCfg, err := rest.InClusterConfig() // TODO: pass this configuration from main instead of this line
+	if err != nil {
+		return "", err
+	}
+
+	log.Println("restCfg", format.StructDumper().Sdump(restCfg))
+
+	// TODO: use os.CreateTemp
+	dir := os.TempDir()
+	filename := fmt.Sprintf("%s/kubeconfig", dir)
+
+	apiCfg := clientcmdapi.Config{
+		Kind:       "Config",
+		APIVersion: "v1",
+		Clusters: map[string]*clientcmdapi.Cluster{
+			"default": {
+				Server:               restCfg.Host,
+				CertificateAuthority: restCfg.CAFile,
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			"default": {
+				Cluster:   "default",
+				Namespace: "default",
+				AuthInfo:  "default",
+			},
+		},
+		CurrentContext: "default",
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{
+			"default": {
+				Token:             restCfg.BearerToken,
+				TokenFile:         restCfg.BearerTokenFile,
+				Impersonate:       userEmail,
+				ImpersonateGroups: []string{userGroup},
+			},
+		},
+	}
+
+	fmt.Println("Writing kubeconfig", format.StructDumper().Sdump(apiCfg))
+	err = clientcmd.WriteToFile(apiCfg, filename)
+	if err != nil {
+		return "", err
+	}
+
+	return filename, nil
 }

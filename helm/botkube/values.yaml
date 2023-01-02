@@ -780,7 +780,7 @@ affinity: {}
 # [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
 rbac:
   create: true
-  rules:
+  rules: # still used for sources
     - apiGroups: ["*"]
       resources: ["*"]
       verbs: ["get", "watch", "list"]
