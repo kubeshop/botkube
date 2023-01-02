@@ -12,15 +12,11 @@ import (
 //
 //	helm test [RELEASE] [flags]
 type TestCommand struct {
+	noopValidator
+
 	Name string `arg:"positional"`
 
 	SupportedTestFlags
-}
-
-// Validate validates that all list parameters are valid.
-func (TestCommand) Validate() error {
-	// for now, we implemented that only to satisfy the command interface.
-	return nil
 }
 
 // Help returns command help message.

@@ -29,13 +29,9 @@ func (u ListCommandAliases) Get() *ListCommand {
 //
 //	helm list [flags]
 type ListCommand struct {
-	SupportedListFlags
-}
+	noopValidator
 
-// Validate validates that all list parameters are valid.
-func (ListCommand) Validate() error {
-	// for now, we implemented that only to satisfy the command interface.
-	return nil
+	SupportedListFlags
 }
 
 // Help returns command help message.
