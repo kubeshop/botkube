@@ -112,7 +112,7 @@ You can change permissions for Roles and ClusterRoles in runtime and they will b
 
 ## Process isolation
 
-We have a full control over how a given plugin is run. That means we can use e.g. `chroot` to isolate the plugin process from the rest of the system, in order to avoid reading sensitive credentials or other Kubeconfigs with different permissions.
+We have a full control over how a given plugin is run. That means we can use e.g. `chroot` to isolate the plugin process from the rest of the system, in order to avoid reading sensitive data such as Slack credentials.
 
 I tested it successfully with a simple separate Go app on my machine. However, when I modified the code in Botkube codebase, the plugin's gRPC server exits with an error. 
 
