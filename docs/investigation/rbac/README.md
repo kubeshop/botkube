@@ -7,7 +7,7 @@ This PoC is a part of the [RBAC proposal](../../proposal/2022-12-23-rbac.md). It
 1. Create `rbac-test` and `rbac-test2` channels in your Slack workspace you'll use for testing.
 1. Set up a Kubernetes cluster, e.g. with `k3d` or `colima`.
 1. Invite Botkube bot to these channels.
-1. Check out PoC pull request with GH CLI:
+1. Clone this repository and check out the PoC pull request with GH CLI:
 
    ```bash
    gh pr checkout 909
@@ -112,7 +112,37 @@ You can change permissions for Roles and ClusterRoles in runtime and they will b
 
 ## Process isolation
 
-We decided to come back to this topic during actual implementation.
+We have a full control over how a given plugin is run. That means we can use e.g. `chroot` to isolate the plugin process from the rest of the system, in order to avoid reading sensitive credentials or other Kubeconfigs with different permissions.
+
+I tested it successfully with a simple separate Go app on my machine. However, when I modified the code in Botkube codebase, the plugin's gRPC server exits with an error. 
+
+```go
+ 	for key, path := range bins {
+ 		pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, key, pluginType)
+ 
+ 		dir, file := filepath.Split(path)
+ 		//nolint:gosec // warns us about 'Subprocess launching with variable', but we are the one that created that variable.
+ 		cmd := exec.Command("./" + file)
+ 		cmd.Dir = "/"
+ 		cmd.SysProcAttr = &syscall.SysProcAttr{
+ 			Chroot:     dir,
+ 		}
+ 
+ 		cli := plugin.NewClient(&plugin.ClientConfig{
+ 			Plugins: pluginMap,
+ 			Cmd:              newPluginOSRunCommand(path),
+ 			Plugins:          pluginMap,
+ 			Cmd:              cmd,
+ 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+ 			HandshakeConfig: plugin.HandshakeConfig{
+      // ...
+		})
+    
+    // ...
+  }
+```
+
+I didn't debug the issue, but I suspect some additional symlinks might be needed to make it work, as well as modifying the Docker image. We decided to come back to this topic during actual implementation.
 
 ## References
 
