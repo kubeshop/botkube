@@ -189,7 +189,6 @@ executors:
       enabled: true
 
 plugins:
-  cacheDir: "/tmp"
   repositories:
     botkube:
       url: http://host.k3d.internal:3000/botkube.yaml
