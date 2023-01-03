@@ -18,9 +18,9 @@ type Commands struct {
 	Upgrade  *UpgradeCommand  `arg:"subcommand:upgrade"`
 	Help     *HelpCommand     `arg:"subcommand:help"`
 	Get      *GetCommand      `arg:"subcommand:get"`
-	History  *HistoryCommand  `arg:"subcommand:history"`
 
 	// embed on the root of the Command struct to inline all aliases.
+	HistoryCommandAliases
 	UninstallCommandAliases
 	ListCommandAliases
 

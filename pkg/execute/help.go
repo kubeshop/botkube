@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -16,15 +17,20 @@ var (
 
 // HelpExecutor executes all commands that are related to help
 type HelpExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
+	log                    logrus.FieldLogger
+	analyticsReporter      AnalyticsReporter
+	enabledPluginExecutors []string
 }
 
 // NewHelpExecutor returns a new HelpExecutor instance
-func NewHelpExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter) *HelpExecutor {
+func NewHelpExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *HelpExecutor {
+	collector := plugin.NewCollector(log)
+	enabledPluginExecutors, _ := collector.GetAllEnabledAndUsedPlugins(&cfg)
+
 	return &HelpExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
+		log:                    log,
+		analyticsReporter:      analyticsReporter,
+		enabledPluginExecutors: enabledPluginExecutors,
 	}
 }
 
@@ -41,10 +47,10 @@ func (e *HelpExecutor) Commands() map[CommandVerb]CommandFn {
 }
 
 // Help returns new help message
-func (e *HelpExecutor) Help(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *HelpExecutor) Help(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
-	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, cmdCtx.BotName).Build(), nil
+	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, cmdCtx.BotName, e.enabledPluginExecutors).Build(), nil
 }
 
 func (e *HelpExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {

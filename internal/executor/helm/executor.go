@@ -91,8 +91,8 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, args)
 	case helmCmd.Upgrade != nil:
 		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, args)
-	case helmCmd.History != nil:
-		return e.handleHelmCommand(ctx, helmCmd.History, cfg, wasHelpRequested, args)
+	case helmCmd.HistoryCommandAliases.Get() != nil:
+		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, args)
 	case helmCmd.Get != nil:
 		switch {
 		case helmCmd.Get.All != nil:

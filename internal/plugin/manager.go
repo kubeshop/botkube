@@ -179,7 +179,7 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEna
 
 		candidates, found := repo.Get(repoName, pluginName)
 		if !found || len(candidates) == 0 {
-			return nil, NewNotFoundPluginError("not found %q plugin in any repository", pluginKey)
+			return nil, NewNotFoundPluginError("not found %s plugin called %q in %q repository", pluginType.String(), pluginName, repoName)
 		}
 
 		// entries are sorted by version, first is the latest one.

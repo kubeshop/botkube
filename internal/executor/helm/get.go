@@ -53,6 +53,8 @@ func (GetCommand) Help() string {
 type GetAllCommand struct {
 	noopValidator
 	Name string `arg:"positional"`
+
+	SupportedGetAllFlags
 }
 
 // SupportedGetAllFlags represent flags that are supported both by Helm CLI and Helm Plugin.

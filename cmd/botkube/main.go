@@ -318,7 +318,7 @@ func run() error {
 
 	// Send help message
 	helpDB := storage.NewForHelp(conf.Settings.SystemConfigMap.Namespace, conf.Settings.SystemConfigMap.Name, k8sCli)
-	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, bots)
+	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, enabledPluginExecutors, bots)
 	if err != nil {
 		return fmt.Errorf("while sending initial help message: %w", err)
 	}
@@ -444,7 +444,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) fu
 }
 
 // sendHelp sends the help message to all interactive bots.
-func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifiers map[string]bot.Bot) error {
+func sendHelp(ctx context.Context, s *storage.Help, clusterName string, executors []string, notifiers map[string]bot.Bot) error {
 	alreadySentHelp, err := s.GetSentHelpDetails(ctx)
 	if err != nil {
 		return fmt.Errorf("while getting the help data: %w", err)
@@ -457,7 +457,7 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, notifier
 			continue
 		}
 
-		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, notifier.BotName()).Build()
+		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, notifier.BotName(), executors).Build()
 		err := notifier.SendMessageToAll(ctx, help)
 		if err != nil {
 			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)
