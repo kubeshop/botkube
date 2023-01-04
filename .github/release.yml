@@ -6,6 +6,9 @@ changelog:
     - title: Fixed Bugs 🐛
       labels:
         - bug
+    - title: Breaking Changes 💥
+      labels:
+        - breaking
     - title: Other Changes ✨
       labels:
         - "*"
