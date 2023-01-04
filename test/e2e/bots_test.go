@@ -371,7 +371,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
-			command := fmt.Sprintf("get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			command := fmt.Sprintf("kc get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "botkube"), 0, ""
@@ -383,7 +383,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Deployment with matching filter", func(t *testing.T) {
-			command := fmt.Sprintf(`get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			command := fmt.Sprintf(`kc get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "botkube"), 0, ""
@@ -395,7 +395,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Configmap", func(t *testing.T) {
-			command := fmt.Sprintf("get configmap -n %s", appCfg.Deployment.Namespace)
+			command := fmt.Sprintf("kc get configmap -n %s", appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
@@ -408,7 +408,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
-			command := fmt.Sprintf(`get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
+			command := fmt.Sprintf(`kc get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					!strings.Contains(msg, "kube-root-ca.crt") &&
@@ -421,7 +421,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Receive large output as plaintext file with executor command as message", func(t *testing.T) {
-			command := fmt.Sprintf("get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
+			command := fmt.Sprintf("kc get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
 			fileUploadAssertionFn := func(title, mimetype string) bool {
 				return title == "Response.txt" && strings.Contains(mimetype, "text/plain")
 			}
@@ -436,7 +436,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
-			command := "get role"
+			command := "kc get role"
 			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -456,7 +456,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Specify invalid command", func(t *testing.T) {
-			command := "get"
+			command := "kc get"
 			expectedBody := codeBlock(invalidCmdTemplate)
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -466,7 +466,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
-			command := "get po --namespace team-b"
+			command := "kc get po --namespace team-b"
 			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -477,7 +477,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
-				command := fmt.Sprintf("wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+				command := fmt.Sprintf("kc wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "deployment.apps/botkube condition met"), 0, ""
@@ -489,8 +489,8 @@ func runBotTest(t *testing.T,
 			})
 
 			t.Run("Exec (the 3rd binding which is disabled)", func(t *testing.T) {
-				command := "exec"
-				expectedBody := codeBlock("Command not supported. Please use 'help' to see supported commands.")
+				command := "kc exec"
+				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl 'exec' command cannot be executed in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -499,7 +499,7 @@ func runBotTest(t *testing.T,
 			})
 
 			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
-				command := "get pods -A"
+				command := "kc get pods -A"
 				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -509,7 +509,7 @@ func runBotTest(t *testing.T,
 			})
 
 			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
-				command := "get deploy -A"
+				command := "kc get deploy -A"
 				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "local-path-provisioner") &&

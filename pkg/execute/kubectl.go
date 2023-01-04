@@ -74,46 +74,23 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merge
 }
 
 // CanHandle returns true if it's allowed kubectl command that can be handled by this executor.
-//
-// TODO: we should just introduce a command name explicitly. In this case `@Botkube kubectl get po` instead of `@Botkube get po`
-// As a result, we are able to detect kubectl command but say that you're simply not authorized to use it instead of "Command not supported. (..)"
-func (e *Kubectl) CanHandle(bindings []string, args []string) bool {
+func (e *Kubectl) CanHandle(args []string) bool {
 	if len(args) == 0 {
 		return false
 	}
 
-	// TODO Later first argument will be always kubectl alias so we can use it to check if this command is for k8s
-	// For now we support both approach @botkube get pods and @botkube kubectl|kc|k get pods
-	kcVerb := e.GetVerb(args)
-
-	// Check if such kubectl verb is enabled
-	return e.kcChecker.IsKnownVerb(e.merger.MergeAllEnabledVerbs(bindings), kcVerb)
-}
-
-// GetVerb gets verb command for k8s ignoring k8s alias prefix.
-func (e *Kubectl) GetVerb(args []string) string {
-	if len(args) == 0 {
-		return ""
-	}
-
-	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
-		return args[1]
-	}
-
-	return args[0]
+	// make sure that verb is also specified
+	// empty `k|kc|kubectl` commands are handled by command builder
+	return len(args) >= 2 && slices.Contains(e.alias, args[0])
 }
 
 // GetCommandPrefix gets verb command with k8s alias prefix.
 func (e *Kubectl) GetCommandPrefix(args []string) string {
-	if len(args) == 0 {
+	if len(args) < 2 {
 		return ""
 	}
 
-	if len(args) >= 2 && slices.Contains(e.alias, args[0]) {
-		return fmt.Sprintf("%s %s", args[0], args[1])
-	}
-
-	return args[0]
+	return fmt.Sprintf("%s %s", args[0], args[1])
 }
 
 // getArgsWithoutAlias gets command without k8s alias.
@@ -122,6 +99,7 @@ func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("while parsing the command message into args: %w", err)
 	}
+
 	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
 		return msgParts[1:], nil
 	}

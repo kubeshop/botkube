@@ -4,7 +4,7 @@ Botkube is now active for "testing" cluster :rocket:<br><br>**Ping your cluster*
 @Botkube [list|enable|disable] action [action name]
 ```<br>  - `@Botkube list actions`<br><br>**View current Botkube configuration**<br>```
 @Botkube config
-```<br>  - `@Botkube config`<br><br>**Run kubectl commands (if enabled)**<br>:warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
+```<br>  - `@Botkube config`<br><br>**Run kubectl commands (if enabled)**<br>:warning: Botkube 0.17 and above require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
 
 e.g. `@Botkube k get pods` instead of `@Botkube get pods`
 

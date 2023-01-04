@@ -43,9 +43,3 @@ func (c *Checker) IsVerbAllowedInNs(config EnabledKubectl, verb string) bool {
 	_, found := config.AllowedKubectlVerb[verb]
 	return found
 }
-
-// IsKnownVerb returns true if verb was found in a given map.
-func (c *Checker) IsKnownVerb(allVerbs map[string]struct{}, verb string) bool {
-	_, found := allVerbs[verb]
-	return found
-}

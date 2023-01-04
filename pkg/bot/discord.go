@@ -291,7 +291,7 @@ func (b *Discord) send(channelID string, resp interactive.Message) error {
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
-		return errors.New("while reading Slack response: empty response")
+		return errors.New("while reading Discord response: empty response")
 	}
 
 	// Upload message as a file if too long

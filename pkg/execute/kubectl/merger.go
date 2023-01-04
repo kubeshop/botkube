@@ -49,31 +49,6 @@ func (kc *Merger) MergeAllEnabled(includeBindings []string) EnabledKubectl {
 	return kc.merge(kc.GetAllEnabled(includeBindings), includeBindings)
 }
 
-// MergeAllEnabledVerbs returns verbs collected from all enabled kubectl executors.
-func (kc *Merger) MergeAllEnabledVerbs(bindings []string) map[string]struct{} {
-	if kc.executors == nil {
-		return nil
-	}
-
-	verbs := map[string]struct{}{}
-
-	for _, name := range bindings {
-		executor, found := kc.executors[name]
-		if !found {
-			continue
-		}
-
-		if !executor.Kubectl.Enabled {
-			continue
-		}
-
-		for _, name := range executor.Kubectl.Commands.Verbs {
-			verbs[name] = struct{}{}
-		}
-	}
-	return verbs
-}
-
 // GetAllEnabled returns the collection of enabled kubectl executors for a given list of bindings without merging them.
 func (kc *Merger) GetAllEnabled(includeBindings []string) map[string]config.Kubectl {
 	onlyEnabled := func(executor config.Kubectl) bool {

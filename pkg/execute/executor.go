@@ -130,7 +130,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return empty // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args) {
+	if e.kubectlExecutor.CanHandle(cmdCtx.Args) {
 		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, cmdCtx.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
 		switch {
