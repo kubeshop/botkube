@@ -10,13 +10,9 @@ import (
 //
 //	helm version [flags]
 type VersionCommand struct {
-	SupportedVersionFlags
-}
+	noopValidator
 
-// Validate validates that all list parameters are valid.
-func (VersionCommand) Validate() error {
-	// for now, we implemented that only to satisfy the command interface.
-	return nil
+	SupportedVersionFlags
 }
 
 // Help returns command help message.

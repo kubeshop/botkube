@@ -14,16 +14,23 @@ const RunCommandName = "Run command"
 
 // HelpMessage provides an option to build the Help message depending on a given platform.
 type HelpMessage struct {
-	btnBuilder  ButtonBuilder
-	botName     string
-	platform    config.CommPlatformIntegration
-	clusterName string
+	btnBuilder             ButtonBuilder
+	botName                string
+	platform               config.CommPlatformIntegration
+	clusterName            string
+	enabledPluginExecutors []string
 }
 
 // NewHelpMessage return a new instance of HelpMessage.
-func NewHelpMessage(platform config.CommPlatformIntegration, clusterName, botName string) *HelpMessage {
+func NewHelpMessage(platform config.CommPlatformIntegration, clusterName, botName string, executors []string) *HelpMessage {
 	btnBuilder := ButtonBuilder{BotName: botName}
-	return &HelpMessage{btnBuilder: btnBuilder, botName: botName, platform: platform, clusterName: clusterName}
+	return &HelpMessage{
+		btnBuilder:             btnBuilder,
+		botName:                botName,
+		platform:               platform,
+		clusterName:            clusterName,
+		enabledPluginExecutors: executors,
+	}
 }
 
 // Build returns help message with interactive sections.
@@ -41,6 +48,7 @@ func (h *HelpMessage) Build() Message {
 		h.actionSections,
 		h.configSections,
 		h.kubectlSections,
+		h.pluginHelpSections,
 		h.filters,
 		h.feedback,
 		h.footer,
@@ -225,4 +233,23 @@ func (h *HelpMessage) kubectlSections() []Section {
 			},
 		},
 	}
+}
+
+func (h *HelpMessage) pluginHelpSections() []Section {
+	var out []Section
+	for _, name := range h.enabledPluginExecutors {
+		helpFn, found := pluginHelpProvider[name]
+		if !found {
+			continue
+		}
+
+		platformName := h.platform
+		if h.platform == config.SocketSlackCommPlatformIntegration {
+			platformName = "slack" // normalize the SocketSlack to Slack
+		}
+
+		helpSection := helpFn(cases.Title(language.English).String(string(platformName)), h.btnBuilder)
+		out = append(out, helpSection)
+	}
+	return out
 }

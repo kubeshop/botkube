@@ -63,6 +63,7 @@ communications:
 
 sources:
   'k8s-events':
+    displayName: "K8s recommendations"
     kubernetes:
       recommendations:
         pod:
@@ -81,6 +82,7 @@ sources:
       resources:
         - type: v1/configmaps
   'k8s-annotated-cm-delete':
+    displayName: "K8s ConfigMap delete events"
     kubernetes:
       namespaces:
         include:
@@ -105,6 +107,7 @@ sources:
         - type: v1/pods
 
   'k8s-updates':
+    displayName: "K8s ConfigMaps updates"
     kubernetes:
       namespaces:
         include:
@@ -124,6 +127,7 @@ sources:
               - update
 
   'plugin-based':
+    displayName: "K8s ConfigMaps changes"
     botkube/cm-watcher:
       enabled: true
       config:

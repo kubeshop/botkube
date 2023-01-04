@@ -10,15 +10,11 @@ import (
 //
 //	helm status RELEASE_NAME [flags]
 type StatusCommand struct {
+	noopValidator
+
 	Name string `arg:"positional"`
 
 	SupportedStatusFlags
-}
-
-// Validate validates that all list parameters are valid.
-func (StatusCommand) Validate() error {
-	// for now, we implemented that only to satisfy the command interface.
-	return nil
 }
 
 // Help returns command help message.

@@ -10,9 +10,9 @@ import (
 
 // Config holds Helm plugin configuration parameters.
 type Config struct {
-	HelmDriver    string
-	HelmCacheDir  string
-	HelmConfigDir string
+	HelmDriver    string `yaml:"helmDriver"`
+	HelmCacheDir  string `yaml:"helmCacheDir"`
+	HelmConfigDir string `yaml:"helmConfigDir"`
 }
 
 // Validate validates the Helm configuration parameters.

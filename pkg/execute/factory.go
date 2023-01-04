@@ -131,6 +131,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	helpExecutor := NewHelpExecutor(
 		params.Log.WithField("component", "Botkube Help Executor"),
 		params.AnalyticsReporter,
+		params.Cfg,
 	)
 	configExecutor := NewConfigExecutor(
 		params.Log.WithField("component", "Botkube Config Executor"),

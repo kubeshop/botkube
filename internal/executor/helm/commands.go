@@ -17,8 +17,10 @@ type Commands struct {
 	Rollback *RollbackCommand `arg:"subcommand:rollback"`
 	Upgrade  *UpgradeCommand  `arg:"subcommand:upgrade"`
 	Help     *HelpCommand     `arg:"subcommand:help"`
+	Get      *GetCommand      `arg:"subcommand:get"`
 
 	// embed on the root of the Command struct to inline all aliases.
+	HistoryCommandAliases
 	UninstallCommandAliases
 	ListCommandAliases
 
@@ -79,4 +81,12 @@ func removeVersionFlag(args []string) []string {
 		return append(args[:prev], args[next:]...)
 	}
 	return args
+}
+
+type noopValidator struct{}
+
+// Validate does nothing. It can be used if no validation is required,
+// but you want to satisfy the command interface.
+func (noopValidator) Validate() error {
+	return nil
 }

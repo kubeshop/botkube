@@ -91,6 +91,25 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, args)
 	case helmCmd.Upgrade != nil:
 		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, args)
+	case helmCmd.HistoryCommandAliases.Get() != nil:
+		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, args)
+	case helmCmd.Get != nil:
+		switch {
+		case helmCmd.Get.All != nil:
+			return e.handleHelmCommand(ctx, helmCmd.Get.All, cfg, wasHelpRequested, args)
+		case helmCmd.Get.Hooks != nil:
+			return e.handleHelmCommand(ctx, helmCmd.Get.Hooks, cfg, wasHelpRequested, args)
+		case helmCmd.Get.Manifest != nil:
+			return e.handleHelmCommand(ctx, helmCmd.Get.Manifest, cfg, wasHelpRequested, args)
+		case helmCmd.Get.Notes != nil:
+			return e.handleHelmCommand(ctx, helmCmd.Get.Notes, cfg, wasHelpRequested, args)
+		case helmCmd.Get.Values != nil:
+			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, args)
+		default:
+			return executor.ExecuteOutput{
+				Data: helmCmd.Get.Help(),
+			}, nil
+		}
 	case helmCmd.Help != nil, wasHelpRequested:
 		return executor.ExecuteOutput{
 			Data: helmCmd.Help.Help(),

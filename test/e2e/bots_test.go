@@ -198,7 +198,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for interactive help")
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
-		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build(),
+		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName(), []string{"botkube/helm"}).Build(),
 	)
 	require.NoError(t, err)
 
@@ -219,7 +219,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName()).Build()
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName(), []string{"botkube/helm"}).Build()
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
@@ -828,9 +828,9 @@ func runBotTest(t *testing.T,
 		if botDriver.Type() == DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE                  ENABLED DISPLAY NAME
-			botkube/cm-watcher      true    
-			k8s-annotated-cm-delete true    
-			k8s-events              true    
+			botkube/cm-watcher      true    K8s ConfigMaps changes
+			k8s-annotated-cm-delete true    K8s ConfigMap delete events
+			k8s-events              true    K8s recommendations
 			k8s-pod-create-events   true`))
 		}
 

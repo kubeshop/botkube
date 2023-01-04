@@ -120,7 +120,7 @@ func TestInteractiveMessageToMarkdown(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			given := NewHelpMessage("platform", "testing", "@Botkube").Build()
+			given := NewHelpMessage("platform", "testing", "@Botkube", nil).Build()
 
 			// when
 			out := RenderMessage(tc.mdFormatter, given)

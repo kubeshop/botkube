@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -25,6 +26,8 @@ const (
 
 	lineLimitToShowFilter = 16
 )
+
+var newLinePattern = regexp.MustCompile(`\r?\n`)
 
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
@@ -245,9 +248,17 @@ func respond(msg string, cmdCtx CommandContext) interactive.Message {
 }
 
 func header(cmdCtx CommandContext) string {
-	cmd := fmt.Sprintf("`%s`", strings.TrimSpace(cmdCtx.RawCmd))
+	cmd := newLinePattern.ReplaceAllString(cmdCtx.RawCmd, " ")
+	cmd = removeMultipleSpaces(cmd)
+	cmd = strings.TrimSpace(cmd)
+	cmd = fmt.Sprintf("`%s`", cmd)
+
 	out := fmt.Sprintf("%s on `%s`", cmd, cmdCtx.ClusterName)
 	return appendByUserOnlyIfNeeded(out, cmdCtx.User, cmdCtx.Conversation.CommandOrigin)
+}
+
+func removeMultipleSpaces(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
