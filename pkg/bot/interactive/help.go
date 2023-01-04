@@ -44,6 +44,7 @@ func (h *HelpMessage) Build() Message {
 	type getter func() []Section
 	var sections = []getter{
 		h.cluster,
+		h.ping,
 		h.notificationSections,
 		h.actionSections,
 		h.configSections,
@@ -61,16 +62,26 @@ func (h *HelpMessage) Build() Message {
 }
 
 func (h *HelpMessage) cluster() []Section {
-	return []Section{
-		{
-			Base: Base{
-				Header:      "Using multiple instances",
-				Description: fmt.Sprintf("If you are running multiple Botkube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", h.clusterName),
-				Body: Body{
-					CodeBlock: fmt.Sprintf("--cluster-name=%s\n", h.clusterName),
+	switch h.platform {
+	case config.SlackCommPlatformIntegration, config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
+		return []Section{
+			{
+				Base: Base{
+					Header:      "Using multiple instances",
+					Description: fmt.Sprintf("If you are running multiple Botkube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", h.clusterName),
+					Body: Body{
+						CodeBlock: fmt.Sprintf("--cluster-name=%s\n", h.clusterName),
+					},
 				},
 			},
-		},
+		}
+	default:
+		return nil
+	}
+}
+
+func (h *HelpMessage) ping() []Section {
+	return []Section{
 		{
 			Base: Base{
 				Header:      "Ping your cluster",
@@ -199,13 +210,19 @@ func (h *HelpMessage) kubectlSections() []Section {
 				Buttons: []Button{
 					h.btnBuilder.ForCommandWithDescCmd("kubectl", "kubectl", ButtonStylePrimary),
 				},
+				Context: ContextItems{
+					{
+						Text: "Alternatively use kubectl as usual with all supported commands\n" +
+							"`k | kc | kubectl [verb] [resource] [flags]`",
+					},
+				},
 			},
 			{
 				Base: Base{
-					Description: "Alternatively use kubectl as usual with all supported commands",
+					Description: "To list all enabled executors",
 				},
 				Buttons: []Button{
-					h.btnBuilder.ForCommand("List commands", "list commands", "k | kc | kubectl [command] [options] [flags]"),
+					h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
 				},
 			},
 		}
@@ -226,10 +243,10 @@ func (h *HelpMessage) kubectlSections() []Section {
 		},
 		{
 			Base: Base{
-				Description: "To list all supported kubectl commands",
+				Description: "To list all enabled executors",
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithDescCmd("List commands", "list commands"),
+				h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
 			},
 		},
 	}

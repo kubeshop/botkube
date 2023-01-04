@@ -437,7 +437,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "get role"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -467,7 +467,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "get po --namespace team-b"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
+			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -500,7 +500,7 @@ func runBotTest(t *testing.T,
 
 			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
 				command := "get pods -A"
-				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list commands' to see allowed commands.", appCfg.ClusterName))
+				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)

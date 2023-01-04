@@ -1,6 +1,4 @@
-Botkube is now active for "testing" cluster :rocket:<br><br>**Using multiple instances**<br>If you are running multiple Botkube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.<br>```
---cluster-name=testing
-```<br><br>**Ping your cluster**<br>Check the status of connected Kubernetes cluster(s).<br>  - `@Botkube ping`<br><br>**Manage incoming notifications**<br>```
+Botkube is now active for "testing" cluster :rocket:<br><br>**Ping your cluster**<br>Check the status of connected Kubernetes cluster(s).<br>  - `@Botkube ping`<br><br>**Manage incoming notifications**<br>```
 @Botkube [start|stop|status] notifications
 ```<br>  - `@Botkube start notifications`<br>  - `@Botkube stop notifications`<br>  - `@Botkube status notifications`<br><br>**Notification settings for this channel**<br>By default, Botkube will notify only about cluster errors and recommendations.<br>  - `@Botkube edit SourceBindings`<br><br>**Manage automated actions**<br>```
 @Botkube [list|enable|disable] action [action name]
@@ -10,4 +8,4 @@ Botkube is now active for "testing" cluster :rocket:<br><br>**Using multiple ins
 
 e.g. `@Botkube k get pods` instead of `@Botkube get pods`
 
-You can run kubectl commands directly from Platform!<br>  - `@Botkube kubectl get services`<br>  - `@Botkube kubectl get pods`<br>  - `@Botkube kubectl get deployments`<br><br>To list all supported kubectl commands<br>  - `@Botkube list commands`<br><br>**Filters (advanced)**<br>You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters<br><br>**Angry? Amazed?**<br>Give feedback: https://feedback.botkube.io<br><br>Read our docs: https://docs.botkube.io<br>Join our Slack: https://join.botkube.io<br>Follow us on Twitter: https://twitter.com/botkube_io<br>
+You can run kubectl commands directly from Platform!<br>  - `@Botkube kubectl get services`<br>  - `@Botkube kubectl get pods`<br>  - `@Botkube kubectl get deployments`<br><br>To list all enabled executors<br>  - `@Botkube list executors`<br><br>**Filters (advanced)**<br>You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters<br><br>**Angry? Amazed?**<br>Give feedback: https://feedback.botkube.io<br><br>Read our docs: https://docs.botkube.io<br>Join our Slack: https://join.botkube.io<br>Follow us on Twitter: https://twitter.com/botkube_io<br>

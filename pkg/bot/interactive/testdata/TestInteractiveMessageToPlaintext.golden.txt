@@ -1,9 +1,4 @@
 
-Using multiple instances
-If you are running multiple Botkube instances in the same channel to interact with testing, make sure to specify the cluster name when typing commands.
---cluster-name=testing
-
-
 Ping your cluster
 Check the status of connected Kubernetes cluster(s).
   - @Botkube ping
@@ -39,8 +34,8 @@ You can run kubectl commands directly from Platform!
   - @Botkube kubectl get pods
   - @Botkube kubectl get deployments
 
-To list all supported kubectl commands
-  - @Botkube list commands
+To list all enabled executors
+  - @Botkube list executors
 
 Filters (advanced)
 You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters
