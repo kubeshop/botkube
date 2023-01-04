@@ -25,7 +25,7 @@ View current Botkube configuration
   - @Botkube config
 
 Run kubectl commands (if enabled)
-:warning: Botkube 0.17 and above will require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
+:warning: Botkube 0.17 and above require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
 
 e.g. `@Botkube k get pods` instead of `@Botkube get pods`
 
