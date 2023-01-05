@@ -444,7 +444,6 @@ settings:
             configMap:
                 name: runtime-config
     metricsPort: "1313"
-    healthPort: "1414"
     lifecycleServer:
         enabled: false
         port: 0

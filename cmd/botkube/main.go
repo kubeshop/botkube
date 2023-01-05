@@ -51,13 +51,12 @@ import (
 )
 
 const (
-	componentLogFieldKey  = "component"
-	botLogFieldKey        = "bot"
-	sinkLogFieldKey       = "sink"
-	commGroupFieldKey     = "commGroup"
-	readinessEndpointName = "/healthz"
-	livenessEndpointName  = "/readyz"
-	printAPIKeyCharCount  = 3
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+	sinkLogFieldKey      = "sink"
+	commGroupFieldKey    = "commGroup"
+	healthEndpointName   = "/healthz"
+	printAPIKeyCharCount = 3
 )
 
 func main() {
@@ -141,14 +140,8 @@ func run() error {
 		return reportFatalError("while registering current identity", err)
 	}
 
-	probesServer := newHealthProbesServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
-	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
-		return probesServer.Serve(ctx)
-	})
-
-	// Prometheus metrics
-	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
+	// Prometheus metrics & health endpoint
+	metricsSrv := newDiagnosticServer(logger.WithField(componentLogFieldKey, "Diagnostics (metrics&health) server"), conf.Settings.MetricsPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)
@@ -387,10 +380,11 @@ func run() error {
 	return nil
 }
 
-func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {
-	addr := fmt.Sprintf(":%s", metricsPort)
+func newDiagnosticServer(log logrus.FieldLogger, port string) *httpsrv.Server {
+	addr := fmt.Sprintf(":%s", port)
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
+	router.Handle(healthEndpointName, healthChecker{})
 	return httpsrv.New(log, addr, router)
 }
 
@@ -398,13 +392,6 @@ type healthChecker struct{}
 
 func (healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(resp, "ok")
-}
-
-func newHealthProbesServer(log logrus.FieldLogger, port string) *httpsrv.Server {
-	mux := mux.NewRouter()
-	mux.Handle(readinessEndpointName, healthChecker{})
-	mux.Handle(livenessEndpointName, healthChecker{})
-	return httpsrv.New(log, fmt.Sprintf(":%s", port), mux)
 }
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
