@@ -443,7 +443,7 @@ settings:
             fileName: _runtime_state.yaml
             configMap:
                 name: runtime-config
-    metricsPort: "1313"
+    diagnosticsPort: "1313"
     lifecycleServer:
         enabled: false
         port: 0

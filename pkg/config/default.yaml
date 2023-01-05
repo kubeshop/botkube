@@ -1,5 +1,5 @@
 settings:
-  metricsPort: "2112"
+  diagnosticsPort: "2112"
   log:
     level: "error"
     disableColors: "false"

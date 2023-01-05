@@ -141,7 +141,7 @@ func run() error {
 	}
 
 	// Prometheus metrics & health endpoint
-	metricsSrv := newDiagnosticServer(logger.WithField(componentLogFieldKey, "Diagnostics (metrics&health) server"), conf.Settings.MetricsPort)
+	metricsSrv := newDiagnosticServer(logger.WithField(componentLogFieldKey, "Diagnostics (metrics&health) server"), conf.Settings.DiagnosticsPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)

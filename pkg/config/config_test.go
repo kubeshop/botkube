@@ -25,7 +25,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("BOTKUBE_COMMUNICATIONS_DEFAULT-WORKSPACE_SOCKET__SLACK_APP__TOKEN", "xapp-token-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_CLUSTER__NAME", "cluster-name-from-env")
 	t.Setenv("BOTKUBE_SETTINGS_KUBECONFIG", "kubeconfig-from-env")
-	t.Setenv("BOTKUBE_SETTINGS_METRICS__PORT", "1313")
+	t.Setenv("BOTKUBE_SETTINGS_DIAGNOSTICS__PORT", "1313")
 	t.Setenv("BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL", "http://localhost:3000/botkube.yaml")
 
 	// when
@@ -152,8 +152,8 @@ func TestNormalizeConfigEnvName(t *testing.T) {
 		},
 		{
 			name:            "env var with a camel key at the end",
-			givenEnvVarName: "BOTKUBE_SETTINGS_METRICS__PORT",
-			expYAMLKey:      "settings.metricsPort",
+			givenEnvVarName: "BOTKUBE_SETTINGS_DIAGNOSTICS__PORT",
+			expYAMLKey:      "settings.diagnosticsPort",
 		},
 		{
 			name:            "env var with two camel keys at the end",
