@@ -55,6 +55,7 @@ const (
 	botLogFieldKey       = "bot"
 	sinkLogFieldKey      = "sink"
 	commGroupFieldKey    = "commGroup"
+	healthEndpointName   = "/healthz"
 	printAPIKeyCharCount = 3
 )
 
@@ -138,6 +139,13 @@ func run() error {
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}
+
+	// Health endpoint
+	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
+	errGroup.Go(func() error {
+		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		return healthSrv.Serve(ctx)
+	})
 
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
@@ -384,6 +392,19 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
 	return httpsrv.New(log, addr, router)
+}
+
+func newHealthServer(log logrus.FieldLogger, port string) *httpsrv.Server {
+	addr := fmt.Sprintf(":%s", port)
+	router := mux.NewRouter()
+	router.Handle(healthEndpointName, healthChecker{})
+	return httpsrv.New(log, addr, router)
+}
+
+type healthChecker struct{}
+
+func (healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	fmt.Fprint(resp, "ok")
 }
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {

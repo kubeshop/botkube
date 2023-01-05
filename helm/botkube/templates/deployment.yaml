@@ -53,6 +53,24 @@ spec:
           securityContext:
           {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           {{ end }}
+          readinessProbe:
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 5
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /healthz
+              port: {{ .Values.settings.healthPort }}
+          livenessProbe:
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /healthz
+              port: {{ .Values.settings.healthPort }}
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp

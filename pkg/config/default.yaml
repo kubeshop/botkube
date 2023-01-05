@@ -1,5 +1,6 @@
 settings:
   metricsPort: "2112"
+  healthPort: "2114"
   log:
     level: "error"
     disableColors: "false"

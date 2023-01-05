@@ -60,6 +60,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						            fileName: ""
 						            configMap: {}
 						    metricsPort: ""
+						    healthPort: ""
 						    lifecycleServer:
 						        enabled: false
 						        port: 0
