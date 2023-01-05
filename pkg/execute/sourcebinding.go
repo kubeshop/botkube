@@ -88,9 +88,13 @@ func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext)
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "NAME")
+	fmt.Fprintln(w, "NAME\tDISPLAY NAME")
 	for _, name := range sources {
-		fmt.Fprintf(w, "%s\n", name)
+		description := ""
+		if s, ok := e.cfg.Sources[name]; ok {
+			description = s.DisplayName
+		}
+		fmt.Fprintf(w, "%s\t%s\n", name, description)
 	}
 	w.Flush()
 	return respond(buf.String(), cmdCtx), nil
