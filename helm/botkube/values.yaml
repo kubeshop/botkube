@@ -445,6 +445,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+              - helm
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -470,6 +471,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+              - helm
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -510,6 +512,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+              - helm
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -532,6 +535,7 @@ communications:
         # -- Executor bindings apply to all MS Teams channels where Botkube has access to.
         executors:
           - kubectl-read-only
+          - helm
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube start notifications` command.
         sources:
           - k8s-err-events
@@ -564,6 +568,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - kubectl-read-only
+              - helm
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
