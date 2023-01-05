@@ -140,8 +140,15 @@ func run() error {
 		return reportFatalError("while registering current identity", err)
 	}
 
-	// Prometheus metrics & health endpoint
-	metricsSrv := newDiagnosticServer(logger.WithField(componentLogFieldKey, "Diagnostics (metrics&health) server"), conf.Settings.DiagnosticsPort)
+	// Health endpoint
+	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
+	errGroup.Go(func() error {
+		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		return healthSrv.Serve(ctx)
+	})
+
+	// Prometheus metrics
+	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)
@@ -380,10 +387,16 @@ func run() error {
 	return nil
 }
 
-func newDiagnosticServer(log logrus.FieldLogger, port string) *httpsrv.Server {
-	addr := fmt.Sprintf(":%s", port)
+func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {
+	addr := fmt.Sprintf(":%s", metricsPort)
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
+	return httpsrv.New(log, addr, router)
+}
+
+func newHealthServer(log logrus.FieldLogger, port string) *httpsrv.Server {
+	addr := fmt.Sprintf(":%s", port)
+	router := mux.NewRouter()
 	router.Handle(healthEndpointName, healthChecker{})
 	return httpsrv.New(log, addr, router)
 }

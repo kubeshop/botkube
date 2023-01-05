@@ -59,7 +59,8 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						        runtime:
 						            fileName: ""
 						            configMap: {}
-						    diagnosticsPort: ""
+						    metricsPort: ""
+						    healthPort: ""
 						    lifecycleServer:
 						        enabled: false
 						        port: 0

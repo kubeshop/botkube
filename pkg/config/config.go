@@ -575,7 +575,8 @@ type Settings struct {
 	UpgradeNotifier       bool             `yaml:"upgradeNotifier"`
 	SystemConfigMap       K8sResourceRef   `yaml:"systemConfigMap"`
 	PersistentConfig      PersistentConfig `yaml:"persistentConfig"`
-	DiagnosticsPort       string           `yaml:"diagnosticsPort"`
+	MetricsPort           string           `yaml:"metricsPort"`
+	HealthPort            string           `yaml:"healthPort"`
 	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
 	Log                   loggerx.Config   `yaml:"log"`
 	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`

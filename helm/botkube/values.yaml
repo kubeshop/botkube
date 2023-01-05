@@ -630,6 +630,7 @@ settings:
   lifecycleServer:
     enabled: true
     port: 2113
+  healthPort: 2114
   # -- If true, notifies about new Botkube releases.
   upgradeNotifier: true
   ## Botkube logging settings.

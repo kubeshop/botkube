@@ -61,7 +61,7 @@ spec:
             timeoutSeconds: 1
             httpGet:
               path: /healthz
-              port: {{ .Values.service.targetPort }}
+              port: {{ .Values.settings.healthPort }}
           livenessProbe:
             successThreshold: 1
             failureThreshold: 3
@@ -70,7 +70,7 @@ spec:
             timeoutSeconds: 1
             httpGet:
               path: /healthz
-              port: {{ .Values.service.targetPort }}
+              port: {{ .Values.settings.healthPort }}
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp
@@ -97,7 +97,7 @@ spec:
           env:
             - name: BOTKUBE_CONFIG_PATHS
               value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
-            - name: BOTKUBE_SETTINGS_DIAGNOSTICS__PORT
+            - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
             - name: BOTKUBE_SETTINGS_KUBECONFIG
