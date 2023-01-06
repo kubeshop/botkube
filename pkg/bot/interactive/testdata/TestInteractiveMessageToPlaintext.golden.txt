@@ -4,10 +4,10 @@ Check the status of connected Kubernetes cluster(s).
   - @Botkube ping
 
 Manage incoming notifications
-@Botkube [start|stop|status] notifications
+@Botkube [enable|disable|status] notifications
 
-  - @Botkube start notifications
-  - @Botkube stop notifications
+  - @Botkube enable notifications
+  - @Botkube disable notifications
   - @Botkube status notifications
 
 Notification settings for this channel
