@@ -138,12 +138,12 @@ func (h *HelpMessage) notificationSections() []Section {
 			Base: Base{
 				Header: "Manage incoming notifications",
 				Body: Body{
-					CodeBlock: fmt.Sprintf("%s [start|stop|status] notifications\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [enable|disable|status] notifications\n", h.botName),
 				},
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithoutDesc("Start notifications", "start notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Stop notifications", "stop notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Enable notifications", "enable notifications"),
+				h.btnBuilder.ForCommandWithoutDesc("Disable notifications", "disable notifications"),
 				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
 			},
 		},

@@ -536,7 +536,7 @@ communications:
         executors:
           - kubectl-read-only
           - helm
-        # -- Source bindings apply to all channels which have notification turned on with `@Botkube start notifications` command.
+        # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
           - k8s-recommendation-events
