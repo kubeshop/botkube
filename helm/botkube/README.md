@@ -125,7 +125,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [communications.default-group.teams.appID](./values.yaml#L531) | string | `"APPLICATION_ID"` | The Botkube application ID generated while registering Bot to MS Teams. |
 | [communications.default-group.teams.appPassword](./values.yaml#L533) | string | `"APPLICATION_PASSWORD"` | The Botkube application password generated while registering Bot to MS Teams. |
 | [communications.default-group.teams.bindings.executors](./values.yaml#L536) | list | `["kubectl-read-only","helm"]` | Executor bindings apply to all MS Teams channels where Botkube has access to. |
-| [communications.default-group.teams.bindings.sources](./values.yaml#L540) | list | `["k8s-err-events","k8s-recommendation-events"]` | Source bindings apply to all channels which have notification turned on with `@Botkube start notifications` command. |
+| [communications.default-group.teams.bindings.sources](./values.yaml#L540) | list | `["k8s-err-events","k8s-recommendation-events"]` | Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command. |
 | [communications.default-group.teams.messagePath](./values.yaml#L544) | string | `"/bots/teams"` | The path in endpoint URL provided while registering Botkube to MS Teams. |
 | [communications.default-group.teams.port](./values.yaml#L546) | int | `3978` | The Service port for bot endpoint on Botkube container. |
 | [communications.default-group.discord.enabled](./values.yaml#L551) | bool | `false` | If true, enables Discord bot. |
