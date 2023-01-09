@@ -6,7 +6,7 @@
 		"event": "Command executed",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
-			"command": "disable notifications",
+			"command": "enable notifications",
 			"filtered": false,
 			"origin": "typed",
 			"platform": "discord"
@@ -32,7 +32,7 @@
 		"event": "Command executed",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
-			"command": "enable notifications",
+			"command": "disable notifications",
 			"filtered": false,
 			"origin": "selectValueChange",
 			"platform": "teams"
