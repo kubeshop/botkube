@@ -28,6 +28,8 @@ func (*HelpCommand) Help() string {
 		  uninstall   # Uninstalls a given release.
 		  upgrade     # Upgrades a given release.
 		  version     # Shows the version of the Helm CLI used by this Botkube plugin.
+		  history     # Shows release history
+		  get         # Shows extended information of a named release
 
 		Flags:
 		%s

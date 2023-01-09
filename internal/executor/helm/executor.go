@@ -12,8 +12,9 @@ import (
 
 const (
 	// PluginName is the name of the Helm Botkube plugin.
-	PluginName     = "helm"
-	helmBinaryName = "helm"
+	PluginName       = "helm"
+	helmBinaryName   = "helm"
+	defaultNamespace = "default"
 )
 
 type command interface {
@@ -56,6 +57,8 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // - test
 // - rollback
 // - upgrade
+// - history
+// - get [all|manifest|hooks|notes]
 func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	cfg, err := MergeConfigs(in.Configs)
 	if err != nil {
@@ -72,6 +75,10 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		wasHelpRequested = true
 	default:
 		return executor.ExecuteOutput{}, fmt.Errorf("while parsing input command: %w", err)
+	}
+
+	if helmCmd.Namespace == "" { // use 'default' namespace, instead of namespace where botkube was installed
+		args = append([]string{"-n", defaultNamespace}, args...)
 	}
 
 	switch {
