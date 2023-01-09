@@ -98,13 +98,13 @@ func TestSegmentReporter_ReportCommand(t *testing.T) {
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 
 	// when
-	err := segmentReporter.ReportCommand(config.DiscordCommPlatformIntegration, "stop notifications", command.TypedOrigin, false)
+	err := segmentReporter.ReportCommand(config.DiscordCommPlatformIntegration, "enable notifications", command.TypedOrigin, false)
 	require.NoError(t, err)
 
 	err = segmentReporter.ReportCommand(config.SlackCommPlatformIntegration, "get", command.ButtonClickOrigin, false)
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportCommand(config.TeamsCommPlatformIntegration, "start notifications", command.SelectValueChangeOrigin, false)
+	err = segmentReporter.ReportCommand(config.TeamsCommPlatformIntegration, "disable notifications", command.SelectValueChangeOrigin, false)
 	require.NoError(t, err)
 
 	// then
