@@ -33,12 +33,12 @@ func TestExecutorHelmInstall(t *testing.T) {
 		{
 			name:         "install by chart reference and repo URL",
 			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx",
-			expCommand:   "install --repo https://example.com/charts/ mynginx nginx",
+			expCommand:   "-n default install --repo https://example.com/charts/ mynginx nginx",
 		},
 		{
 			name:         "install by chart reference and repo URL and with a given version",
 			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
-			expCommand:   "install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
+			expCommand:   "-n default install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
 		},
 	}
 	for _, tc := range tests {
