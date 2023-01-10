@@ -68,7 +68,7 @@ jobs:
         run: |
           gh api repos/$GITHUB_REPOSITORY/releases/generate-notes \
             -f tag_name="${GITHUB_REF#refs/tags/}" \
-            -f target_commitish="${{ steps.prev-version.outputs.previous-version }}" \
+            -f previous_tag_name="${{ steps.prev-version.outputs.previous-version }}" \
             -q .body > CHANGELOG.md
 
       - name: Publish draft release
