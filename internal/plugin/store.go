@@ -23,6 +23,7 @@ type (
 		Description string
 		Version     string
 		URLs        map[string]string
+		JSONSchema  string
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.
@@ -64,12 +65,14 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 					Description: entry.Description,
 					Version:     entry.Version,
 					URLs:        mapBinaryURLs(entry.URLs),
+					JSONSchema:  entry.JSONSchema,
 				})
 			case TypeSource:
 				sourcesRepositories.Insert(repo, entry.Name, storeEntry{
 					Description: entry.Description,
 					Version:     entry.Version,
 					URLs:        mapBinaryURLs(entry.URLs),
+					JSONSchema:  entry.JSONSchema,
 				})
 			}
 		}

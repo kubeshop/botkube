@@ -20,6 +20,8 @@ type MetadataOutput struct {
 	Version string
 	// Descriptions is a description of a given plugin.
 	Description string
+	// JSONSchema is a JSON schema for a given plugin.
+	JSONSchema string
 }
 
 // Validate validate the metadata fields and returns detected issues.
@@ -32,6 +34,10 @@ func (m MetadataOutput) Validate() error {
 	if m.Version == "" {
 		issues = append(issues, "version field cannot be empty")
 	}
+
+	// if m.JSONSchema == "" {
+	// 	issues = append(issues, "JSONSchema field cannot be empty")
+	// }
 
 	if len(issues) > 0 {
 		return errors.New(strings.Join(issues, ", "))

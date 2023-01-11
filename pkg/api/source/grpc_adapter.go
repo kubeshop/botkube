@@ -116,6 +116,7 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     resp.Version,
 		Description: resp.Description,
+		JSONSchema:  resp.Jsonschema,
 	}, nil
 }
 
@@ -132,6 +133,7 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 	return &MetadataResponse{
 		Version:     meta.Version,
 		Description: meta.Description,
+		Jsonschema:  meta.JSONSchema,
 	}, nil
 }
 

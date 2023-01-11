@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
 	"gopkg.in/yaml.v3"
 
@@ -15,7 +17,10 @@ import (
 // version is set via ldflags by GoReleaser.
 var version = "dev"
 
-const pluginName = "echo"
+const (
+	pluginName  = "echo"
+	description = "Echo is an example Botkube executor plugin used during e2e tests. It's not meant for production usage."
+)
 
 // Config holds executor configuration.
 type Config struct {
@@ -29,7 +34,8 @@ type EchoExecutor struct{}
 func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
-		Description: "Echo is an example Botkube executor plugin used during e2e tests. It's not meant for production usage.",
+		Description: description,
+		JSONSchema:  jsonSchema(),
 	}, nil
 }
 
@@ -70,4 +76,22 @@ func main() {
 			Executor: &EchoExecutor{},
 		},
 	})
+}
+
+func jsonSchema() string {
+	return heredoc.Doc(
+		fmt.Sprintf(`{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"title": "botkube/echo",
+			"description": %s,
+			"pluginType": "executor",
+			"type": "object",
+			"properties": {
+				"changeResponseToUpperCase": {
+					"description": "When changeResponseToUpperCase is true, the echoed string will be in upper case",
+					"type": "boolean"
+				}
+			}
+			"required": []
+		}`, description))
 }
