@@ -115,11 +115,11 @@ spec:
               value: "{{ include "botkube.fullname" . }}"
             {{- if .Values.config.provider.endpoint }}
             - name: CONFIG_PROVIDER_ENDPOINT
-              value: {{ .Values.config.source.endpoint }}
+              value: {{ .Values.config.provider.endpoint }}
             {{- end }}
             {{- if .Values.config.provider.identifier }}
             - name: CONFIG_PROVIDER_IDENTIFIER
-              value: "{{ .Values.config.source.identifier }}"
+              value: "{{ .Values.config.provider.identifier }}"
             {{- end }}
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
