@@ -195,6 +195,19 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [plugins.cacheDir](./values.yaml#L869) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
 | [plugins.repositories](./values.yaml#L871) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}}` | List of plugins repositories. |
 | [plugins.repositories.botkube](./values.yaml#L873) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
-| [config](./values.yaml#L877) | object | `{"source":{"endpoint":null,"identifier":null}}` | Configuration for remote Botkube settings |
-| [config.source](./values.yaml#L879) | object | `{"endpoint":null,"identifier":null}` | Base source definition |
-| [config.source.identifier](./values.yaml#L881) | string | `nil` | 
+| [config](./values.yaml#L877) | object | `{"source":{"endpoint":"","identifier":""}}` | Configuration for remote Botkube settings |
+| [config.source](./values.yaml#L879) | object | `{"endpoint":"","identifier":""}` | Base source definition |
+| [config.source.identifier](./values.yaml#L881) | string | `""` | Unique identifier for remote Botkube settings |
+| [config.source.endpoint](./values.yaml#L883) | string | `""` | Endpoint to fetch Botkube settings from |
+
+### AWS IRSA on EKS support
+
+AWS has introduced IAM Role for Service Accounts in order to provide fine-grained access. This is useful if you are looking to run Botkube inside an EKS cluster. For more details visit https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html.
+
+Annotate the Botkube Service Account as shown in the example below and add the necessary Trust Relationship to the corresponding Botkube role to get this working.
+
+```
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: "{role_arn_to_assume}"
+```

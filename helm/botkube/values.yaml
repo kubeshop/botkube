@@ -878,6 +878,6 @@ config:
   # -- Base source definition
   source:
     # -- Unique identifier for remote Botkube settings
-    identifier:
+    identifier: ""
     # -- Endpoint to fetch Botkube settings from
-    endpoint:
+    endpoint: ""
