@@ -666,7 +666,7 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
 func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
 	var provider config.Provider
-	if os.Getenv("CONFIG_SOURCE_IDENTIFIER") != "" {
+	if os.Getenv("CONFIG_PROVIDER_IDENTIFIER") != "" {
 		provider = config.NewGqlProvider(*gql)
 	} else if os.Getenv("BOTKUBE_CONFIG_PATHS") != "" {
 		provider = config.NewEnvProvider()

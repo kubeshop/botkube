@@ -20,7 +20,7 @@ func NewGqlProvider(gql GqlClient) *GqlProvider {
 
 // Configs returns list of config files
 func (g *GqlProvider) Configs(ctx context.Context) (YAMLFiles, error) {
-	d := os.Getenv("CONFIG_SOURCE_IDENTIFIER")
+	d := os.Getenv("CONFIG_PROVIDER_IDENTIFIER")
 	if d == "" {
 		return nil, nil
 	}
