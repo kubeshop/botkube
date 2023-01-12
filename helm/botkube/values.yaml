@@ -872,3 +872,12 @@ plugins:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
       url: https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml
+
+# -- Configuration for remote Botkube settings
+config:
+  # -- Base source definition
+  source:
+    # -- Unique identifier for remote Botkube settings
+    identifier:
+    # -- Endpoint to fetch Botkube settings from
+    endpoint:
