@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -25,7 +26,10 @@ import (
 // version is set via ldflags by GoReleaser.
 var version = "dev"
 
-const pluginName = "cm-watcher"
+const (
+	pluginName  = "cm-watcher"
+	description = "Kubernetes ConfigMap watcher is an example Botkube source plugin used during e2e tests. It's not meant for production usage."
+)
 
 type (
 	// Config holds executor configuration.
@@ -47,7 +51,8 @@ type CMWatcher struct{}
 func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
-		Description: "Kubernetes ConfigMap watcher is an example Botkube source plugin used during e2e tests. It's not meant for production usage.",
+		Description: description,
+		JSONSchema:  jsonSchema(),
 	}, nil
 }
 
@@ -136,4 +141,17 @@ func exitOnError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func jsonSchema() string {
+	return heredoc.Doc(
+		fmt.Sprintf(`{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"title": "botkube/cm-watcher",
+			"description": "%s",
+			"pluginType": "source",
+			"type": "object",
+			"properties": {},
+			"required": []
+		}`, description))
 }

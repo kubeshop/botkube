@@ -114,8 +114,6 @@ func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex)
 		}
 		cli.Cleanup()
 
-		fmt.Printf("Schema: '%s'\n", meta.JSONSchema)
-
 		if err := meta.Validate(); err != nil {
 			return nil, fmt.Errorf("while validating metadata fields: %w", err)
 		}

@@ -83,7 +83,7 @@ func jsonSchema() string {
 		fmt.Sprintf(`{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/echo",
-			"description": %s,
+			"description": "%s",
 			"pluginType": "executor",
 			"type": "object",
 			"properties": {
@@ -91,7 +91,7 @@ func jsonSchema() string {
 					"description": "When changeResponseToUpperCase is true, the echoed string will be in upper case",
 					"type": "boolean"
 				}
-			}
+			},
 			"required": []
 		}`, description))
 }

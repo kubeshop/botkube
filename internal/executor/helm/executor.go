@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -15,6 +16,7 @@ const (
 	PluginName       = "helm"
 	helmBinaryName   = "helm"
 	defaultNamespace = "default"
+	description      = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
 )
 
 type command interface {
@@ -42,7 +44,8 @@ func NewExecutor(ver string) *Executor {
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     e.pluginVersion,
-		Description: "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.",
+		Description: description,
+		JSONSchema:  jsonSchema(),
 	}, nil
 }
 
@@ -149,4 +152,80 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	return executor.ExecuteOutput{
 		Data: out,
 	}, nil
+}
+
+func jsonSchema() string {
+	return heredoc.Doc(
+		fmt.Sprintf(`{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"title": "botkube/helm",
+			"description": "%s",
+			"pluginType": "executor",
+			"type": "object",
+			"properties": {
+				"namespace": {
+					"description": "",
+					"type": "boolean"
+				},
+				"install": {
+					"description": "",
+					"type": "boolean"
+				},
+				"uninstall": {
+					"description": "",
+					"type": "boolean"
+				},
+				"list": {
+					"description": "",
+					"type": "boolean"
+				},
+				"version": {
+					"description": "",
+					"type": "boolean"
+				},
+				"status": {
+					"description": "",
+					"type": "boolean"
+				},
+				"test": {
+					"description": "",
+					"type": "boolean"
+				},
+				"rollback": {
+					"description": "",
+					"type": "boolean"
+				},
+				"upgrade": {
+					"description": "",
+					"type": "boolean"
+				},
+				"history": {
+					"description": "",
+					"type": "boolean"
+				},
+				"get": {
+					"description": "",
+					"type": "object",
+					"properties": {
+						"all": {
+							"description": "",
+							"type": "boolean"
+						},
+						"manifest": {
+							"description": "",
+							"type": "boolean"
+						},
+						"hooks": {
+							"description": "",
+							"type": "boolean"
+						},
+						"notes": {
+							"description": "",
+							"type": "boolean"
+						}
+					}
+				}
+			},
+			"required": []
+		}`, description))
 }
