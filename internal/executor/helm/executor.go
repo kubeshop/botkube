@@ -163,67 +163,21 @@ func jsonSchema() string {
 			"pluginType": "executor",
 			"type": "object",
 			"properties": {
-				"namespace": {
-					"description": "",
-					"type": "boolean"
+				"helmDriver": {
+					"description": "Storage driver for Helm",
+					"type": "string",
+					"default": "secret",
+					"enum": ["configmap", "secret", "memory"]
 				},
-				"install": {
-					"description": "",
-					"type": "boolean"
+				"helmCacheDir": {
+					"description": "Path of the cache directory",
+					"type": "string",
+					"default": "/tmp/helm/.cache"
 				},
-				"uninstall": {
-					"description": "",
-					"type": "boolean"
-				},
-				"list": {
-					"description": "",
-					"type": "boolean"
-				},
-				"version": {
-					"description": "",
-					"type": "boolean"
-				},
-				"status": {
-					"description": "",
-					"type": "boolean"
-				},
-				"test": {
-					"description": "",
-					"type": "boolean"
-				},
-				"rollback": {
-					"description": "",
-					"type": "boolean"
-				},
-				"upgrade": {
-					"description": "",
-					"type": "boolean"
-				},
-				"history": {
-					"description": "",
-					"type": "boolean"
-				},
-				"get": {
-					"description": "",
-					"type": "object",
-					"properties": {
-						"all": {
-							"description": "",
-							"type": "boolean"
-						},
-						"manifest": {
-							"description": "",
-							"type": "boolean"
-						},
-						"hooks": {
-							"description": "",
-							"type": "boolean"
-						},
-						"notes": {
-							"description": "",
-							"type": "boolean"
-						}
-					}
+				"helmConfigDir": {
+					"description": "Path of the configuration directory",
+					"type": "string",
+					"default": "/tmp/helm/"
 				}
 			},
 			"required": []
