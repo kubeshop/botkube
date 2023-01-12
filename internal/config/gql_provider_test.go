@@ -22,7 +22,7 @@ func (f *fakeGqlClient) GetDeployment(ctx context.Context, id string) (Deploymen
 func TestGqlProviderSuccess(t *testing.T) {
 	//given
 	f := fakeGqlClient{}
-	t.Setenv("CONFIG_SOURCE_IDENTIFIER", "16")
+	t.Setenv("CONFIG_PROVIDER_IDENTIFIER", "16")
 	p := NewGqlProvider(&f)
 
 	// when
