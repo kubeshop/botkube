@@ -195,10 +195,10 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [plugins.cacheDir](./values.yaml#L869) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
 | [plugins.repositories](./values.yaml#L871) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}}` | List of plugins repositories. |
 | [plugins.repositories.botkube](./values.yaml#L873) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
-| [config](./values.yaml#L877) | object | `{"source":{"endpoint":"","identifier":""}}` | Configuration for remote Botkube settings |
-| [config.source](./values.yaml#L879) | object | `{"endpoint":"","identifier":""}` | Base source definition |
-| [config.source.identifier](./values.yaml#L881) | string | `""` | Unique identifier for remote Botkube settings |
-| [config.source.endpoint](./values.yaml#L883) | string | `""` | Endpoint to fetch Botkube settings from |
+| [config](./values.yaml#L877) | object | `{"provider":{"endpoint":"","identifier":""}}` | Configuration for remote Botkube settings |
+| [config.provider](./values.yaml#L879) | object | `{"endpoint":"","identifier":""}` | Base provider definition |
+| [config.provider.identifier](./values.yaml#L881) | string | `""` | Unique identifier for remote Botkube settings |
+| [config.provider.endpoint](./values.yaml#L883) | string | `""` | Endpoint to fetch Botkube settings from |
 
 ### AWS IRSA on EKS support
 

@@ -875,8 +875,8 @@ plugins:
 
 # -- Configuration for remote Botkube settings
 config:
-  # -- Base source definition
-  source:
+  # -- Base provider definition
+  provider:
     # -- Unique identifier for remote Botkube settings
     identifier: ""
     # -- Endpoint to fetch Botkube settings from
