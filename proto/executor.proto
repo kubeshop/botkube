@@ -25,7 +25,7 @@ message ExecuteResponse {
 message MetadataResponse {
 	string version = 1;
 	string description = 2;
-	string jsonschema = 3;
+	string json_schema = 3;
 }
 
 service Executor {
