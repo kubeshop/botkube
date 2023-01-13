@@ -20,6 +20,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -208,15 +209,54 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEna
 
 		loadedPlugins[pluginKey] = binPath
 
-		log.Info("Executor plugin registered successfully.")
+		log.Infof("%s plugin registered successfully.", formatx.ToTitle(pluginType))
 	}
 
 	return loadedPlugins, nil
 }
 
+func (m *Manager) collectEnabledRepositories() ([]string, error) {
+	issues := multierror.New()
+
+	collect := func(in []string, pType Type) []string {
+		var out []string
+		for _, pluginKey := range in {
+			repoName, _, _, err := config.DecomposePluginKey(pluginKey)
+			if err != nil {
+				issues = multierror.Append(issues, err)
+				continue
+			}
+
+			_, found := m.cfg.Repositories[repoName]
+			if !found {
+				issues = multierror.Append(issues, fmt.Errorf("repository %q is not defined, but it is referred by %s plugin called %q", repoName, pType, pluginKey))
+				continue
+			}
+
+			out = append(out, repoName)
+		}
+		return out
+	}
+
+	requestedRepositories := collect(m.executorsToEnable, TypeExecutor)
+	requestedRepositories = append(requestedRepositories, collect(m.sourcesToEnable, TypeSource)...)
+
+	if err := issues.ErrorOrNil(); err != nil {
+		return nil, err
+	}
+
+	return requestedRepositories, nil
+}
+
 func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool) error {
+	repos, err := m.collectEnabledRepositories()
+	if err != nil {
+		return err
+	}
+
 	rawIndexes := map[string][]byte{}
-	for repo, entry := range m.cfg.Repositories {
+	for _, repo := range repos {
+		entry := m.cfg.Repositories[repo]
 		path := filepath.Join(m.cfg.CacheDir, filepath.Clean(fmt.Sprintf("%s.yaml", repo)))
 
 		if _, err := os.Stat(path); forceUpdate || os.IsNotExist(err) {

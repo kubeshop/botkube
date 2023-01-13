@@ -37,7 +37,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 		"sources":    sources,
 	})
 
-	log.Info("Staring source streaming...")
+	log.Info("Start source streaming...")
 
 	sourceClient, err := d.manager.GetSource(pluginName)
 	if err != nil {

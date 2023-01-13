@@ -102,6 +102,11 @@ const (
 	WebhookCommPlatformIntegration CommPlatformIntegration = "webhook"
 )
 
+// String returns string platform name.
+func (c CommPlatformIntegration) String() string {
+	return string(c)
+}
+
 // IntegrationType describes the type of integration with a communication platform.
 type IntegrationType string
 
