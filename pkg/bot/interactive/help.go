@@ -3,10 +3,8 @@ package interactive
 import (
 	"fmt"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
 	"github.com/kubeshop/botkube/pkg/config"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 // RunCommandName defines the button name for the run commands.
@@ -233,7 +231,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 		{
 			Base: Base{
 				Header:      "Run kubectl commands (if enabled)",
-				Description: fmt.Sprintf("%s\nYou can run kubectl commands directly from %s!", warn, cases.Title(language.English).String(string(h.platform))),
+				Description: fmt.Sprintf("%s\nYou can run kubectl commands directly from %s!", warn, formatx.ToTitle(h.platform)),
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get services"),
@@ -265,7 +263,7 @@ func (h *HelpMessage) pluginHelpSections() []Section {
 			platformName = "slack" // normalize the SocketSlack to Slack
 		}
 
-		helpSection := helpFn(cases.Title(language.English).String(string(platformName)), h.btnBuilder)
+		helpSection := helpFn(formatx.ToTitle(platformName), h.btnBuilder)
 		out = append(out, helpSection)
 	}
 	return out
