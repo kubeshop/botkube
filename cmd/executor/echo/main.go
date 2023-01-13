@@ -79,8 +79,7 @@ func main() {
 }
 
 func jsonSchema() string {
-	return heredoc.Doc(
-		fmt.Sprintf(`{
+	return heredoc.Docf`({
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/echo",
 			"description": "%s",
