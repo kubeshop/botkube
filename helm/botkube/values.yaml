@@ -351,6 +351,16 @@ sources:
         - type: apps/v1/statefulsets
         - type: apps/v1/daemonsets
         - type: batch/v1/jobs
+          
+  'prometheus':
+    ## Prometheus source configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/prometheus:
+      # -- If true, enables `prometheus` source.
+      enabled: false
+      config:
+        # -- Prometheus endpoint without api version and resource.
+        url: "http://localhost:9090"
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
