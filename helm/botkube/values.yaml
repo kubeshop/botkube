@@ -351,6 +351,7 @@ sources:
         - type: apps/v1/statefulsets
         - type: apps/v1/daemonsets
         - type: batch/v1/jobs
+
   'prometheus':
     ## Prometheus source configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
