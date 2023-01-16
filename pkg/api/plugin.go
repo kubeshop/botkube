@@ -21,7 +21,16 @@ type MetadataOutput struct {
 	// Descriptions is a description of a given plugin.
 	Description string
 	// JSONSchema is a JSON schema for a given plugin.
-	JSONSchema string
+	JSONSchema JSONSchema
+}
+
+// JSONSchema contains the JSON schema or a remote reference where the schema can be found.
+// Value and RefURL are mutually exclusive
+type JSONSchema struct {
+	// Value is the JSON schema string.
+	Value string
+	// RefURL is the remote reference of the schema.
+	RefURL string
 }
 
 // Validate validate the metadata fields and returns detected issues.
@@ -35,9 +44,9 @@ func (m MetadataOutput) Validate() error {
 		issues = append(issues, "version field cannot be empty")
 	}
 
-	// if m.JSONSchema == "" {
-	// 	issues = append(issues, "JSONSchema field cannot be empty")
-	// }
+	if m.JSONSchema.Value != "" && m.JSONSchema.RefURL != "" {
+		issues = append(issues, "JSONSchema.Value and JSONSchema.RefURL are mutually exclusive. Pick one.")
+	}
 
 	if len(issues) > 0 {
 		return errors.New(strings.Join(issues, ", "))

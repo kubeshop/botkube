@@ -154,9 +154,9 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	}, nil
 }
 
-func jsonSchema() string {
-	return heredoc.Doc(
-		fmt.Sprintf(`{
+func jsonSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Docf(`{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/helm",
 			"description": "%s",
@@ -181,5 +181,6 @@ func jsonSchema() string {
 				}
 			},
 			"required": []
-		}`, description))
+		}`, description),
+	}
 }

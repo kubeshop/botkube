@@ -69,8 +69,11 @@ func (i *IndexBuilder) Build(dir, urlBasePath string) (Index, error) {
 			Type:        Type(pType),
 			Description: meta.Description,
 			Version:     meta.Version,
-			JSONSchema:  meta.JSONSchema,
-			URLs:        i.mapToIndexURLs(bins, urlBasePath),
+			JSONSchema: JSONSchema{
+				Value:  meta.JSONSchema.Value,
+				RefURL: meta.JSONSchema.RefURL,
+			},
+			URLs: i.mapToIndexURLs(bins, urlBasePath),
 		})
 	}
 	return out, nil

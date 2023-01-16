@@ -23,7 +23,7 @@ type (
 		Description string
 		Version     string
 		URLs        map[string]string
-		JSONSchema  string
+		JSONSchema  JSONSchema
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.

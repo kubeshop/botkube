@@ -28,7 +28,14 @@ message MetadataResponse {
 	// Descriptions is a description of a given plugin.
 	string description = 2;
 	// JSONSchema is a JSON schema of a given plugin.
-	string json_schema = 3;
+	JSONSchema json_schema = 3;
+}
+
+message JSONSchema {
+	// value is the string value of the JSON schema.
+	string value = 1;
+	// refURL is the remote reference of the JSON schema.
+	string refURL = 2;
 }
 
 service Source {

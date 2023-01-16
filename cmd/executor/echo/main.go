@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -78,12 +77,12 @@ func main() {
 	})
 }
 
-func jsonSchema() string {
-	return heredoc.Docf`({
+func jsonSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Docf(`({
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/echo",
 			"description": "%s",
-			"pluginType": "executor",
 			"type": "object",
 			"properties": {
 				"changeResponseToUpperCase": {
@@ -92,5 +91,6 @@ func jsonSchema() string {
 				}
 			},
 			"required": []
-		}`, description))
+		}`, description),
+	}
 }
