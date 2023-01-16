@@ -160,7 +160,6 @@ func jsonSchema() api.JSONSchema {
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/helm",
 			"description": "%s",
-			"pluginType": "executor",
 			"type": "object",
 			"properties": {
 				"helmDriver": {

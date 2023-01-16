@@ -149,7 +149,6 @@ func jsonSchema() api.JSONSchema {
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/cm-watcher",
 			"description": "%s",
-			"pluginType": "source",
 			"type": "object",
 			"properties": {},
 			"required": []
