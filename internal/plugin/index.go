@@ -50,7 +50,7 @@ type (
 		Description string     `yaml:"description"`
 		Version     string     `yaml:"version"`
 		URLs        []IndexURL `yaml:"urls"`
-		JSONSchema  JSONSchema `yaml:"JSONschema"`
+		JSONSchema  JSONSchema `yaml:"JSONSchema"`
 	}
 
 	JSONSchema struct {
