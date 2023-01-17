@@ -1,10 +1,11 @@
 package prometheus
 
 import (
-	"github.com/kubeshop/botkube/pkg/api/source"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	promApi "github.com/prometheus/client_golang/api/prometheus/v1"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config prometheus configuration
