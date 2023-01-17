@@ -25,6 +25,12 @@ message ExecuteResponse {
 message MetadataResponse {
 	string version = 1;
 	string description = 2;
+	JSONSchema json_schema = 3;
+}
+
+message JSONSchema {
+	string value = 1;
+	string refURL = 2;
 }
 
 service Executor {

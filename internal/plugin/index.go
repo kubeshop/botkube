@@ -50,6 +50,12 @@ type (
 		Description string     `yaml:"description"`
 		Version     string     `yaml:"version"`
 		URLs        []IndexURL `yaml:"urls"`
+		JSONSchema  JSONSchema `yaml:"JSONSchema"`
+	}
+
+	JSONSchema struct {
+		Value  string `yaml:"value"`
+		RefURL string `yaml:"refURL"`
 	}
 
 	// IndexURL holds the binary url details.

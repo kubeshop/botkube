@@ -58,7 +58,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath string) (Index, error) {
 
 	var out Index
 	for key, bins := range entries {
-		ver, desc, err := i.getPluginMetadata(dir, bins)
+		meta, err := i.getPluginMetadata(dir, bins)
 		if err != nil {
 			return Index{}, fmt.Errorf("while getting plugin metadata: %w", err)
 		}
@@ -67,9 +67,13 @@ func (i *IndexBuilder) Build(dir, urlBasePath string) (Index, error) {
 		out.Entries = append(out.Entries, IndexEntry{
 			Name:        pName,
 			Type:        Type(pType),
-			Description: desc,
-			Version:     ver,
-			URLs:        i.mapToIndexURLs(bins, urlBasePath),
+			Description: meta.Description,
+			Version:     meta.Version,
+			JSONSchema: JSONSchema{
+				Value:  meta.JSONSchema.Value,
+				RefURL: meta.JSONSchema.RefURL,
+			},
+			URLs: i.mapToIndexURLs(bins, urlBasePath),
 		})
 	}
 	return out, nil
@@ -90,7 +94,7 @@ func (*IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath stri
 	return urls
 }
 
-func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (string, string, error) {
+func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (*api.MetadataOutput, error) {
 	os, arch := runtime.GOOS, runtime.GOARCH
 
 	for _, item := range bins {
@@ -103,24 +107,24 @@ func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex)
 		}
 		clients, err := createGRPCClients[metadataGetter](i.log, bins, item.Type)
 		if err != nil {
-			return "", "", fmt.Errorf("while creating gRPC client: %w", err)
+			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}
 
 		cli := clients[item.Type.String()]
 		meta, err := cli.Client.Metadata(context.Background())
 		if err != nil {
-			return "", "", fmt.Errorf("while calling metadata RPC: %w", err)
+			return nil, fmt.Errorf("while calling metadata RPC: %w", err)
 		}
 		cli.Cleanup()
 
 		if err := meta.Validate(); err != nil {
-			return "", "", fmt.Errorf("while validating metadata fields: %w", err)
+			return nil, fmt.Errorf("while validating metadata fields: %w", err)
 		}
 
-		return meta.Version, meta.Description, nil
+		return &meta, nil
 	}
 
-	return "", "", fmt.Errorf("cannot find binary for %s/%s", os, arch)
+	return nil, fmt.Errorf("cannot find binary for %s/%s", os, arch)
 }
 
 func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex, entryName string) error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -15,6 +16,7 @@ const (
 	PluginName       = "helm"
 	helmBinaryName   = "helm"
 	defaultNamespace = "default"
+	description      = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
 )
 
 type command interface {
@@ -42,7 +44,8 @@ func NewExecutor(ver string) *Executor {
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     e.pluginVersion,
-		Description: "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.",
+		Description: description,
+		JSONSchema:  jsonSchema(),
 	}, nil
 }
 
@@ -149,4 +152,34 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	return executor.ExecuteOutput{
 		Data: out,
 	}, nil
+}
+
+func jsonSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Docf(`{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"title": "botkube/helm",
+			"description": "%s",
+			"type": "object",
+			"properties": {
+				"helmDriver": {
+					"description": "Storage driver for Helm",
+					"type": "string",
+					"default": "secret",
+					"enum": ["configmap", "secret", "memory"]
+				},
+				"helmCacheDir": {
+					"description": "Path of the cache directory",
+					"type": "string",
+					"default": "/tmp/helm/.cache"
+				},
+				"helmConfigDir": {
+					"description": "Path of the configuration directory",
+					"type": "string",
+					"default": "/tmp/helm/"
+				}
+			},
+			"required": []
+		}`, description),
+	}
 }
