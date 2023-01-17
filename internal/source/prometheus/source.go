@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
@@ -22,18 +20,20 @@ type Source struct {
 	prometheus    *Client
 	l             sync.Mutex
 	pluginVersion string
+	startedAt     time.Time
 }
 
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
+		startedAt:     time.Now(),
 	}
 }
 
 // Stream streams prometheus alerts
 func (p *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	out := source.StreamOutput{Output: make(chan []byte)}
-	config, err := mergeConfigs(input.Configs)
+	config, err := MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
@@ -52,28 +52,16 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []byte) {
 	prometheus := p.getPrometheusClient(config.URL)
 	for {
-		alerts, _ := prometheus.Alerts(ctx)
+		alerts, _ := prometheus.Alerts(ctx, GetAlertsRequest{
+			IgnoreOldAlerts: *config.IgnoreOldAlerts,
+			MinAlertTime:    p.startedAt,
+			AlertStates:     config.AlertStates,
+		})
 		for _, alert := range alerts {
 			ch <- []byte(fmt.Sprintf("%+v", alert))
 		}
 		time.Sleep(time.Second * 5)
 	}
-}
-
-func mergeConfigs(configs []*source.Config) (Config, error) {
-	finalCfg := Config{}
-	for _, inputCfg := range configs {
-		var cfg Config
-		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
-		if err != nil {
-			return Config{}, err
-		}
-		if cfg.URL == "" {
-			continue
-		}
-		finalCfg.URL = cfg.URL
-	}
-	return finalCfg, nil
 }
 
 func (p *Source) getPrometheusClient(url string) *Client {
