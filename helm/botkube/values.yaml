@@ -361,6 +361,10 @@ sources:
       config:
         # -- Prometheus endpoint without api version and resource.
         url: "http://localhost:9090"
+        # -- If set as true, Prometheus source plugin will not send alerts that is created before plugin start time.
+        ignoreOldAlerts: true
+        # -- Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState
+        alertStates: ["firing", "pending", "inactive"]
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.

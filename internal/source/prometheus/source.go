@@ -58,7 +58,7 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 			AlertStates:     config.AlertStates,
 		})
 		for _, alert := range alerts {
-			ch <- []byte(fmt.Sprintf("%+v", alert))
+			ch <- []byte(fmt.Sprintf("%s", alert.Annotations["description"]))
 		}
 		time.Sleep(time.Second * 5)
 	}
