@@ -25,11 +25,14 @@ type GetAlertsRequest struct {
 
 type alert promApi.Alert
 
-func (a *alert) IsOld(request GetAlertsRequest) bool {
-	return request.IgnoreOldAlerts && a.ActiveAt.Before(request.MinAlertTime)
-}
+// IsValid validates alert
+func (a *alert) IsValid(request GetAlertsRequest) bool {
+	// Ignore alerts based on their ages only if `IgnoreOldAlerts` configuration is set to true.
+	if request.IgnoreOldAlerts && a.ActiveAt.Before(request.MinAlertTime) {
+		return false
+	}
 
-func (a *alert) HasValidState(request GetAlertsRequest) bool {
+	// Alert state should be in allowed alert state list.
 	for _, state := range request.AlertStates {
 		if a.State == state {
 			return true
@@ -59,11 +62,11 @@ func (c *Client) Alerts(ctx context.Context, request GetAlertsRequest) ([]alert,
 	var newAlerts []alert
 	for _, al := range alerts.Alerts {
 		a := alert(al)
-		if a.IsOld(request) || !a.HasValidState(request) {
+		if !a.IsValid(request) {
 			continue
 		}
 		key := fmt.Sprintf("%+v", a.Labels)
-		if value, ok := c.alerts.Load(key); !ok || a.State != value.(promApi.Alert).State {
+		if value, ok := c.alerts.Load(key); !ok || a.State != value.(alert).State {
 			newAlerts = append(newAlerts, a)
 			c.alerts.Store(key, a)
 		}
