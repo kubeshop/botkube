@@ -31,6 +31,7 @@ type Source struct {
 	startedAt     time.Time
 }
 
+// NewSource returns a new instance of Source.
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,

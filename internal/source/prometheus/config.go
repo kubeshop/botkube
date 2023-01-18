@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"fmt"
 	promApi "github.com/prometheus/client_golang/api/prometheus/v1"
 	"gopkg.in/yaml.v3"
 
@@ -35,7 +36,7 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		var cfg Config
 		err := yaml.Unmarshal(rawCfg.RawYAML, &cfg)
 		if err != nil {
-			return Config{}, err
+			return Config{}, fmt.Errorf("while unmarshalling YAML config: %w", err)
 		}
 
 		if cfg.URL != "" {
