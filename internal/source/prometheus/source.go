@@ -71,7 +71,9 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 			MinAlertTime:    p.startedAt,
 			AlertStates:     config.AlertStates,
 		})
-		log.Errorf("failed to get alerts. %v", err)
+		if err != nil {
+			log.Errorf("failed to get alerts. %v", err)
+		}
 		for _, alert := range alerts {
 			msg := fmt.Sprintf("[%s][%s][%s] %s", PluginName, alert.Labels["alertname"], alert.State, alert.Annotations["description"])
 			ch <- []byte(msg)
