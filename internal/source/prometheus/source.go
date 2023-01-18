@@ -3,7 +3,6 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -25,8 +24,6 @@ const (
 
 // Source prometheus source plugin data structure
 type Source struct {
-	prometheus    *Client
-	l             sync.Mutex
 	pluginVersion string
 	startedAt     time.Time
 }
@@ -63,8 +60,9 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 	log := loggerx.New(loggerx.Config{
 		Level: config.Log.Level,
 	})
-	prometheus, err := p.getPrometheusClient(config.URL)
+	prometheus, err := NewClient(config.URL)
 	exitOnError(err, log)
+
 	for {
 		alerts, err := prometheus.Alerts(ctx, GetAlertsRequest{
 			IgnoreOldAlerts: *config.IgnoreOldAlerts,
@@ -83,24 +81,11 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 	}
 }
 
-func (p *Source) getPrometheusClient(url string) (*Client, error) {
-	p.l.Lock()
-	defer p.l.Unlock()
-	if p.prometheus == nil {
-		c, err := NewClient(url)
-		if err != nil {
-			return nil, err
-		}
-		p.prometheus = c
-	}
-	return p.prometheus, nil
-}
-
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
 			"$schema": "http://json-schema.org/draft-04/schema#",
-			"title": "botkube/prometheus",
+			"title": "Prometheus",
 			"description": "%s",
 			"type": "object",
 			"properties": {
