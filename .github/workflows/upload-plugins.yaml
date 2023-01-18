@@ -1,0 +1,55 @@
+name: Publish plugins
+on:
+  push:
+    branches:
+    - main
+    paths:
+    - 'cmd/executor/**'
+    - 'cmd/source/**'
+jobs:
+  publish_plugins:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+      GOPATH: /home/runner/work/botkube
+      GOBIN: /home/runner/work/botkube/bin
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: GCP auth
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: ${{ secrets.PLUGINS_BUCKET_CREDENTIALS }}
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+        version: latest
+    - name: Build all plugins into dist directory
+      env:
+        GORELEASER_CURRENT_TAG: "v0.0.0-latest"
+        PLUGIN_DOWNLOAD_URL_BASE_PATH: "https://storage.googleapis.com/botkube-plugins-latest"
+      run: |
+        make gen-plugins-index
+    - name: Upload plugins to GCS
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+          path: 'plugin-dist'
+          destination: 'botkube-plugins-latest/'
+          parent: false
+    - name: Upload plugin index to GCS
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+          path: 'plugins-index.yaml'
+          destination: 'botkube-plugins-latest/'
+    - name: 'Disable caching'
+      run: 'gsutil -m setmeta -h "Cache-Control: no-cache, no-store"  gs://botkube-plugins-latest/*'
