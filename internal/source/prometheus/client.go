@@ -12,8 +12,8 @@ import (
 
 // Client prometheus client
 type Client struct {
-	// Api refers to prometheus client. https://github.com/prometheus/client_golang
-	Api    promApi.API
+	// API refers to prometheus client. https://github.com/prometheus/client_golang
+	API    promApi.API
 	alerts sync.Map
 }
 
@@ -41,21 +41,24 @@ func (a *alert) IsValid(request GetAlertsRequest) bool {
 	return false
 }
 
-// NewClient initializes prometheus client
-func NewClient(url string) *Client {
-	c, _ := promClient.NewClient(promClient.Config{
+// NewClient initializes Prometheus client
+func NewClient(url string) (*Client, error) {
+	c, err := promClient.NewClient(promClient.Config{
 		Address: url,
 	})
 
-	newAPI := promApi.NewAPI(c)
-	return &Client{
-		Api: newAPI,
+	if err != nil {
+		return nil, err
 	}
+
+	return &Client{
+		API: promApi.NewAPI(c),
+	}, nil
 }
 
 // Alerts returns only new alerts.
 func (c *Client) Alerts(ctx context.Context, request GetAlertsRequest) ([]alert, error) {
-	alerts, err := c.Api.Alerts(ctx)
+	alerts, err := c.API.Alerts(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -365,6 +365,10 @@ sources:
         ignoreOldAlerts: true
         # -- Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState
         alertStates: ["firing", "pending", "inactive"]
+        # -- Logging configuration
+        log:
+          # -- Log level
+          level: info
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
