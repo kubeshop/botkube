@@ -79,7 +79,7 @@ func main() {
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`({
+		Value: heredoc.Docf(`{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "botkube/echo",
 			"description": "%s",
