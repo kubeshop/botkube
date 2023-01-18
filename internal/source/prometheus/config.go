@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"fmt"
+
 	promApi "github.com/prometheus/client_golang/api/prometheus/v1"
 	"gopkg.in/yaml.v3"
 
