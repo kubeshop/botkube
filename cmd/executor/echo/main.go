@@ -63,10 +63,10 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	}, nil
 }
 
-func (EchoExecutor) Help() executor.HelpResponse {
-	return executor.HelpResponse{
-		Help: "echo help help",
-	}
+func (EchoExecutor) Help(ctx context.Context) (api.HelpOutput, error) {
+	return api.HelpOutput{
+		Help: "echohelp help",
+	}, nil
 }
 
 func main() {

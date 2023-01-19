@@ -81,10 +81,10 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 	return out, nil
 }
 
-func (CMWatcher) Help() source.HelpResponse {
-	return source.HelpResponse{
+func (CMWatcher) Help(ctx context.Context) (api.HelpOutput, error) {
+	return api.HelpOutput{
 		Help: "cm--watcher help help",
-	}
+	}, nil
 }
 
 func listenEvents(ctx context.Context, obj Object, sink chan<- []byte) {
