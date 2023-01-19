@@ -45,7 +45,12 @@ message Dependency {
 	map<string, string> urls = 1;
 }
 
+message HelpResponse {
+	string help = 1;
+}
+
 service Executor {
 	rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
 	rpc Metadata(google.protobuf.Empty) returns (MetadataResponse) {}
+	rpc Help(google.protobuf.Empty) returns (HelpResponse) {}
 }

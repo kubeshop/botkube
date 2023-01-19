@@ -16,6 +16,7 @@ import (
 type Source interface {
 	Stream(context.Context, StreamInput) (StreamOutput, error)
 	Metadata(context.Context) (api.MetadataOutput, error)
+	Help() HelpResponse
 }
 
 type (

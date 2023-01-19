@@ -25,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ExecutorClient interface {
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
 	Metadata(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MetadataResponse, error)
+	Help(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*HelpResponse, error)
 }
 
 type executorClient struct {
@@ -53,12 +54,22 @@ func (c *executorClient) Metadata(ctx context.Context, in *emptypb.Empty, opts .
 	return out, nil
 }
 
+func (c *executorClient) Help(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*HelpResponse, error) {
+	out := new(HelpResponse)
+	err := c.cc.Invoke(ctx, "/executor.Executor/Help", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExecutorServer is the server API for Executor service.
 // All implementations must embed UnimplementedExecutorServer
 // for forward compatibility
 type ExecutorServer interface {
 	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
 	Metadata(context.Context, *emptypb.Empty) (*MetadataResponse, error)
+	Help(context.Context, *emptypb.Empty) (*HelpResponse, error)
 	mustEmbedUnimplementedExecutorServer()
 }
 
@@ -71,6 +82,9 @@ func (UnimplementedExecutorServer) Execute(context.Context, *ExecuteRequest) (*E
 }
 func (UnimplementedExecutorServer) Metadata(context.Context, *emptypb.Empty) (*MetadataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Metadata not implemented")
+}
+func (UnimplementedExecutorServer) Help(context.Context, *emptypb.Empty) (*HelpResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Help not implemented")
 }
 func (UnimplementedExecutorServer) mustEmbedUnimplementedExecutorServer() {}
 
@@ -121,6 +135,24 @@ func _Executor_Metadata_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Executor_Help_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExecutorServer).Help(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/executor.Executor/Help",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExecutorServer).Help(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Executor_ServiceDesc is the grpc.ServiceDesc for Executor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -135,6 +167,10 @@ var Executor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Metadata",
 			Handler:    _Executor_Metadata_Handler,
+		},
+		{
+			MethodName: "Help",
+			Handler:    _Executor_Help_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

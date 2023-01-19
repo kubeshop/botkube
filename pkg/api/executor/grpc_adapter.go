@@ -14,6 +14,7 @@ import (
 type Executor interface {
 	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
 	Metadata(ctx context.Context) (api.MetadataOutput, error)
+	Help() HelpResponse
 }
 
 type (

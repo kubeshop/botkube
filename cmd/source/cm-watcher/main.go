@@ -81,6 +81,12 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 	return out, nil
 }
 
+func (CMWatcher) Help() source.HelpResponse {
+	return source.HelpResponse{
+		Help: "cm--watcher help help",
+	}
+}
+
 func listenEvents(ctx context.Context, obj Object, sink chan<- []byte) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
 	exitOnError(err)

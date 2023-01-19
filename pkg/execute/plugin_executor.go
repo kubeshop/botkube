@@ -70,6 +70,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		return "", fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
+	if isHelpCmd(args) {
+		return cli.Help().Help, nil
+	}
+
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
 		Command: command,
 		Configs: configs,
@@ -136,4 +140,11 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 	}
 
 	return out, fullPluginName
+}
+
+func isHelpCmd(s []string) bool {
+	if len(s) < 2 {
+		return false
+	}
+	return s[1] == "help"
 }
