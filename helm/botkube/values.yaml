@@ -352,6 +352,24 @@ sources:
         - type: apps/v1/daemonsets
         - type: batch/v1/jobs
 
+  'prometheus':
+    ## Prometheus source configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/prometheus:
+      # -- If true, enables `prometheus` source.
+      enabled: false
+      config:
+        # -- Prometheus endpoint without api version and resource.
+        url: "http://localhost:9090"
+        # -- If set as true, Prometheus source plugin will not send alerts that is created before plugin start time.
+        ignoreOldAlerts: true
+        # -- Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState
+        alertStates: ["firing", "pending", "inactive"]
+        # -- Logging configuration
+        log:
+          # -- Log level
+          level: info
+
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.
 # You can enable or disable filters with `@Botkube enable/disable filters` commands.
