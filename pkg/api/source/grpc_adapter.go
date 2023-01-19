@@ -125,6 +125,16 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
+func (p *grpcClient) Help(ctx context.Context) (api.HelpOutput, error) {
+	resp, err := p.client.Help(ctx, &emptypb.Empty{})
+	if err != nil {
+		return api.HelpOutput{}, err
+	}
+	return api.HelpOutput{
+		Help: resp.Help,
+	}, nil
+}
+
 type grpcServer struct {
 	UnimplementedSourceServer
 	Source Source
