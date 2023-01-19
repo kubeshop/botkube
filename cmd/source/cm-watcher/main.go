@@ -81,12 +81,6 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 	return out, nil
 }
 
-func (CMWatcher) Help(ctx context.Context) (api.HelpOutput, error) {
-	return api.HelpOutput{
-		Help: "no help available",
-	}, nil
-}
-
 func listenEvents(ctx context.Context, obj Object, sink chan<- []byte) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
 	exitOnError(err)
