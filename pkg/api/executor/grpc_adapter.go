@@ -14,7 +14,7 @@ import (
 type Executor interface {
 	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
 	Metadata(ctx context.Context) (api.MetadataOutput, error)
-	Help(context.Context) (api.HelpOutput, error)
+	Help(context.Context) (string, error)
 }
 
 type (
@@ -152,7 +152,7 @@ func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse,
 		return nil, err
 	}
 	return &HelpResponse{
-		Help: help.Help,
+		Help: help,
 	}, nil
 }
 

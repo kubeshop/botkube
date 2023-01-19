@@ -63,10 +63,8 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	}, nil
 }
 
-func (EchoExecutor) Help(ctx context.Context) (api.HelpOutput, error) {
-	return api.HelpOutput{
-		Help: "`changeResponseToUpperCase`: When changeResponseToUpperCase is true, the echoed string will be in upper case",
-	}, nil
+func (EchoExecutor) Help(ctx context.Context) (string, error) {
+	return description, nil
 }
 
 func main() {

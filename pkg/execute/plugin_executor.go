@@ -71,8 +71,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 	}
 
 	if isHelpCmd(args) {
-		res, err := cli.Help(ctx)
-		return res.Help, err
+		return cli.Help(ctx)
 	}
 
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
