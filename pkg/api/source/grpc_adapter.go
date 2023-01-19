@@ -187,6 +187,16 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 	}
 }
 
+func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse, error) {
+	help, err := p.Source.Help(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &HelpResponse{
+		Help: help.Help,
+	}, nil
+}
+
 // Serve serves given plugins.
 func Serve(p map[string]plugin.Plugin) {
 	plugin.Serve(&plugin.ServeConfig{

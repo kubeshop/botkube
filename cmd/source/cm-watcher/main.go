@@ -83,7 +83,7 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 
 func (CMWatcher) Help(ctx context.Context) (api.HelpOutput, error) {
 	return api.HelpOutput{
-		Help: "cm--watcher help help",
+		Help: "no help available",
 	}, nil
 }
 

@@ -146,6 +146,16 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 	}, nil
 }
 
+func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse, error) {
+	help, err := p.Impl.Help(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &HelpResponse{
+		Help: help.Help,
+	}, nil
+}
+
 // Serve serves given plugins.
 func Serve(p map[string]plugin.Plugin) {
 	plugin.Serve(&plugin.ServeConfig{

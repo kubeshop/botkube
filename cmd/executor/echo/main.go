@@ -65,7 +65,7 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 
 func (EchoExecutor) Help(ctx context.Context) (api.HelpOutput, error) {
 	return api.HelpOutput{
-		Help: "echohelp help",
+		Help: "`changeResponseToUpperCase`: When changeResponseToUpperCase is true, the echoed string will be in upper case",
 	}, nil
 }
 
