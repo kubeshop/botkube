@@ -39,6 +39,26 @@ func TestNewStoreRepository(t *testing.T) {
 				},
 			},
 		},
+		"botkube/helm": {
+			{
+				Description: "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.",
+				Version:     "v0.1.0",
+				URLs: map[string]string{
+					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_amd64",
+					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_arm64",
+					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_amd64",
+					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_arm64",
+				},
+				Dependencies: map[string]map[string]string{
+					"helm": {
+						"darwin/amd64": "https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz",
+						"darwin/arm64": "https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz",
+						"linux/amd64":  "https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz",
+						"linux/arm64":  "https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz",
+					},
+				},
+			},
+		},
 		"mszostok/echo": {
 			{
 				Description: "Executor suitable for e2e testing. It returns the command that was send as an input.",
@@ -94,8 +114,8 @@ func TestNewStoreRepository(t *testing.T) {
 
 	// then
 	require.NoError(t, err)
-	assert.Equal(t, executors, expectedExecutors)
-	assert.Equal(t, sources, expectedSources)
+	assert.Equal(t, expectedExecutors, executors)
+	assert.Equal(t, expectedSources, sources)
 }
 
 func loadTestdataFile(t *testing.T, name string) []byte {

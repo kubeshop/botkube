@@ -120,7 +120,19 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 			Value:  resp.GetJsonSchema().GetValue(),
 			RefURL: resp.GetJsonSchema().GetRefURL(),
 		},
+		Dependencies: p.convertDependencies(resp.Dependencies),
 	}, nil
+}
+
+func (p *grpcClient) convertDependencies(resp map[string]*Dependency) map[string]api.Dependency {
+	dependencies := make(map[string]api.Dependency, len(resp))
+	for depName, depDetails := range resp {
+		dependencies[depName] = api.Dependency{
+			URLs: depDetails.GetUrls(),
+		}
+	}
+
+	return dependencies
 }
 
 type grpcServer struct {
@@ -141,6 +153,17 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 			RefURL: meta.JSONSchema.RefURL,
 		},
 	}, nil
+}
+
+func (p *grpcServer) convertDependencies(in map[string]api.Dependency) map[string]*Dependency {
+	dependencies := make(map[string]*Dependency, len(in))
+	for depName, depDetails := range in {
+		dependencies[depName] = &Dependency{
+			Urls: depDetails.URLs,
+		}
+	}
+
+	return dependencies
 }
 
 func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) error {

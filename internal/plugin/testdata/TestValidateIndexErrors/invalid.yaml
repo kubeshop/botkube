@@ -86,3 +86,16 @@ entries:
         platform:
           os: linux
           architecture: arm64
+
+  - description: "Invalid dependency URLs"
+    version: "v2.0.0"
+    name: "kubectl"
+    type: "executor"
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_arm64_source_kubernetes
+        platform:
+          os: linux
+          architecture: arm64
+        dependencies:
+          kubectl:
+            url: ""

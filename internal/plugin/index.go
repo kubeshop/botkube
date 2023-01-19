@@ -60,14 +60,23 @@ type (
 
 	// IndexURL holds the binary url details.
 	IndexURL struct {
-		URL      string           `yaml:"url"`
-		Platform IndexURLPlatform `yaml:"platform"`
+		URL          string           `yaml:"url"`
+		Platform     IndexURLPlatform `yaml:"platform"`
+		Dependencies Dependencies     `yaml:"dependencies,omitempty"`
 	}
 
 	// IndexURLPlatform holds platform information about a given binary URL.
 	IndexURLPlatform struct {
 		OS   string `yaml:"os"`
 		Arch string `yaml:"architecture"`
+	}
+
+	// Dependencies holds the dependencies for a given platform binary.
+	Dependencies map[string]Dependency
+
+	// Dependency holds the dependency information.
+	Dependency struct {
+		URL string `yaml:"url"`
 	}
 )
 
@@ -93,6 +102,17 @@ func (in Index) Validate() error {
 		if len(entry.URLs) == 0 {
 			entryIssues = multierror.Append(entryIssues, errors.New("field urls cannot be empty"))
 		}
+		for _, urlItem := range entry.URLs {
+			if len(urlItem.Dependencies) == 0 {
+				continue
+			}
+			for key, dep := range urlItem.Dependencies {
+				if dep.URL != "" {
+					continue
+				}
+				entryIssues = multierror.Append(entryIssues, fmt.Errorf("dependency URL for key %q in the URL entry %q cannot be empty", key, urlItem.URL))
+			}
+		}
 
 		if entry.Type != "" && !entry.Type.IsValid() {
 			entryIssues = multierror.Append(entryIssues, fmt.Errorf("field type is not valid, allowed values are %s", allKnownTypes))
@@ -101,12 +121,11 @@ func (in Index) Validate() error {
 		if entry.Type != "" && entry.Name != "" && entry.Version != "" {
 			key := strings.Join([]string{string(entry.Type), entry.Name, entry.Version}, ";")
 			firstEntryIdx, found := entriesByKey[key]
-			if !found {
-				entriesByKey[key] = currentIdx
-				continue
+			if found {
+				entryIssues = multierror.Append(entryIssues, fmt.Errorf("conflicts with the %s entry as both have the same type, name, and version", humanize.Ordinal(firstEntryIdx)))
 			}
 
-			entryIssues = multierror.Append(entryIssues, fmt.Errorf("conflicts with the %s entry as both have the same type, name, and version", humanize.Ordinal(firstEntryIdx)))
+			entriesByKey[key] = currentIdx
 		}
 
 		err := entryIssues.ErrorOrNil()

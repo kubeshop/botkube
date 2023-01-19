@@ -73,13 +73,13 @@ func (i *IndexBuilder) Build(dir, urlBasePath string) (Index, error) {
 				Value:  meta.JSONSchema.Value,
 				RefURL: meta.JSONSchema.RefURL,
 			},
-			URLs: i.mapToIndexURLs(bins, urlBasePath),
+			URLs: i.mapToIndexURLs(bins, urlBasePath, meta.Dependencies),
 		})
 	}
 	return out, nil
 }
 
-func (*IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath string) []IndexURL {
+func (i *IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency) []IndexURL {
 	var urls []IndexURL
 	for _, bin := range bins {
 		urls = append(urls, IndexURL{
@@ -88,10 +88,27 @@ func (*IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath stri
 				OS:   bin.OS,
 				Arch: bin.Arch,
 			},
+			Dependencies: i.dependenciesForBinary(bin, deps),
 		})
 	}
 
 	return urls
+}
+
+func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[string]api.Dependency) Dependencies {
+	out := make(Dependencies)
+	for depName, depDetails := range deps {
+		url, exists := depDetails.URLs.For(bin.OS, bin.Arch)
+		if !exists {
+			continue
+		}
+
+		out[depName] = Dependency{
+			URL: url,
+		}
+	}
+
+	return out
 }
 
 func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (*api.MetadataOutput, error) {
