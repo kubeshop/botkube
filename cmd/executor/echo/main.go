@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -63,8 +64,14 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	}, nil
 }
 
-func (EchoExecutor) Help(ctx context.Context) (string, error) {
-	return description, nil
+func (EchoExecutor) Help(ctx context.Context) (interactive.Message, error) {
+	return interactive.Message{
+		Base: interactive.Base{
+			Body: interactive.Body{
+				CodeBlock: description,
+			},
+		},
+	}, nil
 }
 
 func main() {

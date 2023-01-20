@@ -169,6 +169,14 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if isPluginCmd {
+		if isHelpCmd(cmdCtx.Args) {
+			msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
+			if err != nil {
+				e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
+				return empty
+			}
+			return msg
+		}
 		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
 		switch {

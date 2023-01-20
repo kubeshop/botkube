@@ -10,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -70,10 +71,6 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 		return "", fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
-	if isHelpCmd(args) {
-		return cli.Help(ctx)
-	}
-
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
 		Command: command,
 		Configs: configs,
@@ -87,6 +84,23 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []
 	}
 
 	return resp.Data, nil
+}
+
+func (e *PluginExecutor) Help(ctx context.Context, bindings []string, args []string, command string) (interactive.Message, error) {
+	e.log.WithFields(logrus.Fields{
+		"bindings": bindings,
+		"command":  command,
+	}).Debugf("Handling plugin help command...")
+
+	cmdName := args[0]
+	_, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
+
+	cli, err := e.pluginManager.GetExecutor(fullPluginName)
+	if err != nil {
+		return interactive.Message{}, fmt.Errorf("while getting concrete plugin client: %w", err)
+	}
+	e.log.Debug("running help command")
+	return cli.Help(ctx)
 }
 
 func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([]*executor.Config, error) {

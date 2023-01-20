@@ -2,19 +2,22 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 // Executor defines the Botkube executor plugin functionality.
 type Executor interface {
 	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
 	Metadata(ctx context.Context) (api.MetadataOutput, error)
-	Help(context.Context) (string, error)
+	Help(context.Context) (interactive.Message, error)
 }
 
 type (
@@ -102,12 +105,16 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func (p *grpcClient) Help(ctx context.Context) (string, error) {
+func (p *grpcClient) Help(ctx context.Context) (interactive.Message, error) {
 	resp, err := p.client.Help(ctx, &emptypb.Empty{})
 	if err != nil {
-		return "", err
+		return interactive.Message{}, err
 	}
-	return resp.Help, nil
+	var msg interactive.Message
+	if err := json.Unmarshal(resp.Help, &msg); err != nil {
+		return interactive.Message{}, fmt.Errorf("while unmarshalling json: %v", err)
+	}
+	return msg, nil
 }
 
 type grpcServer struct {
@@ -149,8 +156,12 @@ func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse,
 	if err != nil {
 		return nil, err
 	}
+	marshalled, err := json.Marshal(help)
+	if err != nil {
+		return nil, fmt.Errorf("while marshalling json: %v", err)
+	}
 	return &HelpResponse{
-		Help: help,
+		Help: marshalled,
 	}, nil
 }
 

@@ -46,7 +46,7 @@ message Dependency {
 }
 
 message HelpResponse {
-	string help = 1;
+	bytes help = 1;
 }
 
 service Executor {
