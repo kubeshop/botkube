@@ -102,14 +102,12 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func (p *grpcClient) Help(ctx context.Context) (api.HelpOutput, error) {
+func (p *grpcClient) Help(ctx context.Context) (string, error) {
 	resp, err := p.client.Help(ctx, &emptypb.Empty{})
 	if err != nil {
-		return api.HelpOutput{}, err
+		return "", err
 	}
-	return api.HelpOutput{
-		Help: resp.Help,
-	}, nil
+	return resp.Help, nil
 }
 
 type grpcServer struct {
