@@ -19,8 +19,9 @@ const (
 	description      = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
 )
 
-// source https://github.com/helm/helm/releases/tag/v3.6.3
-// using go-getter syntax
+// Links source: https://github.com/helm/helm/releases/tag/v3.6.3
+// Using go-getter syntax to unwrap the underlying directory structure.
+// Read more on https://github.com/hashicorp/go-getter#subdirectories
 var helmBinaryDownloadLinks = map[string]string{
 	"darwin/amd64":  "https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz//darwin-amd64",
 	"darwin/arm64":  "https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz//darwin-arm64",
