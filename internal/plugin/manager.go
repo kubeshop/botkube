@@ -472,7 +472,6 @@ func (m *Manager) downloadBinary(ctx context.Context, destPath, url string) erro
 	}
 
 	if stat, err := os.Stat(destPath); err == nil && !stat.IsDir() {
-
 		err = os.Chmod(destPath, binPerms)
 		if err != nil {
 			return fmt.Errorf("while setting permissions for %q: %w", destPath, err)

@@ -86,3 +86,40 @@ func (m MetadataOutput) Validate() error {
 	}
 	return nil
 }
+
+// PluginDependencyURLsGetter is an interface for getting plugin dependency URLs.
+type PluginDependencyURLsGetter interface {
+	GetUrls() map[string]string
+}
+
+// ConvertDependenciesToAPI converts source/executor plugin dependencies to API dependencies.
+func ConvertDependenciesToAPI[T PluginDependencyURLsGetter](resp map[string]T) map[string]Dependency {
+	dependencies := make(map[string]Dependency, len(resp))
+	for depName, depDetails := range resp {
+		dependencies[depName] = Dependency{
+			URLs: depDetails.GetUrls(),
+		}
+	}
+
+	return dependencies
+}
+
+// PluginDependencyURLsSetter is an interface for setting plugin dependency URLs.
+type PluginDependencyURLsSetter[T any] interface {
+	SetUrls(in map[string]string)
+	*T // This is needed to ensure we can create an instance of the concrete type as a part of the ConvertDependenciesFromAPI function.
+}
+
+// ConvertDependenciesFromAPI converts API dependencies to source/executor plugin dependencies.
+func ConvertDependenciesFromAPI[T PluginDependencyURLsSetter[P], P any](in map[string]Dependency) map[string]T {
+	dependencies := make(map[string]T, len(in))
+	for depName, depDetails := range in {
+		// See https://stackoverflow.com/questions/69573113/how-can-i-instantiate-a-non-nil-pointer-of-type-argument-with-generic-go
+		var underlying P
+		dep := T(&underlying)
+		dep.SetUrls(depDetails.URLs)
+		dependencies[depName] = dep
+	}
+
+	return dependencies
+}
