@@ -33,7 +33,7 @@ func TestValidateIndexErrors(t *testing.T) {
 			* entries[8]: 1 error occurred:
 				* field type is not valid, allowed values are [source executor]
 			* entries[9]: 1 error occurred:
-				* dependency URL for key "kubectl" in the URL entry "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_arm64_source_kubernetes" cannot be empty`)
+				* dependency URL for key "kubectl" and platform "linux/arm64" cannot be empty`)
 
 	// when
 	err = givenIndex.Validate()

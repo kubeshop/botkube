@@ -370,7 +370,12 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 func newPluginOSRunCommand(path string) *exec.Cmd {
 	cmd := exec.Command(path)
 
-	// Set path to dependencies
+	// Set env with path to dependencies
+	//
+	// Unfortunately, we cannot override PATH env variable when creating a plugin client.
+	// The `go-plugin` calls os.Environ() and, in a result, overrides modified envs passed to the plugin client.
+	// See: https://github.com/hashicorp/go-plugin/blob/9d19a83630e51cd9e141c140fb0d8384818849de/client.go#L554-L556
+	// So the only way is to use a custom env variable which won't be overridden by the os.Environ() call in the main process.
 	depDir := dependencyDirForBin(path)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", dependencyDirEnvName, depDir))
 
@@ -413,9 +418,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	}
 
 	// Ensure all dependencies are downloaded
-	log.WithFields(logrus.Fields{
-		"binPath": binPath,
-	}).Info("Ensuring plugin dependencies are downloaded...")
+	log.Info("Ensuring plugin dependencies are downloaded...")
 	depDir := dependencyDirForBin(binPath)
 	for depName, dep := range info.Dependencies {
 		depPath := filepath.Join(depDir, depName)

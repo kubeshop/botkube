@@ -35,7 +35,7 @@ message MetadataResponse {
 message JSONSchema {
 	// value is the string value of the JSON schema.
 	string value = 1;
-	// refURL is the remote reference of the JSON schema.
+	// ref_url is the remote reference of the JSON schema.
 	string ref_url = 2;
 }
 

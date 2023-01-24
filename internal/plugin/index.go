@@ -110,7 +110,7 @@ func (in Index) Validate() error {
 				if dep.URL != "" {
 					continue
 				}
-				entryIssues = multierror.Append(entryIssues, fmt.Errorf("dependency URL for key %q in the URL entry %q cannot be empty", key, urlItem.URL))
+				entryIssues = multierror.Append(entryIssues, fmt.Errorf("dependency URL for key %q and platform \"%s/%s\" cannot be empty", key, urlItem.Platform.OS, urlItem.Platform.Arch))
 			}
 		}
 
@@ -119,10 +119,13 @@ func (in Index) Validate() error {
 		}
 
 		if entry.Type != "" && entry.Name != "" && entry.Version != "" {
+			// check if we have a duplicate entry
 			key := strings.Join([]string{string(entry.Type), entry.Name, entry.Version}, ";")
-			firstEntryIdx, found := entriesByKey[key]
-			if found {
+			firstEntryIdx, alreadyExist := entriesByKey[key]
+			if alreadyExist {
+				// duplicate, append error
 				entryIssues = multierror.Append(entryIssues, fmt.Errorf("conflicts with the %s entry as both have the same type, name, and version", humanize.Ordinal(firstEntryIdx)))
+				// not calling `continue` by purpose; we want to collect all the errors for the entry
 			}
 
 			entriesByKey[key] = currentIdx

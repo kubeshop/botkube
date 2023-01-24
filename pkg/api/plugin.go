@@ -42,10 +42,14 @@ type Dependency struct {
 	URLs URLs `yaml:"urls"`
 }
 
+// URLs is a map of URLs for different platform and architecture.
+// The key format is "{os}/{arch}".
 type URLs map[string]string
 
+// For returns the URL for a given platform and architecture.
 func (u URLs) For(os, arch string) (string, bool) {
-	val, exists := u[fmt.Sprintf("%s/%s", os, arch)]
+	key := fmt.Sprintf("%s/%s", os, arch)
+	val, exists := u[key]
 	return val, exists
 }
 
