@@ -13,7 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
@@ -396,7 +396,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	})
 
 	// Ensure plugin downloaded
-	if !doesBinaryExist(binPath) {
+	if !DoesBinaryExist(binPath) {
 		err := os.MkdirAll(filepath.Dir(binPath), dirPerms)
 		if err != nil {
 			return fmt.Errorf("while creating directory where plugin should be stored: %w", err)
@@ -411,7 +411,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"url": url,
 		}).Info("Downloading plugin...")
 
-		err = m.downloadBinary(ctx, binPath, url)
+		err = DownloadBinary(ctx, binPath, url)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency from URL %q: %w", url, err)
 		}
@@ -422,7 +422,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	depDir := dependencyDirForBin(binPath)
 	for depName, dep := range info.Dependencies {
 		depPath := filepath.Join(depDir, depName)
-		if doesBinaryExist(depPath) {
+		if DoesBinaryExist(depPath) {
 			m.log.Debugf("Binary %q found locally. Skipping...", depName)
 			continue
 		}
@@ -437,7 +437,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"dependencyUrl":  depURL,
 		}).Info("Downloading dependency...")
 
-		err := m.downloadBinary(ctx, depPath, depURL)
+		err := DownloadBinary(ctx, depPath, depURL)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency %q for %q: %w", depName, binPath, err)
 		}
@@ -446,7 +446,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	return nil
 }
 
-func (m *Manager) downloadBinary(ctx context.Context, destPath, url string) error {
+func DownloadBinary(ctx context.Context, destPath, url string) error {
 	dir, filename := filepath.Split(destPath)
 	err := os.MkdirAll(dir, dirPerms)
 	if err != nil {
@@ -488,7 +488,7 @@ func dependencyDirForBin(binPath string) string {
 	return fmt.Sprintf("%s_deps", binPath)
 }
 
-func doesBinaryExist(path string) bool {
+func DoesBinaryExist(path string) bool {
 	stat, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false

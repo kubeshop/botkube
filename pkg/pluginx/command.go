@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -41,6 +42,10 @@ func ExecuteCommand(ctx context.Context, rawCmd string) (string, error) {
 
 	if len(args) < 1 {
 		return "", fmt.Errorf("invalid raw command: %q", rawCmd)
+	}
+
+	if err := os.Setenv("PATH", fmt.Sprintf(`%s:%s`, pluginsDir, os.Getenv("PATH"))); err != nil {
+		return "", fmt.Errorf("while updating PATH environment variable: %w", err)
 	}
 
 	//nolint:gosec // G204: Subprocess launched with a potential tainted input or cmd arguments
