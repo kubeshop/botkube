@@ -17,7 +17,9 @@ func TestValidateIndexErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	expErrorMsg := heredoc.Doc(`
-		5 errors occurred:
+		8 errors occurred:
+			* entries[0]: 1 error occurred:
+				* field urls cannot be empty
 			* entries[2]: 1 error occurred:
 				* conflicts with the 1st entry as both have the same type, name, and version
 			* entries[4]: 1 error occurred:
@@ -27,14 +29,18 @@ func TestValidateIndexErrors(t *testing.T) {
 			* entries[6]: 1 error occurred:
 				* field type cannot be empty
 			* entries[7]: 1 error occurred:
-				* field name cannot be empty`)
+				* field name cannot be empty
+			* entries[8]: 1 error occurred:
+				* field type is not valid, allowed values are [source executor]
+			* entries[9]: 1 error occurred:
+				* dependency URL for key "kubectl" and platform "linux/arm64" cannot be empty`)
 
 	// when
 	err = givenIndex.Validate()
 
 	// then
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), expErrorMsg)
+	assert.Equal(t, expErrorMsg, err.Error())
 }
 
 func TestValidateIndexSuccess(t *testing.T) {

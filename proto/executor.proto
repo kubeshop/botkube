@@ -23,14 +23,26 @@ message ExecuteResponse {
 }
 
 message MetadataResponse {
+	// version is a version of a given plugin. It should follow the SemVer syntax.
 	string version = 1;
+	// description is a description of a given plugin.
 	string description = 2;
+	// json_schema is a JSON schema of a given plugin.
 	JSONSchema json_schema = 3;
+	// dependencies is a list of dependencies of a given plugin.
+	map<string, Dependency> dependencies = 4;
 }
 
 message JSONSchema {
+	// value is the string value of the JSON schema.
 	string value = 1;
-	string refURL = 2;
+	// ref_url is the remote reference of the JSON schema.
+	string ref_url = 2;
+}
+
+message Dependency {
+	// urls is the map of URL of the dependency. The key is in format of "os/arch", such as "linux/amd64".
+	map<string, string> urls = 1;
 }
 
 service Executor {

@@ -92,3 +92,37 @@ entries:
         platform:
           os: linux
           architecture: arm64
+
+  - name: helm
+    type: executor
+    description: Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.
+    version: v0.1.0
+    urls:
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_amd64
+        platform:
+          os: darwin
+          architecture: amd64
+        dependencies:
+          helm:
+            url: https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_arm64
+        platform:
+          os: darwin
+          architecture: arm64
+        dependencies:
+          helm:
+            url: https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_amd64
+        platform:
+          os: linux
+          architecture: amd64
+        dependencies:
+          helm:
+            url: https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz
+      - url: https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_arm64
+        platform:
+          os: linux
+          architecture: arm64
+        dependencies:
+          helm:
+            url: https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz

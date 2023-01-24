@@ -19,6 +19,21 @@ const (
 	description      = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
 )
 
+// Links source: https://github.com/helm/helm/releases/tag/v3.6.3
+// Using go-getter syntax to unwrap the underlying directory structure.
+// Read more on https://github.com/hashicorp/go-getter#subdirectories
+var helmBinaryDownloadLinks = map[string]string{
+	"darwin/amd64":  "https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz//darwin-amd64",
+	"darwin/arm64":  "https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz//darwin-arm64",
+	"linux/amd64":   "https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz//linux-amd64",
+	"linux/arm":     "https://get.helm.sh/helm-v3.6.3-linux-arm.tar.gz//linux-arm",
+	"linux/arm64":   "https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz//linux-arm64",
+	"linux/386":     "https://get.helm.sh/helm-v3.6.3-linux-386.tar.gz//linux-386",
+	"linux/ppc64le": "https://get.helm.sh/helm-v3.6.3-linux-ppc64le.tar.gz//linux-ppc64le",
+	"linux/s390x":   "https://get.helm.sh/helm-v3.6.3-linux-s390x.tar.gz//linux-s390x",
+	"windows/amd64": "https://get.helm.sh/helm-v3.6.3-windows-amd64.zip//windows-amd64",
+}
+
 type command interface {
 	Validate() error
 	Help() string
@@ -46,6 +61,11 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:     e.pluginVersion,
 		Description: description,
 		JSONSchema:  jsonSchema(),
+		Dependencies: map[string]api.Dependency{
+			helmBinaryName: {
+				URLs: helmBinaryDownloadLinks,
+			},
+		},
 	}, nil
 }
 

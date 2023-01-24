@@ -8,9 +8,17 @@ import (
 )
 
 func runHelmCLIBinary(ctx context.Context, cfg Config, args []string) (string, error) {
-	cmd := exec.CommandContext(ctx, helmBinaryName, args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env,
+	// Use full path if the PLUGIN_DEPENDENCY_DIR env variable is found.
+	// If not, Go will get $PATH for current process and try to look up the binary.
+	commandName := helmBinaryName
+	depDir, found := os.LookupEnv("PLUGIN_DEPENDENCY_DIR")
+	if found {
+		commandName = fmt.Sprintf("%s/%s", depDir, helmBinaryName)
+	}
+
+	cmd := exec.CommandContext(ctx, commandName, args...)
+	cmd.Env = append(
+		os.Environ(),
 		fmt.Sprintf("HELM_DRIVER=%s", cfg.HelmDriver),
 		fmt.Sprintf("HELM_CACHE_HOME=%s", cfg.HelmCacheDir),
 		fmt.Sprintf("HELM_CONFIG_HOME=%s", cfg.HelmConfigDir),

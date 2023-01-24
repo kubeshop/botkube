@@ -20,10 +20,11 @@ type (
 	storeRepository map[string][]storeEntry
 
 	storeEntry struct {
-		Description string
-		Version     string
-		URLs        map[string]string
-		JSONSchema  JSONSchema
+		Description  string
+		Version      string
+		URLs         map[string]string
+		Dependencies map[string]map[string]string
+		JSONSchema   JSONSchema
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.
@@ -59,20 +60,24 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 		}
 
 		for _, entry := range index.Entries {
+			binURLs, depURLs := mapBinaryURLs(entry.URLs)
+
 			switch entry.Type {
 			case TypeExecutor:
 				executorsRepositories.Insert(repo, entry.Name, storeEntry{
-					Description: entry.Description,
-					Version:     entry.Version,
-					URLs:        mapBinaryURLs(entry.URLs),
-					JSONSchema:  entry.JSONSchema,
+					Description:  entry.Description,
+					Version:      entry.Version,
+					URLs:         binURLs,
+					Dependencies: depURLs,
+					JSONSchema:   entry.JSONSchema,
 				})
 			case TypeSource:
 				sourcesRepositories.Insert(repo, entry.Name, storeEntry{
-					Description: entry.Description,
-					Version:     entry.Version,
-					URLs:        mapBinaryURLs(entry.URLs),
-					JSONSchema:  entry.JSONSchema,
+					Description:  entry.Description,
+					Version:      entry.Version,
+					URLs:         binURLs,
+					Dependencies: depURLs,
+					JSONSchema:   entry.JSONSchema,
 				})
 			}
 		}
@@ -114,13 +119,27 @@ func (s storeRepository) key(repo, name string) string {
 	return fmt.Sprintf("%s/%s", repo, name)
 }
 
-func mapBinaryURLs(in []IndexURL) map[string]string {
-	out := map[string]string{}
+func mapBinaryURLs(in []IndexURL) (map[string]string, map[string]map[string]string) {
+	out := make(map[string]string)
+	var deps map[string]map[string]string
 	for _, item := range in {
 		key := item.Platform.OS + "/" + item.Platform.Arch
 		out[key] = item.URL
+
+		for depName, dep := range item.Dependencies {
+			if deps == nil {
+				deps = make(map[string]map[string]string)
+			}
+
+			if deps[depName] == nil {
+				deps[depName] = make(map[string]string)
+			}
+
+			deps[depName][key] = dep.URL
+		}
 	}
-	return out
+
+	return out, deps
 }
 
 // byIndexEntryVersion implements sort.Interface based on the version field.

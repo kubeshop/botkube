@@ -13,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
@@ -25,9 +26,10 @@ import (
 )
 
 const (
-	dirPerms  = 0o775
-	binPerms  = 0o755
-	filePerms = 0o664
+	dirPerms             = 0o775
+	binPerms             = 0o755
+	filePerms            = 0o664
+	dependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
 )
 
 // pluginMap is the map of plugins we can dispense.
@@ -192,19 +194,15 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEna
 		}
 
 		binPath := filepath.Join(m.cfg.CacheDir, repoName, fmt.Sprintf("%s_%s_%s", pluginType, ver, pluginName))
-
 		log := m.log.WithFields(logrus.Fields{
 			"plugin":  pluginKey,
 			"version": ver,
 			"binPath": binPath,
 		})
 
-		if _, err := os.Stat(binPath); os.IsNotExist(err) {
-			log.Debug("Executor plugin not found locally")
-			err := m.downloadPlugin(ctx, binPath, latestPluginInfo)
-			if err != nil {
-				return nil, fmt.Errorf("while fetching plugin %q binary: %w", pluginKey, err)
-			}
+		err = m.ensurePluginDownloaded(ctx, binPath, latestPluginInfo)
+		if err != nil {
+			return nil, fmt.Errorf("while fetching plugin %q binary: %w", pluginKey, err)
 		}
 
 		loadedPlugins[pluginKey] = binPath
@@ -339,7 +337,6 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 				MagicCookieKey:   api.HandshakeConfig.MagicCookieKey,
 				MagicCookieValue: api.HandshakeConfig.MagicCookieValue,
 			},
-
 			Logger:     pluginLogger,
 			SyncStdout: stdoutLogger,
 			SyncStderr: stderrLogger,
@@ -372,57 +369,130 @@ func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string,
 
 func newPluginOSRunCommand(path string) *exec.Cmd {
 	cmd := exec.Command(path)
+
+	// Set env with path to dependencies
+	//
+	// Unfortunately, we cannot override PATH env variable when creating a plugin client.
+	// The `go-plugin` calls os.Environ() and, in a result, overrides modified envs passed to the plugin client.
+	// See: https://github.com/hashicorp/go-plugin/blob/9d19a83630e51cd9e141c140fb0d8384818849de/client.go#L554-L556
+	// So the only way is to use a custom env variable which won't be overridden by the os.Environ() call in the main process.
+	depDir := dependencyDirForBin(path)
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", dependencyDirEnvName, depDir))
+
+	// Set Kubeconfig env
 	val, found := os.LookupEnv("KUBECONFIG")
 	if found {
-		cmd.Env = []string{fmt.Sprintf("KUBECONFIG=%s", val)}
+		cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", val))
 	}
+
 	return cmd
 }
 
-func (m *Manager) downloadPlugin(ctx context.Context, binPath string, info storeEntry) error {
-	err := os.MkdirAll(filepath.Dir(binPath), dirPerms)
-	if err != nil {
-		return fmt.Errorf("while creating directory where plugin should be stored: %w", err)
-	}
-
+func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, info storeEntry) error {
 	selector := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
-	url, found := info.URLs[selector]
-	if !found {
-		return NewNotFoundPluginError("cannot find download url for %s", selector)
-	}
-
-	m.log.WithFields(logrus.Fields{
-		"url":     url,
+	log := m.log.WithFields(logrus.Fields{
 		"binPath": binPath,
-	}).Info("Downloading plugin.")
+	})
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-	if err != nil {
-		return fmt.Errorf("while creating request: %w", err)
+	// Ensure plugin downloaded
+	if !doesBinaryExist(binPath) {
+		err := os.MkdirAll(filepath.Dir(binPath), dirPerms)
+		if err != nil {
+			return fmt.Errorf("while creating directory where plugin should be stored: %w", err)
+		}
+
+		url, found := info.URLs[selector]
+		if !found {
+			return NewNotFoundPluginError("cannot find download url for %s", selector)
+		}
+
+		log.WithFields(logrus.Fields{
+			"url": url,
+		}).Info("Downloading plugin...")
+
+		err = m.downloadBinary(ctx, binPath, url)
+		if err != nil {
+			return fmt.Errorf("while downloading dependency from URL %q: %w", url, err)
+		}
 	}
 
-	res, err := m.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("while executing request: %w", err)
-	}
-	defer res.Body.Close()
+	// Ensure all dependencies are downloaded
+	log.Info("Ensuring plugin dependencies are downloaded...")
+	depDir := dependencyDirForBin(binPath)
+	for depName, dep := range info.Dependencies {
+		depPath := filepath.Join(depDir, depName)
+		if doesBinaryExist(depPath) {
+			m.log.Debugf("Binary %q found locally. Skipping...", depName)
+			continue
+		}
 
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("incorrect status code: %d", res.StatusCode)
-	}
+		depURL, found := dep[selector]
+		if !found {
+			return NewNotFoundPluginError("cannot find download url for current platform for a dependency %q of the plugin %q", depName, binPath)
+		}
 
-	file, err := os.OpenFile(filepath.Clean(binPath), os.O_RDWR|os.O_CREATE|os.O_TRUNC, binPerms)
-	if err != nil {
-		return fmt.Errorf("while creating plugin file: %w", err)
-	}
+		log.WithFields(logrus.Fields{
+			"dependencyName": depName,
+			"dependencyUrl":  depURL,
+		}).Info("Downloading dependency...")
 
-	_, err = io.Copy(file, res.Body)
-	file.Close()
-	if err != nil {
-		err := multierror.Append(err, os.Remove(binPath))
-		return fmt.Errorf("while downloading file: %w", err.ErrorOrNil())
+		err := m.downloadBinary(ctx, depPath, depURL)
+		if err != nil {
+			return fmt.Errorf("while downloading dependency %q for %q: %w", depName, binPath, err)
+		}
 	}
 
 	return nil
+}
+
+func (m *Manager) downloadBinary(ctx context.Context, destPath, url string) error {
+	dir, filename := filepath.Split(destPath)
+	err := os.MkdirAll(dir, dirPerms)
+	if err != nil {
+		return fmt.Errorf("while creating directory %q where the binary should be stored: %w", dir, err)
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("while getting working directory: %w", err)
+	}
+
+	urlWithGoGetterMagicParams := fmt.Sprintf("%s?filename=%s", url, filename)
+
+	getterCli := &getter.Client{
+		Ctx:  ctx,
+		Src:  urlWithGoGetterMagicParams,
+		Dst:  dir,
+		Pwd:  pwd,
+		Dir:  false,
+		Mode: getter.ClientModeAny,
+	}
+
+	err = getterCli.Get()
+	if err != nil {
+		return fmt.Errorf("while downloading binary from URL %q: %w", url, err)
+	}
+
+	if stat, err := os.Stat(destPath); err == nil && !stat.IsDir() {
+		err = os.Chmod(destPath, binPerms)
+		if err != nil {
+			return fmt.Errorf("while setting permissions for %q: %w", destPath, err)
+		}
+	}
+
+	return nil
+}
+
+func dependencyDirForBin(binPath string) string {
+	return fmt.Sprintf("%s_deps", binPath)
+}
+
+func doesBinaryExist(path string) bool {
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return err != nil && !stat.IsDir()
 }
