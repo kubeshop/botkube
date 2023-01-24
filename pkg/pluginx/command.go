@@ -34,7 +34,7 @@ func ParseCommand(pluginName, command string, destination any) error {
 func ExecuteCommand(ctx context.Context, rawCmd string) (string, error) {
 	var stdout, stderr bytes.Buffer
 
-	args, err := shellwords.Parse(rawCmd)
+	envs, args, err := shellwords.ParseWithEnvs(rawCmd)
 	if err != nil {
 		return "", err
 	}
@@ -47,9 +47,10 @@ func ExecuteCommand(ctx context.Context, rawCmd string) (string, error) {
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.Env = append(cmd.Env, envs...)
 
 	if err = cmd.Run(); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to run command, stdout [%q], stderr [%q]: %w", stdout.String(), stderr.String(), err)
 	}
 
 	exitCode := cmd.ProcessState.ExitCode()
