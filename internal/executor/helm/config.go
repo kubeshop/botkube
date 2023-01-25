@@ -3,16 +3,15 @@ package helm
 import (
 	"fmt"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // Config holds Helm plugin configuration parameters.
 type Config struct {
-	HelmDriver    string `yaml:"helmDriver"`
-	HelmCacheDir  string `yaml:"helmCacheDir"`
-	HelmConfigDir string `yaml:"helmConfigDir"`
+	HelmDriver    string `yaml:"helmDriver,omitempty"`
+	HelmCacheDir  string `yaml:"helmCacheDir,omitempty"`
+	HelmConfigDir string `yaml:"helmConfigDir,omitempty"`
 }
 
 // Validate validates the Helm configuration parameters.
@@ -27,21 +26,15 @@ func (c *Config) Validate() error {
 
 // MergeConfigs merges the Helm configuration.
 func MergeConfigs(configs []*executor.Config) (Config, error) {
-	out := Config{
+	defaults := Config{
 		HelmDriver:    "secret",
 		HelmCacheDir:  "/tmp/helm/.cache",
 		HelmConfigDir: "/tmp/helm/",
 	}
-	for _, rawCfg := range configs {
-		var cfg Config
-		err := yaml.Unmarshal(rawCfg.RawYAML, &cfg)
-		if err != nil {
-			return Config{}, err
-		}
 
-		if cfg.HelmDriver != "" {
-			out.HelmDriver = cfg.HelmDriver
-		}
+	var out Config
+	if err := pluginx.MergeExecutorConfigsWithDefaults(defaults, configs, &out); err != nil {
+		return Config{}, fmt.Errorf("while merging configuration: %w", err)
 	}
 
 	if err := out.Validate(); err != nil {

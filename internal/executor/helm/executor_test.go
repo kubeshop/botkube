@@ -3,7 +3,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,22 +22,22 @@ func TestExecutorHelmInstall(t *testing.T) {
 		{
 			name:         "install by absolute URL with custom name",
 			inputCommand: "helm install postgresql https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --set clusterDomain='testing.local'",
-			expCommand:   "install postgresql https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --set clusterDomain=testing.local",
+			expCommand:   "helm install postgresql https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --set clusterDomain='testing.local'",
 		},
 		{
 			name:         "install by absolute URL with generate name",
 			inputCommand: "helm install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --generate-name --set clusterDomain='testing.local'",
-			expCommand:   "install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --generate-name --set clusterDomain=testing.local",
+			expCommand:   "helm install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test2 --generate-name --set clusterDomain='testing.local'",
 		},
 		{
 			name:         "install by chart reference and repo URL",
 			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx",
-			expCommand:   "-n default install --repo https://example.com/charts/ mynginx nginx",
+			expCommand:   "helm install --repo https://example.com/charts/ mynginx nginx -n default",
 		},
 		{
 			name:         "install by chart reference and repo URL and with a given version",
 			inputCommand: "helm install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
-			expCommand:   "-n default install --repo https://example.com/charts/ mynginx nginx --version 1.2.3",
+			expCommand:   "helm install --repo https://example.com/charts/ mynginx nginx --version 1.2.3 -n default",
 		},
 	}
 	for _, tc := range tests {
@@ -48,9 +47,13 @@ func TestExecutorHelmInstall(t *testing.T) {
 
 			hExec := NewExecutor("testing")
 
-			var gotArgs []string
-			hExec.runHelmCLIBinary = func(_ context.Context, _ Config, args []string) (string, error) {
-				gotArgs = args
+			var (
+				gotCmd  string
+				gotEnvs map[string]string
+			)
+			hExec.executeCommandWithEnvs = func(_ context.Context, rawCmd string, envs map[string]string) (string, error) {
+				gotCmd = rawCmd
+				gotEnvs = envs
 				return execOutput, nil
 			}
 
@@ -64,8 +67,12 @@ func TestExecutorHelmInstall(t *testing.T) {
 
 			assert.Equal(t, execOutput, out.Data)
 
-			cmd := strings.Join(gotArgs, " ")
-			assert.Equal(t, tc.expCommand, cmd)
+			assert.Equal(t, tc.expCommand, gotCmd)
+			assert.Equal(t, map[string]string{
+				"HELM_DRIVER":      "secret",
+				"HELM_CACHE_HOME":  "/tmp/helm/.cache",
+				"HELM_CONFIG_HOME": "/tmp/helm/",
+			}, gotEnvs)
 		})
 	}
 }
@@ -96,7 +103,7 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			hExec := NewExecutor("testing")
-			hExec.runHelmCLIBinary = noopRunHelmCLIBinary
+			hExec.executeCommandWithEnvs = noopExecuteCommand
 
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
@@ -109,6 +116,7 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 		})
 	}
 }
+
 func TestExecutorHelmInstallHelp(t *testing.T) {
 	goldenFilepath := fmt.Sprintf("%s.txt", t.Name())
 	tests := []struct {
@@ -132,7 +140,7 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			hExec := NewExecutor("testing")
-			hExec.runHelmCLIBinary = noopRunHelmCLIBinary
+			hExec.executeCommandWithEnvs = noopExecuteCommand
 
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
@@ -149,9 +157,9 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 func TestExecutorConfigMerging(t *testing.T) {
 	// given
 	hExec := NewExecutor("testing")
-	var gotConfig Config
-	hExec.runHelmCLIBinary = func(_ context.Context, cfg Config, _ []string) (string, error) {
-		gotConfig = cfg
+	var gotEnvs map[string]string
+	hExec.executeCommandWithEnvs = func(_ context.Context, _ string, envs map[string]string) (string, error) {
+		gotEnvs = envs
 		return "", nil
 	}
 
@@ -178,13 +186,17 @@ func TestExecutorConfigMerging(t *testing.T) {
 	// then
 	require.NoError(t, err)
 
-	assert.Equal(t, configB.HelmDriver, gotConfig.HelmDriver)
+	assert.Equal(t, map[string]string{
+		"HELM_DRIVER":      "secret",
+		"HELM_CACHE_HOME":  "/tmp/helm/.cache",
+		"HELM_CONFIG_HOME": "/tmp/helm/",
+	}, gotEnvs)
 }
 
 func TestExecutorConfigMergingErrors(t *testing.T) {
 	// given
 	hExec := NewExecutor("testing")
-	hExec.runHelmCLIBinary = noopRunHelmCLIBinary
+	hExec.executeCommandWithEnvs = noopExecuteCommand
 
 	configA := Config{
 		HelmDriver: "unknown-value",
@@ -211,6 +223,6 @@ func mustYAMLMarshal(t *testing.T, in any) []byte {
 	return out
 }
 
-func noopRunHelmCLIBinary(_ context.Context, _ Config, args []string) (string, error) {
+func noopExecuteCommand(_ context.Context, _ string, _ map[string]string) (string, error) {
 	return "", nil
 }

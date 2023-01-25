@@ -26,10 +26,12 @@ import (
 )
 
 const (
-	dirPerms             = 0o775
-	binPerms             = 0o755
-	filePerms            = 0o664
-	dependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
+	dirPerms  = 0o775
+	binPerms  = 0o755
+	filePerms = 0o664
+
+	// DependencyDirEnvName define environment variable where plugin dependency binaries are stored.
+	DependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
 )
 
 // pluginMap is the map of plugins we can dispense.
@@ -377,7 +379,7 @@ func newPluginOSRunCommand(path string) *exec.Cmd {
 	// See: https://github.com/hashicorp/go-plugin/blob/9d19a83630e51cd9e141c140fb0d8384818849de/client.go#L554-L556
 	// So the only way is to use a custom env variable which won't be overridden by the os.Environ() call in the main process.
 	depDir := dependencyDirForBin(path)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", dependencyDirEnvName, depDir))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", DependencyDirEnvName, depDir))
 
 	// Set Kubeconfig env
 	val, found := os.LookupEnv("KUBECONFIG")
@@ -446,6 +448,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	return nil
 }
 
+// DownloadBinary downloads binary into specific destination.
 func DownloadBinary(ctx context.Context, destPath, url string) error {
 	dir, filename := filepath.Split(destPath)
 	err := os.MkdirAll(dir, dirPerms)
@@ -488,11 +491,12 @@ func dependencyDirForBin(binPath string) string {
 	return fmt.Sprintf("%s_deps", binPath)
 }
 
+// DoesBinaryExist returns true if a given file exists.
 func DoesBinaryExist(path string) bool {
 	stat, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
 	}
 
-	return err != nil && !stat.IsDir()
+	return err == nil && !stat.IsDir()
 }
