@@ -247,7 +247,7 @@ type JSONSchema struct {
 
 	// value is the string value of the JSON schema.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	// refURL is the remote reference of the JSON schema.
+	// ref_url is the remote reference of the JSON schema.
 	RefUrl string `protobuf:"bytes,2,opt,name=ref_url,json=refUrl,proto3" json:"ref_url,omitempty"`
 }
 

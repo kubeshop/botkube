@@ -83,44 +83,60 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`{
+		Value: heredoc.Docf(`
+		  {
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"title": "Prometheus",
 			"description": "%s",
 			"type": "object",
 			"properties": {
-				"url": {
-					"description": "Prometheus endpoint without api version and resource",
+			  "url": {
+				"description": "Prometheus endpoint without api version and resource",
+				"type": "string",
+				"default": "http://localhost:9090"
+			  },
+			  "ignoreOldAlerts": {
+				"description": "If set as true, Prometheus source plugin will not send alerts that is created before plugin start time",
+				"type": "boolean",
+				"enum": [
+				  "true",
+				  "false"
+				],
+				"default": true
+			  },
+			  "alertStates": {
+				"description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
+				"type": "array",
+				"default": [
+				  "firing",
+				  "pending",
+				  "inactive"
+				],
+				"enum": [
+				  "firing",
+				  "pending",
+				  "inactive"
+				]
+			  },
+			  "log": {
+				"description": "Logging configuration",
+				"type": "object",
+				"properties": {
+				  "level": {
+					"description": "Log level",
 					"type": "string",
-					"default": "http://localhost:9090",
-				},
-				"ignoreOldAlerts": {
-					"description": "If set as true, Prometheus source plugin will not send alerts that is created before plugin start time",
-					"type": "boolean",
-					"enum": ["true", "false"],
-					"default": true
-				},
-				"alertStates": {
-					"description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
-					"type": "array",
-					"default": ["firing", "pending", "inactive"]
-					"enum: ["firing", "pending", "inactive"]
-				},
-				"log": {
-					"description": "Logging configuration",
-					"type": "object",
-					"properties": {
-						"level": {
-							"description": "Log level",
-							"type": "string",
-							"default": "info",
-							"enum: ["info", "debug", "error"]
-						}
-					}
-				},
+					"default": "info",
+					"enum": [
+					  "info",
+					  "debug",
+					  "error"
+					]
+				  }
+				}
+			  }
 			},
 			"required": []
-		}`, description),
+		  }`, description),
 	}
 }
 
