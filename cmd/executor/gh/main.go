@@ -172,7 +172,26 @@ func getIssueDetails(ctx context.Context, namespace, name string) (IssueDetails,
 	}, nil
 }
 
+const defaultIssueBody = `
+## Description
+
+This issue refers to the problems connected with {{ .Type | code "bash" }} in namespace {{ .Namespace | code "bash" }}
+
+<details>
+  <summary><b>Logs</b></summary>
+{{ .Logs | code "bash"}}
+</details>
+
+### Cluster details
+
+{{ .Version | code "yaml"}}
+`
+
 func renderIssueBody(bodyTpl string, data IssueDetails) (string, error) {
+	if bodyTpl == "" {
+		bodyTpl = defaultIssueBody
+	}
+
 	tmpl, err := template.New("issue-body").Funcs(template.FuncMap{
 		"code": func(syntax, in string) string {
 			return fmt.Sprintf("\n```%s\n%s\n```\n", syntax, in)
