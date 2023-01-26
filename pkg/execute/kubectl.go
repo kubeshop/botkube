@@ -9,7 +9,6 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
@@ -30,8 +29,6 @@ const (
 	kubectlFlagAfterVerbMsg            = "Please specify the resource name after the verb, and all flags after the resource name. Format <verb> <resource> [flags]"
 	kubectlDefaultNamespace            = "default"
 )
-
-var kubectlAlias = []string{"kubectl", "kc", "k"}
 
 // resourcelessCommands holds all commands that don't specify resources directly. For example:
 // - kubectl logs foo
@@ -58,7 +55,6 @@ type Kubectl struct {
 	kcChecker *kubectl.Checker
 	cmdRunner CommandCombinedOutputRunner
 	merger    *kubectl.Merger
-	alias     []string
 }
 
 // NewKubectl creates a new instance of Kubectl.
@@ -69,7 +65,6 @@ func NewKubectl(log logrus.FieldLogger, cfg config.Config, merger *kubectl.Merge
 		merger:    merger,
 		kcChecker: kcChecker,
 		cmdRunner: fn,
-		alias:     kubectlAlias,
 	}
 }
 
@@ -81,7 +76,7 @@ func (e *Kubectl) CanHandle(args []string) bool {
 
 	// make sure that verb is also specified
 	// empty `k|kc|kubectl` commands are handled by command builder
-	return len(args) >= 2 && slices.Contains(e.alias, args[0])
+	return len(args) >= 2 && args[0] == kubectlName
 }
 
 // GetCommandPrefix gets verb command with k8s alias prefix.
@@ -100,7 +95,7 @@ func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
 		return nil, fmt.Errorf("while parsing the command message into args: %w", err)
 	}
 
-	if len(msgParts) >= 2 && slices.Contains(e.alias, msgParts[0]) {
+	if len(msgParts) >= 2 && msgParts[0] == kubectlName {
 		return msgParts[1:], nil
 	}
 

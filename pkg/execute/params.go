@@ -42,7 +42,7 @@ func ParseFlags(cmd string) (Flags, error) {
 	if err != nil {
 		return Flags{}, err
 	}
-	tokenized, err := shellwords.Parse(strings.TrimSpace(cmd))
+	tokenized, err := shellwords.Parse(cmd)
 	if err != nil {
 		return Flags{}, errors.New(cantParseCmd)
 	}

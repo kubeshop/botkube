@@ -12,7 +12,6 @@ import (
 	"github.com/slack-go/slack"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -38,6 +37,8 @@ var knownCmdPrefix = map[string]struct{}{
 	resourceNamespaceDropdownCommand: {},
 	filterPlaintextInputCommand:      {},
 }
+
+const kubectlName = "kubectl"
 
 var errRequiredVerbDropdown = errors.New("verbs dropdown select cannot be empty")
 
@@ -88,7 +89,7 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 
 	case 1:
 		//  check if it's only a kubectl command without arguments
-		if slices.Contains(kubectlAlias, args[0]) {
+		if args[0] == kubectlName {
 			return args[0]
 		}
 		// it is a single arg which cannot start the kubectl command builder

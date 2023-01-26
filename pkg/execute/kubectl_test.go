@@ -27,7 +27,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should forbid execution from not authorized channel when restrictions are enabled",
 
-			command:              "kc get pod --cluster-name test",
+			command:              "kubectl get pod --cluster-name test",
 			clusterName:          "test",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
@@ -46,7 +46,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should forbid execution if resource is not allowed in config",
 
-			command: "kc get pod -n foo",
+			command: "kubectl get pod -n foo",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -62,7 +62,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should forbid execution if namespace is not allowed in config",
 
-			command: "kc get pod",
+			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -79,7 +79,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should use default Namespace from config if not specified in command",
 
-			command: "kc get pod",
+			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled:          true,
 				DefaultNamespace: "from-config",
@@ -97,7 +97,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should explicitly use 'default' Namespace if not specified both in command and config",
 
-			command: "k get pod",
+			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -149,7 +149,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Should forbid execution for all Namespaces",
 
-			command: "kc get pod -A",
+			command: "kubectl get pod -A",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -166,7 +166,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 		{
 			name: "Known limitation (since v0.12.4): Return error if flag is added before resource name",
 
-			command: "kc get -n team-a pod",
+			command: "kubectl get -n team-a pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -222,7 +222,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should all execution if resource is missing, so kubectl can validate it further",
 
-			command: "kc get",
+			command: "kubectl get",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -238,7 +238,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should allow execution if verb, resource, and all namespaces are allowed",
 
-			command: "kc get pod",
+			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -255,7 +255,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should allow execution if verb, resource, and a given namespace are allowed",
 
-			command: "kc get pod -n team-a",
+			command: "kubectl get pod -n team-a",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -272,7 +272,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should allow execution from not authorized channel if restrictions are disabled",
 
-			command:              "kc get pod -n team-a",
+			command:              "kubectl get pod -n team-a",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
@@ -290,7 +290,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should allow execution from not authorized channel if restrictions are disabled",
 
-			command:              "kc get pod/name-foo-42 -n team-a",
+			command:              "kubectl get pod/name-foo-42 -n team-a",
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
@@ -308,7 +308,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should allow execution for all Namespaces",
 
-			command: "kc get pod/name-foo-42 -n team-a",
+			command: "kubectl get pod/name-foo-42 -n team-a",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -325,7 +325,7 @@ func TestKubectlExecute(t *testing.T) {
 		{
 			name: "Should all execution for all Namespaces",
 
-			command: "kc get pod -A",
+			command: "kubectl get pod -A",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
 				Namespaces: config.Namespaces{
@@ -368,62 +368,31 @@ func TestKubectlExecute(t *testing.T) {
 }
 
 func TestKubectlCanHandle(t *testing.T) {
-	tests := []struct {
-		name string
-
-		command      string
-		expCanHandle bool
-		kubectlCfg   config.Kubectl
-	}{
-		{
-			name:    "Should allow for known verb",
-			command: "kc get pod --cluster-name test",
-			kubectlCfg: config.Kubectl{
-				Enabled: true,
-				Namespaces: config.Namespaces{
-					Include: []string{"team-a"},
-				},
-				Commands: config.Commands{
-					Verbs:     []string{"get"},
-					Resources: []string{"pod"},
-				},
-			},
-
-			expCanHandle: true,
+	// given
+	command := "kubectl get pod --cluster-name test"
+	kubectlCfg := config.Kubectl{
+		Enabled: true,
+		Namespaces: config.Namespaces{
+			Include: []string{"team-a"},
 		},
-		{
-			name:    "Should allow for known verb with k8s prefix",
-			command: "kubectl get pod --cluster-name test",
-			kubectlCfg: config.Kubectl{
-				Enabled: true,
-				Namespaces: config.Namespaces{
-					Include: []string{"team-a"},
-				},
-				Commands: config.Commands{
-					Verbs:     []string{"get"},
-					Resources: []string{"pod"},
-				},
-			},
-
-			expCanHandle: true,
+		Commands: config.Commands{
+			Verbs:     []string{"get"},
+			Resources: []string{"pod"},
 		},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			cfg := fixCfgWithKubectlExecutor(t, tc.kubectlCfg)
-			merger := kubectl.NewMerger(cfg.Executors)
-			kcChecker := kubectl.NewChecker(nil)
+	expCanHandle := true
 
-			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
+	cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
+	merger := kubectl.NewMerger(cfg.Executors)
+	kcChecker := kubectl.NewChecker(nil)
 
-			// when
-			canHandle := executor.CanHandle(strings.Fields(strings.TrimSpace(tc.command)))
+	executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
-			// then
-			assert.Equal(t, tc.expCanHandle, canHandle)
-		})
-	}
+	// when
+	canHandle := executor.CanHandle(strings.Fields(strings.TrimSpace(command)))
+
+	// then
+	assert.Equal(t, expCanHandle, canHandle)
 }
 
 func TestKubectlGetCommandPrefix(t *testing.T) {
@@ -439,8 +408,8 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 		},
 		{
 			name:     "Should get proper command with k8s prefix kc",
-			command:  "kc get pods --cluster-name test",
-			expected: "kc get",
+			command:  "kubectl get pods --cluster-name test",
+			expected: "kubectl get",
 		},
 		{
 			name:     "Should get proper command with k8s prefix k",
@@ -475,27 +444,9 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 }
 
 func TestKubectlGetArgsWithoutAlias(t *testing.T) {
-	tests := []struct {
-		name     string
-		command  string
-		expected string
-	}{
-		{
-			name:     "Should get proper command with k8s prefix kubectl",
-			command:  "kubectl get pods --cluster-name test",
-			expected: "get pods --cluster-name test",
-		},
-		{
-			name:     "Should get proper verb with k8s prefix kc",
-			command:  "kc get pods --cluster-name test",
-			expected: "get pods --cluster-name test",
-		},
-		{
-			name:     "Should get proper verb with k8s prefix k",
-			command:  "k get pods --cluster-name test",
-			expected: "get pods --cluster-name test",
-		},
-	}
+	// given
+	command := "kubectl get pods --cluster-name test"
+	expected := "get pods --cluster-name test"
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
 		Namespaces: config.Namespaces{
@@ -506,23 +457,17 @@ func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 			Resources: []string{"pod"},
 		},
 	}
+	cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
+	merger := kubectl.NewMerger(cfg.Executors)
+	kcChecker := kubectl.NewChecker(nil)
+	executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			cfg := fixCfgWithKubectlExecutor(t, kubectlCfg)
-			merger := kubectl.NewMerger(cfg.Executors)
-			kcChecker := kubectl.NewChecker(nil)
-			executor := NewKubectl(loggerx.NewNoop(), config.Config{}, merger, kcChecker, nil)
+	// when
+	verb, err := executor.getArgsWithoutAlias(command)
 
-			// when
-			verb, err := executor.getArgsWithoutAlias(tc.command)
-
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, tc.expected, strings.Join(verb, " "))
-		})
-	}
+	// then
+	require.NoError(t, err)
+	assert.Equal(t, expected, strings.Join(verb, " "))
 }
 
 var fixBindingsNames = []string{"default"}

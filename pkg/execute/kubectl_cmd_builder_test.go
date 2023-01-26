@@ -126,20 +126,6 @@ func TestCommandBuilderCanHandleAndGetPrefix(t *testing.T) {
 			expPrefix:    "kc-cmd-builder --namespace",
 		},
 		{
-			name: "Kubectl k alias",
-			args: strings.Fields("k"),
-
-			expCanHandle: true,
-			expPrefix:    "k",
-		},
-		{
-			name: "Kubectl kc alias",
-			args: strings.Fields("kc"),
-
-			expCanHandle: true,
-			expPrefix:    "kc",
-		},
-		{
 			name: "Kubectl full command",
 			args: strings.Fields("kubectl"),
 

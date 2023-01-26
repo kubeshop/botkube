@@ -133,9 +133,10 @@ type Config struct {
 	Actions        Actions                   `yaml:"actions" validate:"dive"`
 	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
+	Aliases        Aliases                   `yaml:"aliases"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
-	Filters        Filters                   `yaml:"filters"`
 
+	Filters       Filters    `yaml:"filters"`
 	Analytics     Analytics  `yaml:"analytics"`
 	Settings      Settings   `yaml:"settings"`
 	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
@@ -302,6 +303,15 @@ type PluginExecutor struct {
 type Executors struct {
 	Kubectl Kubectl          `yaml:"kubectl"`
 	Plugins PluginsExecutors `koanf:",remain"`
+}
+
+// Aliases contains aliases configuration.
+type Aliases map[string]Alias
+
+// Alias defines alias configuration for a given command.
+type Alias struct {
+	Command     string `yaml:"command"`
+	DisplayName string `yaml:"displayName"`
 }
 
 // Filters contains configuration for built-in filters.

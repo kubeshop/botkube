@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
@@ -78,11 +79,15 @@ func (flag CommandFlags) String() string {
 // Execute executes commands and returns output
 func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	empty := interactive.Message{}
-	rawCmd := format.RemoveHyperlinks(e.message)
-	rawCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(rawCmd)
+	rawCmd := sanitizeCommand(e.message)
+
+	expandedRawCmd := alias.ExpandPrefix(rawCmd, e.cfg.Aliases)
+	e.log.WithField("rawCmd", rawCmd).WithField("expandedRawCmd", expandedRawCmd).
+		Infof("Expanding aliases from command...")
+
 	cmdCtx := CommandContext{
 		ClusterName:     e.cfg.Settings.ClusterName,
-		RawCmd:          rawCmd,
+		ExpandedRawCmd:  expandedRawCmd,
 		CommGroupName:   e.commGroupName,
 		BotName:         e.notifierHandler.BotName(),
 		User:            e.user,
@@ -92,9 +97,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		Mapping:         e.cmdsMapping,
 	}
 
-	flags, err := ParseFlags(rawCmd)
+	flags, err := ParseFlags(expandedRawCmd)
 	if err != nil {
-		e.log.Errorf("while parsing command flags %q: %s", rawCmd, err.Error())
+		e.log.Errorf("while parsing command flags %q: %s", expandedRawCmd, err.Error())
 		return interactive.Message{
 			Base: interactive.Base{
 				Description: header(cmdCtx),
@@ -274,8 +279,15 @@ func respond(msg string, cmdCtx CommandContext) interactive.Message {
 	return message
 }
 
+func sanitizeCommand(cmd string) string {
+	outCmd := format.RemoveHyperlinks(cmd)
+	outCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(outCmd)
+	outCmd = strings.TrimSpace(outCmd)
+	return outCmd
+}
+
 func header(cmdCtx CommandContext) string {
-	cmd := newLinePattern.ReplaceAllString(cmdCtx.RawCmd, " ")
+	cmd := newLinePattern.ReplaceAllString(cmdCtx.ExpandedRawCmd, " ")
 	cmd = removeMultipleSpaces(cmd)
 	cmd = strings.TrimSpace(cmd)
 	cmd = fmt.Sprintf("`%s`", cmd)
