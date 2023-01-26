@@ -55,7 +55,7 @@ func Example_executeCommand() {
 }
 
 func Example_executeCommandWithEnv() {
-	out, err := ExecuteCommandWithEnvs(context.Background(), `sh -c echo $CUSTOM_ENV`, map[string]string{
+	out, err := ExecuteCommandWithEnvs(context.Background(), `sh -c "echo ${CUSTOM_ENV}"`, map[string]string{
 		"CUSTOM_ENV": "magic-value",
 	})
 	if err != nil {

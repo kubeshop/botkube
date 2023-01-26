@@ -57,7 +57,10 @@ func ExecuteCommand(ctx context.Context, rawCmd string) (string, error) {
 func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]string) (string, error) {
 	var stdout, stderr bytes.Buffer
 
-	args, err := shellwords.Parse(rawCmd)
+	parser := shellwords.NewParser()
+	parser.ParseEnv = false
+	parser.ParseBacktick = false
+	args, err := parser.Parse(rawCmd)
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +98,7 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 	return stdout.String(), nil
 }
 
-// The go-arg library is handling the `--version` flag internally returning and error and stoping further processing, see:
+// The go-arg library is handling the `--version` flag internally returning and error and stopping further processing, see:
 // https://github.com/alexflint/go-arg/blob/727f8533acca70ca429dce4bfea729a6af75c3f7/parse.go#L610
 func removeVersionFlag(args []string) []string {
 	for idx := range args {
