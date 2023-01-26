@@ -37,7 +37,7 @@ const (
 //	however, instead of calling download method:
 //	  pluginx.DownloadDependencies(depsDownloadLinks)
 //
-//	move the `depsDownloadLinks` property under the MetadataOutput object:
+//	move the `depsDownloadLinks` object under `MetadataOutput.Dependencies`:
 //	  Metadata(context.Context) (api.MetadataOutput, error) {
 //	  	return api.MetadataOutput{
 //	  		// ...
