@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // version is set via ldflags by GoReleaser.
@@ -40,19 +41,10 @@ func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 
 // Execute returns a given command as response.
 func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	// In our case we don't have complex merge strategy,
-	// the last one that was specified wins :)
-	finalCfg := Config{}
-	for _, inputCfg := range in.Configs {
-		var cfg Config
-		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
-		if err != nil {
-			return executor.ExecuteOutput{}, err
-		}
-		if cfg.ChangeResponseToUpperCase == nil {
-			continue
-		}
-		finalCfg.ChangeResponseToUpperCase = cfg.ChangeResponseToUpperCase
+	var cfg Config
+	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
 
 	data := in.Command
@@ -60,7 +52,7 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 		return executor.ExecuteOutput{}, errors.New("The @fail label was specified. Failing execution.")
 	}
 
-	if finalCfg.ChangeResponseToUpperCase != nil && *finalCfg.ChangeResponseToUpperCase {
+	if cfg.ChangeResponseToUpperCase != nil && *cfg.ChangeResponseToUpperCase {
 		data = strings.ToUpper(data)
 	}
 

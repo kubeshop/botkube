@@ -9,6 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
@@ -43,15 +44,15 @@ var _ executor.Executor = &Executor{}
 
 // Executor provides functionality for running Helm CLI.
 type Executor struct {
-	pluginVersion    string
-	runHelmCLIBinary func(ctx context.Context, cfg Config, args []string) (string, error)
+	pluginVersion          string
+	executeCommandWithEnvs func(ctx context.Context, rawCmd string, envs map[string]string) (string, error)
 }
 
 // NewExecutor returns a new Executor instance.
 func NewExecutor(ver string) *Executor {
 	return &Executor{
-		pluginVersion:    ver,
-		runHelmCLIBinary: runHelmCLIBinary,
+		pluginVersion:          ver,
+		executeCommandWithEnvs: pluginx.ExecuteCommandWithEnvs,
 	}
 }
 
@@ -89,10 +90,10 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	var wasHelpRequested bool
-	helmCmd, args, err := parseRawCommand(in.Command)
+	var helmCmd Commands
+	err = pluginx.ParseCommand(PluginName, in.Command, &helmCmd)
 	switch err {
-	case nil, arg.ErrVersion:
-		// we ignore the --version flag, as Helm CLI will handle that.
+	case nil:
 	case arg.ErrHelp:
 		// we want to print our own help instead of delegating that to Helm CLI.
 		wasHelpRequested = true
@@ -101,40 +102,40 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	if helmCmd.Namespace == "" { // use 'default' namespace, instead of namespace where botkube was installed
-		args = append([]string{"-n", defaultNamespace}, args...)
+		in.Command = fmt.Sprintf("%s -n %s", in.Command, defaultNamespace)
 	}
 
 	switch {
 	case helmCmd.Install != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Install, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Install, cfg, wasHelpRequested, in.Command)
 	case helmCmd.UninstallCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.UninstallCommandAliases.Get(), cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.UninstallCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
 	case helmCmd.ListCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.ListCommandAliases.Get(), cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.ListCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
 	case helmCmd.Version != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Version, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Version, cfg, wasHelpRequested, in.Command)
 	case helmCmd.Status != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Status, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Status, cfg, wasHelpRequested, in.Command)
 	case helmCmd.Test != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Test, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Test, cfg, wasHelpRequested, in.Command)
 	case helmCmd.Rollback != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, in.Command)
 	case helmCmd.Upgrade != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, in.Command)
 	case helmCmd.HistoryCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, args)
+		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
 	case helmCmd.Get != nil:
 		switch {
 		case helmCmd.Get.All != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.All, cfg, wasHelpRequested, args)
+			return e.handleHelmCommand(ctx, helmCmd.Get.All, cfg, wasHelpRequested, in.Command)
 		case helmCmd.Get.Hooks != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Hooks, cfg, wasHelpRequested, args)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Hooks, cfg, wasHelpRequested, in.Command)
 		case helmCmd.Get.Manifest != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Manifest, cfg, wasHelpRequested, args)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Manifest, cfg, wasHelpRequested, in.Command)
 		case helmCmd.Get.Notes != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Notes, cfg, wasHelpRequested, args)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Notes, cfg, wasHelpRequested, in.Command)
 		case helmCmd.Get.Values != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, args)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, in.Command)
 		default:
 			return executor.ExecuteOutput{
 				Data: helmCmd.Get.Help(),
@@ -152,7 +153,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 }
 
 // handleHelmList construct a Helm CLI command and run it.
-func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, args []string) (executor.ExecuteOutput, error) {
+func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, rawCmd string) (executor.ExecuteOutput, error) {
 	if wasHelpRequested {
 		return executor.ExecuteOutput{
 			Data: cmd.Help(),
@@ -164,7 +165,13 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 		return executor.ExecuteOutput{}, err
 	}
 
-	out, err := e.runHelmCLIBinary(ctx, cfg, args)
+	envs := map[string]string{
+		"HELM_DRIVER":      cfg.HelmDriver,
+		"HELM_CACHE_HOME":  cfg.HelmCacheDir,
+		"HELM_CONFIG_HOME": cfg.HelmConfigDir,
+	}
+
+	out, err := e.executeCommandWithEnvs(ctx, rawCmd, envs)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("%s\n%s", out, err.Error())
 	}

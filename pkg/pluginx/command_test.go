@@ -1,4 +1,4 @@
-package helm
+package pluginx
 
 import (
 	"testing"

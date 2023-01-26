@@ -11,10 +11,9 @@ import (
 var version = "dev"
 
 func main() {
-	hExec := helm.NewExecutor(version)
 	executor.Serve(map[string]plugin.Plugin{
 		helm.PluginName: &executor.Plugin{
-			Executor: hExec,
+			Executor: helm.NewExecutor(version),
 		},
 	})
 }

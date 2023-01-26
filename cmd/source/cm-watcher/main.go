@@ -8,7 +8,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // version is set via ldflags by GoReleaser.
@@ -34,15 +34,23 @@ const (
 type (
 	// Config holds executor configuration.
 	Config struct {
-		ConfigMap Object `yaml:"configMap"`
+		ConfigMap Object `yaml:"configMap,omitempty"`
 	}
 	// Object holds information about object to watch.
 	Object struct {
-		Name      string          `yaml:"name"`
-		Namespace string          `yaml:"namespace"`
-		Event     watch.EventType `yaml:"event"`
+		Name      string          `yaml:"name,omitempty"`
+		Namespace string          `yaml:"namespace,omitempty"`
+		Event     watch.EventType `yaml:"event,omitempty"`
 	}
 )
+
+var defaultConfig = Config{
+	ConfigMap: Object{
+		Name:      "cm-watcher-trigger",
+		Namespace: "default",
+		Event:     "ADDED",
+	},
+}
 
 // CMWatcher implements Botkube source plugin.
 type CMWatcher struct{}
@@ -58,40 +66,17 @@ func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 
 // Stream sends an event when a given ConfigMap is matched against the criteria defined in config.
 func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.StreamOutput, error) {
-	// default config
-	finalCfg := Config{
-		ConfigMap: Object{
-			Name:      "cm-watcher-trigger",
-			Namespace: "default",
-			Event:     "ADDED",
-		},
-	}
-
-	// In our case we don't have complex merge strategy,
-	// the last one that was specified wins :)
-	for _, inputCfg := range in.Configs {
-		var cfg Config
-		err := yaml.Unmarshal(inputCfg.RawYAML, &cfg)
-		if err != nil {
-			return source.StreamOutput{}, fmt.Errorf("while unmarshaling cm-watcher config: %w", err)
-		}
-
-		if cfg.ConfigMap.Name != "" {
-			finalCfg.ConfigMap.Name = cfg.ConfigMap.Name
-		}
-		if cfg.ConfigMap.Namespace != "" {
-			finalCfg.ConfigMap.Namespace = cfg.ConfigMap.Namespace
-		}
-		if cfg.ConfigMap.Event != "" {
-			finalCfg.ConfigMap.Event = cfg.ConfigMap.Event
-		}
+	var cfg Config
+	err := pluginx.MergeSourceConfigsWithDefaults(defaultConfig, in.Configs, &cfg)
+	if err != nil {
+		return source.StreamOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
 
 	out := source.StreamOutput{
 		Output: make(chan []byte),
 	}
 
-	go listenEvents(ctx, finalCfg.ConfigMap, out.Output)
+	go listenEvents(ctx, cfg.ConfigMap, out.Output)
 
 	return out, nil
 }

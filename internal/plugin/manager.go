@@ -13,7 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
@@ -26,10 +26,12 @@ import (
 )
 
 const (
-	dirPerms             = 0o775
-	binPerms             = 0o755
-	filePerms            = 0o664
-	dependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
+	dirPerms  = 0o775
+	binPerms  = 0o755
+	filePerms = 0o664
+
+	// DependencyDirEnvName define environment variable where plugin dependency binaries are stored.
+	DependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
 )
 
 // pluginMap is the map of plugins we can dispense.
@@ -377,7 +379,7 @@ func newPluginOSRunCommand(path string) *exec.Cmd {
 	// See: https://github.com/hashicorp/go-plugin/blob/9d19a83630e51cd9e141c140fb0d8384818849de/client.go#L554-L556
 	// So the only way is to use a custom env variable which won't be overridden by the os.Environ() call in the main process.
 	depDir := dependencyDirForBin(path)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", dependencyDirEnvName, depDir))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", DependencyDirEnvName, depDir))
 
 	// Set Kubeconfig env
 	val, found := os.LookupEnv("KUBECONFIG")
@@ -396,7 +398,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	})
 
 	// Ensure plugin downloaded
-	if !doesBinaryExist(binPath) {
+	if !DoesBinaryExist(binPath) {
 		err := os.MkdirAll(filepath.Dir(binPath), dirPerms)
 		if err != nil {
 			return fmt.Errorf("while creating directory where plugin should be stored: %w", err)
@@ -411,7 +413,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"url": url,
 		}).Info("Downloading plugin...")
 
-		err = m.downloadBinary(ctx, binPath, url)
+		err = DownloadBinary(ctx, binPath, url)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency from URL %q: %w", url, err)
 		}
@@ -422,7 +424,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	depDir := dependencyDirForBin(binPath)
 	for depName, dep := range info.Dependencies {
 		depPath := filepath.Join(depDir, depName)
-		if doesBinaryExist(depPath) {
+		if DoesBinaryExist(depPath) {
 			m.log.Debugf("Binary %q found locally. Skipping...", depName)
 			continue
 		}
@@ -437,7 +439,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"dependencyUrl":  depURL,
 		}).Info("Downloading dependency...")
 
-		err := m.downloadBinary(ctx, depPath, depURL)
+		err := DownloadBinary(ctx, depPath, depURL)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency %q for %q: %w", depName, binPath, err)
 		}
@@ -446,7 +448,8 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 	return nil
 }
 
-func (m *Manager) downloadBinary(ctx context.Context, destPath, url string) error {
+// DownloadBinary downloads binary into specific destination.
+func DownloadBinary(ctx context.Context, destPath, url string) error {
 	dir, filename := filepath.Split(destPath)
 	err := os.MkdirAll(dir, dirPerms)
 	if err != nil {
@@ -488,11 +491,12 @@ func dependencyDirForBin(binPath string) string {
 	return fmt.Sprintf("%s_deps", binPath)
 }
 
-func doesBinaryExist(path string) bool {
+// DoesBinaryExist returns true if a given file exists.
+func DoesBinaryExist(path string) bool {
 	stat, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
 	}
 
-	return err != nil && !stat.IsDir()
+	return err == nil && !stat.IsDir()
 }
