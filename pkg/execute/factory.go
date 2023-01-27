@@ -91,35 +91,35 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		params.CmdRunner,
 	)
 	actionExecutor := NewActionExecutor(
-		params.Log.WithField("component", "Botkube Action Executor"),
+		params.Log.WithField("component", "Action Executor"),
 		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	sourceBindingExecutor := NewSourceBindingExecutor(
-		params.Log.WithField("component", "Botkube SourceBinding Executor"),
+		params.Log.WithField("component", "SourceBinding Executor"),
 		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	filterExecutor := NewFilterExecutor(
-		params.Log.WithField("component", "Botkube Filter Executor"),
+		params.Log.WithField("component", "Filter Executor"),
 		params.AnalyticsReporter,
 		params.CfgManager,
 		params.FilterEngine,
 	)
 	pingExecutor := NewPingExecutor(
-		params.Log.WithField("component", "Botkube Ping Executor"),
+		params.Log.WithField("component", "Ping Executor"),
 		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	versionExecutor := NewVersionExecutor(
-		params.Log.WithField("component", "Botkube Version Executor"),
+		params.Log.WithField("component", "Version Executor"),
 		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	feedbackExecutor := NewFeedbackExecutor(
-		params.Log.WithField("component", "Botkube Feedback Executor"),
+		params.Log.WithField("component", "Feedback Executor"),
 		params.AnalyticsReporter,
 	)
 	notifierExecutor := NewNotifierExecutor(
@@ -129,22 +129,27 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		params.Cfg,
 	)
 	helpExecutor := NewHelpExecutor(
-		params.Log.WithField("component", "Botkube Help Executor"),
+		params.Log.WithField("component", "Help Executor"),
 		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	configExecutor := NewConfigExecutor(
-		params.Log.WithField("component", "Botkube Config Executor"),
+		params.Log.WithField("component", "Config Executor"),
 		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	execExecutor := NewExecExecutor(
-		params.Log.WithField("component", "Botkube Executor Bindings Executor"),
+		params.Log.WithField("component", "Executor Bindings Executor"),
 		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	sourceExecutor := NewSourceExecutor(
-		params.Log.WithField("component", "Botkube Source Bindings Executor"),
+		params.Log.WithField("component", "Source Bindings Executor"),
+		params.AnalyticsReporter,
+		params.Cfg,
+	)
+	aliasExecutor := NewAliasExecutor(
+		params.Log.WithField("component", "Alias Executor"),
 		params.AnalyticsReporter,
 		params.Cfg,
 	)
@@ -161,6 +166,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		configExecutor,
 		execExecutor,
 		sourceExecutor,
+		aliasExecutor,
 	}
 	mappings, err := NewCmdsMapping(executors)
 	if err != nil {

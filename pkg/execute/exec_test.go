@@ -2,7 +2,6 @@ package execute
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -98,7 +97,6 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			e := NewExecExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
-			fmt.Println(msg.Body.CodeBlock)
 			assert.Equal(t, tc.expOutput, msg.Body.CodeBlock)
 		})
 	}
