@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
+	"github.com/kubeshop/botkube/pkg/maputil"
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
@@ -105,12 +105,7 @@ func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (in
 
 // ActionsTabularOutput sorts actions by key and returns a printable table
 func (e *ActionExecutor) ActionsTabularOutput() string {
-	// sort keys
-	keys := make([]string, 0, len(e.actions))
-	for k := range e.actions {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := maputil.SortKeys(e.actions)
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)

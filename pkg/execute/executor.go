@@ -83,7 +83,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	expandedRawCmd := alias.ExpandPrefix(rawCmd, e.cfg.Aliases)
 	e.log.WithField("rawCmd", rawCmd).WithField("expandedRawCmd", expandedRawCmd).
-		Infof("Expanding aliases from command...")
+		Debugf("Expanding aliases from command...")
 
 	cmdCtx := CommandContext{
 		ClusterName:     e.cfg.Settings.ClusterName,

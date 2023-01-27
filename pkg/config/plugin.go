@@ -28,6 +28,20 @@ func DecomposePluginKey(key string) (string, string, string, error) {
 	return repo, name, ver, nil
 }
 
+// ExecutorNameForKey returns executor name for a given executor configuration key. It might be a plugin or a built-in executor.
+func ExecutorNameForKey(key string) string {
+	prefix, name, found := strings.Cut(key, "/")
+	if !found {
+		// Assume this is a built-in executor
+		// TODO: Refacator this once we migrate all built-in executors to plugins
+		return prefix
+	}
+
+	name, _, _ = strings.Cut(name, "@")
+	return name
+}
+
+
 func validatePluginProperties(repo, plugin string) error {
 	issues := multierror.New()
 	if repo == "" {

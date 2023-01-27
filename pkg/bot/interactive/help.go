@@ -46,7 +46,7 @@ func (h *HelpMessage) Build() Message {
 		h.notificationSections,
 		h.actionSections,
 		h.configSections,
-		h.kubectlSections,
+		h.executorSections,
 		h.pluginHelpSections,
 		h.filters,
 		h.feedback,
@@ -189,30 +189,16 @@ func (h *HelpMessage) configSections() []Section {
 	}
 }
 
-func (h *HelpMessage) kubectlSections() []Section {
-	// TODO(https://github.com/kubeshop/botkube/issues/802): remove this warning in after releasing 0.17.
-	warn := ":warning: Botkube 0.17 and above require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.\n\ne.g. `@Botkube k get pods` instead of `@Botkube get pods`\n"
-
+func (h *HelpMessage) executorSections() []Section {
 	if h.platform == config.SocketSlackCommPlatformIntegration {
 		return []Section{
 			{
 				Base: Base{
 					Header:      "Interactive kubectl - no typing!",
-					Description: warn,
-				},
-			},
-			{
-				Base: Base{
 					Description: "Build kubectl commands interactively",
 				},
 				Buttons: []Button{
 					h.btnBuilder.ForCommandWithDescCmd("kubectl", "kubectl", ButtonStylePrimary),
-				},
-				Context: ContextItems{
-					{
-						Text: "Alternatively use kubectl as usual with all supported commands\n" +
-							"`k | kc | kubectl [verb] [resource] [flags]`",
-					},
 				},
 			},
 			{
@@ -223,6 +209,14 @@ func (h *HelpMessage) kubectlSections() []Section {
 					h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
 				},
 			},
+			{
+				Base: Base{
+					Description: "To list all command aliases",
+				},
+				Buttons: []Button{
+					h.btnBuilder.ForCommandWithDescCmd("List aliases", "list aliases"),
+				},
+			},
 		}
 	}
 
@@ -231,7 +225,7 @@ func (h *HelpMessage) kubectlSections() []Section {
 		{
 			Base: Base{
 				Header:      "Run kubectl commands (if enabled)",
-				Description: fmt.Sprintf("%s\nYou can run kubectl commands directly from %s!", warn, formatx.ToTitle(h.platform)),
+				Description: fmt.Sprintf("You can run kubectl commands directly from %s!", formatx.ToTitle(h.platform)),
 			},
 			Buttons: []Button{
 				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get services"),
