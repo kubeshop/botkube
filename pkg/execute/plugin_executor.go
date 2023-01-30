@@ -155,10 +155,3 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 
 	return out, fullPluginName
 }
-
-func isHelpCmd(s []string) bool {
-	if len(s) < 2 {
-		return false
-	}
-	return s[1] == "help"
-}

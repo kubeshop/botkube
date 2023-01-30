@@ -112,7 +112,7 @@ func (p *grpcClient) Help(ctx context.Context) (interactive.Message, error) {
 	}
 	var msg interactive.Message
 	if err := json.Unmarshal(resp.Help, &msg); err != nil {
-		return interactive.Message{}, fmt.Errorf("while unmarshalling json: %v", err)
+		return interactive.Message{}, fmt.Errorf("while unmarshalling help from JSON: %w", err)
 	}
 	return msg, nil
 }
@@ -158,7 +158,7 @@ func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse,
 	}
 	marshalled, err := json.Marshal(help)
 	if err != nil {
-		return nil, fmt.Errorf("while marshalling json: %v", err)
+		return nil, fmt.Errorf("while marshalling help to JSON: %w", err)
 	}
 	return &HelpResponse{
 		Help: marshalled,

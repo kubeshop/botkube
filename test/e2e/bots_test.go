@@ -264,6 +264,16 @@ func runBotTest(t *testing.T,
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
+
+		t.Run("Echo Executor help", func(t *testing.T) {
+			command := "echo help"
+			expectedMessage := ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+
 		t.Run("Helm Executor", func(t *testing.T) {
 			command := "helm install --help"
 			expectedBody := codeBlock(heredoc.Doc(`

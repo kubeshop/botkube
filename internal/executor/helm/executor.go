@@ -142,10 +142,6 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 				Data: helmCmd.Get.Help(),
 			}, nil
 		}
-	case helmCmd.Help != nil, wasHelpRequested:
-		return executor.ExecuteOutput{
-			Data: helmCmd.Help.Help(),
-		}, nil
 	default:
 		return executor.ExecuteOutput{
 			Data: "Helm command not supported",
@@ -153,11 +149,11 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 }
 
-func (Executor) Help(ctx context.Context) (interactive.Message, error) {
+func (*Executor) Help(ctx context.Context) (interactive.Message, error) {
 	return interactive.Message{
 		Base: interactive.Base{
 			Body: interactive.Body{
-				CodeBlock: (&HelpCommand{}).Help(),
+				CodeBlock: help(),
 			},
 		},
 	}, nil

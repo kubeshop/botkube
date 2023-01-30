@@ -34,7 +34,7 @@ type EchoExecutor struct{}
 var _ executor.Executor = &EchoExecutor{}
 
 // Metadata returns details about Echo plugin.
-func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
+func (*EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
 		Description: description,
@@ -43,7 +43,7 @@ func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 }
 
 // Execute returns a given command as response.
-func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
+func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	var cfg Config
 	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
@@ -64,14 +64,8 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	}, nil
 }
 
-func (EchoExecutor) Help(ctx context.Context) (interactive.Message, error) {
-	return interactive.Message{
-		Base: interactive.Base{
-			Body: interactive.Body{
-				CodeBlock: description,
-			},
-		},
-	}, nil
+func (*EchoExecutor) Help(ctx context.Context) (interactive.Message, error) {
+	return interactive.Message{}, nil
 }
 
 func main() {

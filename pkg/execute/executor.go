@@ -170,12 +170,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 	if isPluginCmd {
 		if isHelpCmd(cmdCtx.Args) {
-			msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
-			if err != nil {
-				e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
-				return empty
-			}
-			return msg
+			return e.ExecuteHelp(ctx, cmdCtx)
 		}
 		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
@@ -226,6 +221,30 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return respond(msg, cmdCtx)
 	}
 
+	return msg
+}
+
+func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.Message {
+	e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
+	if err != nil {
+		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
+		return interactive.Message{}
+	}
+	if msg.Body.Plaintext == "" && msg.Body.CodeBlock == "" {
+		msg.Body.Plaintext = emptyResponseMsg
+		return msg
+	}
+	// Show Filter Input if command response is more than `lineLimitToShowFilter`
+	s := msg.Body.Plaintext
+	if msg.Body.Plaintext == "" {
+		s = msg.Body.CodeBlock
+	}
+	if len(strings.SplitN(s, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+		msg.PlaintextInputs = append(msg.PlaintextInputs,
+			filterInput(cmdCtx.CleanCmd,
+				cmdCtx.BotName))
+	}
 	return msg
 }
 
@@ -301,4 +320,11 @@ func parseCmdVerb(args []string) (cmd, verb string) {
 		verb = strings.ToLower(args[1])
 	}
 	return
+}
+
+func isHelpCmd(s []string) bool {
+	if len(s) < 2 {
+		return false
+	}
+	return s[1] == "help"
 }
