@@ -17,6 +17,8 @@ import (
 
 var _ CommandExecutor = &AliasExecutor{}
 
+const aliasesForCurrentBindingsMsg = "Only showing aliases for executors enabled for this channel."
+
 var featureName = FeatureName{
 	Name:    "alias",
 	Aliases: []string{"aliases", "als"},
@@ -46,6 +48,13 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
+	outMsg.Sections = []interactive.Section{
+		{
+			Context: []interactive.ContextItem{
+				{Text: aliasesForCurrentBindingsMsg},
+			},
+		},
+	}
 
 	return outMsg, nil
 }
