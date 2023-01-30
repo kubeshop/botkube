@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -96,6 +97,10 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 	return executor.ExecuteOutput{
 		Data: fmt.Sprintf("New issue created successfully! 🎉\n\nIssue URL: %s", issueURL),
 	}, nil
+}
+
+func (*GHExecutor) Help(ctx context.Context) (interactive.Message, error) {
+	return interactive.Message{}, nil
 }
 
 var depsDownloadLinks = map[string]api.Dependency{
