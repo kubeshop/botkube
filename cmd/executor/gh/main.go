@@ -19,6 +19,7 @@ const (
 	pluginName       = "gh"
 	logsTailLines    = 150
 	defaultNamespace = "default"
+	helpMsg          = "Usage: `gh create issue KIND/NAME [-n, --namespace]`"
 )
 
 // version is set via ldflags by GoReleaser.
@@ -101,7 +102,13 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 
 // Help returns help message
 func (*GHExecutor) Help(ctx context.Context) (interactive.Message, error) {
-	return interactive.Message{}, nil
+	return interactive.Message{
+		Base: interactive.Base{
+			Body: interactive.Body{
+				Plaintext: helpMsg,
+			},
+		},
+	}, nil
 }
 
 var depsDownloadLinks = map[string]api.Dependency{
