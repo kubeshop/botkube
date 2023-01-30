@@ -51,11 +51,13 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
 	outMsg.Sections = []interactive.Section{
 		{
+			Base: outMsg.Base,
 			Context: []interactive.ContextItem{
 				{Text: aliasesForCurrentBindingsMsg},
 			},
 		},
 	}
+	outMsg.Base = interactive.Base{}
 
 	return outMsg, nil
 }

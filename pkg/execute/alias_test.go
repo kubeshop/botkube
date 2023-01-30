@@ -15,7 +15,7 @@ import (
 
 func TestAliasExecutor_List(t *testing.T) {
 	// given
-	expSections := []interactive.Section{{Context: []interactive.ContextItem{{Text: aliasesForCurrentBindingsMsg}}}}
+	expContextSections := interactive.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
 	cfg := fixAliasCfg()
 	testCases := []struct {
 		name     string
@@ -68,8 +68,9 @@ func TestAliasExecutor_List(t *testing.T) {
 			e := NewAliasExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expOutput, msg.Body.CodeBlock)
-			assert.Equal(t, expSections, msg.Sections)
+			require.Len(t, msg.Sections, 1)
+			assert.Equal(t, tc.expOutput, msg.Sections[0].Body.CodeBlock)
+			assert.Equal(t, expContextSections, msg.Sections[0].Context)
 		})
 	}
 }
