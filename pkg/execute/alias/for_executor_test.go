@@ -1,10 +1,12 @@
 package alias_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestListForExecutor(t *testing.T) {
@@ -57,7 +59,6 @@ func TestListForExecutor(t *testing.T) {
 		})
 	}
 }
-
 
 func TestListForExecutorPrefix(t *testing.T) {
 	// given

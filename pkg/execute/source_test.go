@@ -10,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestSourceExecutor(t *testing.T) {
@@ -26,31 +27,69 @@ func TestSourceExecutor(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"kubectl-team-a": {
 						DisplayName: "kubectl-team-a",
+						Kubernetes: config.KubernetesSource{
+							Recommendations: config.Recommendations{
+								Pod: config.PodRecommendations{
+									NoLatestImageTag: ptr.Bool(true),
+								},
+							},
+						},
 					},
 					"kubectl-team-b": {
 						DisplayName: "kubectl-team-b",
+						Plugins: map[string]config.Plugin{
+							"foo": {
+								Enabled: true,
+							},
+							"foo/bar": {
+								Enabled: false,
+							},
+							"repo/bar": {
+								Enabled: true,
+							},
+							"botkube/helm": {
+								Enabled: true,
+							},
+						},
 					},
 				},
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
-			SOURCE         ENABLED DISPLAY NAME
-			kubectl-team-a true    kubectl-team-a
-			kubectl-team-b true    kubectl-team-b`),
+				SOURCE       ENABLED
+				botkube/helm true
+				foo          true
+				foo/bar      false
+				kubernetes   true
+				repo/bar     true`),
 		},
 		{
-			name: "two sources with plugin",
+			name: "duplicate sources",
 			cfg: config.Config{
 				Sources: map[string]config.Sources{
 					"kubectl-team-a": {
 						DisplayName: "kubectl-team-a",
+						Kubernetes: config.KubernetesSource{
+							Recommendations: config.Recommendations{
+								Pod: config.PodRecommendations{
+									NoLatestImageTag: ptr.Bool(true),
+								},
+							},
+						},
 					},
 					"kubectl-team-b": {
 						DisplayName: "kubectl-team-b",
+						Kubernetes: config.KubernetesSource{
+							Recommendations: config.Recommendations{
+								Pod: config.PodRecommendations{
+									LabelsSet: ptr.Bool(true),
+								},
+							},
+						},
 					},
-					"plugin-a": {
+					"plugins": {
 						DisplayName: "plugin-a",
-						Plugins: config.PluginsExecutors{
+						Plugins: config.PluginsMap{
 							"plugin-a": {
 								Enabled: true,
 							},
@@ -58,12 +97,11 @@ func TestSourceExecutor(t *testing.T) {
 					},
 				},
 			},
-			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugin-a"},
+			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugins"},
 			expOutput: heredoc.Doc(`
-			SOURCE         ENABLED DISPLAY NAME
-			kubectl-team-a true    kubectl-team-a
-			kubectl-team-b true    kubectl-team-b
-			plugin-a       true    plugin-a`),
+				SOURCE     ENABLED
+				kubernetes true
+				plugin-a   true`),
 		},
 	}
 	for _, tc := range testCases {

@@ -41,7 +41,6 @@ func ExecutorNameForKey(key string) string {
 	return name
 }
 
-
 func validatePluginProperties(repo, plugin string) error {
 	issues := multierror.New()
 	if repo == "" {
@@ -100,7 +99,7 @@ func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []s
 	}
 }
 
-func validatePlugins(sl validator.StructLevel, pluginConfigs PluginsExecutors) {
+func validatePlugins(sl validator.StructLevel, pluginConfigs PluginsMap) {
 	var enabledPluginsViaBindings []string
 	for pluginKey, plugin := range pluginConfigs {
 		if !plugin.Enabled {

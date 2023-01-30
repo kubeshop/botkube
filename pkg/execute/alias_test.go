@@ -22,13 +22,13 @@ func TestAliasExecutor_List(t *testing.T) {
 		expOutput string
 	}{
 		{
-			name: "no bindings",
+			name:     "no bindings",
 			bindings: []string{},
 			expOutput: heredoc.Doc(`
 			  No aliases found for current conversation.`),
 		},
 		{
-			name: "kubectl",
+			name:     "kubectl",
 			bindings: []string{"binding1"},
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND                    DISPLAY NAME
@@ -41,7 +41,7 @@ func TestAliasExecutor_List(t *testing.T) {
 			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
-			name: "three bindings",
+			name:     "three bindings",
 			bindings: []string{"binding1", "binding2", "plugins"},
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND      DISPLAY NAME
@@ -64,7 +64,6 @@ func TestAliasExecutor_List(t *testing.T) {
 	}
 }
 
-
 func fixAliasCfg() config.Config {
 	return config.Config{
 		Executors: map[string]config.Executors{
@@ -72,8 +71,8 @@ func fixAliasCfg() config.Config {
 				Kubectl: config.Kubectl{
 					Enabled: true,
 				},
-				Plugins: config.PluginsExecutors{
-					"gh": config.PluginExecutor{
+				Plugins: config.PluginsMap{
+					"gh": config.Plugin{
 						Enabled: false,
 					},
 				},
@@ -82,25 +81,25 @@ func fixAliasCfg() config.Config {
 				Kubectl: config.Kubectl{
 					Enabled: false,
 				},
-				Plugins: config.PluginsExecutors{
-					"gh": config.PluginExecutor{
+				Plugins: config.PluginsMap{
+					"gh": config.Plugin{
 						Enabled: true,
 					},
 				},
 			},
 			"plugins": {
-				Plugins: config.PluginsExecutors{
-					"botkube/helm": config.PluginExecutor{
+				Plugins: config.PluginsMap{
+					"botkube/helm": config.Plugin{
 						Enabled: true,
 					},
-					"botkube/echo@v1.0.1-devel": config.PluginExecutor{
+					"botkube/echo@v1.0.1-devel": config.Plugin{
 						Enabled: true,
 					},
 				},
 			},
 			"other": {
-				Plugins: config.PluginsExecutors{
-					"botkube/other@v1.0.1-devel": config.PluginExecutor{
+				Plugins: config.PluginsMap{
+					"botkube/other@v1.0.1-devel": config.Plugin{
 						Enabled: true,
 					},
 				},
@@ -108,18 +107,18 @@ func fixAliasCfg() config.Config {
 		},
 		Aliases: map[string]config.Alias{
 			"k": {
-				Command: "kubectl",
+				Command:     "kubectl",
 				DisplayName: "k alias",
 			},
 			"kc": {
 				Command: "kubectl",
 			},
 			"kb": {
-				Command: "kubectl -n botkube",
+				Command:     "kubectl -n botkube",
 				DisplayName: "kubectl for botkube ns",
 			},
 			"kv": {
-				Command: "kubectl version --filter=3",
+				Command:     "kubectl version --filter=3",
 				DisplayName: "version with filter",
 			},
 			"kdiff": {
@@ -138,7 +137,7 @@ func fixAliasCfg() config.Config {
 				Command: "helm",
 			},
 			"hv": {
-				Command: "helm version",
+				Command:     "helm version",
 				DisplayName: "Helm ver",
 			},
 			"o": {
@@ -148,7 +147,7 @@ func fixAliasCfg() config.Config {
 				Command: "other --param=1",
 			},
 			"g": {
-				Command: "gh verb -V",
+				Command:     "gh verb -V",
 				DisplayName: "GH verb",
 			},
 		},

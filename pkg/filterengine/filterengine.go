@@ -3,11 +3,11 @@ package filterengine
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/maputil"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 // DefaultFilterEngine is a default implementation of the Filter Engine.

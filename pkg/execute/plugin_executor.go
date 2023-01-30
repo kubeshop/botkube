@@ -3,6 +3,7 @@ package execute
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -103,7 +103,7 @@ func (e *PluginExecutor) Help(ctx context.Context, bindings []string, args []str
 	return cli.Help(ctx)
 }
 
-func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([]*executor.Config, error) {
+func (e *PluginExecutor) collectConfigs(plugins []config.Plugin) ([]*executor.Config, error) {
 	var configs []*executor.Config
 
 	for _, plugin := range plugins {
@@ -126,9 +126,9 @@ func (e *PluginExecutor) collectConfigs(plugins []config.PluginExecutor) ([]*exe
 	return configs, nil
 }
 
-func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([]config.PluginExecutor, string) {
+func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([]config.Plugin, string) {
 	var (
-		out            []config.PluginExecutor
+		out            []config.Plugin
 		fullPluginName string
 	)
 

@@ -33,14 +33,27 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 						Kubectl: config.Kubectl{
 							Enabled: false,
 						},
+						Plugins: map[string]config.Plugin{
+							"botkube/echo": {
+								Enabled: true,
+							},
+						},
+					},
+				},
+				Aliases: map[string]config.Alias{
+					"k": {
+						Command: "kubectl",
+					},
+					"kc": {
+						Command: "kubectl",
 					},
 				},
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
-				EXECUTOR       ENABLED
-				kubectl-team-a true
-				kubectl-team-b false`),
+				EXECUTOR     ENABLED ALIASES
+				botkube/echo true    
+				kubectl      false   k, kc`),
 		},
 		{
 			name: "executors and plugins",
@@ -63,29 +76,35 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 						},
 					},
 					"botkube/helm": {
-						Plugins: config.PluginsExecutors{
-							"botkube/helm": config.PluginExecutor{
+						Plugins: config.PluginsMap{
+							"botkube/helm": config.Plugin{
 								Enabled: true,
 							},
 						},
 					},
 					"botkube/echo@v1.0.1-devel": {
-						Plugins: config.PluginsExecutors{
-							"botkube/echo@v1.0.1-devel": config.PluginExecutor{
+						Plugins: config.PluginsMap{
+							"botkube/echo@v1.0.1-devel": config.Plugin{
 								Enabled: true,
 							},
 						},
 					},
 				},
+				Aliases: map[string]config.Alias{
+					"h": {
+						Command: "helm",
+					},
+					"e": {
+						Command: "echo",
+					},
+				},
 			},
 			bindings: []string{"kubectl-exec-cmd", "kubectl-read-only", "kubectl-wait-cmd", "botkube/helm", "botkube/echo@v1.0.1-devel"},
 			expOutput: heredoc.Doc(`
-				EXECUTOR                  ENABLED
-				botkube/echo@v1.0.1-devel true
-				botkube/helm              true
-				kubectl-exec-cmd          false
-				kubectl-read-only         true
-				kubectl-wait-cmd          true`),
+				EXECUTOR                  ENABLED ALIASES
+				botkube/echo@v1.0.1-devel true    e
+				botkube/helm              true    h
+				kubectl                   false   `),
 		},
 	}
 	for _, tc := range testCases {

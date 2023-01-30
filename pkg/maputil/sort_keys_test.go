@@ -1,9 +1,11 @@
 package maputil_test
 
 import (
-	"github.com/kubeshop/botkube/pkg/maputil"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 func TestSortKeys(t *testing.T) {

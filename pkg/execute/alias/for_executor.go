@@ -2,9 +2,10 @@ package alias
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"sort"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // ListExactForExecutor lists aliases for configured commands that are equal to the executor name.
@@ -36,15 +37,11 @@ func ListForExecutorPrefix(rawName string, aliases config.Aliases) []string {
 
 		// Case 2: additional args/flags provided
 		executorNameWithSpace := fmt.Sprintf("%s ", executorName)
-		if strings.HasPrefix(cfg.Command, executorNameWithSpace) {
-			return true
-		}
-
-		return false
+		return strings.HasPrefix(cfg.Command, executorNameWithSpace)
 	})
 }
 
-func listForExecutorWithFn(rawName string, aliases config.Aliases, shouldIncludeItem func (cfg config.Alias, executorName string) bool) []string {
+func listForExecutorWithFn(rawName string, aliases config.Aliases, shouldIncludeItem func(cfg config.Alias, executorName string) bool) []string {
 	executorName := config.ExecutorNameForKey(rawName)
 
 	var foundAliases []string

@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"text/tabwriter"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/maputil"
-	"github.com/sirupsen/logrus"
-	"text/tabwriter"
 )
 
 var _ CommandExecutor = &AliasExecutor{}
@@ -36,7 +38,6 @@ func (e *AliasExecutor) Commands() map[CommandVerb]CommandFn {
 	return map[CommandVerb]CommandFn{
 		CommandList: e.List,
 	}
-
 }
 
 // List returns a tabular representation of aliases.
@@ -63,7 +64,6 @@ func (e *AliasExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin comm
 }
 
 func (e *AliasExecutor) getTabularOutput(bindings []string) string {
-
 	aliasesToDisplay := make(map[string]config.Alias)
 
 	aliasesCfg := e.cfg.Aliases

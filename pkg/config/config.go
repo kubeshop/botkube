@@ -210,7 +210,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     PluginsExecutors `koanf:",remain"`
+	Plugins     PluginsMap       `koanf:",remain"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.
@@ -290,19 +290,19 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
-// PluginsExecutors contains plugins executors configuration parameters defined in groups.
-type PluginsExecutors map[string]PluginExecutor
+// PluginsMap contains plugins configuration parameters defined in groups.
+type PluginsMap map[string]Plugin
 
-// PluginExecutor contains plugin specific configuration.
-type PluginExecutor struct {
+// Plugin contains plugin specific configuration.
+type Plugin struct {
 	Enabled bool
 	Config  any
 }
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl          `yaml:"kubectl"`
-	Plugins PluginsExecutors `koanf:",remain"`
+	Kubectl Kubectl    `yaml:"kubectl"`
+	Plugins PluginsMap `koanf:",remain"`
 }
 
 // Aliases contains aliases configuration.

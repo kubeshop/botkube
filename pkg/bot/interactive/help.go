@@ -241,6 +241,14 @@ func (h *HelpMessage) executorSections() []Section {
 				h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
 			},
 		},
+		{
+			Base: Base{
+				Description: "To list all command aliases",
+			},
+			Buttons: []Button{
+				h.btnBuilder.ForCommandWithDescCmd("List aliases", "list aliases"),
+			},
+		},
 	}
 }
 
