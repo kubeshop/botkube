@@ -267,7 +267,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Echo Executor help", func(t *testing.T) {
 			command := "echo help"
-			expectedMessage := ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
+			expectedMessage := ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
