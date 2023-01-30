@@ -115,6 +115,10 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 				continue
 			}
 		}
+
+		for _, ctxItem := range section.Context {
+			addLine(ctxItem.Text)
+		}
 	}
 
 	return out.String()

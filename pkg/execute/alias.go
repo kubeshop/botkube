@@ -24,13 +24,14 @@ var featureName = FeatureName{
 	Aliases: []string{"aliases", "als"},
 }
 
+// AliasExecutor
 type AliasExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
 	cfg               config.Config
 }
 
-// NewAliasExecutor
+// NewAliasExecutor returns a new AliasExecutor instance.
 func NewAliasExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *AliasExecutor {
 	return &AliasExecutor{log: log, analyticsReporter: analyticsReporter, cfg: cfg}
 }

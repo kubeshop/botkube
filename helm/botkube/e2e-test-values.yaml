@@ -213,6 +213,20 @@ filters:
     objectAnnotationChecker: true
     nodeEventsChecker: false
 
+aliases:
+  kc:
+    command: kubectl
+  k:
+    command: kubectl
+  kgp:
+    command: kubectl get pods
+    displayName: "Get Pods"
+  kgda:
+    command: kubectl get deployments -A
+    displayName: "Get Deployments"
+  e:
+    command: echo
+
 settings:
   clusterName: sample
   upgradeNotifier: false

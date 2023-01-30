@@ -100,7 +100,9 @@ func executorsForBindings(executors map[string]config.Executors, bindings []stri
 		}
 
 		// TODO: Remove once kubectl is migrated to a separate plugin
-		out[kubectlBuiltinExecutorName] = executor.Kubectl.Enabled
+		if executor.Kubectl.Enabled && !out[kubectlBuiltinExecutorName] {
+			out[kubectlBuiltinExecutorName] = true
+		}
 	}
 
 	return out

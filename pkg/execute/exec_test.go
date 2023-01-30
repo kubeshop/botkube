@@ -53,7 +53,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			expOutput: heredoc.Doc(`
 				EXECUTOR     ENABLED ALIASES
 				botkube/echo true    
-				kubectl      false   k, kc`),
+				kubectl      true    k, kc`),
 		},
 		{
 			name: "executors and plugins",
@@ -104,7 +104,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 				EXECUTOR                  ENABLED ALIASES
 				botkube/echo@v1.0.1-devel true    e
 				botkube/helm              true    h
-				kubectl                   false   `),
+				kubectl                   true    `),
 		},
 	}
 	for _, tc := range testCases {

@@ -2,7 +2,6 @@ package execute
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -46,10 +46,17 @@ func TestAliasExecutor_List(t *testing.T) {
 			name:     "three bindings",
 			bindings: []string{"binding1", "binding2", "plugins"},
 			expOutput: heredoc.Doc(`
-			  ALIAS COMMAND      DISPLAY NAME
-			  g     gh verb -V   GH verb
-			  h     helm         
-			  hv    helm version Helm ver`),
+			  ALIAS COMMAND                    DISPLAY NAME
+			  g     gh verb -V                 GH verb
+			  h     helm                       
+			  hv    helm version               Helm ver
+			  k     kubectl                    k alias
+			  kb    kubectl -n botkube         kubectl for botkube ns
+			  kc    kubectl                    
+			  kcn   kubectl -n ns              
+			  kgp   kubectl get pods           
+			  kk    kubectl                    
+			  kv    kubectl version --filter=3 version with filter`),
 		},
 	}
 	for _, tc := range testCases {
