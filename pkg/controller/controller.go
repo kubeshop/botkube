@@ -113,6 +113,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		config.CreateEvent,
 		config.UpdateEvent,
 		config.DeleteEvent,
+		config.NormalEvent,
 	}, func(resource string) (cache.SharedIndexInformer, error) {
 		gvr, err := c.parseResourceArg(resource)
 		if err != nil {
@@ -127,6 +128,7 @@ func (c *Controller) Start(ctx context.Context) error {
 				config.CreateEvent,
 				config.UpdateEvent,
 				config.DeleteEvent,
+				config.NormalEvent,
 			},
 			"error": err.Error(),
 		}).Errorf("Could not register informer.")
