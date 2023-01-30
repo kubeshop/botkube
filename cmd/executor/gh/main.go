@@ -99,6 +99,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 	}, nil
 }
 
+// Help returns help message
 func (*GHExecutor) Help(ctx context.Context) (interactive.Message, error) {
 	return interactive.Message{}, nil
 }

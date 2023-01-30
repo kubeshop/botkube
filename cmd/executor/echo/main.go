@@ -64,6 +64,7 @@ func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execu
 	}, nil
 }
 
+// Help returns help message
 func (*EchoExecutor) Help(ctx context.Context) (interactive.Message, error) {
 	return interactive.Message{}, nil
 }

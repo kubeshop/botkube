@@ -149,6 +149,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 }
 
+// Help returns help message
 func (*Executor) Help(ctx context.Context) (interactive.Message, error) {
 	return interactive.Message{
 		Base: interactive.Base{
