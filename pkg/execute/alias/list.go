@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 // ListExactForExecutor lists aliases for configured commands that are equal to the executor name.
@@ -39,6 +40,11 @@ func ListForExecutorPrefix(rawName string, aliases config.Aliases) []string {
 		executorNameWithSpace := fmt.Sprintf("%s ", executorName)
 		return strings.HasPrefix(cfg.Command, executorNameWithSpace)
 	})
+}
+
+// ListForBuiltinVerbPrefix lists aliases for builtin commands that starts with the verb prefix names.
+func ListForBuiltinVerbPrefix(verb command.Verb, aliases config.Aliases) []string {
+	return ListForExecutorPrefix(string(verb), aliases)
 }
 
 func listForExecutorWithFn(rawName string, aliases config.Aliases, shouldIncludeItem func(cfg config.Alias, executorName string) bool) []string {

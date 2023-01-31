@@ -36,9 +36,9 @@ func (e *VersionExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *VersionExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandVersion: e.Version,
+func (e *VersionExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.VersionVerb: e.Version,
 	}
 }
 

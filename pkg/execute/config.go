@@ -43,9 +43,9 @@ func (e *ConfigExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *ConfigExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandShow: e.Show,
+func (e *ConfigExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ShowVerb: e.Show,
 	}
 }
 

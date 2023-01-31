@@ -37,9 +37,9 @@ func (e *PingExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *PingExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandPing: e.Ping,
+func (e *PingExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.PingVerb: e.Ping,
 	}
 }
 

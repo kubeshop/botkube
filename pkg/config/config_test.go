@@ -273,12 +273,21 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid alias",
+			name: "missing alias command",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
 					* Key: 'Config.Aliases[eee].Command' Command is a required field`),
 			configs: [][]byte{
-				readTestdataFile(t, "invalid-alias.yaml"),
+				readTestdataFile(t, "missing-alias-command.yaml"),
+			},
+		},
+		{
+			name: "invalid alias command",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Aliases[foo].Command' Command prefix 'foo' not found in executors or builtin commands`),
+			configs: [][]byte{
+				readTestdataFile(t, "invalid-alias-command.yaml"),
 			},
 		},
 	}

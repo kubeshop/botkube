@@ -16,6 +16,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 const (
@@ -37,10 +38,10 @@ func (e *SourceBindingExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *SourceBindingExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandEdit:   e.Edit,
-		CommandStatus: e.Status,
+func (e *SourceBindingExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.EditVerb:   e.Edit,
+		command.StatusVerb: e.Status,
 	}
 }
 

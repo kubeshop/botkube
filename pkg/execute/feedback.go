@@ -34,9 +34,9 @@ func (e *FeedbackExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *FeedbackExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandFeedback: e.Feedback,
+func (e *FeedbackExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.FeedbackVerb: e.Feedback,
 	}
 }
 

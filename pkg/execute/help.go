@@ -40,9 +40,9 @@ func (e *HelpExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *HelpExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandHelp: e.Help,
+func (e *HelpExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.HelpVerb: e.Help,
 	}
 }
 

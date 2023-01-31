@@ -191,7 +191,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return respond(out, cmdCtx)
 	}
 
-	cmdVerb := CommandVerb(strings.ToLower(cmdCtx.Args[0]))
+	cmdVerb := command.Verb(strings.ToLower(cmdCtx.Args[0]))
 	var cmdRes string
 	if len(cmdCtx.Args) > 1 {
 		cmdRes = strings.ToLower(cmdCtx.Args[1])

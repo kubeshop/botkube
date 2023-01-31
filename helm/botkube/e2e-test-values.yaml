@@ -226,6 +226,8 @@ aliases:
     displayName: "Get Deployments"
   e:
     command: echo
+  p:
+    command: ping
 
 settings:
   clusterName: sample

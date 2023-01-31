@@ -7,17 +7,24 @@ aliases:
   kgp:
     command: kubectl get pods
     displayName: "Kubectl Get Pods"
+  foo:
+    command: foo --bar
+    displayName: "Foo"
   helm:
     command: helm version
     displayName: "Helm version"
-  eee:
-    command: ""
+  p:
+    command: ping
+    displayName: "Botkube ping"
+  s:
+    command: show config
+    displayName: "Botkube show config"
 
 executors:
   'kubectl-read-only':
     kubectl:
       enabled: true
-  'helm':
+  helm:
     botkube/helm:
       config: {}
       enabled: true

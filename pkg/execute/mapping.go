@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -19,26 +20,9 @@ const (
 	incompleteCmdMsg = "You missed to pass options for the command. Please use 'help' to see command options."
 )
 
-// CommandVerb are commands supported by the bot
-type CommandVerb string
-
-// CommandVerb command options
-const (
-	CommandPing     CommandVerb = "ping"
-	CommandHelp     CommandVerb = "help"
-	CommandVersion  CommandVerb = "version"
-	CommandFeedback CommandVerb = "feedback"
-	CommandList     CommandVerb = "list"
-	CommandEnable   CommandVerb = "enable"
-	CommandDisable  CommandVerb = "disable"
-	CommandEdit     CommandVerb = "edit"
-	CommandStatus   CommandVerb = "status"
-	CommandShow     CommandVerb = "show"
-)
-
 // CommandExecutor defines command structure for executors
 type CommandExecutor interface {
-	Commands() map[CommandVerb]CommandFn
+	Commands() map[command.Verb]CommandFn
 	FeatureName() FeatureName
 }
 
@@ -83,15 +67,15 @@ type FeatureName struct {
 
 // CommandMapping allows to register and lookup commands and dynamically build help messages
 type CommandMapping struct {
-	commands map[CommandVerb]map[string]CommandFn
-	help     map[CommandVerb][]FeatureName
+	commands map[command.Verb]map[string]CommandFn
+	help     map[command.Verb][]FeatureName
 }
 
 // NewCmdsMapping registers command and help mappings
 func NewCmdsMapping(executors []CommandExecutor) (*CommandMapping, error) {
 	mappingsErrs := multierror.New()
-	cmdsMapping := make(map[CommandVerb]map[string]CommandFn)
-	helpMapping := make(map[CommandVerb][]FeatureName)
+	cmdsMapping := make(map[command.Verb]map[string]CommandFn)
+	helpMapping := make(map[command.Verb][]FeatureName)
 	for _, executor := range executors {
 		cmds := executor.Commands()
 		subCmd := executor.FeatureName()
@@ -122,7 +106,7 @@ func NewCmdsMapping(executors []CommandExecutor) (*CommandMapping, error) {
 }
 
 // FindFn looks up CommandFn by verb and feature
-func (m *CommandMapping) FindFn(verb CommandVerb, feature string) (CommandFn, bool, bool) {
+func (m *CommandMapping) FindFn(verb command.Verb, feature string) (CommandFn, bool, bool) {
 	features, ok := m.commands[verb]
 	if !ok {
 		return nil, false, false
@@ -134,8 +118,8 @@ func (m *CommandMapping) FindFn(verb CommandVerb, feature string) (CommandFn, bo
 	return fn, true, true
 }
 
-// HelpMessageForVerb dynamically builds help message for given CommandVerb, or empty string
-func (m *CommandMapping) HelpMessageForVerb(verb CommandVerb, botName string) string {
+// HelpMessageForVerb dynamically builds help message for given command.Verb, or empty string
+func (m *CommandMapping) HelpMessageForVerb(verb command.Verb, botName string) string {
 	cmd, ok := m.help[verb]
 	if !ok {
 		return incompleteCmdMsg

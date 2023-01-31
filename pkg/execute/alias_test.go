@@ -16,22 +16,25 @@ import (
 func TestAliasExecutor_List(t *testing.T) {
 	// given
 	expContextSections := interactive.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
-	cfg := fixAliasCfg()
+
 	testCases := []struct {
 		name     string
 		bindings []string
+		cfg      config.Config
 
 		expOutput string
 	}{
 		{
 			name:     "no bindings",
 			bindings: []string{},
+			cfg:      fixAliasCfg(),
 			expOutput: heredoc.Doc(`
 			  No aliases found for current conversation.`),
 		},
 		{
 			name:     "kubectl",
 			bindings: []string{"binding1"},
+			cfg:      fixAliasCfg(),
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND                    DISPLAY NAME
 			  k     kubectl                    k alias
@@ -45,6 +48,7 @@ func TestAliasExecutor_List(t *testing.T) {
 		{
 			name:     "three bindings",
 			bindings: []string{"binding1", "binding2", "plugins"},
+			cfg:      fixAliasCfg(),
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND                    DISPLAY NAME
 			  g     gh verb -V                 GH verb
@@ -58,6 +62,34 @@ func TestAliasExecutor_List(t *testing.T) {
 			  kk    kubectl                    
 			  kv    kubectl version --filter=3 version with filter`),
 		},
+		{
+			name:     "three bindings with builtin cmds",
+			bindings: []string{"binding1", "binding2", "plugins"},
+			cfg:      fixAliasCfgWithBuiltin(),
+			expOutput: heredoc.Doc(`
+			  ALIAS COMMAND                    DISPLAY NAME
+			  bkh   help                       Botkube Help
+			  g     gh verb -V                 GH verb
+			  h     helm                       
+			  hv    helm version               Helm ver
+			  k     kubectl                    k alias
+			  kb    kubectl -n botkube         kubectl for botkube ns
+			  kc    kubectl                    
+			  kcn   kubectl -n ns              
+			  kgp   kubectl get pods           
+			  kk    kubectl                    
+			  kv    kubectl version --filter=3 version with filter
+			  p     ping                       Botkube Ping`),
+		},
+		{
+			name:     "just builtin cmds",
+			bindings: []string{},
+			cfg:      fixAliasCfgWithBuiltin(),
+			expOutput: heredoc.Doc(`
+			  ALIAS COMMAND DISPLAY NAME
+			  bkh   help    Botkube Help
+			  p     ping    Botkube Ping`),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -65,7 +97,7 @@ func TestAliasExecutor_List(t *testing.T) {
 				ExecutorFilter: newExecutorTextFilter(""),
 				Conversation:   Conversation{ExecutorBindings: tc.bindings},
 			}
-			e := NewAliasExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, cfg)
+			e := NewAliasExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
 			require.Len(t, msg.Sections, 1)
@@ -163,4 +195,17 @@ func fixAliasCfg() config.Config {
 			},
 		},
 	}
+}
+
+func fixAliasCfgWithBuiltin() config.Config {
+	cfg := fixAliasCfg()
+	cfg.Aliases["p"] = config.Alias{
+		Command:     "ping",
+		DisplayName: "Botkube Ping",
+	}
+	cfg.Aliases["bkh"] = config.Alias{
+		Command:     "help",
+		DisplayName: "Botkube Help",
+	}
+	return cfg
 }

@@ -209,10 +209,11 @@ func runBotTest(t *testing.T,
 	t.Log("Running actual test cases")
 
 	t.Run("Ping", func(t *testing.T) {
-		command := "ping"
-		expectedMessage := fmt.Sprintf("`ping` on `%s`\n```\npong", appCfg.ClusterName)
+		aliasedCommand := "p"
+		expandedCommand := "ping"
+		expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", expandedCommand, appCfg.ClusterName)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
@@ -885,7 +886,8 @@ func runBotTest(t *testing.T,
 			k     kubectl                    Kubectl alias
 			kc    kubectl                    Kubectl alias
 			kgda  kubectl get deployments -A Get Deployments
-			kgp   kubectl get pods           Get Pods`))
+			kgp   kubectl get pods           Get Pods
+			p     ping                       `))
 		contextMsg := "Only showing aliases for executors enabled for this channel."
 		expectedMessage := fmt.Sprintf("%s\n%s\n%s", cmdHeader(command), expectedBody, contextMsg)
 

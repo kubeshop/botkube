@@ -10,6 +10,7 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/kubeshop/botkube/pkg/execute/command"
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -19,8 +20,10 @@ const (
 	conflictingPluginRepoTag    = "conflicting_plugin_repo"
 	conflictingPluginVersionTag = "conflicting_plugin_version"
 	invalidPluginDefinitionTag  = "invalid_plugin_definition"
+	invalidAliasCommandTag      = "invalid_alias_command"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
+	kubectlCommandName          = "kubectl"
 )
 
 var warnsOnlyTags = map[string]struct{}{
@@ -49,6 +52,10 @@ func ValidateStruct(in any) (ValidateResult, error) {
 		return ValidateResult{}, err
 	}
 	if err := registerBindingsValidator(validate, trans); err != nil {
+		return ValidateResult{}, err
+	}
+
+	if err := registerAliasValidator(validate, trans); err != nil {
 		return ValidateResult{}, err
 	}
 
@@ -110,6 +117,14 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginRepoTag:    "{0}{1}",
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
+	})
+}
+
+func registerAliasValidator(validate *validator.Validate, trans ut.Translator) error {
+	validate.RegisterStructValidation(aliasesStructValidator, Alias{})
+
+	return registerTranslation(validate, trans, map[string]string{
+		invalidAliasCommandTag: "Command prefix '{0}' not found in executors or builtin commands",
 	})
 }
 
@@ -223,6 +238,45 @@ func actionBindingsStructValidator(sl validator.StructLevel) {
 	}
 	validateSourceBindings(sl, conf.Sources, bindings.Sources)
 	validateExecutorBindings(sl, conf.Executors, bindings.Executors)
+}
+
+func aliasesStructValidator(sl validator.StructLevel) {
+	alias, ok := sl.Current().Interface().(Alias)
+	if !ok {
+		return
+	}
+	conf, ok := sl.Top().Interface().(Config)
+	if !ok {
+		return
+	}
+
+	if alias.Command == "" {
+		// validated on struct level, no need to report two errors
+		return
+	}
+
+	cmdPrefix, _, _ := strings.Cut(alias.Command, " ")
+
+	var prefixesToCheck []string
+	// collect executors
+	for _, exec := range conf.Executors {
+		prefixesToCheck = append(prefixesToCheck, exec.CollectEnabledCommandPrefixes()...)
+	}
+	// collect builtin commands
+	for _, verb := range command.AllVerbs() {
+		prefixesToCheck = append(prefixesToCheck, string(verb))
+	}
+
+	for _, prefix := range prefixesToCheck {
+		if prefix != cmdPrefix {
+			continue
+		}
+
+		// command prefix is valid
+		return
+	}
+
+	sl.ReportError(alias.Command, cmdPrefix, "Command", invalidAliasCommandTag, "")
 }
 
 func sinkBindingsStructValidator(sl validator.StructLevel) {

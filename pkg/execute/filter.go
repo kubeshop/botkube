@@ -48,11 +48,11 @@ func NewFilterExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 }
 
 // Commands returns slice of commands the executor supports
-func (e *FilterExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandList:    e.List,
-		CommandEnable:  e.Enable,
-		CommandDisable: e.Disable,
+func (e *FilterExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ListVerb:    e.List,
+		command.EnableVerb:  e.Enable,
+		command.DisableVerb: e.Disable,
 	}
 }
 
