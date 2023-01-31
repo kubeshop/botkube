@@ -272,6 +272,15 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				readTestdataFile(t, "missing-action-bindings.yaml"),
 			},
 		},
+		{
+			name: "invalid alias",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Aliases[eee].Command' Command is a required field`),
+			configs: [][]byte{
+				readTestdataFile(t, "invalid-alias.yaml"),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

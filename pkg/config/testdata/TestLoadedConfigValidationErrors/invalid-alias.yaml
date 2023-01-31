@@ -1,0 +1,28 @@
+communications: {"foo": {}}
+
+aliases:
+  kc:
+    command: kubectl
+    displayName: "Kubectl alias"
+  kgp:
+    command: kubectl get pods
+    displayName: "Kubectl Get Pods"
+  helm:
+    command: helm version
+    displayName: "Helm version"
+  eee:
+    command: ""
+
+executors:
+  'kubectl-read-only':
+    kubectl:
+      enabled: true
+  helm:
+    botkube/helm:
+      config: {}
+      enabled: true
+  'plugin-based':
+    botkube/echo@v1.0.1-devel:
+      enabled: false
+      config:
+        changeResponseToUpperCase: true

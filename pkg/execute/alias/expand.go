@@ -27,7 +27,7 @@ func ExpandPrefix(rawCmd string, aliases config.Aliases) string {
 			return strings.Replace(rawCmd, aliasWithSpace, targetCmdWithSpace, 1)
 		}
 
-		// Case 3: False positive - alias prefix is a part of the command - continue
+		// Case 3: False positive - alias prefix is a part of a different binary name - continue
 	}
 
 	return rawCmd

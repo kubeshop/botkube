@@ -133,7 +133,7 @@ type Config struct {
 	Actions        Actions                   `yaml:"actions" validate:"dive"`
 	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
-	Aliases        Aliases                   `yaml:"aliases"`
+	Aliases        Aliases                   `yaml:"aliases" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
 
 	Filters       Filters    `yaml:"filters"`
@@ -310,7 +310,7 @@ type Aliases map[string]Alias
 
 // Alias defines alias configuration for a given command.
 type Alias struct {
-	Command     string `yaml:"command"`
+	Command     string `yaml:"command" validate:"required"`
 	DisplayName string `yaml:"displayName"`
 }
 

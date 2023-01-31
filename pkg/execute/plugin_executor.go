@@ -3,7 +3,6 @@ package execute
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
