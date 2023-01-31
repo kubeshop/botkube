@@ -53,7 +53,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 
 func TestLoadConfigWithPlugins(t *testing.T) {
 	// given
-	expSourcePlugin := config.PluginsExecutors{
+	expSourcePlugin := config.Plugins{
 		"botkube/keptn": {
 			Enabled: true,
 			Config: map[string]interface{}{
@@ -62,7 +62,7 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 		},
 	}
 
-	expExecutorPlugin := config.PluginsExecutors{
+	expExecutorPlugin := config.Plugins{
 		"botkube/echo": {
 			Enabled: true,
 			Config: map[string]interface{}{
@@ -270,6 +270,15 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 					* Key: 'Config.Actions[show-created-resource].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
 			configs: [][]byte{
 				readTestdataFile(t, "missing-action-bindings.yaml"),
+			},
+		},
+		{
+			name: "invalid alias",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Aliases[eee].Command' Command is a required field`),
+			configs: [][]byte{
+				readTestdataFile(t, "invalid-alias.yaml"),
 			},
 		},
 	}

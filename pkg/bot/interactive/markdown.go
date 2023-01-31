@@ -52,8 +52,12 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 		addLine(mdFormatter.codeBlockFormatter(msg.Body.CodeBlock))
 	}
 
-	for _, section := range msg.Sections {
-		addLine("") // padding between sections
+	for i, section := range msg.Sections {
+		// do not include empty line when there is no base content
+		var empty Base
+		if i != 0 || msg.Base != empty {
+			addLine("") // padding between sections
+		}
 
 		if section.Header != "" {
 			addLine(mdFormatter.headerFormatter(section.Header))
@@ -114,6 +118,10 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 				addLine(fmt.Sprintf("  - %s", mdFormatter.adaptiveCodeBlockFormatter(btn.Command)))
 				continue
 			}
+		}
+
+		for _, ctxItem := range section.Context {
+			addLine(ctxItem.Text)
 		}
 	}
 

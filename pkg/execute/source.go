@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
+	"reflect"
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +12,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 var (
@@ -20,6 +21,8 @@ var (
 		Aliases: []string{"sources", "src"},
 	}
 )
+
+const kubernetesBuiltinSourceName = "kubernetes"
 
 // SourceExecutor executes all commands that are related to sources.
 type SourceExecutor struct {
@@ -57,35 +60,31 @@ func (e *SourceExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 	return respond(e.TabularOutput(cmdCtx.Conversation.SourceBindings), cmdCtx), nil
 }
 
-type source struct {
-	enabled     bool
-	displayName string
-}
-
 // TabularOutput sorts source groups by key and returns a printable table
 func (e *SourceExecutor) TabularOutput(bindings []string) string {
-	var keys []string
-	sources := make(map[string]source)
+	sources := make(map[string]bool)
 	for _, b := range bindings {
-		s := e.cfg.Sources[b]
-		if len(s.Plugins) > 0 {
-			for name, plugin := range s.Plugins {
-				keys = append(keys, name)
-				sources[name] = source{enabled: plugin.Enabled, displayName: s.DisplayName}
-			}
-		} else {
-			keys = append(keys, b)
-			sources[b] = source{enabled: true, displayName: s.DisplayName}
+		s, ok := e.cfg.Sources[b]
+		if !ok {
+			continue
+		}
+
+		for name, plugin := range s.Plugins {
+			sources[name] = plugin.Enabled
+		}
+
+		// TODO: Remove once we extract the source to a separate plugin
+		if !reflect.DeepEqual(s.Kubernetes, config.KubernetesSource{}) {
+			sources[kubernetesBuiltinSourceName] = true
 		}
 	}
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "SOURCE\tENABLED\tDISPLAY NAME")
-	sort.Strings(keys)
-	for _, k := range keys {
-		s := sources[k]
-		fmt.Fprintf(w, "%s\t%t\t%s\n", k, s.enabled, s.displayName)
+	fmt.Fprintln(w, "SOURCE\tENABLED")
+	for _, key := range maputil.SortKeys(sources) {
+		enabled := sources[key]
+		fmt.Fprintf(w, "%s\t%t\n", key, enabled)
 	}
 	w.Flush()
 	return buf.String()

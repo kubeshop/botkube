@@ -245,13 +245,24 @@ func runBotTest(t *testing.T,
 
 	// Those are a temporary tests. When we will extract kubectl and kubernetes as plugins
 	// they won't be needed anymore.
-	t.Run("Botkube Plugins", func(t *testing.T) {
+	t.Run("Botkube PluginManagement", func(t *testing.T) {
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
 			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+		t.Run("Echo Executor success using alias", func(t *testing.T) {
+			aliasedCommand, expandedCommand := cmdWithAliasPrefix(aliasedCmd{
+				expandedPrefix: "echo", aliasedPrefix: "e", cmd: "alias",
+			})
+			expectedBody := codeBlock(strings.ToUpper("echo alias"))
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(expandedCommand), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
@@ -417,7 +428,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Executor", func(t *testing.T) {
 		t.Run("Get Deployment", func(t *testing.T) {
-			command := fmt.Sprintf("kc get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			command := fmt.Sprintf("kubectl get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "botkube"), 0, ""
@@ -429,7 +440,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Deployment with matching filter", func(t *testing.T) {
-			command := fmt.Sprintf(`kc get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+			command := fmt.Sprintf(`kubectl get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "botkube"), 0, ""
@@ -441,7 +452,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Configmap", func(t *testing.T) {
-			command := fmt.Sprintf("kc get configmap -n %s", appCfg.Deployment.Namespace)
+			command := fmt.Sprintf("kubectl get configmap -n %s", appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					strings.Contains(msg, "kube-root-ca.crt") &&
@@ -454,7 +465,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
-			command := fmt.Sprintf(`kc get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
+			command := fmt.Sprintf(`kubectl get configmap -n %s --filter="unknown-thing"`, appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 					!strings.Contains(msg, "kube-root-ca.crt") &&
@@ -467,7 +478,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Receive large output as plaintext file with executor command as message", func(t *testing.T) {
-			command := fmt.Sprintf("kc get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
+			command := fmt.Sprintf("kubectl get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
 			fileUploadAssertionFn := func(title, mimetype string) bool {
 				return title == "Response.txt" && strings.Contains(mimetype, "text/plain")
 			}
@@ -482,7 +493,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
-			command := "kc get role"
+			command := "kubectl get role"
 			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -502,7 +513,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Specify invalid command", func(t *testing.T) {
-			command := "kc get"
+			command := "kubectl get"
 			expectedBody := codeBlock(invalidCmdTemplate)
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -512,7 +523,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
-			command := "kc get po --namespace team-b"
+			command := "kubectl get po --namespace team-b"
 			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -523,7 +534,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Based on other bindings", func(t *testing.T) {
 			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
-				command := fmt.Sprintf("kc wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
+				command := fmt.Sprintf("kubectl wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 				assertionFn := func(msg string) (bool, int, string) {
 					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
 						strings.Contains(msg, "deployment.apps/botkube condition met"), 0, ""
@@ -535,7 +546,7 @@ func runBotTest(t *testing.T,
 			})
 
 			t.Run("Exec (the 3rd binding which is disabled)", func(t *testing.T) {
-				command := "kc exec"
+				command := "kubectl exec"
 				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl 'exec' command cannot be executed in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
@@ -544,26 +555,28 @@ func runBotTest(t *testing.T,
 				assert.NoError(t, err)
 			})
 
-			t.Run("Get all Pods (the 4th binding)", func(t *testing.T) {
-				command := "kc get pods -A"
+			t.Run("Get all Pods (the 4th binding) with alias", func(t *testing.T) {
+				aliasedCommand := "kgp -A"
+				expandedCommand := "kubectl get pods -A"
 				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
-				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(expandedCommand), expectedBody)
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
 				err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 				assert.NoError(t, err)
 			})
 
-			t.Run("Get all Deployments (the 4th binding)", func(t *testing.T) {
-				command := "kc get deploy -A"
+			t.Run("Get all Deployments (the 4th binding) with alias", func(t *testing.T) {
+				aliasedCommand := "kgda"
+				expandedCommand := "kubectl get deployments -A"
 				assertionFn := func(msg string) (bool, int, string) {
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", expandedCommand, appCfg.ClusterName))) &&
 						strings.Contains(msg, "local-path-provisioner") &&
 						strings.Contains(msg, "coredns") &&
 						strings.Contains(msg, "botkube"), 0, ""
 				}
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
 				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 				assert.NoError(t, err)
 			})
@@ -572,7 +585,7 @@ func runBotTest(t *testing.T,
 		k8sPrefixTests := []string{"kubectl", "kc", "k"}
 		for _, prefix := range k8sPrefixTests {
 			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
-				command := fmt.Sprintf("%s get pods --namespace %s", prefix, appCfg.Deployment.Namespace)
+				aliasedCmd, expandedCmd := kubectlAliasedCommand(prefix, fmt.Sprintf("get pods --namespace %s", appCfg.Deployment.Namespace))
 				assertionFn := func(msg string) (bool, int, string) {
 					headerColumnNames := []string{"NAME", "READY", "STATUS", "RESTART", "AGE"}
 					containAllColumn := true
@@ -581,11 +594,11 @@ func runBotTest(t *testing.T,
 							containAllColumn = false
 						}
 					}
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", expandedCmd, appCfg.ClusterName))) &&
 						containAllColumn, 0, ""
 				}
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCmd)
 				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 				assert.NoError(t, err)
 			})
@@ -853,13 +866,10 @@ func runBotTest(t *testing.T,
 	t.Run("List executors", func(t *testing.T) {
 		command := "list executors"
 		expectedBody := codeBlock(heredoc.Doc(`
-			EXECUTOR                  ENABLED
-			botkube/echo@v1.0.1-devel true
-			botkube/helm              true
-			kubectl-allow-all         true
-			kubectl-exec-cmd          false
-			kubectl-read-only         true
-			kubectl-wait-cmd          true`))
+			EXECUTOR                  ENABLED ALIASES
+			botkube/echo@v1.0.1-devel true    e
+			botkube/helm              true    
+			kubectl                   true    k, kc`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -867,23 +877,56 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 	})
 
+	t.Run("List aliases", func(t *testing.T) {
+		command := "list aliases"
+		expectedBody := codeBlock(heredoc.Doc(`
+			ALIAS COMMAND                    DISPLAY NAME
+			e     echo                       
+			k     kubectl                    Kubectl alias
+			kc    kubectl                    Kubectl alias
+			kgda  kubectl get deployments -A Get Deployments
+			kgp   kubectl get pods           Get Pods`))
+		contextMsg := "Only showing aliases for executors enabled for this channel."
+		expectedMessage := fmt.Sprintf("%s\n%s\n%s", cmdHeader(command), expectedBody, contextMsg)
+
+		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		assert.NoError(t, err)
+	})
+
 	t.Run("List sources", func(t *testing.T) {
 		command := "list sources"
 		expectedBody := codeBlock(heredoc.Doc(`
-		SOURCE ENABLED DISPLAY NAME`))
+		SOURCE ENABLED`))
 		if botDriver.Type() == DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
-			SOURCE                  ENABLED DISPLAY NAME
-			botkube/cm-watcher      true    K8s ConfigMaps changes
-			k8s-annotated-cm-delete true    K8s ConfigMap delete events
-			k8s-events              true    K8s recommendations
-			k8s-pod-create-events   true`))
+			SOURCE             ENABLED
+			botkube/cm-watcher true
+			kubernetes         true`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
+	})
+}
+
+type aliasedCmd struct {
+	aliasedPrefix  string
+	expandedPrefix string
+	cmd            string
+}
+
+func cmdWithAliasPrefix(in aliasedCmd) (string, string) {
+	return fmt.Sprintf("%s %s", in.aliasedPrefix, in.cmd), fmt.Sprintf("%s %s", in.expandedPrefix, in.cmd)
+}
+
+func kubectlAliasedCommand(prefix, cmd string) (string, string) {
+	return cmdWithAliasPrefix(aliasedCmd{
+		aliasedPrefix:  prefix,
+		expandedPrefix: "kubectl",
+		cmd:            cmd,
 	})
 }
 

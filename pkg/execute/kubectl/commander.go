@@ -85,7 +85,7 @@ func (c *Commander) GetCommandsForEvent(event event.Event, executorBindings []st
 		res, err := c.guard.GetResourceDetailsFromMap(verb, resourceName, resMap)
 		if err != nil {
 			if err == ErrVerbNotSupported {
-				c.log.Warnf("Not supported verb %q for resource %q. Skipping...", verb, resourceName)
+				c.log.Debugf("Not supported verb %q for resource %q. Skipping...", verb, resourceName)
 				continue
 			}
 

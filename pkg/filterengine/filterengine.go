@@ -3,11 +3,11 @@ package filterengine
 import (
 	"context"
 	"fmt"
-	"sort"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 // DefaultFilterEngine is a default implementation of the Filter Engine.
@@ -76,14 +76,8 @@ func (f *DefaultFilterEngine) Register(filters ...RegisteredFilter) {
 
 // RegisteredFilters returns sorted slice of registered filters.
 func (f *DefaultFilterEngine) RegisteredFilters() []RegisteredFilter {
-	var keys []string
-	for key := range f.filters {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
 	var registeredFilters []RegisteredFilter
-	for _, key := range keys {
+	for _, key := range maputil.SortKeys(f.filters) {
 		registeredFilters = append(registeredFilters, f.filters[key])
 	}
 

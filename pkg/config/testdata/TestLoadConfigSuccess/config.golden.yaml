@@ -318,6 +318,7 @@ executors:
                 enabled: true
                 config:
                     changeResponseToUpperCase: true
+aliases: {}
 communications:
     default-workspace:
         slack:

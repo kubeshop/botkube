@@ -175,7 +175,7 @@ func (g *CommandGuard) GetServerResourceMap() (map[string]v1.APIResource, error)
 			// 	For example, "pods" and "nodes" are both in "v1" and "metrics.k8s.io/v1beta1".
 			// 	Ignoring second occurrence for now.
 			if _, exists := resourceMap[res.Name]; exists {
-				g.log.Infof("Skipping resource with the same name %q (%q)...", res.Name, item.GroupVersion)
+				g.log.Debugf("Skipping resource with the same name %q (%q)...", res.Name, item.GroupVersion)
 				continue
 			}
 

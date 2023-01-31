@@ -41,6 +41,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						actions: {}
 						sources: {}
 						executors: {}
+						aliases: {}
 						communications: {}
 						filters:
 						    kubernetes:

@@ -13,6 +13,9 @@ data:
     executors:
       {{- .Values.executors | toYaml | nindent 6 }}
 
+    aliases:
+      {{- .Values.aliases | toYaml | nindent 6 }}
+
     actions:
       {{- .Values.actions | toYaml | nindent 6 }}
 

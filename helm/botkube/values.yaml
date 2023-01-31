@@ -428,6 +428,24 @@ executors:
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
 
+# -- Custom aliases for given commands.
+# The aliases are replaced with the underlying command before executing it.
+# Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
+# @default -- See the `values.yaml` file for full object.
+#
+## Format: aliases.{alias}
+aliases:
+  kc:
+    command: kubectl
+    displayName: "Kubectl alias"
+  k:
+    command: kubectl
+    displayName: "Kubectl alias"
+## Multi-word alias example:
+#  kgp:
+#    command: kubectl get pods
+#    displayName: "Get pods"
+
 # -- Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace.
 # To reload Botkube once it changes, add label `botkube.io/config-watch: "true"`.
 ## Secret format:

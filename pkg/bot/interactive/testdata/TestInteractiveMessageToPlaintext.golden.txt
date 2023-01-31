@@ -1,4 +1,3 @@
-
 Ping your cluster
 Check the status of connected Kubernetes cluster(s).
   - @Botkube ping
@@ -25,10 +24,6 @@ View current Botkube configuration
   - @Botkube config
 
 Run kubectl commands (if enabled)
-:warning: Botkube 0.17 and above require a prefix (`k`, `kc`, `kubectl`) when running kubectl commands through the bot.
-
-e.g. `@Botkube k get pods` instead of `@Botkube get pods`
-
 You can run kubectl commands directly from Platform!
   - @Botkube kubectl get services
   - @Botkube kubectl get pods
@@ -36,6 +31,9 @@ You can run kubectl commands directly from Platform!
 
 To list all enabled executors
   - @Botkube list executors
+
+To list all command aliases
+  - @Botkube list aliases
 
 Filters (advanced)
 You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters

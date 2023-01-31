@@ -133,17 +133,18 @@ type Config struct {
 	Actions        Actions                   `yaml:"actions" validate:"dive"`
 	Sources        map[string]Sources        `yaml:"sources" validate:"dive"`
 	Executors      map[string]Executors      `yaml:"executors" validate:"dive"`
+	Aliases        Aliases                   `yaml:"aliases" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
-	Filters        Filters                   `yaml:"filters"`
 
-	Analytics     Analytics  `yaml:"analytics"`
-	Settings      Settings   `yaml:"settings"`
-	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
-	Plugins       Plugins    `yaml:"plugins"`
+	Filters       Filters          `yaml:"filters"`
+	Analytics     Analytics        `yaml:"analytics"`
+	Settings      Settings         `yaml:"settings"`
+	ConfigWatcher CfgWatcher       `yaml:"configWatcher"`
+	Plugins       PluginManagement `yaml:"plugins"`
 }
 
-// Plugins holds Botkube plugins related configuration.
-type Plugins struct {
+// PluginManagement holds Botkube plugin management related configuration.
+type PluginManagement struct {
 	CacheDir     string                         `yaml:"cacheDir"`
 	Repositories map[string]PluginsRepositories `yaml:"repositories"`
 }
@@ -209,7 +210,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     PluginsExecutors `koanf:",remain"`
+	Plugins     Plugins          `koanf:",remain"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.
@@ -289,19 +290,28 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
-// PluginsExecutors contains plugins executors configuration parameters defined in groups.
-type PluginsExecutors map[string]PluginExecutor
+// Plugins contains plugins configuration parameters defined in groups.
+type Plugins map[string]Plugin
 
-// PluginExecutor contains plugin specific configuration.
-type PluginExecutor struct {
+// Plugin contains plugin specific configuration.
+type Plugin struct {
 	Enabled bool
 	Config  any
 }
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl          `yaml:"kubectl"`
-	Plugins PluginsExecutors `koanf:",remain"`
+	Kubectl Kubectl `yaml:"kubectl"`
+	Plugins Plugins `koanf:",remain"`
+}
+
+// Aliases contains aliases configuration.
+type Aliases map[string]Alias
+
+// Alias defines alias configuration for a given command.
+type Alias struct {
+	Command     string `yaml:"command" validate:"required"`
+	DisplayName string `yaml:"displayName"`
 }
 
 // Filters contains configuration for built-in filters.

@@ -47,11 +47,13 @@ type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Mes
 
 // CommandContext contains the context for CommandFn
 type CommandContext struct {
+	// ExpandedRawCmd is a raw command with expanded aliases.
+	ExpandedRawCmd string
+
 	Args                []string
 	ClusterName         string
 	CommGroupName       string
 	BotName             string
-	RawCmd              string
 	CleanCmd            string
 	ProvidedClusterName string
 	User                string
