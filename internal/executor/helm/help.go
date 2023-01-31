@@ -5,14 +5,8 @@ import (
 	"github.com/muesli/reflow/indent"
 )
 
-// HelpCommand holds possible help options such as positional arguments and supported flags.
-// Syntax:
-//
-//	helm help
-type HelpCommand struct{}
-
-// Help returns command help message.
-func (*HelpCommand) Help() string {
+// help returns command help message.
+func help() string {
 	return heredoc.Docf(`
 		The official Botkube plugin for the Helm CLI.
 

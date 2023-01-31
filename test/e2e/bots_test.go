@@ -264,6 +264,19 @@ func runBotTest(t *testing.T,
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
+
+		t.Run("Echo Executor help", func(t *testing.T) {
+			command := "echo help"
+			expectedMessage := ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
+			if botDriver.Type() == DiscordBot {
+				expectedMessage = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+
 		t.Run("Helm Executor", func(t *testing.T) {
 			command := "helm install --help"
 			expectedBody := codeBlock(heredoc.Doc(`
@@ -309,6 +322,39 @@ func runBotTest(t *testing.T,
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
+
+		t.Run("Helm Executor help", func(t *testing.T) {
+			command := "helm help"
+			expectedMessage := codeBlock(heredoc.Doc(`
+				The official Botkube plugin for the Helm CLI.
+
+				Usage:
+				  helm [command]
+				
+				Available Commands:
+				  install     # Installs a given chart to cluster where Botkube is installed.
+				  list        # Lists all releases on cluster where Botkube is installed.
+				  rollback    # Rolls back a given release to a previous revision.
+				  status      # Displays the status of the named release.
+				  test        # Runs tests for a given release.
+				  uninstall   # Uninstalls a given release.
+				  upgrade     # Upgrades a given release.
+				  version     # Shows the version of the Helm CLI used by this Botkube plugin.
+				  history     # Shows release history
+				  get         # Shows extended information of a named release
+				
+				Flags:
+				    --namespace,-n
+				    --debug
+				    --burst-limit
+				
+				Use "helm [command] --help" for more information about the command.`))
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
+
 		t.Run("ConfigMap watcher source", func(t *testing.T) {
 			t.Log("Creating sample ConfigMap...")
 			cfgMap := &v1.ConfigMap{

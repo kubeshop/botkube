@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -18,6 +19,7 @@ const (
 	pluginName       = "gh"
 	logsTailLines    = 150
 	defaultNamespace = "default"
+	helpMsg          = "Usage: `gh create issue KIND/NAME [-n, --namespace]`"
 )
 
 // version is set via ldflags by GoReleaser.
@@ -95,6 +97,17 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 
 	return executor.ExecuteOutput{
 		Data: fmt.Sprintf("New issue created successfully! 🎉\n\nIssue URL: %s", issueURL),
+	}, nil
+}
+
+// Help returns help message
+func (*GHExecutor) Help(ctx context.Context) (interactive.Message, error) {
+	return interactive.Message{
+		Base: interactive.Base{
+			Body: interactive.Body{
+				Plaintext: helpMsg,
+			},
+		},
 	}, nil
 }
 

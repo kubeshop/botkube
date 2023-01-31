@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -30,8 +31,10 @@ type Config struct {
 // EchoExecutor implements Botkube executor plugin.
 type EchoExecutor struct{}
 
+var _ executor.Executor = &EchoExecutor{}
+
 // Metadata returns details about Echo plugin.
-func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
+func (*EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
 		Description: description,
@@ -40,7 +43,7 @@ func (EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 }
 
 // Execute returns a given command as response.
-func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
+func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	var cfg Config
 	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
@@ -59,6 +62,11 @@ func (EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execut
 	return executor.ExecuteOutput{
 		Data: data,
 	}, nil
+}
+
+// Help returns help message
+func (*EchoExecutor) Help(ctx context.Context) (interactive.Message, error) {
+	return interactive.Message{}, nil
 }
 
 func main() {

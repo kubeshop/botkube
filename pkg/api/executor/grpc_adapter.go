@@ -2,18 +2,22 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 // Executor defines the Botkube executor plugin functionality.
 type Executor interface {
 	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
 	Metadata(ctx context.Context) (api.MetadataOutput, error)
+	Help(context.Context) (interactive.Message, error)
 }
 
 type (
@@ -101,6 +105,18 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
+func (p *grpcClient) Help(ctx context.Context) (interactive.Message, error) {
+	resp, err := p.client.Help(ctx, &emptypb.Empty{})
+	if err != nil {
+		return interactive.Message{}, err
+	}
+	var msg interactive.Message
+	if err := json.Unmarshal(resp.Help, &msg); err != nil {
+		return interactive.Message{}, fmt.Errorf("while unmarshalling help from JSON: %w", err)
+	}
+	return msg, nil
+}
+
 type grpcServer struct {
 	UnimplementedExecutorServer
 	Impl Executor
@@ -132,6 +148,20 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 			RefUrl: meta.JSONSchema.RefURL,
 		},
 		Dependencies: api.ConvertDependenciesFromAPI[*Dependency, Dependency](meta.Dependencies),
+	}, nil
+}
+
+func (p *grpcServer) Help(ctx context.Context, _ *emptypb.Empty) (*HelpResponse, error) {
+	help, err := p.Impl.Help(ctx)
+	if err != nil {
+		return nil, err
+	}
+	marshalled, err := json.Marshal(help)
+	if err != nil {
+		return nil, fmt.Errorf("while marshalling help to JSON: %w", err)
+	}
+	return &HelpResponse{
+		Help: marshalled,
 	}, nil
 }
 

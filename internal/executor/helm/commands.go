@@ -8,7 +8,6 @@ type Commands struct {
 	Test     *TestCommand     `arg:"subcommand:test"`
 	Rollback *RollbackCommand `arg:"subcommand:rollback"`
 	Upgrade  *UpgradeCommand  `arg:"subcommand:upgrade"`
-	Help     *HelpCommand     `arg:"subcommand:help"`
 	Get      *GetCommand      `arg:"subcommand:get"`
 
 	// embed on the root of the Command struct to inline all aliases.
