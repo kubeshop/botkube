@@ -99,7 +99,7 @@ func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []s
 	}
 }
 
-func validatePlugins(sl validator.StructLevel, pluginConfigs PluginsMap) {
+func validatePlugins(sl validator.StructLevel, pluginConfigs Plugins) {
 	var enabledPluginsViaBindings []string
 	for pluginKey, plugin := range pluginConfigs {
 		if !plugin.Enabled {

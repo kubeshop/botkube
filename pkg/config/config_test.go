@@ -53,7 +53,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 
 func TestLoadConfigWithPlugins(t *testing.T) {
 	// given
-	expSourcePlugin := config.PluginsMap{
+	expSourcePlugin := config.Plugins{
 		"botkube/keptn": {
 			Enabled: true,
 			Config: map[string]interface{}{
@@ -62,7 +62,7 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 		},
 	}
 
-	expExecutorPlugin := config.PluginsMap{
+	expExecutorPlugin := config.Plugins{
 		"botkube/echo": {
 			Enabled: true,
 			Config: map[string]interface{}{

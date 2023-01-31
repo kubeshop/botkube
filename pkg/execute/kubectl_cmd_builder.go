@@ -38,8 +38,6 @@ var knownCmdPrefix = map[string]struct{}{
 	filterPlaintextInputCommand:      {},
 }
 
-const kubectlName = "kubectl"
-
 var errRequiredVerbDropdown = errors.New("verbs dropdown select cannot be empty")
 
 type (
@@ -89,7 +87,7 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 
 	case 1:
 		//  check if it's only a kubectl command without arguments
-		if args[0] == kubectlName {
+		if args[0] == kubectlCommandName {
 			return args[0]
 		}
 		// it is a single arg which cannot start the kubectl command builder

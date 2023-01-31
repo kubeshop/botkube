@@ -76,14 +76,14 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 						},
 					},
 					"botkube/helm": {
-						Plugins: config.PluginsMap{
+						Plugins: config.Plugins{
 							"botkube/helm": config.Plugin{
 								Enabled: true,
 							},
 						},
 					},
 					"botkube/echo@v1.0.1-devel": {
-						Plugins: config.PluginsMap{
+						Plugins: config.Plugins{
 							"botkube/echo@v1.0.1-devel": config.Plugin{
 								Enabled: true,
 							},

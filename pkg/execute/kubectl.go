@@ -76,7 +76,7 @@ func (e *Kubectl) CanHandle(args []string) bool {
 
 	// make sure that verb is also specified
 	// empty `k|kc|kubectl` commands are handled by command builder
-	return len(args) >= 2 && args[0] == kubectlName
+	return len(args) >= 2 && args[0] == kubectlCommandName
 }
 
 // GetCommandPrefix gets verb command with k8s alias prefix.
@@ -95,7 +95,7 @@ func (e *Kubectl) getArgsWithoutAlias(msg string) ([]string, error) {
 		return nil, fmt.Errorf("while parsing the command message into args: %w", err)
 	}
 
-	if len(msgParts) >= 2 && msgParts[0] == kubectlName {
+	if len(msgParts) >= 2 && msgParts[0] == kubectlCommandName {
 		return msgParts[1:], nil
 	}
 

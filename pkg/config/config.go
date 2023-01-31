@@ -136,15 +136,15 @@ type Config struct {
 	Aliases        Aliases                   `yaml:"aliases" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
 
-	Filters       Filters    `yaml:"filters"`
-	Analytics     Analytics  `yaml:"analytics"`
-	Settings      Settings   `yaml:"settings"`
-	ConfigWatcher CfgWatcher `yaml:"configWatcher"`
-	Plugins       Plugins    `yaml:"plugins"`
+	Filters       Filters          `yaml:"filters"`
+	Analytics     Analytics        `yaml:"analytics"`
+	Settings      Settings         `yaml:"settings"`
+	ConfigWatcher CfgWatcher       `yaml:"configWatcher"`
+	Plugins       PluginManagement `yaml:"plugins"`
 }
 
-// Plugins holds Botkube plugins related configuration.
-type Plugins struct {
+// PluginManagement holds Botkube plugin management related configuration.
+type PluginManagement struct {
 	CacheDir     string                         `yaml:"cacheDir"`
 	Repositories map[string]PluginsRepositories `yaml:"repositories"`
 }
@@ -210,7 +210,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     PluginsMap       `koanf:",remain"`
+	Plugins     Plugins          `koanf:",remain"`
 }
 
 // KubernetesSource contains configuration for Kubernetes sources.
@@ -290,8 +290,8 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
-// PluginsMap contains plugins configuration parameters defined in groups.
-type PluginsMap map[string]Plugin
+// Plugins contains plugins configuration parameters defined in groups.
+type Plugins map[string]Plugin
 
 // Plugin contains plugin specific configuration.
 type Plugin struct {
@@ -301,8 +301,8 @@ type Plugin struct {
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl    `yaml:"kubectl"`
-	Plugins PluginsMap `koanf:",remain"`
+	Kubectl Kubectl `yaml:"kubectl"`
+	Plugins Plugins `koanf:",remain"`
 }
 
 // Aliases contains aliases configuration.

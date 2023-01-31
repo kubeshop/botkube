@@ -103,10 +103,6 @@ func (e *AliasExecutor) getTabularOutput(bindings []string) string {
 		fmt.Fprintf(w, "%s\t%s\t%s\n", aliasName, aliasCfg.Command, aliasCfg.DisplayName)
 	}
 
-	if len(aliasesToDisplay) == 0 {
-		fmt.Fprintln(w, "No aliases found for current conversation.")
-	}
-
 	w.Flush()
 	return buf.String()
 }

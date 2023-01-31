@@ -46,7 +46,7 @@ var pluginMap = map[string]plugin.Plugin{
 type Manager struct {
 	isStarted  atomic.Bool
 	log        logrus.FieldLogger
-	cfg        config.Plugins
+	cfg        config.PluginManagement
 	httpClient *http.Client
 
 	executorsToEnable []string
@@ -57,7 +57,7 @@ type Manager struct {
 }
 
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, cfg config.Plugins, executors, sources []string) *Manager {
+func NewManager(logger logrus.FieldLogger, cfg config.PluginManagement, executors, sources []string) *Manager {
 	return &Manager{
 		cfg:               cfg,
 		httpClient:        newHTTPClient(),

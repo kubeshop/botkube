@@ -89,7 +89,7 @@ func TestSourceExecutor(t *testing.T) {
 					},
 					"plugins": {
 						DisplayName: "plugin-a",
-						Plugins: config.PluginsMap{
+						Plugins: config.Plugins{
 							"plugin-a": {
 								Enabled: true,
 							},

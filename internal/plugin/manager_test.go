@@ -69,7 +69,7 @@ func TestCollectEnabledRepositories(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			manager := NewManager(loggerx.NewNoop(), config.Plugins{
+			manager := NewManager(loggerx.NewNoop(), config.PluginManagement{
 				Repositories: tc.definedRepositories,
 			}, tc.enabledExecutors, tc.enabledSources)
 

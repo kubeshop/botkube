@@ -245,7 +245,7 @@ func runBotTest(t *testing.T,
 
 	// Those are a temporary tests. When we will extract kubectl and kubernetes as plugins
 	// they won't be needed anymore.
-	t.Run("Botkube Plugins", func(t *testing.T) {
+	t.Run("Botkube PluginManagement", func(t *testing.T) {
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
 			expectedBody := codeBlock(strings.ToUpper(command))

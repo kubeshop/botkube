@@ -82,7 +82,7 @@ func fixAliasCfg() config.Config {
 				Kubectl: config.Kubectl{
 					Enabled: true,
 				},
-				Plugins: config.PluginsMap{
+				Plugins: config.Plugins{
 					"gh": config.Plugin{
 						Enabled: false,
 					},
@@ -92,14 +92,14 @@ func fixAliasCfg() config.Config {
 				Kubectl: config.Kubectl{
 					Enabled: false,
 				},
-				Plugins: config.PluginsMap{
+				Plugins: config.Plugins{
 					"gh": config.Plugin{
 						Enabled: true,
 					},
 				},
 			},
 			"plugins": {
-				Plugins: config.PluginsMap{
+				Plugins: config.Plugins{
 					"botkube/helm": config.Plugin{
 						Enabled: true,
 					},
@@ -109,7 +109,7 @@ func fixAliasCfg() config.Config {
 				},
 			},
 			"other": {
-				Plugins: config.PluginsMap{
+				Plugins: config.Plugins{
 					"botkube/other@v1.0.1-devel": config.Plugin{
 						Enabled: true,
 					},
