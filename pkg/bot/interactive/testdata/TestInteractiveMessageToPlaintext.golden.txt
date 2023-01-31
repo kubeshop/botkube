@@ -1,4 +1,3 @@
-
 Ping your cluster
 Check the status of connected Kubernetes cluster(s).
   - @Botkube ping
