@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 
+	"github.com/dlclark/regexp2"
 	"github.com/sirupsen/logrus"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -208,18 +208,30 @@ func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) 
 		return true, nil
 	}
 
-	regex, err := regexp.Compile(regexStr)
+	regex, err := regexp2.Compile(regexStr, regexp2.None)
 	if err != nil {
 		return false, fmt.Errorf("while compiling regex: %w", err)
 	}
 
+	if len(str) == 0 {
+		// no messages, so let's check if regex matches empty string
+		str = append(str, "")
+	}
+
+	errs := multierror.New()
 	for _, s := range str {
-		if regex.MatchString(s) {
-			return true, nil
+		match, err := regex.MatchString(s)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while matching regex %s: %w", regexStr, err))
+			continue
+		}
+
+		if match {
+			return true, errs.ErrorOrNil()
 		}
 	}
 
-	return false, nil
+	return false, errs.ErrorOrNil()
 }
 
 func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {

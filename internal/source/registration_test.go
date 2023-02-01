@@ -38,6 +38,13 @@ func TestSourcesForEvent(t *testing.T) {
 					resourceName: "^Created",
 					namespaces:   allNsCfg,
 				},
+				{
+					source: "fail2",
+					event: config.KubernetesEvent{
+						Reason: "^(?!NodeNotReady)$",
+					},
+					namespaces: allNsCfg,
+				},
 			},
 			Event: event.Event{
 				Name:   "test-one",
@@ -68,7 +75,7 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while compiling regex: error parsing regexp: unterminated [] set in %s`, "`[`"),
 		},
 		{
 			Name: "Event message - success",
@@ -106,6 +113,77 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success", "success2"},
 		},
 		{
+			Name: "Event message - negative lookahead",
+			Routes: []route{
+				{
+					source: "success",
+					event: config.KubernetesEvent{
+						Message: "^(?!Back-off).*$",
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success2",
+					event: config.KubernetesEvent{
+						Message: "^(?!Back-off restarting failed container)$",
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "empty",
+					event: config.KubernetesEvent{
+						Message: "",
+					},
+					namespaces: allNsCfg,
+				},
+			},
+			Event: event.Event{
+				Name: "test-one",
+				Messages: []string{
+					"Back-off restarting failed container",
+				},
+			},
+			ExpectedResult: []string{"empty"},
+		},
+		{
+			Name: "Event message - empty",
+			Routes: []route{
+				{
+					source: "success",
+					event: config.KubernetesEvent{
+						Message: "^(?!Back-off).*$",
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success2",
+					event: config.KubernetesEvent{
+						Message: "^(?!Back-off restarting failed container)$",
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success3",
+					event: config.KubernetesEvent{
+						Message: "",
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "fail",
+					event: config.KubernetesEvent{
+						Message: "^Back-off",
+					},
+					namespaces: allNsCfg,
+				},
+			},
+			Event: event.Event{
+				Name:     "test-one",
+				Messages: nil,
+			},
+			ExpectedResult: []string{"success", "success2", "success3"},
+		},
+		{
 			Name: "Event message - error",
 			Routes: []route{
 				{
@@ -134,7 +212,7 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while compiling regex: error parsing regexp: unterminated [] set in %s`, "`[`"),
 		},
 		{
 			Name: "Resource name - success",
@@ -147,6 +225,11 @@ func TestSourcesForEvent(t *testing.T) {
 				{
 					source:       "fail",
 					resourceName: "^one-.*",
+					namespaces:   allNsCfg,
+				},
+				{
+					source:       "fail2",
+					resourceName: "^(?!^test-).*$",
 					namespaces:   allNsCfg,
 				},
 			},
@@ -175,7 +258,7 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while compiling regex: error parsing regexp: unterminated [] set in %s`, "`[`"),
 		},
 		{
 			Name: "Namespace",

@@ -5,10 +5,10 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/dlclark/regexp2"
 	"github.com/knadh/koanf"
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
@@ -434,7 +434,7 @@ func (n *Namespaces) IsAllowed(givenNs string) bool {
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(excludeNamespace, givenNs)
+			matched, err := n.matchString(excludeNamespace, givenNs)
 			if err == nil && matched {
 				return false
 			}
@@ -454,7 +454,7 @@ func (n *Namespaces) IsAllowed(givenNs string) bool {
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(includeNamespace, givenNs)
+			matched, err := n.matchString(includeNamespace, givenNs)
 			if err == nil && matched {
 				return true
 			}
@@ -463,6 +463,20 @@ func (n *Namespaces) IsAllowed(givenNs string) bool {
 
 	// 2.1. If not included, return false
 	return false
+}
+
+func (n *Namespaces) matchString(regexStr, s string) (bool, error) {
+	regex, err := regexp2.Compile(regexStr, regexp2.None)
+	if err != nil {
+		return false, fmt.Errorf("while compiling regex: %w", err)
+	}
+
+	match, err := regex.MatchString(s)
+	if err != nil {
+		return false, fmt.Errorf("while matching regex: %w", err)
+	}
+
+	return match, nil
 }
 
 // Notification holds notification configuration.
