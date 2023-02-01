@@ -102,7 +102,7 @@ func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext)
 }
 
 // Edit executes the edit command based on args.
-func (e *SourceBindingExecutor) Edit(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	var empty interactive.Message
 
 	if len(cmdCtx.Args) < 2 {
@@ -123,14 +123,14 @@ func (e *SourceBindingExecutor) Edit(_ context.Context, cmdCtx CommandContext) (
 		}
 	}()
 
-	msg, err := e.editSourceBindingHandler(cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User, cmdCtx.BotName)
+	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User, cmdCtx.BotName)
 	if err != nil {
 		return empty, err
 	}
 	return msg, nil
 }
 
-func (e *SourceBindingExecutor) editSourceBindingHandler(cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
+func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
 	var empty interactive.Message
 
 	sourceBindings, err := e.normalizeSourceItems(cmdArgs)
@@ -167,7 +167,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(cmdArgs []string, commG
 		return e.generateUnknownMessage(unknown), nil
 	}
 
-	err = e.cfgManager.PersistSourceBindings(context.Background(), commGroupName, platform, conversation.Alias, sourceBindings)
+	err = e.cfgManager.PersistSourceBindings(ctx, commGroupName, platform, conversation.Alias, sourceBindings)
 	if err != nil {
 		return empty, fmt.Errorf("while persisting source bindings configuration: %w", err)
 	}

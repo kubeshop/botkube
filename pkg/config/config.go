@@ -702,7 +702,7 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 
 // FromProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
+func FromProvider(ctx context.Context, gql *config.GqlClient) (config.YAMLFiles, error) {
 	var provider config.Provider
 	if os.Getenv("CONFIG_PROVIDER_IDENTIFIER") != "" {
 		provider = config.NewGqlProvider(*gql)
@@ -711,7 +711,7 @@ func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
 	} else {
 		provider = config.NewFileSystemProvider(configPathsFlag)
 	}
-	return provider.Configs(context.Background())
+	return provider.Configs(ctx)
 }
 
 // RegisterFlags registers config related flags.

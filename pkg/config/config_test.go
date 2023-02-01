@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -92,7 +93,7 @@ func TestFromProvider(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		gotConfigs, err := config.FromProvider(nil)
+		gotConfigs, err := config.FromProvider(context.Background(), nil)
 		assert.NoError(t, err)
 
 		// then
@@ -109,7 +110,7 @@ func TestFromProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// when
-		gotConfigs, err := config.FromProvider(nil)
+		gotConfigs, err := config.FromProvider(context.Background(), nil)
 		assert.NoError(t, err)
 
 		// then
@@ -129,7 +130,7 @@ func TestFromProvider(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		gotConfigs, err := config.FromProvider(nil)
+		gotConfigs, err := config.FromProvider(context.Background(), nil)
 		assert.NoError(t, err)
 
 		// then

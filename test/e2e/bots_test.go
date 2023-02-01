@@ -887,7 +887,7 @@ func runBotTest(t *testing.T,
 			kc    kubectl                    Kubectl alias
 			kgda  kubectl get deployments -A Get Deployments
 			kgp   kubectl get pods           Get Pods
-			p     ping                       `))
+			p     ping`))
 		contextMsg := "Only showing aliases for executors enabled for this channel."
 		expectedMessage := fmt.Sprintf("%s\n%s\n%s", cmdHeader(command), expectedBody, contextMsg)
 

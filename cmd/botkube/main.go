@@ -67,10 +67,15 @@ func main() {
 
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
 func run() error {
+	// Set up context
+	ctx := signals.SetupSignalHandler()
+	ctx, cancelCtxFn := context.WithCancel(ctx)
+	defer cancelCtxFn()
+
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
 	var gqlClient intconfig.GqlClient = intconfig.NewGqlClient(intconfig.WithAPIURL(os.Getenv("CONFIG_PROVIDER_ENDPOINT")))
-	configs, err := config.FromProvider(&gqlClient)
+	configs, err := config.FromProvider(ctx, &gqlClient)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
 	}
@@ -102,11 +107,6 @@ func run() error {
 	defer analytics.ReportPanicIfOccurs(logger, reporter)
 
 	reportFatalError := reportFatalErrFn(logger, reporter)
-
-	// Set up context
-	ctx := signals.SetupSignalHandler()
-	ctx, cancelCtxFn := context.WithCancel(ctx)
-	defer cancelCtxFn()
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
