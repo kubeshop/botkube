@@ -455,6 +455,14 @@ executors:
         helmConfigDir: "/tmp/helm/"
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
+      context:
+        defaultNamespace: "botkube"
+        rbac:
+          group:
+            type: Static
+            prefix: ""
+            static:
+              value: [ "botkube-plugins-read-only" ]
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.

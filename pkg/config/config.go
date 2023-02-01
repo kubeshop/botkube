@@ -220,6 +220,10 @@ type Sources struct {
 	Plugins     Plugins          `koanf:",remain"`
 }
 
+func (s Sources) GetPlugins() Plugins {
+	return s.Plugins
+}
+
 // KubernetesSource contains configuration for Kubernetes sources.
 type KubernetesSource struct {
 	Recommendations Recommendations   `yaml:"recommendations"`
@@ -303,6 +307,11 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
+// providesPlugins defines behavior for providing Plugins
+type providesPlugins interface {
+	GetPlugins() Plugins
+}
+
 // Plugins contains plugins configuration parameters defined in groups.
 type Plugins map[string]Plugin
 
@@ -310,7 +319,38 @@ type Plugins map[string]Plugin
 type Plugin struct {
 	Enabled bool
 	Config  any
+	Context PluginContext
 }
+
+type PluginContext struct {
+	DefaultNamespace string
+	RBAC             PolicyRule
+}
+
+type PolicyRule struct {
+	User  PolicySubject
+	Group PolicySubject
+}
+
+type PolicySubject struct {
+	Type   PolicySubjectType
+	Static StaticSubject
+	Prefix string
+}
+
+type StaticSubject struct {
+	Value []string
+}
+
+type PolicySubjectType string
+
+const (
+	EmptyPolicySubjectType       PolicySubjectType = ""
+	StaticPolicySubjectType      PolicySubjectType = "Static"
+	ChannelNamePolicySubjectType PolicySubjectType = "ChannelName"
+	// UserGroupNamePolicySubjectType PolicySubjectType = "UserGroupName"
+	// EmailPolicySubjectType         PolicySubjectType = "Email"
+)
 
 // Executors contains executors configuration parameters.
 type Executors struct {
@@ -326,6 +366,10 @@ func (e Executors) CollectCommandPrefixes() []string {
 	}
 
 	return prefixes
+}
+
+func (e Executors) GetPlugins() Plugins {
+	return e.Plugins
 }
 
 // Aliases contains aliases configuration.

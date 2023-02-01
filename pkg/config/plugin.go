@@ -57,11 +57,11 @@ type validatePluginEntry struct {
 	Version string
 }
 
-// validateBindPlugins validates that only unique plugins are on the bind list.
+// validateBoundPlugins validates that only unique plugins are on the bind list.
 //
 // NOTE: We use a strict matching. We don't support `botkube/kubectl` and botkube/kubectl@v1.1.0 even thought it may resolve to the same version
 // because if version is not specified then we use the latest one found in a given repository which may be v1.1.0.
-func validateBindPlugins(sl validator.StructLevel, enabledPluginsViaBindings []string) {
+func validateBoundPlugins(sl validator.StructLevel, enabledPluginsViaBindings []string) {
 	indexedByName := map[string]validatePluginEntry{}
 
 	for _, key := range enabledPluginsViaBindings {

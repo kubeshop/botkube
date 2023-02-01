@@ -291,6 +291,33 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				readTestdataFile(t, "invalid-alias-command.yaml"),
 			},
 		},
+		{
+			name: "default namespaces are different",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.helm-1' Default namespace of helm-1 and helm-3 are different. But have to be identical.`),
+			configs: [][]byte{
+				readTestdataFile(t, "executors-default-ns.yaml"),
+			},
+		},
+		{
+			name: "RBAC helm executors are different",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.helm-1' RBAC of helm-1 and helm-2 are different. But have to be identical.`),
+			configs: [][]byte{
+				readTestdataFile(t, "executors-rbac.yaml"),
+			},
+		},
+		{
+			name: "RBAC cm sources are different",
+			expErrMsg: heredoc.Doc(`
+				found critical validation errors: 1 error occurred:
+					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.cm-1' RBAC of cm-1 and cm-2 are different. But have to be identical.`),
+			configs: [][]byte{
+				readTestdataFile(t, "sources-rbac.yaml"),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
