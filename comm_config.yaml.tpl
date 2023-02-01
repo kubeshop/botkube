@@ -3,24 +3,6 @@
 # Format: communications.{alias}
 communications:
   'default-group':
-    # Settings for Slack
-    slack:
-      enabled: false
-      channels:
-        'alias':
-          name: 'SLACK_CHANNEL'
-          notification:
-            # -- If true, the notifications are not sent to the channel. They can be enabled with `@Botkube` command anytime.
-            disabled: false
-          bindings:
-            executors:
-              - 'kubectl-read-only'
-            sources:
-              - 'k8s-events'
-      token: "" # SLACK_API_TOKEN
-      notification:
-        type: short                             # Change notification type short/long you want to receive. Type is optional and default is short.
-
     # Settings for Slack with Socket Mode
     socketSlack:
       enabled: false
@@ -117,3 +99,23 @@ communications:
         # -- Notification sources configuration for the webhook.
         sources:
           - k8s-events
+
+    # Settings for deprecated Slack integration.
+    # DEPRECATED: Legacy Slack integration has been deprecated and removed from the Slack App Directory.
+    # Use `socketSlack` instead. Read more here: https://docs.botkube.io/installation/slack/
+    # This object will be removed as a part of https://github.com/kubeshop/botkube/issues/865.
+    slack:
+      enabled: false
+      channels:
+        'alias':
+          name: 'SLACK_CHANNEL'
+          notification:
+            disabled: false
+          bindings:
+            executors:
+              - 'kubectl-read-only'
+            sources:
+              - 'k8s-events'
+      token: "" # SLACK_API_TOKEN
+      notification:
+        type: short
