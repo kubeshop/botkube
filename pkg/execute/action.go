@@ -46,11 +46,11 @@ func NewActionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 }
 
 // Commands returns slice of commands the executor supports
-func (e *ActionExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandList:    e.List,
-		CommandEnable:  e.Enable,
-		CommandDisable: e.Disable,
+func (e *ActionExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ListVerb:    e.List,
+		command.EnableVerb:  e.Enable,
+		command.DisableVerb: e.Disable,
 	}
 }
 

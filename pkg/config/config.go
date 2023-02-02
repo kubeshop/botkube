@@ -305,6 +305,25 @@ type Executors struct {
 	Plugins Plugins `koanf:",remain"`
 }
 
+// CollectEnabledCommandPrefixes returns list of command prefixes for enabled executors.
+func (e Executors) CollectEnabledCommandPrefixes() []string {
+	var prefixes []string
+
+	// TODO: Remove this once we deprecate kubectl executor
+	if e.Kubectl.Enabled {
+		prefixes = append(prefixes, kubectlCommandName)
+	}
+
+	for pluginName, plugin := range e.Plugins {
+		if !plugin.Enabled {
+			continue
+		}
+		prefixes = append(prefixes, ExecutorNameForKey(pluginName))
+	}
+
+	return prefixes
+}
+
 // Aliases contains aliases configuration.
 type Aliases map[string]Alias
 
@@ -681,7 +700,7 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 
 // FromProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
+func FromProvider(ctx context.Context, gql *config.GqlClient) (config.YAMLFiles, error) {
 	var provider config.Provider
 	if os.Getenv("CONFIG_PROVIDER_IDENTIFIER") != "" {
 		provider = config.NewGqlProvider(*gql)
@@ -690,7 +709,7 @@ func FromProvider(gql *config.GqlClient) (config.YAMLFiles, error) {
 	} else {
 		provider = config.NewFileSystemProvider(configPathsFlag)
 	}
-	return provider.Configs(context.Background())
+	return provider.Configs(ctx)
 }
 
 // RegisterFlags registers config related flags.

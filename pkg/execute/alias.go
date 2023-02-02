@@ -24,7 +24,7 @@ var featureName = FeatureName{
 	Aliases: []string{"aliases", "als"},
 }
 
-// AliasExecutor
+// AliasExecutor executes all commands that are related to aliases.
 type AliasExecutor struct {
 	log               logrus.FieldLogger
 	analyticsReporter AnalyticsReporter
@@ -37,9 +37,9 @@ func NewAliasExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporte
 }
 
 // Commands returns slice of commands the executor supports.
-func (e *AliasExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandList: e.List,
+func (e *AliasExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ListVerb: e.List,
 	}
 }
 
@@ -86,6 +86,14 @@ func (e *AliasExecutor) getTabularOutput(bindings []string) string {
 		}
 
 		aliasesForPrefix := alias.ListForExecutorPrefix(exName, aliasesCfg)
+		for _, aliasName := range aliasesForPrefix {
+			aliasesToDisplay[aliasName] = aliasesCfg[aliasName]
+		}
+	}
+
+	// check also builtin commands
+	for _, verb := range command.AllVerbs() {
+		aliasesForPrefix := alias.ListForBuiltinVerbPrefix(verb, aliasesCfg)
 		for _, aliasName := range aliasesForPrefix {
 			aliasesToDisplay[aliasName] = aliasesCfg[aliasName]
 		}

@@ -69,11 +69,11 @@ func (e *NotifierExecutor) FeatureName() FeatureName {
 }
 
 // Commands returns slice of commands the executor supports
-func (e *NotifierExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandEnable:  e.Enable,
-		CommandDisable: e.Disable,
-		CommandStatus:  e.Status,
+func (e *NotifierExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.EnableVerb:  e.Enable,
+		command.DisableVerb: e.Disable,
+		command.StatusVerb:  e.Status,
 	}
 }
 
@@ -138,7 +138,7 @@ func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (i
 	enabledStr := notifierStatusStrings[enabled]
 	msg := fmt.Sprintf(notifierStatusMsgFmt, cmdCtx.ClusterName, enabledStr)
 	if cmdRes == "" {
-		helpMsg := cmdCtx.Mapping.HelpMessageForVerb(CommandVerb(cmdVerb), cmdCtx.BotName)
+		helpMsg := cmdCtx.Mapping.HelpMessageForVerb(command.Verb(cmdVerb), cmdCtx.BotName)
 		msg = fmt.Sprintf("%s\n\n%s\n", msg, helpMsg)
 	}
 	return respond(msg, cmdCtx), nil

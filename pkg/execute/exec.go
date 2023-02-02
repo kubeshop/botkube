@@ -42,9 +42,9 @@ func NewExecExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter
 }
 
 // Commands returns slice of commands the executor supports
-func (e *ExecExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandList: e.List,
+func (e *ExecExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ListVerb: e.List,
 	}
 }
 

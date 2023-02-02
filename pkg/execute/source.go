@@ -41,9 +41,9 @@ func NewSourceExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReport
 }
 
 // Commands returns slice of commands the executor supports
-func (e *SourceExecutor) Commands() map[CommandVerb]CommandFn {
-	return map[CommandVerb]CommandFn{
-		CommandList: e.List,
+func (e *SourceExecutor) Commands() map[command.Verb]CommandFn {
+	return map[command.Verb]CommandFn{
+		command.ListVerb: e.List,
 	}
 }
 

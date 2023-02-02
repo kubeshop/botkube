@@ -7,6 +7,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
+	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
 func TestListForExecutor(t *testing.T) {
@@ -79,7 +80,7 @@ func TestListForExecutorPrefix(t *testing.T) {
 			Expected: nil,
 		},
 		{
-			Name:     "No alias for builtin",
+			Name:     "No alias for builtin executor",
 			Input:    "echo",
 			Expected: nil,
 		},
@@ -104,6 +105,56 @@ func TestListForExecutorPrefix(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			// when
 			actual := alias.ListForExecutorPrefix(tc.Input, aliases)
+
+			// then
+			assert.Equal(t, tc.Expected, actual)
+		})
+	}
+}
+
+func TestListForBuiltinVerbPrefix(t *testing.T) {
+	// given
+	aliases := config.Aliases{
+		"e": {
+			Command: "edit",
+		},
+		"esb": {
+			Command: "edit sourcebindings foo,bar",
+		},
+		"p": {
+			Command: "ping",
+		},
+		"pp": {
+			Command: "ping --cluster-name=dev",
+		},
+	}
+
+	testCases := []struct {
+		Name     string
+		Input    command.Verb
+		Expected []string
+	}{
+		{
+			Name:     "Ping",
+			Input:    "ping",
+			Expected: []string{"p", "pp"},
+		},
+		{
+			Name:     "edit",
+			Input:    "edit",
+			Expected: []string{"e", "esb"},
+		},
+		{
+			Name:     "No alias for builtin",
+			Input:    "make",
+			Expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// when
+			actual := alias.ListForBuiltinVerbPrefix(tc.Input, aliases)
 
 			// then
 			assert.Equal(t, tc.Expected, actual)
