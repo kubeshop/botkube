@@ -476,7 +476,9 @@ type Communications struct {
 	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
 }
 
-// Slack configuration to authentication and send notifications
+// Slack holds Slack integration config.
+// Deprecated: Legacy Slack integration has been deprecated and removed from the Slack App Directory.
+// Use SocketSlack integration instead.
 type Slack struct {
 	Enabled      bool                                   `yaml:"enabled"`
 	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
