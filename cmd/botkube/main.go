@@ -60,18 +60,18 @@ const (
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
-func run() error {
 	// Set up context
 	ctx := signals.SetupSignalHandler()
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
 
+	if err := run(ctx); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
+func run(ctx context.Context) error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
 	var gqlClient intconfig.GqlClient = intconfig.NewGqlClient(intconfig.WithAPIURL(os.Getenv("CONFIG_PROVIDER_ENDPOINT")))
