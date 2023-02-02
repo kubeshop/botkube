@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/kubeshop/botkube/internal/loggerx"
+	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/appengine/log"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 	"strings"
+	"time"
 )
 
 const (
@@ -26,18 +27,25 @@ const (
 	description = "Kubernetes plugin consumes Kubernetes events."
 )
 
+type RecommendationFactory interface {
+	NewForSources(cfg config2.Config, mapKeyOrder []string) (recommendation.AggregatedRunner, config.Recommendations)
+}
+
 // Source Kubernetes source plugin data structure
 type Source struct {
 	pluginVersion string
-	config        Config
+	config        config2.Config
 	logger        logrus.FieldLogger
 	ch            chan []byte
+	startTime     time.Time
+	recommFactory RecommendationFactory
 }
 
 // NewSource returns a new instance of Source.
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
+		startTime:     time.Now(),
 	}
 }
 
@@ -45,7 +53,7 @@ func NewSource(version string) *Source {
 func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	s.ch = make(chan []byte)
 	out := source.StreamOutput{Output: s.ch}
-	cfg, err := MergeConfigs(input.Configs)
+	cfg, err := config2.MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
@@ -54,6 +62,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Level: cfg.Log.Level,
 	})
 	go s.consumeEvents(ctx)
+	time.Sleep(time.Minute * 15)
 	return out, nil
 }
 
@@ -85,14 +94,16 @@ func (s *Source) consumeEvents(ctx context.Context) {
 		}
 		return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 	})
-	exitOnError(err, s.logger.WithFields(logrus.Fields{
-		"events": []config.EventType{
-			config.CreateEvent,
-			config.UpdateEvent,
-			config.DeleteEvent,
-		},
-		"error": err.Error(),
-	}))
+	if err != nil {
+		exitOnError(err, s.logger.WithFields(logrus.Fields{
+			"events": []config.EventType{
+				config.CreateEvent,
+				config.UpdateEvent,
+				config.DeleteEvent,
+			},
+			"error": err.Error(),
+		}))
+	}
 
 	err = sourcesRouter.MapWithEventsInformer(
 		config.ErrorEvent,
@@ -105,11 +116,13 @@ func (s *Source) consumeEvents(ctx context.Context) {
 			}
 			return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 		})
-	exitOnError(err, s.logger.WithFields(logrus.Fields{
-		"srcEvent": config.ErrorEvent,
-		"dstEvent": config.WarningEvent,
-		"error":    err.Error(),
-	}))
+	if err != nil {
+		exitOnError(err, s.logger.WithFields(logrus.Fields{
+			"srcEvent": config.ErrorEvent,
+			"dstEvent": config.WarningEvent,
+			"error":    err.Error(),
+		}))
+	}
 
 	eventTypes := []config.EventType{
 		config.CreateEvent,
@@ -135,27 +148,21 @@ func (s *Source) consumeEvents(ctx context.Context) {
 }
 
 func (s *Source) handleEvent(ctx context.Context, event event.Event, sources, updateDiffs []string) {
+	s.ch <- []byte("kubernetes event")
 	s.logger.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
 	s.enrichEventWithAdditionalMetadata(&event)
 
 	// Skip older events
-	if !event.TimeStamp.IsZero() && event.TimeStamp.Before(c.startTime) {
+	if !event.TimeStamp.IsZero() && event.TimeStamp.Before(s.startTime) {
 		s.logger.Debug("Skipping older events")
 		return
 	}
-
-	actions, err := s.actionProvider.RenderedActionsForEvent(event, sources)
-	if err != nil {
-		s.logger.Errorf("while getting rendered actions for event: %s", err.Error())
-		// continue processing event
-	}
-	event.Actions = actions
 
 	// Check for significant Update Events in objects
 	if event.Type == config.UpdateEvent {
 		switch {
 		case len(sources) == 0 && len(updateDiffs) == 0:
-			// skipping least significant update
+			// skipping the least significant update
 			s.logger.Debug("skipping least significant Update event")
 			event.Skip = true
 		case len(updateDiffs) > 0:
@@ -165,32 +172,25 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, sources, up
 		}
 	}
 
-	// Filter events
-	event = s.filterEngine.Run(ctx, event)
-	if event.Skip {
-		s.logger.Debugf("Skipping event: %#v", event)
-		return
-	}
-
 	if len(event.Kind) <= 0 {
-		log.Warn("sendEvent received event with Kind nil. Hence skipping.")
+		s.logger.Warn("sendEvent received event with Kind nil. Hence skipping.")
 		return
 	}
 
-	recRunner, recCfg := c.recommFactory.NewForSources(c.conf.Sources, sources)
-	err = recRunner.Do(ctx, &event)
+	recRunner, recCfg := s.recommFactory.NewForSources(s.config, sources)
+	err := recRunner.Do(ctx, &event)
 	if err != nil {
-		log.Errorf("while running recommendations: %w", err)
+		s.logger.Errorf("while running recommendations: %w", err)
 	}
 
-	if recommendation.ShouldIgnoreEvent(recCfg, c.conf.Sources, sources, event) {
-		log.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
+	if recommendation.ShouldIgnoreEvent(recCfg, s.config, sources, event) {
+		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
 		return
 	}
 }
 
 func (s *Source) enrichEventWithAdditionalMetadata(event *event.Event) {
-	event.Cluster = s.conf.Settings.ClusterName
+	event.Cluster = s.config.ClusterName
 }
 
 func (s *Source) parseResourceArg(arg string, mapper meta.RESTMapper) (schema.GroupVersionResource, error) {
@@ -221,44 +221,169 @@ func (s *Source) strToGVR(arg string) (schema.GroupVersionResource, error) {
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-04/schema#",
-			"title": "Prometheus",
-			"description": "%s",
-			"type": "object",
-			"properties": {
-				"url": {
-					"description": "Prometheus endpoint without api version and resource",
-					"type": "string",
-					"default": "http://localhost:9090",
-				},
-				"ignoreOldAlerts": {
-					"description": "If set as true, Prometheus source plugin will not send alerts that is created before plugin start time",
-					"type": "boolean",
-					"enum": ["true", "false"],
-					"default": true
-				},
-				"alertStates": {
-					"description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
-					"type": "array",
-					"default": ["firing", "pending", "inactive"]
-					"enum: ["firing", "pending", "inactive"]
-				},
-				"log": {
-					"description": "Logging configuration",
-					"type": "object",
-					"properties": {
-						"level": {
-							"description": "Log level",
-							"type": "string",
-							"default": "info",
-							"enum: ["info", "debug", "error"]
-						}
-					}
-				},
-			},
-			"required": []
-		}`, description),
+		Value: heredoc.Docf(`
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$ref": "#/definitions/Kubernetes",
+  "title": "Kubernetes",
+  "description": "%s",
+  "definitions": {
+    "Kubernetes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespaces": {
+          "description": "Describes namespaces for every Kubernetes resources you want to watch or exclude. These namespaces are applied to every resource specified in the resources list. However, every specified resource can override this by using its own namespaces object.",
+          "$ref": "#/definitions/KubernetesNamespaces"
+        },
+        "event": {
+          "description": "These constraints are applied for every resource specified in the 'resources' list, unless they are overridden by the resource's own 'events' object.",
+          "$ref": "#/definitions/Event"
+        },
+        "annotations": {
+          "description": "Filters Kubernetes resources to watch by annotations.",
+          "$ref": "#/definitions/Annotations"
+        },
+        "labels": {
+          "description": "Filters Kubernetes resources to watch by labels.",
+          "$ref": "#/definitions/Annotations"
+        },
+        "resources": {
+          "description": "Resources are identified by its type in '{group}/{version}/{kind (plural)}' format. Examples: 'apps/v1/deployments', 'v1/pods'. Each resource can override the namespaces and event configuration by using dedicated 'event' and 'namespaces' field. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex. @default -- See the 'values.yaml' file for full object.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Resource"
+          }
+        }
+      },
+      "title": "Kubernetes"
+    },
+    "Annotations": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Annotations"
+    },
+    "Event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "description": "Lists all event types to be watched.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Type"
+          }
+        },
+        "reason": {
+          "description": "Optional regex to filter events by event reason.",
+          "type": "string"
+        },
+        "message": {
+          "description": "Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
+          "type": "string"
+        }
+      },
+      "title": "Event"
+    },
+    "KubernetesNamespaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "description": "Include contains a list of allowed Namespaces. It can also contain a regex expressions: '- \".*\"' - to specify all Namespaces.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "KubernetesNamespaces"
+    },
+    "Resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "namespaces": {
+          "description": "Overrides kubernetes.namespaces",
+          "$ref": "#/definitions/ResourceNamespaces"
+        },
+        "annotations": {
+          "description": "Overrides kubernetes.annotations",
+          "$ref": "#/definitions/Annotations"
+        },
+        "labels": {
+          "description": "Overrides kubernetes.labels",
+          "$ref": "#/definitions/Annotations"
+        },
+        "name": {
+          "description": "Optional resource name regex.",
+          "type": "string"
+        },
+        "event": {
+          "description": "Overrides kubernetes.event",
+          "$ref": "#/definitions/Event"
+        },
+        "updateSetting": {
+          "$ref": "#/definitions/UpdateSetting"
+        }
+      },
+      "title": "Resource"
+    },
+    "ResourceNamespaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "exclude",
+        "include"
+      ],
+      "title": "ResourceNamespaces"
+    },
+    "UpdateSetting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "includeDiff": {
+          "type": "boolean"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "UpdateSetting"
+    },
+    "Type": {
+      "type": "string",
+      "enum": [
+        "create",
+        "delete",
+        "error",
+        "update"
+      ],
+      "title": "Type"
+    }
+  }
+}
+`, description),
 	}
 }
 func exitOnError(err error, log logrus.FieldLogger) {
