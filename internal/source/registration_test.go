@@ -15,7 +15,7 @@ import (
 
 func TestSourcesForEvent(t *testing.T) {
 	// given
-	allNsCfg := config.Namespaces{Include: []string{".*"}}
+	allNsCfg := config.RegexConstraints{Include: []string{".*"}}
 	testCases := []struct {
 		Name               string
 		Routes             []route
@@ -182,11 +182,11 @@ func TestSourcesForEvent(t *testing.T) {
 			Routes: []route{
 				{
 					source:     "success",
-					namespaces: config.Namespaces{Include: []string{"^botkube-.*"}},
+					namespaces: config.RegexConstraints{Include: []string{"^botkube-.*"}},
 				},
 				{
 					source:     "fail",
-					namespaces: config.Namespaces{Include: []string{"^kube-.*"}},
+					namespaces: config.RegexConstraints{Include: []string{"^kube-.*"}},
 				},
 			},
 			Event: event.Event{

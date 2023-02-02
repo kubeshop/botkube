@@ -9,7 +9,7 @@ type EnabledKubectl struct {
 	AllowedKubectlVerb     map[string]struct{}
 	AllowedKubectlResource map[string]struct{}
 
-	AllowedNamespacesPerResource map[string]config.Namespaces
+	AllowedNamespacesPerResource map[string]config.RegexConstraints
 
 	DefaultNamespace string
 	RestrictAccess   bool
@@ -78,7 +78,7 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder
 
 		allowedResources     = map[string]struct{}{}
 		allowedVerbs         = map[string]struct{}{}
-		allowedNSPerResource = map[string]config.Namespaces{}
+		allowedNSPerResource = map[string]config.RegexConstraints{}
 	)
 	for _, name := range mapKeyOrder {
 		item, found := collectedKubectls[name]

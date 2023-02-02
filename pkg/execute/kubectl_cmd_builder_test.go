@@ -493,9 +493,9 @@ func (r *fakeKcMerger) MergeAllEnabled(_ []string) kubectl.EnabledKubectl {
 	for _, name := range r.allowedResources {
 		resources[name] = struct{}{}
 	}
-	resourceNamespaces := map[string]config.Namespaces{}
+	resourceNamespaces := map[string]config.RegexConstraints{}
 	for _, name := range r.allowedResources {
-		resourceNamespaces[name] = config.Namespaces{
+		resourceNamespaces[name] = config.RegexConstraints{
 			Include: []string{"default"},
 		}
 	}
@@ -508,7 +508,7 @@ func (r *fakeKcMerger) MergeAllEnabled(_ []string) kubectl.EnabledKubectl {
 
 type fakeNamespaceLister struct{}
 
-func (f *fakeNamespaceLister) List(_ context.Context, opts metav1.ListOptions) (*corev1.NamespaceList, error) {
+func (f *fakeNamespaceLister) List(_ context.Context, _ metav1.ListOptions) (*corev1.NamespaceList, error) {
 	return &corev1.NamespaceList{
 		Items: []corev1.Namespace{
 			{

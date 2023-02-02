@@ -440,37 +440,37 @@ func readTestdataFile(t *testing.T, name string) []byte {
 
 func TestIsNamespaceAllowed(t *testing.T) {
 	tests := map[string]struct {
-		nsConfig  config.Namespaces
+		nsConfig  config.RegexConstraints
 		givenNs   string
 		isAllowed bool
 	}{
 		"should watch all except ignored ones": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
 			givenNs:   "demo",
 			isAllowed: false,
 		},
 		"should watch all when ignore has empty items only": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{""}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{""}},
 			givenNs:   "demo",
 			isAllowed: true,
 		},
 		"should watch all when ignore is a nil slice": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: nil},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: nil},
 			givenNs:   "demo",
 			isAllowed: true,
 		},
 		"should ignore matched by regex": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"my-.*"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"my-.*"}},
 			givenNs:   "my-ns",
 			isAllowed: false,
 		},
 		"should ignore matched by regexp even if exact name is mentioned too": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo", "ignored-.*-ns"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "ignored-.*-ns"}},
 			givenNs:   "ignored-42-ns",
 			isAllowed: false,
 		},
 		"should watch all if regexp is not matching given namespace": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
 			givenNs:   "demo",
 			isAllowed: true,
 		},

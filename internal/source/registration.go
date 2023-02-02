@@ -213,6 +213,11 @@ func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) 
 		return false, fmt.Errorf("while compiling regex: %w", err)
 	}
 
+	if len(str) == 0 {
+		// no messages, so let's check if regex matches empty string
+		str = append(str, "")
+	}
+
 	for _, s := range str {
 		if regex.MatchString(s) {
 			return true, nil

@@ -100,7 +100,7 @@ func registerCustomTranslations(validate *validator.Validate, trans ut.Translato
 func registerNamespaceValidator(validate *validator.Validate, trans ut.Translator) error {
 	// NOTE: only have to register a non-pointer type for 'Namespaces', validator
 	// internally dereferences it.
-	validate.RegisterStructValidation(namespacesStructValidator, Namespaces{})
+	validate.RegisterStructValidation(namespacesStructValidator, RegexConstraints{})
 
 	return registerTranslation(validate, trans, map[string]string{
 		nsIncludeTag: "{0} matches both all and exact namespaces",
@@ -173,7 +173,7 @@ func socketSlackStructTokenValidator(sl validator.StructLevel) {
 }
 
 func namespacesStructValidator(sl validator.StructLevel) {
-	ns, ok := sl.Current().Interface().(Namespaces)
+	ns, ok := sl.Current().Interface().(RegexConstraints)
 	if !ok {
 		return
 	}

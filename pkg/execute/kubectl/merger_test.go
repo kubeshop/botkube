@@ -28,7 +28,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{
 					"deployments": {
 						Include: []string{
 							"team-a",
@@ -58,7 +58,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: config.AllNamespaceIndicator,
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{},
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{},
 				AllowedKubectlVerb: map[string]struct{}{
 					"logs":         {},
 					"top":          {},
@@ -77,7 +77,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{
 					"deployments": {
 						Include: []string{
 							"team-a",
@@ -102,7 +102,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{
 					"deployments": {
 						Include: []string{
 							"team-a",
@@ -129,7 +129,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-a",
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{
 					"deployments": {
 						Include: []string{
 							"team-a",
@@ -156,7 +156,7 @@ func TestKubectlMerger(t *testing.T) {
 			},
 			givenNamespace: "team-b",
 			expectKubectlConfig: kubectl.EnabledKubectl{
-				AllowedNamespacesPerResource: map[string]config.Namespaces{
+				AllowedNamespacesPerResource: map[string]config.RegexConstraints{
 					"deployments": {
 						Include: []string{
 							"team-b",

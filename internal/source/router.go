@@ -24,7 +24,7 @@ type route struct {
 	resourceName  string
 	labels        map[string]string
 	annotations   map[string]string
-	namespaces    config.Namespaces
+	namespaces    config.RegexConstraints
 	updateSetting config.UpdateSetting
 	event         config.KubernetesEvent
 }
@@ -331,7 +331,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 
 	recommRoute := route{
 		source: srcGroupName,
-		namespaces: config.Namespaces{
+		namespaces: config.RegexConstraints{
 			Include: []string{config.AllNamespaceIndicator},
 		},
 	}
@@ -413,7 +413,7 @@ func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.Ku
 
 // sourceOrResourceNamespaces returns the kubernetes source namespaces
 // unless the resource namespaces are configured.
-func sourceOrResourceNamespaces(sourceNs, resourceNs config.Namespaces) config.Namespaces {
+func sourceOrResourceNamespaces(sourceNs, resourceNs config.RegexConstraints) config.RegexConstraints {
 	if resourceNs.IsConfigured() {
 		return resourceNs
 	}

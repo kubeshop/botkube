@@ -218,7 +218,7 @@ type KubernetesSource struct {
 	Recommendations Recommendations   `yaml:"recommendations"`
 	Event           KubernetesEvent   `yaml:"event"`
 	Resources       []Resource        `yaml:"resources" validate:"dive"`
-	Namespaces      Namespaces        `yaml:"namespaces"`
+	Namespaces      RegexConstraints  `yaml:"namespaces"`
 	Annotations     map[string]string `yaml:"annotations"`
 	Labels          map[string]string `yaml:"labels"`
 }
@@ -362,7 +362,7 @@ type Analytics struct {
 type Resource struct {
 	Type          string            `yaml:"type"`
 	Name          string            `yaml:"name"`
-	Namespaces    Namespaces        `yaml:"namespaces"`
+	Namespaces    RegexConstraints  `yaml:"namespaces"`
 	Annotations   map[string]string `yaml:"annotations"`
 	Labels        map[string]string `yaml:"labels"`
 	Event         KubernetesEvent   `yaml:"event"`
@@ -398,43 +398,44 @@ type UpdateSetting struct {
 	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
-// Namespaces provides an option to include and exclude given Namespaces.
-type Namespaces struct {
-	// Include contains a list of allowed Namespaces.
+// RegexConstraints contains a list of allowed and excluded values.
+type RegexConstraints struct {
+	// Include contains a list of allowed values.
 	// It can also contain a regex expressions:
-	//  - ".*" - to specify all Namespaces.
+	//  - ".*" - to specify all values.
 	Include []string `yaml:"include"`
 
-	// Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+	// Exclude contains a list of values to be ignored even if allowed by Include.
 	// It can also contain a regex expressions:
-	//  - "test-.*" - to specif all Namespaces with `test-` prefix.
+	//  - "test-.*" - to specify all values with `test-` prefix.
 	Exclude []string `yaml:"exclude,omitempty"`
 }
 
-// IsConfigured checks whether the Namespace has any Include/Exclude configuration.
-func (n *Namespaces) IsConfigured() bool {
-	return len(n.Include) > 0 || len(n.Exclude) > 0
+// IsConfigured checks whether the RegexConstraints has any Include/Exclude configuration.
+func (r *RegexConstraints) IsConfigured() bool {
+	return len(r.Include) > 0 || len(r.Exclude) > 0
 }
 
-// IsAllowed checks if a given Namespace is allowed based on the config.
-func (n *Namespaces) IsAllowed(givenNs string) bool {
-	if n == nil || givenNs == "" {
+// IsAllowed checks if a given value is allowed based on the config.
+// Firstly, it checks if the value is excluded. If not, then it checks if the value is included.
+func (r *RegexConstraints) IsAllowed(value string) bool {
+	if r == nil || value == "" {
 		return false
 	}
 
 	// 1. Check if excluded
-	if len(n.Exclude) > 0 {
-		for _, excludeNamespace := range n.Exclude {
+	if len(r.Exclude) > 0 {
+		for _, excludeNamespace := range r.Exclude {
 			if strings.TrimSpace(excludeNamespace) == "" {
 				continue
 			}
 			// exact match
-			if excludeNamespace == givenNs {
+			if excludeNamespace == value {
 				return false
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(excludeNamespace, givenNs)
+			matched, err := regexp.MatchString(excludeNamespace, value)
 			if err == nil && matched {
 				return false
 			}
@@ -442,19 +443,19 @@ func (n *Namespaces) IsAllowed(givenNs string) bool {
 	}
 
 	// 2. Check if included, if matched, return true
-	if len(n.Include) > 0 {
-		for _, includeNamespace := range n.Include {
+	if len(r.Include) > 0 {
+		for _, includeNamespace := range r.Include {
 			if strings.TrimSpace(includeNamespace) == "" {
 				continue
 			}
 
 			// exact match
-			if includeNamespace == givenNs {
+			if includeNamespace == value {
 				return true
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(includeNamespace, givenNs)
+			matched, err := regexp.MatchString(includeNamespace, value)
 			if err == nil && matched {
 				return true
 			}
@@ -576,11 +577,11 @@ type Webhook struct {
 
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
-	Namespaces       Namespaces `yaml:"namespaces,omitempty"`
-	Enabled          bool       `yaml:"enabled"`
-	Commands         Commands   `yaml:"commands,omitempty"`
-	DefaultNamespace string     `yaml:"defaultNamespace,omitempty"`
-	RestrictAccess   *bool      `yaml:"restrictAccess,omitempty"`
+	Namespaces       RegexConstraints `yaml:"namespaces,omitempty"`
+	Enabled          bool             `yaml:"enabled"`
+	Commands         Commands         `yaml:"commands,omitempty"`
+	DefaultNamespace string           `yaml:"defaultNamespace,omitempty"`
+	RestrictAccess   *bool            `yaml:"restrictAccess,omitempty"`
 }
 
 // Commands allowed in bot
