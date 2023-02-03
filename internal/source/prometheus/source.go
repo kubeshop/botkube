@@ -11,6 +11,7 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 const (
@@ -73,7 +74,14 @@ func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []b
 			log.Errorf("failed to get alerts. %v", err)
 		}
 		for _, alert := range alerts {
-			msg := fmt.Sprintf("[%s][%s][%s] %s", PluginName, alert.Labels["alertname"], alert.State, alert.Annotations["description"])
+			msg := heredoc.Docf(`
+				Source: %s
+				Alert Name: %s
+				State: %s
+
+				Description:
+				%s`, formatx.AdaptiveCodeBlock(PluginName), formatx.AdaptiveCodeBlock(string(alert.Labels["alertname"])), formatx.AdaptiveCodeBlock(string(alert.State)), alert.Annotations["description"],
+			)
 			ch <- []byte(msg)
 		}
 		// Fetch alerts periodically with given frequency
