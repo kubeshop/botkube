@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"text/template"
 
 	"github.com/hashicorp/go-plugin"
@@ -54,8 +53,9 @@ type GHExecutor struct{}
 // Metadata returns details about the GitHub plugin.
 func (*GHExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     version,
-		Description: "GH creates an issue on GitHub for a related Kubernetes resource.",
+		Version:      version,
+		Description:  "GH creates an issue on GitHub for a related Kubernetes resource.",
+		Dependencies: depsDownloadLinks,
 	}, nil
 }
 
@@ -101,7 +101,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 }
 
 // Help returns help message
-func (*GHExecutor) Help(ctx context.Context) (interactive.Message, error) {
+func (*GHExecutor) Help(context.Context) (interactive.Message, error) {
 	return interactive.Message{
 		Base: interactive.Base{
 			Body: interactive.Body{
@@ -134,11 +134,6 @@ var depsDownloadLinks = map[string]api.Dependency{
 }
 
 func main() {
-	err := pluginx.DownloadDependencies(depsDownloadLinks)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	executor.Serve(map[string]plugin.Plugin{
 		pluginName: &executor.Plugin{
 			Executor: &GHExecutor{},

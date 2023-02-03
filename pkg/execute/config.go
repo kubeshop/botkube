@@ -50,7 +50,7 @@ func (e *ConfigExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // Show returns Config in yaml format
-func (e *ConfigExecutor) Show(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *ConfigExecutor) Show(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
