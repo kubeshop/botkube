@@ -21,7 +21,7 @@ type eventHandler func(ctx context.Context, event event.Event, sources []string,
 
 type route struct {
 	source        string
-	resourceName  string
+	resourceName  config.RegexConstraints
 	labels        map[string]string
 	annotations   map[string]string
 	namespaces    config.RegexConstraints
@@ -414,7 +414,7 @@ func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.Ku
 // sourceOrResourceNamespaces returns the kubernetes source namespaces
 // unless the resource namespaces are configured.
 func sourceOrResourceNamespaces(sourceNs, resourceNs config.RegexConstraints) config.RegexConstraints {
-	if resourceNs.IsConfigured() {
+	if resourceNs.AreConstraintsDefined() {
 		return resourceNs
 	}
 	return sourceNs

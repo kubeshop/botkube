@@ -20,106 +20,134 @@ sources:
                     noLatestImageTag: false
                     labelsSet: true
             event:
-                reason: .*
-                message: ^Error .*
+                reason:
+                    include:
+                        - .*
+                message:
+                    include:
+                        - ^Error .*
                 types:
                     - create
                     - delete
                     - error
             resources:
                 - type: v1/pods
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/services
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: networking.k8s.io/v1/ingresses
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/nodes
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: NodeNotReady
-                    message: status .*
+                    reason:
+                        include:
+                            - NodeNotReady
+                    message:
+                        include:
+                            - status .*
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/namespaces
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/persistentvolumes
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/persistentvolumeclaims
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: v1/configmaps
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include:
                         - default
@@ -128,73 +156,90 @@ sources:
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/roles
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/rolebindings
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/clusterrolebindings
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: rbac.authorization.k8s.io/v1/clusterroles
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types: []
                   updateSetting:
                     fields: []
                     includeDiff: false
                 - type: apps/v1/daemonsets
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types:
                         - create
                         - update
@@ -206,7 +251,9 @@ sources:
                         - status.numberReady
                     includeDiff: true
                 - type: batch/v1/jobs
-                  name: my-.*
+                  name:
+                    include:
+                        - my-.*
                   namespaces:
                     include: []
                   annotations:
@@ -214,8 +261,10 @@ sources:
                   labels:
                     my-own-label: "true"
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types:
                         - create
                         - update
@@ -227,14 +276,17 @@ sources:
                         - status.conditions[*].type
                     includeDiff: true
                 - type: apps/v1/deployments
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types:
                         - create
                         - update
@@ -246,14 +298,17 @@ sources:
                         - status.availableReplicas
                     includeDiff: true
                 - type: apps/v1/statefulsets
-                  name: ""
+                  name:
+                    include: []
                   namespaces:
                     include: []
                   annotations: {}
                   labels: {}
                   event:
-                    reason: ""
-                    message: ""
+                    reason:
+                        include: []
+                    message:
+                        include: []
                     types:
                         - create
                         - update

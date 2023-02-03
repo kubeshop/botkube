@@ -119,8 +119,10 @@ sources:
           - ".*"
         exclude: [ ]
       event:
-        reason: ".*"
-        message: "^Error .*"
+        reason:
+          include: ".*"
+        message:
+          include: "^Error .*"
         types:
           - create
           - delete
@@ -136,8 +138,12 @@ sources:
         - type: networking.k8s.io/v1/ingresses
         - type: v1/nodes
           event:
-            reason: NodeNotReady
-            message: "status .*"
+            reason:
+              include:
+                - NodeNotReady
+            message:
+              include:
+                - "status .*"
         - type: v1/namespaces
         - type: v1/persistentvolumes
         - type: v1/persistentvolumeclaims
@@ -174,7 +180,8 @@ sources:
             my-own-annotation: "true"
           labels: # Overrides 'source'.kubernetes.labels
             my-own-label: "true"
-          name: "my-.*"
+          name:
+            include: "my-.*"
           updateSetting:
             includeDiff: true
             fields:

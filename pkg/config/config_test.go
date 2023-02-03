@@ -438,11 +438,12 @@ func readTestdataFile(t *testing.T, name string) []byte {
 	return out
 }
 
-func TestIsNamespaceAllowed(t *testing.T) {
+func TestRegexConstraints_IsAllowed(t *testing.T) {
 	tests := map[string]struct {
-		nsConfig  config.RegexConstraints
-		givenNs   string
-		isAllowed bool
+		nsConfig           config.RegexConstraints
+		givenNs            string
+		isAllowed          bool
+		expectedErrMessage string
 	}{
 		"should watch all except ignored ones": {
 			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
@@ -474,14 +475,32 @@ func TestIsNamespaceAllowed(t *testing.T) {
 			givenNs:   "demo",
 			isAllowed: true,
 		},
+		"invalid exclude regex": {
+			nsConfig:           config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"["}},
+			givenNs:            "demo",
+			isAllowed:          false,
+			expectedErrMessage: "while matching \"demo\" with exclude regex \"[\": error parsing regexp: missing closing ]: `[`",
+		},
+		"invalid include regex": {
+			nsConfig:           config.RegexConstraints{Include: []string{"["}, Exclude: []string{}},
+			givenNs:            "demo",
+			isAllowed:          false,
+			expectedErrMessage: "while matching \"demo\" with include regex \"[\": error parsing regexp: missing closing ]: `[`",
+		},
 	}
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			actual := test.nsConfig.IsAllowed(test.givenNs)
-			if actual != test.isAllowed {
-				t.Errorf("expected: %v != actual: %v\n", test.isAllowed, actual)
+			actual, err := test.nsConfig.IsAllowed(test.givenNs)
+
+			if test.expectedErrMessage != "" {
+				require.False(t, actual)
+				require.EqualError(t, err, test.expectedErrMessage)
+				return
 			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.isAllowed, actual)
 		})
 	}
 }

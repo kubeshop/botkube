@@ -39,7 +39,13 @@ func NewMerger(executors map[string]config.Executors) *Merger {
 // The order of merging is the same as the order of items specified in the includeBindings list.
 func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl {
 	enabledInNs := func(executor config.Kubectl) bool {
-		return executor.Enabled && executor.Namespaces.IsAllowed(forNamespace)
+		nsAllowed, err := executor.Namespaces.IsAllowed(forNamespace)
+		if err != nil {
+			// regex error
+			return false
+		}
+
+		return executor.Enabled && nsAllowed
 	}
 	return kc.merge(kc.collect(includeBindings, enabledInNs), includeBindings)
 }
