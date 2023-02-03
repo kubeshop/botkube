@@ -179,11 +179,11 @@ func (h *HelpMessage) configSections() []Section {
 			Base: Base{
 				Header: "View current Botkube configuration",
 				Body: Body{
-					CodeBlock: fmt.Sprintf("%s config\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s show config\n", h.botName),
 				},
 			},
 			Buttons: []Button{
-				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "config"),
+				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "show config"),
 			},
 		},
 	}
