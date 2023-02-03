@@ -97,7 +97,6 @@ Only Slack integration is described, but described steps are the same for all co
 
    ```bash
    @Botkube helm help
-   @Botkube helm --help
    ```
 
 1. Version
