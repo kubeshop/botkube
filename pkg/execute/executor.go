@@ -205,8 +205,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	}
 
 	if !foundFn {
-		e.reportCommand(fmt.Sprintf("%s {invalid feature}", cmdVerb), false)
-		e.log.Infof("received unsupported resource: %q", cmdCtx.CleanCmd)
+		reportedCmd := string(cmdVerb)
+		if cmdRes != "" {
+			e.log.Infof("received unsupported resource: %q", cmdCtx.CleanCmd)
+			reportedCmd = fmt.Sprintf("%s {invalid feature}", reportedCmd)
+		}
+		e.reportCommand(reportedCmd, false)
 		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb, cmdCtx.BotName)
 		return respond(msg, cmdCtx)
 	}
