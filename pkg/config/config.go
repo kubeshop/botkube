@@ -305,19 +305,10 @@ type Executors struct {
 	Plugins Plugins `koanf:",remain"`
 }
 
-// CollectEnabledCommandPrefixes returns list of command prefixes for enabled executors.
-func (e Executors) CollectEnabledCommandPrefixes() []string {
-	var prefixes []string
-
-	// TODO: Remove this once we deprecate kubectl executor
-	if e.Kubectl.Enabled {
-		prefixes = append(prefixes, kubectlCommandName)
-	}
-
-	for pluginName, plugin := range e.Plugins {
-		if !plugin.Enabled {
-			continue
-		}
+// CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
+func (e Executors) CollectCommandPrefixes() []string {
+	prefixes := []string{kubectlCommandName}
+	for pluginName := range e.Plugins {
 		prefixes = append(prefixes, ExecutorNameForKey(pluginName))
 	}
 

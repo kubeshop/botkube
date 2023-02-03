@@ -19,9 +19,9 @@ Manage automated actions
   - @Botkube list actions
 
 View current Botkube configuration
-@Botkube config
+@Botkube show config
 
-  - @Botkube config
+  - @Botkube show config
 
 Run kubectl commands (if enabled)
 You can run kubectl commands directly from Platform!

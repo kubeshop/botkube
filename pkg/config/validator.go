@@ -260,7 +260,7 @@ func aliasesStructValidator(sl validator.StructLevel) {
 	var prefixesToCheck []string
 	// collect executors
 	for _, exec := range conf.Executors {
-		prefixesToCheck = append(prefixesToCheck, exec.CollectEnabledCommandPrefixes()...)
+		prefixesToCheck = append(prefixesToCheck, exec.CollectCommandPrefixes()...)
 	}
 	// collect builtin commands
 	for _, verb := range command.AllVerbs() {
