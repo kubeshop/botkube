@@ -24,9 +24,9 @@ By default, Botkube will notify only about cluster errors and recommendations.
 
 *View current Botkube configuration*
 ```
-@Botkube config
+@Botkube show config
 ```
-  - `@Botkube config`
+  - `@Botkube show config`
 
 *Run kubectl commands (if enabled)*
 You can run kubectl commands directly from Platform!
