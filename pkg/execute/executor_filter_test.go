@@ -7,11 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExecutorEchoFilter_Apply(t *testing.T) {
-	var filter executorFilter = newExecutorEchoFilter("")
+func TestExecutorTextFilter_Empty(t *testing.T) {
+	var filter executorFilter = newExecutorTextFilter("")
 
 	text := "Please return this same text."
 	assert.Equal(t, text, filter.Apply(text))
+	assert.False(t, filter.IsActive())
 }
 
 func TestExecutorTextFilter_Apply(t *testing.T) {

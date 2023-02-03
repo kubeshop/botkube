@@ -104,7 +104,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 				EXECUTOR                  ENABLED ALIASES
 				botkube/echo@v1.0.1-devel true    e
 				botkube/helm              true    h
-				kubectl                   true    `),
+				kubectl                   true`),
 		},
 	}
 	for _, tc := range testCases {

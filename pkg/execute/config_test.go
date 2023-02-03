@@ -77,7 +77,8 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    tmpDir: ""
 						plugins:
 						    cacheDir: ""
-						    repositories: {}`),
+						    repositories: {}
+						`),
 		},
 	}
 	for _, tc := range testCases {
@@ -85,7 +86,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 			e := NewConfigExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.Cfg)
 			msg, err := e.Show(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
-			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)
+			assert.Equal(t, tc.ExpectedResult, msg.Body.CodeBlock)
 		})
 	}
 }

@@ -109,9 +109,9 @@ func (e *ActionExecutor) ActionsTabularOutput() string {
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "ACTION\tENABLED \tDISPLAY NAME")
+	fmt.Fprintf(w, "ACTION\tENABLED \tDISPLAY NAME")
 	for _, name := range keys {
-		fmt.Fprintf(w, "%s\t%v \t%s\n", name, e.actions[name].Enabled, e.actions[name].DisplayName)
+		fmt.Fprintf(w, "\n%s\t%v \t%s", name, e.actions[name].Enabled, e.actions[name].DisplayName)
 	}
 	w.Flush()
 	return buf.String()

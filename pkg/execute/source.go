@@ -81,10 +81,10 @@ func (e *SourceExecutor) TabularOutput(bindings []string) string {
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "SOURCE\tENABLED")
+	fmt.Fprintf(w, "SOURCE\tENABLED")
 	for _, key := range maputil.SortKeys(sources) {
 		enabled := sources[key]
-		fmt.Fprintf(w, "%s\t%t\n", key, enabled)
+		fmt.Fprintf(w, "\n%s\t%t", key, enabled)
 	}
 	w.Flush()
 	return buf.String()
