@@ -101,7 +101,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 }
 
 // Help returns help message
-func (*GHExecutor) Help(_ context.Context) (interactive.Message, error) {
+func (*GHExecutor) Help(context.Context) (interactive.Message, error) {
 	return interactive.Message{
 		Base: interactive.Base{
 			Body: interactive.Body{
