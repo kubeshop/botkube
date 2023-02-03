@@ -3,9 +3,8 @@ package kubectl
 import (
 	"context"
 	"fmt"
+	"github.com/gookit/color"
 	"os"
-
-	"github.com/alexflint/go-arg"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
@@ -76,23 +75,31 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
 
-	//var wasHelpRequested bool
-	var kcCmd Commands
-	err = pluginx.ParseCommand(PluginName, in.Command, &kcCmd)
-	switch err {
-	case nil:
-	case arg.ErrHelp:
-		// we want to print our own help instead of delegating that to Helm CLI.
-		//wasHelpRequested = true // TODO:
-	default:
-		return executor.ExecuteOutput{}, fmt.Errorf("while parsing input command: %w", err)
-	}
-
-	err = returnErrorOfAllSetFlags(kcCmd.NotSupportedCommands)
+	cmd, err := normalizeCommand(in.Command)
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
-	return e.handleHelmCommand(ctx, in.Command, cfg.DefaultNamespace)
+
+	if err := detectNotSupportedCommands(cmd); err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+	if err := detectNotSupportedGlobalFlags(cmd); err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
+	executionNs, err := e.getCommandNamespace(args)
+	if err != nil {
+		return "", fmt.Errorf("while extracting Namespace from command: %w", err)
+	}
+	if executionNs == "" { // namespace not found in command, so find default and add `-n` flag to args
+		executionNs = e.findDefaultNamespace(bindings)
+		args = e.addNamespaceFlag(args, executionNs)
+	}
+
+	finalArgs := e.getFinalArgs(args)
+	out, err := e.cmdRunner.RunCombinedOutput(KubectlBinary, finalArgs)
+
+	return e.handleKubectlCommand(ctx, in.Command, cfg.DefaultNamespace)
 }
 
 // Help returns help message
@@ -107,7 +114,7 @@ func (*Executor) Help(_ context.Context) (interactive.Message, error) {
 }
 
 // handleHelmList construct a Kubectl CLI command and run it.
-func (e *Executor) handleHelmCommand(ctx context.Context, rawCmd string, namespace string) (executor.ExecuteOutput, error) {
+func (e *Executor) handleKubectlCommand(ctx context.Context, rawCmd string, namespace string) (executor.ExecuteOutput, error) {
 	envs := map[string]string{
 		"KUBECONFIG": os.Getenv("KUBECONFIG"),
 	}
@@ -118,6 +125,6 @@ func (e *Executor) handleHelmCommand(ctx context.Context, rawCmd string, namespa
 	}
 
 	return executor.ExecuteOutput{
-		Data: out,
+		Data: color.ClearCode(out),
 	}, nil
 }
