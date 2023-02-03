@@ -105,10 +105,10 @@ func (e *AliasExecutor) getTabularOutput(bindings []string) string {
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "ALIAS\tCOMMAND\tDISPLAY NAME")
+	fmt.Fprintf(w, "ALIAS\tCOMMAND\tDISPLAY NAME")
 	for _, aliasName := range maputil.SortKeys(aliasesToDisplay) {
 		aliasCfg := aliasesCfg[aliasName]
-		fmt.Fprintf(w, "%s\t%s\t%s\n", aliasName, aliasCfg.Command, aliasCfg.DisplayName)
+		fmt.Fprintf(w, "\n%s\t%s\t%s", aliasName, aliasCfg.Command, aliasCfg.DisplayName)
 	}
 
 	w.Flush()

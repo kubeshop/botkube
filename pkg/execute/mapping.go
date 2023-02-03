@@ -26,6 +26,12 @@ type CommandExecutor interface {
 	FeatureName() FeatureName
 }
 
+// executorFilter interface to implement to filter executor text based results
+type executorFilter interface {
+	Apply(string) string
+	IsActive() bool
+}
+
 // CommandFn is a single command (eg. List())
 type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error)
 
