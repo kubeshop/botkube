@@ -6,31 +6,7 @@ import (
 	"strings"
 )
 
-// executorFilter interface to implement to filter executor text based results
-type executorFilter interface {
-	Apply(string) string
-	IsActive() bool
-}
-
-// executorEchoFilter echos given text when asked to filter executor text results.
-// Mainly used when executor commands are missing a "--filter=xxx" flag.
-type executorEchoFilter struct {
-}
-
-// IsActive whether this filter will actually mutate the output or not.
-func (f *executorEchoFilter) IsActive() bool {
-	return false
-}
-
-// Apply implements executorFilter to apply filtering.
-func (f *executorEchoFilter) Apply(text string) string {
-	return text
-}
-
-// newExecutorEchoFilter creates a new executorEchoFilter.
-func newExecutorEchoFilter(command string) *executorEchoFilter {
-	return &executorEchoFilter{}
-}
+var _ executorFilter = &executorTextFilter{}
 
 // executorTextFilter filters executor text results by a given text value.
 type executorTextFilter struct {
@@ -39,7 +15,7 @@ type executorTextFilter struct {
 
 // IsActive whether this filter will actually mutate the output or not.
 func (f *executorTextFilter) IsActive() bool {
-	return true
+	return len(f.value) > 0
 }
 
 // newExecutorTextFilter creates a new executorTextFilter.
@@ -51,6 +27,10 @@ func newExecutorTextFilter(val string) *executorTextFilter {
 
 // Apply implements executorFilter to apply filtering.
 func (f *executorTextFilter) Apply(text string) string {
+	if !f.IsActive() {
+		return text
+	}
+
 	var out strings.Builder
 
 	scanner := bufio.NewScanner(strings.NewReader(text))

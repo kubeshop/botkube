@@ -67,11 +67,11 @@ func (e *ExecExecutor) TabularOutput(bindings []string) string {
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "EXECUTOR\tENABLED\tALIASES")
+	fmt.Fprintf(w, "EXECUTOR\tENABLED\tALIASES")
 	for _, name := range maputil.SortKeys(executors) {
 		enabled := executors[name]
 		aliases := alias.ListExactForExecutor(name, e.cfg.Aliases)
-		fmt.Fprintf(w, "%s\t%t\t%s\n", name, enabled, strings.Join(aliases, ", "))
+		fmt.Fprintf(w, "\n%s\t%t\t%s", name, enabled, strings.Join(aliases, ", "))
 	}
 
 	w.Flush()

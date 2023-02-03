@@ -124,9 +124,9 @@ func (e *FilterExecutor) TabularOutput() string {
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
 
-	fmt.Fprintln(w, "FILTER\tENABLED\tDESCRIPTION")
+	fmt.Fprintf(w, "FILTER\tENABLED\tDESCRIPTION")
 	for _, filter := range e.filterEngine.RegisteredFilters() {
-		fmt.Fprintf(w, "%s\t%v\t%s\n", filter.Name(), filter.Enabled, filter.Describe())
+		fmt.Fprintf(w, "\n%s\t%v\t%s", filter.Name(), filter.Enabled, filter.Describe())
 	}
 
 	w.Flush()

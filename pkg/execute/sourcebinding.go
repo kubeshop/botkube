@@ -28,7 +28,7 @@ const (
 var (
 	sourceBindingFeatureName = FeatureName{
 		Name:    "sourcebinding",
-		Aliases: []string{"sourcebindings"},
+		Aliases: []string{"sourcebindings", "sb"},
 	}
 )
 
