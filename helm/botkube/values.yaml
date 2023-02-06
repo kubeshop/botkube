@@ -462,7 +462,7 @@ executors:
             type: Static
             prefix: ""
             static:
-              value: [ "botkube-plugins-read-only" ]
+              value: ["botkube-plugins-read-only"]
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
