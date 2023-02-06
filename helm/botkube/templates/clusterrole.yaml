@@ -31,7 +31,7 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-  rules:
+rules:
   - apiGroups: ["*"]
     resources: ["*"]
     verbs: ["get", "watch", "list"]
