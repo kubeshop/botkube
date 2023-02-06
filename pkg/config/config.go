@@ -425,25 +425,25 @@ func (r *RegexConstraints) AreConstraintsDefined() bool {
 // IsAllowed checks if a given value is allowed based on the config.
 // Firstly, it checks if the value is excluded. If not, then it checks if the value is included.
 func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
-	if r == nil || value == "" {
+	if r == nil {
 		return false, nil
 	}
 
 	// 1. Check if excluded
 	if len(r.Exclude) > 0 {
-		for _, excludeNamespace := range r.Exclude {
-			if strings.TrimSpace(excludeNamespace) == "" {
+		for _, excludeValue := range r.Exclude {
+			if strings.TrimSpace(excludeValue) == "" {
 				continue
 			}
 			// exact match
-			if excludeNamespace == value {
+			if excludeValue == value {
 				return false, nil
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(excludeNamespace, value)
+			matched, err := regexp.MatchString(excludeValue, value)
 			if err != nil {
-				return false, fmt.Errorf("while matching %q with exclude regex %q: %v", value, excludeNamespace, err)
+				return false, fmt.Errorf("while matching %q with exclude regex %q: %v", value, excludeValue, err)
 			}
 			if matched {
 				return false, nil
@@ -453,20 +453,16 @@ func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
 
 	// 2. Check if included, if matched, return true
 	if len(r.Include) > 0 {
-		for _, includeNamespace := range r.Include {
-			if strings.TrimSpace(includeNamespace) == "" {
-				continue
-			}
-
+		for _, includeValue := range r.Include {
 			// exact match
-			if includeNamespace == value {
+			if includeValue == value {
 				return true, nil
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(includeNamespace, value)
+			matched, err := regexp.MatchString(includeValue, value)
 			if err != nil {
-				return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeNamespace, err)
+				return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeValue, err)
 			}
 			if matched {
 				return true, nil

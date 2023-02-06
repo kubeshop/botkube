@@ -180,31 +180,31 @@ sources:
       # @default -- See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
-          namespaces:             # Overrides 'source'.kubernetes.namespaces
-            include:
-              - ".*"
-            exclude: []
-          annotations: {}         # Overrides 'source'.kubernetes.annotations
-          labels: {}              # Overrides 'source'.kubernetes.labels
-          # Optional resource name constraints.
-          name:
-            # Include contains a list of allowed values. It can also contain regex expressions.
-            include: []
-            # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
-            # Exclude list is checked before the Include list.
-            exclude: []
-          event:
-            # Overrides 'source'.kubernetes.event.reason
-            reason:
-              include: []
-              exclude: []
-            # Overrides 'source'.kubernetes.event.message
-            message:
-              include: []
-              exclude: []
-            # Overrides 'source'.kubernetes.event.types
-            types:
-              - create
+#          namespaces:             # Overrides 'source'.kubernetes.namespaces
+#            include:
+#              - ".*"
+#            exclude: []
+#          annotations: {}         # Overrides 'source'.kubernetes.annotations
+#          labels: {}              # Overrides 'source'.kubernetes.labels
+#          # Optional resource name constraints.
+#          name:
+#            # Include contains a list of allowed values. It can also contain regex expressions.
+#            include: []
+#            # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+#            # Exclude list is checked before the Include list.
+#            exclude: []
+#          event:
+#            # Overrides 'source'.kubernetes.event.reason
+#            reason:
+#              include: []
+#              exclude: []
+#            # Overrides 'source'.kubernetes.event.message
+#            message:
+#              include: []
+#              exclude: []
+#            # Overrides 'source'.kubernetes.event.types
+#            types:
+#              - create
 
         - type: v1/services
         - type: networking.k8s.io/v1/ingresses

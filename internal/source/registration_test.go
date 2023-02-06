@@ -158,6 +158,44 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success", "success2", "success3", "success-empty"},
 		},
 		{
+			Name: "Event message - empty - success",
+			Routes: []route{
+				{
+					source: "success",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{"^$"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success2",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{".*"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "fail",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Exclude: []string{"^$"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+
+			},
+			Event: event.Event{
+				Name: "test-one",
+				Messages: nil,
+			},
+			ExpectedResult: []string{"success", "success2"},
+		},
+		{
 			Name: "Event message - error",
 			Routes: []route{
 				{

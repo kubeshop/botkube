@@ -161,6 +161,7 @@ func (r registration) sourcesForEvent(routes []route, event event.Event) ([]stri
 }
 
 func (r registration) shouldSendEventToRoute(route route, event event.Event) (bool, error) {
+	log := r.log.WithField("route", route)
 	// event reason
 	if route.event.Reason.AreConstraintsDefined() {
 		match, err := route.event.Reason.IsAllowed(event.Reason)
@@ -168,7 +169,7 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 			return false, err
 		}
 		if !match {
-			r.log.Debugf("Ignoring as reason %q doesn't match regex %q", event.Reason, route.event.Reason)
+			log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, route.event.Reason)
 			return false, nil
 		}
 	}
@@ -178,7 +179,13 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 		var anyMsgMatches bool
 		var lastErr error
 
-		for _, msg := range event.Messages {
+		eventMsgs := event.Messages
+		if len(eventMsgs) == 0 {
+			// treat no messages as an empty message
+			eventMsgs = []string{""}
+		}
+
+		for _, msg := range eventMsgs {
 			match, err := route.event.Message.IsAllowed(msg)
 			if err != nil {
 				lastErr = err
@@ -193,7 +200,7 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 			return false, lastErr
 		}
 		if !anyMsgMatches {
-			r.log.Debugf("Ignoring as any event message from %q doesn't match regex %q", strings.Join(event.Messages, ";"), route.event.Message)
+			log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), route.event.Message)
 			return false, nil
 		}
 	}
@@ -205,7 +212,7 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 			return false, err
 		}
 		if !allowed {
-			r.log.Debugf("Ignoring as resource name %q doesn't match regex %q", event.Name, route.resourceName)
+			log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, route.resourceName)
 			return false, nil
 		}
 	}
@@ -217,17 +224,20 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 			return false, err
 		}
 		if !match {
+			log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Namespace, route.namespaces)
 			return false, nil
 		}
 	}
 
 	// annotations
 	if !kvsSatisfiedForMap(route.annotations, event.ObjectMeta.Annotations) {
+		log.Debugf("Ignoring as resource annotations %+v doesn't match constraints %+v", event.ObjectMeta.Annotations, route.annotations)
 		return false, nil
 	}
 
 	// labels
 	if !kvsSatisfiedForMap(route.labels, event.ObjectMeta.Labels) {
+		log.Debugf("Ignoring as resource labels %+v doesn't match constraints %+v", event.ObjectMeta.Labels, route.labels)
 		return false, nil
 	}
 
@@ -322,7 +332,7 @@ func (r registration) qualifySourcesForUpdate(
 
 			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
 			if err != nil {
-				r.log.Errorf("while getting diff: %w", err)
+				r.log.Errorf("while getting diff")
 			}
 			r.log.Debugf("About to qualify source: %s for update, diff: %s, updateSetting: %+v", source, diff, route.updateSetting)
 

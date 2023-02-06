@@ -445,17 +445,17 @@ func TestRegexConstraints_IsAllowed(t *testing.T) {
 		isAllowed          bool
 		expectedErrMessage string
 	}{
-		"should watch all except ignored ones": {
+		"should match all except ignored ones": {
 			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
 			givenNs:   "demo",
 			isAllowed: false,
 		},
-		"should watch all when ignore has empty items only": {
+		"should match all when ignore has empty items only": {
 			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{""}},
 			givenNs:   "demo",
 			isAllowed: true,
 		},
-		"should watch all when ignore is a nil slice": {
+		"should match all when ignore is a nil slice": {
 			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: nil},
 			givenNs:   "demo",
 			isAllowed: true,
@@ -470,9 +470,19 @@ func TestRegexConstraints_IsAllowed(t *testing.T) {
 			givenNs:   "ignored-42-ns",
 			isAllowed: false,
 		},
-		"should watch all if regexp is not matching given namespace": {
+		"should match all if regexp is not matching given namespace": {
 			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
 			givenNs:   "demo",
+			isAllowed: true,
+		},
+		"should match empty value": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
+			givenNs:   "",
+			isAllowed: true,
+		},
+		"should match only empty value": {
+			nsConfig:  config.RegexConstraints{Include: []string{"^$"}, Exclude: []string{}},
+			givenNs:   "",
 			isAllowed: true,
 		},
 		"invalid exclude regex": {
