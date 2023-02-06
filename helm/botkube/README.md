@@ -1,6 +1,6 @@
 # Botkube
 
-![Version: v0.18.0-rc.3](https://img.shields.io/badge/Version-v0.18.0--rc.3-informational?style=flat-square) ![AppVersion: v0.18.0-rc.3](https://img.shields.io/badge/AppVersion-v0.18.0--rc.3-informational?style=flat-square)
+![Version: v0.18.0](https://img.shields.io/badge/Version-v0.18.0-informational?style=flat-square) ![AppVersion: v0.18.0](https://img.shields.io/badge/AppVersion-v0.18.0-informational?style=flat-square)
 
 Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -23,7 +23,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [image.registry](./values.yaml#L14) | string | `"ghcr.io"` | Botkube container image registry. |
 | [image.repository](./values.yaml#L16) | string | `"kubeshop/botkube"` | Botkube container image repository. |
 | [image.pullPolicy](./values.yaml#L18) | string | `"IfNotPresent"` | Botkube container image pull policy. |
-| [image.tag](./values.yaml#L20) | string | `"v0.18.0-rc.3"` | Botkube container image tag. Default tag is `appVersion` from Chart.yaml. |
+| [image.tag](./values.yaml#L20) | string | `"v0.18.0"` | Botkube container image tag. Default tag is `appVersion` from Chart.yaml. |
 | [podSecurityPolicy](./values.yaml#L24) | object | `{"enabled":false}` | Configures Pod Security Policy to allow Botkube to run in restricted clusters. [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). |
 | [securityContext](./values.yaml#L30) | object | Runs as a Non-Privileged user. | Configures security context to manage user Privileges in Pod. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). |
 | [containerSecurityContext](./values.yaml#L36) | object | `{"allowPrivilegeEscalation":false,"privileged":false,"readOnlyRootFilesystem":true}` | Configures container security context. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). |
@@ -191,10 +191,10 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [configWatcher.image.repository](./values.yaml#L891) | string | `"kubeshop/k8s-sidecar"` | Config watcher image repository. |
 | [configWatcher.image.tag](./values.yaml#L893) | string | `"ignore-initial-events"` | Config watcher image tag. |
 | [configWatcher.image.pullPolicy](./values.yaml#L895) | string | `"IfNotPresent"` | Config watcher image pull policy. |
-| [plugins](./values.yaml#L898) | object | `{"cacheDir":"/tmp","repositories":{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0-rc.3/plugins-index.yaml"}}}` | Configuration for Botkube executors and sources plugins. |
+| [plugins](./values.yaml#L898) | object | `{"cacheDir":"/tmp","repositories":{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0/plugins-index.yaml"}}}` | Configuration for Botkube executors and sources plugins. |
 | [plugins.cacheDir](./values.yaml#L900) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
-| [plugins.repositories](./values.yaml#L902) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0-rc.3/plugins-index.yaml"}}` | List of plugins repositories. |
-| [plugins.repositories.botkube](./values.yaml#L904) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0-rc.3/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
+| [plugins.repositories](./values.yaml#L902) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0/plugins-index.yaml"}}` | List of plugins repositories. |
+| [plugins.repositories.botkube](./values.yaml#L904) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v0.18.0/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
 | [config](./values.yaml#L908) | object | `{"provider":{"endpoint":"","identifier":""}}` | Configuration for remote Botkube settings |
 | [config.provider](./values.yaml#L910) | object | `{"endpoint":"","identifier":""}` | Base provider definition |
 | [config.provider.identifier](./values.yaml#L912) | string | `""` | Unique identifier for remote Botkube settings |
