@@ -220,6 +220,7 @@ type Sources struct {
 	Plugins     Plugins          `koanf:",remain"`
 }
 
+// GetPlugins returns Sources.Plugins
 func (s Sources) GetPlugins() Plugins {
 	return s.Plugins
 }
@@ -322,31 +323,46 @@ type Plugin struct {
 	Context PluginContext
 }
 
+// PluginContext defines the context for given plugin.
 type PluginContext struct {
+	// DefaultNamespace is the default namespace used for given plugin.
 	DefaultNamespace string
-	RBAC             PolicyRule
+	// RBAC defines the RBAC rules for given plugin.
+	RBAC PolicyRule
 }
 
+// PolicyRule is the RBAC rule.
 type PolicyRule struct {
-	User  PolicySubject
+	// User is the policy subject for user.
+	User PolicySubject
+	// Group is the policy subject for group.
 	Group PolicySubject
 }
 
 type PolicySubject struct {
-	Type   PolicySubjectType
+	// Type is the type of policy subject.
+	Type PolicySubjectType
+	// Static is static reference of subject for given static policy rule.
 	Static StaticSubject
+	// Prefix is optional string prefixed to subjects.
 	Prefix string
 }
 
+// StaticSubject references static subjects for given static policy rule.
 type StaticSubject struct {
+	// Value is the name of the subject.
 	Value []string
 }
 
+// PolicySubjectType defines the types for policy subjects.
 type PolicySubjectType string
 
 const (
-	EmptyPolicySubjectType       PolicySubjectType = ""
-	StaticPolicySubjectType      PolicySubjectType = "Static"
+	// EmptyPolicySubjectType is the empty policy type.
+	EmptyPolicySubjectType PolicySubjectType = ""
+	// StaticPolicySubjectType is the static policy type.
+	StaticPolicySubjectType PolicySubjectType = "Static"
+	// ChannelNamePolicySubjectType is the channel name policy type.
 	ChannelNamePolicySubjectType PolicySubjectType = "ChannelName"
 	// UserGroupNamePolicySubjectType PolicySubjectType = "UserGroupName"
 	// EmailPolicySubjectType         PolicySubjectType = "Email"
@@ -368,6 +384,7 @@ func (e Executors) CollectCommandPrefixes() []string {
 	return prefixes
 }
 
+// GetPlugins returns Executors.Plugins
 func (e Executors) GetPlugins() Plugins {
 	return e.Plugins
 }
