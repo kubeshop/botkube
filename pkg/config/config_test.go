@@ -316,8 +316,8 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 			name: "executor specifies all and exact namespace in include property",
 			expWarnMsg: heredoc.Doc(`
 				2 errors occurred:
-					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include matches both all and exact namespaces
-					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include matches both all and exact namespaces`),
+					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values
+					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values`),
 			configs: [][]byte{
 				readTestdataFile(t, "executors-include-warning.yaml"),
 			},

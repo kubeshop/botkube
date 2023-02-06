@@ -187,10 +187,9 @@ func TestSourcesForEvent(t *testing.T) {
 					},
 					namespaces: allNsCfg,
 				},
-
 			},
 			Event: event.Event{
-				Name: "test-one",
+				Name:     "test-one",
 				Messages: nil,
 			},
 			ExpectedResult: []string{"success", "success2"},
@@ -292,7 +291,7 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: config.RegexConstraints{Include: []string{"^botkube-.*"}},
 				},
 				{
-					source: "success-empty",
+					source:     "success-empty",
 					namespaces: config.RegexConstraints{},
 				},
 				{
