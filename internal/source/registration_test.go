@@ -36,6 +36,13 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 				{
+					source: "success-empty",
+					event: config.KubernetesEvent{
+						Reason: config.RegexConstraints{},
+					},
+					namespaces: allNsCfg,
+				},
+				{
 					source: "fail",
 					event: config.KubernetesEvent{
 						Reason: config.RegexConstraints{
@@ -49,7 +56,7 @@ func TestSourcesForEvent(t *testing.T) {
 				Name:   "test-one",
 				Reason: "NodeNotReady",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Event reason - error",
@@ -114,6 +121,13 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 				{
+					source: "success-empty",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{},
+					},
+					namespaces: allNsCfg,
+				},
+				{
 					source: "fail",
 					event: config.KubernetesEvent{
 						Message: config.RegexConstraints{
@@ -141,7 +155,7 @@ func TestSourcesForEvent(t *testing.T) {
 					"Third",
 				},
 			},
-			ExpectedResult: []string{"success", "success2", "success3"},
+			ExpectedResult: []string{"success", "success2", "success3", "success-empty"},
 		},
 		{
 			Name: "Event message - error",
@@ -189,6 +203,11 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: allNsCfg,
 				},
 				{
+					source:       "success-empty",
+					resourceName: config.RegexConstraints{},
+					namespaces:   allNsCfg,
+				},
+				{
 					source: "fail",
 					resourceName: config.RegexConstraints{
 						Include: []string{"^one-.*"},
@@ -199,7 +218,7 @@ func TestSourcesForEvent(t *testing.T) {
 			Event: event.Event{
 				Name: "test-one",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Resource name - error",
@@ -235,6 +254,10 @@ func TestSourcesForEvent(t *testing.T) {
 					namespaces: config.RegexConstraints{Include: []string{"^botkube-.*"}},
 				},
 				{
+					source: "success-empty",
+					namespaces: config.RegexConstraints{},
+				},
+				{
 					source:     "fail",
 					namespaces: config.RegexConstraints{Include: []string{"^kube-.*"}},
 				},
@@ -243,7 +266,7 @@ func TestSourcesForEvent(t *testing.T) {
 				Name:      "test-one",
 				Namespace: "botkube-one",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Labels",
