@@ -339,12 +339,12 @@ func validatePluginRBAC[P providesPlugins](sl validator.StructLevel, hasPlugins 
 			// take the head of occurrences
 			p1 := occurrences[0]
 			rbac1 := hasPlugins[p1].GetPlugins()[plugin].Context.RBAC
-			defaultNS1 := hasPlugins[p1].GetPlugins()[plugin].Context.DefaultNamespace
+			defaultNS1 := hasPlugins[p1].GetPlugins()[plugin].Context.Kubeconfig.DefaultNamespace
 			// compare the head with the tail
 			for i := 1; i < len(occurrences); i++ {
 				p2 := occurrences[i]
 				rbac2 := hasPlugins[p2].GetPlugins()[plugin].Context.RBAC
-				defaultNS2 := hasPlugins[p2].GetPlugins()[plugin].Context.DefaultNamespace
+				defaultNS2 := hasPlugins[p2].GetPlugins()[plugin].Context.Kubeconfig.DefaultNamespace
 				if !reflect.DeepEqual(rbac1, rbac2) {
 					sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, p2)
 				}

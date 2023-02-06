@@ -16,7 +16,8 @@ sources:
     botkube/cm-watcher:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         RBAC:
           Group:
             Type: Static
@@ -33,7 +34,8 @@ sources:
     botkube/cm-watcher:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         RBAC:
           Group:
             Type: Static

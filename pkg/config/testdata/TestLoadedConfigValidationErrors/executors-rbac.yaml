@@ -17,7 +17,8 @@ executors:
     botkube/echo:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         rbac:
           group:
             type: Static
@@ -33,7 +34,8 @@ executors:
     botkube/helm@v1:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         rbac:
           group:
             type: Static
@@ -49,7 +51,8 @@ executors:
     botkube/helm@v1:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         rbac:
           group:
             type: this-value-is-different # <---
@@ -65,7 +68,8 @@ executors:
     botkube/helm@v1:
       enabled: true
       context:
-        defaultNamespace: "ns-1"
+        kubeconfig:
+          defaultNamespace: "ns-1"
         rbac:
           group:
             type: Static
