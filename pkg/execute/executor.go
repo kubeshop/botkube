@@ -232,24 +232,10 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 
 func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.Message {
 	e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
-	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
+	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx)
 	if err != nil {
 		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
 		return interactive.Message{}
-	}
-	if msg.BaseBody.Plaintext == "" && msg.BaseBody.CodeBlock == "" {
-		msg.BaseBody.Plaintext = emptyResponseMsg
-		return msg
-	}
-	// Show Filter Input if command response is more than `lineLimitToShowFilter`
-	s := msg.BaseBody.Plaintext
-	if msg.BaseBody.Plaintext == "" {
-		s = msg.BaseBody.CodeBlock
-	}
-	if len(strings.SplitN(s, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-		msg.PlaintextInputs = append(msg.PlaintextInputs,
-			filterInput(cmdCtx.CleanCmd,
-				cmdCtx.BotName))
 	}
 	return msg
 }
