@@ -3,6 +3,9 @@ package kubectl
 import (
 	"fmt"
 
+	"github.com/MakeNowJust/heredoc"
+	"github.com/kubeshop/botkube/pkg/api"
+
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
@@ -24,4 +27,22 @@ func MergeConfigs(configs []*executor.Config) (Config, error) {
 	}
 
 	return out, nil
+}
+
+func jsonSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Docf(`{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"title": "kubectl",
+			"description": "%s",
+			"type": "object",
+			"properties": {
+				"defaultNamespace": {
+					"description": "The default Kubernetes Namespace to use when not directly specified in the kubectl command.",
+					"type": "string",
+					"default": "default",
+				}
+			},
+		}`, description),
+	}
 }

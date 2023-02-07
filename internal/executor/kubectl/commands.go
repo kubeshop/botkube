@@ -71,13 +71,13 @@ func normalizeCommand(command string) (string, error) {
 }
 func detectNotSupportedCommands(normalizedCmd string) error {
 	args := strings.Fields(normalizedCmd)
-	if len(args) <= 1 {
+	if len(args) == 0 {
 		return nil
 	}
 
-	_, found := notSupportedSubcommands[args[1]]
+	_, found := notSupportedSubcommands[args[0]]
 	if found {
-		return fmt.Errorf("The %q command is not supported by the Botkube kubectl plugin.", args[1])
+		return fmt.Errorf("The %q command is not supported by the Botkube kubectl plugin.", args[0])
 	}
 	return nil
 }
@@ -110,5 +110,12 @@ func detectNotSupportedGlobalFlags(normalizedCmd string) error {
 		issues = multierror.Append(issues, fmt.Errorf("The %q flag is not supported by the Botkube kubectl plugin. Please remove it.", f.Name))
 	})
 
-	return issues.ErrorOrNil()
+	switch issues.Len() {
+	case 0:
+		return nil
+	case 1:
+		return issues.Errors[0]
+	default:
+		return issues.ErrorOrNil()
+	}
 }

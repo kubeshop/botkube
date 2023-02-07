@@ -493,7 +493,7 @@ func (b *SlackRenderer) legacyLongNotification(event event.Event) slack.Attachme
 
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Namespace, "Namespace", true)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Reason, "Reason", true)
-	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Messages), "Data", false)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Messages), "Message", false)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Action, "Action", true)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Recommendations), "Recommendations", false)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Warnings), "Warnings", false)

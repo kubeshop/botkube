@@ -3,7 +3,6 @@ package kubectl
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -62,7 +61,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     e.pluginVersion,
 		Description: description,
-		//JSONSchema:  jsonSchema(),
+		JSONSchema:  jsonSchema(),
 		Dependencies: map[string]api.Dependency{
 			binaryName: {
 				URLs: kcBinaryDownloadLinks,
@@ -83,12 +82,8 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 
-	l := logrus.New()
-	l.SetLevel(logrus.DebugLevel)
-	l.SetOutput(os.Stdout)
-
 	if e.kcBuilder.ShouldHandle(cmd) {
-		msg, err := e.kcBuilder.Handle(ctx, l, in.Context.CommunicationPlatform)
+		msg, err := e.kcBuilder.Handle(ctx, e.logger, in.Context.CommunicationPlatform)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while running command builder: %w", err)
 		}

@@ -14,14 +14,12 @@ import (
 func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 	// given
 	message := Message{
+		Base: api.Base{
+			Header:      "Adjust notifications",
+			Description: "Adjust notifications description",
+		},
 		Message: api.Message{
 			Sections: []api.Section{
-				{
-					Base: api.Base{
-						Header:      "Adjust notifications",
-						Description: "Adjust notifications description",
-					},
-				},
 				{
 					MultiSelect: api.MultiSelect{
 						Name: "Adjust notifications",

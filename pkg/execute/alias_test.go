@@ -2,17 +2,19 @@ package execute
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/golden"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+// go test -run=TestAliasExecutor_List ./pkg/execute/... -test.update-golden
 func TestAliasExecutor_List(t *testing.T) {
 	// given
 	expContextSections := api.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
@@ -21,74 +23,31 @@ func TestAliasExecutor_List(t *testing.T) {
 		name     string
 		bindings []string
 		cfg      config.Config
-
-		expOutput string
 	}{
 		{
 			name:     "no bindings",
 			bindings: []string{},
 			cfg:      fixAliasCfg(),
-			expOutput: heredoc.Doc(`
-			  No aliases found for current conversation.`),
 		},
 		{
 			name:     "kubectl",
 			bindings: []string{"binding1"},
 			cfg:      fixAliasCfg(),
-			expOutput: heredoc.Doc(`
-			  ALIAS COMMAND                    DISPLAY NAME
-			  k     kubectl                    k alias
-			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
-			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
 			name:     "three bindings",
 			bindings: []string{"binding1", "binding2", "plugins"},
 			cfg:      fixAliasCfg(),
-			expOutput: heredoc.Doc(`
-			  ALIAS COMMAND                    DISPLAY NAME
-			  g     gh verb -V                 GH verb
-			  h     helm
-			  hv    helm version               Helm ver
-			  k     kubectl                    k alias
-			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
-			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
 			name:     "three bindings with builtin cmds",
 			bindings: []string{"binding1", "binding2", "plugins"},
 			cfg:      fixAliasCfgWithBuiltin(),
-			expOutput: heredoc.Doc(`
-			  ALIAS COMMAND                    DISPLAY NAME
-			  bkh   help                       Botkube Help
-			  g     gh verb -V                 GH verb
-			  h     helm
-			  hv    helm version               Helm ver
-			  k     kubectl                    k alias
-			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
-			  kv    kubectl version --filter=3 version with filter
-			  p     ping                       Botkube Ping`),
 		},
 		{
 			name:     "just builtin cmds",
 			bindings: []string{},
 			cfg:      fixAliasCfgWithBuiltin(),
-			expOutput: heredoc.Doc(`
-			  ALIAS COMMAND DISPLAY NAME
-			  bkh   help    Botkube Help
-			  p     ping    Botkube Ping`),
 		},
 	}
 	for _, tc := range testCases {
@@ -101,7 +60,7 @@ func TestAliasExecutor_List(t *testing.T) {
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
 			require.Len(t, msg.Sections, 1)
-			assert.Equal(t, tc.expOutput, msg.Sections[0].Body.CodeBlock)
+			golden.Assert(t, msg.Sections[0].Body.CodeBlock, fmt.Sprintf("%s.golden.txt", t.Name()))
 			assert.Equal(t, expContextSections, msg.Sections[0].Context)
 		})
 	}

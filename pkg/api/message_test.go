@@ -22,9 +22,9 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 				Text:    "Top command 2",
 			},
 		},
-		//Base: api.Base{
-		//	Header: "Test",
-		//},
+		BaseBody: api.Body{
+			CodeBlock: "Test",
+		},
 		Sections: []api.Section{
 			{
 				Buttons: []api.Button{
@@ -81,9 +81,9 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 				Text:    "Top command 2",
 			},
 		},
-		//Base: api.Base{
-		//	Header: "Test",
-		//},
+		BaseBody: api.Body{
+			CodeBlock: "Test",
+		},
 		Sections: []api.Section{
 			{
 				Buttons: []api.Button{

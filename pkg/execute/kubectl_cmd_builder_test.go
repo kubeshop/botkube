@@ -30,7 +30,7 @@ func TestCommandPreview(t *testing.T) {
 		name string
 		args []string
 
-		expMsg api.Message
+		expMsg interactive.Message
 	}{
 		{
 			name: "Print all dropdowns and full command on verb change",
@@ -270,21 +270,23 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	}
 }
 
-func fixInitialBuilderMessage() api.Message {
+func fixInitialBuilderMessage() interactive.Message {
 	verbsDropdown := fixVerbsDropdown()
 	verbsDropdown.InitialOption = nil // initial message shouldn't have anything selected.
-	return api.Message{
-		Sections: []api.Section{
-			{
-				Selects: api.Selects{
-					Items: []api.Select{
-						verbsDropdown,
+	return interactive.Message{
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Selects: api.Selects{
+						Items: []api.Select{
+							verbsDropdown,
+						},
 					},
 				},
 			},
+			OnlyVisibleForYou: true,
+			ReplaceOriginal:   false,
 		},
-		OnlyVisibleForYou: true,
-		ReplaceOriginal:   false,
 	}
 }
 
@@ -417,42 +419,44 @@ func fixAllDropdown(includeResourceName bool) []api.Select {
 	}
 }
 
-func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api.Select) api.Message {
-	return api.Message{
-		Sections: []api.Section{
-			{
-				Selects: api.Selects{
-					ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
-					Items: dropdowns,
-				},
-			},
-			{
-				Base: api.Base{
-					Body: api.Body{
-						CodeBlock: kcCommandPreview,
+func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api.Select) interactive.Message {
+	return interactive.Message{
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Selects: api.Selects{
+						ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
+						Items: dropdowns,
 					},
 				},
-				PlaintextInputs: api.LabelInputs{
-					api.LabelInput{
-						Command:          "@BKTesting kc-cmd-builder --filter-query ",
-						DispatchedAction: api.DispatchInputActionOnCharacter,
-						Text:             "Filter output",
-						Placeholder:      "Filter output by string (optional)",
+				{
+					Base: api.Base{
+						Body: api.Body{
+							CodeBlock: kcCommandPreview,
+						},
+					},
+					PlaintextInputs: api.LabelInputs{
+						api.LabelInput{
+							Command:          "@BKTesting kc-cmd-builder --filter-query ",
+							DispatchedAction: api.DispatchInputActionOnCharacter,
+							Text:             "Filter output",
+							Placeholder:      "Filter output by string (optional)",
+						},
+					},
+				},
+				{
+					Buttons: api.Buttons{
+						api.Button{
+							Name:    "Run command",
+							Command: kcCommand,
+							Style:   "primary",
+						},
 					},
 				},
 			},
-			{
-				Buttons: api.Buttons{
-					api.Button{
-						Name:    "Run command",
-						Command: kcCommand,
-						Style:   "primary",
-					},
-				},
-			},
+			OnlyVisibleForYou: true,
+			ReplaceOriginal:   true,
 		},
-		OnlyVisibleForYou: true,
-		ReplaceOriginal:   true,
 	}
 }
 
