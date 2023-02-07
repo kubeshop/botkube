@@ -51,21 +51,22 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
 
-	outMsg.Sections = []api.Section{
-		{
-			Base: api.Base{
-				Description: outMsg.Description,
-				Body:        outMsg.BaseBody,
-			},
+	return interactive.Message{
+		Description: outMsg.Description,
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Base: api.Base{
+						Body: outMsg.BaseBody,
+					},
 
-			Context: []api.ContextItem{
-				{Text: aliasesForCurrentBindingsMsg},
+					Context: []api.ContextItem{
+						{Text: aliasesForCurrentBindingsMsg},
+					},
+				},
 			},
 		},
-	}
-	outMsg.Description = ""
-
-	return outMsg, nil
+	}, nil
 }
 
 // FeatureName returns the name and aliases of the feature provided by this executor.
