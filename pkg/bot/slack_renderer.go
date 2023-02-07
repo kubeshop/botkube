@@ -9,6 +9,7 @@ import (
 
 	"github.com/slack-go/slack"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -61,8 +62,8 @@ func (b *SlackRenderer) RenderLegacyEventMessage(event event.Event) slack.Attach
 }
 
 // RenderEventMessage returns Slack interactive message based on a given event.
-func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections ...interactive.Section) interactive.Message {
-	var sections []interactive.Section
+func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections ...api.Section) interactive.Message {
+	var sections []api.Section
 
 	switch b.notification.Type {
 	case config.LongNotification:
@@ -77,7 +78,11 @@ func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections
 		sections = append(sections, additionalSections...)
 	}
 
-	return interactive.Message{Sections: sections}
+	return interactive.Message{
+		Message: api.Message{
+			Sections: sections,
+		},
+	}
 }
 
 // RenderModal returns a modal request view based on a given message.
@@ -138,7 +143,7 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 	return blocks
 }
 
-func (b *SlackRenderer) renderSelects(s interactive.Selects) slack.Block {
+func (b *SlackRenderer) renderSelects(s api.Selects) slack.Block {
 	var elems []slack.BlockElement
 	for _, s := range s.Items {
 		placeholder := slack.NewTextBlockObject(slack.PlainTextType, s.Name, false, false)
@@ -196,7 +201,7 @@ func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.Message) slack
 	return slack.MsgOptionText(out.String(), false)
 }
 
-func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
+func (b *SlackRenderer) renderSection(in api.Section) []slack.Block {
 	var out []slack.Block
 	if in.Header != "" {
 		out = append(out, b.mdTextSection("*%s*", in.Header))
@@ -239,7 +244,7 @@ func (b *SlackRenderer) renderSection(in interactive.Section) []slack.Block {
 	return out
 }
 
-func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block {
+func (b *SlackRenderer) renderTextFields(in api.TextFields) slack.Block {
 	var textBlockObjs []*slack.TextBlockObject
 	for _, item := range in {
 		if item.Text == "" {
@@ -257,7 +262,7 @@ func (b *SlackRenderer) renderTextFields(in interactive.TextFields) slack.Block 
 	)
 }
 
-func (b *SlackRenderer) renderContext(in []interactive.ContextItem) []slack.Block {
+func (b *SlackRenderer) renderContext(in []api.ContextItem) []slack.Block {
 	var blocks []slack.Block
 
 	for _, item := range in {
@@ -283,7 +288,7 @@ func (b *SlackRenderer) renderContext(in []interactive.ContextItem) []slack.Bloc
 //
 //  2. Without description: all in the same row. For example:
 //     [Button "Get Pods"] [Button "Get Deployments"]
-func (b *SlackRenderer) renderButtons(in interactive.Buttons) []slack.Block {
+func (b *SlackRenderer) renderButtons(in api.Buttons) []slack.Block {
 	if len(in) == 0 {
 		return nil
 	}
@@ -309,7 +314,7 @@ func (b *SlackRenderer) renderButtons(in interactive.Buttons) []slack.Block {
 	}
 }
 
-func (b *SlackRenderer) renderButtonsWithDescription(in interactive.Buttons) []slack.Block {
+func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Block {
 	var out []slack.Block
 	for _, btn := range in {
 		out = append(out, slack.NewSectionBlock(
@@ -321,7 +326,7 @@ func (b *SlackRenderer) renderButtonsWithDescription(in interactive.Buttons) []s
 	return out
 }
 
-func (b *SlackRenderer) renderInput(s interactive.LabelInput) slack.Block {
+func (b *SlackRenderer) renderInput(s api.LabelInput) slack.Block {
 	var placeholder *slack.TextBlockObject
 	if s.Placeholder != "" {
 		placeholder = slack.NewTextBlockObject(slack.PlainTextType, s.Placeholder, false, false)
@@ -346,7 +351,7 @@ func (b *SlackRenderer) renderInput(s interactive.LabelInput) slack.Block {
 	return block
 }
 
-func (b *SlackRenderer) renderMultiselectWithDescription(in interactive.MultiSelect) slack.Block {
+func (b *SlackRenderer) renderMultiselectWithDescription(in api.MultiSelect) slack.Block {
 	placeholder := slack.NewTextBlockObject(slack.PlainTextType, in.Name, false, false)
 	multiSelect := slack.NewOptionsMultiSelectBlockElement("multi_static_select", placeholder, in.Command)
 
@@ -370,7 +375,7 @@ func (b *SlackRenderer) renderMultiselectWithDescription(in interactive.MultiSel
 	)
 }
 
-func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement {
+func (b *SlackRenderer) renderButton(btn api.Button) slack.BlockElement {
 	return &slack.ButtonBlockElement{
 		Type:     slack.METButton,
 		Text:     slack.NewTextBlockObject(slack.PlainTextType, btn.Name, true, false),
@@ -383,7 +388,7 @@ func (b *SlackRenderer) renderButton(btn interactive.Button) slack.BlockElement 
 	}
 }
 
-func (b *SlackRenderer) genBtnActionID(btn interactive.Button) string {
+func (b *SlackRenderer) genBtnActionID(btn api.Button) string {
 	if btn.Command != "" {
 		return cmdButtonActionIDPrefix + btn.Command
 	}
@@ -402,9 +407,9 @@ func (*SlackRenderer) plainTextBlock(msg string) *slack.TextBlockObject {
 	return slack.NewTextBlockObject(slack.PlainTextType, msg, false, false)
 }
 
-func (b *SlackRenderer) longNotificationSection(event event.Event) interactive.Section {
+func (b *SlackRenderer) longNotificationSection(event event.Event) api.Section {
 	section := b.baseNotificationSection(event)
-	section.TextFields = interactive.TextFields{
+	section.TextFields = api.TextFields{
 		{Text: fmt.Sprintf("*Kind:* %s", event.Kind)},
 		{Text: fmt.Sprintf("*Name:* %s", event.Name)},
 	}
@@ -419,16 +424,16 @@ func (b *SlackRenderer) longNotificationSection(event event.Event) interactive.S
 	return section
 }
 
-func (b *SlackRenderer) appendTextFieldIfNotEmpty(fields []interactive.TextField, title, in string) []interactive.TextField {
+func (b *SlackRenderer) appendTextFieldIfNotEmpty(fields []api.TextField, title, in string) []api.TextField {
 	if in == "" {
 		return fields
 	}
-	return append(fields, interactive.TextField{
+	return append(fields, api.TextField{
 		Text: fmt.Sprintf("*%s:* %s", title, in),
 	})
 }
 
-func (b *SlackRenderer) shortNotificationSection(event event.Event) interactive.Section {
+func (b *SlackRenderer) shortNotificationSection(event event.Event) api.Section {
 	section := b.baseNotificationSection(event)
 
 	header := formatx.ShortNotificationHeader(event)
@@ -448,10 +453,10 @@ func (b *SlackRenderer) shortNotificationSection(event event.Event) interactive.
 	return section
 }
 
-func (b *SlackRenderer) baseNotificationSection(event event.Event) interactive.Section {
+func (b *SlackRenderer) baseNotificationSection(event event.Event) api.Section {
 	emoji := emojiForLevel[event.Level]
-	section := interactive.Section{
-		Base: interactive.Base{
+	section := api.Section{
+		Base: api.Base{
 			Header: fmt.Sprintf("%s %s", emoji, event.Title),
 		},
 	}
@@ -459,7 +464,7 @@ func (b *SlackRenderer) baseNotificationSection(event event.Event) interactive.S
 	if !event.TimeStamp.IsZero() {
 		fallbackTimestampText := event.TimeStamp.Format(time.RFC1123)
 		timestampText := fmt.Sprintf("<!date^%d^{date_num} {time_secs}|%s>", event.TimeStamp.Unix(), fallbackTimestampText)
-		section.Context = []interactive.ContextItem{{
+		section.Context = []api.ContextItem{{
 			Text: timestampText,
 		}}
 	}
@@ -488,7 +493,7 @@ func (b *SlackRenderer) legacyLongNotification(event event.Event) slack.Attachme
 
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Namespace, "Namespace", true)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Reason, "Reason", true)
-	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Messages), "Message", false)
+	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Messages), "Data", false)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, event.Action, "Action", true)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Recommendations), "Recommendations", false)
 	attachment.Fields = b.appendIfNotEmpty(attachment.Fields, formatx.JoinMessages(event.Warnings), "Warnings", false)
@@ -520,23 +525,23 @@ func (b *SlackRenderer) legacyShortNotification(event event.Event) slack.Attachm
 	}
 }
 
-func convertToSlackStyle(in interactive.ButtonStyle) slack.Style {
+func convertToSlackStyle(in api.ButtonStyle) slack.Style {
 	switch in {
-	case interactive.ButtonStyleDefault:
+	case api.ButtonStyleDefault:
 		return slack.StyleDefault
-	case interactive.ButtonStylePrimary:
+	case api.ButtonStylePrimary:
 		return slack.StylePrimary
-	case interactive.ButtonStyleDanger:
+	case api.ButtonStyleDanger:
 		return slack.StyleDanger
 	}
 	return slack.StyleDefault
 }
 
-func convertToSlackSelectType(in interactive.SelectType) string {
+func convertToSlackSelectType(in api.SelectType) string {
 	switch in {
-	case interactive.StaticSelect:
+	case api.StaticSelect:
 		return slack.OptTypeStatic
-	case interactive.ExternalSelect:
+	case api.ExternalSelect:
 		return slack.OptTypeExternal
 	}
 	return slack.OptTypeStatic

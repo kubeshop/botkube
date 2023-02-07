@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
@@ -49,15 +50,15 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
-	outMsg.Sections = []interactive.Section{
+	outMsg.Sections = []api.Section{
 		{
 			Base: outMsg.Base,
-			Context: []interactive.ContextItem{
+			Context: []api.ContextItem{
 				{Text: aliasesForCurrentBindingsMsg},
 			},
 		},
 	}
-	outMsg.Base = interactive.Base{}
+	outMsg.Base = api.Base{}
 
 	return outMsg, nil
 }

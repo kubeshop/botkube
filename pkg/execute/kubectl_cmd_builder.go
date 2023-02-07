@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
@@ -269,7 +270,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	), nil
 }
 
-func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails, cmdCtx CommandContext) *interactive.Select {
+func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails, cmdCtx CommandContext) *api.Select {
 	if state.resourceType == "" {
 		return EmptyResourceNameDropdown()
 	}
@@ -292,7 +293,7 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 	return ResourceNamesSelect(botName, overflowSentence(lines), state.resourceName)
 }
 
-func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *interactive.Select {
+func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *api.Select {
 	log := e.log.WithFields(logrus.Fields{
 		"state":    details,
 		"bindings": bindings,
@@ -378,7 +379,7 @@ func (e *KubectlCmdBuilder) getEnableKubectlDetails(bindings []string) (verbs []
 }
 
 // getAllowedResourcesSelectList returns dropdown select with allowed resources for a given verb.
-func (e *KubectlCmdBuilder) getAllowedResourcesSelectList(botName, verb string, resources []string, resourceType string) (*interactive.Select, error) {
+func (e *KubectlCmdBuilder) getAllowedResourcesSelectList(botName, verb string, resources []string, resourceType string) (*api.Select, error) {
 	allowedResources, err := e.commandGuard.GetAllowedResourcesForVerb(verb, resources)
 	if err != nil {
 		return nil, err
@@ -436,7 +437,7 @@ func (e *KubectlCmdBuilder) extractStateDetails(botName string, state *slack.Blo
 	return details
 }
 
-func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resourceType string) bool {
+func (e *KubectlCmdBuilder) contains(matchingTypes *api.Select, resourceType string) bool {
 	if matchingTypes == nil {
 		return false
 	}
@@ -448,14 +449,14 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *interactive.Select, resource
 	return false
 }
 
-func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails) []interactive.Section {
+func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails) []api.Section {
 	resourceDetails, err := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
 	if err != nil {
 		e.log.WithFields(logrus.Fields{
 			"state": state,
 			"error": err.Error(),
 		}).Error("Cannot get resource details")
-		return []interactive.Section{InternalErrorSection()}
+		return []api.Section{InternalErrorSection()}
 	}
 
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
@@ -489,9 +490,9 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 
 func (e *KubectlCmdBuilder) message(header, msg string) (interactive.Message, error) {
 	return interactive.Message{
-		Base: interactive.Base{
+		Base: api.Base{
 			Description: header,
-			Body: interactive.Body{
+			Body: api.Body{
 				Plaintext: msg,
 			},
 		},

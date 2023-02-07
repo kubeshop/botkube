@@ -14,6 +14,7 @@ import (
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -141,21 +142,23 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 	if len(sourceBindings) == 0 {
 		selectedOptions := e.mapToOptions(e.currentlySelectedOptions(commGroupName, platform, conversation.ID))
 		return interactive.Message{
-			Type: interactive.Popup,
-			Base: interactive.Base{
+			Base: api.Base{
 				Header: "Adjust notifications",
 			},
-			OnlyVisibleForYou: true,
-			Sections: []interactive.Section{
-				{
-					MultiSelect: interactive.MultiSelect{
-						Name: "Adjust notifications",
-						Description: interactive.Body{
-							Plaintext: "Select notification sources.",
+			Message: api.Message{
+				Type:              api.PopupMessage,
+				OnlyVisibleForYou: true,
+				Sections: []api.Section{
+					{
+						MultiSelect: api.MultiSelect{
+							Name: "Adjust notifications",
+							Description: api.Body{
+								Plaintext: "Select notification sources.",
+							},
+							Command:        fmt.Sprintf("%s %s", botName, "edit SourceBindings"),
+							Options:        e.allOptions(),
+							InitialOptions: selectedOptions,
 						},
-						Command:        fmt.Sprintf("%s %s", botName, "edit SourceBindings"),
-						Options:        e.allOptions(),
-						InitialOptions: selectedOptions,
 					},
 				},
 			},
@@ -180,7 +183,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 	}
 
 	return interactive.Message{
-		Base: interactive.Base{
+		Base: api.Base{
 			Description: e.getEditedSourceBindingsMsg(userID, sourceList),
 		},
 	}, nil
@@ -198,7 +201,7 @@ func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interac
 	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.Message{
-		Base: interactive.Base{
+		Base: api.Base{
 			Description: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
 		},
 	}
@@ -252,14 +255,14 @@ func (e *SourceBindingExecutor) mapToDisplayNames(in []string) []string {
 	return out
 }
 
-func (e *SourceBindingExecutor) mapToOptions(in []string) []interactive.OptionItem {
-	var options []interactive.OptionItem
+func (e *SourceBindingExecutor) mapToOptions(in []string) []api.OptionItem {
+	var options []api.OptionItem
 	for _, key := range in {
 		displayName, found := e.sources[key]
 		if !found {
 			continue
 		}
-		options = append(options, interactive.OptionItem{
+		options = append(options, api.OptionItem{
 			Name:  displayName,
 			Value: key,
 		})
@@ -267,10 +270,10 @@ func (e *SourceBindingExecutor) mapToOptions(in []string) []interactive.OptionIt
 	return options
 }
 
-func (e *SourceBindingExecutor) allOptions() []interactive.OptionItem {
-	var options []interactive.OptionItem
+func (e *SourceBindingExecutor) allOptions() []api.OptionItem {
+	var options []api.OptionItem
 	for key, displayName := range e.sources {
-		options = append(options, interactive.OptionItem{
+		options = append(options, api.OptionItem{
 			Name:  displayName,
 			Value: key,
 		})

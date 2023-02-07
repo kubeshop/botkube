@@ -7,19 +7,26 @@ option go_package = "pkg/api/executor";
 package executor;
 
 message Config {
-	// RawYAML contains the Executor configuration in YAML definitions.
+	// rawYAML contains the Executor configuration in YAML definitions.
 	bytes rawYAML = 1;
 }
 
 message ExecuteRequest {
-	// Commands represents the exact command that was specified by the user.
+	// commands represents the exact command that was specified by the user.
 	string command = 1;
-	// Configs is a list of Executor configurations specified by users.
+	// configs is a list of Executor configurations specified by users.
 	repeated Config configs = 2;
+	// context holds context execution.
+	ExecuteContext context = 3;
+}
+
+message ExecuteContext {
+	string communicationPlatform = 1;
 }
 
 message ExecuteResponse {
 	string data = 1;
+	bytes message = 2;
 }
 
 message MetadataResponse {

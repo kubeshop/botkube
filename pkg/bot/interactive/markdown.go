@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
@@ -54,7 +55,7 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 
 	for i, section := range msg.Sections {
 		// do not include empty line when there is no base content
-		var empty Base
+		var empty api.Base
 		if i != 0 || msg.Base != empty {
 			addLine("") // padding between sections
 		}

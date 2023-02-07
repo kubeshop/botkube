@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/notifier"
@@ -69,7 +70,7 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
 			msg := interactive.Message{
-				Base: interactive.Base{
+				Base: api.Base{
 					Description: string(event),
 				},
 			}

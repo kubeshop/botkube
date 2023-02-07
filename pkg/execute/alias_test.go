@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestAliasExecutor_List(t *testing.T) {
 	// given
-	expContextSections := interactive.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
+	expContextSections := api.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
 
 	testCases := []struct {
 		name     string
@@ -39,10 +39,10 @@ func TestAliasExecutor_List(t *testing.T) {
 			  ALIAS COMMAND                    DISPLAY NAME
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl                    
-			  kcn   kubectl -n ns              
-			  kgp   kubectl get pods           
-			  kk    kubectl                    
+			  kc    kubectl
+			  kcn   kubectl -n ns
+			  kgp   kubectl get pods
+			  kk    kubectl
 			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
@@ -52,14 +52,14 @@ func TestAliasExecutor_List(t *testing.T) {
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND                    DISPLAY NAME
 			  g     gh verb -V                 GH verb
-			  h     helm                       
+			  h     helm
 			  hv    helm version               Helm ver
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl                    
-			  kcn   kubectl -n ns              
-			  kgp   kubectl get pods           
-			  kk    kubectl                    
+			  kc    kubectl
+			  kcn   kubectl -n ns
+			  kgp   kubectl get pods
+			  kk    kubectl
 			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
@@ -70,14 +70,14 @@ func TestAliasExecutor_List(t *testing.T) {
 			  ALIAS COMMAND                    DISPLAY NAME
 			  bkh   help                       Botkube Help
 			  g     gh verb -V                 GH verb
-			  h     helm                       
+			  h     helm
 			  hv    helm version               Helm ver
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl                    
-			  kcn   kubectl -n ns              
-			  kgp   kubectl get pods           
-			  kk    kubectl                    
+			  kc    kubectl
+			  kcn   kubectl -n ns
+			  kgp   kubectl get pods
+			  kk    kubectl
 			  kv    kubectl version --filter=3 version with filter
 			  p     ping                       Botkube Ping`),
 		},

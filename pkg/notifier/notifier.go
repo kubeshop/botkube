@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -39,8 +40,8 @@ func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string)
 	// Send message over notifiers
 	for _, n := range notifiers {
 		err := n.SendMessageToAll(ctx, interactive.Message{
-			Base: interactive.Base{
-				Body: interactive.Body{
+			Base: api.Base{
+				Body: api.Body{
 					Plaintext: msg,
 				},
 			},
