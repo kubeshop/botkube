@@ -192,9 +192,7 @@ func (fakeExecutor) Execute(_ context.Context) interactive.Message {
 
 func fixInteractiveMessage(botName string) interactive.Message {
 	return interactive.Message{
-		Base: api.Base{
-			Header: "Sample",
-		},
+		Header: "Sample",
 		Message: api.Message{
 			PlaintextInputs: []api.LabelInput{
 				{

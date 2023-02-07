@@ -40,8 +40,8 @@ func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string)
 	// Send message over notifiers
 	for _, n := range notifiers {
 		err := n.SendMessageToAll(ctx, interactive.Message{
-			Base: api.Base{
-				Body: api.Body{
+			Message: api.Message{
+				BaseBody: api.Body{
 					Plaintext: msg,
 				},
 			},

@@ -490,9 +490,9 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 
 func (e *KubectlCmdBuilder) message(header, msg string) (interactive.Message, error) {
 	return interactive.Message{
-		Base: api.Base{
-			Description: header,
-			Body: api.Body{
+		Description: header,
+		Message: api.Message{
+			BaseBody: api.Body{
 				Plaintext: msg,
 			},
 		},

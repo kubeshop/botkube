@@ -116,7 +116,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			e := NewExecExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expOutput, msg.Body.CodeBlock)
+			assert.Equal(t, tc.expOutput, msg.BaseBody.CodeBlock)
 		})
 	}
 }

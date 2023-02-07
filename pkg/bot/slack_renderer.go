@@ -121,12 +121,12 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Blo
 		blocks = append(blocks, b.mdTextSection(msg.Description))
 	}
 
-	if msg.Body.Plaintext != "" {
-		blocks = append(blocks, b.mdTextSection(msg.Body.Plaintext))
+	if msg.BaseBody.Plaintext != "" {
+		blocks = append(blocks, b.mdTextSection(msg.BaseBody.Plaintext))
 	}
 
-	if msg.Body.CodeBlock != "" {
-		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.Body.CodeBlock)))
+	if msg.BaseBody.CodeBlock != "" {
+		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.BaseBody.CodeBlock)))
 	}
 
 	all := len(msg.Sections)
@@ -188,14 +188,14 @@ func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.Message) slack
 		out.WriteString(msg.Description + "\n")
 	}
 
-	if msg.Body.Plaintext != "" {
-		out.WriteString(msg.Body.Plaintext)
+	if msg.BaseBody.Plaintext != "" {
+		out.WriteString(msg.BaseBody.Plaintext)
 	}
 
-	if msg.Body.CodeBlock != "" {
+	if msg.BaseBody.CodeBlock != "" {
 		// we don't use the AdaptiveCodeBlock as we want to have a code block even for single lines
 		// to make it more readable in the wide view.
-		out.WriteString(formatx.CodeBlock(msg.Body.CodeBlock))
+		out.WriteString(formatx.CodeBlock(msg.BaseBody.CodeBlock))
 	}
 
 	return slack.MsgOptionText(out.String(), false)

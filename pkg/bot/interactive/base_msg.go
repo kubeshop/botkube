@@ -3,7 +3,8 @@ package interactive
 import "github.com/kubeshop/botkube/pkg/api"
 
 type Message struct {
-	api.Base
+	Header      string
+	Description string
 	api.Message
 }
 

@@ -142,9 +142,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 	if len(sourceBindings) == 0 {
 		selectedOptions := e.mapToOptions(e.currentlySelectedOptions(commGroupName, platform, conversation.ID))
 		return interactive.Message{
-			Base: api.Base{
-				Header: "Adjust notifications",
-			},
+			Header: "Adjust notifications",
 			Message: api.Message{
 				Type:              api.PopupMessage,
 				OnlyVisibleForYou: true,
@@ -183,9 +181,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 	}
 
 	return interactive.Message{
-		Base: api.Base{
-			Description: e.getEditedSourceBindingsMsg(userID, sourceList),
-		},
+		Description: e.getEditedSourceBindingsMsg(userID, sourceList),
 	}, nil
 }
 
@@ -201,9 +197,7 @@ func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interac
 	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.Message{
-		Base: api.Base{
-			Description: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
-		},
+		Description: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
 	}
 }
 

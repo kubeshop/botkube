@@ -14,9 +14,8 @@ import (
 func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 	// given
 	message := Message{
-		Base: api.Base{
-			Header: "Adjust notifications",
-		},
+		Header:      "Adjust notifications",
+		Description: "Adjust notifications description",
 
 		Message: api.Message{
 			Sections: []api.Section{

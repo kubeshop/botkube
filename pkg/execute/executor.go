@@ -102,9 +102,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", expandedRawCmd, err.Error())
 		return interactive.Message{
-			Base: api.Base{
-				Description: header(cmdCtx),
-				Body: api.Body{
+			Description: header(cmdCtx),
+			Message: api.Message{
+				BaseBody: api.Body{
 					Plaintext: err.Error(),
 				},
 			},
@@ -237,14 +237,14 @@ func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext
 		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
 		return interactive.Message{}
 	}
-	if msg.Body.Plaintext == "" && msg.Body.CodeBlock == "" {
-		msg.Body.Plaintext = emptyResponseMsg
+	if msg.BaseBody.Plaintext == "" && msg.BaseBody.CodeBlock == "" {
+		msg.BaseBody.Plaintext = emptyResponseMsg
 		return msg
 	}
 	// Show Filter Input if command response is more than `lineLimitToShowFilter`
-	s := msg.Body.Plaintext
-	if msg.Body.Plaintext == "" {
-		s = msg.Body.CodeBlock
+	s := msg.BaseBody.Plaintext
+	if msg.BaseBody.Plaintext == "" {
+		s = msg.BaseBody.CodeBlock
 	}
 	if len(strings.SplitN(s, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
 		msg.PlaintextInputs = append(msg.PlaintextInputs,
@@ -266,9 +266,9 @@ func respond(msg string, cmdCtx CommandContext) interactive.Message {
 	}
 
 	message := interactive.Message{
-		Base: api.Base{
-			Description: header(cmdCtx),
-			Body:        msgBody,
+		Description: header(cmdCtx),
+		Message: api.Message{
+			BaseBody: msgBody,
 		},
 	}
 	// Show Filter Input if command response is more than `lineLimitToShowFilter`

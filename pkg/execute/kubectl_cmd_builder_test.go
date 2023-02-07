@@ -192,9 +192,9 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, interactive.Message{
-				Base: api.Base{
-					Description: cmdHeader,
-					Body: api.Body{
+				Description: cmdHeader,
+				Message: api.Message{
+					BaseBody: api.Body{
 						Plaintext: "Please specify the kubectl command",
 					},
 				},

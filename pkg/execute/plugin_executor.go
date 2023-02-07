@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubeshop/botkube/pkg/api"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -100,9 +99,9 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx 
 			plaintext = emptyResponseMsg
 		}
 		return interactive.Message{
-			Base: api.Base{
-				Description: header(cmdCtx),
-				Body: api.Body{
+			Description: header(cmdCtx),
+			Message: api.Message{
+				BaseBody: api.Body{
 					Plaintext: plaintext,
 					CodeBlock: code,
 				},
@@ -114,7 +113,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx 
 		Message: resp.Message,
 	}
 	if !resp.Message.OnlyVisibleForYou {
-		out.Base.Description = header(cmdCtx)
+		out.Description = header(cmdCtx)
 	}
 
 	return out, nil

@@ -1,3 +1,0 @@
-ALIAS COMMAND DISPLAY NAME
-bkh   help    Botkube Help
-p     ping    Botkube Ping

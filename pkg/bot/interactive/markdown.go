@@ -45,18 +45,18 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 		addLine(msg.Description)
 	}
 
-	if msg.Body.Plaintext != "" {
-		addLine(msg.Body.Plaintext)
+	if msg.BaseBody.Plaintext != "" {
+		addLine(msg.BaseBody.Plaintext)
 	}
 
-	if msg.Body.CodeBlock != "" {
-		addLine(mdFormatter.codeBlockFormatter(msg.Body.CodeBlock))
+	if msg.BaseBody.CodeBlock != "" {
+		addLine(mdFormatter.codeBlockFormatter(msg.BaseBody.CodeBlock))
 	}
 
 	for i, section := range msg.Sections {
 		// do not include empty line when there is no base content
-		var empty api.Base
-		if i != 0 || msg.Base != empty {
+		var empty api.Body
+		if i != 0 || msg.BaseBody != empty || msg.Description != "" || msg.Header != "" {
 			addLine("") // padding between sections
 		}
 

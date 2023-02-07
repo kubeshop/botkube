@@ -50,15 +50,20 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
+
 	outMsg.Sections = []api.Section{
 		{
-			Base: outMsg.Base,
+			Base: api.Base{
+				Description: outMsg.Description,
+				Body:        outMsg.BaseBody,
+			},
+
 			Context: []api.ContextItem{
 				{Text: aliasesForCurrentBindingsMsg},
 			},
 		},
 	}
-	outMsg.Base = api.Base{}
+	outMsg.Description = ""
 
 	return outMsg, nil
 }

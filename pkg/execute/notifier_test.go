@@ -91,11 +91,11 @@ func TestNotifierExecutorStart(t *testing.T) {
 				assert.EqualError(t, err, tc.ExpectedError)
 				return
 			}
-			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)
+			assert.Equal(t, msg.BaseBody.CodeBlock, tc.ExpectedResult)
 
 			msg, err = e.Status(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
-			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
+			assert.Contains(t, msg.BaseBody.CodeBlock, tc.Status)
 		})
 	}
 }
@@ -165,11 +165,11 @@ func TestNotifierExecutorStop(t *testing.T) {
 				assert.EqualError(t, err, tc.ExpectedError)
 				return
 			}
-			assert.Equal(t, msg.Body.CodeBlock, tc.ExpectedResult)
+			assert.Equal(t, msg.BaseBody.CodeBlock, tc.ExpectedResult)
 
 			msg, err = e.Status(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
-			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
+			assert.Contains(t, msg.BaseBody.CodeBlock, tc.Status)
 		})
 	}
 }
@@ -218,7 +218,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 			tc.CmdCtx.Mapping = mapping
 			msg, err := e.Status(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
-			assert.Contains(t, msg.Body.CodeBlock, tc.Status)
+			assert.Contains(t, msg.BaseBody.CodeBlock, tc.Status)
 		})
 	}
 }

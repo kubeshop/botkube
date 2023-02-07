@@ -138,9 +138,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 				BotName:       botName,
 			}
 			expMessage := interactive.Message{
-				Base: api.Base{
-					Description: tc.message,
-				},
+				Description: tc.message,
 			}
 			// when
 			msg, err := executor.Edit(context.Background(), cmdCtx)
@@ -169,9 +167,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 
 			expErr: nil,
 			expMsg: interactive.Message{
-				Base: api.Base{
-					Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
-				},
+				Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 			},
 		},
 		{
@@ -180,9 +176,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 
 			expErr: nil,
 			expMsg: interactive.Message{
-				Base: api.Base{
-					Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
-				},
+				Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 			},
 		},
 	}
@@ -237,9 +231,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 	}
 
 	expMsg := interactive.Message{
-		Base: api.Base{
-			Header: "Adjust notifications",
-		},
+		Header: "Adjust notifications",
 		Message: api.Message{
 
 			Type:              api.PopupMessage,
@@ -312,9 +304,7 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 	}
 
 	expMsg := interactive.Message{
-		Base: api.Base{
-			Header: "Adjust notifications",
-		},
+		Header: "Adjust notifications",
 		Message: api.Message{
 			Type:              api.PopupMessage,
 			OnlyVisibleForYou: true,

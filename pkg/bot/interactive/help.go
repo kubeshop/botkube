@@ -35,9 +35,7 @@ func NewHelpMessage(platform config.CommPlatformIntegration, clusterName, botNam
 // Build returns help message with interactive sections.
 func (h *HelpMessage) Build() Message {
 	msg := Message{
-		Base: api.Base{
-			Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", h.clusterName),
-		},
+		Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", h.clusterName),
 	}
 
 	type getter func() []api.Section
