@@ -197,7 +197,7 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event event.Event, eventS
 }
 
 // SendMessageToAll is no-op.
-func (e *Elasticsearch) SendMessageToAll(_ context.Context, _ interactive.Message) error {
+func (e *Elasticsearch) SendMessageToAll(_ context.Context, _ interactive.CoreMessage) error {
 	return nil
 }
 

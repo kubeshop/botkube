@@ -113,7 +113,7 @@ func TestSourceExecutor(t *testing.T) {
 			e := NewSourceExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expOutput, msg.Body.CodeBlock)
+			assert.Equal(t, tc.expOutput, msg.BaseBody.CodeBlock)
 		})
 	}
 }

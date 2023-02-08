@@ -1,17 +1,21 @@
 package interactive
 
-import "fmt"
+import (
+	"fmt"
 
-type pluginHelpProviderFn func(platform string, btnBuilder ButtonBuilder) Section
+	"github.com/kubeshop/botkube/pkg/api"
+)
+
+type pluginHelpProviderFn func(platform string, btnBuilder api.ButtonBuilder) api.Section
 
 var pluginHelpProvider = map[string]pluginHelpProviderFn{
-	"botkube/helm": func(platform string, btnBuilder ButtonBuilder) Section {
-		return Section{
-			Base: Base{
+	"botkube/helm": func(platform string, btnBuilder api.ButtonBuilder) api.Section {
+		return api.Section{
+			Base: api.Base{
 				Header:      "Run Helm commands",
 				Description: fmt.Sprintf("You can run Helm commands directly from %s!", platform),
 			},
-			Buttons: []Button{
+			Buttons: []api.Button{
 				btnBuilder.ForCommandWithDescCmd("Show help", "helm help"),
 			},
 		}

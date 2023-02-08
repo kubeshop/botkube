@@ -51,15 +51,15 @@ func (*OSCommand) RunCombinedOutput(command string, args []string) (string, erro
 }
 
 type (
-	executorFunc    func() (interactive.Message, error)
+	executorFunc    func() (interactive.CoreMessage, error)
 	executorsRunner map[string]executorFunc
 )
 
-func (cmds executorsRunner) SelectAndRun(cmdVerb string) (interactive.Message, error) {
+func (cmds executorsRunner) SelectAndRun(cmdVerb string) (interactive.CoreMessage, error) {
 	cmdVerb = strings.ToLower(cmdVerb)
 	fn, found := cmds[cmdVerb]
 	if !found {
-		return interactive.Message{}, errUnsupportedCommand
+		return interactive.CoreMessage{}, errUnsupportedCommand
 	}
 	return fn()
 }

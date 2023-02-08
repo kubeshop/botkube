@@ -68,10 +68,8 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
-			msg := interactive.Message{
-				Base: interactive.Base{
-					Description: string(event),
-				},
+			msg := interactive.CoreMessage{
+				Description: string(event),
 			}
 			err := n.SendGenericMessage(ctx, &genericMessage{response: msg}, sources)
 			if err != nil {
@@ -82,10 +80,10 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 }
 
 type genericMessage struct {
-	response interactive.Message
+	response interactive.CoreMessage
 }
 
 // ForBot returns interactive message.
-func (g *genericMessage) ForBot(string) interactive.Message {
+func (g *genericMessage) ForBot(string) interactive.CoreMessage {
 	return g.response
 }

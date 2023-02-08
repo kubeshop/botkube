@@ -43,6 +43,17 @@ builds:
     goarch: *goarch
     goarm: *goarm
 
+
+  - id: kubectl
+    main: cmd/executor/kubectl/main.go
+    binary: executor_kubectl_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env: *env
+    goos: *goos
+    goarch: *goarch
+    goarm: *goarm
+
   - id: cm-watcher
     main: cmd/source/cm-watcher/main.go
     binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}

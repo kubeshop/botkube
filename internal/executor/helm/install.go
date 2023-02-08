@@ -2,7 +2,6 @@ package helm
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -92,19 +91,4 @@ type NotSupportedInstallFlags struct {
 	Values      []string `arg:"-f,--values"`
 	Wait        bool     `arg:"--wait"`
 	WaitForJobs bool     `arg:"--wait-for-jobs"`
-}
-
-func newUnsupportedFlagsError(flags []string) error {
-	if len(flags) == 1 {
-		return fmt.Errorf("The %q flag is not supported by the Botkube Helm plugin. Please remove it.", flags[0])
-	}
-
-	points := make([]string, len(flags))
-	for i, err := range flags {
-		points[i] = fmt.Sprintf("* %s", err)
-	}
-
-	return fmt.Errorf(
-		"Those flags are not supported by the Botkube Helm Plugin:\n\t%s\nPlease remove them.",
-		strings.Join(points, "\n\t"))
 }

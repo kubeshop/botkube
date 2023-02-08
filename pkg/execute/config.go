@@ -50,13 +50,13 @@ func (e *ConfigExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // Show returns Config in yaml format
-func (e *ConfigExecutor) Show(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *ConfigExecutor) Show(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 
 	cfg, err := e.renderBotkubeConfiguration()
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while rendering Botkube configuration: %w", err)
+		return interactive.CoreMessage{}, fmt.Errorf("while rendering Botkube configuration: %w", err)
 	}
 	return respond(cfg, cmdCtx), nil
 }

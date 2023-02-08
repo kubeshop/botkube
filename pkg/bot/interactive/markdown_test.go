@@ -6,67 +6,69 @@ import (
 
 	"gotest.tools/v3/golden"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 // go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 	// given
-	message := Message{
-		Base: Base{
-			Header: "Adjust notifications",
-		},
+	message := CoreMessage{
+		Header:      "Adjust notifications",
+		Description: "Adjust notifications description",
 
-		Sections: []Section{
-			{
-				MultiSelect: MultiSelect{
-					Name: "Adjust notifications",
-					Description: Body{
-						Plaintext: "Select notification sources",
-					},
-					Command: "@Botkube edit SourceBindings",
-					Options: []OptionItem{
-						{
-							Name:  "K8s all events",
-							Value: "k8s-all-events",
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					MultiSelect: api.MultiSelect{
+						Name: "Adjust notifications",
+						Description: api.Body{
+							Plaintext: "Select notification sources",
 						},
-						{
-							Name:  "K8s recommendations",
-							Value: "k8s-recommendations",
+						Command: "@Botkube edit SourceBindings",
+						Options: []api.OptionItem{
+							{
+								Name:  "K8s all events",
+								Value: "k8s-all-events",
+							},
+							{
+								Name:  "K8s recommendations",
+								Value: "k8s-recommendations",
+							},
 						},
 					},
 				},
-			},
-			{
-				Selects: Selects{
-					Items: []Select{
-						{
-							Name:    "Commands",
-							Command: "@Botkube kcc",
-							OptionGroups: []OptionGroup{
-								{
-									Name: "Workloads",
-									Options: []OptionItem{
-										{
-											Name:  "pods",
-											Value: "pods",
-										},
-										{
-											Name:  "deployments",
-											Value: "deployments",
+				{
+					Selects: api.Selects{
+						Items: []api.Select{
+							{
+								Name:    "Commands",
+								Command: "@Botkube kcc",
+								OptionGroups: []api.OptionGroup{
+									{
+										Name: "Workloads",
+										Options: []api.OptionItem{
+											{
+												Name:  "pods",
+												Value: "pods",
+											},
+											{
+												Name:  "deployments",
+												Value: "deployments",
+											},
 										},
 									},
-								},
-								{
-									Name: "Data",
-									Options: []OptionItem{
-										{
-											Name:  "configmap",
-											Value: "configmap",
-										},
-										{
-											Name:  "secrets",
-											Value: "secrets",
+									{
+										Name: "Data",
+										Options: []api.OptionItem{
+											{
+												Name:  "configmap",
+												Value: "configmap",
+											},
+											{
+												Name:  "secrets",
+												Value: "secrets",
+											},
 										},
 									},
 								},

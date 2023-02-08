@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
@@ -31,7 +32,7 @@ func DefaultMDFormatter() MDFormatter {
 }
 
 // RenderMessage returns interactive message as a plaintext with Markdown syntax.
-func RenderMessage(mdFormatter MDFormatter, msg Message) string {
+func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 	var out strings.Builder
 	addLine := func(in string) {
 		out.WriteString(mdFormatter.newlineFormatter(in))
@@ -44,18 +45,18 @@ func RenderMessage(mdFormatter MDFormatter, msg Message) string {
 		addLine(msg.Description)
 	}
 
-	if msg.Body.Plaintext != "" {
-		addLine(msg.Body.Plaintext)
+	if msg.BaseBody.Plaintext != "" {
+		addLine(msg.BaseBody.Plaintext)
 	}
 
-	if msg.Body.CodeBlock != "" {
-		addLine(mdFormatter.codeBlockFormatter(msg.Body.CodeBlock))
+	if msg.BaseBody.CodeBlock != "" {
+		addLine(mdFormatter.codeBlockFormatter(msg.BaseBody.CodeBlock))
 	}
 
 	for i, section := range msg.Sections {
 		// do not include empty line when there is no base content
-		var empty Base
-		if i != 0 || msg.Base != empty {
+		var empty api.Body
+		if i != 0 || msg.BaseBody != empty || msg.Description != "" || msg.Header != "" {
 			addLine("") // padding between sections
 		}
 

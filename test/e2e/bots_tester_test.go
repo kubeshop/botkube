@@ -64,7 +64,7 @@ type BotDriver interface {
 	BotName() string
 	BotUserID() string
 	TesterUserID() string
-	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.Message) error
-	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.Message) error
+	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
+	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
 	GetColorByLevel(level config.Level) string
 }

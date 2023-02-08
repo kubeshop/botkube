@@ -105,6 +105,10 @@ const (
 	WebhookCommPlatformIntegration CommPlatformIntegration = "webhook"
 )
 
+func (c CommPlatformIntegration) IsInteractive() bool {
+	return c == SocketSlackCommPlatformIntegration
+}
+
 // String returns string platform name.
 func (c CommPlatformIntegration) String() string {
 	return string(c)

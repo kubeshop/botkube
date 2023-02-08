@@ -10,29 +10,55 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 // Executor defines the Botkube executor plugin functionality.
 type Executor interface {
 	Execute(context.Context, ExecuteInput) (ExecuteOutput, error)
 	Metadata(ctx context.Context) (api.MetadataOutput, error)
-	Help(context.Context) (interactive.Message, error)
+	Help(context.Context) (api.Message, error)
 }
 
 type (
 	// ExecuteInput holds the input of the Execute function.
 	ExecuteInput struct {
+		// Context holds execution context.
+		Context ExecuteInputContext
 		// Command holds the command to be executed.
 		Command string
 		// Configs is a list of Executor configurations specified by users.
 		Configs []*Config
 	}
 
+	// ExecuteInputContext holds execution context.
+	ExecuteInputContext struct {
+		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
+		IsInteractivitySupported bool
+	}
+
 	// ExecuteOutput holds the output of the Execute function.
 	ExecuteOutput struct {
-		// Data represent the output of processing a given input command.
+		// Data represents the output of processing a given input command.
+		// Deprecated: Use the Message field instead.
+		//
+		// Migration path:
+		//
+		//	Old approach:
+		//	  return executor.ExecuteOutput{
+		//	  	Data: data,
+		//	  }
+		//
+		//	New approach:
+		//	  return executor.ExecuteOutput{
+		//	  	Message: api.NewPlaintextMessage(data, true),
+		//	  }
 		Data string
+
+		// Message represents the output of processing a given input command.
+		// You can construct a complex message or just use one of our helper functions:
+		//   - api.NewCodeBlockMessage("body", true)
+		//   - api.NewPlaintextMessage("body", true)
+		Message api.Message
 	}
 )
 
@@ -76,15 +102,29 @@ type grpcClient struct {
 }
 
 func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutput, error) {
-	res, err := p.client.Execute(ctx, &ExecuteRequest{
+	grpcInput := &ExecuteRequest{
 		Command: in.Command,
 		Configs: in.Configs,
-	})
+		Context: &ExecuteContext{
+			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+		},
+	}
+
+	res, err := p.client.Execute(ctx, grpcInput)
 	if err != nil {
 		return ExecuteOutput{}, err
 	}
+
+	var msg api.Message
+	if len(res.Message) != 0 && string(res.Message) != "" {
+		if err := json.Unmarshal(res.Message, &msg); err != nil {
+			return ExecuteOutput{}, fmt.Errorf("while unmarshalling message from JSON: %w", err)
+		}
+	}
+
 	return ExecuteOutput{
-		Data: res.Data,
+		Message: msg,
+		Data:    res.Data,
 	}, nil
 }
 
@@ -105,14 +145,14 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func (p *grpcClient) Help(ctx context.Context) (interactive.Message, error) {
+func (p *grpcClient) Help(ctx context.Context) (api.Message, error) {
 	resp, err := p.client.Help(ctx, &emptypb.Empty{})
 	if err != nil {
-		return interactive.Message{}, err
+		return api.Message{}, err
 	}
-	var msg interactive.Message
+	var msg api.Message
 	if err := json.Unmarshal(resp.Help, &msg); err != nil {
-		return interactive.Message{}, fmt.Errorf("while unmarshalling help from JSON: %w", err)
+		return api.Message{}, fmt.Errorf("while unmarshalling help from JSON: %w", err)
 	}
 	return msg, nil
 }
@@ -126,12 +166,21 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 	out, err := p.Impl.Execute(ctx, ExecuteInput{
 		Command: request.Command,
 		Configs: request.Configs,
+		Context: ExecuteInputContext{
+			IsInteractivitySupported: request.Context.IsInteractivitySupported,
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	marshalled, err := json.Marshal(out.Message)
+	if err != nil {
+		return nil, fmt.Errorf("while marshalling help to JSON: %w", err)
+	}
 	return &ExecuteResponse{
-		Data: out.Data,
+		Message: marshalled,
+		Data:    out.Data,
 	}, nil
 }
 

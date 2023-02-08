@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestAliasExecutor_List(t *testing.T) {
 	// given
-	expContextSections := interactive.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
+	expContextSections := api.ContextItems{{Text: aliasesForCurrentBindingsMsg}}
 
 	testCases := []struct {
 		name     string

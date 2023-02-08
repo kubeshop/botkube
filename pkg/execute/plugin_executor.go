@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -52,55 +53,128 @@ func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 }
 
 // Execute executes plugin executor based on a given command.
-func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, args []string, command string) (string, error) {
+func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
-		"command":  command,
+		"command":  cmdCtx.CleanCmd,
 	}).Debugf("Handling plugin command...")
 
-	cmdName := args[0]
+	cmdName := cmdCtx.Args[0]
 	plugins, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
 
 	configs, err := e.collectConfigs(plugins)
 	if err != nil {
-		return "", fmt.Errorf("while collecting configs: %w", err)
+		return interactive.CoreMessage{}, fmt.Errorf("while collecting configs: %w", err)
 	}
 
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
 	if err != nil {
-		return "", fmt.Errorf("while getting concrete plugin client: %w", err)
+		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
-		Command: command,
+		Command: cmdCtx.CleanCmd,
 		Configs: configs,
+		Context: executor.ExecuteInputContext{
+			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
+		},
 	})
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
-			return "", NewExecutionCommandError(err.Error())
+			return interactive.CoreMessage{}, NewExecutionCommandError(err.Error())
 		}
-		return "", NewExecutionCommandError(s.Message())
+		return interactive.CoreMessage{}, NewExecutionCommandError(s.Message())
 	}
 
-	return resp.Data, nil
+	if resp.Data != "" {
+		return respond(resp.Data, cmdCtx), nil
+	}
+
+	if resp.Message.IsEmpty() {
+		return emptyMsg(cmdCtx), nil
+	}
+
+	if resp.Message.Type == api.BaseBodyWithFilterMessage {
+		return e.filterMessage(resp.Message, cmdCtx), nil
+	}
+
+	out := interactive.CoreMessage{
+		Message: resp.Message,
+	}
+	if !resp.Message.OnlyVisibleForYou {
+		out.Description = header(cmdCtx)
+	}
+
+	return out, nil
 }
 
-func (e *PluginExecutor) Help(ctx context.Context, bindings []string, args []string, command string) (interactive.Message, error) {
+func (e *PluginExecutor) Help(ctx context.Context, bindings []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
-		"command":  command,
+		"command":  cmdCtx.CleanCmd,
 	}).Debugf("Handling plugin help command...")
 
-	cmdName := args[0]
+	cmdName := cmdCtx.Args[0]
 	_, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
 
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while getting concrete plugin client: %w", err)
+		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 	e.log.Debug("running help command")
-	return cli.Help(ctx)
+
+	msg, err := cli.Help(ctx)
+	if err != nil {
+		return interactive.CoreMessage{}, err
+	}
+
+	if msg.IsEmpty() {
+		return emptyMsg(cmdCtx), nil
+	}
+
+	if msg.Type == api.BaseBodyWithFilterMessage {
+		return e.filterMessage(msg, cmdCtx), nil
+	}
+
+	return interactive.CoreMessage{
+		Description: header(cmdCtx),
+		Message:     msg,
+	}, nil
+}
+
+func emptyMsg(cmdCtx CommandContext) interactive.CoreMessage {
+	return interactive.CoreMessage{
+		Description: header(cmdCtx),
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: emptyResponseMsg,
+			},
+		},
+	}
+}
+
+// filterMessage takes into account only base plaintext + code block, all other properties are ignored.
+// This method should be called only for message type api.BaseBodyWithFilterMessage.
+func (e *PluginExecutor) filterMessage(msg api.Message, cmdCtx CommandContext) interactive.CoreMessage {
+	code := cmdCtx.ExecutorFilter.Apply(msg.BaseBody.CodeBlock)
+	plaintext := cmdCtx.ExecutorFilter.Apply(msg.BaseBody.Plaintext)
+	if code == "" && plaintext == "" {
+		plaintext = emptyResponseMsg
+	}
+
+	outMsg := interactive.CoreMessage{
+		Description: header(cmdCtx),
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: plaintext,
+				CodeBlock: code,
+			},
+		},
+	}
+
+	allLines := code + plaintext
+	return appendInteractiveFilterIfNeeded(allLines, outMsg, cmdCtx)
 }
 
 func (e *PluginExecutor) collectConfigs(plugins []config.Plugin) ([]*executor.Config, error) {

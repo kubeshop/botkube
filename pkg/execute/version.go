@@ -43,7 +43,7 @@ func (e *VersionExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // Version responds with k8s and botkube version string
-func (e *VersionExecutor) Version(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *VersionExecutor) Version(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	return respond(e.botkubeVersion, cmdCtx), nil

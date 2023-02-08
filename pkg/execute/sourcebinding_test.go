@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -136,10 +137,8 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 				User:          userID,
 				BotName:       botName,
 			}
-			expMessage := interactive.Message{
-				Base: interactive.Base{
-					Description: tc.message,
-				},
+			expMessage := interactive.CoreMessage{
+				Description: tc.message,
 			}
 			// when
 			msg, err := executor.Edit(context.Background(), cmdCtx)
@@ -160,17 +159,15 @@ func TestSourceBindingsErrors(t *testing.T) {
 		name    string
 		command string
 		expErr  error
-		expMsg  interactive.Message
+		expMsg  interactive.CoreMessage
 	}{
 		{
 			name:    "Unknown source name",
 			command: `edit SourceBindings something-else`,
 
 			expErr: nil,
-			expMsg: interactive.Message{
-				Base: interactive.Base{
-					Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
-				},
+			expMsg: interactive.CoreMessage{
+				Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 			},
 		},
 		{
@@ -178,10 +175,8 @@ func TestSourceBindingsErrors(t *testing.T) {
 			command: `edit SourceBindings something-else other`,
 
 			expErr: nil,
-			expMsg: interactive.Message{
-				Base: interactive.Base{
-					Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
-				},
+			expMsg: interactive.CoreMessage{
+				Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
 			},
 		},
 	}
@@ -235,31 +230,32 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		},
 	}
 
-	expMsg := interactive.Message{
-		Type: interactive.Popup,
-		Base: interactive.Base{
-			Header: "Adjust notifications",
-		},
-		OnlyVisibleForYou: true,
-		Sections: []interactive.Section{
-			{
-				MultiSelect: interactive.MultiSelect{
-					Name: "Adjust notifications",
-					Description: interactive.Body{
-						Plaintext: "Select notification sources.",
-					},
-					Command: "Botkube edit SourceBindings",
-					Options: []interactive.OptionItem{
-						{Name: "BAR", Value: "bar"},
-						{Name: "BAZ", Value: "baz"},
-						{Name: "FIZ", Value: "fiz"},
-						{Name: "FOO", Value: "foo"},
-						{Name: "XYZ", Value: "xyz"},
-					},
-					InitialOptions: []interactive.OptionItem{
-						{Name: "BAR", Value: "bar"},
-						{Name: "FIZ", Value: "fiz"},
-						{Name: "BAZ", Value: "baz"},
+	expMsg := interactive.CoreMessage{
+		Header: "Adjust notifications",
+		Message: api.Message{
+
+			Type:              api.PopupMessage,
+			OnlyVisibleForYou: true,
+			Sections: []api.Section{
+				{
+					MultiSelect: api.MultiSelect{
+						Name: "Adjust notifications",
+						Description: api.Body{
+							Plaintext: "Select notification sources.",
+						},
+						Command: "Botkube edit SourceBindings",
+						Options: []api.OptionItem{
+							{Name: "BAR", Value: "bar"},
+							{Name: "BAZ", Value: "baz"},
+							{Name: "FIZ", Value: "fiz"},
+							{Name: "FOO", Value: "foo"},
+							{Name: "XYZ", Value: "xyz"},
+						},
+						InitialOptions: []api.OptionItem{
+							{Name: "BAR", Value: "bar"},
+							{Name: "FIZ", Value: "fiz"},
+							{Name: "BAZ", Value: "baz"},
+						},
 					},
 				},
 			},
@@ -307,23 +303,23 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		},
 	}
 
-	expMsg := interactive.Message{
-		Type: interactive.Popup,
-		Base: interactive.Base{
-			Header: "Adjust notifications",
-		},
-		OnlyVisibleForYou: true,
-		Sections: []interactive.Section{
-			{
-				MultiSelect: interactive.MultiSelect{
-					Name: "Adjust notifications",
-					Description: interactive.Body{
-						Plaintext: "Select notification sources.",
-					},
-					Command: "Botkube edit SourceBindings",
-					Options: []interactive.OptionItem{
-						{Name: "BAR", Value: "bar"},
-						{Name: "XYZ", Value: "xyz"},
+	expMsg := interactive.CoreMessage{
+		Header: "Adjust notifications",
+		Message: api.Message{
+			Type:              api.PopupMessage,
+			OnlyVisibleForYou: true,
+			Sections: []api.Section{
+				{
+					MultiSelect: api.MultiSelect{
+						Name: "Adjust notifications",
+						Description: api.Body{
+							Plaintext: "Select notification sources.",
+						},
+						Command: "Botkube edit SourceBindings",
+						Options: []api.OptionItem{
+							{Name: "BAR", Value: "bar"},
+							{Name: "XYZ", Value: "xyz"},
+						},
 					},
 				},
 			},

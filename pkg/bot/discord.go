@@ -175,7 +175,7 @@ func (b *Discord) SendGenericMessage(_ context.Context, genericMsg interactive.G
 
 // SendMessageToAll sends interactive message to all Discord channels.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendMessageToAll(_ context.Context, msg interactive.Message) error {
+func (b *Discord) SendMessageToAll(_ context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
@@ -285,7 +285,7 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	return nil
 }
 
-func (b *Discord) send(channelID string, resp interactive.Message) error {
+func (b *Discord) send(channelID string, resp interactive.CoreMessage) error {
 	b.log.Debugf("Discord Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)

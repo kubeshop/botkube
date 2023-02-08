@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -18,7 +19,7 @@ type Notifier interface {
 	// SendMessageToAll is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
 	// TODO: Consider option per channel to turn on/off "announcements" (Botkube start/stop/upgrade, notify/config change).
-	SendMessageToAll(context.Context, interactive.Message) error
+	SendMessageToAll(context.Context, interactive.CoreMessage) error
 
 	// SendGenericMessage sends a generic message for a given source bindings.
 	SendGenericMessage(context.Context, interactive.GenericMessage, []string) error
@@ -38,9 +39,9 @@ func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string)
 
 	// Send message over notifiers
 	for _, n := range notifiers {
-		err := n.SendMessageToAll(ctx, interactive.Message{
-			Base: interactive.Base{
-				Body: interactive.Body{
+		err := n.SendMessageToAll(ctx, interactive.CoreMessage{
+			Message: api.Message{
+				BaseBody: api.Body{
 					Plaintext: msg,
 				},
 			},

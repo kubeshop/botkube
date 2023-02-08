@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -29,7 +30,7 @@ func TestCommandPreview(t *testing.T) {
 		name string
 		args []string
 
-		expMsg interactive.Message
+		expMsg interactive.CoreMessage
 	}{
 		{
 			name: "Print all dropdowns and full command on verb change",
@@ -190,10 +191,10 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, interactive.Message{
-				Base: interactive.Base{
-					Description: cmdHeader,
-					Body: interactive.Body{
+			assert.Equal(t, interactive.CoreMessage{
+				Description: cmdHeader,
+				Message: api.Message{
+					BaseBody: api.Body{
 						Plaintext: "Please specify the kubectl command",
 					},
 				},
@@ -269,36 +270,38 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	}
 }
 
-func fixInitialBuilderMessage() interactive.Message {
+func fixInitialBuilderMessage() interactive.CoreMessage {
 	verbsDropdown := fixVerbsDropdown()
 	verbsDropdown.InitialOption = nil // initial message shouldn't have anything selected.
-	return interactive.Message{
-		Sections: []interactive.Section{
-			{
-				Selects: interactive.Selects{
-					Items: []interactive.Select{
-						verbsDropdown,
+	return interactive.CoreMessage{
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Selects: api.Selects{
+						Items: []api.Select{
+							verbsDropdown,
+						},
 					},
 				},
 			},
+			OnlyVisibleForYou: true,
+			ReplaceOriginal:   false,
 		},
-		OnlyVisibleForYou: true,
-		ReplaceOriginal:   false,
 	}
 }
 
-func fixVerbsDropdown() interactive.Select {
-	return interactive.Select{
+func fixVerbsDropdown() api.Select {
+	return api.Select{
 		Name:    "Select command",
 		Command: "@BKTesting kc-cmd-builder --verbs",
-		InitialOption: &interactive.OptionItem{
+		InitialOption: &api.OptionItem{
 			Name:  "get",
 			Value: "get",
 		},
-		OptionGroups: []interactive.OptionGroup{
+		OptionGroups: []api.OptionGroup{
 			{
 				Name: "Select command",
-				Options: []interactive.OptionItem{
+				Options: []api.OptionItem{
 					{
 						Name:  "describe",
 						Value: "describe",
@@ -313,18 +316,18 @@ func fixVerbsDropdown() interactive.Select {
 	}
 }
 
-func fixResourceTypeDropdown() interactive.Select {
-	return interactive.Select{
+func fixResourceTypeDropdown() api.Select {
+	return api.Select{
 		Name:    "Select resource",
 		Command: "@BKTesting kc-cmd-builder --resource-type",
-		InitialOption: &interactive.OptionItem{
+		InitialOption: &api.OptionItem{
 			Name:  "pods",
 			Value: "pods",
 		},
-		OptionGroups: []interactive.OptionGroup{
+		OptionGroups: []api.OptionGroup{
 			{
 				Name: "Select resource",
-				Options: []interactive.OptionItem{
+				Options: []api.OptionItem{
 					{
 						Name:  "deployments",
 						Value: "deployments",
@@ -339,14 +342,14 @@ func fixResourceTypeDropdown() interactive.Select {
 	}
 }
 
-func fixNamespaceDropdown() interactive.Select {
-	return interactive.Select{
+func fixNamespaceDropdown() api.Select {
+	return api.Select{
 		Name:    "Select namespace",
 		Command: "@BKTesting kc-cmd-builder --namespace",
-		OptionGroups: []interactive.OptionGroup{
+		OptionGroups: []api.OptionGroup{
 			{
 				Name: "Select namespace",
-				Options: []interactive.OptionItem{
+				Options: []api.OptionItem{
 					{
 						Name:  "default (namespace)",
 						Value: "default",
@@ -354,41 +357,41 @@ func fixNamespaceDropdown() interactive.Select {
 				},
 			},
 		},
-		InitialOption: &interactive.OptionItem{
+		InitialOption: &api.OptionItem{
 			Name:  "default (namespace)",
 			Value: "default",
 		},
 	}
 }
 
-func fixEmptyResourceNamesDropdown() interactive.Select {
-	return interactive.Select{
+func fixEmptyResourceNamesDropdown() api.Select {
+	return api.Select{
 		Name: "No resources found",
-		Type: interactive.ExternalSelect,
-		InitialOption: &interactive.OptionItem{
+		Type: api.ExternalSelect,
+		InitialOption: &api.OptionItem{
 			Name:  "No resources found",
 			Value: "no-resources",
 		},
 	}
 }
 
-func fixResourceNamesDropdown(includeInitialOpt bool) interactive.Select {
-	var opt *interactive.OptionItem
+func fixResourceNamesDropdown(includeInitialOpt bool) api.Select {
+	var opt *api.OptionItem
 	if includeInitialOpt {
-		opt = &interactive.OptionItem{
+		opt = &api.OptionItem{
 			Name:  "nginx2",
 			Value: "nginx2",
 		}
 	}
 
-	return interactive.Select{
+	return api.Select{
 		Name:          "Select resource name",
 		Command:       "@BKTesting kc-cmd-builder --resource-name",
 		InitialOption: opt,
-		OptionGroups: []interactive.OptionGroup{
+		OptionGroups: []api.OptionGroup{
 			{
 				Name: "Select resource name",
-				Options: []interactive.OptionItem{
+				Options: []api.OptionItem{
 					{
 						Name:  "nginx2",
 						Value: "nginx2",
@@ -407,8 +410,8 @@ func fixResourceNamesDropdown(includeInitialOpt bool) interactive.Select {
 	}
 }
 
-func fixAllDropdown(includeResourceName bool) []interactive.Select {
-	return []interactive.Select{
+func fixAllDropdown(includeResourceName bool) []api.Select {
+	return []api.Select{
 		fixVerbsDropdown(),
 		fixResourceTypeDropdown(),
 		fixResourceNamesDropdown(includeResourceName),
@@ -416,42 +419,44 @@ func fixAllDropdown(includeResourceName bool) []interactive.Select {
 	}
 }
 
-func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...interactive.Select) interactive.Message {
-	return interactive.Message{
-		Sections: []interactive.Section{
-			{
-				Selects: interactive.Selects{
-					ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
-					Items: dropdowns,
-				},
-			},
-			{
-				Base: interactive.Base{
-					Body: interactive.Body{
-						CodeBlock: kcCommandPreview,
+func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api.Select) interactive.CoreMessage {
+	return interactive.CoreMessage{
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Selects: api.Selects{
+						ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
+						Items: dropdowns,
 					},
 				},
-				PlaintextInputs: interactive.LabelInputs{
-					interactive.LabelInput{
-						Command:          "@BKTesting kc-cmd-builder --filter-query ",
-						DispatchedAction: interactive.DispatchInputActionOnCharacter,
-						Text:             "Filter output",
-						Placeholder:      "Filter output by string (optional)",
+				{
+					Base: api.Base{
+						Body: api.Body{
+							CodeBlock: kcCommandPreview,
+						},
+					},
+					PlaintextInputs: api.LabelInputs{
+						api.LabelInput{
+							Command:          "@BKTesting kc-cmd-builder --filter-query ",
+							DispatchedAction: api.DispatchInputActionOnCharacter,
+							Text:             "Filter output",
+							Placeholder:      "Filter output by string (optional)",
+						},
+					},
+				},
+				{
+					Buttons: api.Buttons{
+						api.Button{
+							Name:    "Run command",
+							Command: kcCommand,
+							Style:   "primary",
+						},
 					},
 				},
 			},
-			{
-				Buttons: interactive.Buttons{
-					interactive.Button{
-						Name:    "Run command",
-						Command: kcCommand,
-						Style:   "primary",
-					},
-				},
-			},
+			OnlyVisibleForYou: true,
+			ReplaceOriginal:   true,
 		},
-		OnlyVisibleForYou: true,
-		ReplaceOriginal:   true,
 	}
 }
 

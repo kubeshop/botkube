@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/action"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -185,21 +186,21 @@ func (f *fakeFactory) NewDefault(input execute.NewDefaultInput) execute.Executor
 
 type fakeExecutor struct{}
 
-func (fakeExecutor) Execute(_ context.Context) interactive.Message {
+func (fakeExecutor) Execute(_ context.Context) interactive.CoreMessage {
 	return fixInteractiveMessage("{{BotName}}")
 }
 
-func fixInteractiveMessage(botName string) interactive.Message {
-	return interactive.Message{
-		Base: interactive.Base{
-			Header: "Sample",
-		},
-		PlaintextInputs: []interactive.LabelInput{
-			{
-				Command:          fmt.Sprintf("%s kubectl get po foo", botName),
-				Text:             "",
-				Placeholder:      "",
-				DispatchedAction: "",
+func fixInteractiveMessage(botName string) interactive.CoreMessage {
+	return interactive.CoreMessage{
+		Header: "Sample",
+		Message: api.Message{
+			PlaintextInputs: []api.LabelInput{
+				{
+					Command:          fmt.Sprintf("%s kubectl get po foo", botName),
+					Text:             "",
+					Placeholder:      "",
+					DispatchedAction: "",
+				},
 			},
 		},
 	}

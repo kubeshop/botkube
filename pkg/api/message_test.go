@@ -1,18 +1,18 @@
-package interactive_test
+package api_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/api"
 )
 
 func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 	// given
-	msg := interactive.Message{
-		Type: interactive.Default,
-		PlaintextInputs: []interactive.LabelInput{
+	msg := api.Message{
+		Type: api.DefaultMessage,
+		PlaintextInputs: []api.LabelInput{
 			{
 				Command: "@OldBot command1",
 				Text:    "Top command 1",
@@ -22,12 +22,12 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 				Text:    "Top command 2",
 			},
 		},
-		Base: interactive.Base{
-			Header: "Test",
+		BaseBody: api.Body{
+			CodeBlock: "Test",
 		},
-		Sections: []interactive.Section{
+		Sections: []api.Section{
 			{
-				Buttons: []interactive.Button{
+				Buttons: []api.Button{
 					{
 						Name:    "Foo",
 						Command: "@OldBot foo bar",
@@ -37,19 +37,19 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 						Command: "@OldBot get po",
 					},
 				},
-				MultiSelect: interactive.MultiSelect{
+				MultiSelect: api.MultiSelect{
 					Name:    "Sample",
 					Command: "@OldBot edit SourceBindings",
-					Options: []interactive.OptionItem{
+					Options: []api.OptionItem{
 						{Name: "BAR", Value: "bar"},
 					},
-					InitialOptions: []interactive.OptionItem{
+					InitialOptions: []api.OptionItem{
 						{Name: "BAR", Value: "bar"},
 					},
 				},
-				Selects: interactive.Selects{
+				Selects: api.Selects{
 					ID: "foo",
-					Items: []interactive.Select{
+					Items: []api.Select{
 						{
 							Name:    "one",
 							Command: "@OldBot get po",
@@ -60,7 +60,7 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 						},
 					},
 				},
-				PlaintextInputs: []interactive.LabelInput{
+				PlaintextInputs: []api.LabelInput{
 					{
 						Command: "@OldBot command",
 						Text:    "Foo",
@@ -69,9 +69,9 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 			},
 		},
 	}
-	expectedMsg := interactive.Message{
-		Type: interactive.Default,
-		PlaintextInputs: []interactive.LabelInput{
+	expectedMsg := api.Message{
+		Type: api.DefaultMessage,
+		PlaintextInputs: []api.LabelInput{
 			{
 				Command: "@NewBot command1",
 				Text:    "Top command 1",
@@ -81,12 +81,12 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 				Text:    "Top command 2",
 			},
 		},
-		Base: interactive.Base{
-			Header: "Test",
+		BaseBody: api.Body{
+			CodeBlock: "Test",
 		},
-		Sections: []interactive.Section{
+		Sections: []api.Section{
 			{
-				Buttons: []interactive.Button{
+				Buttons: []api.Button{
 					{
 						Name:    "Foo",
 						Command: "@NewBot foo bar",
@@ -96,19 +96,19 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 						Command: "@NewBot get po",
 					},
 				},
-				MultiSelect: interactive.MultiSelect{
+				MultiSelect: api.MultiSelect{
 					Name:    "Sample",
 					Command: "@NewBot edit SourceBindings",
-					Options: []interactive.OptionItem{
+					Options: []api.OptionItem{
 						{Name: "BAR", Value: "bar"},
 					},
-					InitialOptions: []interactive.OptionItem{
+					InitialOptions: []api.OptionItem{
 						{Name: "BAR", Value: "bar"},
 					},
 				},
-				Selects: interactive.Selects{
+				Selects: api.Selects{
 					ID: "foo",
-					Items: []interactive.Select{
+					Items: []api.Select{
 						{
 							Name:    "one",
 							Command: "@NewBot get po",
@@ -119,7 +119,7 @@ func TestMessage_ReplaceBotNameInCommands(t *testing.T) {
 						},
 					},
 				},
-				PlaintextInputs: []interactive.LabelInput{
+				PlaintextInputs: []api.LabelInput{
 					{
 						Command: "@NewBot command",
 						Text:    "Foo",

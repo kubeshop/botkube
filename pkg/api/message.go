@@ -1,4 +1,4 @@
-package interactive
+package api
 
 import (
 	"fmt"
@@ -28,25 +28,39 @@ const (
 type MessageType string
 
 const (
-	// Default defines a message that should be displayed in default mode supported by communicator.
-	Default MessageType = ""
-	// Popup defines a message that should be displayed to the user as popup (if possible).
-	Popup MessageType = "form"
+	// DefaultMessage defines a message that should be displayed in default mode supported by communicator.
+	DefaultMessage MessageType = ""
+	// BaseBodyWithFilterMessage defines a message that should be displayed in plaintext mode supported by communicator.
+	// In this form the built-in filter is supported.
+	// NOTE: only BaseBody is preserved. All other properties are ignored even if set.
+	BaseBodyWithFilterMessage MessageType = "baseBodyWithFilter"
+	// PopupMessage defines a message that should be displayed to the user as popup (if possible).
+	PopupMessage MessageType = "form"
 )
-
-// GenericMessage returns a message which has customized content. For example, it returns a message with customized commands based on bot name.
-type GenericMessage interface {
-	ForBot(botName string) Message
-}
 
 // Message represents a generic message with interactive buttons.
 type Message struct {
-	Type MessageType
-	Base
+	Type              MessageType
+	BaseBody          Body
 	Sections          []Section
 	PlaintextInputs   LabelInputs
 	OnlyVisibleForYou bool
 	ReplaceOriginal   bool
+}
+
+func (msg *Message) IsEmpty() bool {
+	var emptyBase Body
+	if msg.BaseBody != emptyBase {
+		return false
+	}
+	if msg.HasInputs() {
+		return false
+	}
+	if msg.HasSections() {
+		return false
+	}
+
+	return true
 }
 
 // HasSections returns true if message has interactive sections.

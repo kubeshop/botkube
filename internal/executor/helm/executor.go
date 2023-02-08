@@ -9,7 +9,6 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -150,14 +149,8 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 }
 
 // Help returns help message
-func (*Executor) Help(ctx context.Context) (interactive.Message, error) {
-	return interactive.Message{
-		Base: interactive.Base{
-			Body: interactive.Body{
-				CodeBlock: help(),
-			},
-		},
-	}, nil
+func (*Executor) Help(context.Context) (api.Message, error) {
+	return api.NewCodeBlockMessage(help(), true), nil
 }
 
 // handleHelmList construct a Helm CLI command and run it.

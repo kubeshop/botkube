@@ -53,7 +53,7 @@ func (e *SourceExecutor) FeatureName() FeatureName {
 }
 
 // List returns a tabular representation of Executors
-func (e *SourceExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *SourceExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List sources")

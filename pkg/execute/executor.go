@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
@@ -77,8 +78,8 @@ func (flag CommandFlags) String() string {
 }
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
-	empty := interactive.Message{}
+func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
+	empty := interactive.CoreMessage{}
 	rawCmd := sanitizeCommand(e.message)
 
 	expandedRawCmd := alias.ExpandPrefix(rawCmd, e.cfg.Aliases)
@@ -100,10 +101,10 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	flags, err := ParseFlags(expandedRawCmd)
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", expandedRawCmd, err.Error())
-		return interactive.Message{
-			Base: interactive.Base{
-				Description: header(cmdCtx),
-				Body: interactive.Body{
+		return interactive.CoreMessage{
+			Description: header(cmdCtx),
+			Message: api.Message{
+				BaseBody: api.Body{
 					Plaintext: err.Error(),
 				},
 			},
@@ -135,7 +136,10 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return empty // user specified different target cluster
 	}
 
-	if e.kubectlExecutor.CanHandle(cmdCtx.Args) {
+	// checking if registered plugin overrides the built-in kubectl or kubectl command builder
+	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
+
+	if e.kubectlExecutor.CanHandle(cmdCtx.Args) && !isPluginCmd {
 		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, cmdCtx.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
 		switch {
@@ -155,7 +159,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return empty
 	}
 
-	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) {
+	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) && !isPluginCmd {
 		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false)
 		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, cmdCtx.BotName, header(cmdCtx), cmdCtx)
 		if err != nil {
@@ -166,19 +170,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 		return out
 	}
 
-	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
-	if err != nil {
-		// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-		e.log.Errorf("while checking if it's a plugin command: %s", err.Error())
-		return empty
-	}
-
 	if isPluginCmd {
 		if isHelpCmd(cmdCtx.Args) {
 			return e.ExecuteHelp(ctx, cmdCtx)
 		}
 		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
-		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
+		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):
@@ -188,7 +185,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 			e.log.Errorf("while executing command %q: %s", cmdCtx.CleanCmd, err.Error())
 			return empty
 		}
-		return respond(out, cmdCtx)
+		return out
 	}
 
 	cmdVerb := command.Verb(strings.ToLower(cmdCtx.Args[0]))
@@ -233,54 +230,35 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	return msg
 }
 
-func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.Message {
+func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.CoreMessage {
 	e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
-	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx.Args, cmdCtx.CleanCmd)
+	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx)
 	if err != nil {
 		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
-		return interactive.Message{}
-	}
-	if msg.Body.Plaintext == "" && msg.Body.CodeBlock == "" {
-		msg.Body.Plaintext = emptyResponseMsg
-		return msg
-	}
-	// Show Filter Input if command response is more than `lineLimitToShowFilter`
-	s := msg.Body.Plaintext
-	if msg.Body.Plaintext == "" {
-		s = msg.Body.CodeBlock
-	}
-	if len(strings.SplitN(s, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-		msg.PlaintextInputs = append(msg.PlaintextInputs,
-			filterInput(cmdCtx.CleanCmd,
-				cmdCtx.BotName))
+		return interactive.CoreMessage{}
 	}
 	return msg
 }
 
-func respond(msg string, cmdCtx CommandContext) interactive.Message {
-	msg = cmdCtx.ExecutorFilter.Apply(msg)
-	msgBody := interactive.Body{
-		CodeBlock: msg,
+func respond(body string, cmdCtx CommandContext) interactive.CoreMessage {
+	body = cmdCtx.ExecutorFilter.Apply(body)
+	msgBody := api.Body{
+		CodeBlock: body,
 	}
-	if msg == "" {
-		msgBody = interactive.Body{
+	if body == "" {
+		msgBody = api.Body{
 			Plaintext: emptyResponseMsg,
 		}
 	}
 
-	message := interactive.Message{
-		Base: interactive.Base{
-			Description: header(cmdCtx),
-			Body:        msgBody,
+	message := interactive.CoreMessage{
+		Description: header(cmdCtx),
+		Message: api.Message{
+			BaseBody: msgBody,
 		},
 	}
-	// Show Filter Input if command response is more than `lineLimitToShowFilter`
-	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-		message.PlaintextInputs = append(message.PlaintextInputs,
-			filterInput(cmdCtx.CleanCmd,
-				cmdCtx.BotName))
-	}
-	return message
+
+	return appendInteractiveFilterIfNeeded(body, message, cmdCtx)
 }
 
 func sanitizeCommand(cmd string) string {
@@ -319,10 +297,10 @@ func appendByUserOnlyIfNeeded(cmd, user string, origin command.Origin) string {
 	return fmt.Sprintf("%s by %s", cmd, user)
 }
 
-func filterInput(id, botName string) interactive.LabelInput {
-	return interactive.LabelInput{
+func filterInput(id, botName string) api.LabelInput {
+	return api.LabelInput{
 		Command:          fmt.Sprintf("%s %s --filter=", botName, id),
-		DispatchedAction: interactive.DispatchInputActionOnEnter,
+		DispatchedAction: api.DispatchInputActionOnEnter,
 		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",
 	}

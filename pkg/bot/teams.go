@@ -305,7 +305,7 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 	return b.convertInteractiveMessage(e.Execute(ctx), false)
 }
 
-func (b *Teams) convertInteractiveMessage(in interactive.Message, forceMarkdown bool) (int, string) {
+func (b *Teams) convertInteractiveMessage(in interactive.CoreMessage, forceMarkdown bool) (int, string) {
 	var out string
 
 	if in.HasSections() {
@@ -409,7 +409,7 @@ func (b *Teams) SendGenericMessage(ctx context.Context, genericMsg interactive.G
 }
 
 // SendMessageToAll sends message to MS Teams to all conversations.
-func (b *Teams) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
+func (b *Teams) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID

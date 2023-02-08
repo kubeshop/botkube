@@ -343,7 +343,7 @@ func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID strin
 
 // TODO: This contains an implementation for socket mode slack apps. Once needed, you can see the already implemented
 // functions here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
-func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
+func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
 		// Slack encloses URLs with `<` and `>`, since we need to remove them before assertion
@@ -357,7 +357,7 @@ func (s *slackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, chann
 	})
 }
 
-func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
+func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)

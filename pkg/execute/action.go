@@ -60,7 +60,7 @@ func (e *ActionExecutor) FeatureName() FeatureName {
 }
 
 // List returns a tabular representation of Actions
-func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List actions")
@@ -68,7 +68,7 @@ func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 }
 
 // Enable enables given action in the runtime config map
-func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = true
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
@@ -80,13 +80,13 @@ func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 	e.log.Debug("Enabling action...", actionName)
 
 	if err := e.cfgManager.PersistActionEnabled(ctx, actionName, enabled); err != nil {
-		return interactive.Message{}, fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
+		return interactive.CoreMessage{}, fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
 	}
 	return respond(fmt.Sprintf(actionEnabled, actionName, cmdCtx.ClusterName), cmdCtx), nil
 }
 
 // Disable disables given action in the runtime config map
-func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = false
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
@@ -98,7 +98,7 @@ func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (in
 	e.log.Debug("Disabling action...", actionName)
 
 	if err := e.cfgManager.PersistActionEnabled(ctx, actionName, enabled); err != nil {
-		return interactive.Message{}, fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
+		return interactive.CoreMessage{}, fmt.Errorf("while setting action %q to %t: %w", actionName, enabled, err)
 	}
 	return respond(fmt.Sprintf(actionDisabled, actionName, cmdCtx.ClusterName), cmdCtx), nil
 }

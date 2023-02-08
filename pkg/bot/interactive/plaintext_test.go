@@ -6,33 +6,34 @@ import (
 
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
+
+	"github.com/kubeshop/botkube/pkg/api"
 )
 
 // go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 	// given
-	message := Message{
-		Base: Base{
-			Header:      "Adjust notifications",
-			Description: "Adjust notifications description",
-		},
-
-		Sections: []Section{
-			{
-				MultiSelect: MultiSelect{
-					Name: "Adjust notifications",
-					Description: Body{
-						Plaintext: "Select notification sources",
-					},
-					Command: "@Botkube edit SourceBindings",
-					Options: []OptionItem{
-						{
-							Name:  "K8s all events",
-							Value: "k8s-all-events",
+	message := CoreMessage{
+		Header:      "Adjust notifications",
+		Description: "Adjust notifications description",
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					MultiSelect: api.MultiSelect{
+						Name: "Adjust notifications",
+						Description: api.Body{
+							Plaintext: "Select notification sources",
 						},
-						{
-							Name:  "K8s recommendations",
-							Value: "k8s-recommendations",
+						Command: "@Botkube edit SourceBindings",
+						Options: []api.OptionItem{
+							{
+								Name:  "K8s all events",
+								Value: "k8s-all-events",
+							},
+							{
+								Name:  "K8s recommendations",
+								Value: "k8s-recommendations",
+							},
 						},
 					},
 				},

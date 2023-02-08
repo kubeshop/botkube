@@ -15,6 +15,7 @@ import (
 	"github.com/slack-go/slack/socketmode"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -342,7 +343,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 	return nil
 }
 
-func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) error {
+func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
@@ -359,13 +360,15 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) e
 		if err != nil {
 			return err
 		}
-		resp = interactive.Message{
-			PlaintextInputs: resp.PlaintextInputs,
+		resp = interactive.CoreMessage{
+			Message: api.Message{
+				PlaintextInputs: resp.PlaintextInputs,
+			},
 		}
 	}
 
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
-	if resp.Type == interactive.Popup && event.TriggerID != "" {
+	if resp.Type == api.PopupMessage && event.TriggerID != "" {
 		modalView := b.renderer.RenderModal(resp)
 		modalView.PrivateMetadata = event.Channel
 		_, err := b.client.OpenView(event.TriggerID, modalView)
@@ -408,7 +411,7 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event event.Event, eventSou
 	for _, channelName := range b.getChannelsToNotifyForEvent(event, eventSources) {
 		additionalSection := b.getInteractiveEventSectionIfShould(event, channelName)
 
-		var additionalSections []interactive.Section
+		var additionalSections []api.Section
 		if additionalSection != nil {
 			additionalSections = append(additionalSections, *additionalSection)
 		}
@@ -430,7 +433,7 @@ func (b *SocketSlack) SendEvent(ctx context.Context, event event.Event, eventSou
 	return errs.ErrorOrNil()
 }
 
-func (b *SocketSlack) getInteractiveEventSectionIfShould(event event.Event, channelName string) *interactive.Section {
+func (b *SocketSlack) getInteractiveEventSectionIfShould(event event.Event, channelName string) *api.Section {
 	channel, isAuthChannel := b.getChannels()[channelName]
 	if !isAuthChannel {
 		return nil
@@ -447,9 +450,9 @@ func (b *SocketSlack) getInteractiveEventSectionIfShould(event event.Event, chan
 	}
 
 	cmdPrefix := fmt.Sprintf("%s kubectl", b.BotName())
-	var optionItems []interactive.OptionItem
+	var optionItems []api.OptionItem
 	for _, cmd := range commands {
-		optionItems = append(optionItems, interactive.OptionItem{
+		optionItems = append(optionItems, api.OptionItem{
 			Name:  cmd.Name,
 			Value: cmd.Cmd,
 		})
@@ -510,7 +513,7 @@ func (b *SocketSlack) SendGenericMessage(_ context.Context, genericMsg interacti
 }
 
 // SendMessageToAll sends message with interactive sections to all Slack channels.
-func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
+func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name

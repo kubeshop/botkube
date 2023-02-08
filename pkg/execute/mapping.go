@@ -33,7 +33,7 @@ type executorFilter interface {
 }
 
 // CommandFn is a single command (eg. List())
-type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error)
+type CommandFn func(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error)
 
 // CommandContext contains the context for CommandFn
 type CommandContext struct {

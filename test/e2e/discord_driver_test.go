@@ -349,7 +349,7 @@ func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID str
 	return errs.ErrorOrNil()
 }
 
-func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.Message) error {
+func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
 		if !strings.EqualFold(markdown, msg) {
@@ -361,7 +361,7 @@ func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, cha
 	})
 }
 
-func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.Message) error {
+func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		if !strings.EqualFold(markdown, msg) {
