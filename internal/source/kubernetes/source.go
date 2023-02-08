@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -79,8 +79,9 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	client, err := NewClient(s.config.KubeConfig)
 	exitOnError(err, s.logger)
 
-	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, s.config.InformerReSyncPeriod)
+	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, *s.config.InformerReSyncPeriod)
 	sourcesRouter := NewRouter(client.mapper, client.dynamicCli, s.logger)
+	sourcesRouter.BuildTable(&s.config)
 
 	err = sourcesRouter.RegisterInformers([]config.EventType{
 		config.CreateEvent,

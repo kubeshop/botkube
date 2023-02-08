@@ -2,31 +2,29 @@ package kubernetes
 
 import (
 	"context"
-
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/recommendation"
+	pluginConfig "github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 )
 
 const eventsResource = "v1/events"
 
-type mergedEvents map[string]map[config.EventType]struct{}
+type mergedEvents map[string]map[pluginConfig.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
 type eventHandler func(ctx context.Context, event event.Event, sources []string, updateDiffs []string)
 
 type route struct {
-	source        string
 	resourceName  string
-	labels        map[string]string
-	annotations   map[string]string
-	namespaces    config.Namespaces
-	updateSetting config.UpdateSetting
-	event         config.KubernetesEvent
+	labels        *map[string]string
+	annotations   *map[string]string
+	namespaces    *pluginConfig.Namespaces
+	updateSetting *pluginConfig.UpdateSetting
+	event         *pluginConfig.KubernetesEvent
 }
 
 func (r route) hasActionableUpdateSetting() bool {
@@ -34,7 +32,7 @@ func (r route) hasActionableUpdateSetting() bool {
 }
 
 type entry struct {
-	event  config.EventType
+	event  pluginConfig.EventType
 	routes []route
 }
 
@@ -61,26 +59,13 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 	}
 }
 
-// GetBoundSources returns the Sources the router uses
-// based on preconfigured source binding names.
-func (r *Router) GetBoundSources(sources map[string]config.Sources) map[string]config.Sources {
-	out := make(map[string]config.Sources)
-	for name, t := range sources {
-		if _, ok := r.bindings[name]; ok {
-			out[name] = t
-		}
-	}
-	return out
-}
-
 // BuildTable builds the routers routing table marking it ready
 // to register, map and handle informer events.
-func (r *Router) BuildTable(cfg *config.Config) *Router {
-	sources := r.GetBoundSources(cfg.Sources)
-	mergedEvents := mergeResourceEvents(sources)
+func (r *Router) BuildTable(cfg *pluginConfig.Config) *Router {
+	mergedEvents := mergeResourceEvents(cfg)
 
 	for resource, resourceEvents := range mergedEvents {
-		eventRoutes := r.mergeEventRoutes(resource, sources)
+		eventRoutes := r.mergeEventRoutes(resource, cfg)
 		for evt := range resourceEvents {
 			r.table[resource] = append(r.table[resource], entry{event: evt, routes: eventRoutes[evt]})
 		}
@@ -90,7 +75,7 @@ func (r *Router) BuildTable(cfg *config.Config) *Router {
 }
 
 // RegisterInformers register informers for all the resources that match the target events.
-func (r *Router) RegisterInformers(targetEvents []config.EventType, handler registrationHandler) error {
+func (r *Router) RegisterInformers(targetEvents []pluginConfig.EventType, handler registrationHandler) error {
 	resources := r.resourcesForEvents(targetEvents)
 	for _, resource := range resources {
 		informer, err := handler(resource)
@@ -115,8 +100,8 @@ func (r *Router) RegisterInformers(targetEvents []config.EventType, handler regi
 // For example, you can report the "error" EventType for a resource
 // by having the router watch/interrogate the "warning" EventType
 // reported by the v1/events resource.
-func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent config.EventType, handler registrationHandler) error {
-	srcResources := r.resourcesForEvents([]config.EventType{srcEvent})
+func (r *Router) MapWithEventsInformer(srcEvent pluginConfig.EventType, dstEvent pluginConfig.EventType, handler registrationHandler) error {
+	srcResources := r.resourcesForEvents([]pluginConfig.EventType{srcEvent})
 	if len(srcResources) == 0 {
 		return nil
 	}
@@ -127,7 +112,7 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 	}
 	r.registrations[eventsResource] = registration{
 		informer:        informer,
-		events:          []config.EventType{dstEvent},
+		events:          []pluginConfig.EventType{dstEvent},
 		mappedResources: srcResources,
 		mappedEvent:     srcEvent,
 		log:             r.log,
@@ -139,7 +124,7 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 
 // RegisterEventHandler allows router clients to create handlers that are
 // triggered for a target event.
-func (r *Router) RegisterEventHandler(ctx context.Context, eventType config.EventType, handlerFn eventHandler) {
+func (r *Router) RegisterEventHandler(ctx context.Context, eventType pluginConfig.EventType, handlerFn eventHandler) {
 	for resource, reg := range r.registrations {
 		if !reg.canHandleEvent(eventType.String()) {
 			continue
@@ -151,76 +136,71 @@ func (r *Router) RegisterEventHandler(ctx context.Context, eventType config.Even
 
 // HandleMappedEvent allows router clients to create handlers that are
 // triggered for a target mapped event.
-func (r *Router) HandleMappedEvent(ctx context.Context, targetEvent config.EventType, handlerFn eventHandler) {
+func (r *Router) HandleMappedEvent(ctx context.Context, targetEvent pluginConfig.EventType, handlerFn eventHandler) {
 	if informer, ok := r.mappedInformer(targetEvent); ok {
 		informer.handleMapped(ctx, targetEvent, r.table, handlerFn)
 	}
 }
 
 // GetSourceRoutes returns all routes for a resource and target event
-func (r *Router) getSourceRoutes(resource string, targetEvent config.EventType) []route {
+func (r *Router) getSourceRoutes(resource string, targetEvent pluginConfig.EventType) []route {
 	return sourceRoutes(r.table, resource, targetEvent)
 }
 
-func mergeResourceEvents(sources map[string]config.Sources) mergedEvents {
-	out := map[string]map[config.EventType]struct{}{}
-	for _, srcGroupCfg := range sources {
-		for _, resource := range srcGroupCfg.Kubernetes.Resources {
-			if _, ok := out[resource.Type]; !ok {
-				out[resource.Type] = make(map[config.EventType]struct{})
-			}
-			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, resource.Event.Types) {
-				out[resource.Type][e] = struct{}{}
-			}
+func mergeResourceEvents(cfg *pluginConfig.Config) mergedEvents {
+	out := map[string]map[pluginConfig.EventType]struct{}{}
+	for _, resource := range cfg.Resources {
+		if _, ok := out[resource.Type]; !ok {
+			out[resource.Type] = make(map[pluginConfig.EventType]struct{})
 		}
+		for _, e := range flattenEventTypes(cfg.Event.Types, resource.Event.Types) {
+			out[resource.Type][e] = struct{}{}
+		}
+	}
 
-		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
-		for resourceType, eventType := range resForRecomms {
-			if _, ok := out[resourceType]; !ok {
-				out[resourceType] = make(map[config.EventType]struct{})
-			}
-			out[resourceType][eventType] = struct{}{}
+	resForRecomms := recommendation.ResourceEventsForConfig(*cfg.Recommendations)
+	for resourceType, eventType := range resForRecomms {
+		if _, ok := out[resourceType]; !ok {
+			out[resourceType] = make(map[pluginConfig.EventType]struct{})
 		}
+		out[resourceType][eventType] = struct{}{}
 	}
 	return out
 }
 
-func (r *Router) mergeEventRoutes(resource string, sources map[string]config.Sources) map[config.EventType][]route {
-	out := make(map[config.EventType][]route)
-	for srcGroupName, srcGroupCfg := range sources {
-		for _, r := range srcGroupCfg.Kubernetes.Resources {
-			for _, e := range flattenEventTypes(srcGroupCfg.Kubernetes.Event.Types, r.Event.Types) {
-				if resource != r.Type {
-					continue
-				}
-
-				route := route{
-					source:       srcGroupName,
-					namespaces:   sourceOrResourceNamespaces(srcGroupCfg.Kubernetes.Namespaces, r.Namespaces),
-					annotations:  sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Annotations, r.Annotations),
-					labels:       sourceOrResourceStringMap(srcGroupCfg.Kubernetes.Labels, r.Labels),
-					resourceName: r.Name,
-					event:        sourceOrResourceEvent(srcGroupCfg.Kubernetes.Event, r.Event),
-				}
-				if e == config.UpdateEvent {
-					route.updateSetting = config.UpdateSetting{
-						Fields:      r.UpdateSetting.Fields,
-						IncludeDiff: r.UpdateSetting.IncludeDiff,
-					}
-				}
-				out[e] = append(out[e], route)
+func (r *Router) mergeEventRoutes(resource string, cfg *pluginConfig.Config) map[pluginConfig.EventType][]route {
+	out := make(map[pluginConfig.EventType][]route)
+	for _, r := range cfg.Resources {
+		for _, e := range flattenEventTypes(cfg.Event.Types, r.Event.Types) {
+			if resource != r.Type {
+				continue
 			}
-		}
 
-		// add routes related to recommendations
-		resForRecomms := recommendation.ResourceEventsForConfig(srcGroupCfg.Kubernetes.Recommendations)
-		r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, srcGroupName, resource)
+			route := route{
+				namespaces:   sourceOrResourceNamespaces(cfg.Namespaces, r.Namespaces),
+				annotations:  sourceOrResourceStringMap(cfg.Annotations, r.Annotations),
+				labels:       sourceOrResourceStringMap(cfg.Labels, r.Labels),
+				resourceName: r.Name,
+				event:        sourceOrResourceEvent(cfg.Event, r.Event),
+			}
+			if e == pluginConfig.UpdateEvent {
+				route.updateSetting = &pluginConfig.UpdateSetting{
+					Fields:      r.UpdateSetting.Fields,
+					IncludeDiff: r.UpdateSetting.IncludeDiff,
+				}
+			}
+			out[e] = append(out[e], route)
+		}
 	}
+
+	// add routes related to recommendations
+	resForRecomms := recommendation.ResourceEventsForConfig(*cfg.Recommendations)
+	r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, resource)
 
 	return out
 }
 
-func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceType string) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[pluginConfig.EventType][]route, resForRecomms map[string]pluginConfig.EventType, resourceType string) {
 	if routeMap == nil {
 		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
@@ -232,18 +212,14 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	}
 
 	recommRoute := route{
-		source: srcGroupName,
-		namespaces: config.Namespaces{
-			Include: []string{config.AllNamespaceIndicator},
+		namespaces: &pluginConfig.Namespaces{
+			Include: []string{pluginConfig.AllNamespaceIndicator},
 		},
 	}
 
 	// Override route and get all these events for all namespaces.
 	// The events without recommendations will be filtered out when sending the event.
 	for i, r := range (*routeMap)[eventType] {
-		if r.source != srcGroupName {
-			continue
-		}
 
 		recommRoute.namespaces = r.namespaces
 		(*routeMap)[eventType][i] = recommRoute
@@ -254,7 +230,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	(*routeMap)[eventType] = append((*routeMap)[eventType], recommRoute)
 }
 
-func sourceRoutes(routeTable map[string][]entry, targetResource string, targetEvent config.EventType) []route {
+func sourceRoutes(routeTable map[string][]entry, targetResource string, targetEvent pluginConfig.EventType) []route {
 	var out []route
 	for _, routedEvent := range routeTable[targetResource] {
 		if routedEvent.event == targetEvent {
@@ -264,15 +240,15 @@ func sourceRoutes(routeTable map[string][]entry, targetResource string, targetEv
 	return out
 }
 
-func (r *Router) resourceEvents(resource string) []config.EventType {
-	var out []config.EventType
+func (r *Router) resourceEvents(resource string) []pluginConfig.EventType {
+	var out []pluginConfig.EventType
 	for _, routedEvent := range r.table[resource] {
 		out = append(out, routedEvent.event)
 	}
 	return out
 }
 
-func (r *Router) resourcesForEvents(targets []config.EventType) []string {
+func (r *Router) resourcesForEvents(targets []pluginConfig.EventType) []string {
 	var out []string
 	for _, target := range targets {
 		for resource, routedEvents := range r.table {
@@ -287,7 +263,7 @@ func (r *Router) resourcesForEvents(targets []config.EventType) []string {
 	return out
 }
 
-func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
+func (r *Router) mappedInformer(event pluginConfig.EventType) (registration, bool) {
 	for _, informer := range r.registrations {
 		if informer.mappedEvent == event {
 			return informer, true
@@ -296,16 +272,16 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
+func flattenEventTypes(globalEvents []pluginConfig.EventType, resourceEvents pluginConfig.KubernetesResourceEventTypes) []pluginConfig.EventType {
 	checkEvents := globalEvents
 	if len(resourceEvents) > 0 {
 		checkEvents = resourceEvents
 	}
 
-	var out []config.EventType
+	var out []pluginConfig.EventType
 	for _, event := range checkEvents {
-		if event == config.AllEvent {
-			out = append(out, []config.EventType{config.CreateEvent, config.UpdateEvent, config.DeleteEvent, config.ErrorEvent}...)
+		if event == pluginConfig.AllEvent {
+			out = append(out, []pluginConfig.EventType{pluginConfig.CreateEvent, pluginConfig.UpdateEvent, pluginConfig.DeleteEvent, pluginConfig.ErrorEvent}...)
 		} else {
 			out = append(out, event)
 		}
@@ -315,24 +291,24 @@ func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.Ku
 
 // sourceOrResourceNamespaces returns the kubernetes source namespaces
 // unless the resource namespaces are configured.
-func sourceOrResourceNamespaces(sourceNs, resourceNs config.Namespaces) config.Namespaces {
+func sourceOrResourceNamespaces(sourceNs *pluginConfig.Namespaces, resourceNs pluginConfig.Namespaces) *pluginConfig.Namespaces {
 	if resourceNs.IsConfigured() {
-		return resourceNs
+		return &resourceNs
 	}
 	return sourceNs
 }
 
-func sourceOrResourceStringMap(sourceMap, resourceMap map[string]string) map[string]string {
+func sourceOrResourceStringMap(sourceMap *map[string]string, resourceMap map[string]string) *map[string]string {
 	if len(resourceMap) > 0 {
-		return resourceMap
+		return &resourceMap
 	}
 
 	return sourceMap
 }
 
-func sourceOrResourceEvent(sourceEvent, resourceEvent config.KubernetesEvent) config.KubernetesEvent {
+func sourceOrResourceEvent(sourceEvent *pluginConfig.KubernetesEvent, resourceEvent pluginConfig.KubernetesEvent) *pluginConfig.KubernetesEvent {
 	if resourceEvent.AreConstraintsDefined() {
-		return resourceEvent
+		return &resourceEvent
 	}
 
 	return sourceEvent

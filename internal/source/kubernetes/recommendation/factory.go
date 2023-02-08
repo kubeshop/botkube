@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
@@ -36,8 +36,8 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 
 // NewForSources merges recommendation options from multiple sources, and creates a new AggregatedRunner.
 func (f *Factory) NewForSources(cfg config.Config) (AggregatedRunner, config.Recommendations) {
-	recommendations := f.recommendationsForConfig(cfg.Recommendations)
-	return newAggregatedRunner(f.logger, recommendations), cfg.Recommendations
+	recommendations := f.recommendationsForConfig(*cfg.Recommendations)
+	return newAggregatedRunner(f.logger, recommendations), *cfg.Recommendations
 }
 
 func (f *Factory) recommendationsForConfig(cfg config.Recommendations) []Recommendation {

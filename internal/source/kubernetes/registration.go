@@ -15,9 +15,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/k8sutil"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -193,7 +193,6 @@ func (r registration) sourcesForEvent(routes []route, event event.Event) ([]stri
 			continue
 		}
 
-		out = append(out, route.source)
 	}
 
 	return out, errs.ErrorOrNil()
@@ -222,8 +221,8 @@ func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) 
 	return false, nil
 }
 
-func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
-	if len(expectedKV) == 0 {
+func kvsSatisfiedForMap(expectedKV *map[string]string, obj map[string]string) bool {
+	if len(*expectedKV) == 0 {
 		return true
 	}
 
@@ -231,7 +230,7 @@ func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
 		return false
 	}
 
-	for k, v := range expectedKV {
+	for k, v := range *expectedKV {
 		got, ok := obj[k]
 		if !ok {
 			return false
@@ -298,9 +297,6 @@ func (r registration) qualifySourcesForUpdate(
 
 	for _, source := range candidates {
 		for _, route := range routes {
-			if route.source != source {
-				continue
-			}
 
 			if !route.hasActionableUpdateSetting() {
 				r.log.Debugf("Qualified for update: source: %s, with no updateSettings set", source)
@@ -308,7 +304,7 @@ func (r registration) qualifySourcesForUpdate(
 				continue
 			}
 
-			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
+			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.updateSetting)
 			if err != nil {
 				r.log.Errorf("while getting diff: %w", err)
 			}

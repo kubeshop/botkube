@@ -2,8 +2,7 @@ package recommendation
 
 import (
 	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
@@ -13,22 +12,22 @@ const (
 )
 
 // ResourceEventsForConfig returns the resource event map for a given source recommendations config.
-func ResourceEventsForConfig(recCfg config.Recommendations) map[string]config.EventType {
-	resTypes := make(map[string]config.EventType)
+func ResourceEventsForConfig(recCfg config2.Recommendations) map[string]config2.EventType {
+	resTypes := make(map[string]config2.EventType)
 
 	if ptr.IsTrue(recCfg.Ingress.TLSSecretValid) || ptr.IsTrue(recCfg.Ingress.BackendServiceValid) {
-		resTypes[ingressResourceType] = config.CreateEvent
+		resTypes[ingressResourceType] = config2.CreateEvent
 	}
 
 	if ptr.IsTrue(recCfg.Pod.NoLatestImageTag) || ptr.IsTrue(recCfg.Pod.LabelsSet) {
-		resTypes[podsResourceType] = config.CreateEvent
+		resTypes[podsResourceType] = config2.CreateEvent
 	}
 
 	return resTypes
 }
 
 // ShouldIgnoreEvent returns true if user doesn't listen to events for a given resource, apart from enabled recommendations.
-func ShouldIgnoreEvent(recCfg config.Recommendations, sources config2.Config, sourceBindings []string, event event.Event) bool {
+func ShouldIgnoreEvent(recCfg config2.Recommendations, sources config2.Config, sourceBindings []string, event event.Event) bool {
 	if event.HasRecommendationsOrWarnings() {
 		// shouldn't be skipped
 		return false

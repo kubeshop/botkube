@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -13,14 +15,14 @@ import (
 type Config struct {
 	KubeConfig           string `yaml:"kubeConfig"`
 	ClusterName          string
-	InformerReSyncPeriod time.Duration     `yaml:"informerReSyncPeriod"`
-	Log                  *Log              `yaml:"log"`
-	Recommendations      Recommendations   `yaml:"recommendations"`
-	Event                KubernetesEvent   `yaml:"event"`
-	Resources            []Resource        `yaml:"resources" validate:"dive"`
-	Namespaces           Namespaces        `yaml:"namespaces"`
-	Annotations          map[string]string `yaml:"annotations"`
-	Labels               map[string]string `yaml:"labels"`
+	InformerReSyncPeriod *time.Duration     `yaml:"informerReSyncPeriod"`
+	Log                  *Log               `yaml:"log"`
+	Recommendations      *Recommendations   `yaml:"recommendations"`
+	Event                *KubernetesEvent   `yaml:"event"`
+	Resources            []Resource         `yaml:"resources" validate:"dive"`
+	Namespaces           *Namespaces        `yaml:"namespaces"`
+	Annotations          *map[string]string `yaml:"annotations"`
+	Labels               *map[string]string `yaml:"labels"`
 }
 
 // Recommendations contains configuration for various recommendation insights.
@@ -54,6 +56,11 @@ type KubernetesEvent struct {
 	Types   KubernetesResourceEventTypes `yaml:"types"`
 }
 
+// AreConstraintsDefined checks if any of the event constraints are defined.
+func (e KubernetesEvent) AreConstraintsDefined() bool {
+	return e.Reason != "" || e.Message != ""
+}
+
 // KubernetesResourceEventTypes contains events to watch for a resource.
 type KubernetesResourceEventTypes []EventType
 
@@ -79,6 +86,10 @@ const (
 	AllEvent EventType = "all"
 )
 
+func (eventType EventType) String() string {
+	return string(eventType)
+}
+
 // Resource contains resources to watch
 type Resource struct {
 	Type          string            `yaml:"type"`
@@ -103,6 +114,60 @@ type Namespaces struct {
 	Exclude []string `yaml:"exclude,omitempty"`
 }
 
+// IsConfigured checks whether the Namespace has any Include/Exclude configuration.
+func (n *Namespaces) IsConfigured() bool {
+	return len(n.Include) > 0 || len(n.Exclude) > 0
+}
+
+// IsAllowed checks if a given Namespace is allowed based on the config.
+func (n *Namespaces) IsAllowed(givenNs string) bool {
+	if n == nil || givenNs == "" {
+		return false
+	}
+
+	// 1. Check if excluded
+	if len(n.Exclude) > 0 {
+		for _, excludeNamespace := range n.Exclude {
+			if strings.TrimSpace(excludeNamespace) == "" {
+				continue
+			}
+			// exact match
+			if excludeNamespace == givenNs {
+				return false
+			}
+
+			// regexp
+			matched, err := regexp.MatchString(excludeNamespace, givenNs)
+			if err == nil && matched {
+				return false
+			}
+		}
+	}
+
+	// 2. Check if included, if matched, return true
+	if len(n.Include) > 0 {
+		for _, includeNamespace := range n.Include {
+			if strings.TrimSpace(includeNamespace) == "" {
+				continue
+			}
+
+			// exact match
+			if includeNamespace == givenNs {
+				return true
+			}
+
+			// regexp
+			matched, err := regexp.MatchString(includeNamespace, givenNs)
+			if err == nil && matched {
+				return true
+			}
+		}
+	}
+
+	// 2.1. If not included, return false
+	return false
+}
+
 // UpdateSetting struct defines updateEvent fields specification
 type UpdateSetting struct {
 	Fields      []string `yaml:"fields"`
@@ -116,10 +181,18 @@ type Log struct {
 
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
+	t := 30 * time.Minute
 	out := Config{
 		Log: &Log{
 			Level: "info",
 		},
+		InformerReSyncPeriod: &t,
+		Recommendations:      &Recommendations{},
+		Event:                &KubernetesEvent{},
+		Namespaces:           &Namespaces{},
+		Labels:               &map[string]string{},
+		Annotations:          &map[string]string{},
+		Resources:            []Resource{},
 	}
 	for _, rawCfg := range configs {
 		var cfg Config
@@ -135,7 +208,60 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		if cfg.KubeConfig != "" {
 			out.KubeConfig = cfg.KubeConfig
 		}
+
+		if cfg.Event != nil {
+			out.Event = cfg.Event
+		}
+
+		if cfg.Recommendations != nil {
+			out.Recommendations = cfg.Recommendations
+		}
+
+		if cfg.Namespaces != nil {
+			out.Namespaces = cfg.Namespaces
+		}
+
+		if cfg.InformerReSyncPeriod != nil {
+			out.InformerReSyncPeriod = cfg.InformerReSyncPeriod
+		}
+
+		if cfg.Labels != nil {
+			out.Labels = cfg.Labels
+		}
+
+		if cfg.Annotations != nil {
+			out.Annotations = cfg.Annotations
+		}
+
+		if cfg.ClusterName != "" {
+			out.ClusterName = cfg.ClusterName
+		}
+
+		if cfg.Resources != nil {
+			out.Resources = cfg.Resources
+		}
 	}
 
 	return out, nil
 }
+
+// Level type to store event levels
+type Level string
+
+const (
+	// Info level
+	Info Level = "info"
+	// Warn level
+	Warn Level = "warn"
+	// Debug level
+	Debug Level = "debug"
+	// Error level
+	Error Level = "error"
+	// Critical level
+	Critical Level = "critical"
+)
+
+const (
+	// AllNamespaceIndicator represents a keyword for allowing all Kubernetes Namespaces.
+	AllNamespaceIndicator = ".*"
+)
