@@ -279,11 +279,11 @@ func runBotTest(t *testing.T,
 
 		t.Run("Echo Executor help", func(t *testing.T) {
 			command := "echo help"
-			expectedMessage := ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
+			expectedBody := ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
 			if botDriver.Type() == DiscordBot {
-				expectedMessage = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
+				expectedBody = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
 			}
-
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
@@ -337,7 +337,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Helm Executor help", func(t *testing.T) {
 			command := "helm help"
-			expectedMessage := codeBlock(heredoc.Doc(`
+			expectedBody := codeBlock(heredoc.Doc(`
 				The official Botkube plugin for the Helm CLI.
 
 				Usage:
@@ -362,6 +362,7 @@ func runBotTest(t *testing.T,
 				
 				Use "helm [command] --help" for more information about the command.`))
 
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
@@ -889,7 +890,7 @@ func runBotTest(t *testing.T,
 			kgp   kubectl get pods           Get Pods
 			p     ping`))
 		contextMsg := "Only showing aliases for executors enabled for this channel."
-		expectedMessage := fmt.Sprintf("%s\n%s\n%s", cmdHeader(command), expectedBody, contextMsg)
+		expectedMessage := fmt.Sprintf("%s\n\n%s\n%s", cmdHeader(command), expectedBody, contextMsg)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)

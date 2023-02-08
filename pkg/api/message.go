@@ -32,6 +32,7 @@ const (
 	DefaultMessage MessageType = ""
 	// BaseBodyWithFilterMessage defines a message that should be displayed in plaintext mode supported by communicator.
 	// In this form the built-in filter is supported.
+	// NOTE: only BaseBody is preserved. All other properties are ignored even if set.
 	BaseBodyWithFilterMessage MessageType = "baseBodyWithFilter"
 	// PopupMessage defines a message that should be displayed to the user as popup (if possible).
 	PopupMessage MessageType = "form"
@@ -47,30 +48,19 @@ type Message struct {
 	ReplaceOriginal   bool
 }
 
-func NewCodeBlockMessage(msg string, allowBotkubeFilter bool) Message {
-	mType := DefaultMessage
-	if allowBotkubeFilter {
-		mType = BaseBodyWithFilterMessage
+func (msg *Message) IsEmpty() bool {
+	var emptyBase Body
+	if msg.BaseBody != emptyBase {
+		return false
 	}
-	return Message{
-		Type: mType,
-		BaseBody: Body{
-			CodeBlock: msg,
-		},
+	if msg.HasInputs() {
+		return false
 	}
-}
+	if msg.HasSections() {
+		return false
+	}
 
-func NewPlaintextMessage(msg string, useBotkubeFilter bool) Message {
-	var mType MessageType
-	if useBotkubeFilter {
-		mType = BaseBodyWithFilterMessage
-	}
-	return Message{
-		Type: mType,
-		BaseBody: Body{
-			Plaintext: msg,
-		},
-	}
+	return true
 }
 
 // HasSections returns true if message has interactive sections.

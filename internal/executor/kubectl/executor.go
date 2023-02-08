@@ -61,7 +61,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     e.pluginVersion,
 		Description: description,
-		JSONSchema:  jsonSchema(),
+		JSONSchema:  jsonSchema(description),
 		Dependencies: map[string]api.Dependency{
 			binaryName: {
 				URLs: kcBinaryDownloadLinks,

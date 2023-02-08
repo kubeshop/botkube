@@ -24,6 +24,7 @@ func NewKubectlCmdBuilder() *KubectlCmdBuilder {
 	return &KubectlCmdBuilder{}
 }
 
+// ShouldHandle returns true if it's a valid command for interactive builder.
 func (e *KubectlCmdBuilder) ShouldHandle(cmd string) bool {
 	if cmd == "" || strings.HasPrefix(cmd, interactiveBuilderIndicator) {
 		return true

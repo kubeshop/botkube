@@ -64,7 +64,7 @@ func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execu
 }
 
 // Help returns help message
-func (*EchoExecutor) Help(ctx context.Context) (api.Message, error) {
+func (*EchoExecutor) Help(context.Context) (api.Message, error) {
 	return api.Message{}, nil
 }
 

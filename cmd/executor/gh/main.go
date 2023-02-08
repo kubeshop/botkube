@@ -100,7 +100,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 }
 
 // Help returns help message
-func (*GHExecutor) Help(ctx context.Context) (api.Message, error) {
+func (*GHExecutor) Help(context.Context) (api.Message, error) {
 	return api.NewPlaintextMessage(helpMsg, true), nil
 }
 

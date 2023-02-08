@@ -29,7 +29,7 @@ func MergeConfigs(configs []*executor.Config) (Config, error) {
 	return out, nil
 }
 
-func jsonSchema() api.JSONSchema {
+func jsonSchema(description string) api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
 			"$schema": "http://json-schema.org/draft-04/schema#",

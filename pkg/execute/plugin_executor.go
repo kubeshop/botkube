@@ -92,6 +92,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx 
 		return respond(resp.Data, cmdCtx), nil
 	}
 
+	if resp.Message.IsEmpty() {
+		return emptyMsg(cmdCtx), nil
+	}
+
 	if resp.Message.Type == api.BaseBodyWithFilterMessage {
 		return e.filterMessage(resp.Message, cmdCtx), nil
 	}
@@ -126,6 +130,10 @@ func (e *PluginExecutor) Help(ctx context.Context, bindings []string, cmdCtx Com
 		return interactive.Message{}, err
 	}
 
+	if msg.IsEmpty() {
+		return emptyMsg(cmdCtx), nil
+	}
+
 	if msg.Type == api.BaseBodyWithFilterMessage {
 		return e.filterMessage(msg, cmdCtx), nil
 	}
@@ -136,8 +144,20 @@ func (e *PluginExecutor) Help(ctx context.Context, bindings []string, cmdCtx Com
 	}, nil
 }
 
+func emptyMsg(cmdCtx CommandContext) interactive.Message {
+	return interactive.Message{
+		Description: header(cmdCtx),
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: emptyResponseMsg,
+			},
+		},
+	}
+}
+
+// filterMessage takes into account only base plaintext + code block, all other properties are ignored.
+// This method should be called only for message type api.BaseBodyWithFilterMessage.
 func (e *PluginExecutor) filterMessage(msg api.Message, cmdCtx CommandContext) interactive.Message {
-	// only plaintext + code block
 	code := cmdCtx.ExecutorFilter.Apply(msg.BaseBody.CodeBlock)
 	plaintext := cmdCtx.ExecutorFilter.Apply(msg.BaseBody.Plaintext)
 	if code == "" && plaintext == "" {
