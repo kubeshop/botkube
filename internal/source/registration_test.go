@@ -227,7 +227,7 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while matching "Third" with include regex "[": error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while matching "Status one" with include regex "[": error parsing regexp: missing closing ]: %s`, "`[`"),
 		},
 		{
 			Name: "Resource name - success",

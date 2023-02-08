@@ -177,7 +177,6 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 	// event message
 	if route.event.Message.AreConstraintsDefined() {
 		var anyMsgMatches bool
-		var lastErr error
 
 		eventMsgs := event.Messages
 		if len(eventMsgs) == 0 {
@@ -188,16 +187,12 @@ func (r registration) shouldSendEventToRoute(route route, event event.Event) (bo
 		for _, msg := range eventMsgs {
 			match, err := route.event.Message.IsAllowed(msg)
 			if err != nil {
-				lastErr = err
-				continue
+				return false, err
 			}
 			if match {
 				anyMsgMatches = true
 				break
 			}
-		}
-		if lastErr != nil {
-			return false, lastErr
 		}
 		if !anyMsgMatches {
 			log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), route.event.Message)
