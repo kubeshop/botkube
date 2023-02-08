@@ -146,7 +146,7 @@ func appendInteractiveFilterIfNeeded(body string, msg interactive.CoreMessage, c
 	if !cmdCtx.Platform.IsInteractive() {
 		return msg
 	}
-	if len(strings.SplitN(body, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+	if len(strings.SplitN(body, "\n", lineLimitToShowFilter)) < lineLimitToShowFilter {
 		return msg
 	}
 
