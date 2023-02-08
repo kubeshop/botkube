@@ -9,7 +9,7 @@ type EnabledKubectl struct {
 	AllowedKubectlVerb     map[string]struct{}
 	AllowedKubectlResource map[string]struct{}
 
-	AllowedNamespacesPerResource map[string]config.Namespaces
+	AllowedNamespacesPerResource map[string]config.RegexConstraints
 
 	DefaultNamespace string
 	RestrictAccess   bool
@@ -39,7 +39,13 @@ func NewMerger(executors map[string]config.Executors) *Merger {
 // The order of merging is the same as the order of items specified in the includeBindings list.
 func (kc *Merger) MergeForNamespace(includeBindings []string, forNamespace string) EnabledKubectl {
 	enabledInNs := func(executor config.Kubectl) bool {
-		return executor.Enabled && executor.Namespaces.IsAllowed(forNamespace)
+		nsAllowed, err := executor.Namespaces.IsAllowed(forNamespace)
+		if err != nil {
+			// regex error
+			return false
+		}
+
+		return executor.Enabled && nsAllowed
 	}
 	return kc.merge(kc.collect(includeBindings, enabledInNs), includeBindings)
 }
@@ -78,7 +84,7 @@ func (kc *Merger) merge(collectedKubectls map[string]config.Kubectl, mapKeyOrder
 
 		allowedResources     = map[string]struct{}{}
 		allowedVerbs         = map[string]struct{}{}
-		allowedNSPerResource = map[string]config.Namespaces{}
+		allowedNSPerResource = map[string]config.RegexConstraints{}
 	)
 	for _, name := range mapKeyOrder {
 		item, found := collectedKubectls[name]

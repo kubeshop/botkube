@@ -38,15 +38,18 @@ actions:
       executors:
         - kubectl-read-only
 
+
 # Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
 # Key name is used as a binding reference.
+# See the `values.yaml` file for full object.
 #
 ## Format: sources.{alias}
 sources:
   'k8s-recommendation-events':
     displayName: "Kubernetes Recommendations"
     # Describes Kubernetes source configuration.
+    # See the `values.yaml` file for full object.
     kubernetes:
       # Describes configuration for various recommendation insights.
       recommendations:
@@ -66,19 +69,21 @@ sources:
   'k8s-all-events':
     displayName: "Kubernetes Info"
     # Describes Kubernetes source configuration.
+    # See the `values.yaml` file for full object.
     kubernetes:
       # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: &k8s-events-namespaces
         # Include contains a list of allowed Namespaces.
-        # It can also contain a regex expressions:
+        # It can also contain regex expressions:
         #  `- ".*"` - to specify all Namespaces.
         include:
           - ".*"
         # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
-        # It can also contain a regex expressions:
+        # It can also contain regex expressions:
         #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
+        # Exclude list is checked before the Include list.
         # exclude: []
 
       # Describes event constraints for Kubernetes resources.
@@ -89,16 +94,63 @@ sources:
           - create
           - delete
           - error
+        # Optional list of exact values or regex patterns to filter events by event reason.
+        # Skipped, if both include/exclude lists are empty.
+        reason:
+          # Include contains a list of allowed values. It can also contain regex expressions.
+          include: []
+          # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+          # Exclude list is checked before the Include list.
+          exclude: []
+        # Optional list of exact values or regex patterns to filter event by event message. Skipped, if both include/exclude lists are empty.
+        # If a given event has multiple messages, it is considered a match if any of the messages match the constraints.
+        message:
+          # Include contains a list of allowed values. It can also contain regex expressions.
+          include: []
+          # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+          # Exclude list is checked before the Include list.
+          exclude: []
+
+      # Filters Kubernetes resources to watch by annotations. Each resource needs to have all the specified annotations.
+      # Regex expressions are not supported.
+      annotations: {}
+      # Filters Kubernetes resources to watch by labels. Each resource needs to have all the specified labels.
+      # Regex expressions are not supported.
+      labels: {}
 
       # Describes the Kubernetes resources to watch.
       # Resources are identified by its type in `{group}/{version}/{kind (plural)}` format. Examples: `apps/v1/deployments`, `v1/pods`.
       # Each resource can override the namespaces and event configuration by using dedicated `event` and `namespaces` field.
+      # Also, each resource can specify its own `annotations`, `labels` and `name` regex.
+      # See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
-        #  namespaces:             # Overrides 'source'.kubernetes.namespaces
-        #    include:
-        #      - ".*"
-        #    exclude: []
+          namespaces:             # Overrides 'source'.kubernetes.namespaces
+            include:
+              - ".*"
+            exclude: []
+          annotations: {}         # Overrides 'source'.kubernetes.annotations
+          labels: {}              # Overrides 'source'.kubernetes.labels
+          # Optional resource name constraints.
+          name:
+            # Include contains a list of allowed values. It can also contain regex expressions.
+            include: []
+            # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+            # Exclude list is checked before the Include list.
+            exclude: []
+          event:
+            # Overrides 'source'.kubernetes.event.reason
+            reason:
+              include: []
+              exclude: []
+            # Overrides 'source'.kubernetes.event.message
+            message:
+              include: []
+              exclude: []
+            # Overrides 'source'.kubernetes.event.types
+            types:
+              - create
+
         - type: v1/services
         - type: networking.k8s.io/v1/ingresses
         - type: v1/nodes
@@ -180,6 +232,7 @@ sources:
     displayName: "Kubernetes Errors"
 
     # Describes Kubernetes source configuration.
+    # See the `values.yaml` file for full object.
     kubernetes:
       # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -194,6 +247,7 @@ sources:
           - error
 
       # Describes the Kubernetes resources you want to watch.
+      # See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
         - type: v1/services
@@ -215,6 +269,7 @@ sources:
     displayName: "Kubernetes Errors for resources with logs"
 
     # Describes Kubernetes source configuration.
+    # See the `values.yaml` file for full object.
     kubernetes:
       # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -229,6 +284,7 @@ sources:
           - error
 
       # Describes the Kubernetes resources you want to watch.
+      # See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
         - type: apps/v1/deployments
@@ -241,6 +297,7 @@ sources:
     displayName: "Kubernetes Resource Created Events"
 
     # Describes Kubernetes source configuration.
+    # See the `values.yaml` file for full object.
     kubernetes:
       # Describes namespaces for every Kubernetes resources you want to watch or exclude.
       # These namespaces are applied to every resource specified in the resources list.
@@ -255,6 +312,7 @@ sources:
           - create
 
       # Describes the Kubernetes resources you want to watch.
+      # See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
         - type: v1/services
@@ -266,6 +324,24 @@ sources:
         - type: apps/v1/statefulsets
         - type: apps/v1/daemonsets
         - type: batch/v1/jobs
+
+  'prometheus':
+    ## Prometheus source configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/prometheus:
+      # If true, enables `prometheus` source.
+      enabled: false
+      config:
+        # Prometheus endpoint without api version and resource.
+        url: "http://localhost:9090"
+        # If set as true, Prometheus source plugin will not send alerts that is created before plugin start time.
+        ignoreOldAlerts: true
+        # Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState
+        alertStates: ["firing", "pending", "inactive"]
+        # Logging configuration
+        log:
+          # Log level
+          level: info
 
 # Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.

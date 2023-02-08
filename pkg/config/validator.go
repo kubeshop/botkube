@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	nsIncludeTag                = "ns-include-regex"
+	regexConstraintsIncludeTag  = "rs-include-regex"
 	invalidBindingTag           = "invalid_binding"
 	conflictingPluginRepoTag    = "conflicting_plugin_repo"
 	conflictingPluginVersionTag = "conflicting_plugin_version"
@@ -27,7 +27,7 @@ const (
 )
 
 var warnsOnlyTags = map[string]struct{}{
-	nsIncludeTag: {},
+	regexConstraintsIncludeTag: {},
 }
 
 // ValidateResult holds the validation results.
@@ -48,7 +48,7 @@ func ValidateStruct(in any) (ValidateResult, error) {
 	if err := registerCustomTranslations(validate, trans); err != nil {
 		return ValidateResult{}, err
 	}
-	if err := registerNamespaceValidator(validate, trans); err != nil {
+	if err := registerRegexConstraintsValidator(validate, trans); err != nil {
 		return ValidateResult{}, err
 	}
 	if err := registerBindingsValidator(validate, trans); err != nil {
@@ -97,13 +97,13 @@ func registerCustomTranslations(validate *validator.Validate, trans ut.Translato
 	})
 }
 
-func registerNamespaceValidator(validate *validator.Validate, trans ut.Translator) error {
-	// NOTE: only have to register a non-pointer type for 'Namespaces', validator
+func registerRegexConstraintsValidator(validate *validator.Validate, trans ut.Translator) error {
+	// NOTE: only have to register a non-pointer type for 'RegexConstraints', validator
 	// internally dereferences it.
-	validate.RegisterStructValidation(namespacesStructValidator, Namespaces{})
+	validate.RegisterStructValidation(regexConstraintsStructValidator, RegexConstraints{})
 
 	return registerTranslation(validate, trans, map[string]string{
-		nsIncludeTag: "{0} matches both all and exact namespaces",
+		regexConstraintsIncludeTag: "{0} contains multiple constraints, but it does already include a regex pattern for all values",
 	})
 }
 
@@ -172,27 +172,27 @@ func socketSlackStructTokenValidator(sl validator.StructLevel) {
 	}
 }
 
-func namespacesStructValidator(sl validator.StructLevel) {
-	ns, ok := sl.Current().Interface().(Namespaces)
+func regexConstraintsStructValidator(sl validator.StructLevel) {
+	rc, ok := sl.Current().Interface().(RegexConstraints)
 	if !ok {
 		return
 	}
 
-	if len(ns.Include) < 2 {
+	if len(rc.Include) < 2 {
 		return
 	}
 
-	foundAllNamespaceIndicator := func() bool {
-		for _, name := range ns.Include {
-			if name == AllNamespaceIndicator {
+	foundAllValuesPattern := func() bool {
+		for _, name := range rc.Include {
+			if name == allValuesPattern {
 				return true
 			}
 		}
 		return false
 	}
 
-	if foundAllNamespaceIndicator() {
-		sl.ReportError(ns.Include, "Include", "Include", nsIncludeTag, "")
+	if foundAllValuesPattern() {
+		sl.ReportError(rc.Include, "Include", "Include", regexConstraintsIncludeTag, "")
 	}
 }
 

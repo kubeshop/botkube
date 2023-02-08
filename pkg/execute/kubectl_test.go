@@ -32,7 +32,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"default"},
 				},
 				RestrictAccess: ptr.Bool(true),
@@ -49,7 +49,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod -n foo",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"foo"},
 				},
 				Commands: config.Commands{
@@ -65,7 +65,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: nil, // no namespace allowed.
 				},
 				Commands: config.Commands{
@@ -83,7 +83,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			kubectlCfg: config.Kubectl{
 				Enabled:          true,
 				DefaultNamespace: "from-config",
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: nil, // forbid `from-config` to get a suitable error message.
 				},
 				Commands: config.Commands{
@@ -100,7 +100,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: nil, // forbid `default` to get a suitable error message.
 				},
 				Commands: config.Commands{
@@ -117,7 +117,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod -n team-b",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -134,7 +134,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod -n team-b",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{config.AllNamespaceIndicator},
 					Exclude: []string{"team-b"},
 				},
@@ -152,7 +152,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get pod -A",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -169,7 +169,7 @@ func TestKubectlExecuteErrors(t *testing.T) {
 			command: "kubectl get -n team-a pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -225,7 +225,7 @@ func TestKubectlExecute(t *testing.T) {
 			command: "kubectl get",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"default"},
 				},
 				Commands: config.Commands{
@@ -241,7 +241,7 @@ func TestKubectlExecute(t *testing.T) {
 			command: "kubectl get pod",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{config.AllNamespaceIndicator},
 				},
 				Commands: config.Commands{
@@ -258,7 +258,7 @@ func TestKubectlExecute(t *testing.T) {
 			command: "kubectl get pod -n team-a",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -276,7 +276,7 @@ func TestKubectlExecute(t *testing.T) {
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -294,7 +294,7 @@ func TestKubectlExecute(t *testing.T) {
 			channelNotAuthorized: true,
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -311,7 +311,7 @@ func TestKubectlExecute(t *testing.T) {
 			command: "kubectl get pod/name-foo-42 -n team-a",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"team-a"},
 				},
 				Commands: config.Commands{
@@ -328,7 +328,7 @@ func TestKubectlExecute(t *testing.T) {
 			command: "kubectl get pod -A",
 			kubectlCfg: config.Kubectl{
 				Enabled: true,
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{".*"},
 				},
 				Commands: config.Commands{
@@ -372,7 +372,7 @@ func TestKubectlCanHandle(t *testing.T) {
 	command := "kubectl get pod --cluster-name test"
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
-		Namespaces: config.Namespaces{
+		Namespaces: config.RegexConstraints{
 			Include: []string{"team-a"},
 		},
 		Commands: config.Commands{
@@ -419,7 +419,7 @@ func TestKubectlGetCommandPrefix(t *testing.T) {
 	}
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
-		Namespaces: config.Namespaces{
+		Namespaces: config.RegexConstraints{
 			Include: []string{"team-a"},
 		},
 		Commands: config.Commands{
@@ -449,7 +449,7 @@ func TestKubectlGetArgsWithoutAlias(t *testing.T) {
 	expected := "get pods --cluster-name test"
 	kubectlCfg := config.Kubectl{
 		Enabled: true,
-		Namespaces: config.Namespaces{
+		Namespaces: config.RegexConstraints{
 			Include: []string{"team-a"},
 		},
 		Commands: config.Commands{

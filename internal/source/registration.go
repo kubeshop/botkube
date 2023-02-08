@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -145,51 +144,13 @@ func (r registration) sourcesForEvent(routes []route, event event.Event) ([]stri
 
 	errs := multierror.New()
 	for _, route := range routes {
-		// event reason
-		match, err := matchRegexForStringIfDefined(route.event.Reason, event.Reason)
+		shouldSend, err := r.shouldSendEventToRoute(route, event)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue
 		}
-		if !match {
-			r.log.Debugf("Ignoring as reason %q doesn't match regex %q", event.Reason, route.event.Reason)
-			continue
-		}
 
-		// event message
-		match, err = matchRegexForStringsIfDefined(route.event.Message, event.Messages)
-		if err != nil {
-			errs = multierror.Append(errs, err)
-			continue
-		}
-		if !match {
-			r.log.Debugf("Ignoring as messages %q don't match regex %q", strings.Join(event.Messages, ";"), route.event.Message)
-			continue
-		}
-
-		// resource name
-		match, err = matchRegexForStringIfDefined(route.resourceName, event.Name)
-		if err != nil {
-			errs = multierror.Append(errs, err)
-			continue
-		}
-		if !match {
-			r.log.Debugf("Ignoring as resource name %q doesn't match regex %q", event.Name, route.resourceName)
-			continue
-		}
-
-		// namespace
-		if event.Namespace != "" && !route.namespaces.IsAllowed(event.Namespace) {
-			continue
-		}
-
-		// annotations
-		if !kvsSatisfiedForMap(route.annotations, event.ObjectMeta.Annotations) {
-			continue
-		}
-
-		// labels
-		if !kvsSatisfiedForMap(route.labels, event.ObjectMeta.Labels) {
+		if !shouldSend {
 			continue
 		}
 
@@ -199,27 +160,83 @@ func (r registration) sourcesForEvent(routes []route, event event.Event) ([]stri
 	return out, errs.ErrorOrNil()
 }
 
-func matchRegexForStringIfDefined(regexStr, str string) (bool, error) {
-	return matchRegexForStringsIfDefined(regexStr, []string{str})
-}
-
-func matchRegexForStringsIfDefined(regexStr string, str []string) (bool, error) {
-	if regexStr == "" {
-		return true, nil
-	}
-
-	regex, err := regexp.Compile(regexStr)
-	if err != nil {
-		return false, fmt.Errorf("while compiling regex: %w", err)
-	}
-
-	for _, s := range str {
-		if regex.MatchString(s) {
-			return true, nil
+func (r registration) shouldSendEventToRoute(route route, event event.Event) (bool, error) {
+	log := r.log.WithField("route", route)
+	// event reason
+	if route.event.Reason.AreConstraintsDefined() {
+		match, err := route.event.Reason.IsAllowed(event.Reason)
+		if err != nil {
+			return false, err
+		}
+		if !match {
+			log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, route.event.Reason)
+			return false, nil
 		}
 	}
 
-	return false, nil
+	// event message
+	if route.event.Message.AreConstraintsDefined() {
+		var anyMsgMatches bool
+
+		eventMsgs := event.Messages
+		if len(eventMsgs) == 0 {
+			// treat no messages as an empty message
+			eventMsgs = []string{""}
+		}
+
+		for _, msg := range eventMsgs {
+			match, err := route.event.Message.IsAllowed(msg)
+			if err != nil {
+				return false, err
+			}
+			if match {
+				anyMsgMatches = true
+				break
+			}
+		}
+		if !anyMsgMatches {
+			log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), route.event.Message)
+			return false, nil
+		}
+	}
+
+	// resource name
+	if route.resourceName.AreConstraintsDefined() {
+		allowed, err := route.resourceName.IsAllowed(event.Name)
+		if err != nil {
+			return false, err
+		}
+		if !allowed {
+			log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, route.resourceName)
+			return false, nil
+		}
+	}
+
+	// namespace
+	if event.Namespace != "" && route.namespaces.AreConstraintsDefined() {
+		match, err := route.namespaces.IsAllowed(event.Namespace)
+		if err != nil {
+			return false, err
+		}
+		if !match {
+			log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Namespace, route.namespaces)
+			return false, nil
+		}
+	}
+
+	// annotations
+	if !kvsSatisfiedForMap(route.annotations, event.ObjectMeta.Annotations) {
+		log.Debugf("Ignoring as resource annotations %+v doesn't match constraints %+v", event.ObjectMeta.Annotations, route.annotations)
+		return false, nil
+	}
+
+	// labels
+	if !kvsSatisfiedForMap(route.labels, event.ObjectMeta.Labels) {
+		log.Debugf("Ignoring as resource labels %+v doesn't match constraints %+v", event.ObjectMeta.Labels, route.labels)
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func kvsSatisfiedForMap(expectedKV, obj map[string]string) bool {
@@ -310,7 +327,7 @@ func (r registration) qualifySourcesForUpdate(
 
 			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, route.updateSetting)
 			if err != nil {
-				r.log.Errorf("while getting diff: %w", err)
+				r.log.Errorf("while getting diff")
 			}
 			r.log.Debugf("About to qualify source: %s for update, diff: %s, updateSetting: %+v", source, diff, route.updateSetting)
 

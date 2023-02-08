@@ -86,7 +86,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 							Resources: []config.Resource{
 								{
 									Type: hasRoutes,
-									Namespaces: config.Namespaces{
+									Namespaces: config.RegexConstraints{
 										Include: []string{"default"},
 									},
 									Event: config.KubernetesEvent{
@@ -125,7 +125,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 							Resources: []config.Resource{
 								{
 									Type: hasRoutes,
-									Namespaces: config.Namespaces{
+									Namespaces: config.RegexConstraints{
 										Include: []string{"default"},
 									},
 									UpdateSetting: config.UpdateSetting{
@@ -154,7 +154,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 							Resources: []config.Resource{
 								{
 									Type: hasRoutes,
-									Namespaces: config.Namespaces{
+									Namespaces: config.RegexConstraints{
 										Include: []string{"default"},
 									},
 									Event: config.KubernetesEvent{
@@ -209,7 +209,7 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 					Resources: []config.Resource{
 						{
 							Type: hasRoutes,
-							Namespaces: config.Namespaces{
+							Namespaces: config.RegexConstraints{
 								Include: []string{"default"},
 							},
 							Event: config.KubernetesEvent{
@@ -233,7 +233,7 @@ func TestRouter_BuildTable_CreatesRoutesForBoundSources(t *testing.T) {
 					Resources: []config.Resource{
 						{
 							Type: hasNoRoutes,
-							Namespaces: config.Namespaces{
+							Namespaces: config.RegexConstraints{
 								Include: []string{"all"},
 							},
 							Event: config.KubernetesEvent{
@@ -264,7 +264,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 	testCases := []struct {
 		Name     string
 		Input    *config.Config
-		Expected config.Namespaces
+		Expected config.RegexConstraints
 	}{
 		{
 			Name: "Use sources Namespaces",
@@ -272,7 +272,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Namespaces: config.Namespaces{
+							Namespaces: config.RegexConstraints{
 								Include: []string{"botkube"},
 								Exclude: []string{"default"},
 							},
@@ -290,7 +290,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 					},
 				},
 			},
-			Expected: config.Namespaces{
+			Expected: config.RegexConstraints{
 				Include: []string{"botkube"},
 				Exclude: []string{"default"},
 			},
@@ -301,14 +301,14 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 				Sources: map[string]config.Sources{
 					"k8s-events": {
 						Kubernetes: config.KubernetesSource{
-							Namespaces: config.Namespaces{
+							Namespaces: config.RegexConstraints{
 								Include: []string{"botkube"},
 								Exclude: []string{"default"},
 							},
 							Resources: []config.Resource{
 								{
 									Type: "apps/v1/deployments",
-									Namespaces: config.Namespaces{
+									Namespaces: config.RegexConstraints{
 										Include: []string{".*"},
 									},
 									Event: config.KubernetesEvent{
@@ -322,7 +322,7 @@ func TestRouter_BuildTable_CreatesRoutesWithNamespacesPresetFromKubernetesSource
 					},
 				},
 			},
-			Expected: config.Namespaces{
+			Expected: config.RegexConstraints{
 				Include: []string{".*"},
 			},
 		},
@@ -362,7 +362,7 @@ func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 				config.UpdateEvent: {{source: "foo"}, {source: "bar"}},
 			},
 			Expected: map[config.EventType][]route{
-				config.CreateEvent: {{source: "foo", namespaces: config.Namespaces{Include: []string{config.AllNamespaceIndicator}}}},
+				config.CreateEvent: {{source: "foo", namespaces: config.RegexConstraints{Include: []string{config.AllNamespaceIndicator}}}},
 				config.UpdateEvent: {{source: "foo"}, {source: "bar"}},
 			},
 		},
@@ -375,7 +375,7 @@ func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 					},
 					{
 						source: "foo",
-						namespaces: config.Namespaces{
+						namespaces: config.RegexConstraints{
 							Include: []string{"foo", "bar"},
 							Exclude: []string{"default"},
 						},
@@ -393,7 +393,7 @@ func TestSetEventRouteForRecommendationsIfShould(t *testing.T) {
 					},
 					{
 						source: "foo",
-						namespaces: config.Namespaces{
+						namespaces: config.RegexConstraints{
 							Include: []string{"foo", "bar"},
 							Exclude: []string{"default"},
 						},

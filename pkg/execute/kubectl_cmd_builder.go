@@ -327,7 +327,14 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 	initialNamespace = e.appendNamespaceSuffixIfDefault(initialNamespace)
 
 	for _, item := range allClusterNamespaces.Items {
-		if !allowedNS.IsAllowed(item.Name) {
+		allowed, err := allowedNS.IsAllowed(item.Name)
+		if err != nil {
+			log.WithField("namespace", item.Name).
+				WithField("error", err.Error()).
+				Error("Cannot check if namespace is allowed, so skipping it.")
+			continue
+		}
+		if !allowed {
 			log.WithField("namespace", item.Name).Debug("Namespace is not allowed, so skipping it.")
 			continue
 		}

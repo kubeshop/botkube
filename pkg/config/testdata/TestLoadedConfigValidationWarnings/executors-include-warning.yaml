@@ -15,10 +15,11 @@ sources:
   k8s-events:
     kubernetes:
       resources:
-        - name: v1/pods
+        - type: v1/pods
           namespaces:
             include: [ ".*", "kube-system" ]
-          events:
+          event:
+            types:
             - create
             - delete
             - error

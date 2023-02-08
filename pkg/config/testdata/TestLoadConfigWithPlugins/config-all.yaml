@@ -26,7 +26,7 @@ sources:
       namespaces:
         include: [ ".*" ]
       resources:
-        - name: v1/pods
+        - type: v1/pods
 
     botkube/keptn:
       enabled: true

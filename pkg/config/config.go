@@ -35,7 +35,10 @@ const (
 
 const (
 	// AllNamespaceIndicator represents a keyword for allowing all Kubernetes Namespaces.
-	AllNamespaceIndicator = ".*"
+	AllNamespaceIndicator = allValuesPattern
+
+	// allValuesPattern represents a keyword for allowing all values.
+	allValuesPattern = ".*"
 )
 
 // EventType to watch
@@ -218,21 +221,21 @@ type KubernetesSource struct {
 	Recommendations Recommendations   `yaml:"recommendations"`
 	Event           KubernetesEvent   `yaml:"event"`
 	Resources       []Resource        `yaml:"resources" validate:"dive"`
-	Namespaces      Namespaces        `yaml:"namespaces"`
+	Namespaces      RegexConstraints  `yaml:"namespaces"`
 	Annotations     map[string]string `yaml:"annotations"`
 	Labels          map[string]string `yaml:"labels"`
 }
 
 // KubernetesEvent contains configuration for Kubernetes events.
 type KubernetesEvent struct {
-	Reason  string                       `yaml:"reason"`
-	Message string                       `yaml:"message"`
+	Reason  RegexConstraints             `yaml:"reason"`
+	Message RegexConstraints             `yaml:"message"`
 	Types   KubernetesResourceEventTypes `yaml:"types"`
 }
 
 // AreConstraintsDefined checks if any of the event constraints are defined.
 func (e KubernetesEvent) AreConstraintsDefined() bool {
-	return e.Reason != "" || e.Message != ""
+	return e.Reason.AreConstraintsDefined() || e.Message.AreConstraintsDefined()
 }
 
 // IsAllowed checks if a given resource event is allowed according to the configuration.
@@ -249,11 +252,17 @@ func (r *KubernetesSource) IsAllowed(resourceType, namespace string, eventType E
 	}
 
 	for _, resource := range r.Resources {
-		var namespaceAllowed bool
-		if resource.Namespaces.IsConfigured() {
-			namespaceAllowed = resource.Namespaces.IsAllowed(namespace)
+		var nsConstraints RegexConstraints
+		if resource.Namespaces.AreConstraintsDefined() {
+			nsConstraints = resource.Namespaces
 		} else {
-			namespaceAllowed = r.Namespaces.IsAllowed(namespace)
+			nsConstraints = r.Namespaces
+		}
+
+		namespaceAllowed, err := nsConstraints.IsAllowed(namespace)
+		if err != nil {
+			// regex error, so don't allow the event
+			return false
 		}
 
 		if resource.Type == resourceType &&
@@ -361,8 +370,8 @@ type Analytics struct {
 // Resource contains resources to watch
 type Resource struct {
 	Type          string            `yaml:"type"`
-	Name          string            `yaml:"name"`
-	Namespaces    Namespaces        `yaml:"namespaces"`
+	Name          RegexConstraints  `yaml:"name"`
+	Namespaces    RegexConstraints  `yaml:"namespaces"`
 	Annotations   map[string]string `yaml:"annotations"`
 	Labels        map[string]string `yaml:"labels"`
 	Event         KubernetesEvent   `yaml:"event"`
@@ -398,71 +407,74 @@ type UpdateSetting struct {
 	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
-// Namespaces provides an option to include and exclude given Namespaces.
-type Namespaces struct {
-	// Include contains a list of allowed Namespaces.
+// RegexConstraints contains a list of allowed and excluded values.
+type RegexConstraints struct {
+	// Include contains a list of allowed values.
 	// It can also contain a regex expressions:
-	//  - ".*" - to specify all Namespaces.
+	//  - ".*" - to specify all values.
 	Include []string `yaml:"include"`
 
-	// Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+	// Exclude contains a list of values to be ignored even if allowed by Include.
 	// It can also contain a regex expressions:
-	//  - "test-.*" - to specif all Namespaces with `test-` prefix.
+	//  - "test-.*" - to specify all values with `test-` prefix.
 	Exclude []string `yaml:"exclude,omitempty"`
 }
 
-// IsConfigured checks whether the Namespace has any Include/Exclude configuration.
-func (n *Namespaces) IsConfigured() bool {
-	return len(n.Include) > 0 || len(n.Exclude) > 0
+// AreConstraintsDefined checks whether the RegexConstraints has any Include/Exclude configuration.
+func (r *RegexConstraints) AreConstraintsDefined() bool {
+	return len(r.Include) > 0 || len(r.Exclude) > 0
 }
 
-// IsAllowed checks if a given Namespace is allowed based on the config.
-func (n *Namespaces) IsAllowed(givenNs string) bool {
-	if n == nil || givenNs == "" {
-		return false
+// IsAllowed checks if a given value is allowed based on the config.
+// Firstly, it checks if the value is excluded. If not, then it checks if the value is included.
+func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
+	if r == nil {
+		return false, nil
 	}
 
 	// 1. Check if excluded
-	if len(n.Exclude) > 0 {
-		for _, excludeNamespace := range n.Exclude {
-			if strings.TrimSpace(excludeNamespace) == "" {
+	if len(r.Exclude) > 0 {
+		for _, excludeValue := range r.Exclude {
+			if strings.TrimSpace(excludeValue) == "" {
 				continue
 			}
 			// exact match
-			if excludeNamespace == givenNs {
-				return false
+			if excludeValue == value {
+				return false, nil
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(excludeNamespace, givenNs)
-			if err == nil && matched {
-				return false
+			matched, err := regexp.MatchString(excludeValue, value)
+			if err != nil {
+				return false, fmt.Errorf("while matching %q with exclude regex %q: %v", value, excludeValue, err)
+			}
+			if matched {
+				return false, nil
 			}
 		}
 	}
 
 	// 2. Check if included, if matched, return true
-	if len(n.Include) > 0 {
-		for _, includeNamespace := range n.Include {
-			if strings.TrimSpace(includeNamespace) == "" {
-				continue
-			}
-
+	if len(r.Include) > 0 {
+		for _, includeValue := range r.Include {
 			// exact match
-			if includeNamespace == givenNs {
-				return true
+			if includeValue == value {
+				return true, nil
 			}
 
 			// regexp
-			matched, err := regexp.MatchString(includeNamespace, givenNs)
-			if err == nil && matched {
-				return true
+			matched, err := regexp.MatchString(includeValue, value)
+			if err != nil {
+				return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeValue, err)
+			}
+			if matched {
+				return true, nil
 			}
 		}
 	}
 
 	// 2.1. If not included, return false
-	return false
+	return false, nil
 }
 
 // Notification holds notification configuration.
@@ -576,11 +588,11 @@ type Webhook struct {
 
 // Kubectl configuration for executing commands inside cluster
 type Kubectl struct {
-	Namespaces       Namespaces `yaml:"namespaces,omitempty"`
-	Enabled          bool       `yaml:"enabled"`
-	Commands         Commands   `yaml:"commands,omitempty"`
-	DefaultNamespace string     `yaml:"defaultNamespace,omitempty"`
-	RestrictAccess   *bool      `yaml:"restrictAccess,omitempty"`
+	Namespaces       RegexConstraints `yaml:"namespaces,omitempty"`
+	Enabled          bool             `yaml:"enabled"`
+	Commands         Commands         `yaml:"commands,omitempty"`
+	DefaultNamespace string           `yaml:"defaultNamespace,omitempty"`
+	RestrictAccess   *bool            `yaml:"restrictAccess,omitempty"`
 }
 
 // Commands allowed in bot

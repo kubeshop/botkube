@@ -316,8 +316,8 @@ func TestLoadedConfigValidationWarnings(t *testing.T) {
 			name: "executor specifies all and exact namespace in include property",
 			expWarnMsg: heredoc.Doc(`
 				2 errors occurred:
-					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include matches both all and exact namespaces
-					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include matches both all and exact namespaces`),
+					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values
+					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values`),
 			configs: [][]byte{
 				readTestdataFile(t, "executors-include-warning.yaml"),
 			},
@@ -438,50 +438,79 @@ func readTestdataFile(t *testing.T, name string) []byte {
 	return out
 }
 
-func TestIsNamespaceAllowed(t *testing.T) {
+func TestRegexConstraints_IsAllowed(t *testing.T) {
 	tests := map[string]struct {
-		nsConfig  config.Namespaces
-		givenNs   string
-		isAllowed bool
+		nsConfig           config.RegexConstraints
+		givenNs            string
+		isAllowed          bool
+		expectedErrMessage string
 	}{
-		"should watch all except ignored ones": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
+		"should match all except ignored ones": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "abc"}},
 			givenNs:   "demo",
 			isAllowed: false,
 		},
-		"should watch all when ignore has empty items only": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{""}},
+		"should match all when ignore has empty items only": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{""}},
 			givenNs:   "demo",
 			isAllowed: true,
 		},
-		"should watch all when ignore is a nil slice": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: nil},
+		"should match all when ignore is a nil slice": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: nil},
 			givenNs:   "demo",
 			isAllowed: true,
 		},
 		"should ignore matched by regex": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"my-.*"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"my-.*"}},
 			givenNs:   "my-ns",
 			isAllowed: false,
 		},
 		"should ignore matched by regexp even if exact name is mentioned too": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo", "ignored-.*-ns"}},
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo", "ignored-.*-ns"}},
 			givenNs:   "ignored-42-ns",
 			isAllowed: false,
 		},
-		"should watch all if regexp is not matching given namespace": {
-			nsConfig:  config.Namespaces{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
+		"should match all if regexp is not matching given namespace": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
 			givenNs:   "demo",
 			isAllowed: true,
+		},
+		"should match empty value": {
+			nsConfig:  config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"demo-.*"}},
+			givenNs:   "",
+			isAllowed: true,
+		},
+		"should match only empty value": {
+			nsConfig:  config.RegexConstraints{Include: []string{"^$"}, Exclude: []string{}},
+			givenNs:   "",
+			isAllowed: true,
+		},
+		"invalid exclude regex": {
+			nsConfig:           config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"["}},
+			givenNs:            "demo",
+			isAllowed:          false,
+			expectedErrMessage: "while matching \"demo\" with exclude regex \"[\": error parsing regexp: missing closing ]: `[`",
+		},
+		"invalid include regex": {
+			nsConfig:           config.RegexConstraints{Include: []string{"["}, Exclude: []string{}},
+			givenNs:            "demo",
+			isAllowed:          false,
+			expectedErrMessage: "while matching \"demo\" with include regex \"[\": error parsing regexp: missing closing ]: `[`",
 		},
 	}
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			actual := test.nsConfig.IsAllowed(test.givenNs)
-			if actual != test.isAllowed {
-				t.Errorf("expected: %v != actual: %v\n", test.isAllowed, actual)
+			actual, err := test.nsConfig.IsAllowed(test.givenNs)
+
+			if test.expectedErrMessage != "" {
+				require.False(t, actual)
+				require.EqualError(t, err, test.expectedErrMessage)
+				return
 			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.isAllowed, actual)
 		})
 	}
 }

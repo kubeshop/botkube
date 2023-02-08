@@ -15,7 +15,7 @@ import (
 
 func TestSourcesForEvent(t *testing.T) {
 	// given
-	allNsCfg := config.Namespaces{Include: []string{".*"}}
+	allNsCfg := config.RegexConstraints{Include: []string{".*"}}
 	testCases := []struct {
 		Name               string
 		Routes             []route
@@ -29,21 +29,34 @@ func TestSourcesForEvent(t *testing.T) {
 				{
 					source: "success",
 					event: config.KubernetesEvent{
-						Reason: "^NodeNotReady",
+						Reason: config.RegexConstraints{
+							Include: []string{"^NodeNotReady"},
+						},
 					},
 					namespaces: allNsCfg,
 				},
 				{
-					source:       "fail",
-					resourceName: "^Created",
-					namespaces:   allNsCfg,
+					source: "success-empty",
+					event: config.KubernetesEvent{
+						Reason: config.RegexConstraints{},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "fail",
+					event: config.KubernetesEvent{
+						Reason: config.RegexConstraints{
+							Include: []string{"^Created"},
+						},
+					},
+					namespaces: allNsCfg,
 				},
 			},
 			Event: event.Event{
 				Name:   "test-one",
 				Reason: "NodeNotReady",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Event reason - error",
@@ -51,14 +64,20 @@ func TestSourcesForEvent(t *testing.T) {
 				{
 					source: "success",
 					event: config.KubernetesEvent{
-						Reason: "^NodeNotReady",
+						Reason: config.RegexConstraints{
+							Include: []string{"^NodeNotReady"},
+						},
 					},
 					namespaces: allNsCfg,
 				},
 				{
-					source:       "error",
-					resourceName: "[",
-					namespaces:   allNsCfg,
+					source: "error",
+					event: config.KubernetesEvent{
+						Reason: config.RegexConstraints{
+							Exclude: []string{"["},
+						},
+					},
+					namespaces: allNsCfg,
 				},
 			},
 			Event: event.Event{
@@ -68,7 +87,7 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while matching "NodeNotReady" with exclude regex "[": error parsing regexp: missing closing ]: %s`, "`[`"),
 		},
 		{
 			Name: "Event message - success",
@@ -76,21 +95,54 @@ func TestSourcesForEvent(t *testing.T) {
 				{
 					source: "success",
 					event: config.KubernetesEvent{
-						Message: "^Status.*",
+						Message: config.RegexConstraints{
+							Include: []string{"^Status.*"},
+						},
 					},
 					namespaces: allNsCfg,
 				},
 				{
 					source: "success2",
 					event: config.KubernetesEvent{
-						Message: "^Second.*",
+						Message: config.RegexConstraints{
+							Include: []string{"^Second.*"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success3",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{".*"},
+							Exclude: []string{"^Something.*"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success-empty",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{},
 					},
 					namespaces: allNsCfg,
 				},
 				{
 					source: "fail",
 					event: config.KubernetesEvent{
-						Message: "^Resource",
+						Message: config.RegexConstraints{
+							Include: []string{"^Resource"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "fail2",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{".*"},
+							Exclude: []string{"^Second", "^Status", "^Third"},
+						},
 					},
 					namespaces: allNsCfg,
 				},
@@ -102,6 +154,43 @@ func TestSourcesForEvent(t *testing.T) {
 					"Second message",
 					"Third",
 				},
+			},
+			ExpectedResult: []string{"success", "success2", "success3", "success-empty"},
+		},
+		{
+			Name: "Event message - empty - success",
+			Routes: []route{
+				{
+					source: "success",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{"^$"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "success2",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Include: []string{".*"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source: "fail",
+					event: config.KubernetesEvent{
+						Message: config.RegexConstraints{
+							Exclude: []string{"^$"},
+						},
+					},
+					namespaces: allNsCfg,
+				},
+			},
+			Event: event.Event{
+				Name:     "test-one",
+				Messages: nil,
 			},
 			ExpectedResult: []string{"success", "success2"},
 		},
@@ -111,14 +200,18 @@ func TestSourcesForEvent(t *testing.T) {
 				{
 					source: "success",
 					event: config.KubernetesEvent{
-						Message: "^Status.*",
+						Message: config.RegexConstraints{
+							Include: []string{"^Status.*"},
+						},
 					},
 					namespaces: allNsCfg,
 				},
 				{
 					source: "error",
 					event: config.KubernetesEvent{
-						Message: "[",
+						Message: config.RegexConstraints{
+							Include: []string{"["},
+						},
 					},
 					namespaces: allNsCfg,
 				},
@@ -134,39 +227,52 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while matching "Status one" with include regex "[": error parsing regexp: missing closing ]: %s`, "`[`"),
 		},
 		{
 			Name: "Resource name - success",
 			Routes: []route{
 				{
-					source:       "success",
-					resourceName: "^test-.*",
+					source: "success",
+					resourceName: config.RegexConstraints{
+						Include: []string{"^test-.*"},
+					},
+					namespaces: allNsCfg,
+				},
+				{
+					source:       "success-empty",
+					resourceName: config.RegexConstraints{},
 					namespaces:   allNsCfg,
 				},
 				{
-					source:       "fail",
-					resourceName: "^one-.*",
-					namespaces:   allNsCfg,
+					source: "fail",
+					resourceName: config.RegexConstraints{
+						Include: []string{"^one-.*"},
+					},
+					namespaces: allNsCfg,
 				},
 			},
 			Event: event.Event{
 				Name: "test-one",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Resource name - error",
 			Routes: []route{
 				{
-					source:       "success",
-					resourceName: "^test-.*",
-					namespaces:   allNsCfg,
+					source: "success",
+					resourceName: config.RegexConstraints{
+						Include: []string{"^test-.*"},
+					},
+					namespaces: allNsCfg,
 				},
 				{
-					source:       "error",
-					resourceName: "[",
-					namespaces:   allNsCfg,
+					source: "error",
+					resourceName: config.RegexConstraints{
+						Include: []string{"["},
+					},
+					namespaces: allNsCfg,
 				},
 			},
 			Event: event.Event{
@@ -175,25 +281,29 @@ func TestSourcesForEvent(t *testing.T) {
 			ExpectedResult: []string{"success"},
 			ExpectedErrMessage: heredoc.Docf(`
 				1 error occurred:
-					* while compiling regex: error parsing regexp: missing closing ]: %s`, "`[`"),
+					* while matching "test-one" with include regex "[": error parsing regexp: missing closing ]: %s`, "`[`"),
 		},
 		{
 			Name: "Namespace",
 			Routes: []route{
 				{
 					source:     "success",
-					namespaces: config.Namespaces{Include: []string{"^botkube-.*"}},
+					namespaces: config.RegexConstraints{Include: []string{"^botkube-.*"}},
+				},
+				{
+					source:     "success-empty",
+					namespaces: config.RegexConstraints{},
 				},
 				{
 					source:     "fail",
-					namespaces: config.Namespaces{Include: []string{"^kube-.*"}},
+					namespaces: config.RegexConstraints{Include: []string{"^kube-.*"}},
 				},
 			},
 			Event: event.Event{
 				Name:      "test-one",
 				Namespace: "botkube-one",
 			},
-			ExpectedResult: []string{"success"},
+			ExpectedResult: []string{"success", "success-empty"},
 		},
 		{
 			Name: "Labels",

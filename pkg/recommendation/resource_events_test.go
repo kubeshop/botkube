@@ -231,7 +231,7 @@ func fixSources() map[string]config.Sources {
 				Resources: []config.Resource{
 					{
 						Type:       "v1/deployments",
-						Namespaces: config.Namespaces{},
+						Namespaces: config.RegexConstraints{},
 						Event: config.KubernetesEvent{
 							Types: []config.EventType{config.AllEvent},
 						},
@@ -244,7 +244,7 @@ func fixSources() map[string]config.Sources {
 				Resources: []config.Resource{
 					{
 						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
+						Namespaces: config.RegexConstraints{
 							Include: []string{".*"},
 						},
 						Event: config.KubernetesEvent{
@@ -256,7 +256,7 @@ func fixSources() map[string]config.Sources {
 		},
 		"pods-source-wide-ns": {
 			Kubernetes: config.KubernetesSource{
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{".*"},
 				},
 				Resources: []config.Resource{
@@ -271,13 +271,13 @@ func fixSources() map[string]config.Sources {
 		},
 		"pods-ns-override": {
 			Kubernetes: config.KubernetesSource{
-				Namespaces: config.Namespaces{
+				Namespaces: config.RegexConstraints{
 					Include: []string{"default"},
 				},
 				Resources: []config.Resource{
 					{
 						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
+						Namespaces: config.RegexConstraints{
 							Include: []string{"kube-system"},
 						},
 						Event: config.KubernetesEvent{
@@ -292,7 +292,7 @@ func fixSources() map[string]config.Sources {
 				Resources: []config.Resource{
 					{
 						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
+						Namespaces: config.RegexConstraints{
 							Include: []string{"kube-system"},
 						},
 						Event: config.KubernetesEvent{
@@ -307,7 +307,7 @@ func fixSources() map[string]config.Sources {
 				Resources: []config.Resource{
 					{
 						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
+						Namespaces: config.RegexConstraints{
 							Include: []string{".*"},
 						},
 						Event: config.KubernetesEvent{

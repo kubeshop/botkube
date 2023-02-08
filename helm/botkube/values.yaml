@@ -130,14 +130,15 @@ sources:
       # These namespaces are applied to every resource specified in the resources list.
       # However, every specified resource can override this by using its own namespaces object.
       namespaces: &k8s-events-namespaces
-        # Include contains a list of allowed Namespaces.
-        # It can also contain a regex expressions:
+        # -- Include contains a list of allowed Namespaces.
+        # It can also contain regex expressions:
         #  `- ".*"` - to specify all Namespaces.
         include:
           - ".*"
-        # Exclude contains a list of Namespaces to be ignored even if allowed by Include.
-        # It can also contain a regex expressions:
+        # -- Exclude contains a list of Namespaces to be ignored even if allowed by Include.
+        # It can also contain regex expressions:
         #  `- "test-.*"` - to specif all Namespaces with `test-` prefix.
+        # Exclude list is checked before the Include list.
         # exclude: []
 
       # -- Describes event constraints for Kubernetes resources.
@@ -148,14 +149,28 @@ sources:
           - create
           - delete
           - error
-        # -- Optional regex to filter events by event reason.
-        reason: ""
-        # -- Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.
-        message: ""
+        # -- Optional list of exact values or regex patterns to filter events by event reason.
+        # Skipped, if both include/exclude lists are empty.
+        reason:
+          # -- Include contains a list of allowed values. It can also contain regex expressions.
+          include: []
+          # -- Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+          # Exclude list is checked before the Include list.
+          exclude: []
+        # -- Optional list of exact values or regex patterns to filter event by event message. Skipped, if both include/exclude lists are empty.
+        # If a given event has multiple messages, it is considered a match if any of the messages match the constraints.
+        message:
+          # -- Include contains a list of allowed values. It can also contain regex expressions.
+          include: []
+          # -- Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+          # Exclude list is checked before the Include list.
+          exclude: []
 
-      # -- Filters Kubernetes resources to watch by annotations.
+      # -- Filters Kubernetes resources to watch by annotations. Each resource needs to have all the specified annotations.
+      # Regex expressions are not supported.
       annotations: {}
-      # -- Filters Kubernetes resources to watch by labels.
+      # -- Filters Kubernetes resources to watch by labels. Each resource needs to have all the specified labels.
+      # Regex expressions are not supported.
       labels: {}
 
       # -- Describes the Kubernetes resources to watch.
@@ -165,18 +180,31 @@ sources:
       # @default -- See the `values.yaml` file for full object.
       resources:
         - type: v1/pods
-        #  namespaces:             # Overrides 'source'.kubernetes.namespaces
-        #    include:
-        #      - ".*"
-        #    exclude: []
-        #  annotations: {}         # Overrides 'source'.kubernetes.annotations
-        #  labels: {}              # Overrides 'source'.kubernetes.labels
-        #  name: "" # Optional resource name regex.
-        #  event:
-        #    reason: ""            # Overrides 'source'.kubernetes.event.reason
-        #    message: ""           # Overrides 'source'.kubernetes.event.message
-        #    types:                # Overrides 'source'.kubernetes.event.types
-        #      - create
+#          namespaces:             # Overrides 'source'.kubernetes.namespaces
+#            include:
+#              - ".*"
+#            exclude: []
+#          annotations: {}         # Overrides 'source'.kubernetes.annotations
+#          labels: {}              # Overrides 'source'.kubernetes.labels
+#          # Optional resource name constraints.
+#          name:
+#            # Include contains a list of allowed values. It can also contain regex expressions.
+#            include: []
+#            # Exclude contains a list of values to be ignored even if allowed by Include. It can also contain regex expressions.
+#            # Exclude list is checked before the Include list.
+#            exclude: []
+#          event:
+#            # Overrides 'source'.kubernetes.event.reason
+#            reason:
+#              include: []
+#              exclude: []
+#            # Overrides 'source'.kubernetes.event.message
+#            message:
+#              include: []
+#              exclude: []
+#            # Overrides 'source'.kubernetes.event.types
+#            types:
+#              - create
 
         - type: v1/services
         - type: networking.k8s.io/v1/ingresses
