@@ -343,7 +343,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 	return nil
 }
 
-func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) error {
+func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
@@ -360,7 +360,7 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.Message) e
 		if err != nil {
 			return err
 		}
-		resp = interactive.Message{
+		resp = interactive.CoreMessage{
 			Message: api.Message{
 				PlaintextInputs: resp.PlaintextInputs,
 			},
@@ -513,7 +513,7 @@ func (b *SocketSlack) SendGenericMessage(_ context.Context, genericMsg interacti
 }
 
 // SendMessageToAll sends message with interactive sections to all Slack channels.
-func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
+func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name

@@ -260,7 +260,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(msg slackMessage, resp interactive.Message, onlyVisibleToUser bool) error {
+func (b *Slack) send(msg slackMessage, resp interactive.CoreMessage, onlyVisibleToUser bool) error {
 	b.log.Debugf("Slack Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
@@ -366,7 +366,7 @@ func (b *Slack) SendGenericMessage(_ context.Context, genericMsg interactive.Gen
 }
 
 // SendMessageToAll sends message to all Slack channels.
-func (b *Slack) SendMessageToAll(ctx context.Context, msg interactive.Message) error {
+func (b *Slack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	message := interactive.RenderMessage(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
@@ -413,7 +413,7 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func uploadFileToSlack(channel string, resp interactive.Message, client *slack.Client, ts string) (*slack.File, error) {
+func uploadFileToSlack(channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
 	params := slack.FileUploadParameters{
 		Filename:        "Response.txt",
 		Title:           "Response.txt",

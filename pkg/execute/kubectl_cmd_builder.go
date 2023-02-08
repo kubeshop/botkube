@@ -107,10 +107,10 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 // Do executes a given kc-cmd-builder command based on args.
 //
 // TODO: once we will have a real use-case, we should abstract the Slack state and introduce our own model.
-func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string, cmdCtx CommandContext) (interactive.Message, error) {
-	var empty interactive.Message
+func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+	var empty interactive.CoreMessage
 
-	if platform != config.SocketSlackCommPlatformIntegration {
+	if !platform.IsInteractive() {
 		e.log.Debug("Interactive kubectl command builder is not supported on %s platform", platform)
 		return e.message(header, kubectlMissingCommandMsg)
 	}
@@ -139,26 +139,26 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 	)
 
 	cmds := executorsRunner{
-		verbsDropdownCommand: func() (interactive.Message, error) {
+		verbsDropdownCommand: func() (interactive.CoreMessage, error) {
 			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
-		resourceTypesDropdownCommand: func() (interactive.Message, error) {
+		resourceTypesDropdownCommand: func() (interactive.CoreMessage, error) {
 			// the resource type was selected, so clear resource name from command preview.
 			stateDetails.resourceName = ""
 			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
-		resourceNamesDropdownCommand: func() (interactive.Message, error) {
+		resourceNamesDropdownCommand: func() (interactive.CoreMessage, error) {
 			// this is called only when the resource name is directly selected from dropdown, so we need to include
 			// it in command preview.
 			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
-		resourceNamespaceDropdownCommand: func() (interactive.Message, error) {
+		resourceNamespaceDropdownCommand: func() (interactive.CoreMessage, error) {
 			// when the namespace was changed, there is a small chance that resource name will be still matching,
 			// we will need to do the external call to check that. For now, we clear resource name from command preview.
 			stateDetails.resourceName = ""
 			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
-		filterPlaintextInputCommand: func() (interactive.Message, error) {
+		filterPlaintextInputCommand: func() (interactive.CoreMessage, error) {
 			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 	}
@@ -171,8 +171,8 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (interactive.Message, error) {
-	var empty interactive.Message
+func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (interactive.CoreMessage, error) {
+	var empty interactive.CoreMessage
 
 	// We start a new interactive block, so we generate unique ID.
 	// Later when we update this message with a new "body" e.g. update command preview
@@ -196,8 +196,8 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string, cmdCtx CommandContext) (interactive.Message, error) {
-	var empty interactive.Message
+func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+	var empty interactive.CoreMessage
 
 	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
 	if allVerbsSelect == nil {
@@ -488,8 +488,8 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 	return PreviewSection(botName, cmd, FilterSection(botName))
 }
 
-func (e *KubectlCmdBuilder) message(header, msg string) (interactive.Message, error) {
-	return interactive.Message{
+func (e *KubectlCmdBuilder) message(header, msg string) (interactive.CoreMessage, error) {
+	return interactive.CoreMessage{
 		Description: header,
 		Message: api.Message{
 			BaseBody: api.Body{

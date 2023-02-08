@@ -62,7 +62,7 @@ func (b *SlackRenderer) RenderLegacyEventMessage(event event.Event) slack.Attach
 }
 
 // RenderEventMessage returns Slack interactive message based on a given event.
-func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections ...api.Section) interactive.Message {
+func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections ...api.Section) interactive.CoreMessage {
 	var sections []api.Section
 
 	switch b.notification.Type {
@@ -78,7 +78,7 @@ func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections
 		sections = append(sections, additionalSections...)
 	}
 
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Message: api.Message{
 			Sections: sections,
 		},
@@ -86,7 +86,7 @@ func (b *SlackRenderer) RenderEventMessage(event event.Event, additionalSections
 }
 
 // RenderModal returns a modal request view based on a given message.
-func (b *SlackRenderer) RenderModal(msg interactive.Message) slack.ModalViewRequest {
+func (b *SlackRenderer) RenderModal(msg interactive.CoreMessage) slack.ModalViewRequest {
 	title := msg.Header
 	msg.Header = ""
 	return slack.ModalViewRequest{
@@ -102,7 +102,7 @@ func (b *SlackRenderer) RenderModal(msg interactive.Message) slack.ModalViewRequ
 }
 
 // RenderInteractiveMessage returns Slack message based on the input msg.
-func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.MsgOption {
+func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.CoreMessage) slack.MsgOption {
 	if msg.HasSections() || msg.HasInputs() {
 		blocks := b.RenderAsSlackBlocks(msg)
 		return slack.MsgOptionBlocks(blocks...)
@@ -111,7 +111,7 @@ func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.Message) slack.
 }
 
 // RenderAsSlackBlocks returns the Slack message blocks for a given input message.
-func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.Message) []slack.Block {
+func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.CoreMessage) []slack.Block {
 	var blocks []slack.Block
 	if msg.Header != "" {
 		blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
@@ -179,7 +179,7 @@ func (b *SlackRenderer) renderSelects(s api.Selects) slack.Block {
 	)
 }
 
-func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.Message) slack.MsgOption {
+func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.CoreMessage) slack.MsgOption {
 	var out strings.Builder
 	if msg.Header != "" {
 		out.WriteString(msg.Header + "\n")

@@ -3,9 +3,9 @@ package interactive
 import "github.com/kubeshop/botkube/pkg/api"
 
 // Feedback generates Message structure.
-func Feedback() Message {
+func Feedback() CoreMessage {
 	btnBuilder := api.ButtonBuilder{}
-	return Message{
+	return CoreMessage{
 		Message: api.Message{
 			Sections: []api.Section{
 				{

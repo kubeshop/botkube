@@ -81,10 +81,10 @@ func NewSourceBindingExecutor(log logrus.FieldLogger, analyticsReporter Analytic
 }
 
 // Status returns all sources per given channel
-func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	sources := e.currentlySelectedOptions(cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation.ID)
 	if len(sources) == 0 {
-		return interactive.Message{}, nil
+		return interactive.CoreMessage{}, nil
 	}
 	sort.Strings(sources)
 
@@ -103,8 +103,8 @@ func (e *SourceBindingExecutor) Status(_ context.Context, cmdCtx CommandContext)
 }
 
 // Edit executes the edit command based on args.
-func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
-	var empty interactive.Message
+func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+	var empty interactive.CoreMessage
 
 	if len(cmdCtx.Args) < 2 {
 		return empty, errInvalidCommand
@@ -131,8 +131,8 @@ func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext)
 	return msg, nil
 }
 
-func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.Message, error) {
-	var empty interactive.Message
+func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.CoreMessage, error) {
+	var empty interactive.CoreMessage
 
 	sourceBindings, err := e.normalizeSourceItems(cmdArgs)
 	if err != nil {
@@ -141,7 +141,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 
 	if len(sourceBindings) == 0 {
 		selectedOptions := e.mapToOptions(e.currentlySelectedOptions(commGroupName, platform, conversation.ID))
-		return interactive.Message{
+		return interactive.CoreMessage{
 			Header: "Adjust notifications",
 			Message: api.Message{
 				Type:              api.PopupMessage,
@@ -180,7 +180,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 		userID = "Anonymous"
 	}
 
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Description: e.getEditedSourceBindingsMsg(userID, sourceList),
 	}, nil
 }
@@ -193,10 +193,10 @@ func (e *SourceBindingExecutor) getEditedSourceBindingsMsg(userID, sourceList st
 	return fmt.Sprintf(editedSourcesMsgFmt, userID, sourceList)
 }
 
-func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interactive.Message {
+func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interactive.CoreMessage {
 	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Description: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
 	}
 }

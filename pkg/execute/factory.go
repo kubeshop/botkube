@@ -57,7 +57,7 @@ type DefaultExecutorFactoryParams struct {
 
 // Executor is an interface for processes to execute commands
 type Executor interface {
-	Execute(context.Context) interactive.Message
+	Execute(context.Context) interactive.CoreMessage
 }
 
 // ConfigPersistenceManager manages persistence of the configuration.

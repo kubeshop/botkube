@@ -83,7 +83,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	if e.kcBuilder.ShouldHandle(cmd) {
-		msg, err := e.kcBuilder.Handle(ctx, e.logger, in.Context.CommunicationPlatform)
+		msg, err := e.kcBuilder.Handle(ctx, e.logger, in.Context.IsInteractivitySupported)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while running command builder: %w", err)
 		}

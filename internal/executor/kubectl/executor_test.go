@@ -213,7 +213,7 @@ func TestCommandsBuilder(t *testing.T) {
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
 				Context: executor.ExecuteInputContext{
-					CommunicationPlatform: tc.platform,
+					IsInteractivitySupported: tc.platform.IsInteractive(),
 				},
 			})
 

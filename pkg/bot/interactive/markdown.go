@@ -32,7 +32,7 @@ func DefaultMDFormatter() MDFormatter {
 }
 
 // RenderMessage returns interactive message as a plaintext with Markdown syntax.
-func RenderMessage(mdFormatter MDFormatter, msg Message) string {
+func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 	var out strings.Builder
 	addLine := func(in string) {
 		out.WriteString(mdFormatter.newlineFormatter(in))

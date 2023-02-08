@@ -99,19 +99,18 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 }
 
 func runErr(sout, serr string, err error) error {
-	if sout == "" && serr == "" {
-		return err
-	}
-
-	if sout != "" && serr != "" {
-		return fmt.Errorf("%s\n%s\n%w", sout, serr, err)
-	}
-
+	strBldr := strings.Builder{}
 	if sout != "" {
-		return fmt.Errorf("%s\n%w", sout, err)
+		strBldr.WriteString(sout)
+		strBldr.WriteString("\n")
 	}
 
-	return fmt.Errorf("%s\n%w", serr, err)
+	if serr != "" {
+		strBldr.WriteString(serr)
+		strBldr.WriteString("\n")
+	}
+
+	return fmt.Errorf("%s%w", strBldr.String(), err)
 }
 
 // The go-arg library is handling the `--version` flag internally returning and error and stopping further processing, see:

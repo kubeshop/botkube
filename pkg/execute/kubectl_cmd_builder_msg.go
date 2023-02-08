@@ -61,7 +61,7 @@ func WithAdditionalSections(in ...api.Section) KubectlCmdBuilderOption {
 }
 
 // KubectlCmdBuilderMessage returns message for constructing kubectl command.
-func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs api.Select, opts ...KubectlCmdBuilderOption) interactive.Message {
+func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs api.Select, opts ...KubectlCmdBuilderOption) interactive.CoreMessage {
 	defaultOpt := KubectlCmdBuilderOptions{
 		selects: []api.Select{
 			verbs,
@@ -80,7 +80,7 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs api.Select, opts ..
 	})
 
 	sections = append(sections, defaultOpt.sections...)
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Message: api.Message{
 			ReplaceOriginal:   true,
 			OnlyVisibleForYou: true,

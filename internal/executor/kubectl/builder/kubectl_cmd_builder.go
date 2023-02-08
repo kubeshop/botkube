@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const (
@@ -33,9 +32,9 @@ func (e *KubectlCmdBuilder) ShouldHandle(cmd string) bool {
 }
 
 // Handle constructs the interactive command builder messages.
-func (e *KubectlCmdBuilder) Handle(_ context.Context, log logrus.FieldLogger, platform config.CommPlatformIntegration) (api.Message, error) {
-	if platform != config.SocketSlackCommPlatformIntegration {
-		log.Debug("Interactive kubectl command builder is not supported on %s platform", platform)
+func (e *KubectlCmdBuilder) Handle(_ context.Context, log logrus.FieldLogger, isInteractivitySupported bool) (api.Message, error) {
+	if !isInteractivitySupported {
+		log.Debug("Interactive kubectl command builder is not supported. Requesting a full kubectl command.")
 		return e.message(kubectlMissingCommandMsg)
 	}
 

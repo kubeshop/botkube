@@ -30,7 +30,7 @@ func TestCommandPreview(t *testing.T) {
 		name string
 		args []string
 
-		expMsg interactive.Message
+		expMsg interactive.CoreMessage
 	}{
 		{
 			name: "Print all dropdowns and full command on verb change",
@@ -191,7 +191,7 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, interactive.Message{
+			assert.Equal(t, interactive.CoreMessage{
 				Description: cmdHeader,
 				Message: api.Message{
 					BaseBody: api.Body{
@@ -270,10 +270,10 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	}
 }
 
-func fixInitialBuilderMessage() interactive.Message {
+func fixInitialBuilderMessage() interactive.CoreMessage {
 	verbsDropdown := fixVerbsDropdown()
 	verbsDropdown.InitialOption = nil // initial message shouldn't have anything selected.
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Message: api.Message{
 			Sections: []api.Section{
 				{
@@ -419,8 +419,8 @@ func fixAllDropdown(includeResourceName bool) []api.Select {
 	}
 }
 
-func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api.Select) interactive.Message {
-	return interactive.Message{
+func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api.Select) interactive.CoreMessage {
+	return interactive.CoreMessage{
 		Message: api.Message{
 			Sections: []api.Section{
 				{

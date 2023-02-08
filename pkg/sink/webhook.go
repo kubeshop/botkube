@@ -110,7 +110,7 @@ func (w *Webhook) SendEvent(ctx context.Context, event event.Event, eventSources
 }
 
 // SendMessageToAll is no-op.
-func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.Message) error {
+func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.CoreMessage) error {
 	return nil
 }
 

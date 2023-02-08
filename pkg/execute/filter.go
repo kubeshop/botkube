@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
@@ -62,7 +63,7 @@ func (e *FilterExecutor) FeatureName() FeatureName {
 }
 
 // List returns a tabular representation of Filters
-func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List filters")
@@ -70,7 +71,7 @@ func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 }
 
 // Enable enables given filter in the startup config map
-func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = true
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
@@ -86,14 +87,14 @@ func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 
 	err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+		return interactive.CoreMessage{}, fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 	}
 
 	return respond(fmt.Sprintf(filterEnabled, filterName, cmdCtx.ClusterName), cmdCtx), nil
 }
 
 // Disable disables given filter in the startup config map
-func (e *FilterExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *FilterExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = false
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 
@@ -111,7 +112,7 @@ func (e *FilterExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (in
 
 	err := e.cfgManager.PersistFilterEnabled(ctx, filterName, enabled)
 	if err != nil {
-		return interactive.Message{}, fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
+		return interactive.CoreMessage{}, fmt.Errorf("while setting filter %q to %t: %w", filterName, enabled, err)
 	}
 
 	msg := fmt.Sprintf(filterDisabled, filterName, cmdCtx.ClusterName)
@@ -139,4 +140,16 @@ func (e *FilterExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin com
 	if err != nil {
 		e.log.Errorf("while reporting filter command: %s", err.Error())
 	}
+}
+
+func appendInteractiveFilterIfNeeded(body string, msg interactive.CoreMessage, cmdCtx CommandContext) interactive.CoreMessage {
+	if !cmdCtx.Platform.IsInteractive() {
+		return msg
+	}
+	if len(strings.SplitN(body, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
+		return msg
+	}
+
+	msg.PlaintextInputs = append(msg.PlaintextInputs, filterInput(cmdCtx.CleanCmd, cmdCtx.BotName))
+	return msg
 }

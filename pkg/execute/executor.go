@@ -78,8 +78,8 @@ func (flag CommandFlags) String() string {
 }
 
 // Execute executes commands and returns output
-func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
-	empty := interactive.Message{}
+func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
+	empty := interactive.CoreMessage{}
 	rawCmd := sanitizeCommand(e.message)
 
 	expandedRawCmd := alias.ExpandPrefix(rawCmd, e.cfg.Aliases)
@@ -101,7 +101,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	flags, err := ParseFlags(expandedRawCmd)
 	if err != nil {
 		e.log.Errorf("while parsing command flags %q: %s", expandedRawCmd, err.Error())
-		return interactive.Message{
+		return interactive.CoreMessage{
 			Description: header(cmdCtx),
 			Message: api.Message{
 				BaseBody: api.Body{
@@ -230,40 +230,35 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.Message {
 	return msg
 }
 
-func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.Message {
+func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.CoreMessage {
 	e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
 	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx)
 	if err != nil {
 		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
-		return interactive.Message{}
+		return interactive.CoreMessage{}
 	}
 	return msg
 }
 
-func respond(msg string, cmdCtx CommandContext) interactive.Message {
-	msg = cmdCtx.ExecutorFilter.Apply(msg)
+func respond(body string, cmdCtx CommandContext) interactive.CoreMessage {
+	body = cmdCtx.ExecutorFilter.Apply(body)
 	msgBody := api.Body{
-		CodeBlock: msg,
+		CodeBlock: body,
 	}
-	if msg == "" {
+	if body == "" {
 		msgBody = api.Body{
 			Plaintext: emptyResponseMsg,
 		}
 	}
 
-	message := interactive.Message{
+	message := interactive.CoreMessage{
 		Description: header(cmdCtx),
 		Message: api.Message{
 			BaseBody: msgBody,
 		},
 	}
-	// Show Filter Input if command response is more than `lineLimitToShowFilter`
-	if len(strings.SplitN(msg, "\n", lineLimitToShowFilter)) == lineLimitToShowFilter {
-		message.PlaintextInputs = append(message.PlaintextInputs,
-			filterInput(cmdCtx.CleanCmd,
-				cmdCtx.BotName))
-	}
-	return message
+
+	return appendInteractiveFilterIfNeeded(body, message, cmdCtx)
 }
 
 func sanitizeCommand(cmd string) string {

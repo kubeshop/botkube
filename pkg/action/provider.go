@@ -81,7 +81,7 @@ func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []strin
 }
 
 // ExecuteEventAction executes action for given event.
-// WARNING: The result interactive.Message contains BotNamePlaceholder, which should be replaced before sending the message.
+// WARNING: The result interactive.CoreMessage contains BotNamePlaceholder, which should be replaced before sending the message.
 func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage {
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
@@ -123,11 +123,11 @@ func (p *Provider) renderActionCommand(action config.Action, data renderingData)
 }
 
 type genericMessage struct {
-	response interactive.Message
+	response interactive.CoreMessage
 }
 
 // ForBot returns message prepared for a bot with a given name.
-func (g *genericMessage) ForBot(botName string) interactive.Message {
+func (g *genericMessage) ForBot(botName string) interactive.CoreMessage {
 	g.response.ReplaceBotNameInCommands(universalBotNamePlaceholder, botName)
 	return g.response
 }

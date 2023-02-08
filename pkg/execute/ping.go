@@ -44,7 +44,7 @@ func (e *PingExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // Ping responds with "pong" to the ping command
-func (e *PingExecutor) Ping(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *PingExecutor) Ping(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	e.log.Debugf("Sending pong to %s", cmdCtx.Conversation.ID)
 	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)

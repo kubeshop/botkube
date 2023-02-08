@@ -186,12 +186,12 @@ func (f *fakeFactory) NewDefault(input execute.NewDefaultInput) execute.Executor
 
 type fakeExecutor struct{}
 
-func (fakeExecutor) Execute(_ context.Context) interactive.Message {
+func (fakeExecutor) Execute(_ context.Context) interactive.CoreMessage {
 	return fixInteractiveMessage("{{BotName}}")
 }
 
-func fixInteractiveMessage(botName string) interactive.Message {
-	return interactive.Message{
+func fixInteractiveMessage(botName string) interactive.CoreMessage {
+	return interactive.CoreMessage{
 		Header: "Sample",
 		Message: api.Message{
 			PlaintextInputs: []api.LabelInput{

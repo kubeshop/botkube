@@ -245,7 +245,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 }
 
 // Send messages to Mattermost
-func (b *Mattermost) send(channelID string, resp interactive.Message) error {
+func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error {
 	b.log.Debugf("Mattermost Response: %s", resp)
 
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
@@ -438,7 +438,7 @@ func (b *Mattermost) SendGenericMessage(_ context.Context, genericMsg interactiv
 }
 
 // SendMessageToAll sends message to all Mattermost channels.
-func (b *Mattermost) SendMessageToAll(_ context.Context, msg interactive.Message) error {
+func (b *Mattermost) SendMessageToAll(_ context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID

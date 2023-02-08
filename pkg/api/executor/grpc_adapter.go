@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // Executor defines the Botkube executor plugin functionality.
@@ -33,14 +32,32 @@ type (
 
 	// ExecuteInputContext holds execution context.
 	ExecuteInputContext struct {
-		CommunicationPlatform config.CommPlatformIntegration
+		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
+		IsInteractivitySupported bool
 	}
 
 	// ExecuteOutput holds the output of the Execute function.
 	ExecuteOutput struct {
 		// Data represents the output of processing a given input command.
+		// Deprecated: Use the Message field instead.
+		//
+		// Migration path:
+		//
+		//	Old approach:
+		//	  return executor.ExecuteOutput{
+		//	  	Data: data,
+		//	  }
+		//
+		//	New approach:
+		//	  return executor.ExecuteOutput{
+		//	  	Message: api.NewPlaintextMessage(data, true),
+		//	  }
 		Data string
+
 		// Message represents the output of processing a given input command.
+		// You can construct a complex message or just use one of our helper functions:
+		//   - api.NewCodeBlockMessage("body", true)
+		//   - api.NewPlaintextMessage("body", true)
 		Message api.Message
 	}
 )
@@ -89,7 +106,7 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 		Command: in.Command,
 		Configs: in.Configs,
 		Context: &ExecuteContext{
-			CommunicationPlatform: string(in.Context.CommunicationPlatform),
+			IsInteractivitySupported: in.Context.IsInteractivitySupported,
 		},
 	}
 
@@ -150,7 +167,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 		Command: request.Command,
 		Configs: request.Configs,
 		Context: ExecuteInputContext{
-			CommunicationPlatform: config.CommPlatformIntegration(request.Context.CommunicationPlatform),
+			IsInteractivitySupported: request.Context.IsInteractivitySupported,
 		},
 	})
 	if err != nil {

@@ -41,7 +41,7 @@ func (e *FeedbackExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // Feedback responds with a feedback form URL
-func (e *FeedbackExecutor) Feedback(ctx context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *FeedbackExecutor) Feedback(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	return interactive.Feedback(), nil

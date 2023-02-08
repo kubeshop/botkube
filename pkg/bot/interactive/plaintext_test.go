@@ -13,7 +13,7 @@ import (
 // go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToPlaintextMultiSelect(t *testing.T) {
 	// given
-	message := Message{
+	message := CoreMessage{
 		Header:      "Adjust notifications",
 		Description: "Adjust notifications description",
 		Message: api.Message{

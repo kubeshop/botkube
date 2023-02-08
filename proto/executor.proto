@@ -12,7 +12,7 @@ message Config {
 }
 
 message ExecuteRequest {
-	// commands represents the exact command that was specified by the user.
+	// command represents the exact command that was specified by the user.
 	string command = 1;
 	// configs is a list of Executor configurations specified by users.
 	repeated Config configs = 2;
@@ -21,7 +21,7 @@ message ExecuteRequest {
 }
 
 message ExecuteContext {
-	string communicationPlatform = 1;
+	bool isInteractivitySupported = 1;
 }
 
 message ExecuteResponse {

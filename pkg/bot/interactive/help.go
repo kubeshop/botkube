@@ -33,8 +33,8 @@ func NewHelpMessage(platform config.CommPlatformIntegration, clusterName, botNam
 }
 
 // Build returns help message with interactive sections.
-func (h *HelpMessage) Build() Message {
-	msg := Message{
+func (h *HelpMessage) Build() CoreMessage {
+	msg := CoreMessage{
 		Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", h.clusterName),
 	}
 
@@ -189,7 +189,7 @@ func (h *HelpMessage) configSections() []api.Section {
 }
 
 func (h *HelpMessage) executorSections() []api.Section {
-	if h.platform == config.SocketSlackCommPlatformIntegration {
+	if h.platform.IsInteractive() {
 		return []api.Section{
 			{
 				Base: api.Base{

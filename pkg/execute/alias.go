@@ -45,13 +45,13 @@ func (e *AliasExecutor) Commands() map[command.Verb]CommandFn {
 }
 
 // List returns a tabular representation of aliases.
-func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interactive.Message, error) {
+func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
 	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
 
-	return interactive.Message{
+	return interactive.CoreMessage{
 		Description: outMsg.Description,
 		Message: api.Message{
 			Sections: []api.Section{
