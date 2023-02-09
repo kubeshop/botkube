@@ -10,6 +10,11 @@ Changes proposed in this pull request:
 
 - ...
 
+## Testing
+
+<!-- Describe necessary steps to test the changes.
+You can refer to the existing documentation if some steps are already described. -->
+
 ## Related issue(s)
 
 <!-- If you refer to a particular issue, provide its number.
