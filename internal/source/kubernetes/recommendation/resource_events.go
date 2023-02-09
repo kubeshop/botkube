@@ -27,7 +27,7 @@ func ResourceEventsForConfig(recCfg config2.Recommendations) map[string]config2.
 }
 
 // ShouldIgnoreEvent returns true if user doesn't listen to events for a given resource, apart from enabled recommendations.
-func ShouldIgnoreEvent(recCfg config2.Recommendations, sources config2.Config, sourceBindings []string, event event.Event) bool {
+func ShouldIgnoreEvent(recCfg config2.Recommendations, event event.Event) bool {
 	if event.HasRecommendationsOrWarnings() {
 		// shouldn't be skipped
 		return false

@@ -28,7 +28,7 @@ const (
 )
 
 type RecommendationFactory interface {
-	NewForSources(cfg config2.Config, mapKeyOrder []string) (recommendation.AggregatedRunner, config.Recommendations)
+	New(cfg config2.Config) (recommendation.AggregatedRunner, config.Recommendations)
 }
 
 // Source Kubernetes source plugin data structure
@@ -80,10 +80,10 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	exitOnError(err, s.logger)
 
 	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, *s.config.InformerReSyncPeriod)
-	sourcesRouter := NewRouter(client.mapper, client.dynamicCli, s.logger)
-	sourcesRouter.BuildTable(&s.config)
+	router := NewRouter(client.mapper, client.dynamicCli, s.logger)
+	router.BuildTable(&s.config)
 
-	err = sourcesRouter.RegisterInformers([]config.EventType{
+	err = router.RegisterInformers([]config.EventType{
 		config.CreateEvent,
 		config.UpdateEvent,
 		config.DeleteEvent,
@@ -106,7 +106,7 @@ func (s *Source) consumeEvents(ctx context.Context) {
 		}))
 	}
 
-	err = sourcesRouter.MapWithEventsInformer(
+	err = router.MapWithEventsInformer(
 		config.ErrorEvent,
 		config.WarningEvent,
 		func(resource string) (cache.SharedIndexInformer, error) {
@@ -131,14 +131,14 @@ func (s *Source) consumeEvents(ctx context.Context) {
 		config.UpdateEvent,
 	}
 	for _, eventType := range eventTypes {
-		sourcesRouter.RegisterEventHandler(
+		router.RegisterEventHandler(
 			ctx,
 			eventType,
 			s.handleEvent,
 		)
 	}
 
-	sourcesRouter.HandleMappedEvent(
+	router.HandleMappedEvent(
 		ctx,
 		config.ErrorEvent,
 		s.handleEvent,
@@ -148,7 +148,7 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	dynamicKubeInformerFactory.Start(stopCh)
 }
 
-func (s *Source) handleEvent(ctx context.Context, event event.Event, sources, updateDiffs []string) {
+func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs []string) {
 	s.ch <- []byte("kubernetes event")
 	s.logger.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
 	s.enrichEventWithAdditionalMetadata(&event)
@@ -162,7 +162,7 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, sources, up
 	// Check for significant Update Events in objects
 	if event.Type == config.UpdateEvent {
 		switch {
-		case len(sources) == 0 && len(updateDiffs) == 0:
+		case len(updateDiffs) == 0:
 			// skipping the least significant update
 			s.logger.Debug("skipping least significant Update event")
 			event.Skip = true
@@ -178,13 +178,13 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, sources, up
 		return
 	}
 
-	recRunner, recCfg := s.recommFactory.NewForSources(s.config, sources)
+	recRunner, recCfg := s.recommFactory.New(s.config)
 	err := recRunner.Do(ctx, &event)
 	if err != nil {
 		s.logger.Errorf("while running recommendations: %w", err)
 	}
 
-	if recommendation.ShouldIgnoreEvent(recCfg, s.config, sources, event) {
+	if recommendation.ShouldIgnoreEvent(recCfg, event) {
 		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
 		return
 	}

@@ -34,8 +34,8 @@ func NewFactory(logger logrus.FieldLogger, dynamicCli dynamic.Interface) *Factor
 	return &Factory{logger: logger, dynamicCli: dynamicCli}
 }
 
-// NewForSources merges recommendation options from multiple sources, and creates a new AggregatedRunner.
-func (f *Factory) NewForSources(cfg config.Config) (AggregatedRunner, config.Recommendations) {
+// New creates a new AggregatedRunner.
+func (f *Factory) New(cfg config.Config) (AggregatedRunner, config.Recommendations) {
 	recommendations := f.recommendationsForConfig(*cfg.Recommendations)
 	return newAggregatedRunner(f.logger, recommendations), *cfg.Recommendations
 }

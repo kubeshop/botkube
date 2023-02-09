@@ -16,7 +16,7 @@ func main() {
 			Source: kubernetes.NewSource(version),
 		},
 	})*/
-	file, err := os.ReadFile("/tmp/kube-config.yaml")
+	file, err := os.ReadFile("/Users/huseyin/kube-config.yaml")
 	if err != nil {
 		return
 	}
