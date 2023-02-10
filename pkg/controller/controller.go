@@ -15,6 +15,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/source"
+	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -69,6 +70,7 @@ type Controller struct {
 	informersResyncPeriod time.Duration
 	sourcesRouter         *source.Router
 	actionProvider        ActionProvider
+	statusReporter        status.StatusReporter
 
 	dynamicCli dynamic.Interface
 
@@ -88,6 +90,7 @@ func New(log logrus.FieldLogger,
 	router *source.Router,
 	actionProvider ActionProvider,
 	reporter AnalyticsReporter,
+	statusReporter status.StatusReporter,
 ) *Controller {
 	return &Controller{
 		log:                   log,
@@ -101,6 +104,7 @@ func New(log logrus.FieldLogger,
 		sourcesRouter:         router,
 		actionProvider:        actionProvider,
 		reporter:              reporter,
+		statusReporter:        statusReporter,
 	}
 }
 
@@ -191,6 +195,13 @@ func (c *Controller) Start(ctx context.Context) error {
 	err = notifier.SendPlaintextMessage(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending final message: %w", err)
+	}
+
+	// use separate ctx as parent ctx is already cancelled
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if _, err := c.statusReporter.ReportDeploymentShutdown(ctxTimeout); err != nil {
+		return fmt.Errorf("while reporting botkube shutdown: %w", err)
 	}
 
 	return nil

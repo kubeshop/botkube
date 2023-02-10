@@ -32,6 +32,7 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/internal/source"
+	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/internal/storage"
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/bot"
@@ -84,6 +85,7 @@ func run(ctx context.Context) error {
 	}
 
 	logger := loggerx.New(conf.Settings.Log)
+	statusReporter := status.NewStatusReporter(logger, "", "")
 
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
@@ -104,7 +106,7 @@ func run(ctx context.Context) error {
 	// The reader must be not closed to report the panic properly.
 	defer analytics.ReportPanicIfOccurs(logger, reporter)
 
-	reportFatalError := reportFatalErrFn(logger, reporter)
+	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
@@ -370,7 +372,12 @@ func run(ctx context.Context) error {
 		router.BuildTable(conf),
 		actionProvider,
 		reporter,
+		statusReporter,
 	)
+
+	if _, err := statusReporter.ReportDeploymentStartup(ctx); err != nil {
+		return reportFatalError("while reporting botkube startup", err)
+	}
 
 	err = ctrl.Start(ctx)
 	if err != nil {
@@ -450,12 +457,19 @@ func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInte
 	return dynamicK8sCli, discoCacheClient, mapper, nil
 }
 
-func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter) func(ctx string, err error) error {
+func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {
 	return func(ctx string, err error) error {
+		// use separate ctx as parent ctx might be cancelled already
+		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
 		wrappedErr := fmt.Errorf("%s: %w", ctx, err)
 
 		if reportErr := reporter.ReportFatalError(err); reportErr != nil {
 			logger.Errorf("while reporting fatal error: %s", err.Error())
+		}
+
+		if _, err := status.ReportDeploymentFailed(ctxTimeout); err != nil {
+			logger.Errorf("while reporting botkube deployment status: %s", err.Error())
 		}
 
 		return wrappedErr
