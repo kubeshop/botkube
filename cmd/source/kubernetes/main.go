@@ -1,22 +1,21 @@
 package main
 
 import (
-	"context"
+	"github.com/hashicorp/go-plugin"
 	"github.com/kubeshop/botkube/internal/source/kubernetes"
 	"github.com/kubeshop/botkube/pkg/api/source"
-	"os"
 )
 
 // version is set via ldflags by GoReleaser.
 var version = "dev"
 
 func main() {
-	/*source.Serve(map[string]plugin.Plugin{
-		prometheus.PluginName: &source.Plugin{
+	source.Serve(map[string]plugin.Plugin{
+		kubernetes.PluginName: &source.Plugin{
 			Source: kubernetes.NewSource(version),
 		},
-	})*/
-	file, err := os.ReadFile("/Users/huseyin/kube-config.yaml")
+	})
+	/*file, err := os.ReadFile("/Users/huseyin/kube-config.yaml")
 	if err != nil {
 		return
 	}
@@ -28,5 +27,5 @@ func main() {
 	}})
 	if err != nil {
 		return
-	}
+	}*/
 }

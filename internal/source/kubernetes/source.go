@@ -62,7 +62,6 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Level: cfg.Log.Level,
 	})
 	go s.consumeEvents(ctx)
-	time.Sleep(time.Minute * 15)
 	return out, nil
 }
 
