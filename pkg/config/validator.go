@@ -120,8 +120,8 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginRepoTag:    "{0}{1}",
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
-		invalidPluginRBACTag:        "RBAC of {0} and {1} are different. But have to be identical.",
-		invalidPluginDefaultNSTag:   "Default namespace of {0} and {1} are different. But have to be identical.",
+		invalidPluginRBACTag:        "RBAC configuration for plugin '{0}' used in  '{0}' and '{1}' bindings must be identical when used together",
+		invalidPluginDefaultNSTag:   "Default namespace for plugin '{0}' used in '{0}' and '{1}' bindings must be identical when used together.",
 	})
 }
 
