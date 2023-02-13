@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -43,7 +44,6 @@ type CommandContext struct {
 	Args                []string
 	ClusterName         string
 	CommGroupName       string
-	BotName             string
 	CleanCmd            string
 	ProvidedClusterName string
 	User                string
@@ -125,7 +125,7 @@ func (m *CommandMapping) FindFn(verb command.Verb, feature string) (CommandFn, b
 }
 
 // HelpMessageForVerb dynamically builds help message for given command.Verb, or empty string
-func (m *CommandMapping) HelpMessageForVerb(verb command.Verb, botName string) string {
+func (m *CommandMapping) HelpMessageForVerb(verb command.Verb) string {
 	cmd, ok := m.help[verb]
 	if !ok {
 		return incompleteCmdMsg
@@ -133,7 +133,7 @@ func (m *CommandMapping) HelpMessageForVerb(verb command.Verb, botName string) s
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 3, 0, 1, ' ', 0)
 
-	fmt.Fprintf(w, helpMsgHeader, botName, verb)
+	fmt.Fprintf(w, helpMsgHeader, api.MessageBotNamePlaceholder, verb)
 	for _, feature := range cmd {
 		aliases := removeEmptyFeatures(feature.Aliases)
 		fmtStr := fmt.Sprintf("%s\t", feature.Name)

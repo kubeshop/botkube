@@ -21,8 +21,8 @@ type Notifier interface {
 	// TODO: Consider option per channel to turn on/off "announcements" (Botkube start/stop/upgrade, notify/config change).
 	SendMessageToAll(context.Context, interactive.CoreMessage) error
 
-	// SendGenericMessage sends a generic message for a given source bindings.
-	SendGenericMessage(context.Context, interactive.GenericMessage, []string) error
+	// SendMessage sends a generic message for a given source bindings.
+	SendMessage(context.Context, interactive.CoreMessage, []string) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration

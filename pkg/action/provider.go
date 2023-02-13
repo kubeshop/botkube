@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"strings"
 
 	sprig "github.com/go-task/slim-sprig"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -21,9 +21,6 @@ import (
 )
 
 const (
-	// universalBotNamePlaceholder is a cross-platform placeholder for bot name in commands.
-	universalBotNamePlaceholder = "{{BotName}}"
-
 	// unknownValue defines an unknown string value.
 	unknownValue = "unknown"
 )
@@ -72,7 +69,7 @@ func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []strin
 
 		actions = append(actions, event.Action{
 			DisplayName:      action.DisplayName,
-			Command:          fmt.Sprintf("%s %s", universalBotNamePlaceholder, renderedCmd),
+			Command:          fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, renderedCmd),
 			ExecutorBindings: action.Bindings.Executors,
 		})
 	}
@@ -81,8 +78,7 @@ func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []strin
 }
 
 // ExecuteEventAction executes action for given event.
-// WARNING: The result interactive.CoreMessage contains BotNamePlaceholder, which should be replaced before sending the message.
-func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage {
+func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage {
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
 			IsAuthenticated:  true,
@@ -94,12 +90,12 @@ func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) 
 		CommGroupName:   unknownValue,
 		Platform:        unknownValue,
 		NotifierHandler: &universalNotifierHandler{},
-		Message:         strings.TrimSpace(strings.TrimPrefix(action.Command, universalBotNamePlaceholder)),
+		Message:         action.Command,
 		User:            fmt.Sprintf("Automation %q", action.DisplayName),
 	})
 	response := e.Execute(ctx)
 
-	return &genericMessage{response: response}
+	return response
 }
 
 type renderingData struct {
@@ -122,16 +118,6 @@ func (p *Provider) renderActionCommand(action config.Action, data renderingData)
 	return result.String(), nil
 }
 
-type genericMessage struct {
-	response interactive.CoreMessage
-}
-
-// ForBot returns message prepared for a bot with a given name.
-func (g *genericMessage) ForBot(botName string) interactive.CoreMessage {
-	g.response.ReplaceBotNameInCommands(universalBotNamePlaceholder, botName)
-	return g.response
-}
-
 type universalNotifierHandler struct{}
 
 func (n *universalNotifierHandler) NotificationsEnabled(_ string) bool {
@@ -140,8 +126,4 @@ func (n *universalNotifierHandler) NotificationsEnabled(_ string) bool {
 
 func (n *universalNotifierHandler) SetNotificationsEnabled(_ string, _ bool) error {
 	return errors.New("setting notification from automated action is not supported. Use Botkube commands on a specific channel to set notifications")
-}
-
-func (n *universalNotifierHandler) BotName() string {
-	return universalBotNamePlaceholder
 }

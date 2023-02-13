@@ -153,21 +153,16 @@ func (b *Discord) SendEvent(_ context.Context, event event.Event, eventSources [
 	return errs.ErrorOrNil()
 }
 
-// SendGenericMessage sends interactive message to selected Discord channels.
+// SendMessage sends interactive message to selected Discord channels.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
-	msg := genericMsg.ForBot(b.BotName())
-
+func (b *Discord) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
-
 		err := b.send(channelID, msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 
 	return errs.ErrorOrNil()
@@ -179,14 +174,12 @@ func (b *Discord) SendMessageToAll(_ context.Context, msg interactive.CoreMessag
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
-		b.log.Debugf("Sending message to channel %q: %s", channelID, plaintext)
 
-		if _, err := b.api.ChannelMessageSend(channelID, plaintext); err != nil {
+		err := b.send(channelID, msg)
+		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 
 	return errs.ErrorOrNil()
@@ -286,8 +279,9 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 }
 
 func (b *Discord) send(channelID string, resp interactive.CoreMessage) error {
-	b.log.Debugf("Discord Response: %s", resp)
+	b.log.Debugf("Sending message to channel %q: %+v", channelID, resp)
 
+	resp.ReplaceBotNamePlaceholder(b.BotName())
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
@@ -314,6 +308,8 @@ func (b *Discord) send(channelID string, resp interactive.CoreMessage) error {
 	if _, err := b.api.ChannelMessageSend(channelID, markdown); err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
+
+	b.log.Debugf("Message successfully sent to channel %q", channelID)
 	return nil
 }
 

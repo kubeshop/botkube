@@ -8,8 +8,3 @@ type CoreMessage struct {
 	Description string
 	api.Message
 }
-
-// GenericMessage returns a message which has customized content. For example, it returns a message with customized commands based on bot name.
-type GenericMessage interface {
-	ForBot(botName string) CoreMessage
-}

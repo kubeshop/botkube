@@ -246,8 +246,9 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 
 // Send messages to Mattermost
 func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error {
-	b.log.Debugf("Mattermost Response: %s", resp)
+	b.log.Debugf("Sending message to channel %q: %+v", channelID, resp)
 
+	resp.ReplaceBotNamePlaceholder(b.BotName())
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
@@ -277,12 +278,14 @@ func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error 
 		return nil
 	}
 
-	post := &model.Post{}
-	post.ChannelId = channelID
-	post.Message = markdown
+	post := &model.Post{
+		ChannelId: channelID,
+		Message:   markdown,
+	}
 	if _, _, err := b.apiClient.CreatePost(post); err != nil {
 		b.log.Error("Failed to send message. Error: ", err)
 	}
+	b.log.Debugf("Message successfully sent to channel %q", channelID)
 	return nil
 }
 
@@ -419,19 +422,15 @@ func (b *Mattermost) getChannelsToNotify(eventSources []string) []string {
 	return out
 }
 
-// SendGenericMessage sends message to selected Mattermost channels.
-func (b *Mattermost) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
-	msg := genericMsg.ForBot(b.BotName())
-
+// SendMessage sends message to selected Mattermost channels.
+func (b *Mattermost) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, msg)
 		err := b.send(channelID, msg)
 		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelID, err))
+			errs = multierror.Append(errs, fmt.Errorf("while sending Mattermost message to channel %q: %w", channelID, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 
 	return errs.ErrorOrNil()
@@ -442,17 +441,11 @@ func (b *Mattermost) SendMessageToAll(_ context.Context, msg interactive.CoreMes
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		plaintext := interactive.RenderMessage(b.mdFormatter, msg)
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, plaintext)
-		post := &model.Post{
-			ChannelId: channelID,
-			Message:   plaintext,
+		err := b.send(channelID, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Mattermost message to channel %q: %w", channelID, err))
+			continue
 		}
-		if _, _, err := b.apiClient.CreatePost(post); err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while creating a post: %w", err))
-		}
-
-		b.log.Debugf("Message successfully sent to channel %q", channelID)
 	}
 	return errs.ErrorOrNil()
 }

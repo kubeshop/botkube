@@ -306,6 +306,8 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 }
 
 func (b *Teams) convertInteractiveMessage(in interactive.CoreMessage, forceMarkdown bool) (int, string) {
+	in.ReplaceBotNamePlaceholder(b.BotName())
+
 	var out string
 
 	if in.HasSections() {
@@ -383,10 +385,9 @@ func (b *Teams) SendEvent(ctx context.Context, event event.Event, eventSources [
 	return errs.ErrorOrNil()
 }
 
-// SendGenericMessage sends message to MS Teams to selected conversations.
-func (b *Teams) SendGenericMessage(ctx context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
-	msg := genericMsg.ForBot(b.BotName())
-
+// SendMessage sends message to MS Teams to selected conversations.
+func (b *Teams) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
+	msg.ReplaceBotNamePlaceholder(b.BotName())
 	errs := multierror.New()
 	for _, ref := range b.getConversationRefsToNotify(sourceBindings) {
 		channelID := ref.ChannelID
@@ -410,6 +411,7 @@ func (b *Teams) SendGenericMessage(ctx context.Context, genericMsg interactive.G
 
 // SendMessageToAll sends message to MS Teams to all conversations.
 func (b *Teams) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
+	msg.ReplaceBotNamePlaceholder(b.BotName())
 	errs := multierror.New()
 	for _, convCfg := range b.getConversations() {
 		channelID := convCfg.ref.ChannelID

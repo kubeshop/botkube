@@ -18,7 +18,6 @@ const (
 	groupName = "testing-source-bindings"
 	platform  = config.SlackCommPlatformIntegration
 	userID    = "Joe"
-	botName   = "Botkube"
 )
 
 var (
@@ -135,7 +134,6 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 				Platform:      platform,
 				Conversation:  conversation,
 				User:          userID,
-				BotName:       botName,
 			}
 			expMessage := interactive.CoreMessage{
 				Description: tc.message,
@@ -191,7 +189,6 @@ func TestSourceBindingsErrors(t *testing.T) {
 				Platform:      platform,
 				Conversation:  conversation,
 				User:          userID,
-				BotName:       botName,
 			}
 			// when
 			msg, err := executor.Edit(context.Background(), cmdCtx)
@@ -269,10 +266,10 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		Platform:      platform,
 		Conversation:  conversation,
 		User:          userID,
-		BotName:       botName,
 	}
 	// when
 	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
+	gotMsg.ReplaceBotNamePlaceholder("Botkube")
 
 	// then
 	assert.NoError(t, err)
@@ -333,10 +330,10 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		Platform:      platform,
 		Conversation:  conversation,
 		User:          userID,
-		BotName:       botName,
 	}
 	// when
 	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
+	gotMsg.ReplaceBotNamePlaceholder("Botkube")
 
 	// then
 	assert.NoError(t, err)

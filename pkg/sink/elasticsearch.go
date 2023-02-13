@@ -201,8 +201,8 @@ func (e *Elasticsearch) SendMessageToAll(_ context.Context, _ interactive.CoreMe
 	return nil
 }
 
-// SendGenericMessage is no-op.
-func (e *Elasticsearch) SendGenericMessage(_ context.Context, _ interactive.GenericMessage, _ []string) error {
+// SendMessage is no-op.
+func (e *Elasticsearch) SendMessage(_ context.Context, _ interactive.CoreMessage, _ []string) error {
 	return nil
 }
 

@@ -55,7 +55,8 @@ func TestInteractiveMessageToPlaintext(t *testing.T) {
 	}
 
 	// given
-	help := NewHelpMessage("platform", "testing", "@Botkube", nil).Build()
+	help := NewHelpMessage("platform", "testing", nil).Build()
+	help.ReplaceBotNamePlaceholder("@Botkube")
 
 	// when
 	out := MessageToPlaintext(help, customNewlineFormatter)

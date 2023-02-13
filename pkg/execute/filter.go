@@ -150,6 +150,6 @@ func appendInteractiveFilterIfNeeded(body string, msg interactive.CoreMessage, c
 		return msg
 	}
 
-	msg.PlaintextInputs = append(msg.PlaintextInputs, filterInput(cmdCtx.CleanCmd, cmdCtx.BotName))
+	msg.PlaintextInputs = append(msg.PlaintextInputs, filterInput(cmdCtx.CleanCmd))
 	return msg
 }

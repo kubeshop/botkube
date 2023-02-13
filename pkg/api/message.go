@@ -1,9 +1,6 @@
 package api
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // ButtonStyle is a style of Button element.
 type ButtonStyle string
@@ -73,18 +70,6 @@ func (msg *Message) HasInputs() bool {
 	return len(msg.PlaintextInputs) != 0
 }
 
-// ReplaceBotNameInCommands replaces bot name in commands.
-func (msg *Message) ReplaceBotNameInCommands(old, new string) {
-	for i := range msg.Sections {
-		msg.Sections[i].Buttons.ReplaceBotNameInCommands(old, new)
-		msg.Sections[i].MultiSelect.ReplaceBotNameInCommands(old, new)
-		msg.Sections[i].Selects.ReplaceBotNameInCommands(old, new)
-		msg.Sections[i].PlaintextInputs.ReplaceBotNameInCommands(old, new)
-	}
-
-	msg.PlaintextInputs.ReplaceBotNameInCommands(old, new)
-}
-
 // Select holds data related to the select drop-down.
 type Select struct {
 	Type    SelectType
@@ -123,13 +108,6 @@ type Section struct {
 // LabelInputs holds the plain text input items.
 type LabelInputs []LabelInput
 
-// ReplaceBotNameInCommands replaces bot name in commands.
-func (l *LabelInputs) ReplaceBotNameInCommands(old, new string) {
-	for i, labelInput := range *l {
-		(*l)[i].Command = strings.Replace(labelInput.Command, old, new, 1)
-	}
-}
-
 // ContextItems holds context items.
 type ContextItems []ContextItem
 
@@ -156,13 +134,6 @@ type Selects struct {
 	// ID allows to identify a given block when we do the updated.
 	ID    string
 	Items []Select
-}
-
-// ReplaceBotNameInCommands replaces bot name in commands.
-func (s *Selects) ReplaceBotNameInCommands(old, new string) {
-	for i, item := range s.Items {
-		s.Items[i].Command = strings.Replace(item.Command, old, new, 1)
-	}
 }
 
 // DispatchedInputAction defines when the action should be sent to our backend.
@@ -227,11 +198,6 @@ func (m *MultiSelect) AreOptionsDefined() bool {
 	return true
 }
 
-// ReplaceBotNameInCommands replaces bot name in commands.
-func (m *MultiSelect) ReplaceBotNameInCommands(old, new string) {
-	m.Command = strings.Replace(m.Command, old, new, 1)
-}
-
 // Buttons holds definition of interactive buttons.
 type Buttons []Button
 
@@ -249,13 +215,6 @@ func (s *Buttons) AtLeastOneButtonHasDescription() bool {
 	return false
 }
 
-// ReplaceBotNameInCommands replaces bot name in commands.
-func (s *Buttons) ReplaceBotNameInCommands(old, new string) {
-	for i, item := range *s {
-		(*s)[i].Command = strings.Replace(item.Command, old, new, 1)
-	}
-}
-
 // Button holds definition of action button.
 type Button struct {
 	Description string
@@ -266,8 +225,10 @@ type Button struct {
 }
 
 // ButtonBuilder provides a simplified way to construct a Button model.
-type ButtonBuilder struct {
-	BotName string
+type ButtonBuilder struct{}
+
+func NewMessageButtonBuilder() *ButtonBuilder {
+	return &ButtonBuilder{}
 }
 
 // ForCommandWithDescCmd returns button command where description and command are the same.
@@ -288,7 +249,7 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 
 	return Button{
 		Name:        name,
-		Description: fmt.Sprintf("%s %s", b.BotName, cmd),
+		Description: fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd),
 		URL:         url,
 		Style:       bt,
 	}
@@ -300,7 +261,7 @@ func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonS
 	if len(style) > 0 {
 		bt = style[0]
 	}
-	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
+	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
 	return Button{
 		Name:    name,
 		Command: cmd,
@@ -314,8 +275,8 @@ func (b *ButtonBuilder) ForCommand(name, cmd, desc string, style ...ButtonStyle)
 	if len(style) > 0 {
 		bt = style[0]
 	}
-	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
-	desc = fmt.Sprintf("%s %s", b.BotName, desc)
+	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
+	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
 	return Button{
 		Name:        name,
 		Command:     cmd,
@@ -339,8 +300,8 @@ func (b *ButtonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
 }
 
 func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle) Button {
-	cmd = fmt.Sprintf("%s %s", b.BotName, cmd)
-	desc = fmt.Sprintf("%s %s", b.BotName, desc)
+	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
+	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
 	return Button{
 		Name:        name,
 		Command:     cmd,

@@ -252,7 +252,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 		User:    fmt.Sprintf("<@%s>", msg.User),
 	})
 	response := e.Execute(ctx)
-	err = b.send(msg, response, response.OnlyVisibleForYou)
+	err = b.send(ctx, msg, response, response.OnlyVisibleForYou)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -260,9 +260,10 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(msg slackMessage, resp interactive.CoreMessage, onlyVisibleToUser bool) error {
-	b.log.Debugf("Slack Response: %s", resp)
+func (b *Slack) send(ctx context.Context, msg slackMessage, resp interactive.CoreMessage, onlyVisibleToUser bool) error {
+	b.log.Debugf("Sending message to channel %q: %+v", msg.Channel, msg)
 
+	resp.ReplaceBotNamePlaceholder(b.BotName())
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
@@ -271,7 +272,7 @@ func (b *Slack) send(msg slackMessage, resp interactive.CoreMessage, onlyVisible
 
 	// Upload message as a file if too long
 	if len(markdown) >= slackMaxMessageSize {
-		_, err := uploadFileToSlack(msg.Channel, resp, b.client, msg.ThreadTimeStamp)
+		_, err := uploadFileToSlack(ctx, msg.Channel, resp, b.client, msg.ThreadTimeStamp)
 		if err != nil {
 			return err
 		}
@@ -286,15 +287,16 @@ func (b *Slack) send(msg slackMessage, resp interactive.CoreMessage, onlyVisible
 	}
 
 	if onlyVisibleToUser {
-		if _, err := b.client.PostEphemeral(msg.Channel, msg.User, options...); err != nil {
+		if _, err := b.client.PostEphemeralContext(ctx, msg.Channel, msg.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
 	} else {
-		if _, _, err := b.client.PostMessage(msg.Channel, options...); err != nil {
+		if _, _, err := b.client.PostMessageContext(ctx, msg.Channel, options...); err != nil {
 			return fmt.Errorf("while posting Slack message: %w", err)
 		}
 	}
 
+	b.log.Debugf("Message successfully sent to channel %q", msg.Channel)
 	return nil
 }
 
@@ -343,23 +345,19 @@ func (b *Slack) getChannelsToNotify(sourceBindings []string) []string {
 	return out
 }
 
-// SendGenericMessage sends message to selected Slack channels.
-func (b *Slack) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
-	msg := genericMsg.ForBot(b.BotName())
-
+// SendMessage sends message to selected Slack channels.
+func (b *Slack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
 		msgMetadata := slackMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 		}
-		err := b.send(msgMetadata, msg, false)
+		err := b.send(ctx, msgMetadata, msg, false)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q", channelName)
 	}
 
 	return errs.ErrorOrNil()
@@ -368,17 +366,17 @@ func (b *Slack) SendGenericMessage(_ context.Context, genericMsg interactive.Gen
 // SendMessageToAll sends message to all Slack channels.
 func (b *Slack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
-	message := interactive.RenderMessage(b.mdFormatter, msg)
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)
-		var options = []slack.MsgOption{slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true)}
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
+		msgMetadata := slackMessage{
+			Channel:         channelName,
+			ThreadTimeStamp: "",
+		}
+		err := b.send(ctx, msgMetadata, msg, false)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q (alias: %q): %w", channelName, channel.alias, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q (alias: %q) at %q", channelID, channel.alias, timestamp)
 	}
 
 	return errs.ErrorOrNil()
@@ -413,7 +411,7 @@ func mdHeaderFormatter(msg string) string {
 	return fmt.Sprintf("*%s*", msg)
 }
 
-func uploadFileToSlack(channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
+func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
 	params := slack.FileUploadParameters{
 		Filename:        "Response.txt",
 		Title:           "Response.txt",
@@ -423,7 +421,7 @@ func uploadFileToSlack(channel string, resp interactive.CoreMessage, client *sla
 		ThreadTimestamp: ts,
 	}
 
-	file, err := client.UploadFile(params)
+	file, err := client.UploadFileContext(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("while uploading file: %w", err)
 	}

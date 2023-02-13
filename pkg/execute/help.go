@@ -50,7 +50,7 @@ func (e *HelpExecutor) Commands() map[command.Verb]CommandFn {
 func (e *HelpExecutor) Help(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
 	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
-	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, cmdCtx.BotName, e.enabledPluginExecutors).Build(), nil
+	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, e.enabledPluginExecutors).Build(), nil
 }
 
 func (e *HelpExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {

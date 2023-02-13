@@ -105,7 +105,6 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 			ExecutorBindings: executorBindings,
 			IsAuthenticated:  true,
 			CommandOrigin:    command.AutomationOrigin,
-			State:            nil,
 		},
 		Message: "kubectl get po foo",
 		User:    `Automation "Test"`,
@@ -115,9 +114,8 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 	provider := action.NewProvider(loggerx.NewNoop(), config.Actions{}, execFactory)
 
 	// when
-	res := provider.ExecuteEventAction(context.Background(), eventAction)
-
-	msg := res.ForBot(botName)
+	msg := provider.ExecuteEventAction(context.Background(), eventAction)
+	msg.ReplaceBotNamePlaceholder(botName)
 
 	// then
 	assert.Equal(t, fixInteractiveMessage(botName), msg)

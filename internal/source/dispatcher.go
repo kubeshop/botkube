@@ -71,19 +71,10 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 			msg := interactive.CoreMessage{
 				Description: string(event),
 			}
-			err := n.SendGenericMessage(ctx, &genericMessage{response: msg}, sources)
+			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
 				d.log.Errorf("while sending event: %s", err.Error())
 			}
 		}(n)
 	}
-}
-
-type genericMessage struct {
-	response interactive.CoreMessage
-}
-
-// ForBot returns interactive message.
-func (g *genericMessage) ForBot(string) interactive.CoreMessage {
-	return g.response
 }

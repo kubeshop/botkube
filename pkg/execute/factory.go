@@ -215,7 +215,7 @@ type Conversation struct {
 	SourceBindings   []string
 	IsAuthenticated  bool
 	CommandOrigin    command.Origin
-	State            *slack.BlockActionStates
+	SlackState       *slack.BlockActionStates
 }
 
 // NewDefaultInput an input for NewDefault
