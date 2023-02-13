@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
+	"os"
 	"strings"
 	"time"
 )
@@ -62,6 +63,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Level: cfg.Log.Level,
 	})
 	go s.consumeEvents(ctx)
+	time.Sleep(time.Hour * 1)
 	return out, nil
 }
 
@@ -388,6 +390,8 @@ func jsonSchema() api.JSONSchema {
 }
 func exitOnError(err error, log logrus.FieldLogger) {
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		time.Sleep(time.Second * 2)
+		os.Exit(1)
 	}
 }
