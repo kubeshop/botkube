@@ -13,7 +13,9 @@ type NoopStatusReporter struct {
 }
 
 func newNoopStatusReporter(logger logrus.FieldLogger) *NoopStatusReporter {
-	return &NoopStatusReporter{}
+	return &NoopStatusReporter{
+		log: logger,
+	}
 }
 func (r *NoopStatusReporter) ReportDeploymentStartup(ctx context.Context) (bool, error) {
 	r.log.Debug("ReportDeploymentStartup")
