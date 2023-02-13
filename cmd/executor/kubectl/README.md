@@ -8,4 +8,14 @@ The configuration should be specified in the YAML format. Such parameters are su
 
 ```yaml
 defaultNamespace: "default"
+interactiveBuilder:
+  allowed:
+    # Configures which K8s namespace are allowed. If not specified, plugin needs to have access to fetch all Namespaces, otherwise Namespace dropdown won't be visible. 
+    namespaces:
+      - foo
+      - bar
+    # Configures which `kubectl` methods are allowed.
+    verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top" ]
+    # Configures which K8s resource are allowed.
+    resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses" ]
 ```

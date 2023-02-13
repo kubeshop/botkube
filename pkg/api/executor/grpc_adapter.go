@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/slack-go/slack"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -34,6 +35,13 @@ type (
 	ExecuteInputContext struct {
 		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
 		IsInteractivitySupported bool
+
+		// SlackState represents modal state. It's available only if:
+		//  - SupportsInteractivitiy is set to true.
+		//  - and interactive actions were used in the response Message.
+		// This is an alpha feature and may change in the future.
+		// Most likely, it will be generalized to support all communication platforms.
+		SlackState *slack.BlockActionStates
 	}
 
 	// ExecuteOutput holds the output of the Execute function.
@@ -110,6 +118,14 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 		},
 	}
 
+	if in.Context.IsInteractivitySupported && in.Context.SlackState != nil {
+		rawState, err := json.Marshal(in.Context.SlackState)
+		if err != nil {
+			return ExecuteOutput{}, fmt.Errorf("while marshaling slack state: %w", err)
+		}
+		grpcInput.Context.SlackState = rawState
+	}
+
 	res, err := p.client.Execute(ctx, grpcInput)
 	if err != nil {
 		return ExecuteOutput{}, err
@@ -163,10 +179,18 @@ type grpcServer struct {
 }
 
 func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*ExecuteResponse, error) {
+	var slackState slack.BlockActionStates
+	if request.Context != nil && request.Context.SlackState != nil {
+		if err := json.Unmarshal(request.Context.SlackState, &slackState); err != nil {
+			return nil, fmt.Errorf("while unmarshalling slack state from JSON: %w", err)
+		}
+	}
+
 	out, err := p.Impl.Execute(ctx, ExecuteInput{
 		Command: request.Command,
 		Configs: request.Configs,
 		Context: ExecuteInputContext{
+			SlackState:               &slackState,
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,
 		},
 	})

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 
@@ -53,7 +54,7 @@ func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 }
 
 // Execute executes plugin executor based on a given command.
-func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackState *slack.BlockActionStates, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
@@ -77,6 +78,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx 
 		Configs: configs,
 		Context: executor.ExecuteInputContext{
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
+			SlackState:               slackState,
 		},
 	})
 	if err != nil {

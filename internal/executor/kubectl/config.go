@@ -5,6 +5,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
+	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -12,13 +14,16 @@ import (
 
 // Config holds Kubectl plugin configuration parameters.
 type Config struct {
-	DefaultNamespace string `yaml:"defaultNamespace,omitempty"`
+	Log                loggerx.Config `yaml:"log"`
+	DefaultNamespace   string         `yaml:"defaultNamespace,omitempty"`
+	InteractiveBuilder builder.Config `yaml:"interactiveBuilder,omitempty"`
 }
 
 // MergeConfigs merges the Kubectl configuration.
 func MergeConfigs(configs []*executor.Config) (Config, error) {
 	defaults := Config{
-		DefaultNamespace: defaultNamespace,
+		DefaultNamespace:   defaultNamespace,
+		InteractiveBuilder: builder.DefaultConfig(),
 	}
 
 	var out Config
