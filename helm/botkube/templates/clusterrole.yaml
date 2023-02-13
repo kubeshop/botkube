@@ -32,7 +32,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["get", "watch", "list"]
+{{- with .Values.rbac.rules }}
+{{- toYaml . | nindent 2 }}
+{{- end }}
 {{ end }}

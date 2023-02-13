@@ -308,11 +308,6 @@ type IngressRecommendations struct {
 	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
-// providesPlugins defines behavior for providing Plugins
-type providesPlugins interface {
-	GetPlugins() Plugins
-}
-
 // Plugins contains plugins configuration parameters defined in groups.
 type Plugins map[string]Plugin
 
@@ -331,6 +326,7 @@ type PluginContext struct {
 	RBAC PolicyRule
 }
 
+// KubeconfigContext defines options for generated kubeconfig.
 type KubeconfigContext struct {
 	// DefaultNamespace is the default namespace for this kubeconfig.
 	DefaultNamespace string
@@ -344,6 +340,7 @@ type PolicyRule struct {
 	Group PolicySubject
 }
 
+// PolicySubject is the RBAC subject.
 type PolicySubject struct {
 	// Type is the type of policy subject.
 	Type PolicySubjectType

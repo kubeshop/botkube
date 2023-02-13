@@ -39,6 +39,11 @@ type ValidateResult struct {
 	Warnings  *multierror.Error
 }
 
+// pluginProvider defines behavior for providing Plugins
+type pluginProvider interface {
+	GetPlugins() Plugins
+}
+
 // ValidateStruct validates a given struct based on the `validate` field tag.
 func ValidateStruct(in any) (ValidateResult, error) {
 	validate := validator.New()
@@ -316,11 +321,11 @@ func validateSourceBindings(sl validator.StructLevel, sources map[string]Sources
 	validatePluginRBAC(sl, sources, bindings)
 }
 
-func validatePluginRBAC[P providesPlugins](sl validator.StructLevel, hasPlugins map[string]P, bindings []string) {
+func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfigs map[string]P, bindings []string) {
 	// 1. identify duplicates
 	groups := make(map[string][]string)
 	for _, b := range bindings {
-		plugins := hasPlugins[b]
+		plugins := pluginConfigs[b]
 		for pluginKey, plugin := range plugins.GetPlugins() {
 			if !plugin.Enabled {
 				continue
@@ -331,22 +336,34 @@ func validatePluginRBAC[P providesPlugins](sl validator.StructLevel, hasPlugins 
 
 	// 2. compare RBAC of duplicates
 	for plugin, occurrences := range groups {
-		if len(occurrences) > 1 {
-			// take the head of occurrences
-			p1 := occurrences[0]
-			rbac1 := hasPlugins[p1].GetPlugins()[plugin].Context.RBAC
-			defaultNS1 := hasPlugins[p1].GetPlugins()[plugin].Context.Kubeconfig.DefaultNamespace
-			// compare the head with the tail
-			for i := 1; i < len(occurrences); i++ {
-				p2 := occurrences[i]
-				rbac2 := hasPlugins[p2].GetPlugins()[plugin].Context.RBAC
-				defaultNS2 := hasPlugins[p2].GetPlugins()[plugin].Context.Kubeconfig.DefaultNamespace
-				if !reflect.DeepEqual(rbac1, rbac2) {
-					sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, p2)
-				}
-				if defaultNS1 != defaultNS2 {
-					sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, p2)
-				}
+		if len(occurrences) < 2 {
+			continue
+		}
+
+		// take the head of occurrences
+		p1 := occurrences[0]
+		p1Cfg, ok := pluginConfigs[p1].GetPlugins()[plugin]
+		if !ok {
+			continue
+		}
+		rbac1 := p1Cfg.Context.RBAC
+		defaultNS1 := p1Cfg.Context.Kubeconfig.DefaultNamespace
+
+		// compare the head with the tail
+		for i := 1; i < len(occurrences); i++ {
+			p2 := occurrences[i]
+			p2Cfg, ok := pluginConfigs[p1].GetPlugins()[plugin]
+			if !ok {
+				continue
+			}
+
+			rbac2 := p2Cfg.Context.RBAC
+			defaultNS2 := p2Cfg.Context.Kubeconfig.DefaultNamespace
+			if !reflect.DeepEqual(rbac1, rbac2) {
+				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, p2)
+			}
+			if defaultNS1 != defaultNS2 {
+				sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, p2)
 			}
 		}
 	}

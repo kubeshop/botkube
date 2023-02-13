@@ -456,13 +456,25 @@ executors:
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
       context:
+        # -- Default namespace for this plugin.
         defaultNamespace: "botkube"
+        # -- RBAC configuration for this plugin.
         rbac:
+          # -- Static impersonation for a given username and groups.
           group:
             type: Static
+            # -- Prefix that will be applied to .static.value[*].
             prefix: ""
             static:
+              # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
               value: ["botkube-plugins-read-only"]
+          user:
+            type: Static
+            # -- Prefix that will be applied to .static.value[*].
+            prefix: ""
+            static:
+              # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
+              value: ["default"]
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
