@@ -325,11 +325,7 @@ func validatePluginRBAC[P providesPlugins](sl validator.StructLevel, hasPlugins 
 			if !plugin.Enabled {
 				continue
 			}
-			if g := groups[pluginKey]; len(g) == 0 {
-				groups[pluginKey] = []string{b}
-			} else {
-				groups[pluginKey] = append(groups[pluginKey], b)
-			}
+			groups[pluginKey] = append(groups[pluginKey], b)
 		}
 	}
 
