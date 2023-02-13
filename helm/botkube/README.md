@@ -210,10 +210,11 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [plugins.cacheDir](./values.yaml#L949) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
 | [plugins.repositories](./values.yaml#L951) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}}` | List of plugins repositories. |
 | [plugins.repositories.botkube](./values.yaml#L953) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
-| [config](./values.yaml#L957) | object | `{"provider":{"endpoint":"","identifier":""}}` | Configuration for remote Botkube settings |
-| [config.provider](./values.yaml#L959) | object | `{"endpoint":"","identifier":""}` | Base provider definition |
-| [config.provider.identifier](./values.yaml#L961) | string | `""` | Unique identifier for remote Botkube settings |
-| [config.provider.endpoint](./values.yaml#L963) | string | `""` | Endpoint to fetch Botkube settings from |
+| [config](./values.yaml#L957) | object | `{"provider":{"apiKey":"","endpoint":"","identifier":""}}` | Configuration for fetching Botkube configuration. |
+| [config.provider](./values.yaml#L959) | object | `{"apiKey":"","endpoint":"","identifier":""}` | Base provider definition. |
+| [config.provider.identifier](./values.yaml#L961) | string | `""` | Unique identifier for remote Botkube settings. |
+| [config.provider.endpoint](./values.yaml#L963) | string | `""` | Endpoint to fetch Botkube settings from. |
+| [config.provider.apiKey](./values.yaml#L965) | string | `""` | Key passed as a `X-API-Key` header to the provider's endpoint. |
 
 ### AWS IRSA on EKS support
 

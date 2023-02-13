@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/kubeshop/botkube/internal/config"
+	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
@@ -782,18 +782,24 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	}, nil
 }
 
-// FromProvider resolves and returns paths for config files.
+// GetProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func FromProvider(ctx context.Context, gql *config.GqlClient) (config.YAMLFiles, error) {
-	var provider config.Provider
-	if os.Getenv("CONFIG_PROVIDER_IDENTIFIER") != "" {
-		provider = config.NewGqlProvider(*gql)
-	} else if os.Getenv("BOTKUBE_CONFIG_PATHS") != "" {
-		provider = config.NewEnvProvider()
-	} else {
-		provider = config.NewFileSystemProvider(configPathsFlag)
+func GetProvider() config.Provider {
+	if _, provided := os.LookupEnv(intconfig.GqlProviderEndpointEnvKey); provided {
+		gqlClient := intconfig.NewGqlClient(
+			intconfig.WithEndpoint(os.Getenv(intconfig.GqlProviderEndpointEnvKey)),
+			intconfig.WithAPIKey(os.Getenv(intconfig.GqlProviderAPIKeyEnvKey)),
+			intconfig.WithDeploymentID(os.Getenv(intconfig.GqlProviderIdentifierEnvKey)),
+		)
+
+		return config.NewGqlProvider(gqlClient)
 	}
-	return provider.Configs(ctx)
+
+	if os.Getenv(intconfig.EnvProviderConfigPathsEnvKey) != "" {
+		return config.NewEnvProvider()
+	}
+
+	return config.NewFileSystemProvider(configPathsFlag)
 }
 
 // RegisterFlags registers config related flags.
