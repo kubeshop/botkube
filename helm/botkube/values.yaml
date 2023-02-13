@@ -38,6 +38,16 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
+# -- Role Based Access for Botkube Pod.
+# [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
+rbac:
+  create: true
+  rules:
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "watch", "list"]
+  staticGroupName: &static-group-name "botkube-plugins-read-only"
+
 ## Kubeconfig settings used by Botkube.
 kubeconfig:
   # -- If true, enables overriding the Kubernetes auth.
@@ -467,14 +477,14 @@ executors:
             prefix: ""
             static:
               # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              value: ["botkube-plugins-read-only"]
+              values: *static-group-name # "botkube-plugins-read-only" is the default
           user:
             type: Static
             # -- Prefix that will be applied to .static.value[*].
             prefix: ""
             static:
               # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
-              value: ["default"]
+              value: "default"
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
@@ -873,15 +883,6 @@ tolerations: []
 # -- Affinity for Botkube Pod assignment.
 # [Ref doc](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity).
 affinity: {}
-
-# -- Role Based Access for Botkube Pod.
-# [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
-rbac:
-  create: true
-  rules:
-    - apiGroups: ["*"]
-      resources: ["*"]
-      verbs: ["get", "watch", "list"]
 
 serviceAccount:
   # -- If true, a ServiceAccount is automatically created.

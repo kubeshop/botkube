@@ -24,12 +24,12 @@ executors:
             type: Static
             prefix: ""
             static:
-              value: [ "botkube-plugins-read-only" ]
+              values: [ "botkube-plugins-read-only" ]
           user:
             type: Static
             prefix: ""
             static:
-              value: [ "default" ]
+              value: "default"
   'helm-1':
     botkube/helm@v1:
       enabled: true
@@ -41,12 +41,12 @@ executors:
             type: Static
             prefix: ""
             static:
-              value: [ "botkube-plugins-read-only" ]
+              values: [ "botkube-plugins-read-only" ]
           user:
             type: Static
             prefix: ""
             static:
-              value: [ "default" ]
+              value: "default"
   'helm-2':
     botkube/helm@v1:
       enabled: true
@@ -58,12 +58,12 @@ executors:
             type: this-value-is-different # <---
             prefix: ""
             static:
-              value: [ "botkube-plugins-read-only" ]
+              values: [ "botkube-plugins-read-only" ]
           user:
             type: Static
             prefix: ""
             static:
-              value: [ "default" ]
+              value: "default"
   'helm-3':
     botkube/helm@v1:
       enabled: true
@@ -75,9 +75,9 @@ executors:
             type: Static
             prefix: ""
             static:
-              value: [ "botkube-plugins-read-only" ]
+              values: [ "botkube-plugins-read-only" ]
           user:
             type: Static
             prefix: ""
             static:
-              value: [ "default" ]
+              value: "default"

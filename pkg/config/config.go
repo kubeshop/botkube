@@ -335,25 +335,41 @@ type KubeconfigContext struct {
 // PolicyRule is the RBAC rule.
 type PolicyRule struct {
 	// User is the policy subject for user.
-	User PolicySubject
+	User UserPolicySubject
 	// Group is the policy subject for group.
-	Group PolicySubject
+	Group GroupPolicySubject
 }
 
-// PolicySubject is the RBAC subject.
-type PolicySubject struct {
+// GroupPolicySubject is the RBAC subject.
+type GroupPolicySubject struct {
 	// Type is the type of policy subject.
 	Type PolicySubjectType
 	// Static is static reference of subject for given static policy rule.
-	Static StaticSubject
+	Static GroupStaticSubject
 	// Prefix is optional string prefixed to subjects.
 	Prefix string
 }
 
-// StaticSubject references static subjects for given static policy rule.
-type StaticSubject struct {
+// GroupStaticSubject references static subjects for given static policy rule.
+type GroupStaticSubject struct {
+	// Values is the name of the subject.
+	Values []string
+}
+
+// UserPolicySubject is the RBAC subject.
+type UserPolicySubject struct {
+	// Type is the type of policy subject.
+	Type PolicySubjectType
+	// Static is static reference of subject for given static policy rule.
+	Static UserStaticSubject
+	// Prefix is optional string prefixed to subjects.
+	Prefix string
+}
+
+// UserStaticSubject references static subjects for given static policy rule.
+type UserStaticSubject struct {
 	// Value is the name of the subject.
-	Value []string
+	Value string
 }
 
 // PolicySubjectType defines the types for policy subjects.

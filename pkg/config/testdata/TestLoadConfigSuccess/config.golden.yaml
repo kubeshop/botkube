@@ -338,12 +338,12 @@ sources:
                         user:
                             type: ""
                             static:
-                                value: []
+                                value: ""
                             prefix: ""
                         group:
                             type: ""
                             static:
-                                value: []
+                                values: []
                             prefix: ""
 executors:
     kubectl-read-only:
@@ -394,12 +394,12 @@ executors:
                         user:
                             type: ""
                             static:
-                                value: []
+                                value: ""
                             prefix: ""
                         group:
                             type: ""
                             static:
-                                value: []
+                                values: []
                             prefix: ""
 aliases: {}
 communications:
