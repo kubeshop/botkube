@@ -369,8 +369,6 @@ const (
 	StaticPolicySubjectType PolicySubjectType = "Static"
 	// ChannelNamePolicySubjectType is the channel name policy type.
 	ChannelNamePolicySubjectType PolicySubjectType = "ChannelName"
-	// UserGroupNamePolicySubjectType PolicySubjectType = "UserGroupName"
-	// EmailPolicySubjectType         PolicySubjectType = "Email"
 )
 
 // Executors contains executors configuration parameters.
