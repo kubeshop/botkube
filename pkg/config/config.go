@@ -220,7 +220,7 @@ type Sources struct {
 	Plugins     Plugins          `koanf:",remain"`
 }
 
-// GetPlugins returns Sources.Plugins
+// GetPlugins returns Sources.Plugins.
 func (s Sources) GetPlugins() Plugins {
 	return s.Plugins
 }
