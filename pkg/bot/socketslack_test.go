@@ -2,33 +2,60 @@ package bot
 
 import (
 	"testing"
+
+	"github.com/slack-go/slack"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNormalizeState(t *testing.T) {
-	//// given
-	//fix := []*slack.BlockAction{
-	//	{
-	//		ActionID: "@Botkube kubectl @builder --verbs",
-	//		BlockID:  "13a13f04-4fc8-47e1-a167-f87980b3e834",
-	//		Type:     "static_select",
-	//		ActionTs: "1675869299.369379",
-	//		SelectedOption: slack.OptionBlockObject{
-	//			Text: &slack.TextBlockObject{
-	//				Type:  "plain_text",
-	//				Text:  "get",
-	//				Emoji: true,
-	//			},
-	//			Value: "get",
-	//		},
-	//	},
-	//}
-	//fx := &slack.BlockActionStates{
-	//	Values: map[string]map[string]slack.BlockAction{
-	//		""
-	//	},
-	//}
-	//// when
-	//out := removeBotNameFromIDs("@Botkube", fix)
-	//// then
+	// given
+	fix := &slack.BlockActionStates{
+		Values: map[string]map[string]slack.BlockAction{
+			"dropdown-block-id-403aca17d958": {
+				"@Botkube kc-cmd-builder --resource-name": {
+					SelectedOption: slack.OptionBlockObject{
+						Value: "nginx2",
+					},
+				},
+				"@Botkube kc-cmd-builder --resource-type": slack.BlockAction{
+					SelectedOption: slack.OptionBlockObject{
+						Value: "pods",
+					},
+				},
+				"@Botkube kc-cmd-builder --verbs": slack.BlockAction{
+					SelectedOption: slack.OptionBlockObject{
+						Value: "get",
+					},
+				},
+			},
+		},
+	}
 
+	exp := &slack.BlockActionStates{
+		Values: map[string]map[string]slack.BlockAction{
+			"dropdown-block-id-403aca17d958": {
+				"kc-cmd-builder --resource-name": {
+					SelectedOption: slack.OptionBlockObject{
+						Value: "nginx2",
+					},
+				},
+				"kc-cmd-builder --resource-type": slack.BlockAction{
+					SelectedOption: slack.OptionBlockObject{
+						Value: "pods",
+					},
+				},
+				"kc-cmd-builder --verbs": slack.BlockAction{
+					SelectedOption: slack.OptionBlockObject{
+						Value: "get",
+					},
+				},
+			},
+		},
+	}
+
+	// when
+	out := removeBotNameFromIDs("@Botkube", fix)
+
+	// then
+	assert.Equal(t, exp, out)
 }

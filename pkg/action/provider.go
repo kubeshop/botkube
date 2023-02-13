@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"strings"
 
 	sprig "github.com/go-task/slim-sprig"
 	"github.com/sirupsen/logrus"
@@ -90,7 +91,7 @@ func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) 
 		CommGroupName:   unknownValue,
 		Platform:        unknownValue,
 		NotifierHandler: &universalNotifierHandler{},
-		Message:         action.Command,
+		Message:         strings.TrimSpace(strings.TrimPrefix(action.Command, api.MessageBotNamePlaceholder)),
 		User:            fmt.Sprintf("Automation %q", action.DisplayName),
 	})
 	response := e.Execute(ctx)
