@@ -125,8 +125,8 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginRepoTag:    "{0}{1}",
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
-		invalidPluginRBACTag:        "RBAC configuration for plugin '{0}' used in  '{0}' and '{1}' bindings must be identical when used together",
-		invalidPluginDefaultNSTag:   "Default namespace for plugin '{0}' used in '{0}' and '{1}' bindings must be identical when used together.",
+		invalidPluginRBACTag:        "Binding is referencing plugins of same kind with different RBAC. '{0}' and '{1}' bindings must be identical when used together.",
+		invalidPluginDefaultNSTag:   "Binding is referencing plugins of same kind with different default namespace. '{0}' and '{1}' bindings must be identical when used together.",
 	})
 }
 
@@ -352,7 +352,7 @@ func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfig
 		// compare the head with the tail
 		for i := 1; i < len(occurrences); i++ {
 			p2 := occurrences[i]
-			p2Cfg, ok := pluginConfigs[p1].GetPlugins()[plugin]
+			p2Cfg, ok := pluginConfigs[p2].GetPlugins()[plugin]
 			if !ok {
 				continue
 			}
