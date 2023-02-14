@@ -331,6 +331,20 @@ sources:
                 enabled: true
                 config:
                     field: value
+                context:
+                    kubeconfig:
+                        defaultNamespace: ""
+                    rbac:
+                        user:
+                            type: ""
+                            static:
+                                value: ""
+                            prefix: ""
+                        group:
+                            type: ""
+                            static:
+                                values: []
+                            prefix: ""
 executors:
     kubectl-read-only:
         kubectl:
@@ -373,6 +387,20 @@ executors:
                 enabled: true
                 config:
                     changeResponseToUpperCase: true
+                context:
+                    kubeconfig:
+                        defaultNamespace: ""
+                    rbac:
+                        user:
+                            type: ""
+                            static:
+                                value: ""
+                            prefix: ""
+                        group:
+                            type: ""
+                            static:
+                                values: []
+                            prefix: ""
 aliases: {}
 communications:
     default-workspace:

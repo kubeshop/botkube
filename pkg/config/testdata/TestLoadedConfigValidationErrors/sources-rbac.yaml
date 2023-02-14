@@ -1,0 +1,49 @@
+communications:
+  'default-group':
+    slack:
+      enabled: false
+      token: 'TOKEN'
+      channels:
+        'botkube':
+          name: 'botkube'
+          bindings:
+            sources:
+              - cm-1
+              - cm-2
+sources:
+  'cm-1':
+    displayName: "Events based on plugin"
+    botkube/cm-watcher:
+      enabled: true
+      context:
+        kubeconfig:
+          defaultNamespace: "ns-1"
+        RBAC:
+          Group:
+            Type: Static
+            Prefix: ""
+            Static:
+              Values: [ "developers" ]
+          User:
+            Type: this-value-is-different # <---
+            Prefix: ""
+            Static:
+              Value: "default"
+  'cm-2':
+    displayName: "Events based on plugin"
+    botkube/cm-watcher:
+      enabled: true
+      context:
+        kubeconfig:
+          defaultNamespace: "ns-1"
+        RBAC:
+          Group:
+            Type: Static
+            Prefix: ""
+            Static:
+              Values: [ "developers" ]
+          User:
+            Type: Static1
+            Prefix: ""
+            Static:
+              Value: "default"

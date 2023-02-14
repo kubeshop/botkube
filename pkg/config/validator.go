@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/locales/en"
@@ -21,6 +22,8 @@ const (
 	conflictingPluginVersionTag = "conflicting_plugin_version"
 	invalidPluginDefinitionTag  = "invalid_plugin_definition"
 	invalidAliasCommandTag      = "invalid_alias_command"
+	invalidPluginRBACTag        = "invalid_plugin_rbac"
+	invalidPluginDefaultNSTag   = "invalid_plugin_ns"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
 	kubectlCommandName          = "kubectl"
@@ -34,6 +37,11 @@ var warnsOnlyTags = map[string]struct{}{
 type ValidateResult struct {
 	Criticals *multierror.Error
 	Warnings  *multierror.Error
+}
+
+// pluginProvider defines behavior for providing Plugins
+type pluginProvider interface {
+	GetPlugins() Plugins
 }
 
 // ValidateStruct validates a given struct based on the `validate` field tag.
@@ -117,6 +125,8 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginRepoTag:    "{0}{1}",
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
+		invalidPluginRBACTag:        "Binding is referencing plugins of same kind with different RBAC. '{0}' and '{1}' bindings must be identical when used together.",
+		invalidPluginDefaultNSTag:   "Binding is referencing plugins of same kind with different default namespace. '{0}' and '{1}' bindings must be identical when used together.",
 	})
 }
 
@@ -307,7 +317,56 @@ func validateSourceBindings(sl validator.StructLevel, sources map[string]Sources
 		}
 	}
 
-	validateBindPlugins(sl, enabledPluginsViaBindings)
+	validateBoundPlugins(sl, enabledPluginsViaBindings)
+	validatePluginRBAC(sl, sources, bindings)
+}
+
+func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfigs map[string]P, bindings []string) {
+	// 1. identify duplicates
+	groups := make(map[string][]string)
+	for _, b := range bindings {
+		plugins := pluginConfigs[b]
+		for pluginKey, plugin := range plugins.GetPlugins() {
+			if !plugin.Enabled {
+				continue
+			}
+			groups[pluginKey] = append(groups[pluginKey], b)
+		}
+	}
+
+	// 2. compare RBAC of duplicates
+	for plugin, occurrences := range groups {
+		if len(occurrences) < 2 {
+			continue
+		}
+
+		// take the head of occurrences
+		p1 := occurrences[0]
+		p1Cfg, ok := pluginConfigs[p1].GetPlugins()[plugin]
+		if !ok {
+			continue
+		}
+		rbac1 := p1Cfg.Context.RBAC
+		defaultNS1 := p1Cfg.Context.Kubeconfig.DefaultNamespace
+
+		// compare the head with the tail
+		for i := 1; i < len(occurrences); i++ {
+			p2 := occurrences[i]
+			p2Cfg, ok := pluginConfigs[p2].GetPlugins()[plugin]
+			if !ok {
+				continue
+			}
+
+			rbac2 := p2Cfg.Context.RBAC
+			defaultNS2 := p2Cfg.Context.Kubeconfig.DefaultNamespace
+			if !reflect.DeepEqual(rbac1, rbac2) {
+				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, p2)
+			}
+			if defaultNS1 != defaultNS2 {
+				sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, p2)
+			}
+		}
+	}
 }
 
 func validateExecutorBindings(sl validator.StructLevel, executors map[string]Executors, bindings []string) {
@@ -327,7 +386,8 @@ func validateExecutorBindings(sl validator.StructLevel, executors map[string]Exe
 		}
 	}
 
-	validateBindPlugins(sl, enabledPluginsViaBindings)
+	validateBoundPlugins(sl, enabledPluginsViaBindings)
+	validatePluginRBAC(sl, executors, bindings)
 }
 
 func registerTranslation(validate *validator.Validate, translator ut.Translator, translation map[string]string) error {
