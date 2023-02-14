@@ -54,7 +54,7 @@ type RecommendationFactory interface {
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {
 	RenderedActionsForEvent(event event.Event, sourceBindings []string) ([]event.Action, error)
-	ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage
+	ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.
@@ -280,7 +280,7 @@ func (c *Controller) handleEvent(ctx context.Context, event event.Event, sources
 		for _, n := range c.notifiers {
 			go func(n notifier.Notifier) {
 				defer analytics.ReportPanicIfOccurs(c.log, c.reporter)
-				err := n.SendGenericMessage(ctx, genericMsg, sources)
+				err := n.SendMessage(ctx, genericMsg, sources)
 				if err != nil {
 					c.log.Errorf("while sending event: %s", err.Error())
 				}

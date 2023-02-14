@@ -107,7 +107,7 @@ func (e *KubectlCmdBuilder) GetCommandPrefix(args []string) string {
 // Do executes a given kc-cmd-builder command based on args.
 //
 // TODO: once we will have a real use-case, we should abstract the Slack state and introduce our own model.
-func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, botName string, header string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform config.CommPlatformIntegration, bindings []string, state *slack.BlockActionStates, header string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	var empty interactive.CoreMessage
 
 	if !platform.IsInteractive() {
@@ -124,10 +124,10 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	// if only command name was specified, return initial command builder message
 	if len(args) == 1 {
-		return e.initialMessage(botName, allVerbs)
+		return e.initialMessage(allVerbs)
 	}
 
-	stateDetails := e.extractStateDetails(botName, state)
+	stateDetails := e.extractStateDetails(state)
 	if stateDetails.namespace == "" {
 		stateDetails.namespace = defaultNs
 	}
@@ -140,26 +140,26 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 
 	cmds := executorsRunner{
 		verbsDropdownCommand: func() (interactive.CoreMessage, error) {
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
+			return e.renderMessage(ctx, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceTypesDropdownCommand: func() (interactive.CoreMessage, error) {
 			// the resource type was selected, so clear resource name from command preview.
 			stateDetails.resourceName = ""
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
+			return e.renderMessage(ctx, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceNamesDropdownCommand: func() (interactive.CoreMessage, error) {
 			// this is called only when the resource name is directly selected from dropdown, so we need to include
 			// it in command preview.
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
+			return e.renderMessage(ctx, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		resourceNamespaceDropdownCommand: func() (interactive.CoreMessage, error) {
 			// when the namespace was changed, there is a small chance that resource name will be still matching,
 			// we will need to do the external call to check that. For now, we clear resource name from command preview.
 			stateDetails.resourceName = ""
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
+			return e.renderMessage(ctx, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 		filterPlaintextInputCommand: func() (interactive.CoreMessage, error) {
-			return e.renderMessage(ctx, botName, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
+			return e.renderMessage(ctx, stateDetails, bindings, allVerbs, allTypes, cmdCtx)
 		},
 	}
 
@@ -171,7 +171,7 @@ func (e *KubectlCmdBuilder) Do(ctx context.Context, args []string, platform conf
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (interactive.CoreMessage, error) {
+func (e *KubectlCmdBuilder) initialMessage(allVerbs []string) (interactive.CoreMessage, error) {
 	var empty interactive.CoreMessage
 
 	// We start a new interactive block, so we generate unique ID.
@@ -183,7 +183,7 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	if err != nil {
 		return empty, err
 	}
-	allVerbsSelect := VerbSelect(botName, allVerbs, "")
+	allVerbsSelect := VerbSelect(allVerbs, "")
 	if allVerbsSelect == nil {
 		return empty, errRequiredVerbDropdown
 	}
@@ -196,16 +196,16 @@ func (e *KubectlCmdBuilder) initialMessage(botName string, allVerbs []string) (i
 	return msg, nil
 }
 
-func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, stateDetails stateDetails, bindings, allVerbs, allTypes []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, stateDetails stateDetails, bindings, allVerbs, allTypes []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	var empty interactive.CoreMessage
 
-	allVerbsSelect := VerbSelect(botName, allVerbs, stateDetails.verb)
+	allVerbsSelect := VerbSelect(allVerbs, stateDetails.verb)
 	if allVerbsSelect == nil {
 		return empty, errRequiredVerbDropdown
 	}
 
 	// 1. Refresh resource type list
-	matchingTypes, err := e.getAllowedResourcesSelectList(botName, stateDetails.verb, allTypes, stateDetails.resourceType)
+	matchingTypes, err := e.getAllowedResourcesSelectList(stateDetails.verb, allTypes, stateDetails.resourceType)
 	if err != nil {
 		return empty, err
 	}
@@ -221,7 +221,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 		stateDetails.resourceType = ""
 		stateDetails.resourceName = ""
 		stateDetails.namespace = ""
-		preview := e.buildCommandPreview(botName, stateDetails)
+		preview := e.buildCommandPreview(stateDetails)
 
 		return KubectlCmdBuilderMessage(
 			stateDetails.dropdownsBlockID, *allVerbsSelect,
@@ -247,8 +247,8 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	//   1. Verb requires resource types
 	//   2. Selected resource type is still valid for the selected verb
 	var (
-		resNames = e.tryToGetResourceNamesSelect(botName, bindings, stateDetails, cmdCtx)
-		nsNames  = e.tryToGetNamespaceSelect(ctx, botName, bindings, stateDetails)
+		resNames = e.tryToGetResourceNamesSelect(bindings, stateDetails, cmdCtx)
+		nsNames  = e.tryToGetNamespaceSelect(ctx, bindings, stateDetails)
 	)
 
 	// 4. If a given resource name is not on the list anymore, clear it.
@@ -262,7 +262,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	}
 
 	// 6. Render all dropdowns and full command preview.
-	preview := e.buildCommandPreview(botName, stateDetails)
+	preview := e.buildCommandPreview(stateDetails)
 	return KubectlCmdBuilderMessage(
 		stateDetails.dropdownsBlockID, *allVerbsSelect,
 		WithAdditionalSelects(matchingTypes, resNames, nsNames),
@@ -270,7 +270,7 @@ func (e *KubectlCmdBuilder) renderMessage(ctx context.Context, botName string, s
 	), nil
 }
 
-func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings []string, state stateDetails, cmdCtx CommandContext) *api.Select {
+func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(bindings []string, state stateDetails, cmdCtx CommandContext) *api.Select {
 	if state.resourceType == "" {
 		return EmptyResourceNameDropdown()
 	}
@@ -290,10 +290,10 @@ func (e *KubectlCmdBuilder) tryToGetResourceNamesSelect(botName string, bindings
 		return EmptyResourceNameDropdown()
 	}
 
-	return ResourceNamesSelect(botName, overflowSentence(lines), state.resourceName)
+	return ResourceNamesSelect(overflowSentence(lines), state.resourceName)
 }
 
-func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName string, bindings []string, details stateDetails) *api.Select {
+func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, bindings []string, details stateDetails) *api.Select {
 	log := e.log.WithFields(logrus.Fields{
 		"state":    details,
 		"bindings": bindings,
@@ -348,7 +348,7 @@ func (e *KubectlCmdBuilder) tryToGetNamespaceSelect(ctx context.Context, botName
 		finalNS = append(finalNS, kv)
 	}
 
-	return ResourceNamespaceSelect(botName, finalNS, initialNamespace)
+	return ResourceNamespaceSelect(finalNS, initialNamespace)
 }
 
 // UX requirement to append the (namespace) suffix if the namespace is called `default`.
@@ -379,7 +379,7 @@ func (e *KubectlCmdBuilder) getEnableKubectlDetails(bindings []string) (verbs []
 }
 
 // getAllowedResourcesSelectList returns dropdown select with allowed resources for a given verb.
-func (e *KubectlCmdBuilder) getAllowedResourcesSelectList(botName, verb string, resources []string, resourceType string) (*api.Select, error) {
+func (e *KubectlCmdBuilder) getAllowedResourcesSelectList(verb string, resources []string, resourceType string) (*api.Select, error) {
 	allowedResources, err := e.commandGuard.GetAllowedResourcesForVerb(verb, resources)
 	if err != nil {
 		return nil, err
@@ -393,7 +393,7 @@ func (e *KubectlCmdBuilder) getAllowedResourcesSelectList(botName, verb string, 
 		allowedResourcesList = append(allowedResourcesList, item.Name)
 	}
 
-	return ResourceTypeSelect(botName, allowedResourcesList, resourceType), nil
+	return ResourceTypeSelect(allowedResourcesList, resourceType), nil
 }
 
 type stateDetails struct {
@@ -406,7 +406,7 @@ type stateDetails struct {
 	filter       string
 }
 
-func (e *KubectlCmdBuilder) extractStateDetails(botName string, state *slack.BlockActionStates) stateDetails {
+func (e *KubectlCmdBuilder) extractStateDetails(state *slack.BlockActionStates) stateDetails {
 	if state == nil {
 		return stateDetails{}
 	}
@@ -417,7 +417,6 @@ func (e *KubectlCmdBuilder) extractStateDetails(botName string, state *slack.Blo
 			details.dropdownsBlockID = blockID
 		}
 		for id, act := range blocks {
-			id = strings.TrimPrefix(id, botName)
 			id = strings.TrimSpace(id)
 
 			switch id {
@@ -449,7 +448,7 @@ func (e *KubectlCmdBuilder) contains(matchingTypes *api.Select, resourceType str
 	return false
 }
 
-func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetails) []api.Section {
+func (e *KubectlCmdBuilder) buildCommandPreview(state stateDetails) []api.Section {
 	resourceDetails, err := e.commandGuard.GetResourceDetails(state.verb, state.resourceType)
 	if err != nil {
 		e.log.WithFields(logrus.Fields{
@@ -485,7 +484,7 @@ func (e *KubectlCmdBuilder) buildCommandPreview(botName string, state stateDetai
 		cmd = fmt.Sprintf("%s --filter=%q", cmd, state.filter)
 	}
 
-	return PreviewSection(botName, cmd, FilterSection(botName))
+	return PreviewSection(cmd, FilterSection())
 }
 
 func (e *KubectlCmdBuilder) message(header, msg string) (interactive.CoreMessage, error) {

@@ -90,7 +90,6 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		ClusterName:     e.cfg.Settings.ClusterName,
 		ExpandedRawCmd:  expandedRawCmd,
 		CommGroupName:   e.commGroupName,
-		BotName:         e.notifierHandler.BotName(),
 		User:            e.user,
 		Conversation:    e.conversation,
 		Platform:        e.platform,
@@ -161,7 +160,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) && !isPluginCmd {
 		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false)
-		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.State, cmdCtx.BotName, header(cmdCtx), cmdCtx)
+		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.SlackState, header(cmdCtx), cmdCtx)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
 			e.log.Errorf("while executing kubectl: %s", err.Error())
@@ -208,7 +207,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 			reportedCmd = fmt.Sprintf("%s {invalid feature}", reportedCmd)
 		}
 		e.reportCommand(reportedCmd, false)
-		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb, cmdCtx.BotName)
+		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
 		return respond(msg, cmdCtx)
 	}
 
@@ -297,9 +296,9 @@ func appendByUserOnlyIfNeeded(cmd, user string, origin command.Origin) string {
 	return fmt.Sprintf("%s by %s", cmd, user)
 }
 
-func filterInput(id, botName string) api.LabelInput {
+func filterInput(id string) api.LabelInput {
 	return api.LabelInput{
-		Command:          fmt.Sprintf("%s %s --filter=", botName, id),
+		Command:          fmt.Sprintf("%s %s --filter=", api.MessageBotNamePlaceholder, id),
 		DispatchedAction: api.DispatchInputActionOnEnter,
 		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",

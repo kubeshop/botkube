@@ -196,9 +196,11 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm"}).Build()
+	expMessage.ReplaceBotNamePlaceholder(botDriver.BotName())
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
-		interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName(), []string{"botkube/helm"}).Build(),
+		expMessage,
 	)
 	require.NoError(t, err)
 
@@ -220,8 +222,8 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, botDriver.BotName(), []string{"botkube/helm"}).Build()
-
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm"}).Build()
+		expectedMessage.ReplaceBotNamePlaceholder(botDriver.BotName())
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
 			botDriver.Channel().ID(),

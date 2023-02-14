@@ -209,6 +209,9 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					if callback.Message.Msg.ThreadTimestamp != "" {
 						threadTs = callback.Message.Msg.ThreadTimestamp
 					}
+
+					state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
+
 					msg := socketSlackMessage{
 						Text:            cmd,
 						Channel:         channelID,
@@ -216,7 +219,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						TriggerID:       callback.TriggerID,
 						User:            callback.User.ID,
 						CommandOrigin:   cmdOrigin,
-						State:           callback.BlockActionState,
+						State:           state,
 						ResponseURL:     callback.ResponseURL,
 						BlockID:         act.BlockID,
 					}
@@ -256,6 +259,26 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func removeBotNameFromIDs(botName string, state *slack.BlockActionStates) *slack.BlockActionStates {
+	if state == nil {
+		return nil
+	}
+
+	for blockID, blocks := range state.Values {
+		updateBlocks := map[string]slack.BlockAction{}
+		for oldID, value := range blocks {
+			newID := strings.TrimPrefix(oldID, botName)
+			newID = strings.TrimSpace(newID)
+			updateBlocks[newID] = value
+		}
+
+		// replace with normalized blocks
+		state.Values[blockID] = updateBlocks
+	}
+
+	return state
 }
 
 // Type describes the notifier type.
@@ -329,13 +352,13 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    event.CommandOrigin,
-			State:            event.State,
+			SlackState:       event.State,
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),
 	})
 	response := e.Execute(ctx)
-	err = b.send(event, response)
+	err = b.send(ctx, event, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -343,9 +366,10 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 	return nil
 }
 
-func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessage) error {
-	b.log.Debugf("Slack Response: %s", resp)
+func (b *SocketSlack) send(ctx context.Context, event socketSlackMessage, resp interactive.CoreMessage) error {
+	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
+	resp.ReplaceBotNamePlaceholder(b.BotName())
 	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
 	if len(markdown) == 0 {
@@ -356,7 +380,7 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessag
 	var file *slack.File
 	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		file, err = uploadFileToSlack(event.Channel, resp, b.client, event.ThreadTimeStamp)
+		file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
 		if err != nil {
 			return err
 		}
@@ -371,7 +395,7 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessag
 	if resp.Type == api.PopupMessage && event.TriggerID != "" {
 		modalView := b.renderer.RenderModal(resp)
 		modalView.PrivateMetadata = event.Channel
-		_, err := b.client.OpenView(event.TriggerID, modalView)
+		_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
 		if err != nil {
 			return fmt.Errorf("while opening modal: %w", err)
 		}
@@ -391,15 +415,16 @@ func (b *SocketSlack) send(event socketSlackMessage, resp interactive.CoreMessag
 	}
 
 	if resp.OnlyVisibleForYou {
-		if _, err := b.client.PostEphemeral(event.Channel, event.User, options...); err != nil {
+		if _, err := b.client.PostEphemeralContext(ctx, event.Channel, event.User, options...); err != nil {
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
 	} else {
-		if _, _, err := b.client.PostMessage(event.Channel, options...); err != nil {
+		if _, _, err := b.client.PostMessageContext(ctx, event.Channel, options...); err != nil {
 			return fmt.Errorf("while posting Slack message: %w", err)
 		}
 	}
 
+	b.log.Debugf("Message successfully sent to channel %q", event.Channel)
 	return nil
 }
 
@@ -487,26 +512,21 @@ func (b *SocketSlack) getChannelsToNotify(sourceBindings []string) []string {
 	return out
 }
 
-// SendGenericMessage sends message with interactive sections to selectred Slack channels.
-func (b *SocketSlack) SendGenericMessage(_ context.Context, genericMsg interactive.GenericMessage, sourceBindings []string) error {
-	msg := genericMsg.ForBot(b.BotName())
-
+// SendMessage sends message with interactive sections to selected Slack channels.
+func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
-		b.log.Debugf("Sending message to channel %q: %+v", channelName, msg)
-
 		msgMetadata := socketSlackMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 			BlockID:         uuid.New().String(),
 			CommandOrigin:   command.AutomationOrigin,
 		}
-		err := b.send(msgMetadata, msg)
+		err := b.send(ctx, msgMetadata, msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q", channelName)
 	}
 
 	return errs.ErrorOrNil()
@@ -517,16 +537,15 @@ func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.Core
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		b.log.Debugf("Sending message to channel %q (alias: %q): %+v", channelName, channel.alias, msg)
-
-		message := b.renderer.RenderInteractiveMessage(msg)
-
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, message)
+		msgMetadata := socketSlackMessage{
+			Channel: channelName,
+			BlockID: uuid.New().String(),
+		}
+		err := b.send(ctx, msgMetadata, msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q (alias: %q): %w", channelName, channel.alias, err))
 			continue
 		}
-		b.log.Debugf("Message successfully sent to channel %q (alias: %q) at %q", channelID, channel.alias, timestamp)
 	}
 
 	return errs.ErrorOrNil()

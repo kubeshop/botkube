@@ -71,7 +71,8 @@ func TestCommandPreview(t *testing.T) {
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, testingBotName, "header", execute.CommandContext{})
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), tc.args, config.SocketSlackCommPlatformIntegration, fixBindings, state, "header", execute.CommandContext{})
+			gotMsg.ReplaceBotNamePlaceholder(testingBotName)
 
 			// then
 			require.NoError(t, err)
@@ -187,7 +188,8 @@ func TestErrorUserMessageOnPlatformsOtherThanSocketSlack(t *testing.T) {
 			kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), nil, nil, nil, nil)
 
 			// when
-			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, "", cmdHeader, execute.CommandContext{})
+			gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), []string{"kc"}, platform, nil, nil, cmdHeader, execute.CommandContext{})
+			gotMsg.ReplaceBotNamePlaceholder(testingBotName)
 
 			// then
 			require.NoError(t, err)
@@ -213,7 +215,8 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 
 	// when command args are not specified
 	cmd := []string{"kc-cmd-builder"}
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, testingBotName, "cmdHeader", execute.CommandContext{})
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), cmd, config.SocketSlackCommPlatformIntegration, nil, nil, "cmdHeader", execute.CommandContext{})
+	gotMsg.ReplaceBotNamePlaceholder(testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -239,7 +242,8 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 	kcCmdBuilderExecutor := execute.NewKubectlCmdBuilder(loggerx.NewNoop(), kcMerger, kcExecutor, nsLister, &FakeCommandGuard{})
 
 	// when
-	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, testingBotName, "header", execute.CommandContext{})
+	gotMsg, err := kcCmdBuilderExecutor.Do(context.Background(), args, config.SocketSlackCommPlatformIntegration, []string{"kc-read-only"}, state, "header", execute.CommandContext{})
+	gotMsg.ReplaceBotNamePlaceholder(testingBotName)
 
 	// then
 	require.NoError(t, err)
@@ -250,17 +254,17 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 	return &slack.BlockActionStates{
 		Values: map[string]map[string]slack.BlockAction{
 			"dropdown-block-id-403aca17d958": {
-				"@BKTesting kc-cmd-builder --resource-name": {
+				"kc-cmd-builder --resource-name": {
 					SelectedOption: slack.OptionBlockObject{
 						Value: "nginx2",
 					},
 				},
-				"@BKTesting kc-cmd-builder --resource-type": slack.BlockAction{
+				"kc-cmd-builder --resource-type": slack.BlockAction{
 					SelectedOption: slack.OptionBlockObject{
 						Value: "pods",
 					},
 				},
-				"@BKTesting kc-cmd-builder --verbs": slack.BlockAction{
+				"kc-cmd-builder --verbs": slack.BlockAction{
 					SelectedOption: slack.OptionBlockObject{
 						Value: "get",
 					},

@@ -6,10 +6,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 )
 
-type pluginHelpProviderFn func(platform string, btnBuilder api.ButtonBuilder) api.Section
+type pluginHelpProviderFn func(platform string, btnBuilder *api.ButtonBuilder) api.Section
 
 var pluginHelpProvider = map[string]pluginHelpProviderFn{
-	"botkube/helm": func(platform string, btnBuilder api.ButtonBuilder) api.Section {
+	"botkube/helm": func(platform string, btnBuilder *api.ButtonBuilder) api.Section {
 		return api.Section{
 			Base: api.Base{
 				Header:      "Run Helm commands",

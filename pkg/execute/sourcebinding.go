@@ -124,14 +124,14 @@ func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext)
 		}
 	}()
 
-	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User, cmdCtx.BotName)
+	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User)
 	if err != nil {
 		return empty, err
 	}
 	return msg, nil
 }
 
-func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID, botName string) (interactive.CoreMessage, error) {
+func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cmdArgs []string, commGroupName string, platform config.CommPlatformIntegration, conversation Conversation, userID string) (interactive.CoreMessage, error) {
 	var empty interactive.CoreMessage
 
 	sourceBindings, err := e.normalizeSourceItems(cmdArgs)
@@ -153,7 +153,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 							Description: api.Body{
 								Plaintext: "Select notification sources.",
 							},
-							Command:        fmt.Sprintf("%s %s", botName, "edit SourceBindings"),
+							Command:        fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, "edit SourceBindings"),
 							Options:        e.allOptions(),
 							InitialOptions: selectedOptions,
 						},

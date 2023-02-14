@@ -13,19 +13,16 @@ const RunCommandName = "Run command"
 
 // HelpMessage provides an option to build the Help message depending on a given platform.
 type HelpMessage struct {
-	btnBuilder             api.ButtonBuilder
-	botName                string
+	btnBuilder             *api.ButtonBuilder
 	platform               config.CommPlatformIntegration
 	clusterName            string
 	enabledPluginExecutors []string
 }
 
 // NewHelpMessage return a new instance of HelpMessage.
-func NewHelpMessage(platform config.CommPlatformIntegration, clusterName, botName string, executors []string) *HelpMessage {
-	btnBuilder := api.ButtonBuilder{BotName: botName}
+func NewHelpMessage(platform config.CommPlatformIntegration, clusterName string, executors []string) *HelpMessage {
 	return &HelpMessage{
-		btnBuilder:             btnBuilder,
-		botName:                botName,
+		btnBuilder:             api.NewMessageButtonBuilder(),
 		platform:               platform,
 		clusterName:            clusterName,
 		enabledPluginExecutors: executors,
@@ -135,7 +132,7 @@ func (h *HelpMessage) notificationSections() []api.Section {
 			Base: api.Base{
 				Header: "Manage incoming notifications",
 				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s [enable|disable|status] notifications\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [enable|disable|status] notifications\n", api.MessageBotNamePlaceholder),
 				},
 			},
 			Buttons: []api.Button{
@@ -162,7 +159,7 @@ func (h *HelpMessage) actionSections() []api.Section {
 			Base: api.Base{
 				Header: "Manage automated actions",
 				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s [list|enable|disable] action [action name]\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s [list|enable|disable] action [action name]\n", api.MessageBotNamePlaceholder),
 				},
 			},
 			Buttons: []api.Button{
@@ -178,7 +175,7 @@ func (h *HelpMessage) configSections() []api.Section {
 			Base: api.Base{
 				Header: "View current Botkube configuration",
 				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s show config\n", h.botName),
+					CodeBlock: fmt.Sprintf("%s show config\n", api.MessageBotNamePlaceholder),
 				},
 			},
 			Buttons: []api.Button{

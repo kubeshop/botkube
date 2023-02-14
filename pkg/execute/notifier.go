@@ -34,8 +34,6 @@ type NotifierHandler interface {
 
 	// SetNotificationsEnabled sets a new notification status for a given conversation ID.
 	SetNotificationsEnabled(conversationID string, enabled bool) error
-
-	BotName() string
 }
 
 var (
@@ -138,7 +136,7 @@ func (e *NotifierExecutor) Status(ctx context.Context, cmdCtx CommandContext) (i
 	enabledStr := notifierStatusStrings[enabled]
 	msg := fmt.Sprintf(notifierStatusMsgFmt, cmdCtx.ClusterName, enabledStr)
 	if cmdRes == "" {
-		helpMsg := cmdCtx.Mapping.HelpMessageForVerb(command.Verb(cmdVerb), cmdCtx.BotName)
+		helpMsg := cmdCtx.Mapping.HelpMessageForVerb(command.Verb(cmdVerb))
 		msg = fmt.Sprintf("%s\n\n%s\n", msg, helpMsg)
 	}
 	return respond(msg, cmdCtx), nil

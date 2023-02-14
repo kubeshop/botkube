@@ -90,8 +90,8 @@ func KubectlCmdBuilderMessage(dropdownsBlockID string, verbs api.Select, opts ..
 }
 
 // PreviewSection returns preview command section with Run button.
-func PreviewSection(botName, cmd string, input api.LabelInput) []api.Section {
-	btn := api.ButtonBuilder{BotName: botName}
+func PreviewSection(cmd string, input api.LabelInput) []api.Section {
+	btn := api.ButtonBuilder{}
 	return []api.Section{
 		{
 			Base: api.Base{
@@ -123,7 +123,7 @@ func InternalErrorSection() api.Section {
 }
 
 // FilterSection returns filter input block.
-func FilterSection(botName string) api.LabelInput {
+func FilterSection() api.LabelInput {
 	return api.LabelInput{
 		Text:             "Filter output",
 		DispatchedAction: api.DispatchInputActionOnCharacter,
@@ -134,31 +134,31 @@ func FilterSection(botName string) api.LabelInput {
 		// instead of:
 		//   kc-cmd-builder --filter input string
 		// TODO: this can be fixed by smarter command parser.
-		Command: fmt.Sprintf("%s %s ", botName, filterPlaintextInputCommand),
+		Command: fmt.Sprintf("%s %s ", api.MessageBotNamePlaceholder, filterPlaintextInputCommand),
 	}
 }
 
 // VerbSelect return drop-down select for kubectl verbs.
-func VerbSelect(botName string, verbs []string, initialItem string) *api.Select {
-	return selectDropdown("Select command", verbsDropdownCommand, botName, dropdownItemsFromSlice(verbs), newDropdownItem(initialItem, initialItem))
+func VerbSelect(verbs []string, initialItem string) *api.Select {
+	return selectDropdown("Select command", verbsDropdownCommand, dropdownItemsFromSlice(verbs), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceTypeSelect return drop-down select for kubectl resources types.
-func ResourceTypeSelect(botName string, resources []string, initialItem string) *api.Select {
-	return selectDropdown("Select resource", resourceTypesDropdownCommand, botName, dropdownItemsFromSlice(resources), newDropdownItem(initialItem, initialItem))
+func ResourceTypeSelect(resources []string, initialItem string) *api.Select {
+	return selectDropdown("Select resource", resourceTypesDropdownCommand, dropdownItemsFromSlice(resources), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceNamesSelect return drop-down select for kubectl resources names.
-func ResourceNamesSelect(botName string, names []string, initialItem string) *api.Select {
-	return selectDropdown("Select resource name", resourceNamesDropdownCommand, botName, dropdownItemsFromSlice(names), newDropdownItem(initialItem, initialItem))
+func ResourceNamesSelect(names []string, initialItem string) *api.Select {
+	return selectDropdown("Select resource name", resourceNamesDropdownCommand, dropdownItemsFromSlice(names), newDropdownItem(initialItem, initialItem))
 }
 
 // ResourceNamespaceSelect return drop-down select for kubectl allowed namespaces.
-func ResourceNamespaceSelect(botName string, names []dropdownItem, initialNamespace dropdownItem) *api.Select {
-	return selectDropdown("Select namespace", resourceNamespaceDropdownCommand, botName, names, initialNamespace)
+func ResourceNamespaceSelect(names []dropdownItem, initialNamespace dropdownItem) *api.Select {
+	return selectDropdown("Select namespace", resourceNamespaceDropdownCommand, names, initialNamespace)
 }
 
-func selectDropdown(name, cmd, botName string, items []dropdownItem, initialItem dropdownItem) *api.Select {
+func selectDropdown(name, cmd string, items []dropdownItem, initialItem dropdownItem) *api.Select {
 	if len(items) == 0 {
 		return nil
 	}
@@ -194,7 +194,7 @@ func selectDropdown(name, cmd, botName string, items []dropdownItem, initialItem
 
 	return &api.Select{
 		Name:          name,
-		Command:       fmt.Sprintf("%s %s", botName, cmd),
+		Command:       fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, cmd),
 		InitialOption: initialOption,
 		OptionGroups: []api.OptionGroup{
 			{

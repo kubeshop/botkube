@@ -114,8 +114,8 @@ func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.CoreMessage)
 	return nil
 }
 
-// SendGenericMessage is no-op.
-func (w *Webhook) SendGenericMessage(_ context.Context, _ interactive.GenericMessage, _ []string) error {
+// SendMessage is no-op.
+func (w *Webhook) SendMessage(_ context.Context, _ interactive.CoreMessage, _ []string) error {
 	return nil
 }
 
