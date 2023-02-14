@@ -477,7 +477,7 @@ executors:
             prefix: ""
             static:
               # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              values: *static-group-name # "botkube-plugins-read-only" is the default
+              values: [*static-group-name] # "botkube-plugins-read-only" is the default
           user:
             type: Static
             # -- Prefix that will be applied to .static.value[*].

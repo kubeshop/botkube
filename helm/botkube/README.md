@@ -107,10 +107,10 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [executors.helm.botkube/helm.config.helmConfigDir](./values.yaml#L465) | string | `"/tmp/helm/"` | Location for storing Helm configuration. |
 | [executors.helm.botkube/helm.config.helmCacheDir](./values.yaml#L467) | string | `"/tmp/helm/.cache"` | Location for storing cached files. Must be under the Helm config directory. |
 | [executors.helm.botkube/helm.context.defaultNamespace](./values.yaml#L470) | string | `"botkube"` | Default namespace for this plugin. |
-| [executors.helm.botkube/helm.context.rbac](./values.yaml#L472) | object | `{"group":{"prefix":"","static":{"values":"botkube-plugins-read-only"},"type":"Static"},"user":{"prefix":"","static":{"value":"default"},"type":"Static"}}` | RBAC configuration for this plugin. |
-| [executors.helm.botkube/helm.context.rbac.group](./values.yaml#L474) | object | `{"prefix":"","static":{"values":"botkube-plugins-read-only"},"type":"Static"}` | Static impersonation for a given username and groups. |
+| [executors.helm.botkube/helm.context.rbac](./values.yaml#L472) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-read-only"]},"type":"Static"},"user":{"prefix":"","static":{"value":"default"},"type":"Static"}}` | RBAC configuration for this plugin. |
+| [executors.helm.botkube/helm.context.rbac.group](./values.yaml#L474) | object | `{"prefix":"","static":{"values":["botkube-plugins-read-only"]},"type":"Static"}` | Static impersonation for a given username and groups. |
 | [executors.helm.botkube/helm.context.rbac.group.prefix](./values.yaml#L477) | string | `""` | Prefix that will be applied to .static.value[*]. |
-| [executors.helm.botkube/helm.context.rbac.group.static.values](./values.yaml#L480) | string | `"botkube-plugins-read-only"` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
+| [executors.helm.botkube/helm.context.rbac.group.static.values](./values.yaml#L480) | list | `["botkube-plugins-read-only"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
 | [executors.helm.botkube/helm.context.rbac.user.prefix](./values.yaml#L484) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [executors.helm.botkube/helm.context.rbac.user.static.value](./values.yaml#L487) | string | `"default"` | Name of user.rbac.authorization.k8s.io the plugin will be bound to. |
 | [aliases](./values.yaml#L495) | object | See the `values.yaml` file for full object. | Custom aliases for given commands. The aliases are replaced with the underlying command before executing it. Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.   |
