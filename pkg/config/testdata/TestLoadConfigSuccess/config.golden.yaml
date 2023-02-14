@@ -333,7 +333,7 @@ sources:
                     field: value
                 context:
                     kubeconfig:
-                        defaultnamespace: ""
+                        defaultNamespace: ""
                     rbac:
                         user:
                             type: ""
@@ -389,7 +389,7 @@ executors:
                     changeResponseToUpperCase: true
                 context:
                     kubeconfig:
-                        defaultnamespace: ""
+                        defaultNamespace: ""
                     rbac:
                         user:
                             type: ""

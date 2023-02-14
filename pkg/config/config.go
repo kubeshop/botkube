@@ -321,55 +321,55 @@ type Plugin struct {
 // PluginContext defines the context for given plugin.
 type PluginContext struct {
 	// Kubeconfig defines configuration options for plugins kubeconfig.
-	Kubeconfig KubeconfigContext
+	Kubeconfig KubeconfigContext `yaml:"kubeconfig"`
 	// RBAC defines the RBAC rules for given plugin.
-	RBAC PolicyRule
+	RBAC PolicyRule `yaml:"rbac"`
 }
 
 // KubeconfigContext defines options for generated kubeconfig.
 type KubeconfigContext struct {
 	// DefaultNamespace is the default namespace for this kubeconfig.
-	DefaultNamespace string
+	DefaultNamespace string `yaml:"defaultNamespace"`
 }
 
 // PolicyRule is the RBAC rule.
 type PolicyRule struct {
 	// User is the policy subject for user.
-	User UserPolicySubject
+	User UserPolicySubject `yaml:"user"`
 	// Group is the policy subject for group.
-	Group GroupPolicySubject
+	Group GroupPolicySubject `yaml:"group"`
 }
 
 // GroupPolicySubject is the RBAC subject.
 type GroupPolicySubject struct {
 	// Type is the type of policy subject.
-	Type PolicySubjectType
+	Type PolicySubjectType `yaml:"type"`
 	// Static is static reference of subject for given static policy rule.
-	Static GroupStaticSubject
+	Static GroupStaticSubject `yaml:"static"`
 	// Prefix is optional string prefixed to subjects.
-	Prefix string
+	Prefix string `yaml:"prefix"`
 }
 
 // GroupStaticSubject references static subjects for given static policy rule.
 type GroupStaticSubject struct {
 	// Values is the name of the subject.
-	Values []string
+	Values []string `yaml:"values"`
 }
 
 // UserPolicySubject is the RBAC subject.
 type UserPolicySubject struct {
 	// Type is the type of policy subject.
-	Type PolicySubjectType
+	Type PolicySubjectType `yaml:"type"`
 	// Static is static reference of subject for given static policy rule.
-	Static UserStaticSubject
+	Static UserStaticSubject `yaml:"static"`
 	// Prefix is optional string prefixed to subjects.
-	Prefix string
+	Prefix string `yaml:"prefix"`
 }
 
 // UserStaticSubject references static subjects for given static policy rule.
 type UserStaticSubject struct {
 	// Value is the name of the subject.
-	Value string
+	Value string `yaml:"value"`
 }
 
 // PolicySubjectType defines the types for policy subjects.
