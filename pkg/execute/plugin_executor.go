@@ -44,13 +44,16 @@ func (e *PluginExecutor) CanHandle(bindings []string, args []string) bool {
 	return len(plugins) > 0
 }
 
-// GetCommandPrefix gets verb command with k8s alias prefix.
+// GetCommandPrefix returns plugin name and the verb if present.
 func (e *PluginExecutor) GetCommandPrefix(args []string) string {
-	if len(args) == 0 {
+	switch len(args) {
+	case 0:
 		return ""
+	case 1:
+		return args[0]
+	default:
+		return fmt.Sprintf("%s %s", args[0], args[1])
 	}
-
-	return args[0]
 }
 
 // Execute executes plugin executor based on a given command.
