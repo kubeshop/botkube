@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	EnvProviderConfigPathsEnvKey = "BOTKUBE_CONFIG_PATHS"
+)
+
 // EnvProvider environment config source provider
 type EnvProvider struct {
 }
@@ -17,7 +21,7 @@ func NewEnvProvider() *EnvProvider {
 
 // Configs returns list of config file locations
 func (e *EnvProvider) Configs(ctx context.Context) (YAMLFiles, error) {
-	envCfgs := os.Getenv("BOTKUBE_CONFIG_PATHS")
+	envCfgs := os.Getenv(EnvProviderConfigPathsEnvKey)
 	configPaths := strings.Split(envCfgs, ",")
 
 	return NewFileSystemProvider(configPaths).Configs(ctx)

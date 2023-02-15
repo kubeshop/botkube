@@ -121,6 +121,10 @@ spec:
             - name: CONFIG_PROVIDER_IDENTIFIER
               value: "{{ .Values.config.provider.identifier }}"
             {{- end }}
+            {{- if .Values.config.provider.apiKey }}
+            - name: CONFIG_PROVIDER_API_KEY
+              value: "{{ .Values.config.provider.apiKey }}"
+            {{- end }}
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}

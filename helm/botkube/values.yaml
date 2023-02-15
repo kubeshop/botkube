@@ -953,11 +953,13 @@ plugins:
     botkube:
       url: https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml
 
-# -- Configuration for remote Botkube settings
+# -- Configuration for fetching Botkube configuration.
 config:
-  # -- Base provider definition
+  # -- Base provider definition.
   provider:
-    # -- Unique identifier for remote Botkube settings
+    # -- Unique identifier for remote Botkube settings.
     identifier: ""
-    # -- Endpoint to fetch Botkube settings from
+    # -- Endpoint to fetch Botkube settings from.
     endpoint: ""
+    # -- Key passed as a `X-API-Key` header to the provider's endpoint.
+    apiKey: ""

@@ -2,10 +2,16 @@ package config
 
 import (
 	"context"
-	"os"
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	GqlProviderEndpointEnvKey   = "CONFIG_PROVIDER_ENDPOINT"
+	GqlProviderIdentifierEnvKey = "CONFIG_PROVIDER_IDENTIFIER"
+	//nolint:gosec // warns us about 'Potential hardcoded credentials' but there is no security issue here
+	GqlProviderAPIKeyEnvKey = "CONFIG_PROVIDER_API_KEY"
 )
 
 // GqlProvider is GraphQL provider
@@ -20,17 +26,13 @@ func NewGqlProvider(gql GqlClient) *GqlProvider {
 
 // Configs returns list of config files
 func (g *GqlProvider) Configs(ctx context.Context) (YAMLFiles, error) {
-	d := os.Getenv("CONFIG_PROVIDER_IDENTIFIER")
-	if d == "" {
-		return nil, nil
-	}
-	deployment, err := g.GqlClient.GetDeployment(ctx, d)
+	deployment, err := g.GqlClient.GetDeployment(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "while getting deployment with id %s", d)
+		return nil, errors.Wrapf(err, "while getting deployment")
 	}
 	conf, err := yaml.JSONToYAML([]byte(deployment.BotkubeConfig))
 	if err != nil {
-		return nil, errors.Wrapf(err, "while converting json to yaml for deployment with id %s", d)
+		return nil, errors.Wrapf(err, "while converting json to yaml for deployment")
 	}
 
 	return [][]byte{
