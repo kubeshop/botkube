@@ -15,6 +15,7 @@ type (
 		List(ctx context.Context, opts metav1.ListOptions) (*corev1.NamespaceList, error)
 	}
 
+	// KubectlRunner provides an option to run a given kubectl command.
 	KubectlRunner interface {
 		RunKubectlCommand(ctx context.Context, defaultNamespace, cmd string) (string, error)
 	}

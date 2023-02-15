@@ -15,7 +15,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
-var errUnsupportedCommand = errors.New("unsupported command")
+var (
+	errUnsupportedCommand   = errors.New("unsupported command")
+	errRequiredVerbDropdown = errors.New("verbs dropdown select cannot be empty")
+)
 
 const (
 	interactiveBuilderIndicator      = "@builder"
@@ -28,8 +31,6 @@ const (
 	dropdownItemsLimit               = 100
 	kubectlMissingCommandMsg         = "Please specify the kubectl command"
 )
-
-var errRequiredVerbDropdown = errors.New("verbs dropdown select cannot be empty")
 
 // Kubectl provides functionality to handle interactive kubectl command selection.
 type Kubectl struct {
