@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
 var errUnsupportedCommand = errors.New("unsupported command")
@@ -38,14 +39,16 @@ type Kubectl struct {
 	kcRunner         KubectlRunner
 	cfg              Config
 	defaultNamespace string
+	authCheck        AuthChecker
 }
 
 // NewKubectl returns a new Kubectl instance.
-func NewKubectl(kcRunner KubectlRunner, cfg Config, logger logrus.FieldLogger, guard CommandGuard, defaultNamespace string, lister NamespaceLister) *Kubectl {
+func NewKubectl(kcRunner KubectlRunner, cfg Config, logger logrus.FieldLogger, guard CommandGuard, defaultNamespace string, lister NamespaceLister, authCheck AuthChecker) *Kubectl {
 	return &Kubectl{
 		kcRunner:         kcRunner,
 		log:              logger,
 		namespaceLister:  lister,
+		authCheck:        authCheck,
 		commandGuard:     guard,
 		cfg:              cfg,
 		defaultNamespace: defaultNamespace,
@@ -121,7 +124,11 @@ func (e *Kubectl) Handle(ctx context.Context, cmd string, isInteractivitySupport
 	}
 
 	msg, err := cmds.SelectAndRun(cmd)
-	if err != nil {
+	switch err {
+	case nil:
+	case kubectl.ErrVerbNotSupported:
+		return errMessage(allVerbs, ":exclamation: Unfortunately, interactive command builder doesn't support %q verb yet.", stateDetails.verb)
+	default:
 		e.log.WithField("error", err.Error()).Error("Cannot render the kubectl command builder.")
 		return empty, err
 	}
@@ -151,6 +158,43 @@ func (e *Kubectl) initialMessage(allVerbs []string) (api.Message, error) {
 	msg.ReplaceOriginal = false
 
 	return msg, nil
+}
+
+func errMessage(allVerbs []string, errMsgFormat string, args ...any) (api.Message, error) {
+	dropdownsBlockID, err := uuid.NewRandom()
+	if err != nil {
+		return api.Message{}, err
+	}
+
+	selects := api.Section{
+		Selects: api.Selects{
+			ID: dropdownsBlockID.String(),
+		},
+	}
+
+	allVerbsSelect := VerbSelect(allVerbs, "")
+	if allVerbsSelect != nil {
+		selects.Selects.Items = []api.Select{
+			*allVerbsSelect,
+		}
+	}
+
+	errBody := api.Section{
+		Base: api.Base{
+			Body: api.Body{
+				Plaintext: fmt.Sprintf(errMsgFormat, args...),
+			},
+		},
+	}
+
+	return api.Message{
+		ReplaceOriginal:   true,
+		OnlyVisibleForYou: true,
+		Sections: []api.Section{
+			selects,
+			errBody,
+		},
+	}, nil
 }
 
 func (e *Kubectl) renderMessage(ctx context.Context, stateDetails stateDetails, allVerbs, allTypes []string) (api.Message, error) {
@@ -244,7 +288,6 @@ func (e *Kubectl) tryToGetResourceNamesSelect(ctx context.Context, state stateDe
 		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
 		return EmptyResourceNameDropdown()
 	}
-	e.log.Infof("Got out %q", out)
 
 	lines := getNonEmptyLines(out)
 	if len(lines) == 0 {
@@ -270,31 +313,46 @@ func (e *Kubectl) tryToGetNamespaceSelect(ctx context.Context, details stateDeta
 		return nil
 	}
 
+	initialNamespace := newDropdownItem(details.namespace, details.namespace)
+	initialNamespace = e.appendNamespaceSuffixIfDefault(initialNamespace)
+
+	allNs := []dropdownItem{
+		initialNamespace,
+	}
+	for _, name := range e.collectAdditionalNamespaces(ctx) {
+		kv := newDropdownItem(name, name)
+		if name == details.namespace {
+			// already added, skip it
+			continue
+		}
+		allNs = append(allNs, kv)
+	}
+
+	return ResourceNamespaceSelect(allNs, initialNamespace)
+}
+
+func (e *Kubectl) collectAdditionalNamespaces(ctx context.Context) []string {
+	// if preconfigured, use specified those Namespaces
+	if len(e.cfg.Allowed.Namespaces) > 0 {
+		return e.cfg.Allowed.Namespaces
+	}
+
+	// user didn't narrow down the namespace dropdown, so let's try to get all namespaces.
 	allClusterNamespaces, err := e.namespaceLister.List(ctx, metav1.ListOptions{
 		Limit: dropdownItemsLimit,
 	})
 	if err != nil {
-		log.WithField("error", err.Error()).Error("Cannot fetch all available Kubernetes namespaces, ignoring namespace dropdown...")
+		e.log.WithField("error", err.Error()).Error("Cannot fetch all available Kubernetes namespaces, ignoring namespace dropdown...")
+		// we cannot fetch other namespaces, so let's render only the default one.
 		return nil
 	}
 
-	var (
-		finalNS []dropdownItem
-	)
-
-	initialNamespace := newDropdownItem(details.namespace, details.namespace)
-	initialNamespace = e.appendNamespaceSuffixIfDefault(initialNamespace)
-
+	var out []string
 	for _, item := range allClusterNamespaces.Items {
-		kv := newDropdownItem(item.Name, item.Name)
-		if initialNamespace.Value == kv.Value {
-			kv = e.appendNamespaceSuffixIfDefault(kv)
-		}
-
-		finalNS = append(finalNS, kv)
+		out = append(out, item.Name)
 	}
 
-	return ResourceNamespaceSelect(finalNS, initialNamespace)
+	return out
 }
 
 // UX requirement to append the (namespace) suffix if the namespace is called `default`.
@@ -311,7 +369,7 @@ func (e *Kubectl) getAllowedResourcesSelectList(verb string, resources []string,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	allowedResourcesList := make([]string, 0, len(allowedResources))
 	for _, item := range allowedResources {
 		allowedResourcesList = append(allowedResourcesList, item.Name)
@@ -380,6 +438,25 @@ func (e *Kubectl) buildCommandPreview(state stateDetails) []api.Section {
 			"error": err.Error(),
 		}).Error("Cannot get resource details")
 		return []api.Section{InternalErrorSection()}
+	}
+
+	err = e.authCheck.CheckUserAccess(state.namespace, state.verb, state.resourceType, state.resourceName)
+	if err != nil {
+		return []api.Section{
+			{
+				Base: api.Base{
+					Header: "Missing permissions",
+					Body: api.Body{
+						Plaintext: err.Error(),
+					},
+				},
+				Context: []api.ContextItem{
+					{
+						Text: "To learn more about `kubectl` RBAC visit https://docs.botkube.io/configuration/executor/kubectl.",
+					},
+				},
+			},
+		}
 	}
 
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {

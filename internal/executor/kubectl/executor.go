@@ -9,10 +9,10 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
+	"github.com/kubeshop/botkube/internal/executor/kubectl/review"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
@@ -80,6 +80,10 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
 
+	if err := cfg.Validate(); err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while validating configuration: %w", err)
+	}
+
 	log := loggerx.New(cfg.Log)
 
 	cmd, err := normalizeCommand(in.Command)
@@ -88,12 +92,12 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	if builder.ShouldHandle(cmd) {
-		guard, nsLister, err := getBuilderDependencies(log, os.Getenv("KUBECONFIG")) // TODO: take kubeconfig from execution context
+		guard, k8sCli, err := getBuilderDependencies(log, os.Getenv("KUBECONFIG")) // TODO: take kubeconfig from execution context
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while creating builder dependecies: %w", err)
 		}
 
-		kcBuilder := builder.NewKubectl(e.kcRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, nsLister)
+		kcBuilder := builder.NewKubectl(e.kcRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, k8sCli.CoreV1().Namespaces(), review.NewK8sAuth(k8sCli.AuthorizationV1()))
 		msg, err := kcBuilder.Handle(ctx, cmd, in.Context.IsInteractivitySupported, in.Context.SlackState)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while running command builder: %w", err)
@@ -118,7 +122,7 @@ func (*Executor) Help(context.Context) (api.Message, error) {
 	return api.NewCodeBlockMessage(help(), true), nil
 }
 
-func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl.CommandGuard, corev1.NamespaceInterface, error) {
+func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl.CommandGuard, *kubernetes.Clientset, error) {
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating kube config: %w", err)
@@ -135,5 +139,5 @@ func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl
 		return nil, nil, fmt.Errorf("while creating typed k8s client: %w", err)
 	}
 
-	return guard, k8sCli.CoreV1().Namespaces(), nil
+	return guard, k8sCli, nil
 }

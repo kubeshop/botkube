@@ -25,4 +25,9 @@ type (
 		GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
 		FilterSupportedVerbs(allVerbs []string) []string
 	}
+
+	// AuthChecker provides an option to check if we can run a kubectl commands with a given permission.
+	AuthChecker interface {
+		CheckUserAccess(ns, verb, resource, name string) error
+	}
 )

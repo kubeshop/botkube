@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 )
 
@@ -57,7 +56,7 @@ func TestSetDefaultNamespace(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 			// when
 			_, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
@@ -103,7 +102,7 @@ func TestSetOptionsCommand(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
@@ -149,7 +148,7 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{

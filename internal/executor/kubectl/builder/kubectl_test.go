@@ -17,7 +17,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
-const testingBotName = "@BKTesting"
+const (
+	testingBotName = "@BKTesting"
+	blockID        = "dropdown-block-id-403aca17d958"
+)
 
 func TestCommandPreview(t *testing.T) {
 	tests := []struct {
@@ -60,6 +63,7 @@ func TestCommandPreview(t *testing.T) {
 				state         = fixStateForAllDropdowns()
 				kcExecutor    = &fakeKcExecutor{}
 				nsLister      = &fakeNamespaceLister{}
+				authCheck     = &fakeAuthChecker{}
 			)
 
 			kcCmdBuilder := builder.NewKubectl(kcExecutor, builder.Config{
@@ -67,7 +71,7 @@ func TestCommandPreview(t *testing.T) {
 					Verbs:     []string{"describe", "get"},
 					Resources: []string{"deployments", "pods"},
 				},
-			}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), defaultNS, nsLister)
+			}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), defaultNS, nsLister, authCheck)
 			// when
 			gotMsg, err := kcCmdBuilder.Handle(context.Background(), tc.cmd, true, state)
 			gotMsg.ReplaceBotNamePlaceholder(testingBotName)
@@ -83,7 +87,7 @@ func TestCommandPreview(t *testing.T) {
 
 func TestNonInteractivePlatform(t *testing.T) {
 	// given
-	kcCmdBuilder := builder.NewKubectl(nil, builder.Config{}, loggerx.NewNoop(), nil, "defaultNS", nil)
+	kcCmdBuilder := builder.NewKubectl(nil, builder.Config{}, loggerx.NewNoop(), nil, "defaultNS", nil, nil)
 
 	// when
 	gotMsg, err := kcCmdBuilder.Handle(context.Background(), "@builder", false, nil)
@@ -105,7 +109,7 @@ func TestShouldReturnInitialMessage(t *testing.T) {
 			Verbs:     []string{"describe", "get"},
 			Resources: []string{"deployments", "pods"},
 		},
-	}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), "defaultNS", nil)
+	}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), "defaultNS", nil, nil)
 	expMsg := fixInitialBuilderMessage()
 
 	// when
@@ -129,6 +133,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 		state      = fixStateForAllDropdowns()
 		kcExecutor = &fakeErrorKcExecutor{}
 		nsLister   = &fakeNamespaceLister{}
+		authCheck  = &fakeAuthChecker{}
 		cmd        = "@builder --verbs"
 		expMsg     = fixStateBuilderMessage("kubectl get pods -n default", "@BKTesting kubectl get pods -n default", fixVerbsDropdown(), fixResourceTypeDropdown(), fixEmptyResourceNamesDropdown(), fixNamespaceDropdown())
 	)
@@ -138,7 +143,7 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 			Verbs:     []string{"describe", "get"},
 			Resources: []string{"deployments", "pods"},
 		},
-	}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), "default", nsLister)
+	}, loggerx.NewNoop(), kubectl.NewFakeCommandGuard(), "default", nsLister, authCheck)
 
 	// when
 	gotMsg, err := kcCmdBuilder.Handle(context.Background(), cmd, true, state)
@@ -149,10 +154,169 @@ func TestShouldNotPrintTheResourceNameIfKubectlExecutorFails(t *testing.T) {
 	assert.Equal(t, expMsg, gotMsg)
 }
 
+func TestShouldPrintErrMessageIfUserHasInsufficientPerms(t *testing.T) {
+	// given
+	var (
+		state      = fixStateForAllDropdowns()
+		kcExecutor = &fakeKcExecutor{}
+		nsLister   = &fakeNamespaceLister{}
+		authCheck  = &fakeAuthChecker{fixErr: errors.New("not enough permissions")}
+		guard      = kubectl.NewFakeCommandGuard()
+		cmd        = "@builder --verbs"
+		expMsg     = fixInsufficientPermsMessage(fixAllDropdown(true)...)
+	)
+
+	kcCmdBuilder := builder.NewKubectl(kcExecutor, builder.Config{
+		Allowed: builder.AllowedResources{
+			Verbs:     []string{"describe", "get"},
+			Resources: []string{"deployments", "pods"},
+		},
+	}, loggerx.NewNoop(), guard, "default", nsLister, authCheck)
+
+	// when
+	gotMsg, err := kcCmdBuilder.Handle(context.Background(), cmd, true, state)
+	gotMsg.ReplaceBotNamePlaceholder(testingBotName)
+
+	// then
+	require.NoError(t, err)
+
+	assert.Equal(t, expMsg, gotMsg)
+}
+
+func fixInsufficientPermsMessage(dropdowns ...api.Select) api.Message {
+	return api.Message{
+		Sections: []api.Section{
+			{
+				Selects: api.Selects{
+					ID:    blockID, // It's important to have the same ID as we have in fixture state object.
+					Items: dropdowns,
+				},
+			},
+			{
+				Base: api.Base{
+					Header: "Missing permissions",
+					Body: api.Body{
+						Plaintext: "not enough permissions",
+					},
+				},
+				Context: api.ContextItems{
+					api.ContextItem{
+						Text: "To learn more about `kubectl` RBAC visit https://docs.botkube.io/configuration/executor/kubectl.",
+					},
+				},
+			},
+		},
+		OnlyVisibleForYou: true,
+		ReplaceOriginal:   true,
+	}
+}
+
+func TestShouldPrintErrMessageIfGuardFails(t *testing.T) {
+	// given
+	var (
+		guardErr   = errors.New("internal guard err")
+		state      = fixStateNotAllowedVerbDropdown()
+		kcExecutor = &fakeKcExecutor{}
+		nsLister   = &fakeNamespaceLister{}
+		guard      = &fakeErrCommandGuard{fixErr: guardErr}
+		cmd        = "@builder --verbs"
+	)
+
+	kcCmdBuilder := builder.NewKubectl(kcExecutor, builder.Config{
+		Allowed: builder.AllowedResources{
+			Verbs:     []string{"describe", "get", "exec"},
+			Resources: []string{"deployments", "pods"},
+		},
+	}, loggerx.NewNoop(), guard, "default", nsLister, nil)
+
+	// when
+	_, err := kcCmdBuilder.Handle(context.Background(), cmd, true, state)
+
+	// then
+	require.EqualError(t, err, guardErr.Error())
+}
+
+func TestShouldPrintErrMessageIfVerbNotAllowed(t *testing.T) {
+	// given
+	var (
+		state      = fixStateNotAllowedVerbDropdown()
+		kcExecutor = &fakeKcExecutor{}
+		nsLister   = &fakeNamespaceLister{}
+		guard      = &fakeErrCommandGuard{fixErr: kubectl.ErrVerbNotSupported}
+		cmd        = "@builder --verbs"
+		expMsg     = fixNotSupportedVerbMessage()
+	)
+
+	kcCmdBuilder := builder.NewKubectl(kcExecutor, builder.Config{
+		Allowed: builder.AllowedResources{
+			Verbs:     []string{"describe", "get", "exec"},
+			Resources: []string{"deployments", "pods"},
+		},
+	}, loggerx.NewNoop(), guard, "default", nsLister, nil)
+
+	// when
+	gotMsg, err := kcCmdBuilder.Handle(context.Background(), cmd, true, state)
+	gotMsg.ReplaceBotNamePlaceholder(testingBotName)
+
+	// then
+	require.NoError(t, err)
+
+	require.Len(t, gotMsg.Sections, 2)
+	assert.NotEmpty(t, gotMsg.Sections[0].Selects.ID) // assert that we fill that property
+	gotMsg.Sections[0].Selects.ID = ""                // zero that before comparison, as this is UUID that it's different in each test execution.
+
+	assert.Equal(t, expMsg, gotMsg)
+}
+
+func fixNotSupportedVerbMessage() api.Message {
+	return api.Message{
+		Sections: []api.Section{
+			{
+				Selects: api.Selects{
+					Items: []api.Select{
+						{
+							Name:    "Select command",
+							Command: "@BKTesting kubectl @builder --verbs",
+							OptionGroups: []api.OptionGroup{
+								{
+									Name: "Select command",
+									Options: []api.OptionItem{
+										{
+											Name:  "describe",
+											Value: "describe",
+										},
+										{
+											Name:  "get",
+											Value: "get",
+										},
+										{
+											Name:  "exec",
+											Value: "exec",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Base: api.Base{
+					Body: api.Body{
+						Plaintext: `:exclamation: Unfortunately, interactive command builder doesn't support "exec" verb yet.`,
+					},
+				},
+			},
+		},
+		OnlyVisibleForYou: true,
+		ReplaceOriginal:   true,
+	}
+}
+
 func fixStateForAllDropdowns() *slack.BlockActionStates {
 	return &slack.BlockActionStates{
 		Values: map[string]map[string]slack.BlockAction{
-			"dropdown-block-id-403aca17d958": {
+			blockID: {
 				"kubectl @builder --resource-name": {
 					SelectedOption: slack.OptionBlockObject{
 						Value: "nginx2",
@@ -166,6 +330,20 @@ func fixStateForAllDropdowns() *slack.BlockActionStates {
 				"kubectl @builder --verbs": slack.BlockAction{
 					SelectedOption: slack.OptionBlockObject{
 						Value: "get",
+					},
+				},
+			},
+		},
+	}
+}
+
+func fixStateNotAllowedVerbDropdown() *slack.BlockActionStates {
+	return &slack.BlockActionStates{
+		Values: map[string]map[string]slack.BlockAction{
+			blockID: {
+				"kubectl @builder --verbs": slack.BlockAction{
+					SelectedOption: slack.OptionBlockObject{
+						Value: "exec",
 					},
 				},
 			},
@@ -325,7 +503,7 @@ func fixStateBuilderMessage(kcCommandPreview, kcCommand string, dropdowns ...api
 		Sections: []api.Section{
 			{
 				Selects: api.Selects{
-					ID:    "dropdown-block-id-403aca17d958", // It's important to have the same ID as we have in fixture state object.
+					ID:    blockID, // It's important to have the same ID as we have in fixture state object.
 					Items: dropdowns,
 				},
 			},
@@ -389,4 +567,31 @@ func (f *fakeNamespaceLister) List(_ context.Context, _ metav1.ListOptions) (*co
 			},
 		},
 	}, nil
+}
+
+type fakeAuthChecker struct {
+	fixErr error
+}
+
+func (r *fakeAuthChecker) CheckUserAccess(ns, verb, resource, name string) error {
+	return r.fixErr
+}
+
+type fakeErrCommandGuard struct {
+	fixErr error
+}
+
+// FilterSupportedVerbs filters out unsupported verbs by the interactive commands.
+func (f *fakeErrCommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
+	return allVerbs
+}
+
+// GetAllowedResourcesForVerb returns allowed resources types for a given verb.
+func (f *fakeErrCommandGuard) GetAllowedResourcesForVerb(string, []string) ([]kubectl.Resource, error) {
+	return nil, f.fixErr
+}
+
+// GetResourceDetails returns resource details.
+func (f *fakeErrCommandGuard) GetResourceDetails(string, string) (kubectl.Resource, error) {
+	return kubectl.Resource{}, f.fixErr
 }
