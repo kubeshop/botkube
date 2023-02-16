@@ -14,11 +14,18 @@ message Config {
 message StreamRequest {
 	// Configs is a list of Source configurations specified by users.
 	repeated Config configs = 1;
+	// context holds context stream.
+	StreamContext context = 3;
+}
+
+message StreamContext {
+	bool isInteractivitySupported = 1;
 }
 
 message StreamResponse {
 	// Output represents the streamed Source events. It is from start of Source execution.
 	bytes output = 1;
+	bytes message = 2;
 }
 
 message MetadataResponse {

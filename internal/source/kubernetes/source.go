@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,7 +29,17 @@ const (
 	PluginName = "kubernetes"
 
 	description = "Kubernetes plugin consumes Kubernetes events."
+
+	componentLogFieldKey = "component"
 )
+
+var emojiForLevel = map[config.Level]string{
+	config.Info:     ":large_green_circle:",
+	config.Warn:     ":warning:",
+	config.Debug:    ":information_source:",
+	config.Error:    ":x:",
+	config.Critical: ":x:",
+}
 
 type RecommendationFactory interface {
 	New(cfg config2.Config) (recommendation.AggregatedRunner, config.Recommendations)
@@ -37,9 +50,11 @@ type Source struct {
 	pluginVersion string
 	config        config2.Config
 	logger        logrus.FieldLogger
-	ch            chan []byte
+	messageCh     chan source.Message
 	startTime     time.Time
 	recommFactory RecommendationFactory
+	commandGuard  *commander.CommandGuard
+	commander     *commander.Commander
 }
 
 // NewSource returns a new instance of Source.
@@ -52,8 +67,8 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	s.ch = make(chan []byte)
-	out := source.StreamOutput{Output: s.ch}
+	s.messageCh = make(chan source.Message)
+	out := source.StreamOutput{Message: s.messageCh}
 	cfg, err := config2.MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
@@ -63,7 +78,6 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Level: cfg.Log.Level,
 	})
 	go s.consumeEvents(ctx)
-	time.Sleep(time.Hour * 1)
 	return out, nil
 }
 
@@ -83,6 +97,9 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, *s.config.InformerReSyncPeriod)
 	router := NewRouter(client.mapper, client.dynamicCli, s.logger)
 	router.BuildTable(&s.config)
+	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
+	s.commandGuard = commander.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
+	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard)
 
 	err = router.RegisterInformers([]config.EventType{
 		config.CreateEvent,
@@ -150,7 +167,6 @@ func (s *Source) consumeEvents(ctx context.Context) {
 }
 
 func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs []string) {
-	s.ch <- []byte("kubernetes event")
 	s.logger.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
 	s.enrichEventWithAdditionalMetadata(&event)
 
@@ -189,6 +205,14 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs
 		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
 		return
 	}
+
+	message := source.Message{
+		Data:     s.messageFrom(event),
+		Metadata: event,
+	}
+	s.logger.Debugf("data ch: %s", format.StructDumper().Sdump(message.Data))
+	s.logger.Debugf("md ch: %s", format.StructDumper().Sdump(message.Metadata))
+	s.messageCh <- message
 }
 
 func (s *Source) enrichEventWithAdditionalMetadata(event *event.Event) {
@@ -219,6 +243,122 @@ func (s *Source) strToGVR(arg string) (schema.GroupVersionResource, error) {
 	default:
 		return schema.GroupVersionResource{}, fmt.Errorf("invalid string: expected 2 or 3 parts when split by %q", separator)
 	}
+}
+
+func (s *Source) messageFrom(event event.Event, additionalSections ...api.Section) api.Message {
+	var sections []api.Section
+	section := s.baseNotificationSection(event)
+	section.TextFields = api.TextFields{
+		{Text: fmt.Sprintf("*Kind:* %s", event.Kind)},
+		{Text: fmt.Sprintf("*Name:* %s", event.Name)},
+	}
+	section.TextFields = s.appendTextFieldIfNotEmpty(section.TextFields, "Namespace", event.Namespace)
+	section.TextFields = s.appendTextFieldIfNotEmpty(section.TextFields, "Reason", event.Reason)
+	section.TextFields = s.appendTextFieldIfNotEmpty(section.TextFields, "Action", event.Action)
+	section.TextFields = s.appendTextFieldIfNotEmpty(section.TextFields, "Cluster", event.Cluster)
+
+	// Messages, Recommendations and Warnings formatted as bullet point lists.
+	section.Body.Plaintext = s.bulletPointEventAttachments(event)
+
+	sections = append(sections, section)
+	if len(additionalSections) > 0 {
+		sections = append(sections, additionalSections...)
+	}
+
+	cmdSection := s.getInteractiveEventSectionIfShould(event)
+
+	if cmdSection != nil {
+		sections = append(sections, *cmdSection)
+	}
+	return api.Message{
+		Sections: sections,
+	}
+}
+
+func (s *Source) getInteractiveEventSectionIfShould(event event.Event) *api.Section {
+	commands, err := s.commander.GetCommandsForEvent(event)
+	if err != nil {
+		s.logger.Errorf("while getting commands for event: %w", err)
+		return nil
+	}
+
+	if len(commands) == 0 {
+		return nil
+	}
+
+	cmdPrefix := fmt.Sprintf("%s kubectl")
+	var optionItems []api.OptionItem
+	for _, cmd := range commands {
+		optionItems = append(optionItems, api.OptionItem{
+			Name:  cmd.Name,
+			Value: cmd.Cmd,
+		})
+	}
+	section := interactive.EventCommandsSection(cmdPrefix, optionItems)
+	return &section
+}
+
+func (s *Source) baseNotificationSection(event event.Event) api.Section {
+	emoji := emojiForLevel[event.Level]
+	section := api.Section{
+		Base: api.Base{
+			Header: fmt.Sprintf("%s %s", emoji, event.Title),
+		},
+	}
+
+	if !event.TimeStamp.IsZero() {
+		fallbackTimestampText := event.TimeStamp.Format(time.RFC1123)
+		timestampText := fmt.Sprintf("<!date^%d^{date_num} {time_secs}|%s>", event.TimeStamp.Unix(), fallbackTimestampText)
+		section.Context = []api.ContextItem{{
+			Text: timestampText,
+		}}
+	}
+
+	return section
+}
+
+func (s *Source) appendTextFieldIfNotEmpty(fields []api.TextField, title, in string) []api.TextField {
+	if in == "" {
+		return fields
+	}
+	return append(fields, api.TextField{
+		Text: fmt.Sprintf("*%s:* %s", title, in),
+	})
+}
+
+func (s *Source) bulletPointEventAttachments(event event.Event) string {
+	strBuilder := strings.Builder{}
+	s.writeStringIfNotEmpty(&strBuilder, "Messages", s.bulletPointListFromMessages(event.Messages))
+	s.writeStringIfNotEmpty(&strBuilder, "Recommendations", s.bulletPointListFromMessages(event.Recommendations))
+	s.writeStringIfNotEmpty(&strBuilder, "Warnings", s.bulletPointListFromMessages(event.Warnings))
+	return strBuilder.String()
+}
+
+func (s *Source) writeStringIfNotEmpty(strBuilder *strings.Builder, title, in string) {
+	if in == "" {
+		return
+	}
+
+	strBuilder.WriteString(fmt.Sprintf("*%s:*\n%s", title, in))
+}
+
+// bulletPointListFromMessages creates a Markdown bullet-point list from messages.
+// See https://api.slack.com/reference/surfaces/formatting#block-formatting
+func (s *Source) bulletPointListFromMessages(msgs []string) string {
+	return s.joinMessages(msgs, "• ")
+}
+
+func (s *Source) joinMessages(msgs []string, msgPrefix string) string {
+	if len(msgs) == 0 {
+		return ""
+	}
+
+	var strBuilder strings.Builder
+	for _, m := range msgs {
+		strBuilder.WriteString(fmt.Sprintf("%s%s\n", msgPrefix, m))
+	}
+
+	return strBuilder.String()
 }
 
 func jsonSchema() api.JSONSchema {

@@ -3,11 +3,10 @@ package source
 import (
 	"context"
 	"fmt"
-	"time"
+	"github.com/kubeshop/botkube/pkg/api"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -16,19 +15,17 @@ import (
 
 // Dispatcher provides functionality to starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
 type Dispatcher struct {
-	log           logrus.FieldLogger
-	notifiers     []notifier.Notifier
-	manager       *plugin.Manager
-	auditReporter audit.AuditReporter
+	log       logrus.FieldLogger
+	notifiers []notifier.Notifier
+	manager   *plugin.Manager
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager, auditReporter audit.AuditReporter) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager) *Dispatcher {
 	return &Dispatcher{
-		log:           log,
-		notifiers:     notifiers,
-		manager:       manager,
-		auditReporter: auditReporter,
+		log:       log,
+		notifiers: notifiers,
+		manager:   manager,
 	}
 }
 
@@ -60,7 +57,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, sources, pluginName)
+				d.dispatch(ctx, event, sources)
+			case msg := <-out.Message:
+				log.WithField("message", msg).Debug("Dispatching received message...")
+				d.dispatchMsg(ctx, msg.Data, sources)
 			case <-ctx.Done():
 				return
 			}
@@ -69,29 +69,30 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 	return nil
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
+func (d *Dispatcher) dispatchMsg(ctx context.Context, message api.Message, sources []string) {
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
-			eventString := string(event)
 			msg := interactive.CoreMessage{
-				Description: eventString,
+				Message: message,
 			}
-			if err := n.SendMessage(ctx, msg, sources); err != nil {
+			err := n.SendGenericMessage(ctx, &genericMessage{response: msg}, sources)
+			if err != nil {
 				d.log.Errorf("while sending event: %s", err.Error())
-			}
-			if err := d.reportAudit(ctx, pluginName, eventString, sources); err != nil {
-				d.log.Errorf("while reporting audit event: %s", err.Error())
 			}
 		}(n)
 	}
 }
 
-func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event string, sources []string) error {
-	e := audit.SourceAuditEvent{
-		CreatedAt:  time.Now().Format(time.RFC3339),
-		PluginName: pluginName,
-		Event:      event,
-		Bindings:   sources,
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
+	for _, n := range d.notifiers {
+		go func(n notifier.Notifier) {
+			msg := interactive.CoreMessage{
+				Description: string(event),
+			}
+			err := n.SendMessage(ctx, msg, sources)
+			if err != nil {
+				d.log.Errorf("while sending event: %s", err.Error())
+			}
+		}(n)
 	}
-	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
 }

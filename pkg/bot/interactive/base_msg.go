@@ -6,5 +6,6 @@ import "github.com/kubeshop/botkube/pkg/api"
 type CoreMessage struct {
 	Header      string
 	Description string
+	Metadata    any
 	api.Message
 }

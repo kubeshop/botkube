@@ -139,7 +139,7 @@ func (r registration) includesSrcResource(resource string) bool {
 }
 
 func (r registration) matchEvent(routes []route, event event.Event) (bool, error) {
-	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling event")
+	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling matched event")
 
 	errs := multierror.New()
 	for _, route := range routes {

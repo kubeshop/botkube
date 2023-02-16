@@ -140,7 +140,7 @@ func (r registration) includesSrcResource(resource string) bool {
 func (r registration) sourcesForEvent(routes []route, event event.Event) ([]string, error) {
 	var out []string
 
-	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling event")
+	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling sources event")
 
 	errs := multierror.New()
 	for _, route := range routes {

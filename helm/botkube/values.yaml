@@ -406,7 +406,7 @@ sources:
         # -- Logging configuration
         log:
           # -- Log level
-          level: info
+          level: debug
 
 # -- Filter settings for various sources.
 # Currently, all filters are globally enabled or disabled.

@@ -2,6 +2,8 @@ package source
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 
@@ -23,13 +25,43 @@ type (
 	StreamInput struct {
 		// Configs is a list of Source configurations specified by users.
 		Configs []*Config
+		// Context holds streaming context.
+		Context StreamInputContext
+	}
+
+	// StreamInputContext holds streaming context.
+	StreamInputContext struct {
+		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
+		IsInteractivitySupported bool
 	}
 
 	// StreamOutput holds the output of the Stream function.
 	StreamOutput struct {
 		// Output represents the streamed events. It is from start of plugin execution.
+		// Deprecated: Use the Message field instead.
+		//
+		// Migration path:
+		//
+		//	Old approach:
+		//	  return executor.StreamOutput{
+		//	  	Output: out,
+		//	  }
+		//
+		//	New approach:
+		//	  return executor.StreamOutput{
+		//	  	Message: api.NewPlaintextMessage(out, true),
+		//	  }
 		Output chan []byte
-		// TODO: we should consider adding error feedback channel too.
+		// Message represents the streamed events with metadata. It is from start of plugin consumption.
+		// You can construct a complex message.data or just use one of our helper functions:
+		//   - api.NewCodeBlockMessage("body", true)
+		//   - api.NewPlaintextMessage("body", true)
+		Message chan Message
+	}
+
+	Message struct {
+		Data     api.Message
+		Metadata any
 	}
 )
 
@@ -73,15 +105,20 @@ type grpcClient struct {
 }
 
 func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, error) {
-	stream, err := p.client.Stream(ctx, &StreamRequest{
+	request := &StreamRequest{
 		Configs: in.Configs,
-	})
+		Context: &StreamContext{
+			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+		},
+	}
+	stream, err := p.client.Stream(ctx, request)
 	if err != nil {
 		return StreamOutput{}, err
 	}
 
 	out := StreamOutput{
-		Output: make(chan []byte),
+		Output:  make(chan []byte),
+		Message: make(chan Message),
 	}
 
 	go func() {
@@ -100,7 +137,15 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 				// TODO: we should consider adding error feedback channel to StreamOutput.
 				return
 			}
+			var msg Message
+			if len(feature.Message) != 0 && string(feature.Message) != "" {
+				if err := json.Unmarshal(feature.Message, &msg); err != nil {
+					log.Print(fmt.Errorf("while unmarshalling message from JSON: %w", err))
+					return
+				}
+			}
 			out.Output <- feature.Output
+			out.Message <- msg
 		}
 	}()
 
@@ -168,6 +213,22 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 
 			err := gstream.Send(&StreamResponse{
 				Output: out,
+			})
+			if err != nil {
+				return err
+			}
+		case msg, ok := <-stream.Message:
+			if !ok {
+				return nil // output closed, no more chunk logs
+			}
+
+			marshalled, err := json.Marshal(msg)
+			if err != nil {
+				return fmt.Errorf("while marshalling msg to byte: %w", err)
+			}
+
+			err = gstream.Send(&StreamResponse{
+				Message: marshalled,
 			})
 			if err != nil {
 				return err
