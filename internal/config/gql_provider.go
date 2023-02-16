@@ -7,26 +7,19 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	GqlProviderEndpointEnvKey   = "CONFIG_PROVIDER_ENDPOINT"
-	GqlProviderIdentifierEnvKey = "CONFIG_PROVIDER_IDENTIFIER"
-	//nolint:gosec // warns us about 'Potential hardcoded credentials' but there is no security issue here
-	GqlProviderAPIKeyEnvKey = "CONFIG_PROVIDER_API_KEY"
-)
-
 // GqlProvider is GraphQL provider
 type GqlProvider struct {
-	GqlClient GqlClient
+	client DeploymentClient
 }
 
 // NewGqlProvider initializes new GraphQL config source provider
-func NewGqlProvider(gql GqlClient) *GqlProvider {
-	return &GqlProvider{GqlClient: gql}
+func NewGqlProvider(dc DeploymentClient) *GqlProvider {
+	return &GqlProvider{client: dc}
 }
 
 // Configs returns list of config files
 func (g *GqlProvider) Configs(ctx context.Context) (YAMLFiles, error) {
-	deployment, err := g.GqlClient.GetDeployment(ctx)
+	deployment, err := g.client.GetDeployment(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "while getting deployment")
 	}

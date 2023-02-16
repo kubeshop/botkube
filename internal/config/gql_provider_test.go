@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var _ GqlClient = &fakeGqlClient{}
+var _ DeploymentClient = &fakeGqlClient{}
 
 type fakeGqlClient struct {
 }

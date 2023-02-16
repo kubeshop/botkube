@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -73,7 +74,8 @@ func main() {
 func run(ctx context.Context) error {
 	// Load configuration
 	config.RegisterFlags(pflag.CommandLine)
-	cfgProvider := config.GetProvider()
+	gqlClient := graphql.NewDefaultGqlClient()
+	cfgProvider := config.GetProvider(gqlClient)
 	configs, err := cfgProvider.Configs(ctx)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
