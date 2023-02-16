@@ -4,8 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 type StatusReporter interface {
