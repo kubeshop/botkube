@@ -21,8 +21,8 @@ type Gql struct {
 }
 
 // NewDeploymentClient initializes GraphQL client.
-func NewDeploymentClient(client *gql.Gql, deploymentID string) *Gql {
-	return &Gql{client: client, deploymentID: deploymentID}
+func NewDeploymentClient(client *gql.Gql) *Gql {
+	return &Gql{client: client, deploymentID: client.DeploymentID}
 }
 
 // Deployment returns deployment with Botkube configuration.

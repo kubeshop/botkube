@@ -87,7 +87,7 @@ func run(ctx context.Context) error {
 	}
 
 	logger := loggerx.New(conf.Settings.Log)
-	statusReporter := status.NewStatusReporter(logger, "", "")
+	statusReporter := status.NewStatusReporter(logger, gqlClient)
 
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())

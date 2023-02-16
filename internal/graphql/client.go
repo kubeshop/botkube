@@ -25,22 +25,30 @@ type Option func(*Gql)
 // WithEndpoint configures ApiURL for GraphQL endpoint.
 func WithEndpoint(url string) Option {
 	return func(client *Gql) {
-		client.endpoint = url
+		client.Endpoint = url
 	}
 }
 
 // WithAPIKey configures API key for GraphQL endpoint.
 func WithAPIKey(apiKey string) Option {
 	return func(client *Gql) {
-		client.apiKey = apiKey
+		client.APIKey = apiKey
+	}
+}
+
+// WithDeploymentID configures deployment id for GraphQL endpoint.
+func WithDeploymentID(id string) Option {
+	return func(client *Gql) {
+		client.DeploymentID = id
 	}
 }
 
 // Gql defines GraphQL client data structure.
 type Gql struct {
-	Cli      *graphql.Client
-	endpoint string
-	apiKey   string
+	Cli          *graphql.Client
+	Endpoint     string
+	APIKey       string
+	DeploymentID string
 }
 
 // NewGqlClient initializes GraphQL client.
@@ -50,12 +58,17 @@ func NewGqlClient(options ...Option) *Gql {
 		opt(c)
 	}
 
+	// skip client creation when not requested
+	if c.Endpoint == "" {
+		return c
+	}
+
 	httpCli := &http.Client{
-		Transport: newAPIKeySecuredTransport(c.apiKey),
+		Transport: newAPIKeySecuredTransport(c.APIKey),
 		Timeout:   defaultTimeout,
 	}
 
-	c.Cli = graphql.NewClient(c.endpoint, httpCli)
+	c.Cli = graphql.NewClient(c.Endpoint, httpCli)
 	return c
 }
 
@@ -63,6 +76,7 @@ func NewDefaultGqlClient() *Gql {
 	return NewGqlClient(
 		WithEndpoint(os.Getenv(GqlProviderEndpointEnvKey)),
 		WithAPIKey(os.Getenv(GqlProviderAPIKeyEnvKey)),
+		WithDeploymentID(os.Getenv(GqlProviderIdentifierEnvKey)),
 	)
 }
 

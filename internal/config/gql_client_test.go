@@ -10,8 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 func TestGql_GetDeployment(t *testing.T) {
@@ -42,8 +43,12 @@ func TestGql_GetDeployment(t *testing.T) {
 	}))
 	defer svr.Close()
 
-	gqlClient := graphql.NewGqlClient(graphql.WithEndpoint(svr.URL), graphql.WithAPIKey("api-key"))
-	g := NewDeploymentClient(gqlClient, "my-id")
+	gqlClient := graphql.NewGqlClient(
+		graphql.WithEndpoint(svr.URL),
+		graphql.WithAPIKey("api-key"),
+		graphql.WithDeploymentID("my-id"),
+	)
+	g := NewDeploymentClient(gqlClient)
 	deployment, err := g.GetDeployment(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment.BotkubeConfig)
