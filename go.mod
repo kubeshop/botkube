@@ -3,7 +3,7 @@ module github.com/kubeshop/botkube
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alexflint/go-arg v1.4.3
-	github.com/aws/aws-sdk-go v1.44.20
+	github.com/aws/aws-sdk-go v1.44.122
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-playground/locales v0.14.0
@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.2
 	github.com/gorilla/mux v1.8.0
-	github.com/hashicorp/go-getter v1.6.2
+	github.com/hashicorp/go-getter v1.7.0
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.8
@@ -175,7 +175,7 @@ require (
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
+	golang.org/x/oauth2 v0.1.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
