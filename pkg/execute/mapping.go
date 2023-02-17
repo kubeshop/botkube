@@ -57,12 +57,7 @@ type CommandContext struct {
 // ProvidedClusterNameEqualOrEmpty returns true when provided cluster name is empty
 // or when provided cluster name is equal to cluster name
 func (cmdCtx CommandContext) ProvidedClusterNameEqualOrEmpty() bool {
-	return cmdCtx.ProvidedClusterName == "" || cmdCtx.ProvidedClusterNameEqual()
-}
-
-// ProvidedClusterNameEqual returns true when provided cluster name is equal to cluster name
-func (cmdCtx CommandContext) ProvidedClusterNameEqual() bool {
-	return cmdCtx.ProvidedClusterName == cmdCtx.ClusterName
+	return cmdCtx.ProvidedClusterName == "" || cmdCtx.ProvidedClusterName == cmdCtx.ClusterName
 }
 
 // FeatureName defines the name and aliases for a feature

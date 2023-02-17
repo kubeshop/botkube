@@ -379,13 +379,12 @@ const (
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl `yaml:"kubectl"`
 	Plugins Plugins `koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
 func (e Executors) CollectCommandPrefixes() []string {
-	prefixes := []string{kubectlCommandName}
+	var prefixes []string
 	for pluginName := range e.Plugins {
 		prefixes = append(prefixes, ExecutorNameForKey(pluginName))
 	}
@@ -658,15 +657,6 @@ type Webhook struct {
 	Enabled  bool         `yaml:"enabled"`
 	URL      string       `yaml:"url"`
 	Bindings SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
-}
-
-// Kubectl configuration for executing commands inside cluster
-type Kubectl struct {
-	Namespaces       RegexConstraints `yaml:"namespaces,omitempty"`
-	Enabled          bool             `yaml:"enabled"`
-	Commands         Commands         `yaml:"commands,omitempty"`
-	DefaultNamespace string           `yaml:"defaultNamespace,omitempty"`
-	RestrictAccess   *bool            `yaml:"restrictAccess,omitempty"`
 }
 
 // Commands allowed in bot

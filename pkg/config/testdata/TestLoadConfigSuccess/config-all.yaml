@@ -7,7 +7,7 @@ communications: # req 1 elm.
           name: 'SLACK_CHANNEL'
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-tools
             sources:
               - k8s-events
       token: 'SLACK_API_TOKEN'
@@ -24,7 +24,7 @@ communications: # req 1 elm.
             sources:
               - k8s-events
             executors:
-              - kubectl-read-only
+              - k8s-tools
       notification:
         type: short
       botToken: 'SLACK_BOT_TOKEN'
@@ -42,7 +42,7 @@ communications: # req 1 elm.
             disabled: true
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-tools
             sources:
               - k8s-events
       notification:
@@ -54,7 +54,7 @@ communications: # req 1 elm.
       appPassword: 'APPLICATION_PASSWORD'
       bindings:
         executors:
-          - kubectl-read-only
+          - k8s-tools
         sources:
           - k8s-events
       notification:
@@ -70,7 +70,7 @@ communications: # req 1 elm.
           id: 'DISCORD_CHANNEL_ID'
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-tools
             sources:
               - k8s-events
       notification:

@@ -14,7 +14,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
 )
@@ -37,7 +36,6 @@ type DefaultExecutor struct {
 	filterEngine          filterengine.FilterEngine
 	log                   logrus.FieldLogger
 	analyticsReporter     AnalyticsReporter
-	kubectlExecutor       *Kubectl
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
@@ -54,27 +52,10 @@ type DefaultExecutor struct {
 	message               string
 	platform              config.CommPlatformIntegration
 	conversation          Conversation
-	merger                *kubectl.Merger
 	cfgManager            ConfigPersistenceManager
 	commGroupName         string
 	user                  string
-	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
-}
-
-// CommandFlags creates custom type for flags in botkube
-type CommandFlags string
-
-// Defines botkube flags
-const (
-	FollowFlag     CommandFlags = "--follow"
-	AbbrFollowFlag CommandFlags = "-f"
-	WatchFlag      CommandFlags = "--watch"
-	AbbrWatchFlag  CommandFlags = "-w"
-)
-
-func (flag CommandFlags) String() string {
-	return string(flag)
 }
 
 // Execute executes commands and returns output
@@ -135,41 +116,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		return empty // user specified different target cluster
 	}
 
-	// checking if registered plugin overrides the built-in kubectl or kubectl command builder
-	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
-
-	if e.kubectlExecutor.CanHandle(cmdCtx.Args) && !isPluginCmd {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
-		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, cmdCtx.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
-		switch {
-		case err == nil:
-		case IsExecutionCommandError(err):
-			return respond(err.Error(), cmdCtx)
-		default:
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while executing kubectl: %s", err.Error())
-			return empty
-		}
-		return respond(out, cmdCtx)
-	}
-
 	// commands below are executed only if the channel is authorized
 	if !e.conversation.IsAuthenticated {
 		return empty
 	}
 
-	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) && !isPluginCmd {
-		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false)
-		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.SlackState, header(cmdCtx), cmdCtx)
-		if err != nil {
-			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
-			e.log.Errorf("while executing kubectl: %s", err.Error())
-			return empty
-		}
-		return out
-	}
-
-	if isPluginCmd {
+	if e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args) {
 		if isHelpCmd(cmdCtx.Args) {
 			return e.ExecuteHelp(ctx, cmdCtx)
 		}

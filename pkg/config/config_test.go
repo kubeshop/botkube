@@ -326,37 +326,6 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 	}
 }
 
-func TestLoadedConfigValidationWarnings(t *testing.T) {
-	// given
-	tests := []struct {
-		name       string
-		expWarnMsg string
-		configs    [][]byte
-	}{
-		{
-			name: "executor specifies all and exact namespace in include property",
-			expWarnMsg: heredoc.Doc(`
-				2 errors occurred:
-					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values
-					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values`),
-			configs: [][]byte{
-				readTestdataFile(t, "executors-include-warning.yaml"),
-			},
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// when
-			cfg, details, err := config.LoadWithDefaults(tc.configs)
-
-			// then
-			assert.NotNil(t, cfg)
-			assert.NoError(t, err)
-			assert.EqualError(t, details.ValidateWarnings, tc.expWarnMsg)
-		})
-	}
-}
-
 func TestLoadedConfigEnabledPluginErrors(t *testing.T) {
 	// given
 	tests := []struct {

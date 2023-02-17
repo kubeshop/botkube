@@ -23,8 +23,6 @@ var (
 	}
 )
 
-const kubectlBuiltinExecutorName = "kubectl"
-
 // ExecExecutor executes all commands that are related to executors.
 type ExecExecutor struct {
 	log               logrus.FieldLogger
@@ -97,11 +95,6 @@ func executorsForBindings(executors map[string]config.Executors, bindings []stri
 
 		for name, plugin := range executor.Plugins {
 			out[name] = plugin.Enabled
-		}
-
-		// TODO: Remove once kubectl is migrated to a separate plugin
-		if executor.Kubectl.Enabled && !out[kubectlBuiltinExecutorName] {
-			out[kubectlBuiltinExecutorName] = true
 		}
 	}
 

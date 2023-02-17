@@ -138,51 +138,54 @@ sources:
 
 executors:
   'k8s-default-tools':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - botkube
-          - default
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              # read-only access to 'botkube' and 'default' namespaces
+              values: ["kc-default"]
   'kubectl-wait-cmd':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - botkube
-          - default
-      commands:
-        verbs: [ "wait" ]
-      restrictAccess: false
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              # 'wait' verb perms on  'botkube' and 'default' namespaces
+              values: [ "kc-wait" ]
   'kubectl-exec-cmd':
-    kubectl:
-      enabled: false
-      namespaces:
-        include:
-          - botkube
-          - default
-      commands:
-        verbs: [ "exec" ]
-      restrictAccess: false
+    botkube/kubectl:
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              # 'exec' verb perms on  'botkube' and 'default' namespaces
+              values: [ "kc-exec" ]
   'kubectl-allow-all':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - ".*"
-      commands:
-        verbs: [ "get" ]
-        resources: [ "deployments" ]
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              # get deployments across all namespaces
+              values: [ "kc-get-deploy-all" ]
   'kubectl-not-bound-to-any-channel':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - ".*"
-      commands:
-        verbs: [ "port-forward" ]
-        resources: [ "deployments" ]
-
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              # deployments port-forward across all namespaces
+              values: [ "kc-port-deploy-all" ]
   'plugin-based':
     botkube/echo@v1.0.1-devel:
       enabled: true

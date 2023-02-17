@@ -3,9 +3,11 @@ package kubectl
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -229,4 +231,28 @@ func (g *CommandGuard) getAllSupportedVerbs(resourceType string, inVerbs v1.Verb
 	}
 
 	return verbs
+}
+
+// shouldIgnoreResourceListError returns true if the error should be ignored. This is a workaround for client-go behavior,
+// which reports error on empty resource lists. However, some components can register empty lists for their resources.
+// See
+// See: https://github.com/kyverno/kyverno/issues/2267
+func shouldIgnoreResourceListError(err error) bool {
+	groupDiscoFailedErr, ok := err.(*discovery.ErrGroupDiscoveryFailed)
+	if !ok {
+		return false
+	}
+
+	for _, currentErr := range groupDiscoFailedErr.Groups {
+		// Unfortunately there isn't a nicer way to do this.
+		// See https://github.com/kubernetes/client-go/blob/release-1.25/discovery/cached/memory/memcache.go#L228
+		if strings.Contains(currentErr.Error(), "Got empty response for") {
+			// ignore it as it isn't necessarily an error
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }

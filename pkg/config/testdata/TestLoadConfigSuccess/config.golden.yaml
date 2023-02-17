@@ -7,7 +7,7 @@ actions:
             sources:
                 - k8s-events
             executors:
-                - kubectl-read-only
+                - k8s-tools
 sources:
     k8s-events:
         displayName: Plugins & Builtins
@@ -344,47 +344,44 @@ sources:
                                 values: []
                             prefix: ""
 executors:
-    kubectl-read-only:
-        kubectl:
-            namespaces:
-                include:
-                    - .*
-                exclude:
-                    - foo
-                    - bar
-                    - test-*-ns
-            enabled: false
-            commands:
-                verbs:
-                    - api-resources
-                    - api-versions
-                    - cluster-info
-                    - describe
-                    - diff
-                    - explain
-                    - get
-                    - logs
-                    - top
-                    - auth
-                resources:
-                    - deployments
-                    - pods
-                    - namespaces
-                    - daemonsets
-                    - statefulsets
-                    - storageclasses
-                    - nodes
-            defaultNamespace: default
-            restrictAccess: false
-        plugins: {}
-    plugin-based:
-        kubectl:
-            enabled: false
+    echo:
         plugins:
             botkube/echo:
                 enabled: true
                 config:
                     changeResponseToUpperCase: true
+                context:
+                    rbac:
+                        user:
+                            type: ""
+                            static:
+                                value: ""
+                            prefix: ""
+                        group:
+                            type: ""
+                            static:
+                                values: []
+                            prefix: ""
+    k8s-tools:
+        plugins:
+            botkube/helm:
+                enabled: true
+                config: null
+                context:
+                    rbac:
+                        user:
+                            type: ""
+                            static:
+                                value: ""
+                            prefix: ""
+                        group:
+                            type: ""
+                            static:
+                                values: []
+                            prefix: ""
+            botkube/kubectl:
+                enabled: true
+                config: null
                 context:
                     rbac:
                         user:
@@ -411,7 +408,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             notification:
                 type: short
             token: xoxb-token-from-env
@@ -426,7 +423,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             notification:
                 type: short
             botToken: xoxb-token-from-env
@@ -446,7 +443,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             notification:
                 type: short
         discord:
@@ -462,7 +459,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             notification:
                 type: short
         teams:
@@ -474,7 +471,7 @@ communications:
                 sources:
                     - k8s-events
                 executors:
-                    - kubectl-read-only
+                    - k8s-tools
             notification:
                 type: short
         webhook:

@@ -26,7 +26,6 @@ const (
 	invalidPluginDefaultNSTag   = "invalid_plugin_ns"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
-	kubectlCommandName          = "kubectl"
 )
 
 var warnsOnlyTags = map[string]struct{}{
