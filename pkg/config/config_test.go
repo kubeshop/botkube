@@ -93,7 +93,7 @@ func TestFromProvider(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		provider := config.GetProvider()
+		provider := config.GetProvider(nil)
 		gotConfigs, err := provider.Configs(context.Background())
 		assert.NoError(t, err)
 
@@ -111,7 +111,7 @@ func TestFromProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// when
-		provider := config.GetProvider()
+		provider := config.GetProvider(nil)
 		gotConfigs, err := provider.Configs(context.Background())
 		assert.NoError(t, err)
 
@@ -132,7 +132,7 @@ func TestFromProvider(t *testing.T) {
 		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
 
 		// when
-		provider := config.GetProvider()
+		provider := config.GetProvider(nil)
 		gotConfigs, err := provider.Configs(context.Background())
 		assert.NoError(t, err)
 

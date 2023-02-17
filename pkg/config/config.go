@@ -18,6 +18,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/config"
 	intconfig "github.com/kubeshop/botkube/internal/config"
+	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
@@ -784,15 +785,10 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 
 // GetProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func GetProvider() config.Provider {
-	if _, provided := os.LookupEnv(intconfig.GqlProviderEndpointEnvKey); provided {
-		gqlClient := intconfig.NewGqlClient(
-			intconfig.WithEndpoint(os.Getenv(intconfig.GqlProviderEndpointEnvKey)),
-			intconfig.WithAPIKey(os.Getenv(intconfig.GqlProviderAPIKeyEnvKey)),
-			intconfig.WithDeploymentID(os.Getenv(intconfig.GqlProviderIdentifierEnvKey)),
-		)
-
-		return config.NewGqlProvider(gqlClient)
+func GetProvider(gql *graphql.Gql) config.Provider {
+	if _, provided := os.LookupEnv(graphql.GqlProviderEndpointEnvKey); provided {
+		dc := intconfig.NewDeploymentClient(gql)
+		return config.NewGqlProvider(dc)
 	}
 
 	if os.Getenv(intconfig.EnvProviderConfigPathsEnvKey) != "" {
