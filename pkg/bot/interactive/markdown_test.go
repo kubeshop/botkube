@@ -59,7 +59,7 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 										},
 									},
 									{
-										Name: "Data",
+										Name: "Event",
 										Options: []api.OptionItem{
 											{
 												Name:  "configmap",

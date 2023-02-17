@@ -17,7 +17,8 @@ import (
 //
 // WARNING: When adding a new field, check if we shouldn't ignore it when marshalling and sending to ELS.
 type Event struct {
-	metaV1.TypeMeta
+	APIVersion      string
+	Kind            string
 	Code            string
 	Title           string
 	Name            string
@@ -71,7 +72,8 @@ var LevelMap = map[config.EventType]config.Level{
 func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource string) (Event, error) {
 	typeMeta := k8sutil.GetObjectTypeMetaData(object)
 	event := Event{
-		TypeMeta:   typeMeta,
+		APIVersion: typeMeta.APIVersion,
+		Kind:       typeMeta.Kind,
 		ObjectMeta: objectMeta,
 		Object:     object,
 		Name:       objectMeta.Name,
@@ -120,10 +122,8 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 
 		event.Reason = eventObj.Reason
 		event.Messages = append(event.Messages, eventObj.Message)
-		event.TypeMeta = metaV1.TypeMeta{
-			Kind:       eventObj.InvolvedObject.Kind,
-			APIVersion: eventObj.InvolvedObject.APIVersion,
-		}
+		event.Kind = eventObj.InvolvedObject.Kind
+		event.APIVersion = eventObj.InvolvedObject.APIVersion
 		event.Name = eventObj.InvolvedObject.Name
 		event.Namespace = eventObj.InvolvedObject.Namespace
 		event.Level = LevelMap[config.EventType(strings.ToLower(eventObj.Type))]

@@ -44,7 +44,7 @@ type RecommendationFactory interface {
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {
 	RenderedActionsForEvent(event event.Event, sourceBindings []string) ([]event.Action, error)
-	ExecuteEventAction(ctx context.Context, action event.Action) interactive.GenericMessage
+	ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage
 }
 
 // Controller watches Kubernetes resources and send events to notifiers.

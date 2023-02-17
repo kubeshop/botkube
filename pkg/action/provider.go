@@ -43,8 +43,8 @@ func NewProvider(log logrus.FieldLogger, cfg config.Actions, executorFactory Exe
 	return &Provider{log: log, cfg: cfg, executorFactory: executorFactory}
 }
 
-// RenderedActionsForEvent finds and processes actions for given event.
-func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []string) ([]event.Action, error) {
+// RenderedActions finds and processes actions for given data.
+func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]event.Action, error) {
 	var actions []event.Action
 	errs := multierror.New()
 	for _, action := range p.cfg {
@@ -78,8 +78,8 @@ func (p *Provider) RenderedActionsForEvent(e event.Event, sourceBindings []strin
 	return actions, errs.ErrorOrNil()
 }
 
-// ExecuteEventAction executes action for given event.
-func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage {
+// ExecuteAction executes action for given event.
+func (p *Provider) ExecuteAction(ctx context.Context, action event.Action) interactive.CoreMessage {
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
 			IsAuthenticated:  true,
@@ -100,7 +100,7 @@ func (p *Provider) ExecuteEventAction(ctx context.Context, action event.Action) 
 }
 
 type renderingData struct {
-	Event event.Event
+	Event any
 }
 
 func (p *Provider) renderActionCommand(action config.Action, data renderingData) (string, error) {

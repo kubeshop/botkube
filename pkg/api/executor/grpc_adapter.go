@@ -53,7 +53,7 @@ type (
 		//
 		//	Old approach:
 		//	  return executor.ExecuteOutput{
-		//	  	Data: data,
+		//	  	Event: data,
 		//	  }
 		//
 		//	New approach:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/action"
 	"log"
 	"net/http"
 	"time"
@@ -104,7 +105,7 @@ func run(ctx context.Context) error {
 
 	reportFatalError := reportFatalErrFn(logger, reporter)
 
-	errGroup, ctx := errgroup.WithContext(ctx)
+	errGroup, _ := errgroup.WithContext(context.Background())
 
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
@@ -343,9 +344,11 @@ func run(ctx context.Context) error {
 		})
 	}
 
+	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
+	router.AddEnabledActionBindings(conf.Actions)
 	router.AddEnabledActionBindings(conf.Actions)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager)
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {

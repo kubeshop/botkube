@@ -14,6 +14,11 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+type TypeMeta struct {
+	Kind       string
+	APIVersion string
+}
+
 // GetObjectMetaData returns metadata of the given object
 func GetObjectMetaData(ctx context.Context, dynamicCli dynamic.Interface, mapper meta.RESTMapper, obj interface{}) (metaV1.ObjectMeta, error) {
 	unstructuredObject, ok := obj.(*unstructured.Unstructured)
@@ -60,12 +65,12 @@ func GetObjectMetaData(ctx context.Context, dynamicCli dynamic.Interface, mapper
 }
 
 // GetObjectTypeMetaData returns typemetadata of the given object
-func GetObjectTypeMetaData(obj interface{}) metaV1.TypeMeta {
+func GetObjectTypeMetaData(obj interface{}) TypeMeta {
 	k, ok := obj.(*unstructured.Unstructured)
 	if !ok {
-		return metaV1.TypeMeta{}
+		return TypeMeta{}
 	}
-	return metaV1.TypeMeta{
+	return TypeMeta{
 		APIVersion: k.GetAPIVersion(),
 		Kind:       k.GetKind(),
 	}

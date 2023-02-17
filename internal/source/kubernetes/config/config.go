@@ -23,6 +23,7 @@ type Config struct {
 	Namespaces           *Namespaces        `yaml:"namespaces"`
 	Annotations          *map[string]string `yaml:"annotations"`
 	Labels               *map[string]string `yaml:"labels"`
+	Filters              *Filters           `yaml:"filters"`
 }
 
 // Recommendations contains configuration for various recommendation insights.
@@ -177,6 +178,20 @@ type UpdateSetting struct {
 // Log logging configuration
 type Log struct {
 	Level string `yaml:"level"`
+}
+
+// Filters contains configuration for built-in filters.
+type Filters struct {
+	Kubernetes KubernetesFilters `yaml:"kubernetes"`
+}
+
+// KubernetesFilters contains configuration for Kubernetes-related filters.
+type KubernetesFilters struct {
+	// ObjectAnnotationChecker enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+	ObjectAnnotationChecker bool `yaml:"objectAnnotationChecker"`
+
+	// NodeEventsChecker filters out Node-related events that are not important.
+	NodeEventsChecker bool `yaml:"nodeEventsChecker"`
 }
 
 // MergeConfigs merges all input configuration.

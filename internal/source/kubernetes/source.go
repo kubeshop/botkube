@@ -9,6 +9,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
@@ -55,6 +56,7 @@ type Source struct {
 	recommFactory RecommendationFactory
 	commandGuard  *commander.CommandGuard
 	commander     *commander.Commander
+	filterEngine  filterengine.FilterEngine
 }
 
 // NewSource returns a new instance of Source.
@@ -100,6 +102,7 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
 	s.commandGuard = commander.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
 	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard)
+	s.filterEngine = filterengine.WithAllFilters(s.logger, client.dynamicCli, client.mapper, s.config.Filters)
 
 	err = router.RegisterInformers([]config.EventType{
 		config.CreateEvent,
@@ -188,6 +191,13 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs
 		default:
 			// send event with no diff message
 		}
+	}
+
+	// Filter events
+	event = s.filterEngine.Run(ctx, event)
+	if event.Skip {
+		s.logger.Debugf("Skipping event: %#v", event)
+		return
 	}
 
 	if len(event.Kind) <= 0 {
@@ -286,7 +296,7 @@ func (s *Source) getInteractiveEventSectionIfShould(event event.Event) *api.Sect
 		return nil
 	}
 
-	cmdPrefix := fmt.Sprintf("%s kubectl")
+	cmdPrefix := fmt.Sprintf("%s kubectl", api.MessageBotNamePlaceholder)
 	var optionItems []api.OptionItem
 	for _, cmd := range commands {
 		optionItems = append(optionItems, api.OptionItem{

@@ -71,7 +71,10 @@ var LevelMap = map[config.EventType]config.Level{
 func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.EventType, resource string) (Event, error) {
 	typeMeta := k8sutil.GetObjectTypeMetaData(object)
 	event := Event{
-		TypeMeta:   typeMeta,
+		TypeMeta: metaV1.TypeMeta{
+			Kind:       typeMeta.Kind,
+			APIVersion: typeMeta.APIVersion,
+		},
 		ObjectMeta: objectMeta,
 		Object:     object,
 		Name:       objectMeta.Name,
