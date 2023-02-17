@@ -2,11 +2,10 @@ package filterengine
 
 import (
 	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/kubeshop/botkube/pkg/filterengine/filters"
 )
 
 const (

@@ -14,7 +14,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/format"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -220,8 +219,6 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs
 		Data:     s.messageFrom(event),
 		Metadata: event,
 	}
-	s.logger.Debugf("data ch: %s", format.StructDumper().Sdump(message.Data))
-	s.logger.Debugf("md ch: %s", format.StructDumper().Sdump(message.Metadata))
 	s.messageCh <- message
 }
 

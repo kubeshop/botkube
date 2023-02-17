@@ -3,13 +3,13 @@ package filters
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 

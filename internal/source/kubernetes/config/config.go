@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"regexp"
 	"strings"
 	"time"
@@ -203,12 +204,25 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 			Level: "info",
 		},
 		InformerReSyncPeriod: &t,
-		Recommendations:      &Recommendations{},
-		Event:                &KubernetesEvent{},
-		Namespaces:           &Namespaces{},
-		Labels:               &map[string]string{},
-		Annotations:          &map[string]string{},
-		Resources:            []Resource{},
+		Recommendations: &Recommendations{
+			Pod: PodRecommendations{
+				NoLatestImageTag: ptr.Bool(true),
+				LabelsSet:        ptr.Bool(true),
+			},
+			Ingress: IngressRecommendations{
+				BackendServiceValid: ptr.Bool(true),
+				TLSSecretValid:      ptr.Bool(true),
+			},
+		},
+		Event:       &KubernetesEvent{},
+		Namespaces:  &Namespaces{},
+		Labels:      &map[string]string{},
+		Annotations: &map[string]string{},
+		Resources:   []Resource{},
+		Filters: &Filters{Kubernetes: KubernetesFilters{
+			ObjectAnnotationChecker: true,
+			NodeEventsChecker:       true,
+		}},
 	}
 	for _, rawCfg := range configs {
 		var cfg Config
