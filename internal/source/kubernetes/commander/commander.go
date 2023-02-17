@@ -18,25 +18,14 @@ type Command struct {
 
 // Commander is responsible for generating kubectl commands for the given event.
 type Commander struct {
-	log   logrus.FieldLogger
-	guard CmdGuard
+	log          logrus.FieldLogger
+	guard        CmdGuard
+	allowedVerbs []string
 }
 
 // unsupportedEventCommandVerbs contains list of verbs that are not supported for the actionable event notifications.
 var unsupportedEventCommandVerbs = map[string]struct{}{
 	"delete": {}, // See https://github.com/kubeshop/botkube/issues/824
-}
-
-// supportedEventCommandVerbs contains list of verbs that are supported for the actionable event notifications.
-var supportedEventCommandVerbs = map[string]struct{}{
-	"api-resources": {},
-	"api-versions":  {},
-	"cluster-info":  {},
-	"describe":      {},
-	"explain":       {},
-	"get":           {},
-	"logs":          {},
-	"top":           {},
 }
 
 // CmdGuard is responsible for guarding kubectl commands.
@@ -46,8 +35,8 @@ type CmdGuard interface {
 }
 
 // NewCommander creates a new Commander instance.
-func NewCommander(log logrus.FieldLogger, guard CmdGuard) *Commander {
-	return &Commander{log: log, guard: guard}
+func NewCommander(log logrus.FieldLogger, guard CmdGuard, verbs []string) *Commander {
+	return &Commander{log: log, guard: guard, allowedVerbs: verbs}
 }
 
 // GetCommandsForEvent returns a list of commands for the given event.
@@ -61,7 +50,10 @@ func (c *Commander) GetCommandsForEvent(event event.Event) ([]Command, error) {
 	resourceName := resourceTypeParts[len(resourceTypeParts)-1]
 
 	var allowedVerbs []string
-	for verb := range supportedEventCommandVerbs {
+	for _, verb := range c.allowedVerbs {
+		if _, ok := unsupportedEventCommandVerbs[verb]; ok {
+			continue
+		}
 		allowedVerbs = append(allowedVerbs, verb)
 	}
 

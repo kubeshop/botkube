@@ -20,6 +20,7 @@ type Config struct {
 	Recommendations      *Recommendations   `yaml:"recommendations"`
 	Event                *KubernetesEvent   `yaml:"event"`
 	Resources            []Resource         `yaml:"resources" validate:"dive"`
+	ActionVerbs          []string           `yaml:"actionVerbs" validate:"dive"`
 	Namespaces           *Namespaces        `yaml:"namespaces"`
 	Annotations          *map[string]string `yaml:"annotations"`
 	Labels               *map[string]string `yaml:"labels"`
@@ -254,6 +255,13 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 
 		if cfg.Resources != nil {
 			out.Resources = cfg.Resources
+		}
+
+		if cfg.Filters != nil {
+			out.Filters = cfg.Filters
+		}
+		if len(cfg.ActionVerbs) == 0 {
+			out.ActionVerbs = []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"}
 		}
 	}
 

@@ -101,7 +101,7 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	router.BuildTable(&s.config)
 	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
 	s.commandGuard = commander.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
-	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard)
+	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard, s.config.ActionVerbs)
 	s.filterEngine = filterengine.WithAllFilters(s.logger, client.dynamicCli, client.mapper, s.config.Filters)
 
 	err = router.RegisterInformers([]config.EventType{
@@ -375,18 +375,34 @@ func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "$ref": "#/definitions/Kubernetes",
-  "title": "Kubernetes",
-  "description": "%s",
-  "definitions": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/Kubernetes",
+    "title": "Kubernetes",
+    "description": "%s",
+    "definitions":{
     "Kubernetes": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "kubeConfig": {
+          "description": "Kubernetes configuration path.",
+          "type": "string"
+        },
+        "clusterName": {
+          "description": "Cluster name to differentiate incoming messages.",
+          "type": "string"
+        },
+        "informerReSyncPeriod": {
+          "description": "Resync period of Kubernetes informer. e.g. 30s",
+          "type": "string"
+        },
+        "log": {
+          "description": "Logging configuration.",
+          "$ref": "#/definitions/Log"
+        },
         "namespaces": {
           "description": "Describes namespaces for every Kubernetes resources you want to watch or exclude. These namespaces are applied to every resource specified in the resources list. However, every specified resource can override this by using its own namespaces object.",
-          "$ref": "#/definitions/KubernetesNamespaces"
+          "$ref": "#/definitions/Namespaces"
         },
         "event": {
           "description": "These constraints are applied for every resource specified in the 'resources' list, unless they are overridden by the resource's own 'events' object.",
@@ -398,7 +414,7 @@ func jsonSchema() api.JSONSchema {
         },
         "labels": {
           "description": "Filters Kubernetes resources to watch by labels.",
-          "$ref": "#/definitions/Annotations"
+          "$ref": "#/definitions/Labels"
         },
         "resources": {
           "description": "Resources are identified by its type in '{group}/{version}/{kind (plural)}' format. Examples: 'apps/v1/deployments', 'v1/pods'. Each resource can override the namespaces and event configuration by using dedicated 'event' and 'namespaces' field. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex. @default -- See the 'values.yaml' file for full object.",
@@ -406,6 +422,29 @@ func jsonSchema() api.JSONSchema {
           "items": {
             "$ref": "#/definitions/Resource"
           }
+        },
+        "filters": {
+          "description": "Filter settings for various sources.",
+          "$ref": "#/definitions/Filter"
+        },
+        "actionVerbs": {
+          "description": "Allowed verbs for actionable events.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+                "api-resources", 
+                "api-versions", 
+                "cluster-info", 
+                "describe", 
+                "explain", 
+                "get", 
+                "logs", 
+                "top"
+            ]
+          },
+          "title": "Action Verbs",
+          "uniqueItems": true
         }
       },
       "title": "Kubernetes"
@@ -415,6 +454,11 @@ func jsonSchema() api.JSONSchema {
       "additionalProperties": false,
       "title": "Annotations"
     },
+    "Labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Labels"
+    },
     "Event": {
       "type": "object",
       "additionalProperties": false,
@@ -423,8 +467,20 @@ func jsonSchema() api.JSONSchema {
           "description": "Lists all event types to be watched.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Type"
-          }
+            "type": "string",
+            "enum": [
+                "api-resources", 
+                "api-versions", 
+                "cluster-info", 
+                "describe", 
+                "explain", 
+                "get", 
+                "logs", 
+                "top"
+            ]
+          },
+          "title": "Event Types",
+          "uniqueItems": true
         },
         "reason": {
           "description": "Optional regex to filter events by event reason.",
@@ -437,20 +493,6 @@ func jsonSchema() api.JSONSchema {
       },
       "title": "Event"
     },
-    "KubernetesNamespaces": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "include": {
-          "description": "Include contains a list of allowed Namespaces. It can also contain a regex expressions: '- \".*\"' - to specify all Namespaces.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "title": "KubernetesNamespaces"
-    },
     "Resource": {
       "type": "object",
       "additionalProperties": false,
@@ -460,7 +502,7 @@ func jsonSchema() api.JSONSchema {
         },
         "namespaces": {
           "description": "Overrides kubernetes.namespaces",
-          "$ref": "#/definitions/ResourceNamespaces"
+          "$ref": "#/definitions/Namespaces"
         },
         "annotations": {
           "description": "Overrides kubernetes.annotations",
@@ -484,7 +526,7 @@ func jsonSchema() api.JSONSchema {
       },
       "title": "Resource"
     },
-    "ResourceNamespaces": {
+    "Namespaces": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -492,20 +534,22 @@ func jsonSchema() api.JSONSchema {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "List of allowed Kubernetes Namespaces for command execution. It can also contain a regex expressions: \".*\" - to specify all Namespaces."
         },
         "exclude": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "List of ignored Kubernetes Namespace. It can also contain a regex expressions: \"test-.*\" - to specify all Namespaces."
         }
       },
       "required": [
         "exclude",
         "include"
       ],
-      "title": "ResourceNamespaces"
+      "title": "Namespaces"
     },
     "UpdateSetting": {
       "type": "object",
@@ -523,16 +567,88 @@ func jsonSchema() api.JSONSchema {
       },
       "title": "UpdateSetting"
     },
-    "Type": {
-      "type": "string",
-      "enum": [
-        "create",
-        "delete",
-        "error",
-        "update"
-      ],
-      "title": "Type"
-    }
+    "Log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Log level"
+        }
+      },
+      "title": "Log"
+    },
+    "Recommendations": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pod": {
+            "description": "Recommendations for Pod Kubernetes resource.",
+            "$ref": "#/definitions/PodRecommendation"
+          },
+          "ingress": {
+            "description": "Recommendations for Ingress Kubernetes resource.",
+            "$ref": "#/definitions/IngressRecommendation"
+          }
+        },
+        "title": "Recommendations"
+      },
+      "PodRecommendation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "noLatestImageTag": {
+            "type": "boolean",
+            "description": "If true, notifies about Pod containers that use latest tag for images."
+          },
+          "labelsSet": {
+            "type": "boolean",
+            "description": "If true, notifies about Pod resources created without labels."
+          }
+        },
+        "title": "Pod Recommendations"
+      },
+      "IngressRecommendation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "backendServiceValid": {
+            "type": "boolean",
+            "description": "If true, notifies about Ingress resources with invalid backend service reference."
+          },
+          "tlsSecretValid": {
+            "type": "boolean",
+            "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
+          }
+        },
+        "title": "Ingress Recommendations"
+      },
+      "Filter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "kubernetes": {
+                "description": "Kubernetes filter.",
+                "$ref": "#/definitions/KubernetesFilter"
+              }
+        },
+        "title": "Filter"
+      },
+      "KubernetesFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "objectAnnotationChecker": {
+            "type": "boolean",
+            "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations."
+          },
+          "nodeEventsChecker": {
+            "type": "boolean",
+            "description": "If true, filters out Node-related events that are not important."
+          }
+        },
+        "title": "Kubernetes Filter"
+      }
   }
 }
 `, description),
@@ -541,6 +657,7 @@ func jsonSchema() api.JSONSchema {
 func exitOnError(err error, log logrus.FieldLogger) {
 	if err != nil {
 		log.Error(err)
+		// Error message is not propagated to Botkube core without this wait.
 		time.Sleep(time.Second * 2)
 		os.Exit(1)
 	}
