@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/status"
 	"time"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -49,20 +50,19 @@ type ActionProvider interface {
 
 // Controller watches Kubernetes resources and send events to notifiers.
 type Controller struct {
-	log       logrus.FieldLogger
-	conf      *config.Config
-	notifiers []notifier.Notifier
+	log            logrus.FieldLogger
+	conf           *config.Config
+	notifiers      []notifier.Notifier
+	statusReporter status.StatusReporter
 }
 
 // New create a new Controller instance.
-func New(log logrus.FieldLogger,
-	conf *config.Config,
-	notifiers []notifier.Notifier,
-) *Controller {
+func New(log logrus.FieldLogger, conf *config.Config, notifiers []notifier.Notifier, reporter status.StatusReporter) *Controller {
 	return &Controller{
-		log:       log,
-		conf:      conf,
-		notifiers: notifiers,
+		log:            log,
+		conf:           conf,
+		notifiers:      notifiers,
+		statusReporter: reporter,
 	}
 }
 
@@ -85,6 +85,13 @@ func (c *Controller) Start(ctx context.Context) error {
 	err = notifier.SendPlaintextMessage(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending final message: %w", err)
+	}
+
+	// use separate ctx as parent ctx is already cancelled
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if _, err := c.statusReporter.ReportDeploymentShutdown(ctxTimeout); err != nil {
+		return fmt.Errorf("while reporting botkube shutdown: %w", err)
 	}
 
 	return nil
