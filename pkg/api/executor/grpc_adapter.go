@@ -37,7 +37,7 @@ type (
 		IsInteractivitySupported bool
 
 		// SlackState represents modal state. It's available only if:
-		//  - SupportsInteractivitiy is set to true.
+		//  - IsInteractivitySupported is set to true,
 		//  - and interactive actions were used in the response Message.
 		// This is an alpha feature and may change in the future.
 		// Most likely, it will be generalized to support all communication platforms.

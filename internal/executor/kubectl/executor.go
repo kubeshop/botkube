@@ -7,12 +7,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kubeshop/botkube/internal/executor/kubectl/accessreview"
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
-	"github.com/kubeshop/botkube/internal/executor/kubectl/review"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
@@ -97,7 +96,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 			return executor.ExecuteOutput{}, fmt.Errorf("while creating builder dependecies: %w", err)
 		}
 
-		kcBuilder := builder.NewKubectl(e.kcRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, k8sCli.CoreV1().Namespaces(), review.NewK8sAuth(k8sCli.AuthorizationV1()))
+		kcBuilder := builder.NewKubectl(e.kcRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, k8sCli.CoreV1().Namespaces(), accessreview.NewK8sAuth(k8sCli.AuthorizationV1()))
 		msg, err := kcBuilder.Handle(ctx, cmd, in.Context.IsInteractivitySupported, in.Context.SlackState)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while running command builder: %w", err)
@@ -132,8 +131,7 @@ func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating discovery client: %w", err)
 	}
-	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
-	guard := kubectl.NewCommandGuard(log, discoCacheClient)
+	guard := kubectl.NewCommandGuard(log, discoveryClient)
 	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating typed k8s client: %w", err)

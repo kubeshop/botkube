@@ -8,7 +8,7 @@ func overflowSentence(in []string) []string {
 			continue
 		}
 
-		in[idx] = in[idx][:72] + "..."
+		in[idx] = in[idx][:72] + "…"
 	}
 	return in
 }

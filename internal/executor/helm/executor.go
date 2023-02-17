@@ -14,10 +14,9 @@ import (
 
 const (
 	// PluginName is the name of the Helm Botkube plugin.
-	PluginName       = "helm"
-	helmBinaryName   = "helm"
-	defaultNamespace = "default"
-	description      = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
+	PluginName     = "helm"
+	helmBinaryName = "helm"
+	description    = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
 )
 
 // Links source: https://github.com/helm/helm/releases/tag/v3.6.3
@@ -102,7 +101,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	if helmCmd.Namespace == "" { // use 'default' namespace, instead of namespace where botkube was installed
-		in.Command = fmt.Sprintf("%s -n %s", in.Command, defaultNamespace)
+		in.Command = fmt.Sprintf("%s -n %s", in.Command, cfg.DefaultNamespace)
 	}
 
 	switch {

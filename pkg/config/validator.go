@@ -346,24 +346,18 @@ func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfig
 		if !ok {
 			continue
 		}
-		rbac1 := p1Cfg.Context.RBAC
-		defaultNS1 := p1Cfg.Context.Kubeconfig.DefaultNamespace
 
+		firstRBAC := p1Cfg.Context.RBAC
 		// compare the head with the tail
 		for i := 1; i < len(occurrences); i++ {
-			p2 := occurrences[i]
-			p2Cfg, ok := pluginConfigs[p2].GetPlugins()[plugin]
+			nextIdx := occurrences[i]
+			nextCfg, ok := pluginConfigs[nextIdx].GetPlugins()[plugin]
 			if !ok {
 				continue
 			}
 
-			rbac2 := p2Cfg.Context.RBAC
-			defaultNS2 := p2Cfg.Context.Kubeconfig.DefaultNamespace
-			if !reflect.DeepEqual(rbac1, rbac2) {
-				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, p2)
-			}
-			if defaultNS1 != defaultNS2 {
-				sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, p2)
+			if !reflect.DeepEqual(firstRBAC, nextCfg.Context.RBAC) {
+				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, nextIdx)
 			}
 		}
 	}

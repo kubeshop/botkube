@@ -1,4 +1,4 @@
-package review
+package accessreview
 
 import (
 	"context"
@@ -25,10 +25,14 @@ func NewK8sAuth(cli v1.AuthorizationV1Interface) *K8sAuth {
 // CheckUserAccess returns error if a given verbs are not supported.
 func (c *K8sAuth) CheckUserAccess(ns, verb, resource, name string) error {
 	var subresource string
+
+	// kubectl logs/pods [NAME] should be translated into 'get logs pod [NAME]'
+	// as the `log` is a subresource, same as scale, etc.
+	//
+	// TODO: only logs are supported by interactive builder. We don't support scale, exec, apply, etc.
+	// Once we will add support for them, we need to add dedicated cases here.
 	switch verb {
 	case "logs", "log":
-		// kubectl logs/pods [NAME] should be translated into 'get logs pod [NAME]'
-		// as the `log` is a subresource, same as scale, etc.
 		verb = "get"
 		subresource = "log"
 	}

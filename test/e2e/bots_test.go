@@ -873,6 +873,7 @@ func runBotTest(t *testing.T,
 			EXECUTOR                  ENABLED ALIASES
 			botkube/echo@v1.0.1-devel true    e
 			botkube/helm              true    
+			botkube/kubectl           false   k, kc
 			kubectl                   true    k, kc`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)

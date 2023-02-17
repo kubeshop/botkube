@@ -24,7 +24,7 @@ func DefaultConfig() Config {
 				"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top",
 			},
 			Resources: []string{
-				"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses",
+				"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs",
 			},
 		},
 	}

@@ -2,16 +2,6 @@
 
 Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.
 
-## Configuration parameters
-
-The configuration should be specified in the YAML format. Such parameters are supported:
-
-```yaml
-helmDriver: "secret" # Allowed values are configmap, secret, memory.
-helmCacheDir: "/tmp/helm/.cache"
-helmConfigDir: "/tmp/helm/"
-```
-
 ## Manual testing
 
 This section describes a manual testing of all supported Helm executor commands. It utilizes the `k3d` cluster and the leverages a built-in functionality to access your host system by referring to it as [`host.k3d.internal`](https://k3d.io/v5.0.1/faq/faq/#how-to-access-services-like-a-database-running-on-my-docker-host-machine).

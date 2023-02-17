@@ -321,16 +321,8 @@ type Plugin struct {
 
 // PluginContext defines the context for given plugin.
 type PluginContext struct {
-	// Kubeconfig defines configuration options for plugins kubeconfig.
-	Kubeconfig KubeconfigContext `yaml:"kubeconfig"`
 	// RBAC defines the RBAC rules for given plugin.
 	RBAC PolicyRule `yaml:"rbac"`
-}
-
-// KubeconfigContext defines options for generated kubeconfig.
-type KubeconfigContext struct {
-	// DefaultNamespace is the default namespace for this kubeconfig.
-	DefaultNamespace string `yaml:"defaultNamespace"`
 }
 
 // PolicyRule is the RBAC rule.
