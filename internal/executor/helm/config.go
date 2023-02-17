@@ -7,11 +7,14 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
+const defaultNamespace = "default"
+
 // Config holds Helm plugin configuration parameters.
 type Config struct {
-	HelmDriver    string `yaml:"helmDriver,omitempty"`
-	HelmCacheDir  string `yaml:"helmCacheDir,omitempty"`
-	HelmConfigDir string `yaml:"helmConfigDir,omitempty"`
+	HelmDriver       string `yaml:"helmDriver,omitempty"`
+	HelmCacheDir     string `yaml:"helmCacheDir,omitempty"`
+	HelmConfigDir    string `yaml:"helmConfigDir,omitempty"`
+	DefaultNamespace string `yaml:"defaultNamespace,omitempty"`
 }
 
 // Validate validates the Helm configuration parameters.
@@ -27,9 +30,10 @@ func (c *Config) Validate() error {
 // MergeConfigs merges the Helm configuration.
 func MergeConfigs(configs []*executor.Config) (Config, error) {
 	defaults := Config{
-		HelmDriver:    "secret",
-		HelmCacheDir:  "/tmp/helm/.cache",
-		HelmConfigDir: "/tmp/helm/",
+		HelmDriver:       "secret",
+		HelmCacheDir:     "/tmp/helm/.cache",
+		HelmConfigDir:    "/tmp/helm/",
+		DefaultNamespace: defaultNamespace,
 	}
 
 	var out Config

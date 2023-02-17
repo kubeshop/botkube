@@ -8,10 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestSetDefaultNamespace(t *testing.T) {
@@ -59,7 +56,7 @@ func TestSetDefaultNamespace(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 			// when
 			_, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
@@ -105,7 +102,7 @@ func TestSetOptionsCommand(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
@@ -151,7 +148,7 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 				return "mocked", nil
 			})
 
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
+			exec := NewExecutor("dev", mockFn)
 
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
@@ -162,65 +159,6 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 			assert.False(t, wasKubectlCalled)
 			assert.Empty(t, out)
 			assert.EqualError(t, err, tc.expErr)
-		})
-	}
-}
-
-func TestCommandsBuilder(t *testing.T) {
-	tests := []struct {
-		name         string
-		givenCommand string
-		platform     config.CommPlatformIntegration
-		expMsg       string
-	}{
-		{
-			name:         "Should respond specify full command",
-			givenCommand: "kubectl",
-			expMsg:       "Please specify the kubectl command",
-			platform:     config.DiscordCommPlatformIntegration,
-		},
-		{
-			name:         "Should start interactive mode",
-			givenCommand: "kubectl",
-			expMsg:       "interactivity not yet implemented",
-			platform:     config.SocketSlackCommPlatformIntegration,
-		},
-		{
-			name:         "Should respond specify full command",
-			givenCommand: "kubectl @builder",
-			expMsg:       "Please specify the kubectl command",
-			platform:     config.DiscordCommPlatformIntegration,
-		},
-		{
-			name:         "Should continue interactive mode",
-			givenCommand: "kubectl @builder",
-			expMsg:       "interactivity not yet implemented",
-			platform:     config.SocketSlackCommPlatformIntegration,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			var wasKubectlCalled bool
-			mockFn := NewMockedBinaryRunner(func(_ context.Context, rawCmd string, _ map[string]string) (string, error) {
-				wasKubectlCalled = true
-				return "mocked", nil
-			})
-
-			exec := NewExecutor(loggerx.NewNoop(), "dev", mockFn)
-
-			// when
-			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
-				Command: tc.givenCommand,
-				Context: executor.ExecuteInputContext{
-					IsInteractivitySupported: tc.platform.IsInteractive(),
-				},
-			})
-
-			// then
-			require.NoError(t, err)
-			assert.False(t, wasKubectlCalled)
-			assert.Equal(t, api.NewPlaintextMessage(tc.expMsg, true), out.Message)
 		})
 	}
 }

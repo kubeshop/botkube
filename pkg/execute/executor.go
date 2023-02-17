@@ -174,7 +174,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 			return e.ExecuteHelp(ctx, cmdCtx)
 		}
 		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
-		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, cmdCtx)
+		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, e.conversation.SlackState, cmdCtx)
 		switch {
 		case err == nil:
 		case IsExecutionCommandError(err):

@@ -46,7 +46,7 @@ rbac:
     - apiGroups: ["*"]
       resources: ["*"]
       verbs: ["get", "watch", "list"]
-  staticGroupName: &static-group-name "botkube-plugins-read-only"
+  staticGroupName: &static-group-name "botkube-plugins-default"
 
 ## Kubeconfig settings used by Botkube.
 kubeconfig:
@@ -83,7 +83,7 @@ actions:
         - k8s-create-events
       # -- Executors configuration used to execute a configured command.
       executors:
-        - kubectl-read-only
+        - k8s-default-tools
   'show-logs-on-error':
     # -- If true, enables the action.
     enabled: false
@@ -102,7 +102,7 @@ actions:
         - k8s-err-with-logs-events
       # -- Executors configuration used to execute a configured command.
       executors:
-        - kubectl-read-only
+        - k8s-default-tools
 
 # -- Map of sources. Source contains configuration for Kubernetes events and sending recommendations.
 # The property name under `sources` object is an alias for a given configuration. You can define multiple sources configuration with different names.
@@ -426,8 +426,9 @@ filters:
 #
 ## Format: executors.{alias}
 executors:
-  'kubectl-read-only':
-    ## Kubectl executor configuration.
+  k8s-default-tools:
+    ## Built-in Kubectl executor configuration.
+    ## DEPRECATED: The botkube/kubectl plugin version should be used instead. If both are enabled the plugin version takes the precedences.
     kubectl:
       namespaces:
         # -- List of allowed Kubernetes Namespaces for command execution.
@@ -452,22 +453,21 @@ executors:
       # -- If true, enables commands execution from configured channel only.
       restrictAccess: false
 
-  'helm':
     ## Helm executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/helm:
       # -- If true, enables `helm` commands execution.
       enabled: false
       config:
+        # Configures the default Namespace for executing Botkube `helm` commands. If not set, uses 'default'.
+        defaultNamespace: "default"
         # -- Allowed values are configmap, secret, memory.
         helmDriver: "secret"
         # -- Location for storing Helm configuration.
         helmConfigDir: "/tmp/helm/"
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
-      context:
-        # -- Default namespace for this plugin.
-        defaultNamespace: "botkube"
+      context: &defaultExecutorContext
         # -- RBAC configuration for this plugin.
         rbac:
           # -- Static impersonation for a given username and groups.
@@ -485,6 +485,31 @@ executors:
             static:
               # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
               value: "default"
+
+    ## Kubectl executor configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/kubectl:
+      enabled: false
+      # -- Custom kubectl configuration.
+      # @default -- See the `values.yaml` file for full object including optional properties related to interactive builder.
+      config:
+        # Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses 'default'.
+        defaultNamespace: "default"
+      #  # Configures Kubectl internal logger. Messages are send to stdout.
+      #  # To see the plugin standard output you need to enable it. Learn more at https://docs.botkube.io/plugin/debugging/.
+      #  log:
+      #    level: "info"
+      #  # Configures the interactive kubectl command builder.
+      #  interactiveBuilder:
+      #    allowed:
+      #      # Configures which K8s namespace are displayed in namespace dropdown.
+      #      # If not specified, plugin needs to have access to fetch all Namespaces, otherwise Namespace dropdown won't be visible at all.
+      #      namespaces: [ "default" ]
+      #      # Configures which `kubectl` methods are displayed in commands dropdown.
+      #      verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top" ]
+      #      # Configures which K8s resource are displayed in resources dropdown.
+      #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
+      context: *defaultExecutorContext
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
@@ -535,8 +560,7 @@ communications:
           bindings:
             # -- Executors configuration for a given channel.
             executors:
-              - kubectl-read-only
-              - helm
+              - k8s-default-tools
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -576,8 +600,7 @@ communications:
           bindings:
             # -- Executors configuration for a given channel.
             executors:
-              - kubectl-read-only
-              - helm
+              - k8s-default-tools
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -599,8 +622,7 @@ communications:
       bindings:
         # -- Executor bindings apply to all MS Teams channels where Botkube has access to.
         executors:
-          - kubectl-read-only
-          - helm
+          - k8s-default-tools
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
@@ -632,8 +654,7 @@ communications:
           bindings:
             # -- Executors configuration for a given channel.
             executors:
-              - kubectl-read-only
-              - helm
+              - k8s-default-tools
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -706,8 +727,7 @@ communications:
             disabled: false
           bindings:
             executors:
-              - kubectl-read-only
-              - helm
+              - k8s-default-tools
             sources:
               - k8s-err-events
               - k8s-recommendation-events

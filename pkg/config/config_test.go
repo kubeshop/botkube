@@ -295,15 +295,6 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			},
 		},
 		{
-			name: "default namespaces are different",
-			expErrMsg: heredoc.Doc(`
-				found critical validation errors: 1 error occurred:
-					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.helm-1' Binding is referencing plugins of same kind with different default namespace. 'helm-1' and 'helm-3' bindings must be identical when used together.`),
-			configs: [][]byte{
-				readTestdataFile(t, "executors-default-ns.yaml"),
-			},
-		},
-		{
 			name: "RBAC helm executors are different",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:

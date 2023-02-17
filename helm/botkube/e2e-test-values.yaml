@@ -11,7 +11,7 @@ communications:
           name: "" # Tests will override this temporarily
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-default-tools
               - kubectl-wait-cmd
               - kubectl-exec-cmd
               - kubectl-allow-all
@@ -27,7 +27,7 @@ communications:
             disabled: true
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-default-tools
             sources:
               - k8s-updates
     discord:
@@ -39,7 +39,7 @@ communications:
           id: "" # Tests will override this channel ID temporarily
           bindings:
             executors:
-              - kubectl-read-only
+              - k8s-default-tools
               - kubectl-wait-cmd
               - kubectl-exec-cmd
               - kubectl-allow-all
@@ -56,7 +56,7 @@ communications:
           bindings:
             # -- Executors configuration for a given channel.
             executors:
-              - kubectl-read-only
+              - k8s-default-tools
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-updates
@@ -137,7 +137,7 @@ sources:
           event: ADDED
 
 executors:
-  'kubectl-read-only':
+  'k8s-default-tools':
     kubectl:
       enabled: true
       namespaces:
@@ -206,7 +206,7 @@ actions:
       sources:
         - k8s-pod-create-events
       executors:
-        - kubectl-read-only
+        - k8s-default-tools
 
 filters:
   kubernetes:

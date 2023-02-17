@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 
@@ -43,17 +44,20 @@ func (e *PluginExecutor) CanHandle(bindings []string, args []string) bool {
 	return len(plugins) > 0
 }
 
-// GetCommandPrefix gets verb command with k8s alias prefix.
+// GetCommandPrefix returns plugin name and the verb if present.
 func (e *PluginExecutor) GetCommandPrefix(args []string) string {
-	if len(args) == 0 {
+	switch len(args) {
+	case 0:
 		return ""
+	case 1:
+		return args[0]
+	default:
+		return fmt.Sprintf("%s %s", args[0], args[1])
 	}
-
-	return args[0]
 }
 
 // Execute executes plugin executor based on a given command.
-func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {
+func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackState *slack.BlockActionStates, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
@@ -77,6 +81,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, cmdCtx 
 		Configs: configs,
 		Context: executor.ExecuteInputContext{
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
+			SlackState:               slackState,
 		},
 	})
 	if err != nil {
