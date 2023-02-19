@@ -210,7 +210,7 @@ func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs
 		s.logger.Errorf("while running recommendations: %w", err)
 	}
 
-	if recommendation.ShouldIgnoreEvent(recCfg, event) {
+	if recommendation.ShouldIgnoreEvent(&recCfg, event) {
 		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
 		return
 	}

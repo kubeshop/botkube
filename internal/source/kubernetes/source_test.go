@@ -1,11 +1,10 @@
-package controller
+package kubernetes
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"testing"
 )
 
 // TODO: Refactor these tests as a part of https://github.com/kubeshop/botkube/issues/589
@@ -56,7 +55,7 @@ func TestController_strToGVR(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.Name, func(t *testing.T) {
-			c := Controller{}
+			c := Source{}
 
 			res, err := c.strToGVR(testCase.Input)
 

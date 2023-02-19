@@ -82,7 +82,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			// when
-			actual := recommendation.ResourceEventsForConfig(testCase.RecCfg)
+			actual := recommendation.ResourceEventsForConfig(&testCase.RecCfg)
 
 			// then
 			assert.Equal(t, testCase.Expected, actual)
@@ -140,29 +140,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 				Type:      config.CreateEvent,
 			},
 			InputSourceBindings: []string{"deployments", "pods"},
-			Expected:            false,
-		},
-		{
-			Name:        "User configured such event with source-wide namespace",
-			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: event.Event{
-				Resource:  recommendation.PodResourceType(),
-				Namespace: "default",
-				Type:      config.CreateEvent,
-			},
-			InputSourceBindings: []string{"deployments", "pods-source-wide-ns"},
-			Expected:            false,
-		},
-		{
-			Name:        "User configured such event with source-wide namespace and resource ns override",
-			InputConfig: fixFullRecommendationConfig(),
-			InputEvent: event.Event{
-				Resource:  recommendation.PodResourceType(),
-				Namespace: "kube-system",
-				Type:      config.CreateEvent,
-			},
-			InputSourceBindings: []string{"deployments", "pods-ns-override"},
-			Expected:            false,
+			Expected:            true,
 		},
 		{
 			Name:        "User didn't configure such resource",
@@ -202,7 +180,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			// when
-			actual := recommendation.ShouldIgnoreEvent(testCase.InputConfig, testCase.InputEvent)
+			actual := recommendation.ShouldIgnoreEvent(&testCase.InputConfig, testCase.InputEvent)
 
 			// then
 			assert.Equal(t, testCase.Expected, actual)

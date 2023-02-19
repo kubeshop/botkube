@@ -156,7 +156,7 @@ func mergeResourceEvents(cfg *config.Config) mergedEvents {
 		}
 	}
 
-	resForRecomms := recommendation.ResourceEventsForConfig(*cfg.Recommendations)
+	resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
 	for resourceType, eventType := range resForRecomms {
 		if _, ok := out[resourceType]; !ok {
 			out[resourceType] = make(map[config.EventType]struct{})
@@ -192,7 +192,7 @@ func (r *Router) mergeEventRoutes(resource string, cfg *config.Config) map[confi
 	}
 
 	// add routes related to recommendations
-	resForRecomms := recommendation.ResourceEventsForConfig(*cfg.Recommendations)
+	resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
 	r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, resource)
 
 	return out

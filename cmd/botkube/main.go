@@ -207,8 +207,6 @@ func run(ctx context.Context) error {
 		return reportFatalError("while creating executor factory", err)
 	}
 
-	router := source.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
-
 	var (
 		notifiers []notifier.Notifier
 		bots      = map[string]bot.Bot{}
@@ -220,8 +218,6 @@ func run(ctx context.Context) error {
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
 	for commGroupName, commGroupCfg := range conf.Communications {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
-
-		router.AddCommunicationsBindings(commGroupCfg)
 
 		scheduleBot := func(in bot.Bot) {
 			notifiers = append(notifiers, in)
@@ -349,8 +345,6 @@ func run(ctx context.Context) error {
 	}
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
-	router.AddEnabledActionBindings(conf.Actions)
-	router.AddEnabledActionBindings(conf.Actions)
 
 	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
