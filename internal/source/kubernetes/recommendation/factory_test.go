@@ -1,68 +1,35 @@
 package recommendation_test
 
 import (
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/ptr"
-	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
-func TestFactory_NewForSources(t *testing.T) {
+func TestFactory_New(t *testing.T) {
 	// given
-	sources := map[string]config.Sources{
-		"first": {
-			Kubernetes: config.KubernetesSource{
-				Recommendations: config.Recommendations{
-					Pod: config.PodRecommendations{
-						LabelsSet:        ptr.Bool(true),
-						NoLatestImageTag: ptr.Bool(false),
-					},
-					Ingress: config.IngressRecommendations{
-						BackendServiceValid: ptr.Bool(false),
-						// keep TLSSecretValid not specified
-					},
-				},
+
+	cfg := config.Config{
+		Recommendations: &config.Recommendations{
+			Pod: config.PodRecommendations{
+				LabelsSet:        ptr.Bool(true),
+				NoLatestImageTag: ptr.Bool(false),
 			},
-		},
-		"second": {
-			Kubernetes: config.KubernetesSource{
-				Recommendations: config.Recommendations{
-					Pod: config.PodRecommendations{
-						// keep LabelsSet not specified
-						NoLatestImageTag: ptr.Bool(true), // override `false` from `second`
-					},
-					Ingress: config.IngressRecommendations{
-						BackendServiceValid: ptr.Bool(false),
-						TLSSecretValid:      ptr.Bool(true),
-					},
-				},
-			},
-		},
-		"third": {
-			Kubernetes: config.KubernetesSource{
-				Recommendations: config.Recommendations{
-					Pod: config.PodRecommendations{
-						NoLatestImageTag: ptr.Bool(false), // override `true` from `second`
-					},
-					Ingress: config.IngressRecommendations{
-						BackendServiceValid: ptr.Bool(true), // override `false` from `first`
-						// keep TLSSecretValid not specified
-					},
-				},
+			Ingress: config.IngressRecommendations{
+				BackendServiceValid: ptr.Bool(true),
+				// keep TLSSecretValid not specified
 			},
 		},
 	}
-
-	mapKeyOrder := []string{"first", "second", "third"}
 	expectedNames := []string{
 		"PodLabelsSet",
 		"IngressBackendServiceValid",
-		"IngressTLSSecretValid",
 	}
 	expectedRecCfg := config.Recommendations{
 		Pod: config.PodRecommendations{
@@ -71,14 +38,14 @@ func TestFactory_NewForSources(t *testing.T) {
 		},
 		Ingress: config.IngressRecommendations{
 			BackendServiceValid: ptr.Bool(true),
-			TLSSecretValid:      ptr.Bool(true),
+			TLSSecretValid:      nil,
 		},
 	}
 
 	factory := recommendation.NewFactory(loggerx.NewNoop(), nil)
 
 	// when
-	recRunner, recCfg := factory.NewForSources(sources, mapKeyOrder)
+	recRunner, recCfg := factory.New(cfg)
 	actualRecomms := recRunner.Recommendations()
 
 	// then

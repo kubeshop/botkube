@@ -22,7 +22,7 @@ type Config struct {
 	Event                *KubernetesEvent   `yaml:"event"`
 	Resources            []Resource         `yaml:"resources" validate:"dive"`
 	ActionVerbs          []string           `yaml:"actionVerbs" validate:"dive"`
-	Namespaces           *Namespaces        `yaml:"namespaces"`
+	Namespaces           *RegexConstraints  `yaml:"namespaces"`
 	Annotations          *map[string]string `yaml:"annotations"`
 	Labels               *map[string]string `yaml:"labels"`
 	Filters              *Filters           `yaml:"filters"`
@@ -54,14 +54,84 @@ type PodRecommendations struct {
 
 // KubernetesEvent contains configuration for Kubernetes events.
 type KubernetesEvent struct {
-	Reason  string                       `yaml:"reason"`
-	Message string                       `yaml:"message"`
+	Reason  RegexConstraints             `yaml:"reason"`
+	Message RegexConstraints             `yaml:"message"`
 	Types   KubernetesResourceEventTypes `yaml:"types"`
+}
+
+// RegexConstraints contains a list of allowed and excluded values.
+type RegexConstraints struct {
+	// Include contains a list of allowed values.
+	// It can also contain a regex expressions:
+	//  - ".*" - to specify all values.
+	Include []string `yaml:"include"`
+
+	// Exclude contains a list of values to be ignored even if allowed by Include.
+	// It can also contain a regex expressions:
+	//  - "test-.*" - to specify all values with `test-` prefix.
+	Exclude []string `yaml:"exclude,omitempty"`
+}
+
+// AreConstraintsDefined checks whether the RegexConstraints has any Include/Exclude configuration.
+func (r *RegexConstraints) AreConstraintsDefined() bool {
+	return len(r.Include) > 0 || len(r.Exclude) > 0
+}
+
+// IsAllowed checks if a given value is allowed based on the config.
+// Firstly, it checks if the value is excluded. If not, then it checks if the value is included.
+func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
+	if r == nil {
+		return false, nil
+	}
+
+	// 1. Check if excluded
+	if len(r.Exclude) > 0 {
+		for _, excludeValue := range r.Exclude {
+			if strings.TrimSpace(excludeValue) == "" {
+				continue
+			}
+			// exact match
+			if excludeValue == value {
+				return false, nil
+			}
+
+			// regexp
+			matched, err := regexp.MatchString(excludeValue, value)
+			if err != nil {
+				return false, fmt.Errorf("while matching %q with exclude regex %q: %v", value, excludeValue, err)
+			}
+			if matched {
+				return false, nil
+			}
+		}
+	}
+
+	// 2. Check if included, if matched, return true
+	if len(r.Include) > 0 {
+		for _, includeValue := range r.Include {
+			// exact match
+			if includeValue == value {
+				return true, nil
+			}
+
+			// regexp
+			matched, err := regexp.MatchString(includeValue, value)
+			if err != nil {
+				return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeValue, err)
+			}
+			if matched {
+				return true, nil
+			}
+		}
+	}
+
+	// 2.1. If not included, return false
+	return false, nil
 }
 
 // AreConstraintsDefined checks if any of the event constraints are defined.
 func (e KubernetesEvent) AreConstraintsDefined() bool {
-	return e.Reason != "" || e.Message != ""
+	return e.Reason.AreConstraintsDefined() || e.Message.AreConstraintsDefined()
 }
 
 // KubernetesResourceEventTypes contains events to watch for a resource.
@@ -96,79 +166,12 @@ func (eventType EventType) String() string {
 // Resource contains resources to watch
 type Resource struct {
 	Type          string            `yaml:"type"`
-	Name          string            `yaml:"name"`
-	Namespaces    Namespaces        `yaml:"namespaces"`
+	Name          RegexConstraints  `yaml:"name"`
+	Namespaces    RegexConstraints  `yaml:"namespaces"`
 	Annotations   map[string]string `yaml:"annotations"`
 	Labels        map[string]string `yaml:"labels"`
 	Event         KubernetesEvent   `yaml:"event"`
 	UpdateSetting UpdateSetting     `yaml:"updateSetting"`
-}
-
-// Namespaces provides an option to include and exclude given Namespaces.
-type Namespaces struct {
-	// Include contains a list of allowed Namespaces.
-	// It can also contain a regex expressions:
-	//  - ".*" - to specify all Namespaces.
-	Include []string `yaml:"include"`
-
-	// Exclude contains a list of Namespaces to be ignored even if allowed by Include.
-	// It can also contain a regex expressions:
-	//  - "test-.*" - to specif all Namespaces with `test-` prefix.
-	Exclude []string `yaml:"exclude,omitempty"`
-}
-
-// IsConfigured checks whether the Namespace has any Include/Exclude configuration.
-func (n *Namespaces) IsConfigured() bool {
-	return len(n.Include) > 0 || len(n.Exclude) > 0
-}
-
-// IsAllowed checks if a given Namespace is allowed based on the config.
-func (n *Namespaces) IsAllowed(givenNs string) bool {
-	if n == nil || givenNs == "" {
-		return false
-	}
-
-	// 1. Check if excluded
-	if len(n.Exclude) > 0 {
-		for _, excludeNamespace := range n.Exclude {
-			if strings.TrimSpace(excludeNamespace) == "" {
-				continue
-			}
-			// exact match
-			if excludeNamespace == givenNs {
-				return false
-			}
-
-			// regexp
-			matched, err := regexp.MatchString(excludeNamespace, givenNs)
-			if err == nil && matched {
-				return false
-			}
-		}
-	}
-
-	// 2. Check if included, if matched, return true
-	if len(n.Include) > 0 {
-		for _, includeNamespace := range n.Include {
-			if strings.TrimSpace(includeNamespace) == "" {
-				continue
-			}
-
-			// exact match
-			if includeNamespace == givenNs {
-				return true
-			}
-
-			// regexp
-			matched, err := regexp.MatchString(includeNamespace, givenNs)
-			if err == nil && matched {
-				return true
-			}
-		}
-	}
-
-	// 2.1. If not included, return false
-	return false
 }
 
 // UpdateSetting struct defines updateEvent fields specification
@@ -215,7 +218,7 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 			},
 		},
 		Event:       &KubernetesEvent{},
-		Namespaces:  &Namespaces{},
+		Namespaces:  &RegexConstraints{},
 		Labels:      &map[string]string{},
 		Annotations: &map[string]string{},
 		Resources:   []Resource{},

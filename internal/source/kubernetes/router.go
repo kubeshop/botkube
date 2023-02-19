@@ -19,10 +19,10 @@ type registrationHandler func(resource string) (cache.SharedIndexInformer, error
 type eventHandler func(ctx context.Context, event event.Event, updateDiffs []string)
 
 type route struct {
-	resourceName  string
+	resourceName  config.RegexConstraints
 	labels        *map[string]string
 	annotations   *map[string]string
-	namespaces    *config.Namespaces
+	namespaces    *config.RegexConstraints
 	updateSetting *config.UpdateSetting
 	event         *config.KubernetesEvent
 }
@@ -210,7 +210,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	}
 
 	recommRoute := route{
-		namespaces: &config.Namespaces{
+		namespaces: &config.RegexConstraints{
 			Include: []string{config.AllNamespaceIndicator},
 		},
 	}
@@ -289,8 +289,8 @@ func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.Ku
 
 // resourceNamespaces returns the kubernetes global namespaces
 // unless the resource namespaces are configured.
-func resourceNamespaces(sourceNs *config.Namespaces, resourceNs config.Namespaces) *config.Namespaces {
-	if resourceNs.IsConfigured() {
+func resourceNamespaces(sourceNs *config.RegexConstraints, resourceNs config.RegexConstraints) *config.RegexConstraints {
+	if resourceNs.AreConstraintsDefined() {
 		return &resourceNs
 	}
 	return sourceNs

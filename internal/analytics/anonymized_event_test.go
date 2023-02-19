@@ -38,7 +38,7 @@ func TestAnonymizedEventDetailsFrom(t *testing.T) {
 				Type: "create",
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "commercial.example.com/v1",
-					Kind:       "Commercial Event",
+					Kind:       "Commercial Data",
 				},
 			},
 			ExpectedOutput: analytics.EventDetails{

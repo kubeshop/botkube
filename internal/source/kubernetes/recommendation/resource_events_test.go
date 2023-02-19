@@ -1,14 +1,14 @@
 package recommendation_test
 
 import (
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
-	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
 func TestResourceEventsForConfig(t *testing.T) {
@@ -92,7 +92,6 @@ func TestResourceEventsForConfig(t *testing.T) {
 
 func TestShouldIgnoreEvent(t *testing.T) {
 	// given
-	sources := fixSources()
 	testCases := []struct {
 		Name                string
 		InputConfig         config.Recommendations
@@ -203,7 +202,7 @@ func TestShouldIgnoreEvent(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			// when
-			actual := recommendation.ShouldIgnoreEvent(testCase.InputConfig, sources, testCase.InputSourceBindings, testCase.InputEvent)
+			actual := recommendation.ShouldIgnoreEvent(testCase.InputConfig, testCase.InputEvent)
 
 			// then
 			assert.Equal(t, testCase.Expected, actual)
@@ -220,102 +219,6 @@ func fixFullRecommendationConfig() config.Recommendations {
 		Ingress: config.IngressRecommendations{
 			BackendServiceValid: ptr.Bool(true),
 			TLSSecretValid:      ptr.Bool(true),
-		},
-	}
-}
-
-func fixSources() map[string]config.Sources {
-	return map[string]config.Sources{
-		"deployments": {
-			Kubernetes: config.KubernetesSource{
-				Resources: []config.Resource{
-					{
-						Type:       "v1/deployments",
-						Namespaces: config.Namespaces{},
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.AllEvent},
-						},
-					},
-				},
-			},
-		},
-		"pods": {
-			Kubernetes: config.KubernetesSource{
-				Resources: []config.Resource{
-					{
-						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
-							Include: []string{".*"},
-						},
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.AllEvent},
-						},
-					},
-				},
-			},
-		},
-		"pods-source-wide-ns": {
-			Kubernetes: config.KubernetesSource{
-				Namespaces: config.Namespaces{
-					Include: []string{".*"},
-				},
-				Resources: []config.Resource{
-					{
-						Type: recommendation.PodResourceType(),
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.AllEvent},
-						},
-					},
-				},
-			},
-		},
-		"pods-ns-override": {
-			Kubernetes: config.KubernetesSource{
-				Namespaces: config.Namespaces{
-					Include: []string{"default"},
-				},
-				Resources: []config.Resource{
-					{
-						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
-							Include: []string{"kube-system"},
-						},
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.AllEvent},
-						},
-					},
-				},
-			},
-		},
-		"pods-ns": {
-			Kubernetes: config.KubernetesSource{
-				Resources: []config.Resource{
-					{
-						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
-							Include: []string{"kube-system"},
-						},
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.AllEvent},
-						},
-					},
-				},
-			},
-		},
-		"pods-update": {
-			Kubernetes: config.KubernetesSource{
-				Resources: []config.Resource{
-					{
-						Type: recommendation.PodResourceType(),
-						Namespaces: config.Namespaces{
-							Include: []string{".*"},
-						},
-						Event: config.KubernetesEvent{
-							Types: []config.EventType{config.UpdateEvent},
-						},
-					},
-				},
-			},
 		},
 	}
 }

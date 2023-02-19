@@ -2,13 +2,12 @@ package k8sutil_test
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/k8sutil"
 )
 
 // Object mocks kubernetes objects
@@ -81,7 +80,7 @@ func TestDiff(t *testing.T) {
 			old:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
 			new:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
 			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[{Image:nginx:1.14}]} Status:{Replicas:0} Event:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[{Image:nginx:1.14}]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Annotations changed`: {
 			old:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "1"}}},
@@ -107,7 +106,7 @@ func TestDiff(t *testing.T) {
 			old:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
 			new:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
 			update:             config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.labels\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:1} Event:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.labels\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:1} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Event Diff`: {
 			old:    Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
@@ -123,7 +122,7 @@ func TestDiff(t *testing.T) {
 			old:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
 			new:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
 			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Event:{Properties:color: blue} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:color: blue} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
@@ -139,7 +138,7 @@ func TestDiff(t *testing.T) {
 			old:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
 			new:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
 			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Event:{Properties:} Rules:{Verbs:list} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:list} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
 		},
 	}
 	for name, test := range tests {
