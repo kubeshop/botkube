@@ -3,11 +3,11 @@ package commander
 import (
 	"errors"
 	"fmt"
-	"k8s.io/client-go/discovery"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/utils/strings/slices"
 )
 

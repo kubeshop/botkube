@@ -3,15 +3,15 @@ package source
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
 

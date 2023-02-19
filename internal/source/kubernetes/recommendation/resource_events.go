@@ -23,7 +23,6 @@ func ResourceEventsForConfig(recCfg *config.Recommendations) map[string]config.E
 	}
 
 	if ptr.IsTrue(recCfg.Pod.NoLatestImageTag) || ptr.IsTrue(recCfg.Pod.LabelsSet) {
-
 		resTypes[podsResourceType] = config.CreateEvent
 	}
 

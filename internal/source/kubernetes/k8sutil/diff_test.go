@@ -2,12 +2,13 @@ package k8sutil_test
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 )
 
 // Object mocks kubernetes objects

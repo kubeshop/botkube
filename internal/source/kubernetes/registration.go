@@ -214,7 +214,6 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 			continue
 		}
 		return true, nil
-
 	}
 
 	return false, errs.ErrorOrNil()
@@ -296,7 +295,6 @@ func (r registration) qualifyEventForUpdate(
 
 	routeMatched := false
 	for _, route := range routes {
-
 		if !route.hasActionableUpdateSetting() {
 			r.log.Debugf("Qualified for update: route: %v, with no updateSettings set", route)
 			continue

@@ -2,11 +2,11 @@ package recommendation
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )

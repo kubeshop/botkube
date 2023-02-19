@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"regexp"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config Kubernetes configuration

@@ -3,10 +3,10 @@ package filterengine
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/maputil"
 )
 

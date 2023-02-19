@@ -2,12 +2,14 @@ package commander
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sort"
 	"strings"
+
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 )
 
 // Command defines a command that is executed by the app.

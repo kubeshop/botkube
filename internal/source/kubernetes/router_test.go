@@ -1,12 +1,12 @@
 package kubernetes
 
 import (
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 )
 
 func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {

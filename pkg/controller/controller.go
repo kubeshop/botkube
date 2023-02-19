@@ -3,16 +3,17 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/status"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/recommendation"
-	"github.com/sirupsen/logrus"
 )
 
 const (

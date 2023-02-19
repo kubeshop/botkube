@@ -1,10 +1,11 @@
 package kubernetes
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"testing"
 )
 
 // TODO: Refactor these tests as a part of https://github.com/kubeshop/botkube/issues/589

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -218,7 +219,6 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	// Override route and get all these events for all namespaces.
 	// The events without recommendations will be filtered out when sending the event.
 	for i, r := range (*routeMap)[eventType] {
-
 		recommRoute.namespaces = r.namespaces
 		(*routeMap)[eventType][i] = recommRoute
 		return

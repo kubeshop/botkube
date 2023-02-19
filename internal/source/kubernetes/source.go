@@ -3,7 +3,17 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/MakeNowJust/heredoc"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
+
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
@@ -14,14 +24,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/tools/cache"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
