@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/recommendation"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 )
 
 func TestPodLabelsSet_Do_HappyPath(t *testing.T) {

@@ -14,9 +14,9 @@ import (
 	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/recommendation"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 )
 
 func TestIngressTLSSecretValid_Do_HappyPath(t *testing.T) {

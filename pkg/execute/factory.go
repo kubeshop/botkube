@@ -2,7 +2,6 @@ package execute
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -13,6 +12,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/filterengine"
 )
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.
