@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/filterengine"
 	"regexp"
 	"strings"
 	"time"
@@ -17,7 +18,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
 )
 

@@ -104,7 +104,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
-				d.log.Errorf("while sending event: %s", err.Error())
+				d.log.Errorf("while sending message: %s", err.Error())
 			}
 		}(n)
 	}
@@ -123,7 +123,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 				defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 				err := n.SendMessage(ctx, genericMsg, sources)
 				if err != nil {
-					d.log.Errorf("while sending event: %s", err.Error())
+					d.log.Errorf("while sending action result message: %s", err.Error())
 				}
 			}(n)
 		}
@@ -131,6 +131,9 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 }
 
 func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
+	if event == nil {
+		return
+	}
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
 			msg := interactive.CoreMessage{
@@ -138,7 +141,7 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
-				d.log.Errorf("while sending event: %s", err.Error())
+				d.log.Errorf("while sending event: %s, data: %v", err.Error(), string(event))
 			}
 		}(n)
 	}

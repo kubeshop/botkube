@@ -201,7 +201,7 @@ actions:
   'get-created-resource':
     enabled: true
     displayName: "Get created resource"
-    command: "kubectl get {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
+    command: "kubectl get {{ .Event.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
     bindings:
       sources:
         - k8s-pod-create-events

@@ -13,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/notifier"
-	"github.com/kubeshop/botkube/pkg/recommendation"
 )
 
 const (
@@ -36,11 +35,6 @@ type AnalyticsReporter interface {
 
 	// Close cleans up the reporter resources.
 	Close() error
-}
-
-// RecommendationFactory defines a factory that creates recommendations.
-type RecommendationFactory interface {
-	NewForSources(sources map[string]config.Sources, mapKeyOrder []string) (recommendation.AggregatedRunner, config.Recommendations)
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.

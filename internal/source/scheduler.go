@@ -3,8 +3,6 @@ package source
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -86,8 +84,16 @@ func (d *Scheduler) Start(ctx context.Context) error {
 }
 
 func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
-	key := strings.Join(bindSources, ";")
+	for _, bindSource := range bindSources {
+		err := d.schedulePlugin(ctx, bindSource)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
 	_, found := d.startProcesses[key]
 	if found {
 		return nil // such configuration was already started
@@ -97,27 +103,25 @@ func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
 	// Holds the array of configs for a given plugin.
 	// For example, ['botkube/kubernetes@v1.0.0']->[]{"cfg1", "cfg2"}
 	sourcePluginConfigs := map[string][]*source.Config{}
-	for _, sourceCfgGroupName := range bindSources {
-		plugins := d.cfg.Sources[sourceCfgGroupName].Plugins
-		for pluginName, pluginCfg := range plugins {
-			if !pluginCfg.Enabled {
-				continue
-			}
-
-			// Unfortunately we need marshal it to get the raw data:
-			// https://github.com/go-yaml/yaml/issues/13
-			rawYAML, err := yaml.Marshal(pluginCfg.Config)
-			if err != nil {
-				return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, sourceCfgGroupName, err)
-			}
-			sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], &source.Config{
-				RawYAML: rawYAML,
-			})
+	plugins := d.cfg.Sources[key].Plugins
+	for pluginName, pluginCfg := range plugins {
+		if !pluginCfg.Enabled {
+			continue
 		}
+
+		// Unfortunately we need marshal it to get the raw data:
+		// https://github.com/go-yaml/yaml/issues/13
+		rawYAML, err := yaml.Marshal(pluginCfg.Config)
+		if err != nil {
+			return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, key, err)
+		}
+		sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], &source.Config{
+			RawYAML: rawYAML,
+		})
 	}
 
 	for pluginName, configs := range sourcePluginConfigs {
-		err := d.dispatcher.Dispatch(ctx, pluginName, configs, bindSources)
+		err := d.dispatcher.Dispatch(ctx, pluginName, configs, []string{key})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 		}
