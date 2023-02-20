@@ -104,7 +104,6 @@ func TestSlack(t *testing.T) {
 	runBotTest(t,
 		appCfg,
 		SlackBot,
-		slackAnnotation,
 		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
@@ -120,7 +119,6 @@ func TestDiscord(t *testing.T) {
 	runBotTest(t,
 		appCfg,
 		DiscordBot,
-		discordAnnotation,
 		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
@@ -140,7 +138,6 @@ func newBotDriver(cfg Config, driverType DriverType) (BotDriver, error) {
 func runBotTest(t *testing.T,
 	appCfg Config,
 	driverType DriverType,
-	annotation,
 	invalidCmdTemplate,
 	deployEnvChannelIDName,
 	deployEnvSecondaryChannelIDName string,
@@ -230,19 +227,6 @@ func runBotTest(t *testing.T,
 			expectedMessage,
 		)
 
-		assert.NoError(t, err)
-	})
-
-	t.Run("Filters list", func(t *testing.T) {
-		command := "list filters"
-		expectedBody := codeBlock(heredoc.Docf(`
-			FILTER                  ENABLED DESCRIPTION
-			NodeEventsChecker       false   Sends notifications on node level critical events.
-			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation))
-		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 

@@ -42,7 +42,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -126,7 +125,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
-	dynamicCli, discoveryCli, mapper, err := getK8sClients(kubeConfig)
+	_, discoveryCli, _, err := getK8sClients(kubeConfig)
 	if err != nil {
 		return reportFatalError("while getting K8s clients", err)
 	}
@@ -154,9 +153,6 @@ func run(ctx context.Context) error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)
 	})
-
-	// Set up the filter engine
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf.Filters)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
@@ -191,7 +187,6 @@ func run(ctx context.Context) error {
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
 			CmdRunner:         runner,
 			Cfg:               *conf,
-			FilterEngine:      filterEngine,
 			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
 			Merger:            kcMerger,
 			CfgManager:        cfgManager,
