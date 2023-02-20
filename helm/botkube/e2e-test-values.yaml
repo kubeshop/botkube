@@ -64,7 +64,7 @@ communications:
 sources:
   'k8s-events':
     displayName: "K8s recommendations"
-    kubernetes:
+    'botkube/kubernetes':
       recommendations:
         pod:
           noLatestImageTag: true
@@ -83,7 +83,7 @@ sources:
         - type: v1/configmaps
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
-    kubernetes:
+    'botkube/kubernetes':
       namespaces:
         include:
           - botkube
@@ -96,7 +96,7 @@ sources:
         - type: v1/configmaps
 
   'k8s-pod-create-events':
-    kubernetes:
+    'botkube/kubernetes':
       namespaces:
         include:
           - botkube
@@ -108,7 +108,7 @@ sources:
 
   'k8s-updates':
     displayName: "K8s ConfigMaps updates"
-    kubernetes:
+    'botkube/kubernetes':
       namespaces:
         include:
           - default
@@ -207,11 +207,6 @@ actions:
         - k8s-pod-create-events
       executors:
         - k8s-default-tools
-
-filters:
-  kubernetes:
-    objectAnnotationChecker: true
-    nodeEventsChecker: false
 
 aliases:
   kc:
