@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 
-	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 )
 
@@ -15,7 +15,7 @@ const (
 )
 
 // WithAllFilters returns new DefaultFilterEngine instance with all filters registered.
-func WithAllFilters(logger logrus.FieldLogger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, cfg *config2.Filters) *DefaultFilterEngine {
+func WithAllFilters(logger logrus.FieldLogger, dynamicCli dynamic.Interface, mapper meta.RESTMapper, cfg *config.Filters) *DefaultFilterEngine {
 	filterEngine := New(logger.WithField(componentLogFieldKey, "Filter Engine"))
 	filterEngine.Register([]RegisteredFilter{
 		{

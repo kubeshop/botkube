@@ -143,7 +143,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 	errs := multierror.New()
 	for _, route := range routes {
 		// event reason
-		if route.event.Reason.AreConstraintsDefined() {
+		if route.event != nil && route.event.Reason.AreConstraintsDefined() {
 			match, err := route.event.Reason.IsAllowed(event.Reason)
 			if err != nil {
 				return false, err
@@ -155,7 +155,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		}
 
 		// event message
-		if route.event.Message.AreConstraintsDefined() {
+		if route.event != nil && route.event.Message.AreConstraintsDefined() {
 			var anyMsgMatches bool
 
 			eventMsgs := event.Messages
@@ -220,7 +220,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 }
 
 func kvsSatisfiedForMap(expectedKV *map[string]string, obj map[string]string) bool {
-	if len(*expectedKV) == 0 {
+	if expectedKV == nil || len(*expectedKV) == 0 {
 		return true
 	}
 
