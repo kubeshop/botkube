@@ -138,24 +138,22 @@ func (r registration) includesSrcResource(resource string) bool {
 }
 
 func (r registration) matchEvent(routes []route, event event.Event) (bool, error) {
-	r.log.WithField("event", event).WithField("routes", routes).Debugf("handling matched event")
-
 	errs := multierror.New()
-	for _, route := range routes {
+	for _, rt := range routes {
 		// event reason
-		if route.event != nil && route.event.Reason.AreConstraintsDefined() {
-			match, err := route.event.Reason.IsAllowed(event.Reason)
+		if rt.event.Reason.AreConstraintsDefined() {
+			match, err := rt.event.Reason.IsAllowed(event.Reason)
 			if err != nil {
 				return false, err
 			}
 			if !match {
-				r.log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, route.event.Reason)
+				r.log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, rt.event.Reason)
 				return false, nil
 			}
 		}
 
 		// event message
-		if route.event != nil && route.event.Message.AreConstraintsDefined() {
+		if rt.event.Message.AreConstraintsDefined() {
 			var anyMsgMatches bool
 
 			eventMsgs := event.Messages
@@ -165,7 +163,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 			}
 
 			for _, msg := range eventMsgs {
-				match, err := route.event.Message.IsAllowed(msg)
+				match, err := rt.event.Message.IsAllowed(msg)
 				if err != nil {
 					return false, err
 				}
@@ -175,42 +173,42 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 				}
 			}
 			if !anyMsgMatches {
-				r.log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), route.event.Message)
+				r.log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), rt.event.Message)
 				return false, nil
 			}
 		}
 
 		// resource name
-		if route.resourceName.AreConstraintsDefined() {
-			allowed, err := route.resourceName.IsAllowed(event.Name)
+		if rt.resourceName.AreConstraintsDefined() {
+			allowed, err := rt.resourceName.IsAllowed(event.Name)
 			if err != nil {
 				return false, err
 			}
 			if !allowed {
-				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, route.resourceName)
+				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, rt.resourceName)
 				return false, nil
 			}
 		}
 
 		// namespace
-		if event.Namespace != "" && route.namespaces.AreConstraintsDefined() {
-			match, err := route.namespaces.IsAllowed(event.Namespace)
+		if rt.namespaces.AreConstraintsDefined() {
+			match, err := rt.namespaces.IsAllowed(event.Namespace)
 			if err != nil {
 				return false, err
 			}
 			if !match {
-				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Namespace, route.namespaces)
+				r.log.Debugf("Ignoring as namespace %q doesn't match constraints %+v", event.Namespace, rt.namespaces)
 				return false, nil
 			}
 		}
 
 		// annotations
-		if !kvsSatisfiedForMap(route.annotations, event.ObjectMeta.Annotations) {
+		if !kvsSatisfiedForMap(rt.annotations, event.ObjectMeta.Annotations) {
 			continue
 		}
 
 		// labels
-		if !kvsSatisfiedForMap(route.labels, event.ObjectMeta.Labels) {
+		if !kvsSatisfiedForMap(rt.labels, event.ObjectMeta.Labels) {
 			continue
 		}
 		return true, nil
@@ -273,7 +271,7 @@ func (r registration) qualifyEvent(
 		return r.qualifyEventForUpdate(newObj, oldObj, routes)
 	}
 
-	return false, nil, nil
+	return true, nil, nil
 }
 
 func (r registration) qualifyEventForUpdate(

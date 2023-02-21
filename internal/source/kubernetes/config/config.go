@@ -209,12 +209,12 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		InformerReSyncPeriod: &t,
 		Recommendations: &Recommendations{
 			Pod: PodRecommendations{
-				NoLatestImageTag: ptr.Bool(true),
-				LabelsSet:        ptr.Bool(true),
+				NoLatestImageTag: ptr.Bool(false),
+				LabelsSet:        ptr.Bool(false),
 			},
 			Ingress: IngressRecommendations{
-				BackendServiceValid: ptr.Bool(true),
-				TLSSecretValid:      ptr.Bool(true),
+				BackendServiceValid: ptr.Bool(false),
+				TLSSecretValid:      ptr.Bool(false),
 			},
 		},
 		Event:       &KubernetesEvent{},

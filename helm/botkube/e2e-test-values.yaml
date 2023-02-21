@@ -90,6 +90,8 @@ sources:
     'botkube/kubernetes':
       enabled: true
       config:
+        log:
+          level: debug
         namespaces:
           include:
             - botkube
@@ -105,6 +107,8 @@ sources:
     'botkube/kubernetes':
       enabled: true
       config:
+        log:
+          level: debug
         namespaces:
           include:
             - botkube
@@ -119,6 +123,8 @@ sources:
     'botkube/kubernetes':
       enabled: true
       config:
+        log:
+          level: debug
         namespaces:
           include:
             - default

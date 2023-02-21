@@ -180,7 +180,7 @@ func (r *Router) mergeEventRoutes(resource string, cfg *config.Config) map[confi
 				annotations:  resourceStringMap(cfg.Annotations, r.Annotations),
 				labels:       resourceStringMap(cfg.Labels, r.Labels),
 				resourceName: r.Name,
-				event:        resourceEvent(cfg.Event, r.Event),
+				event:        resourceEvent(*cfg.Event, r.Event),
 			}
 			if e == config.UpdateEvent {
 				route.updateSetting = &config.UpdateSetting{
@@ -213,6 +213,11 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	recommRoute := route{
 		namespaces: &config.RegexConstraints{
 			Include: []string{config.AllNamespaceIndicator},
+		},
+		event: &config.KubernetesEvent{
+			Reason:  config.RegexConstraints{},
+			Message: config.RegexConstraints{},
+			Types:   nil,
 		},
 	}
 
@@ -304,10 +309,10 @@ func resourceStringMap(sourceMap *map[string]string, resourceMap map[string]stri
 	return sourceMap
 }
 
-func resourceEvent(sourceEvent *config.KubernetesEvent, resourceEvent config.KubernetesEvent) *config.KubernetesEvent {
+func resourceEvent(sourceEvent, resourceEvent config.KubernetesEvent) *config.KubernetesEvent {
 	if resourceEvent.AreConstraintsDefined() {
 		return &resourceEvent
 	}
 
-	return sourceEvent
+	return &sourceEvent
 }
