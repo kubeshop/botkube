@@ -973,13 +973,14 @@ plugins:
     botkube:
       url: https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml
 
-# -- Configuration for fetching Botkube configuration.
+# -- Configuration for synchronizing Botkube configuration.
 config:
   # -- Base provider definition.
   provider:
     # -- Unique identifier for remote Botkube settings.
+    # If set to an empty string, Botkube won't fetch remote configuration.
     identifier: ""
     # -- Endpoint to fetch Botkube settings from.
-    endpoint: ""
+    endpoint: "https://api.botkube.io/graphql"
     # -- Key passed as a `X-API-Key` header to the provider's endpoint.
     apiKey: ""

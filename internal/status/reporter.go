@@ -16,7 +16,7 @@ type StatusReporter interface {
 }
 
 func NewStatusReporter(logger logrus.FieldLogger, gql *graphql.Gql) StatusReporter {
-	if _, provided := os.LookupEnv(graphql.GqlProviderEndpointEnvKey); provided {
+	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
 		return newGraphQLStatusReporter(logger.WithField("component", "GraphQLStatusReporter"), gql)
 	}
 	return newNoopStatusReporter(logger.WithField("component", "NoopStatusReporter"))
