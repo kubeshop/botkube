@@ -778,7 +778,7 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 // GetProvider resolves and returns paths for config files.
 // It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
 func GetProvider(gql *graphql.Gql) config.Provider {
-	if _, provided := os.LookupEnv(graphql.GqlProviderEndpointEnvKey); provided {
+	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
 		dc := intconfig.NewDeploymentClient(gql)
 		return config.NewGqlProvider(dc)
 	}
