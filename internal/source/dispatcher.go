@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -14,17 +15,19 @@ import (
 
 // Dispatcher provides functionality to starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
 type Dispatcher struct {
-	log       logrus.FieldLogger
-	notifiers []notifier.Notifier
-	manager   *plugin.Manager
+	log           logrus.FieldLogger
+	notifiers     []notifier.Notifier
+	manager       *plugin.Manager
+	auditReporter audit.AuditReporter
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager, auditReporter audit.AuditReporter) *Dispatcher {
 	return &Dispatcher{
-		log:       log,
-		notifiers: notifiers,
-		manager:   manager,
+		log:           log,
+		notifiers:     notifiers,
+		manager:       manager,
+		auditReporter: auditReporter,
 	}
 }
 
@@ -71,10 +74,27 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 			msg := interactive.CoreMessage{
 				Description: string(event),
 			}
-			err := n.SendMessage(ctx, msg, sources)
-			if err != nil {
+			if err := n.SendMessage(ctx, msg, sources); err != nil {
 				d.log.Errorf("while sending event: %s", err.Error())
+			}
+			if err := d.reportAudit(ctx); err != nil {
+				d.log.Errorf("while reporting audit event: %s", err.Error())
 			}
 		}(n)
 	}
+}
+
+func (d *Dispatcher) reportAudit(ctx context.Context) error {
+	// platform, err := audit.NewBotPlatform(cmdCtx.Platform.String())
+	// if err != nil {
+	// 	return err
+	// }
+	event := audit.AuditEvent{
+		// PlatformUser: cmdCtx.User,
+		// CreatedAt:    time.Now().Format(time.RFC3339),
+		// PluginName:   cmdCtx.Args[0],
+		// Channel:      cmdCtx.CommGroupName,
+		// Event:      cmdCtx.ExpandedRawCmd,
+	}
+	return d.auditReporter.ReportSourceAuditEvent(ctx, event)
 }

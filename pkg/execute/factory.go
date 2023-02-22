@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
+	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -37,6 +38,7 @@ type DefaultExecutorFactory struct {
 	cfgManager            ConfigPersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
+	auditReporter         audit.AuditReporter
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -53,6 +55,7 @@ type DefaultExecutorFactoryParams struct {
 	CommandGuard      CommandGuard
 	PluginManager     *plugin.Manager
 	BotKubeVersion    string
+	AuditReporter     audit.AuditReporter
 }
 
 // Executor is an interface for processes to execute commands
@@ -204,6 +207,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		cfgManager:            params.CfgManager,
 		kubectlExecutor:       kcExecutor,
 		cmdsMapping:           mappings,
+		auditReporter:         params.AuditReporter,
 	}, nil
 }
 
@@ -252,6 +256,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		cfgManager:            f.cfgManager,
 		kubectlCmdBuilder:     f.kubectlCmdBuilder,
 		cmdsMapping:           f.cmdsMapping,
+		auditReporter:         f.auditReporter,
 		user:                  cfg.User,
 		notifierHandler:       cfg.NotifierHandler,
 		conversation:          cfg.Conversation,
