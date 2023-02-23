@@ -362,12 +362,11 @@ func run(ctx context.Context) error {
 		return reportFatalError("while reporting botkube startup", err)
 	}
 
+	applicationStarted = true
 	err = ctrl.Start(ctx)
 	if err != nil {
 		return reportFatalError("while starting controller", err)
 	}
-
-	applicationStarted = true
 
 	err = errGroup.Wait()
 	if err != nil {
