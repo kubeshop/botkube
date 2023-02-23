@@ -56,9 +56,7 @@ func TestController_strToGVR(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.Name, func(t *testing.T) {
-			c := Source{}
-
-			res, err := c.strToGVR(testCase.Input)
+			res, err := strToGVR(testCase.Input)
 
 			if testCase.ExpectedErrMessage != "" {
 				require.Error(t, err)

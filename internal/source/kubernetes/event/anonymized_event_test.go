@@ -1,10 +1,11 @@
 package event
 
 import (
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 )
 
 func TestAnonymizedEventDetailsFrom(t *testing.T) {

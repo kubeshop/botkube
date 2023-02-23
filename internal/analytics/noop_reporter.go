@@ -2,10 +2,10 @@ package analytics
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/config"
 
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 

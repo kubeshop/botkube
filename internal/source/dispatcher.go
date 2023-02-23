@@ -3,7 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/multierror"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -12,6 +12,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
@@ -84,7 +85,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, sources, pluginName)
+				d.dispatch(ctx, event, sources)
 			case msg := <-out.Message:
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, sources, pluginName)
@@ -140,7 +141,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 	}
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
 	if event == nil {
 		return
 	}
