@@ -25,12 +25,10 @@ const (
 	deprecatedControlPlaneNodeLabel = "node-role.kubernetes.io/master"
 )
 
-/*var (
+var (
 	// APIKey contains the API key for external analytics service. It is set during application build.
 	APIKey string
-)*/
-
-const APIKey = "hGZDE1XCUHlQ9wst3rj9xEjeA3wumrKH"
+)
 
 var _ Reporter = &SegmentReporter{}
 
