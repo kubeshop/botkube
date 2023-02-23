@@ -57,6 +57,8 @@ const (
 	printAPIKeyCharCount = 3
 )
 
+var applicationStarted = false
+
 func main() {
 	// Set up context
 	ctx := signals.SetupSignalHandler()
@@ -365,6 +367,8 @@ func run(ctx context.Context) error {
 		return reportFatalError("while starting controller", err)
 	}
 
+	applicationStarted = true
+
 	err = errGroup.Wait()
 	if err != nil {
 		return reportFatalError("while waiting for goroutines to finish gracefully", err)
@@ -390,7 +394,13 @@ func newHealthServer(log logrus.FieldLogger, port string) *httpsrv.Server {
 type healthChecker struct{}
 
 func (healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(resp, "ok")
+	if applicationStarted {
+		resp.WriteHeader(http.StatusOK)
+		fmt.Fprint(resp, "ok")
+	} else {
+		resp.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(resp, "unavailable")
+	}
 }
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
