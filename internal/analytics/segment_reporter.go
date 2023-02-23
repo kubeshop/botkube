@@ -25,10 +25,12 @@ const (
 	deprecatedControlPlaneNodeLabel = "node-role.kubernetes.io/master"
 )
 
-var (
+/*var (
 	// APIKey contains the API key for external analytics service. It is set during application build.
 	APIKey string
-)
+)*/
+
+const APIKey = "hGZDE1XCUHlQ9wst3rj9xEjeA3wumrKH"
 
 var _ Reporter = &SegmentReporter{}
 
@@ -94,10 +96,11 @@ func (r *SegmentReporter) ReportSinkEnabled(platform config.CommPlatformIntegrat
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails EventDetails) error {
+func (r *SegmentReporter) ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}) error {
 	return r.reportEvent("Event handled", map[string]interface{}{
 		"platform": platform,
 		"type":     integrationType,
+		"plugin":   pluginName,
 		"event":    eventDetails,
 		"success":  true,
 	})
@@ -105,10 +108,11 @@ func (r *SegmentReporter) ReportHandledEventSuccess(integrationType config.Integ
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails EventDetails, err error) error {
+func (r *SegmentReporter) ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}, err error) error {
 	return r.reportEvent("Event handled", map[string]interface{}{
 		"platform": platform,
 		"type":     integrationType,
+		"plugin":   pluginName,
 		"event":    eventDetails,
 		"error":    err.Error(),
 	})

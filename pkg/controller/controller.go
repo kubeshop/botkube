@@ -7,7 +7,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -21,21 +20,6 @@ const (
 
 	finalMessageTimeout = 20 * time.Second
 )
-
-// AnalyticsReporter defines a reporter that collects analytics data.
-type AnalyticsReporter interface {
-	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails) error
-
-	// ReportHandledEventError reports a failure while handling event using a given communication platform.
-	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails, err error) error
-
-	// ReportFatalError reports a fatal app error.
-	ReportFatalError(err error) error
-
-	// Close cleans up the reporter resources.
-	Close() error
-}
 
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {

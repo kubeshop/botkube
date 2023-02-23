@@ -1,9 +1,7 @@
-package analytics
+package event
 
 import (
 	"k8s.io/utils/strings/slices"
-
-	"github.com/kubeshop/botkube/pkg/event"
 )
 
 // allowedApiVersions contains a list of resource apiVersion that can be collected
@@ -64,7 +62,7 @@ const (
 )
 
 // AnonymizedEventDetailsFrom returns anonymized data about a given event.
-func AnonymizedEventDetailsFrom(event event.Event) EventDetails {
+func AnonymizedEventDetailsFrom(event Event) map[string]interface{} {
 	apiVersion := event.APIVersion
 	kind := event.Kind
 
@@ -74,9 +72,9 @@ func AnonymizedEventDetailsFrom(event event.Event) EventDetails {
 		kind = anonymizedResourceKind
 	}
 
-	return EventDetails{
-		Type:       event.Type,
-		APIVersion: apiVersion,
-		Kind:       kind,
+	return map[string]interface{}{
+		"Type":       event.Type,
+		"APIVersion": apiVersion,
+		"Kind":       kind,
 	}
 }

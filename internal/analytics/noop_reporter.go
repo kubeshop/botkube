@@ -2,10 +2,10 @@ package analytics
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/config"
 
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 )
 
@@ -40,12 +40,12 @@ func (n NoopReporter) ReportSinkEnabled(_ config.CommPlatformIntegration) error 
 }
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-func (n NoopReporter) ReportHandledEventSuccess(_ config.IntegrationType, _ config.CommPlatformIntegration, _ EventDetails) error {
+func (n NoopReporter) ReportHandledEventSuccess(_ config.IntegrationType, _ config.CommPlatformIntegration, _ string, _ map[string]interface{}) error {
 	return nil
 }
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
-func (n NoopReporter) ReportHandledEventError(_ config.IntegrationType, _ config.CommPlatformIntegration, _ EventDetails, _ error) error {
+func (n NoopReporter) ReportHandledEventError(_ config.IntegrationType, _ config.CommPlatformIntegration, _ string, _ map[string]interface{}, _ error) error {
 	return nil
 }
 

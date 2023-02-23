@@ -81,7 +81,6 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Level: cfg.Log.Level,
 	})
 	go s.consumeEvents(ctx)
-	time.Sleep(1 * time.Hour)
 	return out, nil
 }
 
@@ -171,56 +170,57 @@ func (s *Source) consumeEvents(ctx context.Context) {
 	dynamicKubeInformerFactory.Start(stopCh)
 }
 
-func (s *Source) handleEvent(ctx context.Context, event event.Event, updateDiffs []string) {
-	s.logger.Debugf("Processing %s to %s/%v in %s namespace", event.Type, event.Resource, event.Name, event.Namespace)
-	s.enrichEventWithAdditionalMetadata(&event)
+func (s *Source) handleEvent(ctx context.Context, e event.Event, updateDiffs []string) {
+	s.logger.Debugf("Processing %s to %s/%v in %s namespace", e.Type, e.Resource, e.Name, e.Namespace)
+	s.enrichEventWithAdditionalMetadata(&e)
 
 	// Skip older events
-	if !event.TimeStamp.IsZero() && event.TimeStamp.Before(s.startTime) {
+	if !e.TimeStamp.IsZero() && e.TimeStamp.Before(s.startTime) {
 		s.logger.Debug("Skipping older events")
 		return
 	}
 
 	// Check for significant Update Events in objects
-	if event.Type == config.UpdateEvent {
+	if e.Type == config.UpdateEvent {
 		switch {
 		case len(updateDiffs) == 0:
 			// skipping the least significant update
-			s.logger.Debug("skipping least significant Update event")
-			event.Skip = true
+			s.logger.Debug("skipping least significant Update e")
+			e.Skip = true
 		case len(updateDiffs) > 0:
-			event.Messages = append(event.Messages, updateDiffs...)
+			e.Messages = append(e.Messages, updateDiffs...)
 		default:
-			// send event with no diff message
+			// send e with no diff message
 		}
 	}
 
 	// Filter events
-	event = s.filterEngine.Run(ctx, event)
-	if event.Skip {
-		s.logger.Debugf("Skipping event: %#v", event)
+	e = s.filterEngine.Run(ctx, e)
+	if e.Skip {
+		s.logger.Debugf("Skipping e: %#v", e)
 		return
 	}
 
-	if len(event.Kind) <= 0 {
-		s.logger.Warn("sendEvent received event with Kind nil. Hence skipping.")
+	if len(e.Kind) <= 0 {
+		s.logger.Warn("sendEvent received e with Kind nil. Hence skipping.")
 		return
 	}
 
 	recRunner, recCfg := s.recommFactory.New(s.config)
-	err := recRunner.Do(ctx, &event)
+	err := recRunner.Do(ctx, &e)
 	if err != nil {
 		s.logger.Errorf("while running recommendations: %w", err)
 	}
 
-	if recommendation.ShouldIgnoreEvent(&recCfg, event) {
-		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", event)
+	if recommendation.ShouldIgnoreEvent(&recCfg, e) {
+		s.logger.Debugf("Skipping e as it is related to recommendation informers and doesn't have any recommendations: %#v", e)
 		return
 	}
 
 	message := source.Message{
-		Data:     s.messageFrom(event),
-		Metadata: event,
+		Data:      s.messageFrom(e),
+		Metadata:  e,
+		Telemetry: event.AnonymizedEventDetailsFrom(e),
 	}
 	s.messageCh <- message
 }

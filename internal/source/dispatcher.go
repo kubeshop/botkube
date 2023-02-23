@@ -3,7 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
-
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -33,10 +33,10 @@ type ActionProvider interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails) error
+	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}) error
 
 	// ReportHandledEventError reports a failure while handling event using a given communication platform.
-	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, eventDetails analytics.EventDetails, err error) error
+	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}, err error) error
 
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
@@ -84,10 +84,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, sources)
+				d.dispatch(ctx, event, sources, pluginName)
 			case msg := <-out.Message:
 				log.WithField("message", msg).Debug("Dispatching received message...")
-				d.dispatchMsg(ctx, msg, sources)
+				d.dispatchMsg(ctx, msg, sources, pluginName)
 			case <-ctx.Done():
 				return
 			}
@@ -96,15 +96,25 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 	return nil
 }
 
-func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, sources []string) {
+func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, sources []string, pluginName string) {
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
+			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			msg := interactive.CoreMessage{
 				Message: message.Data,
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
+				reportErr := d.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), pluginName, message.Telemetry, err)
+				if reportErr != nil {
+					err = multierror.Append(err, fmt.Errorf("while reporting analytics: %w", reportErr))
+				}
+
 				d.log.Errorf("while sending message: %s", err.Error())
+			}
+			reportErr := d.reporter.ReportHandledEventSuccess(n.Type(), n.IntegrationName(), pluginName, message.Telemetry)
+			if reportErr != nil {
+				d.log.Errorf("while reporting analytics: %w", err)
 			}
 		}(n)
 	}
@@ -130,12 +140,13 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 	}
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
 	if event == nil {
 		return
 	}
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
+			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			msg := interactive.CoreMessage{
 				Description: string(event),
 			}

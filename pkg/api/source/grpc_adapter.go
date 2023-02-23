@@ -60,8 +60,9 @@ type (
 	}
 
 	Message struct {
-		Data     api.Message
-		Metadata any
+		Data      api.Message
+		Metadata  any
+		Telemetry map[string]interface{}
 	}
 )
 

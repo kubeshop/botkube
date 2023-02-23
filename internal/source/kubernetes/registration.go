@@ -291,11 +291,10 @@ func (r registration) qualifyEventForUpdate(
 		r.log.Error("Failed to typecast new object to Unstructured.")
 	}
 
-	routeMatched := false
 	for _, route := range routes {
 		if !route.hasActionableUpdateSetting() {
 			r.log.Debugf("Qualified for update: route: %v, with no updateSettings set", route)
-			continue
+			break
 		}
 
 		diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.updateSetting)
@@ -308,10 +307,9 @@ func (r registration) qualifyEventForUpdate(
 			diffs = append(diffs, diff)
 			r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.updateSetting)
 		}
-		routeMatched = true
 	}
 
-	return routeMatched, diffs, nil
+	return true, diffs, nil
 }
 
 // gvrToString converts GVR formats to string.
