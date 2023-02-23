@@ -30,7 +30,7 @@ type registration struct {
 	mappedEvent     config.EventType
 }
 
-func (r registration) handleEvent(ctx context.Context, resource string, eventType config.EventType, routes []route, fn eventHandler) {
+func (r registration) handleEvent(s Source, resource string, eventType config.EventType, routes []route, fn eventHandler) {
 	handleFunc := func(oldObj, newObj interface{}) {
 		logger := r.log.WithFields(logrus.Fields{
 			"eventHandler": eventType,
@@ -38,7 +38,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, eventTyp
 			"object":       newObj,
 		})
 
-		event, err := r.eventForObj(ctx, newObj, eventType, resource)
+		event, err := r.eventForObj(s.ctx, newObj, eventType, resource)
 		if err != nil {
 			logger.Errorf("while creating new event: %s", err.Error())
 			return
@@ -52,7 +52,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, eventTyp
 		if !ok {
 			return
 		}
-		fn(ctx, event, diffs)
+		fn(s, event, diffs)
 	}
 
 	var resourceEventHandlerFuncs cache.ResourceEventHandlerFuncs
@@ -68,7 +68,7 @@ func (r registration) handleEvent(ctx context.Context, resource string, eventTyp
 	r.informer.AddEventHandler(resourceEventHandlerFuncs)
 }
 
-func (r registration) handleMapped(ctx context.Context, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
+func (r registration) handleMapped(s Source, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
 	r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -99,7 +99,7 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 				return
 			}
 
-			event, err := r.eventForObj(ctx, obj, eventType, gvrString)
+			event, err := r.eventForObj(s.ctx, obj, eventType, gvrString)
 			if err != nil {
 				r.log.Errorf("while creating new event: %s", err.Error())
 				return
@@ -114,7 +114,7 @@ func (r registration) handleMapped(ctx context.Context, eventType config.EventTy
 			if !ok {
 				return
 			}
-			fn(ctx, event, nil)
+			fn(s, event, nil)
 		},
 	})
 }
