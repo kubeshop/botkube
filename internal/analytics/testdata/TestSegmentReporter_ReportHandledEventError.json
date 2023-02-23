@@ -8,11 +8,12 @@
 		"properties": {
 			"error": "sample error",
 			"event": {
-				"type": "create",
 				"apiVersion": "apps/v1",
-				"kind": "Deployment"
+				"kind": "Deployment",
+				"type": "create"
 			},
 			"platform": "slack",
+			"plugin": "botkube/kubernetes",
 			"type": "bot"
 		}
 	},
@@ -25,11 +26,12 @@
 		"properties": {
 			"error": "sample error",
 			"event": {
-				"type": "create",
 				"apiVersion": "apps/v1",
-				"kind": "Deployment"
+				"kind": "Deployment",
+				"type": "create"
 			},
 			"platform": "elasticsearch",
+			"plugin": "botkube/kubernetes",
 			"type": "sink"
 		}
 	}

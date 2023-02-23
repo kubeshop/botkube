@@ -7,11 +7,12 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"event": {
-				"type": "create",
 				"apiVersion": "apps/v1",
-				"kind": "Deployment"
+				"kind": "Deployment",
+				"type": "create"
 			},
 			"platform": "slack",
+			"plugin": "botkube/kubernetes",
 			"success": true,
 			"type": "bot"
 		}
@@ -24,11 +25,12 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"event": {
-				"type": "create",
 				"apiVersion": "apps/v1",
-				"kind": "Deployment"
+				"kind": "Deployment",
+				"type": "create"
 			},
 			"platform": "elasticsearch",
+			"plugin": "botkube/kubernetes",
 			"success": true,
 			"type": "sink"
 		}

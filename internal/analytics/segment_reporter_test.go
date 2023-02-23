@@ -154,9 +154,9 @@ func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
 	identity := fixIdentity()
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 	eventDetails := map[string]interface{}{
-		"Type":       "create",
-		"APIVersion": "apps/v1",
-		"Kind":       "Deployment",
+		"type":       "create",
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
 	}
 
 	// when
@@ -175,9 +175,9 @@ func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
 	identity := fixIdentity()
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 	eventDetails := map[string]interface{}{
-		"Type":       "create",
-		"APIVersion": "apps/v1",
-		"Kind":       "Deployment",
+		"type":       "create",
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
 	}
 	sampleErr := errors.New("sample error")
 
