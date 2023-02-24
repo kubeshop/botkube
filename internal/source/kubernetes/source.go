@@ -261,14 +261,17 @@ func strToGVR(arg string) (schema.GroupVersionResource, error) {
 func messageFrom(s Source, event event.Event, additionalSections ...api.Section) api.Message {
 	var sections []api.Section
 	section := baseNotificationSection(event)
-	section.TextFields = api.TextFields{
-		{Text: fmt.Sprintf("*Kind:* %s", event.Kind)},
-		{Text: fmt.Sprintf("*Name:* %s", event.Name)},
-	}
-	section.TextFields = appendTextFieldIfNotEmpty(section.TextFields, "Namespace", event.Namespace)
-	section.TextFields = appendTextFieldIfNotEmpty(section.TextFields, "Reason", event.Reason)
-	section.TextFields = appendTextFieldIfNotEmpty(section.TextFields, "Action", event.Action)
-	section.TextFields = appendTextFieldIfNotEmpty(section.TextFields, "Cluster", event.Cluster)
+	var labels []api.Label
+
+	appendMetadataToLabelsIfNotEmpty(&labels, "Kind", event.Kind)
+	appendMetadataToLabelsIfNotEmpty(&labels, "Type", event.Type.String())
+	appendMetadataToLabelsIfNotEmpty(&labels, "Namespace", event.Namespace)
+	appendMetadataToLabelsIfNotEmpty(&labels, "Name", event.Name)
+	appendMetadataToLabelsIfNotEmpty(&labels, "Reason", event.Reason)
+	appendMetadataToLabelsIfNotEmpty(&labels, "Action", event.Action)
+	appendMetadataToLabelsIfNotEmpty(&labels, "Cluster", event.Cluster)
+
+	section.Labels = labels
 
 	// Messages, Recommendations and Warnings formatted as bullet point lists.
 	section.Body.Plaintext = bulletPointEventAttachments(event)
@@ -330,13 +333,12 @@ func baseNotificationSection(event event.Event) api.Section {
 	return section
 }
 
-func appendTextFieldIfNotEmpty(fields []api.TextField, title, in string) []api.TextField {
+func appendMetadataToLabelsIfNotEmpty(labels *[]api.Label, title, in string) {
 	if in == "" {
-		return fields
+		return
 	}
-	return append(fields, api.TextField{
-		Text: fmt.Sprintf("*%s:* %s", title, in),
-	})
+
+	*labels = append(*labels, api.Label{Key: title, Value: in})
 }
 
 func bulletPointEventAttachments(event event.Event) string {
