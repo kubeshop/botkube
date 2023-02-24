@@ -65,13 +65,13 @@ type Source struct {
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
-		startTime:     time.Now(),
 	}
 }
 
 // Stream streams Kubernetes events
 func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	s := Source{}
+	s.startTime = time.Now()
 	s.messageCh = make(chan source.Message)
 	out := source.StreamOutput{Message: s.messageCh}
 	cfg, err := config2.MergeConfigs(input.Configs)
