@@ -334,7 +334,10 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately Botkube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
-	info, err := b.client.GetConversationInfo(event.Channel, true)
+	info, err := b.client.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID:     event.Channel,
+		IncludeLocale: true,
+	})
 	if err != nil {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
