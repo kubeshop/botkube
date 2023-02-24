@@ -399,7 +399,7 @@ func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testi
 	// > There’s no limit to how many unique channels you can have in Slack — go ahead, create as many as you’d like!
 	// Sure, thanks Slack!
 	// Source: https://slack.com/help/articles/201402297-Create-a-channel
-	channel, err := s.cli.CreateConversation(channelName, false)
+	channel, err := s.cli.CreateConversation(slack.CreateConversationParams{ChannelName: channelName, IsPrivate: false})
 	require.NoError(t, err)
 
 	t.Logf("Channel %q (ID: %q) created", channelName, channel.ID)
