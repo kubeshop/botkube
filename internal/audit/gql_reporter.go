@@ -13,6 +13,7 @@ import (
 
 var _ AuditReporter = (*GraphQLAuditReporter)(nil)
 
+// GraphQLAuditReporter is the graphql audit reporter
 type GraphQLAuditReporter struct {
 	log logrus.FieldLogger
 	gql *gql.Gql
@@ -25,6 +26,7 @@ func newGraphQLAuditReporter(logger logrus.FieldLogger, client *gql.Gql) *GraphQ
 	}
 }
 
+// ReportExecutorAuditEvent reports executor audit event using graphql interface
 func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e AuditEvent) error {
 	r.log.Debugf("Reporting executor audit event for ID: %s", r.gql.DeploymentID)
 	var mutation struct {
@@ -34,15 +36,15 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e A
 	}
 	variables := map[string]interface{}{
 		"input": AuditEventCreateInput{
-			PlatformUser: &e.PlatformUser,
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
-			Channel:      e.Channel,
 			DeploymentID: r.gql.DeploymentID,
 			Type:         AuditEventTypeCommandExecuted,
 			CommandExecuted: &AuditEventCommandCreateInput{
-				BotPlatform: e.BotPlatform,
-				Command:     e.Command,
+				PlatformUser: e.PlatformUser,
+				BotPlatform:  e.BotPlatform,
+				Command:      e.Command,
+				Channel:      e.Channel,
 			},
 		},
 	}
@@ -50,6 +52,7 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e A
 	return r.gql.Cli.Mutate(ctx, &mutation, variables)
 }
 
+// ReportSourceAuditEvent reports source audit event using graphql interface
 func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e AuditEvent) error {
 	r.log.Debugf("Reporting source audit event for ID: %s", r.gql.DeploymentID)
 	var mutation struct {
@@ -59,14 +62,13 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Aud
 	}
 	variables := map[string]interface{}{
 		"input": AuditEventCreateInput{
-			PlatformUser: &e.PlatformUser,
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
-			Channel:      e.Channel,
 			DeploymentID: r.gql.DeploymentID,
 			Type:         AuditEventTypeSourceEventEmitted,
 			SourceEventEmitted: &AuditEventSourceCreateInput{
-				Event: e.Event,
+				Event:    e.Event,
+				Bindings: e.Bindings,
 			},
 		},
 	}
@@ -74,35 +76,45 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Aud
 	return r.gql.Cli.Mutate(ctx, &mutation, variables)
 }
 
+// AuditEventCreateInput contains generic create input
 type AuditEventCreateInput struct {
-	PlatformUser       *string                       `json:"platformUser"`
 	Type               AuditEventType                `json:"type"`
 	CreatedAt          string                        `json:"createdAt"`
 	DeploymentID       string                        `json:"deploymentId"`
-	Channel            string                        `json:"channel"`
 	PluginName         string                        `json:"pluginName"`
 	SourceEventEmitted *AuditEventSourceCreateInput  `json:"sourceEventEmitted"`
 	CommandExecuted    *AuditEventCommandCreateInput `json:"commandExecuted"`
 }
 
+// AuditEventCommandCreateInput contains create input specific to executor events
 type AuditEventCommandCreateInput struct {
-	BotPlatform BotPlatform `json:"botPlatform"`
-	Command     string      `json:"command"`
+	PlatformUser string      `json:"platformUser"`
+	Channel      string      `json:"channel"`
+	BotPlatform  BotPlatform `json:"botPlatform"`
+	Command      string      `json:"command"`
 }
 
+// AuditEventSourceCreateInput contains create input specific to source events
 type AuditEventSourceCreateInput struct {
-	Event interface{} `json:"event"`
+	Event    string   `json:"event"`
+	Bindings []string `json:"bindings"`
 }
 
+// BotPlatform are the supported bot platforms
 type BotPlatform string
 
 const (
-	BotPlatformSLACk      BotPlatform = "SLACK"
-	BotPlatformDiscord    BotPlatform = "DISCORD"
+	// BotPlatformSLACk is the slack platform
+	BotPlatformSLACk BotPlatform = "SLACK"
+	// BotPlatformDiscord is the discord platform
+	BotPlatformDiscord BotPlatform = "DISCORD"
+	// BotPlatformMattermost is the mattermost platform
 	BotPlatformMattermost BotPlatform = "MATTERMOST"
-	BotPlatformMsTeams    BotPlatform = "MS_TEAMS"
+	// BotPlatformMsTeams is the teams platform
+	BotPlatformMsTeams BotPlatform = "MS_TEAMS"
 )
 
+// NewBotPlatform creates new BotPlatform from string
 func NewBotPlatform(s string) (BotPlatform, error) {
 	switch strings.ToUpper(s) {
 	case "SLACK":
@@ -122,9 +134,12 @@ func NewBotPlatform(s string) (BotPlatform, error) {
 	}
 }
 
+// AuditEventType is the type of audit events
 type AuditEventType string
 
 const (
-	AuditEventTypeCommandExecuted    AuditEventType = "COMMAND_EXECUTED"
+	// AuditEventTypeCommandExecuted is the executor audit event type
+	AuditEventTypeCommandExecuted AuditEventType = "COMMAND_EXECUTED"
+	// AuditEventTypeSourceEventEmitted is the source audit event type
 	AuditEventTypeSourceEventEmitted AuditEventType = "SOURCE_EVENT_EMITTED"
 )

@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -59,7 +60,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, sources)
+				d.dispatch(ctx, event, sources, pluginName)
 			case <-ctx.Done():
 				return
 			}
@@ -68,33 +69,29 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 	return nil
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
+			eventString := string(event)
 			msg := interactive.CoreMessage{
-				Description: string(event),
+				Description: eventString,
 			}
 			if err := n.SendMessage(ctx, msg, sources); err != nil {
 				d.log.Errorf("while sending event: %s", err.Error())
 			}
-			if err := d.reportAudit(ctx); err != nil {
+			if err := d.reportAudit(ctx, pluginName, eventString, sources); err != nil {
 				d.log.Errorf("while reporting audit event: %s", err.Error())
 			}
 		}(n)
 	}
 }
 
-func (d *Dispatcher) reportAudit(ctx context.Context) error {
-	// platform, err := audit.NewBotPlatform(cmdCtx.Platform.String())
-	// if err != nil {
-	// 	return err
-	// }
-	event := audit.AuditEvent{
-		// PlatformUser: cmdCtx.User,
-		// CreatedAt:    time.Now().Format(time.RFC3339),
-		// PluginName:   cmdCtx.Args[0],
-		// Channel:      cmdCtx.CommGroupName,
-		// Event:      cmdCtx.ExpandedRawCmd,
+func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event string, sources []string) error {
+	e := audit.AuditEvent{
+		CreatedAt:  time.Now().Format(time.RFC3339),
+		PluginName: pluginName,
+		Event:      event,
+		Bindings:   sources,
 	}
-	return d.auditReporter.ReportSourceAuditEvent(ctx, event)
+	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
 }
