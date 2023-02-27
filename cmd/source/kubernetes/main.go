@@ -16,17 +16,4 @@ func main() {
 			Source: kubernetes.NewSource(version),
 		},
 	})
-	/*file, err := os.ReadFile("/Users/huseyin/kube-config.yaml")
-	if err != nil {
-		return
-	}
-	s := kubernetes.NewSource("dev")
-	_, err = s.Stream(context.Background(), source.StreamInput{Configs: []*source.Config{
-		{
-			RawYAML: file,
-		},
-	}})
-	if err != nil {
-		return
-	}*/
 }

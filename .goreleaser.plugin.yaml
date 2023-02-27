@@ -33,15 +33,15 @@ builds:
     goarch: *goarch
     goarm: *goarm
 
-#  - id: gh
-#    main: cmd/executor/gh/main.go
-#    binary: executor_gh_{{ .Os }}_{{ .Arch }}
-#
-#    no_unique_dist_dir: true
-#    env: *env
-#    goos: *goos
-#    goarch: *goarch
-#    goarm: *goarm
+  - id: gh
+    main: cmd/executor/gh/main.go
+    binary: executor_gh_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env: *env
+    goos: *goos
+    goarch: *goarch
+    goarm: *goarm
 
 
   - id: kubectl
