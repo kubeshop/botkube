@@ -102,14 +102,7 @@ type Section struct {
 	Selects         Selects
 	PlaintextInputs LabelInputs
 	TextFields      TextFields
-	Labels          []Label
 	Context         ContextItems
-}
-
-// Label holds metadata of message in key,value pair.
-type Label struct {
-	Key   string
-	Value string
 }
 
 // LabelInputs holds the plain text input items.

@@ -261,19 +261,8 @@ func strToGVR(arg string) (schema.GroupVersionResource, error) {
 func messageFrom(s Source, event event.Event, additionalSections ...api.Section) api.Message {
 	var sections []api.Section
 	section := baseNotificationSection(event)
-	var labels []api.Label
 
-	appendMetadataToLabelsIfNotEmpty(&labels, "Kind", event.Kind)
-	appendMetadataToLabelsIfNotEmpty(&labels, "Type", event.Type.String())
-	appendMetadataToLabelsIfNotEmpty(&labels, "Namespace", event.Namespace)
-	appendMetadataToLabelsIfNotEmpty(&labels, "Name", event.Name)
-	appendMetadataToLabelsIfNotEmpty(&labels, "Reason", event.Reason)
-	appendMetadataToLabelsIfNotEmpty(&labels, "Action", event.Action)
-	appendMetadataToLabelsIfNotEmpty(&labels, "Cluster", event.Cluster)
-
-	section.Labels = labels
-
-	// Messages, Recommendations and Warnings formatted as bullet point lists.
+	// Labels, Messages, Recommendations and Warnings formatted as bullet point lists.
 	section.Body.Plaintext = bulletPointEventAttachments(event)
 
 	sections = append(sections, section)
@@ -333,16 +322,17 @@ func baseNotificationSection(event event.Event) api.Section {
 	return section
 }
 
-func appendMetadataToLabelsIfNotEmpty(labels *[]api.Label, title, in string) {
-	if in == "" {
-		return
-	}
-
-	*labels = append(*labels, api.Label{Key: title, Value: in})
-}
-
 func bulletPointEventAttachments(event event.Event) string {
 	strBuilder := strings.Builder{}
+	var labels []string
+	labels = append(labels, fmt.Sprintf("Kind: %s", event.Kind))
+	labels = append(labels, fmt.Sprintf("Type: %s", event.Type.String()))
+	labels = append(labels, fmt.Sprintf("Namespace: %s", event.Namespace))
+	labels = append(labels, fmt.Sprintf("Name: %s", event.Name))
+	labels = append(labels, fmt.Sprintf("Reason: %s", event.Reason))
+	labels = append(labels, fmt.Sprintf("Action: %s", event.Action))
+	labels = append(labels, fmt.Sprintf("Cluster: %s", event.Cluster))
+	writeStringIfNotEmpty(&strBuilder, "Labels", bulletPointListFromMessages(labels))
 	writeStringIfNotEmpty(&strBuilder, "Messages", bulletPointListFromMessages(event.Messages))
 	writeStringIfNotEmpty(&strBuilder, "Recommendations", bulletPointListFromMessages(event.Recommendations))
 	writeStringIfNotEmpty(&strBuilder, "Warnings", bulletPointListFromMessages(event.Warnings))

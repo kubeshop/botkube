@@ -65,17 +65,12 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 			addLine(mdFormatter.headerFormatter(section.Header))
 		}
 
-		for _, l := range section.Labels {
-			addLine(fmt.Sprintf("%s: %s", mdFormatter.headerFormatter(l.Key), l.Value))
-		}
-
-		addLine("") // new line
-
 		if section.Description != "" {
 			addLine(section.Description)
 		}
 
 		if section.Body.Plaintext != "" {
+			addLine("") // new line
 			addLine(section.Body.Plaintext)
 		}
 
