@@ -325,13 +325,13 @@ func baseNotificationSection(event event.Event) api.Section {
 func bulletPointEventAttachments(event event.Event) string {
 	strBuilder := strings.Builder{}
 	var labels []string
-	labels = append(labels, fmt.Sprintf("Kind: %s", event.Kind))
-	labels = append(labels, fmt.Sprintf("Type: %s", event.Type.String()))
-	labels = append(labels, fmt.Sprintf("Namespace: %s", event.Namespace))
-	labels = append(labels, fmt.Sprintf("Name: %s", event.Name))
-	labels = append(labels, fmt.Sprintf("Reason: %s", event.Reason))
-	labels = append(labels, fmt.Sprintf("Action: %s", event.Action))
-	labels = append(labels, fmt.Sprintf("Cluster: %s", event.Cluster))
+	appendToListIfNotEmpty(&labels, "Kind", event.Kind)
+	appendToListIfNotEmpty(&labels, "Type", event.Type.String())
+	appendToListIfNotEmpty(&labels, "Namespace", event.Namespace)
+	appendToListIfNotEmpty(&labels, "Name", event.Name)
+	appendToListIfNotEmpty(&labels, "Reason", event.Reason)
+	appendToListIfNotEmpty(&labels, "Action", event.Action)
+	appendToListIfNotEmpty(&labels, "Cluster", event.Cluster)
 	writeStringIfNotEmpty(&strBuilder, "Labels", bulletPointListFromMessages(labels))
 	writeStringIfNotEmpty(&strBuilder, "Messages", bulletPointListFromMessages(event.Messages))
 	writeStringIfNotEmpty(&strBuilder, "Recommendations", bulletPointListFromMessages(event.Recommendations))
@@ -345,6 +345,14 @@ func writeStringIfNotEmpty(strBuilder *strings.Builder, title, in string) {
 	}
 
 	strBuilder.WriteString(fmt.Sprintf("*%s:*\n%s", title, in))
+}
+
+func appendToListIfNotEmpty(msgs *[]string, title, in string) {
+	if in == "" {
+		return
+	}
+
+	*msgs = append(*msgs, fmt.Sprintf("%s: %s", title, in))
 }
 
 // bulletPointListFromMessages creates a Markdown bullet-point list from messages.
