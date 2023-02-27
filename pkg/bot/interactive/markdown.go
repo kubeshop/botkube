@@ -70,7 +70,6 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		}
 
 		if section.Body.Plaintext != "" {
-			addLine("") // new line
 			addLine(section.Body.Plaintext)
 		}
 
