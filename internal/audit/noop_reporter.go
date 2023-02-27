@@ -21,12 +21,12 @@ func newNoopAuditReporter(logger logrus.FieldLogger) *NoopAuditReporter {
 
 // ReportExecutorAuditEvent is a NOOP
 func (r *NoopAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e AuditEvent) error {
-	r.log.Debug("ReportExecutorAuditEvent")
+	r.log.Debug("ReportExecutorAuditEvent", "event", e)
 	return nil
 }
 
 // ReportSourceAuditEvent is a NOOP
 func (r *NoopAuditReporter) ReportSourceAuditEvent(ctx context.Context, e AuditEvent) error {
-	r.log.Debug("ReportSourceAuditEvent")
+	r.log.Debug("ReportSourceAuditEvent", "event", e)
 	return nil
 }
