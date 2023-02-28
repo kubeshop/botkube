@@ -58,17 +58,17 @@ type (
 		//	  	Message: api.NewPlaintextMessage(out, true),
 		//	  }
 		Output chan []byte
-		// Message represents the streamed events with metadata. It is from start of plugin consumption.
+		// Event represents the streamed events with message,raw object, and analytics data. It is from start of plugin consumption.
 		// You can construct a complex message.data or just use one of our helper functions:
 		//   - api.NewCodeBlockMessage("body", true)
 		//   - api.NewPlaintextMessage("body", true)
-		Message chan Message
+		Event chan Event
 	}
 
-	Message struct {
-		Data      api.Message
-		Metadata  any
-		Telemetry map[string]interface{}
+	Event struct {
+		Message         api.Message
+		RawObject       any
+		AnalyticsLabels map[string]interface{}
 	}
 )
 
@@ -126,8 +126,8 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 	}
 
 	out := StreamOutput{
-		Output:  make(chan []byte),
-		Message: make(chan Message),
+		Output: make(chan []byte),
+		Event:  make(chan Event),
 	}
 
 	go func() {
@@ -146,15 +146,15 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 				// TODO: we should consider adding error feedback channel to StreamOutput.
 				return
 			}
-			var msg Message
-			if len(feature.Message) != 0 && string(feature.Message) != "" {
-				if err := json.Unmarshal(feature.Message, &msg); err != nil {
+			var event Event
+			if len(feature.Event) != 0 && string(feature.Event) != "" {
+				if err := json.Unmarshal(feature.Event, &event); err != nil {
 					log.Print(fmt.Errorf("while unmarshalling message from JSON: %w", err))
 					return
 				}
 			}
 			out.Output <- feature.Output
-			out.Message <- msg
+			out.Event <- event
 		}
 	}()
 
@@ -231,7 +231,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 			if err != nil {
 				return err
 			}
-		case msg, ok := <-stream.Message:
+		case msg, ok := <-stream.Event:
 			if !ok {
 				return nil // output closed, no more chunk logs
 			}
@@ -242,7 +242,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 			}
 
 			err = gstream.Send(&StreamResponse{
-				Message: marshalled,
+				Event: marshalled,
 			})
 			if err != nil {
 				return err

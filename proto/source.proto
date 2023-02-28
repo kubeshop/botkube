@@ -27,7 +27,7 @@ message StreamContext {
 message StreamResponse {
 	// Output represents the streamed Source events. It is from start of Source execution.
 	bytes output = 1;
-	bytes message = 2;
+	bytes event = 2;
 }
 
 message MetadataResponse {

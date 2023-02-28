@@ -90,7 +90,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
 				d.dispatch(ctx, event, dispatch.sources)
-			case msg := <-out.Message:
+			case msg := <-out.Event:
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, dispatch.sources, dispatch.pluginName)
 			case <-ctx.Done():
@@ -101,12 +101,12 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	return nil
 }
 
-func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, sources []string, pluginName string) {
+func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, sources []string, pluginName string) {
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			msg := interactive.CoreMessage{
-				Message: message.Data,
+				Message: event.Message,
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
@@ -114,7 +114,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 					IntegrationType:       n.Type(),
 					Platform:              n.IntegrationName(),
 					PluginName:            pluginName,
-					AnonymizedEventFields: message.Telemetry,
+					AnonymizedEventFields: event.AnalyticsLabels,
 				}, err)
 				if reportErr != nil {
 					err = multierror.Append(err, fmt.Errorf("while reporting analytics: %w", reportErr))
@@ -126,7 +126,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 				IntegrationType:       n.Type(),
 				Platform:              n.IntegrationName(),
 				PluginName:            pluginName,
-				AnonymizedEventFields: message.Telemetry,
+				AnonymizedEventFields: event.AnalyticsLabels,
 			})
 			if reportErr != nil {
 				d.log.Errorf("while reporting analytics: %w", err)
@@ -135,7 +135,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 	}
 
 	// execute actions
-	actions, err := d.actionProvider.RenderedActions(message.Metadata, sources)
+	actions, err := d.actionProvider.RenderedActions(event.RawObject, sources)
 	if err != nil {
 		d.log.Errorf("while rendering automated actions: %s", err.Error())
 		return

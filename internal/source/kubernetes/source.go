@@ -52,7 +52,7 @@ type Source struct {
 	pluginVersion string
 	config        config.Config
 	logger        logrus.FieldLogger
-	messageCh     chan source.Message
+	eventCh       chan source.Event
 	startTime     time.Time
 	recommFactory RecommendationFactory
 	commandGuard  *command.CommandGuard
@@ -77,7 +77,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 	}
 	s := Source{
 		startTime: time.Now(),
-		messageCh: make(chan source.Message),
+		eventCh:   make(chan source.Event),
 		config:    cfg,
 		logger: loggerx.New(loggerx.Config{
 			Level: cfg.Log.Level,
@@ -88,7 +88,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 
 	go consumeEvents(s, ctx)
 	return source.StreamOutput{
-		Message: s.messageCh,
+		Event: s.eventCh,
 	}, nil
 }
 
@@ -228,12 +228,12 @@ func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []str
 		return
 	}
 
-	message := source.Message{
-		Data:      messageFrom(s, e),
-		Metadata:  e,
-		Telemetry: event.AnonymizedEventDetailsFrom(e),
+	message := source.Event{
+		Message:         messageFrom(s, e),
+		RawObject:       e,
+		AnalyticsLabels: event.AnonymizedEventDetailsFrom(e),
 	}
-	s.messageCh <- message
+	s.eventCh <- message
 }
 
 func enrichEventWithAdditionalMetadata(s Source, event *event.Event) {
