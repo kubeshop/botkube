@@ -94,24 +94,24 @@ func (r *SegmentReporter) ReportSinkEnabled(platform config.CommPlatformIntegrat
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}) error {
+func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEvent) error {
 	return r.reportEvent("Event handled", map[string]interface{}{
-		"platform": platform,
-		"type":     integrationType,
-		"plugin":   pluginName,
-		"event":    eventDetails,
+		"platform": event.Platform,
+		"type":     event.IntegrationType,
+		"plugin":   event.PluginName,
+		"event":    event.AnonymizedEventFields,
 		"success":  true,
 	})
 }
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}, err error) error {
+func (r *SegmentReporter) ReportHandledEventError(event ReportEvent, err error) error {
 	return r.reportEvent("Event handled", map[string]interface{}{
-		"platform": platform,
-		"type":     integrationType,
-		"plugin":   pluginName,
-		"event":    eventDetails,
+		"platform": event.Platform,
+		"type":     event.IntegrationType,
+		"plugin":   event.PluginName,
+		"event":    event.AnonymizedEventFields,
 		"error":    err.Error(),
 	})
 }

@@ -33,6 +33,12 @@ type (
 	StreamInputContext struct {
 		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
 		IsInteractivitySupported bool
+
+		// KubeConfig is the path to kubectl configuration file.
+		KubeConfig string
+
+		// ClusterName is the name of underlying Kubernetes cluster which is provided by end user.
+		ClusterName string
 	}
 
 	// StreamOutput holds the output of the Stream function.
@@ -110,6 +116,8 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 		Configs: in.Configs,
 		Context: &StreamContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+			KubeConfig:               in.Context.KubeConfig,
+			ClusterName:              in.Context.ClusterName,
 		},
 	}
 	stream, err := p.client.Stream(ctx, request)
@@ -198,6 +206,11 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 	// We can only use 'ctx' to cancel streaming and release associated resources.
 	stream, err := p.Source.Stream(ctx, StreamInput{
 		Configs: req.Configs,
+		Context: StreamInputContext{
+			IsInteractivitySupported: req.Context.IsInteractivitySupported,
+			KubeConfig:               req.Context.KubeConfig,
+			ClusterName:              req.Context.ClusterName,
+		},
 	})
 	if err != nil {
 		return err
@@ -209,7 +222,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 			return ctx.Err()
 		case out, ok := <-stream.Output:
 			if !ok {
-				return nil // output closed, no more chunk logs
+				return nil // output closed, no more messages
 			}
 
 			err := gstream.Send(&StreamResponse{

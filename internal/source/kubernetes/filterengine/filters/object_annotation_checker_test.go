@@ -29,28 +29,3 @@ func TestIsObjectNotifDisabled(t *testing.T) {
 		})
 	}
 }
-
-func TestReconfigureChannel(t *testing.T) {
-	tests := map[string]struct {
-		objectMeta      metaV1.ObjectMeta
-		expectedChannel string
-		expectedBool    bool
-	}{
-		`Empty ObjectMeta`:                    {metaV1.ObjectMeta{}, "", false},
-		`ObjectMeta with some annotations`:    {metaV1.ObjectMeta{Annotations: map[string]string{"foo": "bar"}}, "", false},
-		`ObjectMeta with channel ""`:          {metaV1.ObjectMeta{Annotations: map[string]string{"botkube.io/channel": ""}}, "", false},
-		`ObjectMeta with channel foo-channel`: {metaV1.ObjectMeta{Annotations: map[string]string{"botkube.io/channel": "foo-channel"}}, "foo-channel", true},
-	}
-	for name, test := range tests {
-		name, test := name, test
-		t.Run(name, func(t *testing.T) {
-			f := NewObjectAnnotationChecker(loggerx.NewNoop(), nil, nil)
-
-			if actualChannel, actualBool := f.reconfigureChannel(test.objectMeta); actualBool != test.expectedBool {
-				if actualChannel != test.expectedChannel {
-					t.Errorf("expected: %+v != actual: %+v\n", test.expectedChannel, actualChannel)
-				}
-			}
-		})
-	}
-}

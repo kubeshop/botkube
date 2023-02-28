@@ -6,22 +6,20 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config Kubernetes configuration
 type Config struct {
-	KubeConfig           string `yaml:"kubeConfig"`
-	ClusterName          string
 	InformerReSyncPeriod *time.Duration     `yaml:"informerReSyncPeriod"`
 	Log                  *Log               `yaml:"log"`
 	Recommendations      *Recommendations   `yaml:"recommendations"`
 	Event                *KubernetesEvent   `yaml:"event"`
 	Resources            []Resource         `yaml:"resources" validate:"dive"`
 	ActionVerbs          []string           `yaml:"actionVerbs" validate:"dive"`
+	ActionResources      []string           `yaml:"actionResources" validate:"dive"`
 	Namespaces           *RegexConstraints  `yaml:"namespaces"`
 	Annotations          *map[string]string `yaml:"annotations"`
 	Labels               *map[string]string `yaml:"labels"`
@@ -202,7 +200,7 @@ type KubernetesFilters struct {
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
 	t := 30 * time.Minute
-	out := Config{
+	defaults := Config{
 		Log: &Log{
 			Level: "info",
 		},
@@ -217,69 +215,16 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 				TLSSecretValid:      ptr.Bool(false),
 			},
 		},
-		Event:       &KubernetesEvent{},
-		Namespaces:  &RegexConstraints{},
-		Labels:      &map[string]string{},
-		Annotations: &map[string]string{},
-		Resources:   []Resource{},
+		ActionVerbs:     []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"},
+		ActionResources: []string{"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"},
 		Filters: &Filters{Kubernetes: KubernetesFilters{
 			ObjectAnnotationChecker: true,
 			NodeEventsChecker:       true,
 		}},
 	}
-	for _, rawCfg := range configs {
-		var cfg Config
-		err := yaml.Unmarshal(rawCfg.RawYAML, &cfg)
-		if err != nil {
-			return Config{}, fmt.Errorf("while unmarshalling YAML config: %w", err)
-		}
-
-		if cfg.Log != nil && cfg.Log.Level != "" {
-			out.Log = &Log{Level: cfg.Log.Level}
-		}
-
-		if cfg.KubeConfig != "" {
-			out.KubeConfig = cfg.KubeConfig
-		}
-
-		if cfg.Event != nil {
-			out.Event = cfg.Event
-		}
-
-		if cfg.Recommendations != nil {
-			out.Recommendations = cfg.Recommendations
-		}
-
-		if cfg.Namespaces != nil {
-			out.Namespaces = cfg.Namespaces
-		}
-
-		if cfg.InformerReSyncPeriod != nil {
-			out.InformerReSyncPeriod = cfg.InformerReSyncPeriod
-		}
-
-		if cfg.Labels != nil {
-			out.Labels = cfg.Labels
-		}
-
-		if cfg.Annotations != nil {
-			out.Annotations = cfg.Annotations
-		}
-
-		if cfg.ClusterName != "" {
-			out.ClusterName = cfg.ClusterName
-		}
-
-		if cfg.Resources != nil {
-			out.Resources = cfg.Resources
-		}
-
-		if cfg.Filters != nil {
-			out.Filters = cfg.Filters
-		}
-		if len(cfg.ActionVerbs) == 0 {
-			out.ActionVerbs = []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"}
-		}
+	var out Config
+	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
+		return Config{}, err
 	}
 
 	return out, nil

@@ -12,7 +12,15 @@ import (
 )
 
 type pluginDispatcher interface {
-	Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error
+	Dispatch(dispatch PluginDispatch) error
+}
+
+type PluginDispatch struct {
+	ctx           context.Context
+	pluginName    string
+	pluginConfigs []*source.Config
+	sources       []string
+	cfg           *config.Config
 }
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
@@ -122,7 +130,13 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
 	}
 
 	for pluginName, configs := range sourcePluginConfigs {
-		err := d.dispatcher.Dispatch(ctx, pluginName, configs, []string{key})
+		err := d.dispatcher.Dispatch(PluginDispatch{
+			ctx:           ctx,
+			pluginName:    pluginName,
+			pluginConfigs: configs,
+			sources:       []string{key},
+			cfg:           d.cfg,
+		})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 		}

@@ -160,10 +160,20 @@ func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
 	}
 
 	// when
-	err := segmentReporter.ReportHandledEventSuccess(config.BotIntegrationType, config.SlackCommPlatformIntegration, "botkube/kubernetes", eventDetails)
+	err := segmentReporter.ReportHandledEventSuccess(analytics.ReportEvent{
+		IntegrationType:       config.BotIntegrationType,
+		Platform:              config.SlackCommPlatformIntegration,
+		PluginName:            "botkube/kubernetes",
+		AnonymizedEventFields: eventDetails,
+	})
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportHandledEventSuccess(config.SinkIntegrationType, config.ElasticsearchCommPlatformIntegration, "botkube/kubernetes", eventDetails)
+	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEvent{
+		IntegrationType:       config.SinkIntegrationType,
+		Platform:              config.ElasticsearchCommPlatformIntegration,
+		PluginName:            "botkube/kubernetes",
+		AnonymizedEventFields: eventDetails,
+	})
 	require.NoError(t, err)
 
 	// then
@@ -182,10 +192,20 @@ func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
 	sampleErr := errors.New("sample error")
 
 	// when
-	err := segmentReporter.ReportHandledEventError(config.BotIntegrationType, config.SlackCommPlatformIntegration, "botkube/kubernetes", eventDetails, sampleErr)
+	err := segmentReporter.ReportHandledEventError(analytics.ReportEvent{
+		IntegrationType:       config.BotIntegrationType,
+		Platform:              config.SlackCommPlatformIntegration,
+		PluginName:            "botkube/kubernetes",
+		AnonymizedEventFields: eventDetails,
+	}, sampleErr)
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportHandledEventError(config.SinkIntegrationType, config.ElasticsearchCommPlatformIntegration, "botkube/kubernetes", eventDetails, sampleErr)
+	err = segmentReporter.ReportHandledEventError(analytics.ReportEvent{
+		IntegrationType:       config.SinkIntegrationType,
+		Platform:              config.ElasticsearchCommPlatformIntegration,
+		PluginName:            "botkube/kubernetes",
+		AnonymizedEventFields: eventDetails,
+	}, sampleErr)
 	require.NoError(t, err)
 
 	// then

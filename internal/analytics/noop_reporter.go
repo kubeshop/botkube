@@ -40,12 +40,12 @@ func (n NoopReporter) ReportSinkEnabled(_ config.CommPlatformIntegration) error 
 }
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-func (n NoopReporter) ReportHandledEventSuccess(_ config.IntegrationType, _ config.CommPlatformIntegration, _ string, _ map[string]interface{}) error {
+func (n NoopReporter) ReportHandledEventSuccess(_ ReportEvent) error {
 	return nil
 }
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
-func (n NoopReporter) ReportHandledEventError(_ config.IntegrationType, _ config.CommPlatformIntegration, _ string, _ map[string]interface{}, _ error) error {
+func (n NoopReporter) ReportHandledEventError(_ ReportEvent, _ error) error {
 	return nil
 }
 

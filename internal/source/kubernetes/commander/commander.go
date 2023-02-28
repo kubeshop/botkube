@@ -20,9 +20,10 @@ type Command struct {
 
 // Commander is responsible for generating kubectl commands for the given event.
 type Commander struct {
-	log          logrus.FieldLogger
-	guard        CmdGuard
-	allowedVerbs []string
+	log              logrus.FieldLogger
+	guard            CmdGuard
+	allowedVerbs     []string
+	allowedResources []string
 }
 
 // unsupportedEventCommandVerbs contains list of verbs that are not supported for the actionable event notifications.
@@ -37,8 +38,8 @@ type CmdGuard interface {
 }
 
 // NewCommander creates a new Commander instance.
-func NewCommander(log logrus.FieldLogger, guard CmdGuard, verbs []string) *Commander {
-	return &Commander{log: log, guard: guard, allowedVerbs: verbs}
+func NewCommander(log logrus.FieldLogger, guard CmdGuard, verbs, resources []string) *Commander {
+	return &Commander{log: log, guard: guard, allowedVerbs: verbs, allowedResources: resources}
 }
 
 // GetCommandsForEvent returns a list of commands for the given event.

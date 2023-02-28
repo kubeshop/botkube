@@ -42,7 +42,7 @@ type Status struct {
 	Replicas int `json:"replicas"`
 }
 
-// Event mocks ObjectData field in kubernetes object like configmap
+// Data mocks ObjectData field in kubernetes object like configmap
 type Data struct {
 	Properties string `json:"properties"`
 }

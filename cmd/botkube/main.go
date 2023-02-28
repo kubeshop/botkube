@@ -57,8 +57,6 @@ const (
 	printAPIKeyCharCount = 3
 )
 
-var applicationStarted = false
-
 func main() {
 	// Set up context
 	ctx := signals.SetupSignalHandler()
@@ -110,7 +108,7 @@ func run(ctx context.Context) error {
 
 	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
 
-	errGroup, _ := errgroup.WithContext(ctx)
+	errGroup, ctx := errgroup.WithContext(ctx)
 
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
@@ -143,7 +141,8 @@ func run(ctx context.Context) error {
 	}
 
 	// Health endpoint
-	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
+	healthChecker := healthChecker{applicationStarted: false}
+	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort, &healthChecker)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return healthSrv.Serve(ctx)
@@ -362,7 +361,7 @@ func run(ctx context.Context) error {
 		return reportFatalError("while reporting botkube startup", err)
 	}
 
-	applicationStarted = true
+	healthChecker.MarkAsReady()
 	err = ctrl.Start(ctx)
 	if err != nil {
 		return reportFatalError("while starting controller", err)
@@ -383,17 +382,27 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 	return httpsrv.New(log, addr, router)
 }
 
-func newHealthServer(log logrus.FieldLogger, port string) *httpsrv.Server {
+func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpsrv.Server {
 	addr := fmt.Sprintf(":%s", port)
 	router := mux.NewRouter()
-	router.Handle(healthEndpointName, healthChecker{})
+	router.Handle(healthEndpointName, healthChecker)
 	return httpsrv.New(log, addr, router)
 }
 
-type healthChecker struct{}
+type healthChecker struct {
+	applicationStarted bool
+}
 
-func (healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	if applicationStarted {
+func (h *healthChecker) MarkAsReady() {
+	h.applicationStarted = true
+}
+
+func (h *healthChecker) IsReady() bool {
+	return h.applicationStarted
+}
+
+func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	if h.IsReady() {
 		resp.WriteHeader(http.StatusOK)
 		fmt.Fprint(resp, "ok")
 	} else {

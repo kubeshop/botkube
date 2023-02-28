@@ -10,7 +10,6 @@ import (
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
@@ -33,11 +32,11 @@ type ActionProvider interface {
 
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
-	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}) error
+	// ReportHandledEventSuccess reports a successfully handled event using a given integration type, communication platform, and plugin.
+	ReportHandledEventSuccess(event analytics.ReportEvent) error
 
-	// ReportHandledEventError reports a failure while handling event using a given communication platform.
-	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}, err error) error
+	// ReportHandledEventError reports a failure while handling event using a given integration type, communication platform, and plugin.
+	ReportHandledEventError(event analytics.ReportEvent, err error) error
 
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
@@ -60,24 +59,29 @@ func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manage
 // Dispatch starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
 // Once we will have the gRPC contract established with proper Cloud Event schema, we should move also this logic here:
 // https://github.com/kubeshop/botkube/blob/525c737956ff820a09321879284037da8bf5d647/pkg/controller/controller.go#L200-L253
-func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
+func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	log := d.log.WithFields(logrus.Fields{
-		"pluginName": pluginName,
-		"sources":    sources,
+		"pluginName": dispatch.pluginName,
+		"sources":    dispatch.sources,
 	})
 
 	log.Info("Start source streaming...")
 
-	sourceClient, err := d.manager.GetSource(pluginName)
+	sourceClient, err := d.manager.GetSource(dispatch.pluginName)
 	if err != nil {
-		return fmt.Errorf("while getting source client for %s: %w", pluginName, err)
+		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
 	}
 
+	ctx := dispatch.ctx
 	out, err := sourceClient.Stream(ctx, source.StreamInput{
-		Configs: pluginConfigs,
+		Configs: dispatch.pluginConfigs,
+		Context: source.StreamInputContext{
+			ClusterName: dispatch.cfg.Settings.ClusterName,
+			KubeConfig:  dispatch.cfg.Settings.Kubeconfig,
+		},
 	})
 	if err != nil {
-		return fmt.Errorf("while opening stream for %s: %w", pluginName, err)
+		return fmt.Errorf("while opening stream for %s: %w", dispatch.pluginName, err)
 	}
 
 	go func() {
@@ -85,10 +89,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, pluginName string, pluginConf
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, sources)
+				d.dispatch(ctx, event, dispatch.sources)
 			case msg := <-out.Message:
 				log.WithField("message", msg).Debug("Dispatching received message...")
-				d.dispatchMsg(ctx, msg, sources, pluginName)
+				d.dispatchMsg(ctx, msg, dispatch.sources, dispatch.pluginName)
 			case <-ctx.Done():
 				return
 			}
@@ -106,14 +110,24 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, message source.Message, so
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
-				reportErr := d.reporter.ReportHandledEventError(n.Type(), n.IntegrationName(), pluginName, message.Telemetry, err)
+				reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
+					IntegrationType:       n.Type(),
+					Platform:              n.IntegrationName(),
+					PluginName:            pluginName,
+					AnonymizedEventFields: message.Telemetry,
+				}, err)
 				if reportErr != nil {
 					err = multierror.Append(err, fmt.Errorf("while reporting analytics: %w", reportErr))
 				}
 
 				d.log.Errorf("while sending message: %s", err.Error())
 			}
-			reportErr := d.reporter.ReportHandledEventSuccess(n.Type(), n.IntegrationName(), pluginName, message.Telemetry)
+			reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
+				IntegrationType:       n.Type(),
+				Platform:              n.IntegrationName(),
+				PluginName:            pluginName,
+				AnonymizedEventFields: message.Telemetry,
+			})
 			if reportErr != nil {
 				d.log.Errorf("while reporting analytics: %w", err)
 			}

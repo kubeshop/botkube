@@ -14,8 +14,6 @@ import (
 )
 
 // Event stores data about a given event for Kubernetes object.
-//
-// WARNING: When adding a new field, check if we shouldn't ignore it when marshalling and sending to ELS.
 type Event struct {
 	APIVersion      string
 	Kind            string
@@ -29,7 +27,6 @@ type Event struct {
 	Error           string
 	Level           config.Level
 	Cluster         string
-	Channel         string
 	TimeStamp       time.Time
 	Count           int32
 	Action          string
@@ -48,7 +45,7 @@ type Event struct {
 
 // Action describes an automated action for a given event.
 type Action struct {
-	// Command is the command to be executed, with the bot.CrossPlatformBotName prefix.
+	// Command is the command to be executed, with the api.MessageBotNamePlaceholder prefix.
 	Command          string
 	ExecutorBindings []string
 	DisplayName      string

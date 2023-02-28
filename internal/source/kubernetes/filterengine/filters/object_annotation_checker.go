@@ -10,14 +10,12 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/pkg/k8sutil"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 )
 
 const (
 	// DisableAnnotation is the object disable annotation.
 	DisableAnnotation string = "botkube.io/disable"
-	// ChannelAnnotation is the multichannel support annotation.
-	ChannelAnnotation string = "botkube.io/channel"
 )
 
 // ObjectAnnotationChecker forwards events to specific channels based on a special annotation if it is set on a given K8s resource.
@@ -46,11 +44,6 @@ func (f *ObjectAnnotationChecker) Run(ctx context.Context, event *event.Event) e
 		f.log.Debug("Object Notification Disable through annotations")
 	}
 
-	if channel, ok := f.reconfigureChannel(obj); ok {
-		event.Channel = channel
-		f.log.Debugf("Redirecting Event Notifications to channel: %s", channel)
-	}
-
 	f.log.Debug("Object annotations filter successful!")
 	return nil
 }
@@ -73,16 +66,4 @@ func (f *ObjectAnnotationChecker) isObjectNotifDisabled(obj metaV1.ObjectMeta) b
 		return true
 	}
 	return false
-}
-
-// reconfigureChannel checks annotation botkube.io/channel.
-// Annotation botkube.io/channel directs event notifications to channels
-// based on the channel names present in them.
-// Note: Add botkube app into the desired channel to receive notifications
-func (f *ObjectAnnotationChecker) reconfigureChannel(obj metaV1.ObjectMeta) (string, bool) {
-	// redirect messages to channels based on annotations
-	if channel, ok := obj.Annotations[ChannelAnnotation]; ok {
-		return channel, true
-	}
-	return "", false
 }

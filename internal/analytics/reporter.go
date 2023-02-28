@@ -23,15 +23,22 @@ type Reporter interface {
 	// ReportSinkEnabled reports an enabled sink.
 	ReportSinkEnabled(platform config.CommPlatformIntegration) error
 
-	// ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-	ReportHandledEventSuccess(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}) error
+	// ReportHandledEventSuccess reports a successfully handled event using a given integration type, communication platform, and plugin.
+	ReportHandledEventSuccess(event ReportEvent) error
 
-	// ReportHandledEventError reports a failure while handling event using a given communication platform.
-	ReportHandledEventError(integrationType config.IntegrationType, platform config.CommPlatformIntegration, pluginName string, eventDetails map[string]interface{}, err error) error
+	// ReportHandledEventError reports a failure while handling event using a given integration type, communication platform, and plugin.
+	ReportHandledEventError(event ReportEvent, err error) error
 
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
 
 	// Close cleans up the reporter resources.
 	Close() error
+}
+
+type ReportEvent struct {
+	IntegrationType       config.IntegrationType
+	Platform              config.CommPlatformIntegration
+	PluginName            string
+	AnonymizedEventFields map[string]any
 }

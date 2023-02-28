@@ -105,15 +105,15 @@ func (*GHExecutor) Help(context.Context) (api.Message, error) {
 }
 
 var depsDownloadLinks = map[string]api.Dependency{
-	// Links source: https://github.com/cli/cli/releases/tag/v2.22.1
+	// Links source: https://github.com/cli/cli/releases/tag/v2.21.2
 	"gh": {
 		URLs: map[string]string{
 			// Using go-getter syntax to unwrap the underlying directory structure.
 			// Read more on https://github.com/hashicorp/go-getter#subdirectories
-			"darwin/amd64": "https://github.com/cli/cli/releases/download/v2.22.1/gh_2.22.1_macOS_amd64.tar.gz//gh_2.22.1_macOS_amd64/bin",
-			"linux/amd64":  "https://github.com/cli/cli/releases/download/v2.22.1/gh_2.22.1_linux_amd64.tar.gz//gh_2.22.1_linux_amd64/bin",
-			"linux/arm64":  "https://github.com/cli/cli/releases/download/v2.22.1/gh_2.22.1_linux_arm64.tar.gz//gh_2.22.1_linux_arm64/bin",
-			"linux/386":    "https://github.com/cli/cli/releases/download/v2.22.1/gh_2.22.1_linux_386.tar.gz//gh_2.22.1_linux_386/bin",
+			"darwin/amd64": "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_macOS_amd64.tar.gz//gh_2.21.2_macOS_amd64/bin",
+			"linux/amd64":  "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_amd64.tar.gz//gh_2.21.2_linux_amd64/bin",
+			"linux/arm64":  "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_arm64.tar.gz//gh_2.21.2_linux_arm64/bin",
+			"linux/386":    "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_386.tar.gz//gh_2.21.2_linux_386/bin",
 		},
 	},
 	"kubectl": {

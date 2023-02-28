@@ -17,7 +17,6 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	config2 "github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
@@ -44,14 +43,14 @@ var emojiForLevel = map[config.Level]string{
 }
 
 type RecommendationFactory interface {
-	New(cfg config2.Config) (recommendation.AggregatedRunner, config.Recommendations)
+	New(cfg config.Config) (recommendation.AggregatedRunner, config.Recommendations)
 }
 
 // Source Kubernetes source plugin data structure
 type Source struct {
 	ctx           context.Context
 	pluginVersion string
-	config        config2.Config
+	config        config.Config
 	logger        logrus.FieldLogger
 	messageCh     chan source.Message
 	startTime     time.Time
@@ -59,6 +58,8 @@ type Source struct {
 	commandGuard  *commander.CommandGuard
 	commander     *commander.Commander
 	filterEngine  filterengine.FilterEngine
+	clusterName   string
+	kubeConfig    string
 }
 
 // NewSource returns a new instance of Source.
@@ -74,7 +75,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 	s.startTime = time.Now()
 	s.messageCh = make(chan source.Message)
 	out := source.StreamOutput{Message: s.messageCh}
-	cfg, err := config2.MergeConfigs(input.Configs)
+	cfg, err := config.MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
@@ -83,6 +84,8 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 		Level: cfg.Log.Level,
 	})
 	s.ctx = ctx
+	s.clusterName = input.Context.ClusterName
+	s.kubeConfig = input.Context.KubeConfig
 	go consumeEvents(s)
 	return out, nil
 }
@@ -97,7 +100,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 }
 
 func consumeEvents(s Source) {
-	client, err := NewClient(s.config.KubeConfig)
+	client, err := NewClient(s.kubeConfig)
 	exitOnError(err, s.logger)
 
 	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, *s.config.InformerReSyncPeriod)
@@ -105,7 +108,7 @@ func consumeEvents(s Source) {
 	router.BuildTable(&s.config)
 	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
 	s.commandGuard = commander.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
-	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard, s.config.ActionVerbs)
+	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard, s.config.ActionVerbs, s.config.ActionResources)
 	s.filterEngine = filterengine.WithAllFilters(s.logger, client.dynamicCli, client.mapper, s.config.Filters)
 
 	err = router.RegisterInformers([]config.EventType{
@@ -229,7 +232,7 @@ func handleEvent(s Source, e event.Event, updateDiffs []string) {
 }
 
 func enrichEventWithAdditionalMetadata(s Source, event *event.Event) {
-	event.Cluster = s.config.ClusterName
+	event.Cluster = s.clusterName
 }
 
 func parseResourceArg(arg string, mapper meta.RESTMapper) (schema.GroupVersionResource, error) {
@@ -387,10 +390,6 @@ func jsonSchema() api.JSONSchema {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "kubeConfig": {
-          "description": "Kubernetes configuration path.",
-          "type": "string"
-        },
         "clusterName": {
           "description": "Cluster name to differentiate incoming messages.",
           "type": "string"
@@ -448,6 +447,27 @@ func jsonSchema() api.JSONSchema {
           },
           "title": "Action Verbs",
           "uniqueItems": true
+        },
+		"actionResources": {
+          "description": "Allowed resources for actionable events.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+                "deployments", 
+                "pods", 
+                "namespaces", 
+                "daemonsets", 
+                "statefulsets", 
+                "storageclasses", 
+                "nodes", 
+                "configmaps",
+                "services",
+				"ingresses"
+            ]
+          },
+          "title": "Action Resources",
+          "uniqueItems": true
         }
       },
       "title": "Kubernetes"
@@ -472,14 +492,14 @@ func jsonSchema() api.JSONSchema {
           "items": {
             "type": "string",
             "enum": [
-                "api-resources", 
-                "api-versions", 
-                "cluster-info", 
-                "describe", 
-                "explain", 
-                "get", 
-                "logs", 
-                "top"
+                "create", 
+                "update", 
+                "delete", 
+                "error", 
+                "warning", 
+                "normal", 
+                "info", 
+                "all"
             ]
           },
           "title": "Event Types",

@@ -15,6 +15,7 @@ import (
 func TestCommander_GetCommandsForEvent(t *testing.T) {
 	// given
 	allowedVerbs := []string{"describe", "get", "logs", "delete"}
+	allowedResources := []string{"pods", "deployments", "nodes"}
 	testCases := []struct {
 		Name  string
 		Event event.Event
@@ -100,7 +101,7 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cmder := NewCommander(loggerx.NewNoop(), tc.Guard, allowedVerbs)
+			cmder := NewCommander(loggerx.NewNoop(), tc.Guard, allowedVerbs, allowedResources)
 
 			// when
 			result, err := cmder.GetCommandsForEvent(tc.Event)
