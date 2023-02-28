@@ -39,8 +39,8 @@ type CmdGuard interface {
 }
 
 // NewCommander creates a new Commander instance.
-func NewCommander(log logrus.FieldLogger, guard CmdGuard, verbs, resources []string) *Commander {
-	return &Commander{log: log, guard: guard, allowedVerbs: verbs, allowedResources: resources}
+func NewCommander(log logrus.FieldLogger, guard CmdGuard, commands config.Commands) *Commander {
+	return &Commander{log: log, guard: guard, allowedVerbs: commands.Verbs, allowedResources: commands.Resources}
 }
 
 // GetCommandsForEvent returns a list of commands for the given event.

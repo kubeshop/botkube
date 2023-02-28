@@ -18,12 +18,17 @@ type Config struct {
 	Recommendations      *Recommendations   `yaml:"recommendations"`
 	Event                *KubernetesEvent   `yaml:"event"`
 	Resources            []Resource         `yaml:"resources" validate:"dive"`
-	ActionVerbs          []string           `yaml:"actionVerbs" validate:"dive"`
-	ActionResources      []string           `yaml:"actionResources" validate:"dive"`
+	Commands             Commands           `yaml:"commands"`
 	Namespaces           *RegexConstraints  `yaml:"namespaces"`
 	Annotations          *map[string]string `yaml:"annotations"`
 	Labels               *map[string]string `yaml:"labels"`
 	Filters              *Filters           `yaml:"filters"`
+}
+
+// Commands contains allowed verbs and resources
+type Commands struct {
+	Verbs     []string `yaml:"verbs"`
+	Resources []string `yaml:"resources"`
 }
 
 // Recommendations contains configuration for various recommendation insights.
@@ -215,8 +220,10 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 				TLSSecretValid:      ptr.Bool(false),
 			},
 		},
-		ActionVerbs:     []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"},
-		ActionResources: []string{"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"},
+		Commands: Commands{
+			Verbs:     []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"},
+			Resources: []string{"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"},
+		},
 		Filters: &Filters{Kubernetes: KubernetesFilters{
 			ObjectAnnotationChecker: true,
 			NodeEventsChecker:       true,
