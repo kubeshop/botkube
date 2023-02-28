@@ -104,8 +104,8 @@ type AuditEventSourceCreateInput struct {
 type BotPlatform string
 
 const (
-	// BotPlatformSLACk is the slack platform
-	BotPlatformSLACk BotPlatform = "SLACK"
+	// BotPlatformSlack is the slack platform
+	BotPlatformSlack BotPlatform = "SLACK"
 	// BotPlatformDiscord is the discord platform
 	BotPlatformDiscord BotPlatform = "DISCORD"
 	// BotPlatformMattermost is the mattermost platform
