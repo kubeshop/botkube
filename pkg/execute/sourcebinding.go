@@ -53,15 +53,14 @@ type BindingsStorage interface {
 
 // SourceBindingExecutor provides functionality to run all Botkube SourceBinding related commands.
 type SourceBindingExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfgManager        BindingsStorage
-	sources           map[string]string
-	cfg               config.Config
+	log        logrus.FieldLogger
+	cfgManager BindingsStorage
+	sources    map[string]string
+	cfg        config.Config
 }
 
 // NewSourceBindingExecutor returns a new SourceBindingExecutor instance.
-func NewSourceBindingExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager BindingsStorage, cfg config.Config) *SourceBindingExecutor {
+func NewSourceBindingExecutor(log logrus.FieldLogger, cfgManager BindingsStorage, cfg config.Config) *SourceBindingExecutor {
 	normalizedSource := map[string]string{}
 	for key, item := range cfg.Sources {
 		displayName := item.DisplayName
@@ -72,11 +71,10 @@ func NewSourceBindingExecutor(log logrus.FieldLogger, analyticsReporter Analytic
 	}
 
 	return &SourceBindingExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfgManager:        cfgManager,
-		sources:           normalizedSource,
-		cfg:               cfg,
+		log:        log,
+		cfgManager: cfgManager,
+		sources:    normalizedSource,
+		cfg:        cfg,
 	}
 }
 
@@ -109,21 +107,7 @@ func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext)
 	if len(cmdCtx.Args) < 2 {
 		return empty, errInvalidCommand
 	}
-
-	var (
-		cmdName = cmdCtx.Args[0]
-		cmdVerb = cmdCtx.Args[1]
-		cmdArgs = cmdCtx.Args[2:]
-	)
-
-	defer func() {
-		cmdToReport := fmt.Sprintf("%s %s", cmdName, cmdVerb)
-		err := e.analyticsReporter.ReportCommand(cmdCtx.Platform, cmdToReport, cmdCtx.Conversation.CommandOrigin, false)
-		if err != nil {
-			e.log.Errorf("while reporting edit command: %s", err.Error())
-		}
-	}()
-
+	cmdArgs := cmdCtx.Args[2:]
 	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User)
 	if err != nil {
 		return empty, err

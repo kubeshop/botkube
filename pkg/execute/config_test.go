@@ -83,7 +83,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewConfigExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.Cfg)
+			e := NewConfigExecutor(loggerx.NewNoop(), tc.Cfg)
 			msg, err := e.Show(context.Background(), tc.CmdCtx)
 			require.NoError(t, err)
 			assert.Equal(t, tc.ExpectedResult, msg.BaseBody.CodeBlock)

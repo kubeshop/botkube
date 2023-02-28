@@ -127,7 +127,7 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 			// given
 			fakeStorage := &fakeBindingsStorage{}
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, fakeStorage, tc.config)
+			executor := NewSourceBindingExecutor(loggerx.NewNoop(), fakeStorage, tc.config)
 			cmdCtx := CommandContext{
 				Args:          args,
 				CommGroupName: groupName,
@@ -182,7 +182,7 @@ func TestSourceBindingsErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			args := strings.Fields(strings.TrimSpace(tc.command))
-			executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, config.Config{})
+			executor := NewSourceBindingExecutor(loggerx.NewNoop(), nil, config.Config{})
 			cmdCtx := CommandContext{
 				Args:          args,
 				CommGroupName: groupName,
@@ -259,7 +259,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		},
 	}
 
-	executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, cfg)
+	executor := NewSourceBindingExecutor(loggerx.NewNoop(), nil, cfg)
 	cmdCtx := CommandContext{
 		Args:          args,
 		CommGroupName: groupName,
@@ -323,7 +323,7 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		},
 	}
 
-	executor := NewSourceBindingExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, nil, cfg)
+	executor := NewSourceBindingExecutor(loggerx.NewNoop(), nil, cfg)
 	cmdCtx := CommandContext{
 		Args:          args,
 		CommGroupName: groupName,

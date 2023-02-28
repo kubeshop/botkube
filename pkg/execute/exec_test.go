@@ -113,7 +113,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 				ExecutorFilter: newExecutorTextFilter(""),
 				Conversation:   Conversation{ExecutorBindings: tc.bindings},
 			}
-			e := NewExecExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
+			e := NewExecExecutor(loggerx.NewNoop(), tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expOutput, msg.BaseBody.CodeBlock)

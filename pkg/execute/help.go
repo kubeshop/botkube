@@ -18,18 +18,16 @@ var (
 // HelpExecutor executes all commands that are related to help
 type HelpExecutor struct {
 	log                    logrus.FieldLogger
-	analyticsReporter      AnalyticsReporter
 	enabledPluginExecutors []string
 }
 
 // NewHelpExecutor returns a new HelpExecutor instance
-func NewHelpExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *HelpExecutor {
+func NewHelpExecutor(log logrus.FieldLogger, cfg config.Config) *HelpExecutor {
 	collector := plugin.NewCollector(log)
 	enabledPluginExecutors, _ := collector.GetAllEnabledAndUsedPlugins(&cfg)
 
 	return &HelpExecutor{
 		log:                    log,
-		analyticsReporter:      analyticsReporter,
 		enabledPluginExecutors: enabledPluginExecutors,
 	}
 }
@@ -48,14 +46,5 @@ func (e *HelpExecutor) Commands() map[command.Verb]CommandFn {
 
 // Help returns new help message
 func (e *HelpExecutor) Help(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, _ := parseCmdVerb(cmdCtx.Args)
-	e.reportCommand(cmdVerb, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, e.enabledPluginExecutors).Build(), nil
-}
-
-func (e *HelpExecutor) reportCommand(cmdToReport string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting help command: %s", err.Error())
-	}
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/filterengine"
 )
@@ -32,19 +31,17 @@ var (
 
 // FilterExecutor executes all commands that are related to filters.
 type FilterExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfgManager        ConfigPersistenceManager
-	filterEngine      filterengine.FilterEngine
+	log          logrus.FieldLogger
+	cfgManager   ConfigPersistenceManager
+	filterEngine filterengine.FilterEngine
 }
 
 // NewFilterExecutor returns a new FilterExecutor instance.
-func NewFilterExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager ConfigPersistenceManager, filterEngine filterengine.FilterEngine) *FilterExecutor {
+func NewFilterExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager, filterEngine filterengine.FilterEngine) *FilterExecutor {
 	return &FilterExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfgManager:        cfgManager,
-		filterEngine:      filterEngine,
+		log:          log,
+		cfgManager:   cfgManager,
+		filterEngine: filterEngine,
 	}
 }
 
@@ -64,8 +61,6 @@ func (e *FilterExecutor) FeatureName() FeatureName {
 
 // List returns a tabular representation of Filters
 func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List filters")
 	return respond(e.TabularOutput(), cmdCtx), nil
 }
@@ -73,9 +68,6 @@ func (e *FilterExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 // Enable enables given filter in the startup config map
 func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = true
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {
 		return respond(fmt.Sprintf(filterNameMissing, e.TabularOutput()), cmdCtx), nil
 	}
@@ -96,10 +88,6 @@ func (e *FilterExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 // Disable disables given filter in the startup config map
 func (e *FilterExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = false
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
-
 	if len(cmdCtx.Args) < 3 {
 		msg := fmt.Sprintf(filterNameMissing, e.TabularOutput())
 		return respond(msg, cmdCtx), nil
@@ -132,14 +120,6 @@ func (e *FilterExecutor) TabularOutput() string {
 
 	w.Flush()
 	return buf.String()
-}
-
-func (e *FilterExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting filter command: %s", err.Error())
-	}
 }
 
 func appendInteractiveFilterIfNeeded(body string, msg interactive.CoreMessage, cmdCtx CommandContext) interactive.CoreMessage {

@@ -29,19 +29,17 @@ var (
 
 // ActionExecutor executes all commands that are related to actions.
 type ActionExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfgManager        ConfigPersistenceManager
-	actions           map[string]config.Action
+	log        logrus.FieldLogger
+	cfgManager ConfigPersistenceManager
+	actions    map[string]config.Action
 }
 
 // NewActionExecutor returns a new ActionExecutor instance.
-func NewActionExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfgManager ConfigPersistenceManager, cfg config.Config) *ActionExecutor {
+func NewActionExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager, cfg config.Config) *ActionExecutor {
 	return &ActionExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfgManager:        cfgManager,
-		actions:           cfg.Actions,
+		log:        log,
+		cfgManager: cfgManager,
+		actions:    cfg.Actions,
 	}
 }
 
@@ -61,8 +59,6 @@ func (e *ActionExecutor) FeatureName() FeatureName {
 
 // List returns a tabular representation of Actions
 func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List actions")
 	return respond(e.ActionsTabularOutput(), cmdCtx), nil
 }
@@ -70,9 +66,6 @@ func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (inter
 // Enable enables given action in the runtime config map
 func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = true
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {
 		return respond(fmt.Sprintf(actionNameMissing, e.ActionsTabularOutput()), cmdCtx), nil
 	}
@@ -88,9 +81,6 @@ func (e *ActionExecutor) Enable(ctx context.Context, cmdCtx CommandContext) (int
 // Disable disables given action in the runtime config map
 func (e *ActionExecutor) Disable(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	const enabled = false
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	if len(cmdCtx.Args) < 3 {
 		return respond(fmt.Sprintf(actionNameMissing, e.ActionsTabularOutput()), cmdCtx), nil
 	}
@@ -115,12 +105,4 @@ func (e *ActionExecutor) ActionsTabularOutput() string {
 	}
 	w.Flush()
 	return buf.String()
-}
-
-func (e *ActionExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting action command: %s", err.Error())
-	}
 }

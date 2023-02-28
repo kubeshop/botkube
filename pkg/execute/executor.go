@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -60,6 +62,7 @@ type DefaultExecutor struct {
 	user                  string
 	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
+	auditReporter         audit.AuditReporter
 }
 
 // CommandFlags creates custom type for flags in botkube
@@ -139,7 +142,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
 
 	if e.kubectlExecutor.CanHandle(cmdCtx.Args) && !isPluginCmd {
-		e.reportCommand(e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+		e.reportCommand(ctx, e.kubectlExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive(), cmdCtx)
 		out, err := e.kubectlExecutor.Execute(e.conversation.ExecutorBindings, cmdCtx.CleanCmd, e.conversation.IsAuthenticated, cmdCtx)
 		switch {
 		case err == nil:
@@ -159,7 +162,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 	}
 
 	if e.kubectlCmdBuilder.CanHandle(cmdCtx.Args) && !isPluginCmd {
-		e.reportCommand(e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false)
+		e.reportCommand(ctx, e.kubectlCmdBuilder.GetCommandPrefix(cmdCtx.Args), false, cmdCtx)
 		out, err := e.kubectlCmdBuilder.Do(ctx, cmdCtx.Args, e.platform, e.conversation.ExecutorBindings, e.conversation.SlackState, header(cmdCtx), cmdCtx)
 		if err != nil {
 			// TODO: Return error when the DefaultExecutor is refactored as a part of https://github.com/kubeshop/botkube/issues/589
@@ -173,7 +176,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		if isHelpCmd(cmdCtx.Args) {
 			return e.ExecuteHelp(ctx, cmdCtx)
 		}
-		e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+		e.reportCommand(ctx, e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive(), cmdCtx)
 		out, err := e.pluginExecutor.Execute(ctx, e.conversation.ExecutorBindings, e.conversation.SlackState, cmdCtx)
 		switch {
 		case err == nil:
@@ -195,7 +198,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	fn, foundRes, foundFn := e.cmdsMapping.FindFn(cmdVerb, cmdRes)
 	if !foundRes {
-		e.reportCommand(anonymizedInvalidVerb, false)
+		e.reportCommand(ctx, anonymizedInvalidVerb, false, cmdCtx)
 		e.log.Infof("received unsupported command: %q", cmdCtx.CleanCmd)
 		return respond(unsupportedCmdMsg, cmdCtx)
 	}
@@ -206,9 +209,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 			e.log.Infof("received unsupported resource: %q", cmdCtx.CleanCmd)
 			reportedCmd = fmt.Sprintf("%s {invalid feature}", reportedCmd)
 		}
-		e.reportCommand(reportedCmd, false)
+		e.reportCommand(ctx, reportedCmd, false, cmdCtx)
 		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
 		return respond(msg, cmdCtx)
+	} else {
+		cmdToReport := string(cmdVerb)
+		if cmdRes != "" {
+			cmdToReport = fmt.Sprintf("%s %s", cmdVerb, cmdRes)
+		}
+		e.reportCommand(ctx, cmdToReport, false, cmdCtx)
 	}
 
 	msg, err := fn(ctx, cmdCtx)
@@ -230,7 +239,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 }
 
 func (e *DefaultExecutor) ExecuteHelp(ctx context.Context, cmdCtx CommandContext) interactive.CoreMessage {
-	e.reportCommand(e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive())
+	e.reportCommand(ctx, e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive(), cmdCtx)
 	msg, err := e.pluginExecutor.Help(ctx, e.conversation.ExecutorBindings, cmdCtx)
 	if err != nil {
 		e.log.Errorf("while executing help command %q: %s", cmdCtx.CleanCmd, err.Error())
@@ -281,11 +290,29 @@ func removeMultipleSpaces(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func (e *DefaultExecutor) reportCommand(verb string, withFilter bool) {
-	err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin, withFilter)
-	if err != nil {
+func (e *DefaultExecutor) reportCommand(ctx context.Context, verb string, withFilter bool, cmdCtx CommandContext) {
+	if err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin, withFilter); err != nil {
 		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
 	}
+	if err := e.reportAuditEvent(ctx, cmdCtx); err != nil {
+		e.log.Errorf("while reporting executor audit event for %s: %s", verb, err.Error())
+	}
+}
+
+func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, cmdCtx CommandContext) error {
+	platform, err := audit.NewBotPlatform(cmdCtx.Platform.String())
+	if err != nil {
+		return err
+	}
+	event := audit.ExecutorAuditEvent{
+		PlatformUser: cmdCtx.User,
+		CreatedAt:    time.Now().Format(time.RFC3339),
+		PluginName:   cmdCtx.Args[0],
+		Channel:      cmdCtx.CommGroupName,
+		Command:      cmdCtx.ExpandedRawCmd,
+		BotPlatform:  platform,
+	}
+	return e.auditReporter.ReportExecutorAuditEvent(ctx, event)
 }
 
 // appendByUserOnlyIfNeeded returns the "by Foo" only if the command was executed via button.

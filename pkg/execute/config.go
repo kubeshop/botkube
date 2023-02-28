@@ -21,19 +21,16 @@ var (
 
 // ConfigExecutor executes all commands that are related to config
 type ConfigExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-
+	log logrus.FieldLogger
 	// Used for deprecated showControllerConfig function.
 	cfg config.Config
 }
 
 // NewConfigExecutor returns a new ConfigExecutor instance
-func NewConfigExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, config config.Config) *ConfigExecutor {
+func NewConfigExecutor(log logrus.FieldLogger, config config.Config) *ConfigExecutor {
 	return &ConfigExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfg:               config,
+		log: log,
+		cfg: config,
 	}
 }
 
@@ -51,22 +48,11 @@ func (e *ConfigExecutor) Commands() map[command.Verb]CommandFn {
 
 // Show returns Config in yaml format
 func (e *ConfigExecutor) Show(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
-
 	cfg, err := e.renderBotkubeConfiguration()
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while rendering Botkube configuration: %w", err)
 	}
 	return respond(cfg, cmdCtx), nil
-}
-
-func (e *ConfigExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting config command: %s", err.Error())
-	}
 }
 
 const redactedSecretStr = "*** REDACTED ***"
