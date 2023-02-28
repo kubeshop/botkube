@@ -212,6 +212,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		e.reportCommand(ctx, reportedCmd, false, cmdCtx)
 		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
 		return respond(msg, cmdCtx)
+	} else {
+		cmdToReport := string(cmdVerb)
+		if cmdRes != "" {
+			cmdToReport = fmt.Sprintf("%s %s", cmdVerb, cmdRes)
+		}
+		e.reportCommand(ctx, cmdToReport, false, cmdCtx)
 	}
 
 	msg, err := fn(ctx, cmdCtx)

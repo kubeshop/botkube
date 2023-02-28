@@ -95,7 +95,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	)
 	actionExecutor := NewActionExecutor(
 		params.Log.WithField("component", "Action Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
