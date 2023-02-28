@@ -6,19 +6,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
+	config2 "github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 )
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.
 type DefaultExecutorFactory struct {
 	log                   logrus.FieldLogger
 	cfg                   config.Config
-	filterEngine          filterengine.FilterEngine
 	analyticsReporter     AnalyticsReporter
 	notifierExecutor      *NotifierExecutor
 	kubectlExecutor       *Kubectl
@@ -75,8 +74,8 @@ type AnalyticsReporter interface {
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.
 type CommandGuard interface {
-	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
-	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]config2.Resource, error)
+	GetResourceDetails(verb, resourceType string) (config2.Resource, error)
 	FilterSupportedVerbs(allVerbs []string) []string
 }
 
@@ -230,7 +229,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		sourceBindingExecutor: f.sourceBindingExecutor,
 		actionExecutor:        f.actionExecutor,
 		filterExecutor:        f.filterExecutor,
-		filterEngine:          f.filterEngine,
 		pingExecutor:          f.pingExecutor,
 		versionExecutor:       f.versionExecutor,
 		helpExecutor:          f.helpExecutor,

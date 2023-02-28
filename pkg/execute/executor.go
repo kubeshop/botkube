@@ -17,7 +17,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/format"
 )
 
@@ -36,7 +35,6 @@ var newLinePattern = regexp.MustCompile(`\r?\n`)
 // DefaultExecutor is a default implementations of Executor
 type DefaultExecutor struct {
 	cfg                   config.Config
-	filterEngine          filterengine.FilterEngine
 	log                   logrus.FieldLogger
 	analyticsReporter     AnalyticsReporter
 	kubectlExecutor       *Kubectl

@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
@@ -55,7 +56,7 @@ type Source struct {
 	messageCh     chan source.Message
 	startTime     time.Time
 	recommFactory RecommendationFactory
-	commandGuard  *commander.CommandGuard
+	commandGuard  *command.CommandGuard
 	commander     *commander.Commander
 	filterEngine  filterengine.FilterEngine
 	clusterName   string
@@ -107,7 +108,7 @@ func consumeEvents(s Source) {
 	router := NewRouter(client.mapper, client.dynamicCli, s.logger)
 	router.BuildTable(&s.config)
 	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
-	s.commandGuard = commander.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
+	s.commandGuard = command.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
 	s.commander = commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard, s.config.ActionVerbs, s.config.ActionResources)
 	s.filterEngine = filterengine.WithAllFilters(s.logger, client.dynamicCli, client.mapper, s.config.Filters)
 

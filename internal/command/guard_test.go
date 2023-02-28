@@ -1,4 +1,4 @@
-package kubectl_test
+package command
 
 import (
 	"errors"
@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/discovery"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
 func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
@@ -40,7 +39,7 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 		AllConfiguredResources []string
 		FakeDiscoClient        *fakeDisco
 
-		ExpectedResult     []kubectl.Resource
+		ExpectedResult     []Resource
 		ExpectedErrMessage string
 	}{
 		{
@@ -77,7 +76,7 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 						{Group: "", Version: "external.metrics.k8s.io/v1beta1"}: errors.New("Got empty response for: external.metrics.k8s.io/v1beta1"),
 					},
 				}},
-			ExpectedResult: []kubectl.Resource{
+			ExpectedResult: []Resource{
 				{Name: "pods", Namespaced: true, SlashSeparatedInCommand: false},
 			},
 			ExpectedErrMessage: "",
@@ -94,7 +93,7 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 			SelectedVerb:           "get",
 			AllConfiguredResources: []string{"pods", "services", "nodes", "tokenreviews"},
 			FakeDiscoClient:        fakeDiscoClient,
-			ExpectedResult: []kubectl.Resource{
+			ExpectedResult: []Resource{
 				{Name: "pods", Namespaced: true, SlashSeparatedInCommand: false},
 				{Name: "services", Namespaced: true, SlashSeparatedInCommand: false},
 				{Name: "nodes", Namespaced: false, SlashSeparatedInCommand: false},
@@ -105,7 +104,7 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), tc.FakeDiscoClient)
+			cmdGuard := NewCommandGuard(loggerx.NewNoop(), tc.FakeDiscoClient)
 
 			// when
 			result, err := cmdGuard.GetAllowedResourcesForVerb(tc.SelectedVerb, tc.AllConfiguredResources)
@@ -130,14 +129,14 @@ func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
 		ResourceType string
 		ResourceMap  map[string]v1.APIResource
 
-		ExpectedResult     kubectl.Resource
+		ExpectedResult     Resource
 		ExpectedErrMessage string
 	}{
 		{
 			Name:         "Namespaced",
 			SelectedVerb: "get",
 			ResourceType: "pods",
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "pods",
 				Namespaced:              true,
 				SlashSeparatedInCommand: false,
@@ -147,7 +146,7 @@ func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
 			Name:           "Verb is resourceless",
 			SelectedVerb:   "api-versions",
 			ResourceType:   "",
-			ExpectedResult: kubectl.Resource{},
+			ExpectedResult: Resource{},
 		},
 	}
 	for _, tc := range testCases {
@@ -159,7 +158,7 @@ func TestCommandGuard_GetResourceDetails_HappyPath(t *testing.T) {
 					}},
 				},
 			}
-			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), fakeDisco)
+			cmdGuard := NewCommandGuard(loggerx.NewNoop(), fakeDisco)
 
 			// when
 			result, err := cmdGuard.GetResourceDetails(tc.SelectedVerb, tc.ResourceType)
@@ -203,7 +202,7 @@ func TestCommandGuard_GetServerResourceMap_HappyPath(t *testing.T) {
 			},
 		},
 	}
-	cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), fakeDisco)
+	cmdGuard := NewCommandGuard(loggerx.NewNoop(), fakeDisco)
 
 	// when
 
@@ -226,7 +225,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 		ResourceType string
 		ResourceMap  map[string]v1.APIResource
 
-		ExpectedResult     kubectl.Resource
+		ExpectedResult     Resource
 		ExpectedErrMessage string
 	}{
 		{
@@ -234,7 +233,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb: "get",
 			ResourceType: "pods",
 			ResourceMap:  resMap,
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "pods",
 				Namespaced:              true,
 				SlashSeparatedInCommand: false,
@@ -245,7 +244,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb: "logs",
 			ResourceType: "pods",
 			ResourceMap:  resMap,
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "pods",
 				Namespaced:              true,
 				SlashSeparatedInCommand: true,
@@ -256,7 +255,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb: "get",
 			ResourceType: "nodes",
 			ResourceMap:  resMap,
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "nodes",
 				Namespaced:              false,
 				SlashSeparatedInCommand: false,
@@ -267,7 +266,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb: "top",
 			ResourceType: "nodes",
 			ResourceMap:  resMap,
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "nodes",
 				Namespaced:              false,
 				SlashSeparatedInCommand: false,
@@ -278,7 +277,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb:       "get",
 			ResourceType:       "drillbinding",
 			ResourceMap:        resMap,
-			ExpectedResult:     kubectl.Resource{},
+			ExpectedResult:     Resource{},
 			ExpectedErrMessage: "resource not found",
 		},
 		{
@@ -286,7 +285,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb:       "check",
 			ResourceType:       "pods",
 			ResourceMap:        resMap,
-			ExpectedResult:     kubectl.Resource{},
+			ExpectedResult:     Resource{},
 			ExpectedErrMessage: "verb not supported",
 		},
 		{
@@ -294,7 +293,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb:       "patch",
 			ResourceType:       "pods",
 			ResourceMap:        resMap,
-			ExpectedResult:     kubectl.Resource{},
+			ExpectedResult:     Resource{},
 			ExpectedErrMessage: "verb not supported",
 		},
 		{
@@ -302,7 +301,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 			SelectedVerb: "describe",
 			ResourceType: "nodes",
 			ResourceMap:  resMap,
-			ExpectedResult: kubectl.Resource{
+			ExpectedResult: Resource{
 				Name:                    "nodes",
 				Namespaced:              false,
 				SlashSeparatedInCommand: false,
@@ -312,7 +311,7 @@ func TestCommandGuard_GetResourceDetailsFromMap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cmdGuard := kubectl.NewCommandGuard(loggerx.NewNoop(), nil)
+			cmdGuard := NewCommandGuard(loggerx.NewNoop(), nil)
 
 			// when
 			result, err := cmdGuard.GetResourceDetailsFromMap(tc.SelectedVerb, tc.ResourceType, tc.ResourceMap)

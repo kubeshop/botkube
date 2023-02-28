@@ -21,7 +21,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/filterengine/filters"
+	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/test/fake"
 )
 
@@ -741,7 +741,7 @@ func runBotTest(t *testing.T,
 				Name:      fmt.Sprintf("%s-ignored", botDriver.Channel().Name()),
 				Namespace: appCfg.Deployment.Namespace,
 				Annotations: map[string]string{
-					filters.DisableAnnotation: "true",
+					filterengine.DisableAnnotation: "true",
 				},
 			},
 		}

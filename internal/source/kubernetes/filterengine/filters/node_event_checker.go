@@ -7,7 +7,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/pkg/k8sutil"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 )
 
 const (

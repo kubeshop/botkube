@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 )
@@ -38,7 +39,7 @@ type EnabledKubectlMerger interface {
 // CmdGuard is responsible for guarding kubectl commands.
 type CmdGuard interface {
 	GetServerResourceMap() (map[string]metav1.APIResource, error)
-	GetResourceDetailsFromMap(selectedVerb, resourceType string, resMap map[string]metav1.APIResource) (Resource, error)
+	GetResourceDetailsFromMap(selectedVerb, resourceType string, resMap map[string]metav1.APIResource) (command.Resource, error)
 }
 
 // NewCommander creates a new Commander instance.
@@ -84,7 +85,7 @@ func (c *Commander) GetCommandsForEvent(event event.Event, executorBindings []st
 	for _, verb := range allowedVerbs {
 		res, err := c.guard.GetResourceDetailsFromMap(verb, resourceName, resMap)
 		if err != nil {
-			if err == ErrVerbNotSupported {
+			if err == command.ErrVerbNotSupported {
 				c.log.Debugf("Not supported verb %q for resource %q. Skipping...", verb, resourceName)
 				continue
 			}

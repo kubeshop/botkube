@@ -11,8 +11,8 @@ import (
 	"github.com/slack-go/slack"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
 var (
@@ -127,7 +127,7 @@ func (e *Kubectl) Handle(ctx context.Context, cmd string, isInteractivitySupport
 	msg, err := cmds.SelectAndRun(cmd)
 	switch err {
 	case nil:
-	case kubectl.ErrVerbNotSupported:
+	case command.ErrVerbNotSupported:
 		return errMessage(allVerbs, ":exclamation: Unfortunately, interactive command builder doesn't support %q verb yet.", stateDetails.verb)
 	default:
 		e.log.WithField("error", err.Error()).Error("Cannot render the kubectl command builder.")
