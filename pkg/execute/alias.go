@@ -27,14 +27,13 @@ var featureName = FeatureName{
 
 // AliasExecutor executes all commands that are related to aliases.
 type AliasExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfg               config.Config
+	log logrus.FieldLogger
+	cfg config.Config
 }
 
 // NewAliasExecutor returns a new AliasExecutor instance.
-func NewAliasExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *AliasExecutor {
-	return &AliasExecutor{log: log, analyticsReporter: analyticsReporter, cfg: cfg}
+func NewAliasExecutor(log logrus.FieldLogger, cfg config.Config) *AliasExecutor {
+	return &AliasExecutor{log: log, cfg: cfg}
 }
 
 // Commands returns slice of commands the executor supports.
@@ -46,8 +45,6 @@ func (e *AliasExecutor) Commands() map[command.Verb]CommandFn {
 
 // List returns a tabular representation of aliases.
 func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing aliases...")
 	outMsg := respond(e.getTabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx)
 
@@ -72,14 +69,6 @@ func (e *AliasExecutor) List(_ context.Context, cmdCtx CommandContext) (interact
 // FeatureName returns the name and aliases of the feature provided by this executor.
 func (e *AliasExecutor) FeatureName() FeatureName {
 	return featureName
-}
-
-func (e *AliasExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting executor command: %s", err.Error())
-	}
 }
 
 func (e *AliasExecutor) getTabularOutput(bindings []string) string {

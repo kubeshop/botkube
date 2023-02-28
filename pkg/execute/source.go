@@ -26,17 +26,15 @@ const kubernetesBuiltinSourceName = "kubernetes"
 
 // SourceExecutor executes all commands that are related to sources.
 type SourceExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfg               config.Config
+	log logrus.FieldLogger
+	cfg config.Config
 }
 
 // NewSourceExecutor returns a new SourceExecutor instance.
-func NewSourceExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *SourceExecutor {
+func NewSourceExecutor(log logrus.FieldLogger, cfg config.Config) *SourceExecutor {
 	return &SourceExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfg:               cfg,
+		log: log,
+		cfg: cfg,
 	}
 }
 
@@ -54,8 +52,6 @@ func (e *SourceExecutor) FeatureName() FeatureName {
 
 // List returns a tabular representation of Executors
 func (e *SourceExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("List sources")
 	return respond(e.TabularOutput(cmdCtx.Conversation.SourceBindings), cmdCtx), nil
 }
@@ -88,12 +84,4 @@ func (e *SourceExecutor) TabularOutput(bindings []string) string {
 	}
 	w.Flush()
 	return buf.String()
-}
-
-func (e *SourceExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting source command: %s", err.Error())
-	}
 }

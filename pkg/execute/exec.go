@@ -27,17 +27,15 @@ const kubectlBuiltinExecutorName = "kubectl"
 
 // ExecExecutor executes all commands that are related to executors.
 type ExecExecutor struct {
-	log               logrus.FieldLogger
-	analyticsReporter AnalyticsReporter
-	cfg               config.Config
+	log logrus.FieldLogger
+	cfg config.Config
 }
 
 // NewExecExecutor returns a new ExecExecutor instance.
-func NewExecExecutor(log logrus.FieldLogger, analyticsReporter AnalyticsReporter, cfg config.Config) *ExecExecutor {
+func NewExecExecutor(log logrus.FieldLogger, cfg config.Config) *ExecExecutor {
 	return &ExecExecutor{
-		log:               log,
-		analyticsReporter: analyticsReporter,
-		cfg:               cfg,
+		log: log,
+		cfg: cfg,
 	}
 }
 
@@ -55,8 +53,6 @@ func (e *ExecExecutor) FeatureName() FeatureName {
 
 // List returns a tabular representation of Executors
 func (e *ExecExecutor) List(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	cmdVerb, cmdRes := parseCmdVerb(cmdCtx.Args)
-	defer e.reportCommand(cmdVerb, cmdRes, cmdCtx.Conversation.CommandOrigin, cmdCtx.Platform)
 	e.log.Debug("Listing executors...")
 	return respond(e.TabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx), nil
 }
@@ -76,14 +72,6 @@ func (e *ExecExecutor) TabularOutput(bindings []string) string {
 
 	w.Flush()
 	return buf.String()
-}
-
-func (e *ExecExecutor) reportCommand(cmdVerb, cmdRes string, commandOrigin command.Origin, platform config.CommPlatformIntegration) {
-	cmdToReport := fmt.Sprintf("%s %s", cmdVerb, cmdRes)
-	err := e.analyticsReporter.ReportCommand(platform, cmdToReport, commandOrigin, false)
-	if err != nil {
-		e.log.Errorf("while reporting executor command: %s", err.Error())
-	}
 }
 
 func executorsForBindings(executors map[string]config.Executors, bindings []string) map[string]bool {

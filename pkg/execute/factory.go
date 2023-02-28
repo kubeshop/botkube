@@ -100,59 +100,48 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	)
 	sourceBindingExecutor := NewSourceBindingExecutor(
 		params.Log.WithField("component", "SourceBinding Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	filterExecutor := NewFilterExecutor(
 		params.Log.WithField("component", "Filter Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.FilterEngine,
 	)
 	pingExecutor := NewPingExecutor(
 		params.Log.WithField("component", "Ping Executor"),
-		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	versionExecutor := NewVersionExecutor(
 		params.Log.WithField("component", "Version Executor"),
-		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	feedbackExecutor := NewFeedbackExecutor(
 		params.Log.WithField("component", "Feedback Executor"),
-		params.AnalyticsReporter,
 	)
 	notifierExecutor := NewNotifierExecutor(
 		params.Log.WithField("component", "Notifier Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	helpExecutor := NewHelpExecutor(
 		params.Log.WithField("component", "Help Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	configExecutor := NewConfigExecutor(
 		params.Log.WithField("component", "Config Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	execExecutor := NewExecExecutor(
 		params.Log.WithField("component", "Executor Bindings Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	sourceExecutor := NewSourceExecutor(
 		params.Log.WithField("component", "Source Bindings Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	aliasExecutor := NewAliasExecutor(
 		params.Log.WithField("component", "Alias Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 

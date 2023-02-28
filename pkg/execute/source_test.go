@@ -110,7 +110,7 @@ func TestSourceExecutor(t *testing.T) {
 				ExecutorFilter: newExecutorTextFilter(""),
 				Conversation:   Conversation{SourceBindings: tc.bindings},
 			}
-			e := NewSourceExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
+			e := NewSourceExecutor(loggerx.NewNoop(), tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expOutput, msg.BaseBody.CodeBlock)

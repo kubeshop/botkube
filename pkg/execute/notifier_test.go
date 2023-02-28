@@ -85,7 +85,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			msg, err := e.Enable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -159,7 +159,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			msg, err := e.Disable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -212,7 +212,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
 			mapping, err := NewCmdsMapping([]CommandExecutor{e})
 			require.NoError(t, err)
 			tc.CmdCtx.Mapping = mapping

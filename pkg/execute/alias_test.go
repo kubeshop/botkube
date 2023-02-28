@@ -97,7 +97,7 @@ func TestAliasExecutor_List(t *testing.T) {
 				ExecutorFilter: newExecutorTextFilter(""),
 				Conversation:   Conversation{ExecutorBindings: tc.bindings},
 			}
-			e := NewAliasExecutor(loggerx.NewNoop(), &fakeAnalyticsReporter{}, tc.cfg)
+			e := NewAliasExecutor(loggerx.NewNoop(), tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
 			require.NoError(t, err)
 			require.Len(t, msg.Sections, 1)
