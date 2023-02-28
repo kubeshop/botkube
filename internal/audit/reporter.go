@@ -32,5 +32,5 @@ func NewAuditReporter(logger logrus.FieldLogger, gql *graphql.Gql) AuditReporter
 	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
 		return newGraphQLAuditReporter(logger.WithField("component", "GraphQLAuditReporter"), gql)
 	}
-	return newNoopAuditReporter(logger.WithField("component", "NoopAuditReporter"))
+	return newNoopAuditReporter(l)
 }
