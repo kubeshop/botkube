@@ -49,7 +49,6 @@ type RecommendationFactory interface {
 
 // Source Kubernetes source plugin data structure
 type Source struct {
-	ctx           context.Context
 	pluginVersion string
 	config        config.Config
 	logger        logrus.FieldLogger
@@ -72,23 +71,25 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	s := Source{}
-	s.startTime = time.Now()
-	s.messageCh = make(chan source.Message)
-	out := source.StreamOutput{Message: s.messageCh}
 	cfg, err := config.MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
-	s.config = cfg
-	s.logger = loggerx.New(loggerx.Config{
-		Level: cfg.Log.Level,
-	})
-	s.ctx = ctx
-	s.clusterName = input.Context.ClusterName
-	s.kubeConfig = input.Context.KubeConfig
-	go consumeEvents(s)
-	return out, nil
+	s := Source{
+		startTime: time.Now(),
+		messageCh: make(chan source.Message),
+		config:    cfg,
+		logger: loggerx.New(loggerx.Config{
+			Level: cfg.Log.Level,
+		}),
+		clusterName: input.Context.ClusterName,
+		kubeConfig:  input.Context.KubeConfig,
+	}
+
+	go consumeEvents(s, ctx)
+	return source.StreamOutput{
+		Message: s.messageCh,
+	}, nil
 }
 
 // Metadata returns metadata of Kubernetes configuration
@@ -100,7 +101,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func consumeEvents(s Source) {
+func consumeEvents(s Source, ctx context.Context) {
 	client, err := NewClient(s.kubeConfig)
 	exitOnError(err, s.logger)
 
@@ -161,6 +162,7 @@ func consumeEvents(s Source) {
 	}
 	for _, eventType := range eventTypes {
 		router.RegisterEventHandler(
+			ctx,
 			s,
 			eventType,
 			handleEvent,
@@ -168,16 +170,17 @@ func consumeEvents(s Source) {
 	}
 
 	router.HandleMappedEvent(
+		ctx,
 		s,
 		config.ErrorEvent,
 		handleEvent,
 	)
 
-	stopCh := s.ctx.Done()
+	stopCh := ctx.Done()
 	dynamicKubeInformerFactory.Start(stopCh)
 }
 
-func handleEvent(s Source, e event.Event, updateDiffs []string) {
+func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []string) {
 	s.logger.Debugf("Processing %s to %s/%v in %s namespace", e.Type, e.Resource, e.Name, e.Namespace)
 	enrichEventWithAdditionalMetadata(s, &e)
 
@@ -202,7 +205,7 @@ func handleEvent(s Source, e event.Event, updateDiffs []string) {
 	}
 
 	// Filter events
-	e = s.filterEngine.Run(s.ctx, e)
+	e = s.filterEngine.Run(ctx, e)
 	if e.Skip {
 		s.logger.Debugf("Skipping e: %#v", e)
 		return
@@ -214,9 +217,10 @@ func handleEvent(s Source, e event.Event, updateDiffs []string) {
 	}
 
 	recRunner, recCfg := s.recommFactory.New(s.config)
-	err := recRunner.Do(s.ctx, &e)
+	err := recRunner.Do(ctx, &e)
 	if err != nil {
 		s.logger.Errorf("while running recommendations: %w", err)
+		return
 	}
 
 	if recommendation.ShouldIgnoreEvent(&recCfg, e) {
@@ -382,11 +386,11 @@ func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/Kubernetes",
-    "title": "Kubernetes",
-    "description": "%s",
-    "definitions":{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$ref": "#/definitions/Kubernetes",
+  "title": "Kubernetes",
+  "description": "%s",
+  "definitions": {
     "Kubernetes": {
       "type": "object",
       "additionalProperties": false,
@@ -434,39 +438,39 @@ func jsonSchema() api.JSONSchema {
           "description": "Allowed verbs for actionable events.",
           "type": "array",
           "items": {
-            "type": "string",
-            "enum": [
-                "api-resources", 
-                "api-versions", 
-                "cluster-info", 
-                "describe", 
-                "explain", 
-                "get", 
-                "logs", 
-                "top"
-            ]
+            "type": "string"
           },
+          "default": [
+            "api-resources",
+            "api-versions",
+            "cluster-info",
+            "describe",
+            "explain",
+            "get",
+            "logs",
+            "top"
+          ],
           "title": "Action Verbs",
           "uniqueItems": true
         },
-		"actionResources": {
+        "actionResources": {
           "description": "Allowed resources for actionable events.",
           "type": "array",
           "items": {
-            "type": "string",
-            "enum": [
-                "deployments", 
-                "pods", 
-                "namespaces", 
-                "daemonsets", 
-                "statefulsets", 
-                "storageclasses", 
-                "nodes", 
-                "configmaps",
-                "services",
-				"ingresses"
-            ]
+            "type": "string"
           },
+          "default": [
+            "deployments",
+            "pods",
+            "namespaces",
+            "daemonsets",
+            "statefulsets",
+            "storageclasses",
+            "nodes",
+            "configmaps",
+            "services",
+            "ingresses"
+          ],
           "title": "Action Resources",
           "uniqueItems": true
         }
@@ -491,18 +495,18 @@ func jsonSchema() api.JSONSchema {
           "description": "Lists all event types to be watched.",
           "type": "array",
           "items": {
-            "type": "string",
-            "enum": [
-                "create", 
-                "update", 
-                "delete", 
-                "error", 
-                "warning", 
-                "normal", 
-                "info", 
-                "all"
-            ]
+            "type": "string"
           },
+          "default": [
+            "create",
+            "update",
+            "delete",
+            "error",
+            "warning",
+            "normal",
+            "info",
+            "all"
+          ],
           "title": "Event Types",
           "uniqueItems": true
         },
@@ -603,76 +607,76 @@ func jsonSchema() api.JSONSchema {
       "title": "Log"
     },
     "Recommendations": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "pod": {
-            "description": "Recommendations for Pod Kubernetes resource.",
-            "$ref": "#/definitions/PodRecommendation"
-          },
-          "ingress": {
-            "description": "Recommendations for Ingress Kubernetes resource.",
-            "$ref": "#/definitions/IngressRecommendation"
-          }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pod": {
+          "description": "Recommendations for Pod Kubernetes resource.",
+          "$ref": "#/definitions/PodRecommendation"
         },
-        "title": "Recommendations"
+        "ingress": {
+          "description": "Recommendations for Ingress Kubernetes resource.",
+          "$ref": "#/definitions/IngressRecommendation"
+        }
       },
-      "PodRecommendation": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "noLatestImageTag": {
-            "type": "boolean",
-            "description": "If true, notifies about Pod containers that use latest tag for images."
-          },
-          "labelsSet": {
-            "type": "boolean",
-            "description": "If true, notifies about Pod resources created without labels."
-          }
+      "title": "Recommendations"
+    },
+    "PodRecommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "noLatestImageTag": {
+          "type": "boolean",
+          "description": "If true, notifies about Pod containers that use latest tag for images."
         },
-        "title": "Pod Recommendations"
+        "labelsSet": {
+          "type": "boolean",
+          "description": "If true, notifies about Pod resources created without labels."
+        }
       },
-      "IngressRecommendation": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "backendServiceValid": {
-            "type": "boolean",
-            "description": "If true, notifies about Ingress resources with invalid backend service reference."
-          },
-          "tlsSecretValid": {
-            "type": "boolean",
-            "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
-          }
+      "title": "Pod Recommendations"
+    },
+    "IngressRecommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "backendServiceValid": {
+          "type": "boolean",
+          "description": "If true, notifies about Ingress resources with invalid backend service reference."
         },
-        "title": "Ingress Recommendations"
+        "tlsSecretValid": {
+          "type": "boolean",
+          "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
+        }
       },
-      "Filter": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-            "kubernetes": {
-                "description": "Kubernetes filter.",
-                "$ref": "#/definitions/KubernetesFilter"
-              }
-        },
-        "title": "Filter"
+      "title": "Ingress Recommendations"
+    },
+    "Filter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kubernetes": {
+          "description": "Kubernetes filter.",
+          "$ref": "#/definitions/KubernetesFilter"
+        }
       },
-      "KubernetesFilter": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "objectAnnotationChecker": {
-            "type": "boolean",
-            "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations."
-          },
-          "nodeEventsChecker": {
-            "type": "boolean",
-            "description": "If true, filters out Node-related events that are not important."
-          }
+      "title": "Filter"
+    },
+    "KubernetesFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "objectAnnotationChecker": {
+          "type": "boolean",
+          "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations."
         },
-        "title": "Kubernetes Filter"
-      }
+        "nodeEventsChecker": {
+          "type": "boolean",
+          "description": "If true, filters out Node-related events that are not important."
+        }
+      },
+      "title": "Kubernetes Filter"
+    }
   }
 }
 `, description),

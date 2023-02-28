@@ -115,7 +115,7 @@ sources:
     displayName: "Kubernetes Recommendations"
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
-    kubernetes:
+    botkube/kubernetes:
       # -- Describes configuration for various recommendation insights.
       recommendations:
         # -- Recommendations for Pod Kubernetes resource.

@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -15,7 +16,7 @@ const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
-type eventHandler func(source Source, event event.Event, updateDiffs []string)
+type eventHandler func(ctx context.Context, source Source, event event.Event, updateDiffs []string)
 
 type route struct {
 	resourceName  config.RegexConstraints
@@ -121,21 +122,21 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 
 // RegisterEventHandler allows router clients to create handlers that are
 // triggered for a target event.
-func (r *Router) RegisterEventHandler(s Source, eventType config.EventType, handlerFn func(s Source, e event.Event, updateDiffs []string)) {
+func (r *Router) RegisterEventHandler(ctx context.Context, s Source, eventType config.EventType, handlerFn func(ctx context.Context, s Source, e event.Event, updateDiffs []string)) {
 	for resource, reg := range r.registrations {
 		if !reg.canHandleEvent(eventType.String()) {
 			continue
 		}
 		sourceRoutes := r.getSourceRoutes(resource, eventType)
-		reg.handleEvent(s, resource, eventType, sourceRoutes, handlerFn)
+		reg.handleEvent(ctx, s, resource, eventType, sourceRoutes, handlerFn)
 	}
 }
 
 // HandleMappedEvent allows router clients to create handlers that are
 // triggered for a target mapped event.
-func (r *Router) HandleMappedEvent(s Source, targetEvent config.EventType, handlerFn eventHandler) {
+func (r *Router) HandleMappedEvent(ctx context.Context, s Source, targetEvent config.EventType, handlerFn eventHandler) {
 	if informer, ok := r.mappedInformer(targetEvent); ok {
-		informer.handleMapped(s, targetEvent, r.table, handlerFn)
+		informer.handleMapped(ctx, s, targetEvent, r.table, handlerFn)
 	}
 }
 

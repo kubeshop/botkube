@@ -109,8 +109,8 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
 	}
 	d.startProcesses[key] = struct{}{}
 
-	// Holds the array of configs for a given plugin.
-	// For example, ['botkube/kubernetes@v1.0.0']->[]{"cfg1", "cfg2"}
+	// Holds the array of configs for a given plugin. Currently, we have only one key for backward compatibility
+	// For example, ['botkube/kubernetes@v1.0.0']->[]{"cfg1"}
 	sourcePluginConfigs := map[string][]*source.Config{}
 	plugins := d.cfg.Sources[key].Plugins
 	for pluginName, pluginCfg := range plugins {
