@@ -87,7 +87,7 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []strin
 }
 
 func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event string, sources []string) error {
-	e := audit.AuditEvent{
+	e := audit.SourceAuditEvent{
 		CreatedAt:  time.Now().Format(time.RFC3339),
 		PluginName: pluginName,
 		Event:      event,

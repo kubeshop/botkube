@@ -11,20 +11,26 @@ import (
 
 // AuditReporter defines interface for reporting audit events
 type AuditReporter interface {
-	ReportExecutorAuditEvent(ctx context.Context, e AuditEvent) error
-	ReportSourceAuditEvent(ctx context.Context, e AuditEvent) error
+	ReportExecutorAuditEvent(ctx context.Context, e ExecutorAuditEvent) error
+	ReportSourceAuditEvent(ctx context.Context, e SourceAuditEvent) error
 }
 
-// AuditEvent contains audit event data
-type AuditEvent struct {
-	PlatformUser string
+// ExecutorAuditEvent contains audit event data
+type ExecutorAuditEvent struct {
 	CreatedAt    string
-	Channel      string
 	PluginName   string
+	PlatformUser string
 	BotPlatform  BotPlatform
 	Command      string
-	Event        string
-	Bindings     []string
+	Channel      string
+}
+
+// SourceAuditEvent contains audit event data
+type SourceAuditEvent struct {
+	CreatedAt  string
+	PluginName string
+	Event      string
+	Bindings   []string
 }
 
 // NewAuditReporter creates new AuditReporter
@@ -32,5 +38,5 @@ func NewAuditReporter(logger logrus.FieldLogger, gql *graphql.Gql) AuditReporter
 	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
 		return newGraphQLAuditReporter(logger.WithField("component", "GraphQLAuditReporter"), gql)
 	}
-	return newNoopAuditReporter(l)
+	return newNoopAuditReporter(nil)
 }

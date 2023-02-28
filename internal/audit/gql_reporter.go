@@ -27,7 +27,7 @@ func newGraphQLAuditReporter(logger logrus.FieldLogger, client *gql.Gql) *GraphQ
 }
 
 // ReportExecutorAuditEvent reports executor audit event using graphql interface
-func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e AuditEvent) error {
+func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e ExecutorAuditEvent) error {
 	r.log.Debugf("Reporting executor audit event for ID: %s", r.gql.DeploymentID)
 	var mutation struct {
 		CreateAuditEvent struct {
@@ -53,7 +53,7 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e A
 }
 
 // ReportSourceAuditEvent reports source audit event using graphql interface
-func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e AuditEvent) error {
+func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e SourceAuditEvent) error {
 	r.log.Debugf("Reporting source audit event for ID: %s", r.gql.DeploymentID)
 	var mutation struct {
 		CreateAuditEvent struct {
@@ -120,7 +120,7 @@ func NewBotPlatform(s string) (BotPlatform, error) {
 	case "SLACK":
 		fallthrough
 	case "SOCKETSLACK":
-		return BotPlatformSLACk, nil
+		return BotPlatformSlack, nil
 	case "DISCORD":
 		return BotPlatformDiscord, nil
 	case "MATTERMOST":

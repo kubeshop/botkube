@@ -298,7 +298,7 @@ func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, cmdCtx CommandCo
 	if err != nil {
 		return err
 	}
-	event := audit.AuditEvent{
+	event := audit.ExecutorAuditEvent{
 		PlatformUser: cmdCtx.User,
 		CreatedAt:    time.Now().Format(time.RFC3339),
 		PluginName:   cmdCtx.Args[0],
