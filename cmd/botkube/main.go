@@ -15,14 +15,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -128,7 +125,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
-	_, discoveryCli, _, err := getK8sClients(kubeConfig)
+	discoveryCli, err := getK8sClients(kubeConfig)
 	if err != nil {
 		return reportFatalError("while getting K8s clients", err)
 	}
@@ -444,20 +441,14 @@ func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (ana
 	return analyticsReporter, nil
 }
 
-func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, meta.RESTMapper, error) {
+func getK8sClients(cfg *rest.Config) (discovery.DiscoveryInterface, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("while creating discovery client: %w", err)
-	}
-
-	dynamicK8sCli, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("while creating dynamic K8s client: %w", err)
+		return nil, fmt.Errorf("while creating discovery client: %w", err)
 	}
 
 	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-	return dynamicK8sCli, discoCacheClient, mapper, nil
+	return discoCacheClient, nil
 }
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {

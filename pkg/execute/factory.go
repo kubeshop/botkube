@@ -7,7 +7,7 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/internal/audit"
-	config2 "github.com/kubeshop/botkube/internal/command"
+	guard "github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -77,8 +77,8 @@ type AnalyticsReporter interface {
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.
 type CommandGuard interface {
-	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]config2.Resource, error)
-	GetResourceDetails(verb, resourceType string) (config2.Resource, error)
+	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]guard.Resource, error)
+	GetResourceDetails(verb, resourceType string) (guard.Resource, error)
 	FilterSupportedVerbs(allVerbs []string) []string
 }
 

@@ -86,7 +86,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 		kubeConfig:  input.Context.KubeConfig,
 	}
 
-	go consumeEvents(s, ctx)
+	go consumeEvents(ctx, s)
 	return source.StreamOutput{
 		Event: s.eventCh,
 	}, nil
@@ -101,7 +101,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func consumeEvents(s Source, ctx context.Context) {
+func consumeEvents(ctx context.Context, s Source) {
 	client, err := NewClient(s.kubeConfig)
 	exitOnError(err, s.logger)
 
