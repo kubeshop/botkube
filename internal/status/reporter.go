@@ -13,6 +13,7 @@ type StatusReporter interface {
 	ReportDeploymentStartup(ctx context.Context) (bool, error)
 	ReportDeploymentShutdown(ctx context.Context) (bool, error)
 	ReportDeploymentFailed(ctx context.Context) (bool, error)
+	SetResourceVersion(resourceVersion int)
 }
 
 func NewStatusReporter(logger logrus.FieldLogger, gql *graphql.Gql) StatusReporter {

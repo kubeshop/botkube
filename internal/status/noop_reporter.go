@@ -18,16 +18,17 @@ func newNoopStatusReporter(logger logrus.FieldLogger) *NoopStatusReporter {
 	}
 }
 func (r *NoopStatusReporter) ReportDeploymentStartup(ctx context.Context) (bool, error) {
-	r.log.Debug("ReportDeploymentStartup")
 	return true, nil
 }
 
 func (r *NoopStatusReporter) ReportDeploymentShutdown(ctx context.Context) (bool, error) {
-	r.log.Debug("ReportDeploymentShutdown")
 	return true, nil
 }
 
 func (r *NoopStatusReporter) ReportDeploymentFailed(ctx context.Context) (bool, error) {
-	r.log.Debug("ReportDeploymentFailed")
 	return true, nil
+}
+
+func (r *NoopStatusReporter) SetResourceVersion(resourceVersion int) {
+
 }
