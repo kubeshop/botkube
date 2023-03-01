@@ -633,15 +633,15 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		attachAssertionFn := func(title, color, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps created" && msg == expectedMsg && color == botDriver.GetColorByLevel(config.Info)
+		attachAssertionFn := func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/configmaps created*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			contains := strings.HasPrefix(msg, startsWithMsg)
 			if msg != expectedMsg {
 				count := countMatchBlock(expectedMsg, msg)
 				msgDiff := diff(expectedMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
 		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
 		require.NoError(t, err)
@@ -812,12 +812,9 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot event message...")
-		assertionFn := func(title, color, msg string) (bool, int, string) {
-			return title == "v1/pods created" &&
-				strings.Contains(msg, "Recommendations:") &&
-				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
-				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name)) &&
-				color == botDriver.GetColorByLevel(config.Info), 0, ""
+		assertionFn := func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/pods created*\n*Labels:*\n• Kind: Pod\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s\n*Recommendations:*\n• Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.\n• The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName, cfgMap.Namespace, cfgMap.Name, cfgMap.Namespace, cfgMap.Name)
+			return strings.HasPrefix(startsWithMsg, 0, "")
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
 		require.NoError(t, err)
