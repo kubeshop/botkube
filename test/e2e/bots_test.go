@@ -643,7 +643,8 @@ func runBotTest(t *testing.T,
 			}
 			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -670,7 +671,9 @@ func runBotTest(t *testing.T,
 			}
 			return contains, 0, ""
 		}
-		err = botDriver.WaitForMessagesPostedOnChannelsWithAttachment(botDriver.BotUserID(), channelIDs, attachAssertionFn)
+		for _, channelID := range channelIDs {
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), channelID, 2, attachAssertionFn)
+		}
 		require.NoError(t, err)
 
 		t.Log("Stopping notifier in first channel...")
@@ -724,7 +727,7 @@ func runBotTest(t *testing.T,
 			}
 			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
 
 		t.Log("Starting notifier in first channel")
 		command = "enable notifications"
@@ -771,7 +774,7 @@ func runBotTest(t *testing.T,
 			}
 			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -786,7 +789,7 @@ func runBotTest(t *testing.T,
 			}
 			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 	})
 
@@ -816,7 +819,7 @@ func runBotTest(t *testing.T,
 			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/pods created*\n*Labels:*\n• Kind: Pod\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s\n*Recommendations:*\n• Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.\n• The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name, appCfg.ClusterName, pod.Namespace, pod.Name, pod.Namespace, pod.Name)
 			return strings.HasPrefix(msg, startsWithMsg), 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Expecting bot automation message...")

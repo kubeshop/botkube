@@ -295,7 +295,16 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 				continue
 			}
 
-			equal, commonCount, diffStr := assertFn(msg.Text)
+			if len(msg.Attachments) != 1 {
+				continue
+			}
+
+			attachment := msg.Attachments[0]
+			if len(attachment.Fields) != 1 {
+				continue
+			}
+
+			equal, commonCount, diffStr := assertFn(attachment.Fields[0].Value)
 			if !equal {
 				// different message; update the diff if it's more similar than the previous one or initial value
 				if commonCount > highestCommonBlockCount {
