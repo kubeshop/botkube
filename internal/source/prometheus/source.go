@@ -3,6 +3,7 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -57,18 +58,18 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func (p *Source) consumeAlerts(ctx context.Context, config Config, ch chan<- []byte) {
-	log := loggerx.New(loggerx.Config{
-		Level: config.Log.Level,
+func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- []byte) {
+	log := loggerx.New(config.Logger{
+		Level: cfg.Log.Level,
 	})
-	prometheus, err := NewClient(config.URL)
+	prometheus, err := NewClient(cfg.URL)
 	exitOnError(err, log)
 
 	for {
 		alerts, err := prometheus.Alerts(ctx, GetAlertsRequest{
-			IgnoreOldAlerts: *config.IgnoreOldAlerts,
+			IgnoreOldAlerts: *cfg.IgnoreOldAlerts,
 			MinAlertTime:    p.startedAt,
-			AlertStates:     config.AlertStates,
+			AlertStates:     cfg.AlertStates,
 		})
 		if err != nil {
 			log.Errorf("failed to get alerts. %v", err)

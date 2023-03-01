@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"io"
 	"os"
 	"regexp"
@@ -25,7 +26,7 @@ var specialCharsPattern = regexp.MustCompile(`(?i:[^A-Z0-9_])`)
 func NewPluginLoggers(bkLogger logrus.FieldLogger, pluginKey string, pluginType Type) (hclog.Logger, io.Writer, io.Writer) {
 	pluginLogLevel := getPluginLogLevel(bkLogger, pluginKey, pluginType)
 
-	cfg := loggerx.Config{
+	cfg := config.Logger{
 		Level: pluginLogLevel.String(),
 	}
 	log := loggerx.New(cfg).WithField("plugin", pluginKey)

@@ -19,7 +19,6 @@ import (
 	"github.com/kubeshop/botkube/internal/config"
 	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/graphql"
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 //go:embed default.yaml
@@ -691,9 +690,15 @@ type Settings struct {
 	MetricsPort           string           `yaml:"metricsPort"`
 	HealthPort            string           `yaml:"healthPort"`
 	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
-	Log                   loggerx.Config   `yaml:"log"`
+	Log                   Logger           `yaml:"log"`
 	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig            string           `yaml:"kubeconfig"`
+}
+
+// Logger holds logger configuration parameters.
+type Logger struct {
+	Level         string `yaml:"level"`
+	DisableColors bool   `yaml:"disableColors"`
 }
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
