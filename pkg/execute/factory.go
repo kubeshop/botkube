@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 
+	"github.com/kubeshop/botkube/internal/audit"
 	config2 "github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -36,6 +37,7 @@ type DefaultExecutorFactory struct {
 	cfgManager            ConfigPersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
+	auditReporter         audit.AuditReporter
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -51,6 +53,7 @@ type DefaultExecutorFactoryParams struct {
 	CommandGuard      CommandGuard
 	PluginManager     *plugin.Manager
 	BotKubeVersion    string
+	AuditReporter     audit.AuditReporter
 }
 
 // Executor is an interface for processes to execute commands
@@ -90,59 +93,48 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	)
 	actionExecutor := NewActionExecutor(
 		params.Log.WithField("component", "Action Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	sourceBindingExecutor := NewSourceBindingExecutor(
 		params.Log.WithField("component", "SourceBinding Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	pingExecutor := NewPingExecutor(
 		params.Log.WithField("component", "Ping Executor"),
-		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	versionExecutor := NewVersionExecutor(
 		params.Log.WithField("component", "Version Executor"),
-		params.AnalyticsReporter,
 		params.BotKubeVersion,
 	)
 	feedbackExecutor := NewFeedbackExecutor(
 		params.Log.WithField("component", "Feedback Executor"),
-		params.AnalyticsReporter,
 	)
 	notifierExecutor := NewNotifierExecutor(
 		params.Log.WithField("component", "Notifier Executor"),
-		params.AnalyticsReporter,
 		params.CfgManager,
 		params.Cfg,
 	)
 	helpExecutor := NewHelpExecutor(
 		params.Log.WithField("component", "Help Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	configExecutor := NewConfigExecutor(
 		params.Log.WithField("component", "Config Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	execExecutor := NewExecExecutor(
 		params.Log.WithField("component", "Executor Bindings Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	sourceExecutor := NewSourceExecutor(
 		params.Log.WithField("component", "Source Bindings Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 	aliasExecutor := NewAliasExecutor(
 		params.Log.WithField("component", "Alias Executor"),
-		params.AnalyticsReporter,
 		params.Cfg,
 	)
 
@@ -193,6 +185,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		cfgManager:            params.CfgManager,
 		kubectlExecutor:       kcExecutor,
 		cmdsMapping:           mappings,
+		auditReporter:         params.AuditReporter,
 	}, nil
 }
 
@@ -240,6 +233,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		cfgManager:            f.cfgManager,
 		kubectlCmdBuilder:     f.kubectlCmdBuilder,
 		cmdsMapping:           f.cmdsMapping,
+		auditReporter:         f.auditReporter,
 		user:                  cfg.User,
 		notifierHandler:       cfg.NotifierHandler,
 		conversation:          cfg.Conversation,

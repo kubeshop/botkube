@@ -102,7 +102,10 @@ func TestCommander_GetCommandsForEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cmder := NewCommander(loggerx.NewNoop(), tc.Guard, allowedVerbs, allowedResources)
+			cmder := NewCommander(loggerx.NewNoop(), tc.Guard, config.Commands{
+				Verbs:     allowedVerbs,
+				Resources: allowedResources,
+			})
 
 			// when
 			result, err := cmder.GetCommandsForEvent(tc.Event)

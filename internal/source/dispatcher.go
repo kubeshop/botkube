@@ -3,10 +3,12 @@ package source
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -22,6 +24,7 @@ type Dispatcher struct {
 	manager        *plugin.Manager
 	actionProvider ActionProvider
 	reporter       AnalyticsReporter
+	auditReporter  audit.AuditReporter
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.
@@ -46,13 +49,14 @@ type AnalyticsReporter interface {
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter) *Dispatcher {
 	return &Dispatcher{
 		log:            log,
 		notifiers:      notifiers,
 		manager:        manager,
 		actionProvider: actionProvider,
 		reporter:       reporter,
+		auditReporter:  auditReporter,
 	}
 }
 
@@ -89,7 +93,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, dispatch.sources)
+				d.dispatch(ctx, event, dispatch.sources, dispatch.pluginName)
 			case msg := <-out.Event:
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, dispatch.sources, dispatch.pluginName)
@@ -131,6 +135,9 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, source
 			if reportErr != nil {
 				d.log.Errorf("while reporting analytics: %w", err)
 			}
+			if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sources); err != nil {
+				d.log.Errorf("while reporting audit event: %s", err.Error())
+			}
 		}(n)
 	}
 
@@ -155,20 +162,34 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, source
 	}
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
 	if event == nil {
 		return
 	}
 	for _, n := range d.notifiers {
 		go func(n notifier.Notifier) {
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
+			e := string(event)
 			msg := interactive.CoreMessage{
-				Description: string(event),
+				Description: e,
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
 				d.log.Errorf("while sending event: %s, data: %v", err.Error(), string(event))
 			}
+			if err := d.reportAudit(ctx, pluginName, e, sources); err != nil {
+				d.log.Errorf("while reporting audit event: %s", err.Error())
+			}
 		}(n)
 	}
+}
+
+func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event string, sources []string) error {
+	e := audit.SourceAuditEvent{
+		CreatedAt:  time.Now().Format(time.RFC3339),
+		PluginName: pluginName,
+		Event:      event,
+		Bindings:   sources,
+	}
+	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
 }

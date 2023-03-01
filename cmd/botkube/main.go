@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/kubeshop/botkube/internal/lifecycle"
@@ -87,6 +88,7 @@ func run(ctx context.Context) error {
 
 	logger := loggerx.New(conf.Settings.Log)
 	statusReporter := status.NewStatusReporter(logger, gqlClient)
+	auditReporter := audit.NewAuditReporter(logger, gqlClient)
 
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
@@ -197,6 +199,7 @@ func run(ctx context.Context) error {
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
 			BotKubeVersion:    botkubeVersion,
+			AuditReporter:     auditReporter,
 		},
 	)
 
@@ -343,7 +346,7 @@ func run(ctx context.Context) error {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter)
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter, auditReporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {
