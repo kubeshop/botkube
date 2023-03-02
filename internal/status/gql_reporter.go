@@ -19,10 +19,11 @@ type GraphQLStatusReporter struct {
 	resVerMutex sync.RWMutex
 }
 
-func newGraphQLStatusReporter(logger logrus.FieldLogger, client *gql.Gql) *GraphQLStatusReporter {
+func newGraphQLStatusReporter(logger logrus.FieldLogger, client *gql.Gql, cfgVersion int) *GraphQLStatusReporter {
 	return &GraphQLStatusReporter{
 		log: logger,
 		gql: client,
+		resourceVersion: cfgVersion,
 	}
 }
 

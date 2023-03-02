@@ -2,33 +2,25 @@ package status
 
 import (
 	"context"
-
-	"github.com/sirupsen/logrus"
 )
 
 var _ StatusReporter = (*NoopStatusReporter)(nil)
 
-type NoopStatusReporter struct {
-	log logrus.FieldLogger
-}
+type NoopStatusReporter struct {}
 
-func newNoopStatusReporter(logger logrus.FieldLogger) *NoopStatusReporter {
-	return &NoopStatusReporter{
-		log: logger,
-	}
+func newNoopStatusReporter() *NoopStatusReporter {
+	return &NoopStatusReporter{}
 }
-func (r *NoopStatusReporter) ReportDeploymentStartup(ctx context.Context) (bool, error) {
+func (r *NoopStatusReporter) ReportDeploymentStartup(context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *NoopStatusReporter) ReportDeploymentShutdown(ctx context.Context) (bool, error) {
+func (r *NoopStatusReporter) ReportDeploymentShutdown(context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *NoopStatusReporter) ReportDeploymentFailed(ctx context.Context) (bool, error) {
+func (r *NoopStatusReporter) ReportDeploymentFailed(context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *NoopStatusReporter) SetResourceVersion(resourceVersion int) {
-
-}
+func (r *NoopStatusReporter) SetResourceVersion(int) { }

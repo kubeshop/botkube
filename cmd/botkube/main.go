@@ -27,6 +27,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/command"
+	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -48,12 +49,13 @@ import (
 )
 
 const (
-	componentLogFieldKey = "component"
-	botLogFieldKey       = "bot"
-	sinkLogFieldKey      = "sink"
-	commGroupFieldKey    = "commGroup"
-	healthEndpointName   = "/healthz"
-	printAPIKeyCharCount = 3
+	componentLogFieldKey  = "component"
+	botLogFieldKey        = "bot"
+	sinkLogFieldKey       = "sink"
+	commGroupFieldKey     = "commGroup"
+	healthEndpointName    = "/healthz"
+	printAPIKeyCharCount  = 3
+	configUpdaterInterval = 15 * time.Second
 )
 
 func main() {
@@ -70,10 +72,13 @@ func main() {
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
 func run(ctx context.Context) error {
 	// Load configuration
-	config.RegisterFlags(pflag.CommandLine)
+	intconfig.RegisterFlags(pflag.CommandLine)
+
 	gqlClient := graphql.NewDefaultGqlClient()
-	cfgProvider := config.GetProvider(gqlClient)
-	configs, err := cfgProvider.Configs(ctx)
+	deployClient := intconfig.NewDeploymentClient(gqlClient)
+
+	cfgProvider := intconfig.GetProvider(gqlClient)
+	configs, cfgVersion, err := cfgProvider.Configs(ctx)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
 	}
@@ -84,12 +89,13 @@ func run(ctx context.Context) error {
 	}
 
 	logger := loggerx.New(conf.Settings.Log)
-	statusReporter := status.NewStatusReporter(logger, gqlClient)
-	auditReporter := audit.NewAuditReporter(logger, gqlClient)
-
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
+
+	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
+	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, cfgVersion)
+	auditReporter := audit.NewAuditReporter(remoteCfgSyncEnabled, logger, gqlClient)
 
 	// Set up analytics reporter
 	reporter, err := newAnalyticsReporter(conf.Analytics.Disable, logger)
@@ -301,6 +307,18 @@ func run(ctx context.Context) error {
 			return lifecycleSrv.Serve(ctx)
 		})
 	}
+
+	cfgUpdater := intconfig.GetConfigUpdater(
+		remoteCfgSyncEnabled,
+		logger.WithField(componentLogFieldKey, "Config Updater"),
+		configUpdaterInterval,
+		deployClient,
+		statusReporter,
+	)
+	errGroup.Go(func() error {
+		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		return cfgUpdater.Do(ctx)
+	})
 
 	if conf.ConfigWatcher.Enabled {
 		err := config.WaitForWatcherSync(

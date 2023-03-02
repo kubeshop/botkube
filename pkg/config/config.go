@@ -3,7 +3,6 @@ package config
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -12,19 +11,12 @@ import (
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
-	"github.com/kubeshop/botkube/internal/config"
-	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 //go:embed default.yaml
 var defaultConfiguration []byte
-
-var configPathsFlag []string
 
 const (
 	configEnvVariablePrefix = "BOTKUBE_"
@@ -780,25 +772,6 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	}, nil
 }
 
-// GetProvider resolves and returns paths for config files.
-// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func GetProvider(gql *graphql.Gql) config.Provider {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
-		dc := intconfig.NewDeploymentClient(gql)
-		return config.NewGqlProvider(dc)
-	}
-
-	if os.Getenv(intconfig.EnvProviderConfigPathsEnvKey) != "" {
-		return config.NewEnvProvider()
-	}
-
-	return config.NewFileSystemProvider(configPathsFlag)
-}
-
-// RegisterFlags registers config related flags.
-func RegisterFlags(flags *pflag.FlagSet) {
-	flags.StringSliceVarP(&configPathsFlag, "config", "c", nil, "Specify configuration file in YAML format (can specify multiple).")
-}
 
 func normalizeConfigEnvName(name string) string {
 	name = strings.TrimPrefix(name, configEnvVariablePrefix)

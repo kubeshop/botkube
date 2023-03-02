@@ -2,7 +2,6 @@ package status
 
 import (
 	"context"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -16,9 +15,10 @@ type StatusReporter interface {
 	SetResourceVersion(resourceVersion int)
 }
 
-func NewStatusReporter(logger logrus.FieldLogger, gql *graphql.Gql) StatusReporter {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
-		return newGraphQLStatusReporter(logger.WithField("component", "GraphQLStatusReporter"), gql)
+func NewStatusReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql *graphql.Gql, cfgVersion int) StatusReporter {
+	if remoteCfgEnabled {
+		return newGraphQLStatusReporter(logger.WithField("component", "GraphQLStatusReporter"), gql, cfgVersion)
 	}
-	return newNoopStatusReporter(logger.WithField("component", "NoopStatusReporter"))
+
+	return newNoopStatusReporter()
 }
