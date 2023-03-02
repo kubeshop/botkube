@@ -41,6 +41,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 	if msg.Header != "" {
 		addLine(mdFormatter.headerFormatter(msg.Header))
 	}
+
 	if msg.Description != "" {
 		addLine(msg.Description)
 	}
@@ -63,6 +64,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		if section.Header != "" {
 			addLine(mdFormatter.headerFormatter(section.Header))
 		}
+
 		if section.Description != "" {
 			addLine(section.Description)
 		}

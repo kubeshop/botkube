@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/internal/command"
 )
 
 type (
@@ -22,8 +22,8 @@ type (
 
 	// CommandGuard is an interface that allows to check if a given command is allowed to be executed.
 	CommandGuard interface {
-		GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
-		GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+		GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]command.Resource, error)
+		GetResourceDetails(verb, resourceType string) (command.Resource, error)
 		FilterSupportedVerbs(allVerbs []string) []string
 	}
 

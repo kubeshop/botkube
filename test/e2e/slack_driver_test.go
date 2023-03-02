@@ -304,7 +304,7 @@ func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 				continue
 			}
 
-			equal, commonCount, diffStr := assertFn(attachment.Title, attachment.Color, attachment.Fields[0].Value)
+			equal, commonCount, diffStr := assertFn(attachment.Fields[0].Value)
 			if !equal {
 				// different message; update the diff if it's more similar than the previous one or initial value
 				if commonCount > highestCommonBlockCount {
@@ -399,7 +399,7 @@ func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testi
 	// > There’s no limit to how many unique channels you can have in Slack — go ahead, create as many as you’d like!
 	// Sure, thanks Slack!
 	// Source: https://slack.com/help/articles/201402297-Create-a-channel
-	channel, err := s.cli.CreateConversation(channelName, false)
+	channel, err := s.cli.CreateConversation(slack.CreateConversationParams{ChannelName: channelName, IsPrivate: false})
 	require.NoError(t, err)
 
 	t.Logf("Channel %q (ID: %q) created", channelName, channel.ID)

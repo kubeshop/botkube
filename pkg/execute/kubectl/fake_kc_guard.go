@@ -1,5 +1,7 @@
 package kubectl
 
+import "github.com/kubeshop/botkube/internal/command"
+
 // FakeCommandGuard provides functionality to resolve correlations between kubectl verbs and resource types.
 // It's used for test purposes.
 type FakeCommandGuard struct{}
@@ -14,7 +16,7 @@ func (f *FakeCommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
 }
 
 // GetAllowedResourcesForVerb returns allowed resources types for a given verb.
-func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allConfiguredResources []string) ([]Resource, error) {
+func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allConfiguredResources []string) ([]command.Resource, error) {
 	_, found := f.resourcelessVerbs()[selectedVerb]
 	if found {
 		return nil, nil
@@ -22,13 +24,13 @@ func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allCo
 
 	// special case for 'logs'
 	if selectedVerb == "logs" {
-		return []Resource{
+		return []command.Resource{
 			f.staticResourceMapping()["deployments"],
 			f.staticResourceMapping()["pods"],
 		}, nil
 	}
 
-	var out []Resource
+	var out []command.Resource
 	for _, name := range allConfiguredResources {
 		res, found := f.staticResourceMapping()[name]
 		if !found {
@@ -40,9 +42,9 @@ func (f *FakeCommandGuard) GetAllowedResourcesForVerb(selectedVerb string, allCo
 }
 
 // GetResourceDetails returns resource details.
-func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) (Resource, error) {
+func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) (command.Resource, error) {
 	if verb == "logs" {
-		return Resource{
+		return command.Resource{
 			Name:                    resourceType,
 			Namespaced:              true,
 			SlashSeparatedInCommand: true,
@@ -55,7 +57,7 @@ func (f *FakeCommandGuard) GetResourceDetails(verb, resourceType string) (Resour
 	}
 
 	// fake data about resource
-	return Resource{
+	return command.Resource{
 		Name:       resourceType,
 		Namespaced: true,
 	}, nil
@@ -70,8 +72,8 @@ func (f *FakeCommandGuard) resourcelessVerbs() map[string]struct{} {
 	}
 }
 
-func (f *FakeCommandGuard) staticResourceMapping() map[string]Resource {
-	return map[string]Resource{
+func (f *FakeCommandGuard) staticResourceMapping() map[string]command.Resource {
+	return map[string]command.Resource{
 		// namespace-scoped:
 		"deployments":  {Name: "deployments", Namespaced: true},
 		"pods":         {Name: "pods", Namespaced: true},

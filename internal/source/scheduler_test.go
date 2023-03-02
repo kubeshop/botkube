@@ -80,6 +80,6 @@ func readTestdataFile(t *testing.T, name string) []byte {
 type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error
 
 // ServeHTTP calls f(w, r).
-func (f fakeDispatcherFunc) Dispatch(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
-	return f(ctx, pluginName, pluginConfigs, sources)
+func (f fakeDispatcherFunc) Dispatch(dispatch PluginDispatch) error {
+	return f(dispatch.ctx, dispatch.pluginName, dispatch.pluginConfigs, dispatch.sources)
 }

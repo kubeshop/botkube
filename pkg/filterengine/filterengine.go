@@ -10,6 +10,11 @@ import (
 	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
+const (
+	// DisableAnnotation is the object disable annotation.
+	DisableAnnotation string = "botkube.io/disable"
+)
+
 // DefaultFilterEngine is a default implementation of the Filter Engine.
 type DefaultFilterEngine struct {
 	log logrus.FieldLogger

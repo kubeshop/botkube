@@ -5,7 +5,6 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -312,7 +311,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 
 			embed := msg.Embeds[0]
 
-			equal, commonCount, diffStr := assertFn(embed.Title, strconv.Itoa(embed.Color), embed.Description)
+			equal, commonCount, diffStr := assertFn(embed.Description)
 			if !equal {
 				// different message; update the diff if it's more similar than the previous one or initial value
 				if commonCount > highestCommonBlockCount {

@@ -64,67 +64,83 @@ communications:
 sources:
   'k8s-events':
     displayName: "K8s recommendations"
-    kubernetes:
-      recommendations:
-        pod:
-          noLatestImageTag: true
-          labelsSet: true
-        ingress:
-          backendServiceValid: false
-          tlsSecretValid: false
-      namespaces:
-        include:
-          - botkube
-      event:
-        types:
-          - create
-          - update
-      resources:
-        - type: v1/configmaps
+    'botkube/kubernetes':
+      enabled: true
+      config:
+        log:
+          level: debug
+        recommendations:
+          pod:
+            noLatestImageTag: true
+            labelsSet: true
+          ingress:
+            backendServiceValid: false
+            tlsSecretValid: false
+        namespaces:
+          include:
+            - botkube
+        event:
+          types:
+            - create
+            - update
+        resources:
+          - type: v1/configmaps
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
-    kubernetes:
-      namespaces:
-        include:
-          - botkube
-      labels:
-        test.botkube.io: "true"
-      event:
-        types:
-          - delete
-      resources:
-        - type: v1/configmaps
+    'botkube/kubernetes':
+      enabled: true
+      config:
+        log:
+          level: debug
+        namespaces:
+          include:
+            - botkube
+        labels:
+          test.botkube.io: "true"
+        event:
+          types:
+            - delete
+        resources:
+          - type: v1/configmaps
 
   'k8s-pod-create-events':
-    kubernetes:
-      namespaces:
-        include:
-          - botkube
-      event:
-        types:
-          - create
-      resources:
-        - type: v1/pods
+    'botkube/kubernetes':
+      enabled: true
+      config:
+        log:
+          level: debug
+        namespaces:
+          include:
+            - botkube
+        event:
+          types:
+            - create
+        resources:
+          - type: v1/pods
 
   'k8s-updates':
     displayName: "K8s ConfigMaps updates"
-    kubernetes:
-      namespaces:
-        include:
-          - default
-      event:
-        types:
-          - create
-          - update
-          - delete
-      resources:
-        - type: v1/configmaps
-          namespaces:
-            include:
-              - botkube
-          event: # overrides top level `event` entry
-            types:
-              - update
+    'botkube/kubernetes':
+      enabled: true
+      config:
+        log:
+          level: debug
+        namespaces:
+          include:
+            - default
+        event:
+          types:
+            - create
+            - update
+            - delete
+        resources:
+          - type: v1/configmaps
+            namespaces:
+              include:
+                - botkube
+            event: # overrides top level `event` entry
+              types:
+                - update
 
   'plugin-based':
     displayName: "K8s ConfigMaps changes"
@@ -201,17 +217,12 @@ actions:
   'get-created-resource':
     enabled: true
     displayName: "Get created resource"
-    command: "kubectl get {{ .Event.TypeMeta.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
+    command: "kubectl get {{ .Event.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
     bindings:
       sources:
         - k8s-pod-create-events
       executors:
         - k8s-default-tools
-
-filters:
-  kubernetes:
-    objectAnnotationChecker: true
-    nodeEventsChecker: false
 
 aliases:
   kc:
@@ -244,3 +255,7 @@ settings:
 
 extraAnnotations:
   botkube.io/disable: "true"
+
+extraEnv:
+  - name: LOG_LEVEL_SOURCE_BOTKUBE_KUBERNETES
+    value: debug
