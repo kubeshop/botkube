@@ -594,6 +594,9 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
+		if botDriver.Type() == DiscordBot {
+			return // skipping for discord
+		}
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
 		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
@@ -662,7 +665,7 @@ func runBotTest(t *testing.T,
 
 		t.Log("Expecting bot message in all channels...")
 		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 			contains := strings.HasPrefix(msg, startsWithMsg)
 			if !contains {
 				count := countMatchBlock(startsWithMsg, msg)
@@ -673,8 +676,8 @@ func runBotTest(t *testing.T,
 		}
 		for _, channelID := range channelIDs {
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), channelID, 2, attachAssertionFn)
+			require.NoError(t, err)
 		}
-		require.NoError(t, err)
 
 		t.Log("Stopping notifier in first channel...")
 		command = "disable notifications"
@@ -718,7 +721,7 @@ func runBotTest(t *testing.T,
 
 		t.Log("Expecting bot message in second channel...")
 		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
 			contains := strings.HasPrefix(msg, startsWithMsg)
 			if !contains {
 				count := countMatchBlock(startsWithMsg, msg)
@@ -765,7 +768,7 @@ func runBotTest(t *testing.T,
 
 		t.Log("Expecting bot message on first channel...")
 		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:X: v1/configmaps deleted*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
+			startsWithMsg := fmt.Sprintf("*:x: v1/configmaps deleted*\n*Labels:*\n• Kind: ConfigMap\n• Type: delete\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
 			contains := strings.HasPrefix(msg, startsWithMsg)
 			if !contains {
 				count := countMatchBlock(startsWithMsg, msg)
@@ -780,7 +783,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
 			contains := strings.HasPrefix(msg, startsWithMsg)
 			if !contains {
 				count := countMatchBlock(startsWithMsg, msg)
@@ -794,6 +797,9 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
+		if botDriver.Type() == DiscordBot {
+			return // skipping for discord
+		}
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")

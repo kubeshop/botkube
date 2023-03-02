@@ -191,23 +191,14 @@ func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []str
 	}
 
 	// Check for significant Update Events in objects
-	if e.Type == config.UpdateEvent {
-		switch {
-		case len(updateDiffs) == 0:
-			// skipping the least significant update
-			s.logger.Debug("skipping least significant Update e")
-			e.Skip = true
-		case len(updateDiffs) > 0:
-			e.Messages = append(e.Messages, updateDiffs...)
-		default:
-			// send e with no diff message
-		}
+	if e.Type == config.UpdateEvent && len(updateDiffs) > 0 {
+		e.Messages = append(e.Messages, updateDiffs...)
 	}
 
 	// Filter events
 	e = s.filterEngine.Run(ctx, e)
 	if e.Skip {
-		s.logger.Debugf("Skipping e: %#v", e)
+		s.logger.Debugf("Skipping event: %#v", e)
 		return
 	}
 
@@ -224,7 +215,7 @@ func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []str
 	}
 
 	if recommendation.ShouldIgnoreEvent(&recCfg, e) {
-		s.logger.Debugf("Skipping e as it is related to recommendation informers and doesn't have any recommendations: %#v", e)
+		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", e)
 		return
 	}
 
