@@ -898,7 +898,7 @@ func runBotTest(t *testing.T,
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE             ENABLED
 			botkube/cm-watcher true
-			kubernetes         true`))
+			botkube/kubernetes true`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
