@@ -482,7 +482,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, st
 		}
 
 		if _, err := status.ReportDeploymentFailed(ctxTimeout); err != nil {
-			logger.Errorf("while reporting botkube deployment status: %s", err.Error())
+			logger.Errorf("while reporting deployment failure: %s", err.Error())
 		}
 
 		return wrappedErr

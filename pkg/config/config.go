@@ -209,7 +209,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     Plugins          `koanf:",remain"`
+	Plugins     Plugins          `yaml:",inline" koanf:",remain"`
 }
 
 // GetPlugins returns Sources.Plugins.
@@ -371,7 +371,7 @@ const (
 // Executors contains executors configuration parameters.
 type Executors struct {
 	Kubectl Kubectl `yaml:"kubectl"`
-	Plugins Plugins `koanf:",remain"`
+	Plugins Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.

@@ -33,7 +33,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) (bo
 			"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment startup...")
 	var mutation struct {
-		Success bool `graphql:"reportDeploymentStartup(id: $id)"`
+		Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
 		"id": graphql.ID(r.gql.DeploymentID),
@@ -51,7 +51,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) (b
 		"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment shutdown...")
 	var mutation struct {
-		Success bool `graphql:"reportDeploymentShutdown(id: $id)"`
+		Success bool `graphql:"reportDeploymentShutdown(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
 		"id": graphql.ID(r.gql.DeploymentID),
@@ -69,7 +69,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) (boo
 		"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment failure...")
 	var mutation struct {
-		Success bool `graphql:"reportDeploymentFailed(id: $id)"`
+		Success bool `graphql:"reportDeploymentFailed(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
 		"id": graphql.ID(r.gql.DeploymentID),
