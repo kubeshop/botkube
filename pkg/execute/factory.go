@@ -7,19 +7,18 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/kubeshop/botkube/internal/audit"
+	guard "github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 )
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.
 type DefaultExecutorFactory struct {
 	log                   logrus.FieldLogger
 	cfg                   config.Config
-	filterEngine          filterengine.FilterEngine
 	analyticsReporter     AnalyticsReporter
 	notifierExecutor      *NotifierExecutor
 	kubectlExecutor       *Kubectl
@@ -46,7 +45,6 @@ type DefaultExecutorFactoryParams struct {
 	Log               logrus.FieldLogger
 	CmdRunner         CommandRunner
 	Cfg               config.Config
-	FilterEngine      filterengine.FilterEngine
 	KcChecker         *kubectl.Checker
 	Merger            *kubectl.Merger
 	CfgManager        ConfigPersistenceManager
@@ -79,8 +77,8 @@ type AnalyticsReporter interface {
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.
 type CommandGuard interface {
-	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]kubectl.Resource, error)
-	GetResourceDetails(verb, resourceType string) (kubectl.Resource, error)
+	GetAllowedResourcesForVerb(verb string, allConfiguredResources []string) ([]guard.Resource, error)
+	GetResourceDetails(verb, resourceType string) (guard.Resource, error)
 	FilterSupportedVerbs(allVerbs []string) []string
 }
 
@@ -102,11 +100,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		params.Log.WithField("component", "SourceBinding Executor"),
 		params.CfgManager,
 		params.Cfg,
-	)
-	filterExecutor := NewFilterExecutor(
-		params.Log.WithField("component", "Filter Executor"),
-		params.CfgManager,
-		params.FilterEngine,
 	)
 	pingExecutor := NewPingExecutor(
 		params.Log.WithField("component", "Ping Executor"),
@@ -148,7 +141,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	executors := []CommandExecutor{
 		actionExecutor,
 		sourceBindingExecutor,
-		filterExecutor,
 		pingExecutor,
 		versionExecutor,
 		helpExecutor,
@@ -166,7 +158,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	return &DefaultExecutorFactory{
 		log:               params.Log,
 		cfg:               params.Cfg,
-		filterEngine:      params.FilterEngine,
 		analyticsReporter: params.AnalyticsReporter,
 		notifierExecutor:  notifierExecutor,
 		kubectlCmdBuilder: NewKubectlCmdBuilder(
@@ -183,7 +174,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		),
 		sourceBindingExecutor: sourceBindingExecutor,
 		actionExecutor:        actionExecutor,
-		filterExecutor:        filterExecutor,
 		pingExecutor:          pingExecutor,
 		versionExecutor:       versionExecutor,
 		helpExecutor:          helpExecutor,
@@ -232,7 +222,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		sourceBindingExecutor: f.sourceBindingExecutor,
 		actionExecutor:        f.actionExecutor,
 		filterExecutor:        f.filterExecutor,
-		filterEngine:          f.filterEngine,
 		pingExecutor:          f.pingExecutor,
 		versionExecutor:       f.versionExecutor,
 		helpExecutor:          f.helpExecutor,

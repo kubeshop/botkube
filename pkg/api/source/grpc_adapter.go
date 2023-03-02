@@ -2,6 +2,8 @@ package source
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 
@@ -23,13 +25,50 @@ type (
 	StreamInput struct {
 		// Configs is a list of Source configurations specified by users.
 		Configs []*Config
+		// Context holds streaming context.
+		Context StreamInputContext
+	}
+
+	// StreamInputContext holds streaming context.
+	StreamInputContext struct {
+		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
+		IsInteractivitySupported bool
+
+		// KubeConfig is the path to kubectl configuration file.
+		KubeConfig string
+
+		// ClusterName is the name of underlying Kubernetes cluster which is provided by end user.
+		ClusterName string
 	}
 
 	// StreamOutput holds the output of the Stream function.
 	StreamOutput struct {
 		// Output represents the streamed events. It is from start of plugin execution.
+		// Deprecated: Use the Message field instead.
+		//
+		// Migration path:
+		//
+		//	Old approach:
+		//	  return executor.StreamOutput{
+		//	  	Output: out,
+		//	  }
+		//
+		//	New approach:
+		//	  return executor.StreamOutput{
+		//	  	Message: api.NewPlaintextMessage(out, true),
+		//	  }
 		Output chan []byte
-		// TODO: we should consider adding error feedback channel too.
+		// Event represents the streamed events with message,raw object, and analytics data. It is from start of plugin consumption.
+		// You can construct a complex message.data or just use one of our helper functions:
+		//   - api.NewCodeBlockMessage("body", true)
+		//   - api.NewPlaintextMessage("body", true)
+		Event chan Event
+	}
+
+	Event struct {
+		Message         api.Message
+		RawObject       any
+		AnalyticsLabels map[string]interface{}
 	}
 )
 
@@ -73,15 +112,22 @@ type grpcClient struct {
 }
 
 func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, error) {
-	stream, err := p.client.Stream(ctx, &StreamRequest{
+	request := &StreamRequest{
 		Configs: in.Configs,
-	})
+		Context: &StreamContext{
+			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+			KubeConfig:               in.Context.KubeConfig,
+			ClusterName:              in.Context.ClusterName,
+		},
+	}
+	stream, err := p.client.Stream(ctx, request)
 	if err != nil {
 		return StreamOutput{}, err
 	}
 
 	out := StreamOutput{
 		Output: make(chan []byte),
+		Event:  make(chan Event),
 	}
 
 	go func() {
@@ -100,7 +146,15 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 				// TODO: we should consider adding error feedback channel to StreamOutput.
 				return
 			}
+			var event Event
+			if len(feature.Event) != 0 && string(feature.Event) != "" {
+				if err := json.Unmarshal(feature.Event, &event); err != nil {
+					log.Print(fmt.Errorf("while unmarshalling message from JSON: %w", err))
+					return
+				}
+			}
 			out.Output <- feature.Output
+			out.Event <- event
 		}
 	}()
 
@@ -152,6 +206,11 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 	// We can only use 'ctx' to cancel streaming and release associated resources.
 	stream, err := p.Source.Stream(ctx, StreamInput{
 		Configs: req.Configs,
+		Context: StreamInputContext{
+			IsInteractivitySupported: req.Context.IsInteractivitySupported,
+			KubeConfig:               req.Context.KubeConfig,
+			ClusterName:              req.Context.ClusterName,
+		},
 	})
 	if err != nil {
 		return err
@@ -163,11 +222,27 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 			return ctx.Err()
 		case out, ok := <-stream.Output:
 			if !ok {
-				return nil // output closed, no more chunk logs
+				return nil // output closed, no more messages
 			}
 
 			err := gstream.Send(&StreamResponse{
 				Output: out,
+			})
+			if err != nil {
+				return err
+			}
+		case msg, ok := <-stream.Event:
+			if !ok {
+				return nil // output closed, no more chunk logs
+			}
+
+			marshalled, err := json.Marshal(msg)
+			if err != nil {
+				return fmt.Errorf("while marshalling msg to byte: %w", err)
+			}
+
+			err = gstream.Send(&StreamResponse{
+				Event: marshalled,
 			})
 			if err != nil {
 				return err

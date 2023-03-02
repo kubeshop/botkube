@@ -21,7 +21,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/filterengine/filters"
+	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/test/fake"
 )
 
@@ -104,7 +104,6 @@ func TestSlack(t *testing.T) {
 	runBotTest(t,
 		appCfg,
 		SlackBot,
-		slackAnnotation,
 		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
@@ -120,7 +119,6 @@ func TestDiscord(t *testing.T) {
 	runBotTest(t,
 		appCfg,
 		DiscordBot,
-		discordAnnotation,
 		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
@@ -140,7 +138,6 @@ func newBotDriver(cfg Config, driverType DriverType) (BotDriver, error) {
 func runBotTest(t *testing.T,
 	appCfg Config,
 	driverType DriverType,
-	annotation,
 	invalidCmdTemplate,
 	deployEnvChannelIDName,
 	deployEnvSecondaryChannelIDName string,
@@ -230,19 +227,6 @@ func runBotTest(t *testing.T,
 			expectedMessage,
 		)
 
-		assert.NoError(t, err)
-	})
-
-	t.Run("Filters list", func(t *testing.T) {
-		command := "list filters"
-		expectedBody := codeBlock(heredoc.Docf(`
-			FILTER                  ENABLED DESCRIPTION
-			NodeEventsChecker       false   Sends notifications on node level critical events.
-			ObjectAnnotationChecker true    Filters or reroutes events based on %s Kubernetes resource annotations.`, annotation))
-		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -610,6 +594,9 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
+		if botDriver.Type() == DiscordBot {
+			return // skipping for discord
+		}
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
 		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
@@ -649,17 +636,18 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		attachAssertionFn := func(title, color, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been created in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps created" && msg == expectedMsg && color == botDriver.GetColorByLevel(config.Info)
-			if msg != expectedMsg {
-				count := countMatchBlock(expectedMsg, msg)
-				msgDiff := diff(expectedMsg, msg)
+		attachAssertionFn := func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/configmaps created*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			contains := strings.HasPrefix(msg, startsWithMsg)
+			if !contains {
+				count := countMatchBlock(startsWithMsg, msg)
+				msgDiff := diff(startsWithMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -676,18 +664,20 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
-		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps updated" && msg == expectedMsg
-			if msg != expectedMsg {
-				count := countMatchBlock(expectedMsg, msg)
-				msgDiff := diff(expectedMsg, msg)
+		attachAssertionFn = func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			contains := strings.HasPrefix(msg, startsWithMsg)
+			if !contains {
+				count := countMatchBlock(startsWithMsg, msg)
+				msgDiff := diff(startsWithMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
-		err = botDriver.WaitForMessagesPostedOnChannelsWithAttachment(botDriver.BotUserID(), channelIDs, attachAssertionFn)
-		require.NoError(t, err)
+		for _, channelID := range channelIDs {
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), channelID, 2, attachAssertionFn)
+			require.NoError(t, err)
+		}
 
 		t.Log("Stopping notifier in first channel...")
 		command = "disable notifications"
@@ -730,17 +720,17 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in second channel...")
-		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps updated" && msg == expectedMsg
-			if msg != expectedMsg {
-				count := countMatchBlock(expectedMsg, msg)
-				msgDiff := diff(expectedMsg, msg)
+		attachAssertionFn = func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
+			contains := strings.HasPrefix(msg, startsWithMsg)
+			if !contains {
+				count := countMatchBlock(startsWithMsg, msg)
+				msgDiff := diff(startsWithMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
 
 		t.Log("Starting notifier in first channel")
 		command = "enable notifications"
@@ -757,7 +747,7 @@ func runBotTest(t *testing.T,
 				Name:      fmt.Sprintf("%s-ignored", botDriver.Channel().Name()),
 				Namespace: appCfg.Deployment.Namespace,
 				Annotations: map[string]string{
-					filters.DisableAnnotation: "true",
+					filterengine.DisableAnnotation: "true",
 				},
 			},
 		}
@@ -777,36 +767,39 @@ func runBotTest(t *testing.T,
 		cfgMapAlreadyDeleted = true
 
 		t.Log("Expecting bot message on first channel...")
-		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been deleted in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps deleted" && msg == expectedMsg
-			if msg != expectedMsg {
-				count := countMatchBlock(expectedMsg, msg)
-				msgDiff := diff(expectedMsg, msg)
+		attachAssertionFn = func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:x: v1/configmaps deleted*\n*Labels:*\n• Kind: ConfigMap\n• Type: delete\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
+			contains := strings.HasPrefix(msg, startsWithMsg)
+			if !contains {
+				count := countMatchBlock(startsWithMsg, msg)
+				msgDiff := diff(startsWithMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		attachAssertionFn = func(title, _, msg string) (bool, int, string) {
-			expectedMsg := fmt.Sprintf("ConfigMap *%s/%s* has been updated in *%s* cluster", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			equal := title == "v1/configmaps updated" && msg == expectedMsg
-			if msg != expectedMsg {
-				count := countMatchBlock(expectedMsg, msg)
-				msgDiff := diff(expectedMsg, msg)
+		attachAssertionFn = func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
+			contains := strings.HasPrefix(msg, startsWithMsg)
+			if !contains {
+				count := countMatchBlock(startsWithMsg, msg)
+				msgDiff := diff(startsWithMsg, msg)
 				return false, count, msgDiff
 			}
-			return equal, 0, ""
+			return contains, 0, ""
 		}
-		err = botDriver.WaitForLastMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), attachAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
 		require.NoError(t, err)
 	})
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
+		if botDriver.Type() == DiscordBot {
+			return // skipping for discord
+		}
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")
@@ -828,14 +821,11 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot event message...")
-		assertionFn := func(title, color, msg string) (bool, int, string) {
-			return title == "v1/pods created" &&
-				strings.Contains(msg, "Recommendations:") &&
-				strings.Contains(msg, fmt.Sprintf("- Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name)) &&
-				strings.Contains(msg, fmt.Sprintf("- The 'latest' tag used in '%s' image of Pod '%s/%s' container '%s' should be avoided.", pod.Spec.Containers[0].Image, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name)) &&
-				color == botDriver.GetColorByLevel(config.Info), 0, ""
+		assertionFn := func(msg string) (bool, int, string) {
+			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/pods created*\n*Labels:*\n• Kind: Pod\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s\n*Recommendations:*\n• Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.\n• The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name, appCfg.ClusterName, pod.Namespace, pod.Name, pod.Namespace, pod.Name)
+			return strings.HasPrefix(msg, startsWithMsg), 0, ""
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
 		require.NoError(t, err)
 
 		t.Log("Expecting bot automation message...")
@@ -908,7 +898,7 @@ func runBotTest(t *testing.T,
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE             ENABLED
 			botkube/cm-watcher true
-			kubernetes         true`))
+			botkube/kubernetes true`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)

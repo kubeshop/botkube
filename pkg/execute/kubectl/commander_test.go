@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -160,29 +161,29 @@ func (f *fakeMerger) MergeForNamespace(_ []string, _ string) kubectl.EnabledKube
 
 type fakeGuard struct {
 	resMap  map[string]metav1.APIResource
-	verbMap map[string]map[string]kubectl.Resource
+	verbMap map[string]map[string]command.Resource
 }
 
 func (f *fakeGuard) GetServerResourceMap() (map[string]metav1.APIResource, error) {
 	return f.resMap, nil
 }
 
-func (f *fakeGuard) GetResourceDetailsFromMap(selectedVerb, resourceType string, _ map[string]metav1.APIResource) (kubectl.Resource, error) {
+func (f *fakeGuard) GetResourceDetailsFromMap(selectedVerb, resourceType string, _ map[string]metav1.APIResource) (command.Resource, error) {
 	resources, ok := f.verbMap[selectedVerb]
 	if !ok {
-		return kubectl.Resource{}, kubectl.ErrVerbNotSupported
+		return command.Resource{}, command.ErrVerbNotSupported
 	}
 
 	res, ok := resources[resourceType]
 	if !ok {
-		return kubectl.Resource{}, kubectl.ErrVerbNotSupported
+		return command.Resource{}, command.ErrVerbNotSupported
 	}
 
 	return res, nil
 }
 
-func fixVerbMapForFakeGuard() map[string]map[string]kubectl.Resource {
-	return map[string]map[string]kubectl.Resource{
+func fixVerbMapForFakeGuard() map[string]map[string]command.Resource {
+	return map[string]map[string]command.Resource{
 		"get": {
 			"pods": {
 				Name:                    "pods",

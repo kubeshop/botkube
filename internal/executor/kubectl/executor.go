@@ -10,12 +10,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/executor/kubectl/accessreview"
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
 const (
@@ -121,7 +121,7 @@ func (*Executor) Help(context.Context) (api.Message, error) {
 	return api.NewCodeBlockMessage(help(), true), nil
 }
 
-func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl.CommandGuard, *kubernetes.Clientset, error) {
+func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*command.CommandGuard, *kubernetes.Clientset, error) {
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating kube config: %w", err)
@@ -131,7 +131,7 @@ func getBuilderDependencies(log logrus.FieldLogger, kubeconfig string) (*kubectl
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating discovery client: %w", err)
 	}
-	guard := kubectl.NewCommandGuard(log, discoveryClient)
+	guard := command.NewCommandGuard(log, discoveryClient)
 	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while creating typed k8s client: %w", err)

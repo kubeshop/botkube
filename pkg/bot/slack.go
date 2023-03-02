@@ -153,7 +153,7 @@ func (b *Slack) Start(ctx context.Context) error {
 				}
 
 			case *slack.RTMError:
-				b.log.Errorf("Slack RMT error: %+v", ev.Error())
+				b.log.Errorf("Slack RTM error: %+v", ev.Error())
 
 			case *slack.ConnectionErrorEvent:
 				b.log.Errorf("Slack connection error: %+v", ev.Error())
@@ -230,7 +230,10 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
 	// but unfortunately Botkube would need another scope (get all conversations).
 	// Keeping current way of doing this until we come up with a better idea.
-	info, err := b.client.GetConversationInfo(msg.Channel, true)
+	info, err := b.client.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID:     msg.Channel,
+		IncludeLocale: true,
+	})
 	if err != nil {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}

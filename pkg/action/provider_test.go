@@ -72,7 +72,7 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 			provider := action.NewProvider(loggerx.NewNoop(), tc.Config, nil)
 
 			// when
-			result, err := provider.RenderedActionsForEvent(tc.Event, tc.SourceBindings)
+			result, err := provider.RenderedActions(tc.Event, tc.SourceBindings)
 
 			// then
 			if tc.ExpectedErrMessage != "" {
@@ -114,7 +114,7 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 	provider := action.NewProvider(loggerx.NewNoop(), config.Actions{}, execFactory)
 
 	// when
-	msg := provider.ExecuteEventAction(context.Background(), eventAction)
+	msg := provider.ExecuteAction(context.Background(), eventAction)
 	msg.ReplaceBotNamePlaceholder(botName)
 
 	// then

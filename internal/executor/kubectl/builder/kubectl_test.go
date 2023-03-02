@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -242,7 +243,7 @@ func TestShouldPrintErrMessageIfVerbNotAllowed(t *testing.T) {
 		state      = fixStateNotAllowedVerbDropdown()
 		kcExecutor = &fakeKcExecutor{}
 		nsLister   = &fakeNamespaceLister{}
-		guard      = &fakeErrCommandGuard{fixErr: kubectl.ErrVerbNotSupported}
+		guard      = &fakeErrCommandGuard{fixErr: command.ErrVerbNotSupported}
 		cmd        = "@builder --verbs"
 		expMsg     = fixNotSupportedVerbMessage()
 	)
@@ -587,11 +588,11 @@ func (f *fakeErrCommandGuard) FilterSupportedVerbs(allVerbs []string) []string {
 }
 
 // GetAllowedResourcesForVerb returns allowed resources types for a given verb.
-func (f *fakeErrCommandGuard) GetAllowedResourcesForVerb(string, []string) ([]kubectl.Resource, error) {
+func (f *fakeErrCommandGuard) GetAllowedResourcesForVerb(string, []string) ([]command.Resource, error) {
 	return nil, f.fixErr
 }
 
 // GetResourceDetails returns resource details.
-func (f *fakeErrCommandGuard) GetResourceDetails(string, string) (kubectl.Resource, error) {
-	return kubectl.Resource{}, f.fixErr
+func (f *fakeErrCommandGuard) GetResourceDetails(string, string) (command.Resource, error) {
+	return command.Resource{}, f.fixErr
 }

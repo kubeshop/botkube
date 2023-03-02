@@ -15,20 +15,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
+	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -43,10 +41,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/notifier"
-	"github.com/kubeshop/botkube/pkg/recommendation"
 	"github.com/kubeshop/botkube/pkg/sink"
 	"github.com/kubeshop/botkube/pkg/version"
 )
@@ -129,7 +125,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
-	dynamicCli, discoveryCli, mapper, err := getK8sClients(kubeConfig)
+	discoveryCli, err := getK8sClients(kubeConfig)
 	if err != nil {
 		return reportFatalError("while getting K8s clients", err)
 	}
@@ -145,7 +141,8 @@ func run(ctx context.Context) error {
 	}
 
 	// Health endpoint
-	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
+	healthChecker := healthChecker{applicationStarted: false}
+	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort, &healthChecker)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return healthSrv.Serve(ctx)
@@ -157,9 +154,6 @@ func run(ctx context.Context) error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return metricsSrv.Serve(ctx)
 	})
-
-	// Set up the filter engine
-	filterEngine := filterengine.WithAllFilters(logger, dynamicCli, mapper, conf.Filters)
 
 	// Kubectl config merger
 	kcMerger := kubectl.NewMerger(conf.Executors)
@@ -177,7 +171,7 @@ func run(ctx context.Context) error {
 		resourceNameNormalizerFunc = resourceNameNormalizer.Normalize
 	}
 
-	cmdGuard := kubectl.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
+	cmdGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
 	commander := kubectl.NewCommander(logger.WithField(componentLogFieldKey, "Commander"), kcMerger, cmdGuard)
 
 	runner := &execute.OSCommand{}
@@ -194,7 +188,6 @@ func run(ctx context.Context) error {
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
 			CmdRunner:         runner,
 			Cfg:               *conf,
-			FilterEngine:      filterEngine,
 			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
 			Merger:            kcMerger,
 			CfgManager:        cfgManager,
@@ -211,8 +204,6 @@ func run(ctx context.Context) error {
 		return reportFatalError("while creating executor factory", err)
 	}
 
-	router := source.NewRouter(mapper, dynamicCli, logger.WithField(componentLogFieldKey, "Router"))
-
 	var (
 		notifiers []notifier.Notifier
 		bots      = map[string]bot.Bot{}
@@ -224,8 +215,6 @@ func run(ctx context.Context) error {
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
 	for commGroupName, commGroupCfg := range conf.Communications {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
-
-		router.AddCommunicationsBindings(commGroupCfg)
 
 		scheduleBot := func(in bot.Bot) {
 			notifiers = append(notifiers, in)
@@ -352,12 +341,9 @@ func run(ctx context.Context) error {
 		})
 	}
 
-	recommFactory := recommendation.NewFactory(logger.WithField(componentLogFieldKey, "Recommendations"), dynamicCli)
-
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
-	router.AddEnabledActionBindings(conf.Actions)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, auditReporter)
+	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter, auditReporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {
@@ -369,14 +355,6 @@ func run(ctx context.Context) error {
 		logger.WithField(componentLogFieldKey, "Controller"),
 		conf,
 		notifiers,
-		recommFactory,
-		filterEngine,
-		dynamicCli,
-		mapper,
-		conf.Settings.InformersResyncPeriod,
-		router.BuildTable(conf),
-		actionProvider,
-		reporter,
 		statusReporter,
 	)
 
@@ -384,6 +362,7 @@ func run(ctx context.Context) error {
 		return reportFatalError("while reporting botkube startup", err)
 	}
 
+	healthChecker.MarkAsReady()
 	err = ctrl.Start(ctx)
 	if err != nil {
 		return reportFatalError("while starting controller", err)
@@ -404,17 +383,33 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Serve
 	return httpsrv.New(log, addr, router)
 }
 
-func newHealthServer(log logrus.FieldLogger, port string) *httpsrv.Server {
+func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpsrv.Server {
 	addr := fmt.Sprintf(":%s", port)
 	router := mux.NewRouter()
-	router.Handle(healthEndpointName, healthChecker{})
+	router.Handle(healthEndpointName, healthChecker)
 	return httpsrv.New(log, addr, router)
 }
 
-type healthChecker struct{}
+type healthChecker struct {
+	applicationStarted bool
+}
 
-func (healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(resp, "ok")
+func (h *healthChecker) MarkAsReady() {
+	h.applicationStarted = true
+}
+
+func (h *healthChecker) IsReady() bool {
+	return h.applicationStarted
+}
+
+func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	if h.IsReady() {
+		resp.WriteHeader(http.StatusOK)
+		fmt.Fprint(resp, "ok")
+	} else {
+		resp.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(resp, "unavailable")
+	}
 }
 
 func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
@@ -446,20 +441,14 @@ func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (ana
 	return analyticsReporter, nil
 }
 
-func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, meta.RESTMapper, error) {
+func getK8sClients(cfg *rest.Config) (discovery.DiscoveryInterface, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("while creating discovery client: %w", err)
-	}
-
-	dynamicK8sCli, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("while creating dynamic K8s client: %w", err)
+		return nil, fmt.Errorf("while creating discovery client: %w", err)
 	}
 
 	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoCacheClient)
-	return dynamicK8sCli, discoCacheClient, mapper, nil
+	return discoCacheClient, nil
 }
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {
