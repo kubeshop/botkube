@@ -74,10 +74,12 @@ func run(ctx context.Context) error {
 	// Load configuration
 	intconfig.RegisterFlags(pflag.CommandLine)
 
+	// TODO: Try to clean it up somehow
+	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
 	gqlClient := graphql.NewDefaultGqlClient()
 	deployClient := intconfig.NewDeploymentClient(gqlClient)
 
-	cfgProvider := intconfig.GetProvider(gqlClient)
+	cfgProvider := intconfig.GetProvider(remoteCfgSyncEnabled, deployClient)
 	configs, cfgVersion, err := cfgProvider.Configs(ctx)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
@@ -93,7 +95,6 @@ func run(ctx context.Context) error {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 
-	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
 	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, cfgVersion)
 	auditReporter := audit.NewAuditReporter(remoteCfgSyncEnabled, logger, gqlClient)
 
