@@ -20,7 +20,7 @@ const (
 )
 
 func IsRemoteConfigEnabled() bool {
-	return os.Getenv(GqlProviderEndpointEnvKey) != ""
+	return os.Getenv(GqlProviderIdentifierEnvKey) != ""
 }
 
 // Option define GraphQL client option.
