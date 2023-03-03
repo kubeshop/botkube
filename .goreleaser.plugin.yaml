@@ -84,5 +84,15 @@ builds:
     goarch: *goarch
     goarm: *goarm
 
+  - id: keptn
+    main: cmd/source/keptn/main.go
+    binary: source_keptn_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env: *env
+    goos: *goos
+    goarch: *goarch
+    goarm: *goarm
+
 snapshot:
   name_template: 'v{{ .Version }}'
