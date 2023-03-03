@@ -3,6 +3,7 @@ module github.com/kubeshop/botkube
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alexflint/go-arg v1.4.3
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/aws/aws-sdk-go v1.44.122
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/dustin/go-humanize v1.0.0

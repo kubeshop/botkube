@@ -49,7 +49,7 @@ func TestGql_GetDeployment(t *testing.T) {
 		graphql.WithDeploymentID("my-id"),
 	)
 	g := NewDeploymentClient(gqlClient)
-	deployment, err := g.GetDeployment(context.Background())
+	deployment, err := g.GetConfigWithResourceVersion(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment.YAMLConfig)
 }

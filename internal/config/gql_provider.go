@@ -20,7 +20,7 @@ func NewGqlProvider(dc DeploymentClient) *GqlProvider {
 
 // Configs returns list of config files
 func (g *GqlProvider) Configs(ctx context.Context) (config.YAMLFiles, int, error) {
-	deployment, err := g.client.GetDeployment(ctx)
+	deployment, err := g.client.GetConfigWithResourceVersion(ctx)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "while getting deployment")
 	}

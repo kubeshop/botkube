@@ -11,23 +11,27 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+// ConfigUpdater is an interface for updating configuration.
 type ConfigUpdater interface {
 	Do(ctx context.Context) error
 }
 
+// ResourceVersionHolder is an interface for holding resource version with ability to set it.
 type ResourceVersionHolder interface {
 	SetResourceVersion(int)
 }
 
+// GetConfigUpdater returns ConfigUpdater based on remoteCfgEnabled flag.
 func GetConfigUpdater(remoteCfgEnabled bool, log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
 	if remoteCfgEnabled {
-		return NewConfigUpdater(log, interval, deployCli, resVerHolders...)
+		return newRemoteConfigUpdater(log, interval, deployCli, resVerHolders...)
 	}
 
 	return &noopConfigUpdater{}
 }
 
-func NewConfigUpdater(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
+// newRemoteConfigUpdater returns new ConfigUpdater.
+func newRemoteConfigUpdater(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
 	return &GraphQLConfigUpdater{
 		log:           log,
 		interval:      interval,
@@ -65,17 +69,23 @@ func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
 			if err != nil {
 				wrappedErr := fmt.Errorf("while getting latest config: %w", err)
 				u.log.Error(wrappedErr.Error())
+				continue
+			}
+
+			if resVer == u.resVersion {
+				u.log.Debugf("Config version (%d) is the same as the latest one. Skipping...", resVer)
+				continue
 			}
 
 			u.latestCfg = cfg
 			u.setResourceVersionForAll(resVer)
-			u.log.Debugf("Successfully set config version %d.", resVer)
+			u.log.Debugf("Successfully set newer config version (%d)", resVer)
 		}
 	}
 }
 
 func (u *GraphQLConfigUpdater) queryConfig(ctx context.Context) (config.Config, int, error) {
-	deploy, err := u.deployCli.GetDeployment(ctx)
+	deploy, err := u.deployCli.GetConfigWithResourceVersion(ctx)
 	if err != nil {
 		return config.Config{}, 0, fmt.Errorf("while getting deployment: %w", err)
 	}

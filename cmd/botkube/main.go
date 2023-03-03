@@ -94,7 +94,7 @@ func run(ctx context.Context) error {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 
-	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, cfgVersion)
+	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, deployClient, cfgVersion)
 	auditReporter := audit.NewAuditReporter(remoteCfgSyncEnabled, logger, gqlClient)
 
 	// Set up analytics reporter
@@ -376,7 +376,7 @@ func run(ctx context.Context) error {
 		statusReporter,
 	)
 
-	if _, err := statusReporter.ReportDeploymentStartup(ctx); err != nil {
+	if err := statusReporter.ReportDeploymentStartup(ctx); err != nil {
 		return reportFatalError("while reporting botkube startup", err)
 	}
 
@@ -480,7 +480,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, st
 			logger.Errorf("while reporting fatal error: %s", err.Error())
 		}
 
-		if _, err := status.ReportDeploymentFailed(ctxTimeout); err != nil {
+		if err := status.ReportDeploymentFailed(ctxTimeout); err != nil {
 			logger.Errorf("while reporting deployment failure: %s", err.Error())
 		}
 

@@ -80,10 +80,11 @@ func (c *UpgradeChecker) notifyAboutUpgradeIfShould(ctx context.Context) (bool, 
 		return false, fmt.Errorf("while getting latest release from GitHub: %w", err)
 	}
 
-	c.log.Debugf("latest release info: %+v", release)
-	if release.TagName == nil {
+	if release == nil || release.TagName == nil {
 		return false, errors.New("release tag is empty")
 	}
+
+	c.log.Debugf("latest release tag: %s", *release.TagName)
 
 	// Send notification if newer version available
 	if version.Short() == *release.TagName {
