@@ -13,30 +13,30 @@ import (
 var _ StatusReporter = (*GraphQLStatusReporter)(nil)
 
 type GraphQLStatusReporter struct {
-	log logrus.FieldLogger
-	gql *gql.Gql
+	log             logrus.FieldLogger
+	gql             *gql.Gql
 	resourceVersion int
-	resVerMutex sync.RWMutex
+	resVerMutex     sync.RWMutex
 }
 
 func newGraphQLStatusReporter(logger logrus.FieldLogger, client *gql.Gql, cfgVersion int) *GraphQLStatusReporter {
 	return &GraphQLStatusReporter{
-		log: logger,
-		gql: client,
+		log:             logger,
+		gql:             client,
 		resourceVersion: cfgVersion,
 	}
 }
 
 func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) (bool, error) {
 	r.log.WithFields(logrus.Fields{
-			"deploymentID": r.gql.DeploymentID,
-			"resourceVersion": r.getResourceVersion(),
+		"deploymentID":    r.gql.DeploymentID,
+		"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment startup...")
 	var mutation struct {
 		Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
-		"id": graphql.ID(r.gql.DeploymentID),
+		"id":              graphql.ID(r.gql.DeploymentID),
 		"resourceVersion": r.getResourceVersion(),
 	}
 	if err := r.gql.Cli.Mutate(ctx, &mutation, variables); err != nil {
@@ -47,14 +47,14 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) (bo
 
 func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) (bool, error) {
 	r.log.WithFields(logrus.Fields{
-		"deploymentID": r.gql.DeploymentID,
+		"deploymentID":    r.gql.DeploymentID,
 		"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment shutdown...")
 	var mutation struct {
 		Success bool `graphql:"reportDeploymentShutdown(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
-		"id": graphql.ID(r.gql.DeploymentID),
+		"id":              graphql.ID(r.gql.DeploymentID),
 		"resourceVersion": r.getResourceVersion(),
 	}
 	if err := r.gql.Cli.Mutate(ctx, &mutation, variables); err != nil {
@@ -65,14 +65,14 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) (b
 
 func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) (bool, error) {
 	r.log.WithFields(logrus.Fields{
-		"deploymentID": r.gql.DeploymentID,
+		"deploymentID":    r.gql.DeploymentID,
 		"resourceVersion": r.getResourceVersion(),
 	}).Debugf("Reporting deployment failure...")
 	var mutation struct {
 		Success bool `graphql:"reportDeploymentFailed(id: $id, resourceVersion: $resourceVersion)"`
 	}
 	variables := map[string]interface{}{
-		"id": graphql.ID(r.gql.DeploymentID),
+		"id":              graphql.ID(r.gql.DeploymentID),
 		"resourceVersion": r.getResourceVersion(),
 	}
 	if err := r.gql.Cli.Mutate(ctx, &mutation, variables); err != nil {

@@ -3,11 +3,12 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type ConfigUpdater interface {
@@ -18,35 +19,33 @@ type ResourceVersionHolder interface {
 	SetResourceVersion(int)
 }
 
-
 func GetConfigUpdater(remoteCfgEnabled bool, log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
 	if remoteCfgEnabled {
 		return NewConfigUpdater(log, interval, deployCli, resVerHolders...)
 	}
 
-	return nil
+	return &noopConfigUpdater{}
 }
 
 func NewConfigUpdater(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
 	return &GraphQLConfigUpdater{
-		log: log,
-		interval: interval,
-		deployCli: deployCli,
+		log:           log,
+		interval:      interval,
+		deployCli:     deployCli,
 		resVerHolders: resVerHolders,
 	}
 }
 
 type GraphQLConfigUpdater struct {
-	log logrus.FieldLogger
-	interval time.Duration
+	log           logrus.FieldLogger
+	interval      time.Duration
 	resVerHolders []ResourceVersionHolder
 
-	latestCfg config.Config
+	latestCfg  config.Config
 	resVersion int
 
 	deployCli DeploymentClient
 }
-
 
 func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
 	u.log.Info("Starting...")
@@ -60,7 +59,7 @@ func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
 			u.log.Info("Shutdown requested. Finishing...")
 			return nil
 		case <-ticker.C:
-
+			u.log.Debug("Querying the latest configuration...")
 			// Check periodically
 			cfg, resVer, err := u.queryConfig(ctx)
 			if err != nil {
@@ -70,12 +69,12 @@ func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
 
 			u.latestCfg = cfg
 			u.setResourceVersionForAll(resVer)
+			u.log.Debugf("Successfully set config version %d.", resVer)
 		}
 	}
 }
 
 func (u *GraphQLConfigUpdater) queryConfig(ctx context.Context) (config.Config, int, error) {
-
 	deploy, err := u.deployCli.GetDeployment(ctx)
 	if err != nil {
 		return config.Config{}, 0, fmt.Errorf("while getting deployment: %w", err)
@@ -95,4 +94,10 @@ func (u *GraphQLConfigUpdater) setResourceVersionForAll(resVersion int) {
 	for _, h := range u.resVerHolders {
 		h.SetResourceVersion(u.resVersion)
 	}
+}
+
+type noopConfigUpdater struct{}
+
+func (u *noopConfigUpdater) Do(ctx context.Context) error {
+	return nil
 }

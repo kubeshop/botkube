@@ -3,10 +3,11 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const specialConfigFileNamePrefix = "_"

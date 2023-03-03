@@ -326,23 +326,22 @@ sources:
                 my-annotation: "true"
             labels:
                 my-label: "true"
-        plugins:
-            botkube/keptn:
-                enabled: true
-                config:
-                    field: value
-                context:
-                    rbac:
-                        user:
-                            type: ""
-                            static:
-                                value: ""
-                            prefix: ""
-                        group:
-                            type: ""
-                            static:
-                                values: []
-                            prefix: ""
+        botkube/keptn:
+            enabled: true
+            config:
+                field: value
+            context:
+                rbac:
+                    user:
+                        type: ""
+                        static:
+                            value: ""
+                        prefix: ""
+                    group:
+                        type: ""
+                        static:
+                            values: []
+                        prefix: ""
 executors:
     kubectl-read-only:
         kubectl:
@@ -376,27 +375,25 @@ executors:
                     - nodes
             defaultNamespace: default
             restrictAccess: false
-        plugins: {}
     plugin-based:
         kubectl:
             enabled: false
-        plugins:
-            botkube/echo:
-                enabled: true
-                config:
-                    changeResponseToUpperCase: true
-                context:
-                    rbac:
-                        user:
-                            type: ""
-                            static:
-                                value: ""
-                            prefix: ""
-                        group:
-                            type: ""
-                            static:
-                                values: []
-                            prefix: ""
+        botkube/echo:
+            enabled: true
+            config:
+                changeResponseToUpperCase: true
+            context:
+                rbac:
+                    user:
+                        type: ""
+                        static:
+                            value: ""
+                        prefix: ""
+                    group:
+                        type: ""
+                        static:
+                            values: []
+                        prefix: ""
 aliases: {}
 communications:
     default-workspace:

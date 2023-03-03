@@ -772,7 +772,6 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	}, nil
 }
 
-
 func normalizeConfigEnvName(name string) string {
 	name = strings.TrimPrefix(name, configEnvVariablePrefix)
 

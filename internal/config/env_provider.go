@@ -2,9 +2,10 @@ package config
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/config"
 	"os"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const (

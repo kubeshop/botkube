@@ -6,7 +6,7 @@ import (
 
 var _ StatusReporter = (*NoopStatusReporter)(nil)
 
-type NoopStatusReporter struct {}
+type NoopStatusReporter struct{}
 
 func newNoopStatusReporter() *NoopStatusReporter {
 	return &NoopStatusReporter{}
@@ -23,4 +23,4 @@ func (r *NoopStatusReporter) ReportDeploymentFailed(context.Context) (bool, erro
 	return true, nil
 }
 
-func (r *NoopStatusReporter) SetResourceVersion(int) { }
+func (r *NoopStatusReporter) SetResourceVersion(int) {}

@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/kubeshop/botkube/pkg/config"
 	"os"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // GetProvider resolves and returns paths for config files.
@@ -18,4 +19,3 @@ func GetProvider(remoteCfgSyncEnabled bool, deployClient DeploymentClient) confi
 
 	return NewFileSystemProvider(configPathsFlag)
 }
-

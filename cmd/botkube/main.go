@@ -74,7 +74,6 @@ func run(ctx context.Context) error {
 	// Load configuration
 	intconfig.RegisterFlags(pflag.CommandLine)
 
-	// TODO: Try to clean it up somehow
 	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
 	gqlClient := graphql.NewDefaultGqlClient()
 	deployClient := intconfig.NewDeploymentClient(gqlClient)

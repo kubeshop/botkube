@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"io"
 	"os"
 	"regexp"
@@ -12,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 var specialCharsPattern = regexp.MustCompile(`(?i:[^A-Z0-9_])`)

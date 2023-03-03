@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -19,7 +18,7 @@ import (
 
 func TestStartingUniqueProcesses(t *testing.T) {
 	// given
-	files := intConfig.YAMLFiles{
+	files := config.YAMLFiles{
 		readTestdataFile(t, "config.yaml"),
 	}
 	givenCfg, _, err := config.LoadWithDefaults(files)

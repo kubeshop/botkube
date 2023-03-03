@@ -24,6 +24,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	pkgConfig "github.com/kubeshop/botkube/pkg/config"
 )
 
 const (
@@ -79,7 +80,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 		startTime: time.Now(),
 		eventCh:   make(chan source.Event),
 		config:    cfg,
-		logger: loggerx.New(loggerx.Config{
+		logger: loggerx.New(pkgConfig.Logger{
 			Level: cfg.Log.Level,
 		}),
 		clusterName: input.Context.ClusterName,

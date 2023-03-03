@@ -2,9 +2,10 @@ package config
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/config"
 
 	"github.com/pkg/errors"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // GqlProvider is GraphQL provider

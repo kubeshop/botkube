@@ -1,10 +1,11 @@
 package loggerx
 
 import (
-	"github.com/kubeshop/botkube/pkg/config"
 	"os"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // New returns a new logger based on a given configuration.

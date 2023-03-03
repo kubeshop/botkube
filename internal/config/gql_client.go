@@ -28,7 +28,7 @@ func NewDeploymentClient(client *gql.Gql) *Gql {
 // Deployment returns deployment with Botkube configuration.
 type Deployment struct {
 	ResourceVersion int
-	YAMLConfig string
+	YAMLConfig      string
 }
 
 // GetDeployment retrieves deployment by id.

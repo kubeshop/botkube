@@ -3,7 +3,6 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -12,6 +11,7 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/config"
 	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
