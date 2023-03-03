@@ -28,7 +28,7 @@ var emojiForStatus = map[string]string{
 	"succeeded": ":large_green_circle:",
 	"errored":   ":x:",
 	"aborted":   ":warning:",
-	"":          "",
+	"":          ":email:",
 }
 
 // Source prometheus source plugin data structure
