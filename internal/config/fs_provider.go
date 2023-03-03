@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const specialConfigFileNamePrefix = "_"
@@ -21,19 +23,19 @@ func NewFileSystemProvider(configs []string) *FileSystemProvider {
 }
 
 // Configs returns list of config file locations.
-func (e *FileSystemProvider) Configs(_ context.Context) (YAMLFiles, error) {
+func (e *FileSystemProvider) Configs(_ context.Context) (config.YAMLFiles, int, error) {
 	configPaths := sortCfgFiles(e.Files)
 
-	var out YAMLFiles
+	var out config.YAMLFiles
 	for _, path := range configPaths {
 		raw, err := os.ReadFile(filepath.Clean(path))
 		if err != nil {
-			return nil, fmt.Errorf("while reading a file: %w", err)
+			return nil, 0, fmt.Errorf("while reading a file: %w", err)
 		}
 		out = append(out, raw)
 	}
 
-	return out, nil
+	return out, 0, nil
 }
 
 // sortCfgFiles sorts the config files so that the files that has specialConfigFileNamePrefix are moved to the end of the slice.

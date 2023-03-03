@@ -6,18 +6,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStaticProviderSuccess(t *testing.T) {
 	// when
 	p := NewFileSystemProvider([]string{"testdata/TestStaticProviderSuccess/config.yaml"})
-	configs, err := p.Configs(context.Background())
+	configs, cfgVer, err := p.Configs(context.Background())
 
 	// then
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	content, err := os.ReadFile("testdata/TestStaticProviderSuccess/config.yaml")
 	assert.NoError(t, err)
 	assert.Equal(t, content, configs[0])
+	assert.Equal(t, cfgVer, 0)
 }
 
 func TestSortCfgFiles(t *testing.T) {

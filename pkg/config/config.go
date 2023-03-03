@@ -3,7 +3,6 @@ package config
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -12,20 +11,12 @@ import (
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
-	"github.com/kubeshop/botkube/internal/config"
-	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/internal/graphql"
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 //go:embed default.yaml
 var defaultConfiguration []byte
-
-var configPathsFlag []string
 
 const (
 	configEnvVariablePrefix = "BOTKUBE_"
@@ -218,7 +209,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     Plugins          `koanf:",remain"`
+	Plugins     Plugins          `yaml:",inline" koanf:",remain"`
 }
 
 // GetPlugins returns Sources.Plugins.
@@ -380,7 +371,7 @@ const (
 // Executors contains executors configuration parameters.
 type Executors struct {
 	Kubectl Kubectl `yaml:"kubectl"`
-	Plugins Plugins `koanf:",remain"`
+	Plugins Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
@@ -691,9 +682,15 @@ type Settings struct {
 	MetricsPort           string           `yaml:"metricsPort"`
 	HealthPort            string           `yaml:"healthPort"`
 	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
-	Log                   loggerx.Config   `yaml:"log"`
+	Log                   Logger           `yaml:"log"`
 	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig            string           `yaml:"kubeconfig"`
+}
+
+// Logger holds logger configuration parameters.
+type Logger struct {
+	Level         string `yaml:"level"`
+	DisableColors bool   `yaml:"disableColors"`
 }
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
@@ -773,26 +770,6 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	return &cfg, LoadWithDefaultsDetails{
 		ValidateWarnings: result.Warnings.ErrorOrNil(),
 	}, nil
-}
-
-// GetProvider resolves and returns paths for config files.
-// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func GetProvider(gql *graphql.Gql) config.Provider {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
-		dc := intconfig.NewDeploymentClient(gql)
-		return config.NewGqlProvider(dc)
-	}
-
-	if os.Getenv(intconfig.EnvProviderConfigPathsEnvKey) != "" {
-		return config.NewEnvProvider()
-	}
-
-	return config.NewFileSystemProvider(configPathsFlag)
-}
-
-// RegisterFlags registers config related flags.
-func RegisterFlags(flags *pflag.FlagSet) {
-	flags.StringSliceVarP(&configPathsFlag, "config", "c", nil, "Specify configuration file in YAML format (can specify multiple).")
 }
 
 func normalizeConfigEnvName(name string) string {

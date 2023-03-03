@@ -1,19 +1,16 @@
 package config_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/golden"
 
-	intConfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -31,7 +28,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL", "http://localhost:3000/botkube.yaml")
 
 	// when
-	files := intConfig.YAMLFiles{
+	files := config.YAMLFiles{
 		readTestdataFile(t, "config-all.yaml"),
 		readTestdataFile(t, "config-global.yaml"),
 		readTestdataFile(t, "config-slack-override.yaml"),
@@ -72,7 +69,7 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 		},
 	}
 
-	files := intConfig.YAMLFiles{
+	files := config.YAMLFiles{
 		readTestdataFile(t, "config-all.yaml"),
 	}
 
@@ -85,62 +82,6 @@ func TestLoadConfigWithPlugins(t *testing.T) {
 
 	assert.Equal(t, expSourcePlugin, gotCfg.Sources["k8s-events"].Plugins)
 	assert.Equal(t, expExecutorPlugin, gotCfg.Executors["plugin-based"].Plugins)
-}
-
-func TestFromProvider(t *testing.T) {
-	t.Run("from envs variable only", func(t *testing.T) {
-		// given
-		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
-
-		// when
-		provider := config.GetProvider(nil)
-		gotConfigs, err := provider.Configs(context.Background())
-		assert.NoError(t, err)
-
-		// then
-		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
-		assert.NoError(t, err)
-		assert.Equal(t, c, gotConfigs.Merge())
-	})
-
-	t.Run("from CLI flag only", func(t *testing.T) {
-		// given
-		fSet := pflag.NewFlagSet("testing", pflag.ContinueOnError)
-		config.RegisterFlags(fSet)
-		err := fSet.Parse([]string{"--config=testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml", "--config", "testdata/TestFromProvider/third.yaml"})
-		require.NoError(t, err)
-
-		// when
-		provider := config.GetProvider(nil)
-		gotConfigs, err := provider.Configs(context.Background())
-		assert.NoError(t, err)
-
-		// then
-		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
-		assert.NoError(t, err)
-		assert.Equal(t, c, gotConfigs.Merge())
-	})
-
-	t.Run("should honor env variable over the CLI flag", func(t *testing.T) {
-		// given
-		fSet := pflag.NewFlagSet("testing", pflag.ContinueOnError)
-		config.RegisterFlags(fSet)
-
-		err := fSet.Parse([]string{"--config=testdata/TestFromProvider/from-cli-flag.yaml,testdata/TestFromProvider/from-cli-flag-second.yaml"})
-		require.NoError(t, err)
-
-		t.Setenv("BOTKUBE_CONFIG_PATHS", "testdata/TestFromProvider/first.yaml,testdata/TestFromProvider/second.yaml,testdata/TestFromProvider/third.yaml")
-
-		// when
-		provider := config.GetProvider(nil)
-		gotConfigs, err := provider.Configs(context.Background())
-		assert.NoError(t, err)
-
-		// then
-		c, err := os.ReadFile("testdata/TestFromProvider/all.yaml")
-		assert.NoError(t, err)
-		assert.Equal(t, c, gotConfigs.Merge())
-	})
 }
 
 func TestNormalizeConfigEnvName(t *testing.T) {

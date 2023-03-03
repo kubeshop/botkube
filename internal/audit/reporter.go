@@ -2,7 +2,6 @@ package audit
 
 import (
 	"context"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -34,8 +33,8 @@ type SourceAuditEvent struct {
 }
 
 // NewAuditReporter creates new AuditReporter
-func NewAuditReporter(logger logrus.FieldLogger, gql *graphql.Gql) AuditReporter {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
+func NewAuditReporter(remoteCfgSyncEnabled bool, logger logrus.FieldLogger, gql *graphql.Gql) AuditReporter {
+	if remoteCfgSyncEnabled {
 		return newGraphQLAuditReporter(logger.WithField("component", "GraphQLAuditReporter"), gql)
 	}
 	return newNoopAuditReporter(nil)

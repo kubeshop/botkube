@@ -19,6 +19,10 @@ const (
 	GqlProviderAPIKeyEnvKey = "CONFIG_PROVIDER_API_KEY"
 )
 
+func IsRemoteConfigEnabled() bool {
+	return os.Getenv(GqlProviderIdentifierEnvKey) != ""
+}
+
 // Option define GraphQL client option.
 type Option func(*Gql)
 

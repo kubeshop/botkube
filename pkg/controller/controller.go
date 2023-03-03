@@ -69,7 +69,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	// use separate ctx as parent ctx is already cancelled
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	if _, err := c.statusReporter.ReportDeploymentShutdown(ctxTimeout); err != nil {
+	if err := c.statusReporter.ReportDeploymentShutdown(ctxTimeout); err != nil {
 		return fmt.Errorf("while reporting botkube shutdown: %w", err)
 	}
 

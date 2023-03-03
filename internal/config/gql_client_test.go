@@ -16,7 +16,7 @@ import (
 )
 
 func TestGql_GetDeployment(t *testing.T) {
-	expectedBody := fmt.Sprintf(`{"query":"query ($id:ID!){deployment(id: $id){botkubeConfig}}","variables":{"id":"my-id"}}%s`, "\n")
+	expectedBody := fmt.Sprintf(`{"query":"query ($id:ID!){deployment(id: $id){resourceVersion,yamlConfig}}","variables":{"id":"my-id"}}%s`, "\n")
 	file, err := os.ReadFile("testdata/gql_get_deployment_success.json")
 	assert.NoError(t, err)
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func TestGql_GetDeployment(t *testing.T) {
 		graphql.WithDeploymentID("my-id"),
 	)
 	g := NewDeploymentClient(gqlClient)
-	deployment, err := g.GetDeployment(context.Background())
+	deployment, err := g.GetConfigWithResourceVersion(context.Background())
 	assert.NoError(t, err)
-	assert.NotNil(t, deployment.BotkubeConfig)
+	assert.NotNil(t, deployment.YAMLConfig)
 }
