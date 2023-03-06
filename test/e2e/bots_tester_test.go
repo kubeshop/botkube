@@ -5,11 +5,12 @@ package e2e
 import (
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/sanity-io/litter"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const recentMessagesLimit = 6
@@ -24,8 +25,12 @@ var structDumper = litter.Options{
 }
 
 type MessageAssertion func(content string) (bool, int, string)
-type AttachmentAssertion func(msg string) (bool, int, string)
 type FileUploadAssertion func(title, mimetype string) bool
+
+type ExpAttachmentInput struct {
+	Message               api.Message
+	AllowedTimestampDelta time.Duration
+}
 
 type Channel interface {
 	ID() string
@@ -56,9 +61,7 @@ type BotDriver interface {
 	WaitForMessagePosted(userID, channel string, limitMessages int, assertFn MessageAssertion) error
 	WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error
 	WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error
-	WaitForMessagePostedWithAttachment(userID, channel string, limitMessages int, assertFn AttachmentAssertion) error
-	WaitForLastMessagePostedWithAttachment(userID, channel string, assertFn AttachmentAssertion) error
-	WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error
+	WaitForMessagePostedWithAttachment(userID, channel string, limitMessages int, expInput ExpAttachmentInput) error
 	Channel() Channel
 	SecondChannel() Channel
 	BotName() string
@@ -66,5 +69,4 @@ type BotDriver interface {
 	TesterUserID() string
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
-	GetColorByLevel(level config.Level) string
 }

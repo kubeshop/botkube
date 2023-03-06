@@ -85,7 +85,8 @@ func ReplaceBotNameInBody(body Body, name string) Body {
 // ReplaceBotNameInTextFields replaces bot name placeholder with a given name.
 func ReplaceBotNameInTextFields(fields TextFields, name string) TextFields {
 	for i, item := range fields {
-		fields[i].Text = replace(item.Text, name)
+		fields[i].Value = replace(item.Value, name)
+		fields[i].Key = replace(item.Key, name)
 	}
 	return fields
 }

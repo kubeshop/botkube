@@ -116,20 +116,25 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      # -- Describes configuration for various recommendation insights.
-      recommendations:
-        # -- Recommendations for Pod Kubernetes resource.
-        pod:
-          # -- If true, notifies about Pod containers that use `latest` tag for images.
-          noLatestImageTag: true
-          # -- If true, notifies about Pod resources created without labels.
-          labelsSet: true
-        # -- Recommendations for Ingress Kubernetes resource.
-        ingress:
-          # -- If true, notifies about Ingress resources with invalid backend service reference.
-          backendServiceValid: true
-          # -- If true, notifies about Ingress resources with invalid TLS secret reference.
-          tlsSecretValid: true
+      enabled: true
+      config:
+        namespaces:
+          include:
+            - ".*"
+        # -- Describes configuration for various recommendation insights.
+        recommendations:
+          # -- Recommendations for Pod Kubernetes resource.
+          pod:
+            # -- If true, notifies about Pod containers that use `latest` tag for images.
+            noLatestImageTag: true
+            # -- If true, notifies about Pod resources created without labels.
+            labelsSet: true
+          # -- Recommendations for Ingress Kubernetes resource.
+          ingress:
+            # -- If true, notifies about Ingress resources with invalid backend service reference.
+            backendServiceValid: true
+            # -- If true, notifies about Ingress resources with invalid TLS secret reference.
+            tlsSecretValid: true
 
   'k8s-all-events':
     displayName: "Kubernetes Info"
@@ -578,9 +583,6 @@ communications:
       # -- Slack app-level token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       appToken: ''
-      notification:
-        # -- Configures notification type that are sent. Possible values: `short`, `long`.
-        type: short
     ## Settings for Mattermost.
     mattermost:
       # -- If true, enables Mattermost bot.
@@ -612,9 +614,6 @@ communications:
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-      notification:
-        # -- Configures notification type that are sent. Possible values: `short`, `long`.
-        type: short
 
     ## Settings for MS Teams.
     teams:
@@ -666,9 +665,6 @@ communications:
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-      notification:
-        # -- Configures notification type that are sent. Possible values: `short`, `long`.
-        type: short
 
     ## Settings for Elasticsearch.
     elasticsearch:
@@ -739,8 +735,6 @@ communications:
               - k8s-err-events
               - k8s-recommendation-events
       token: ''
-      notification:
-        type: short
 
 ## Global Botkube configuration.
 settings:

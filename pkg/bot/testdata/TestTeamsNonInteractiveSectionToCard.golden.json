@@ -1,0 +1,55 @@
+{
+  "type": "AdaptiveCard",
+  "version": "1.2",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Section Header",
+      "size": "Large"
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        {
+          "title": "Kind",
+          "value": "pod"
+        },
+        {
+          "title": "Namespace",
+          "value": "botkube"
+        },
+        {
+          "title": "Name",
+          "value": "webapp-server-68c5c57f6f"
+        },
+        {
+          "title": "Reason",
+          "value": "BackOff"
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Messages**"
+    },
+    {
+      "type": "TextBlock",
+      "text": "- Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt\r- Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium\r- At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium",
+      "wrap": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Issues**"
+    },
+    {
+      "type": "TextBlock",
+      "text": "- Issue item 1\r- Issue item 2\r- Issue item 3",
+      "wrap": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "_{{DATE(2022-04-21T02:43:00Z, SHORT)}} at {{TIME(2022-04-21T02:43:00Z)}}_"
+    }
+  ]
+}

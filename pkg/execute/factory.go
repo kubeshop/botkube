@@ -25,7 +25,6 @@ type DefaultExecutorFactory struct {
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
-	filterExecutor        *FilterExecutor
 	pingExecutor          *PingExecutor
 	versionExecutor       *VersionExecutor
 	helpExecutor          *HelpExecutor
@@ -65,7 +64,6 @@ type Executor interface {
 type ConfigPersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
-	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
 }
 
@@ -221,7 +219,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		notifierExecutor:      f.notifierExecutor,
 		sourceBindingExecutor: f.sourceBindingExecutor,
 		actionExecutor:        f.actionExecutor,
-		filterExecutor:        f.filterExecutor,
 		pingExecutor:          f.pingExecutor,
 		versionExecutor:       f.versionExecutor,
 		helpExecutor:          f.helpExecutor,

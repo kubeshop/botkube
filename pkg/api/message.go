@@ -1,6 +1,9 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // ButtonStyle is a style of Button element.
 type ButtonStyle string
@@ -31,6 +34,13 @@ const (
 	// In this form the built-in filter is supported.
 	// NOTE: only BaseBody is preserved. All other properties are ignored even if set.
 	BaseBodyWithFilterMessage MessageType = "baseBodyWithFilter"
+	// NonInteractiveSingleSection it is an indicator for non-interactive platforms, that they can render this event
+	// even though they have limited capability. As a result, a given message has the following restriction:
+	//  - the whole message should have exactly one section
+	//  - section interactive elements such as buttons, select, multiselect, and inputs are ignored.
+	//  - the base body of the message is ignored
+	//  - Timestamp field is optional
+	NonInteractiveSingleSection MessageType = "nonInteractiveEventSingleSection"
 	// PopupMessage defines a message that should be displayed to the user as popup (if possible).
 	PopupMessage MessageType = "form"
 )
@@ -39,6 +49,7 @@ const (
 type Message struct {
 	Type              MessageType
 	BaseBody          Body
+	Timestamp         time.Time
 	Sections          []Section
 	PlaintextInputs   LabelInputs
 	OnlyVisibleForYou bool
@@ -102,7 +113,19 @@ type Section struct {
 	Selects         Selects
 	PlaintextInputs LabelInputs
 	TextFields      TextFields
+	BulletLists     BulletLists
 	Context         ContextItems
+}
+
+type BulletLists []BulletList
+
+func (l BulletLists) AreItemsDefined() bool {
+	for _, list := range l {
+		if len(list.Items) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // LabelInputs holds the plain text input items.
@@ -116,7 +139,18 @@ type TextFields []TextField
 
 // TextField holds a text field data.
 type TextField struct {
-	Text string
+	Key   string
+	Value string
+}
+
+// IsEmpty returns true if all fields have zero-value.
+func (t *TextField) IsEmpty() bool {
+	return t.Value == "" && t.Key == ""
+}
+
+type BulletList struct {
+	Title string
+	Items []string
 }
 
 // IsDefined returns true if there are any context items defined.

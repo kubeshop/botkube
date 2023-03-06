@@ -7,25 +7,18 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/araddon/dateparse"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/multierror"
 )
-
-var DiscordAttachmentColorStatus = AttachmentStatus{
-	config.Info:     "8311585",
-	config.Debug:    "8311585",
-	config.Warn:     "16312092",
-	config.Error:    "13632027",
-	config.Critical: "13632027",
-}
 
 type DiscordChannel struct {
 	*discordgo.Channel
@@ -102,10 +95,10 @@ func (d *discordTester) InitUsers(t *testing.T) {
 }
 
 func (d *discordTester) InitChannels(t *testing.T) []func() {
-	channel, cleanupChannelFn := d.createChannel(t)
+	channel, cleanupChannelFn := d.createChannel(t, "first")
 	d.channel = &DiscordChannel{Channel: channel}
 
-	secondChannel, cleanupSecondChannelFn := d.createChannel(t)
+	secondChannel, cleanupSecondChannelFn := d.createChannel(t, "second")
 	d.secondChannel = &DiscordChannel{Channel: secondChannel}
 
 	return []func(){
@@ -277,20 +270,24 @@ func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID str
 	return nil
 }
 
-func (d *discordTester) WaitForLastMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
-	return d.WaitForMessagePostedWithAttachment(userID, channelID, 1, assertFn)
-}
-
-func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn AttachmentAssertion) error {
+func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn ExpAttachmentInput) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
 	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
 	// This setting has been enforced from August 31, 2022
+	renderer := bot.NewDiscordRenderer()
 
-	var fetchedMessages []*discordgo.Message
-	var lastErr error
-	var diffMessage string
-	highestCommonBlockCount := -1 // a single message is fetched, always print diff
+	var (
+		fetchedMessages []*discordgo.Message
+		lastErr         error
+		expTime         time.Time
+		fakeT           = newFakeT("discord attachment test")
+	)
+
+	if !assertFn.Message.Timestamp.IsZero() {
+		expTime = assertFn.Message.Timestamp
+		assertFn.Message.Timestamp = time.Time{}
+	}
 
 	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, limitMessages, "", "", "")
@@ -309,26 +306,36 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 				continue
 			}
 
-			embed := msg.Embeds[0]
-
-			equal, commonCount, diffStr := assertFn(embed.Description)
-			if !equal {
-				// different message; update the diff if it's more similar than the previous one or initial value
-				if commonCount > highestCommonBlockCount {
-					highestCommonBlockCount = commonCount
-					diffMessage = diffStr
-				}
-				continue
+			expEmbed, err := renderer.NonInteractiveSectionToCard(interactive.CoreMessage{
+				Message: assertFn.Message,
+			})
+			if err != nil {
+				return false, err
 			}
 
+			gotEmbed := msg.Embeds[0]
+			gotEmbed.Type = "" // it's set to rich, but we don't compare that
+
+			if !expTime.IsZero() {
+				gotEventTime, err := dateparse.ParseAny(gotEmbed.Timestamp)
+				if err != nil {
+					return false, err
+				}
+
+				if err = timeWithinDuration(expTime, gotEventTime, time.Minute); err != nil {
+					return false, err
+				}
+				gotEmbed.Timestamp = "" // reset so it doesn't impact static content assertion
+			}
+
+			if !assert.EqualValues(fakeT, &expEmbed, gotEmbed) {
+				continue
+			}
 			return true, nil
 		}
 
 		return false, nil
 	})
-	if lastErr == nil {
-		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
-	}
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
@@ -339,13 +346,17 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 	return nil
 }
 
-func (d *discordTester) WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error {
-	errs := multierror.New()
-	for _, channelID := range channelIDs {
-		errs = multierror.Append(errs, d.WaitForLastMessagePostedWithAttachment(userID, channelID, assertFn))
-	}
+type fakeT struct {
+	Context string
+}
 
-	return errs.ErrorOrNil()
+func newFakeT(context string) *fakeT {
+	return &fakeT{Context: context}
+}
+
+func (f fakeT) Errorf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	fmt.Printf("%s: %s", f.Context, msg)
 }
 
 func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
@@ -372,10 +383,6 @@ func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channel
 	})
 }
 
-func (d *discordTester) GetColorByLevel(level config.Level) string {
-	return DiscordAttachmentColorStatus[level]
-}
-
 func (d *discordTester) findUserID(t *testing.T, name string) string {
 	t.Logf("Getting user %q...", name)
 	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 50)
@@ -392,10 +399,10 @@ func (d *discordTester) findUserID(t *testing.T, name string) string {
 	return ""
 }
 
-func (d *discordTester) createChannel(t *testing.T) (*discordgo.Channel, func(t *testing.T)) {
+func (d *discordTester) createChannel(t *testing.T, prefix string) (*discordgo.Channel, func(t *testing.T)) {
 	t.Helper()
 	randomID := uuid.New()
-	channelName := fmt.Sprintf("%s-%s", channelNamePrefix, randomID.String())
+	channelName := fmt.Sprintf("%s-%s-%s", channelNamePrefix, prefix, randomID.String())
 
 	t.Logf("Creating channel %q...", channelName)
 	channel, err := d.cli.GuildChannelCreate(d.cfg.GuildID, channelName, discordgo.ChannelTypeGuildText)

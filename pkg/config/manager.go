@@ -157,29 +157,6 @@ func (m *PersistenceManager) PersistNotificationsEnabled(ctx context.Context, co
 	return nil
 }
 
-// PersistFilterEnabled persists status for a given filter.
-// While this method updates the Botkube ConfigMap, it doesn't reload Botkube itself.
-func (m *PersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
-	cmStorage := configMapStorage[StartupState]{k8sCli: m.k8sCli, cfg: m.cfg.Startup}
-
-	state, cm, err := cmStorage.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = state.Filters.Kubernetes.SetEnabled(name, enabled)
-	if err != nil {
-		return err
-	}
-
-	err = cmStorage.Update(ctx, cm, state)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // PersistActionEnabled updates runtime config map with desired action.enabled parameter
 func (m *PersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
 	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}

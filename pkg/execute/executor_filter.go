@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 var _ executorFilter = &executorTextFilter{}
@@ -43,4 +45,16 @@ func (f *executorTextFilter) Apply(text string) string {
 	}
 
 	return strings.TrimSuffix(out.String(), "\n")
+}
+
+func appendInteractiveFilterIfNeeded(body string, msg interactive.CoreMessage, cmdCtx CommandContext) interactive.CoreMessage {
+	if !cmdCtx.Platform.IsInteractive() {
+		return msg
+	}
+	if len(strings.SplitN(body, "\n", lineLimitToShowFilter)) < lineLimitToShowFilter {
+		return msg
+	}
+
+	msg.PlaintextInputs = append(msg.PlaintextInputs, filterInput(cmdCtx.CleanCmd))
+	return msg
 }

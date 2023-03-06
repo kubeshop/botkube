@@ -12,7 +12,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
-	formatx "github.com/kubeshop/botkube/pkg/format"
 )
 
 const (
@@ -40,12 +39,13 @@ func NewSource(version string) *Source {
 
 // Stream streams prometheus alerts
 func (p *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	out := source.StreamOutput{Output: make(chan []byte)}
+	out := source.StreamOutput{Event: make(chan source.Event)}
 	config, err := MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
-	go p.consumeAlerts(ctx, config, out.Output)
+	go p.consumeAlerts(ctx, config, out.Event)
+
 	return out, nil
 }
 
@@ -58,7 +58,7 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- []byte) {
+func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- source.Event) {
 	log := loggerx.New(config.Logger{
 		Level: cfg.Log.Level,
 	})
@@ -75,15 +75,31 @@ func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- []byte
 			log.Errorf("failed to get alerts. %v", err)
 		}
 		for _, alert := range alerts {
-			msg := heredoc.Docf(`
-				Source: %s
-				Alert Name: %s
-				State: %s
-
-				Description:
-				%s`, formatx.AdaptiveCodeBlock(PluginName), formatx.AdaptiveCodeBlock(string(alert.Labels["alertname"])), formatx.AdaptiveCodeBlock(string(alert.State)), alert.Annotations["description"],
-			)
-			ch <- []byte(msg)
+			msg := api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: time.Now(),
+				Sections: []api.Section{
+					{
+						TextFields: []api.TextField{
+							{Key: "Source", Value: PluginName},
+							{Key: "Alert Name", Value: string(alert.Labels["alertname"])},
+							{Key: "State", Value: string(alert.State)},
+						},
+						BulletLists: []api.BulletList{
+							{
+								Title: "Description",
+								Items: []string{
+									string(alert.Annotations["description"]),
+								},
+							},
+						},
+					},
+				},
+			}
+			ch <- source.Event{
+				Message:   msg,
+				RawObject: alert,
+			}
 		}
 		// Fetch alerts periodically with given frequency
 		time.Sleep(time.Second * pollPeriodInSeconds)

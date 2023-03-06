@@ -1,4 +1,4 @@
-package format_test
+package formatx_test
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 func TestStructDumper(t *testing.T) {
@@ -20,7 +20,7 @@ func TestStructDumper(t *testing.T) {
 		Threads []Thread
 	}
 
-	got := format.StructDumper().Sdump(Message{
+	got := formatx.StructDumper().Sdump(Message{
 		Text:   "Hello, Botkube!",
 		UserID: 3,
 		Threads: []Thread{

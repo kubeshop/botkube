@@ -13,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -36,14 +35,6 @@ const slackMaxMessageSize = 3001
 
 var _ Bot = &Slack{}
 
-var attachmentColor = map[config.Level]string{
-	config.Info:     "good",
-	config.Warn:     "warning",
-	config.Debug:    "good",
-	config.Error:    "danger",
-	config.Critical: "danger",
-}
-
 // Slack listens for user's message, execute commands and sends back the response.
 type Slack struct {
 	log             logrus.FieldLogger
@@ -51,14 +42,12 @@ type Slack struct {
 	reporter        FatalErrorAnalyticsReporter
 	botID           string
 	client          *slack.Client
-	notification    config.Notification
 	channelsMutex   sync.RWMutex
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
 	renderer        *SlackRenderer
-	mdFormatter     interactive.MDFormatter
 }
 
 // slackMessage contains message details to execute command and send back the result
@@ -89,19 +78,16 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &Slack{
 		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
 		botID:           botID,
 		client:          client,
-		notification:    cfg.Notification,
 		channels:        channels,
 		commGroupName:   commGroupName,
-		renderer:        NewSlackRenderer(cfg.Notification),
 		botMentionRegex: botMentionRegex,
-		mdFormatter:     mdFormatter,
+		renderer:        NewSlackRenderer(),
 	}, nil
 }
 
@@ -267,7 +253,7 @@ func (b *Slack) send(ctx context.Context, msg slackMessage, resp interactive.Cor
 	b.log.Debugf("Sending message to channel %q: %+v", msg.Channel, msg)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+	markdown := b.renderer.MessageToMarkdown(resp)
 
 	if len(markdown) == 0 {
 		return errors.New("while reading Slack response: empty response")
@@ -301,34 +287,6 @@ func (b *Slack) send(ctx context.Context, msg slackMessage, resp interactive.Cor
 
 	b.log.Debugf("Message successfully sent to channel %q", msg.Channel)
 	return nil
-}
-
-// SendEvent sends event notification to slack
-func (b *Slack) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
-	b.log.Debugf("Sending to Slack: %+v", event)
-	attachment := b.renderer.RenderLegacyEventMessage(event)
-
-	errs := multierror.New()
-	for _, channelName := range b.getChannelsToNotifyForEvent(event, eventSources) {
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
-			continue
-		}
-
-		b.log.Debugf("Event successfully sent to channel %q (ID: %q) at %b", channelName, channelID, timestamp)
-	}
-
-	return errs.ErrorOrNil()
-}
-
-func (b *Slack) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
-	// support custom event routing
-	if event.Channel != "" {
-		return []string{event.Channel}
-	}
-
-	return b.getChannelsToNotify(sourceBindings)
 }
 
 func (b *Slack) getChannelsToNotify(sourceBindings []string) []string {
@@ -408,10 +366,6 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
-}
-
-func mdHeaderFormatter(msg string) string {
-	return fmt.Sprintf("*%s*", msg)
 }
 
 func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {

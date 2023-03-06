@@ -49,14 +49,24 @@ type (
 		// Migration path:
 		//
 		//	Old approach:
-		//	  return executor.StreamOutput{
-		//	  	Output: out,
+		//	  out := source.StreamOutput{
+		//	  	Output: make(chan []byte),
 		//	  }
+		//	  go func() {
+		//	  	out.Output <- []byte("Ticker Event")
+		//	  }()
+		//	  return out, nil
 		//
 		//	New approach:
-		//	  return executor.StreamOutput{
-		//	  	Message: api.NewPlaintextMessage(out, true),
+		//	  out := source.StreamOutput{
+		//	  	Event: make(chan source.Event),
 		//	  }
+		//	  go func() {
+		//	  	out.Event <- source.Event{
+		//	  		Message: api.NewPlaintextMessage("Ticker Event", true),
+		//	  	}
+		//	  }()
+		//	  return out, nil
 		Output chan []byte
 		// Event represents the streamed events with message,raw object, and analytics data. It is from start of plugin consumption.
 		// You can construct a complex message.data or just use one of our helper functions:

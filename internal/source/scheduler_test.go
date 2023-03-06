@@ -80,5 +80,5 @@ type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfi
 
 // ServeHTTP calls f(w, r).
 func (f fakeDispatcherFunc) Dispatch(dispatch PluginDispatch) error {
-	return f(dispatch.ctx, dispatch.pluginName, dispatch.pluginConfigs, dispatch.sources)
+	return f(dispatch.ctx, dispatch.pluginName, dispatch.pluginConfigs, []string{dispatch.sourceName})
 }
