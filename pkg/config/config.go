@@ -648,10 +648,17 @@ type Commands struct {
 
 // CfgWatcher describes configuration for watching the configuration.
 type CfgWatcher struct {
-	Enabled            bool           `yaml:"enabled"`
+	Enabled bool             `yaml:"enabled"`
+	Remote  RemoteCfgWatcher `yaml:"remote"`
+
 	InitialSyncTimeout time.Duration  `yaml:"initialSyncTimeout"`
 	TmpDir             string         `yaml:"tmpDir"`
 	Deployment         K8sResourceRef `yaml:"deployment"`
+}
+
+// RemoteCfgWatcher describes configuration for watching the configuration using remote config provider.
+type RemoteCfgWatcher struct {
+	PollInterval time.Duration `yaml:"pollInterval"`
 }
 
 // Settings contains Botkube's related configuration.

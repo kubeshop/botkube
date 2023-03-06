@@ -50,13 +50,12 @@ import (
 )
 
 const (
-	componentLogFieldKey  = "component"
-	botLogFieldKey        = "bot"
-	sinkLogFieldKey       = "sink"
-	commGroupFieldKey     = "commGroup"
-	healthEndpointName    = "/healthz"
-	printAPIKeyCharCount  = 3
-	configUpdaterInterval = 15 * time.Second
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+	sinkLogFieldKey      = "sink"
+	commGroupFieldKey    = "commGroup"
+	healthEndpointName   = "/healthz"
+	printAPIKeyCharCount = 3
 )
 
 func main() {
@@ -291,6 +290,7 @@ func run(ctx context.Context) error {
 		}
 	}
 
+	// TODO: Remove once we migrate to ConfigMap-based config reloader
 	// Lifecycle server
 	if conf.Settings.LifecycleServer.Enabled {
 		lifecycleSrv := lifecycle.NewServer(
@@ -308,29 +308,30 @@ func run(ctx context.Context) error {
 		})
 	}
 
-	restarter := reloader.NewRestarter(
-		logger.WithField(componentLogFieldKey, "Restarter"),
-		k8sCli,
-		conf.ConfigWatcher.Deployment,
-		conf.Settings.ClusterName,
-		func(msg string) error {
-			return notifier.SendPlaintextMessage(ctx, notifiers, msg)
-		},
-	)
-	cfgReloader := reloader.Get(
-		remoteCfgEnabled,
-		logger.WithField(componentLogFieldKey, "Config Updater"),
-		configUpdaterInterval,
-		deployClient,
-		restarter,
-		statusReporter,
-	)
-	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
-		return cfgReloader.Do(ctx)
-	})
-
 	if conf.ConfigWatcher.Enabled {
+		restarter := reloader.NewRestarter(
+			logger.WithField(componentLogFieldKey, "Restarter"),
+			k8sCli,
+			conf.ConfigWatcher.Deployment,
+			conf.Settings.ClusterName,
+			func(msg string) error {
+				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+			},
+		)
+		cfgReloader := reloader.Get(
+			remoteCfgEnabled,
+			logger.WithField(componentLogFieldKey, "Config Updater"),
+			conf.ConfigWatcher.Remote.PollInterval,
+			deployClient,
+			restarter,
+			statusReporter,
+		)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return cfgReloader.Do(ctx)
+		})
+
+		// TODO: Remove once we migrate to ConfigMap-based config reloader
 		err := config.WaitForWatcherSync(
 			ctx,
 			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),

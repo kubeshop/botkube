@@ -73,6 +73,8 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    kubeconfig: ""
 						configWatcher:
 						    enabled: false
+						    remote:
+						        pollInterval: 0s
 						    initialSyncTimeout: 0s
 						    tmpDir: ""
 						    deployment: {}

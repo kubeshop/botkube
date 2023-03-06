@@ -15,3 +15,7 @@ plugins:
 
 analytics:
   disable: false
+
+configWatcher:
+  remote:
+    pollInterval: "15s"
