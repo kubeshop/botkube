@@ -1,38 +1,23 @@
-package config
+package reloader
 
 import (
 	"context"
 	"fmt"
-	"time"
-
+	intconfig "github.com/kubeshop/botkube/internal/config"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-
-	"github.com/kubeshop/botkube/pkg/config"
+	"time"
 )
 
-// ConfigUpdater is an interface for updating configuration.
-type ConfigUpdater interface {
-	Do(ctx context.Context) error
+// DeploymentClient defines GraphQL client.
+type DeploymentClient interface {
+	GetConfigWithResourceVersion(ctx context.Context) (intconfig.Deployment, error)
 }
 
-// ResourceVersionHolder is an interface for holding resource version with ability to set it.
-type ResourceVersionHolder interface {
-	SetResourceVersion(int)
-}
-
-// GetConfigUpdater returns ConfigUpdater based on remoteCfgEnabled flag.
-func GetConfigUpdater(remoteCfgEnabled bool, log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
-	if remoteCfgEnabled {
-		return newRemoteConfigUpdater(log, interval, deployCli, resVerHolders...)
-	}
-
-	return &noopConfigUpdater{}
-}
-
-// newRemoteConfigUpdater returns new ConfigUpdater.
-func newRemoteConfigUpdater(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) ConfigUpdater {
-	return &GraphQLConfigUpdater{
+// NewRemote returns new ConfigUpdater.
+func NewRemote(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
+	return &RemoteConfigReloader{
 		log:           log,
 		interval:      interval,
 		deployCli:     deployCli,
@@ -40,7 +25,7 @@ func newRemoteConfigUpdater(log logrus.FieldLogger, interval time.Duration, depl
 	}
 }
 
-type GraphQLConfigUpdater struct {
+type RemoteConfigReloader struct {
 	log           logrus.FieldLogger
 	interval      time.Duration
 	resVerHolders []ResourceVersionHolder
@@ -51,7 +36,7 @@ type GraphQLConfigUpdater struct {
 	deployCli DeploymentClient
 }
 
-func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
+func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 	u.log.Info("Starting...")
 
 	ticker := time.NewTicker(u.interval)
@@ -84,7 +69,7 @@ func (u *GraphQLConfigUpdater) Do(ctx context.Context) error {
 	}
 }
 
-func (u *GraphQLConfigUpdater) queryConfig(ctx context.Context) (config.Config, int, error) {
+func (u *RemoteConfigReloader) queryConfig(ctx context.Context) (config.Config, int, error) {
 	deploy, err := u.deployCli.GetConfigWithResourceVersion(ctx)
 	if err != nil {
 		return config.Config{}, 0, fmt.Errorf("while getting deployment: %w", err)
@@ -99,15 +84,9 @@ func (u *GraphQLConfigUpdater) queryConfig(ctx context.Context) (config.Config, 
 	return latestCfg, deploy.ResourceVersion, nil
 }
 
-func (u *GraphQLConfigUpdater) setResourceVersionForAll(resVersion int) {
+func (u *RemoteConfigReloader) setResourceVersionForAll(resVersion int) {
 	u.resVersion = resVersion
 	for _, h := range u.resVerHolders {
 		h.SetResourceVersion(u.resVersion)
 	}
-}
-
-type noopConfigUpdater struct{}
-
-func (u *noopConfigUpdater) Do(ctx context.Context) error {
-	return nil
 }

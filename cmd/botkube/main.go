@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/config/reloader"
 	"log"
 	"net/http"
 	"time"
@@ -307,7 +308,7 @@ func run(ctx context.Context) error {
 		})
 	}
 
-	cfgUpdater := intconfig.GetConfigUpdater(
+	cfgReloader := reloader.Get(
 		remoteCfgSyncEnabled,
 		logger.WithField(componentLogFieldKey, "Config Updater"),
 		configUpdaterInterval,
@@ -316,7 +317,7 @@ func run(ctx context.Context) error {
 	)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
-		return cfgUpdater.Do(ctx)
+		return cfgReloader.Do(ctx)
 	})
 
 	if conf.ConfigWatcher.Enabled {
