@@ -113,7 +113,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 	notifierExecutor := NewNotifierExecutor(
 		params.Log.WithField("component", "Notifier Executor"),
 		params.CfgManager,
-		params.Cfg,
 	)
 	helpExecutor := NewHelpExecutor(
 		params.Log.WithField("component", "Help Executor"),

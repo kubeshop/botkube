@@ -525,6 +525,7 @@ configWatcher:
     enabled: false
     initialSyncTimeout: 0s
     tmpDir: ""
+    deployment: {}
 plugins:
     cacheDir: /tmp
     repositories:

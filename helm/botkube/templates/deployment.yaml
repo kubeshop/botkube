@@ -113,6 +113,10 @@ spec:
               value: "{{.Release.Namespace}}"
             - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAME
               value: "{{ include "botkube.fullname" . }}"
+            - name: BOTKUBE_CONFIG__WATCHER_DEPLOYMENT_NAMESPACE
+              value: "{{.Release.Namespace}}"
+            - name: BOTKUBE_CONFIG__WATCHER_DEPLOYMENT_NAME
+              value: "{{ include "botkube.fullname" . }}"
             {{- if .Values.config.provider.endpoint }}
             - name: CONFIG_PROVIDER_ENDPOINT
               value: {{ .Values.config.provider.endpoint }}

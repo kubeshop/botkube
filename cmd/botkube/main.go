@@ -308,11 +308,21 @@ func run(ctx context.Context) error {
 		})
 	}
 
+	restarter := reloader.NewRestarter(
+		logger.WithField(componentLogFieldKey, "Restarter"),
+		k8sCli,
+		conf.ConfigWatcher.Deployment,
+		conf.Settings.ClusterName,
+		func(msg string) error {
+			return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+		},
+	)
 	cfgReloader := reloader.Get(
 		remoteCfgEnabled,
 		logger.WithField(componentLogFieldKey, "Config Updater"),
 		configUpdaterInterval,
 		deployClient,
+		restarter,
 		statusReporter,
 	)
 	errGroup.Go(func() error {

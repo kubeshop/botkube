@@ -18,14 +18,6 @@ const (
 	testPlatform  = config.SlackCommPlatformIntegration
 )
 
-var (
-	notifierTestCfg = config.Config{
-		Settings: config.Settings{
-			ClusterName: "foo",
-		},
-	}
-)
-
 func TestNotifierExecutorStart(t *testing.T) {
 	testCases := []struct {
 		Name           string
@@ -85,7 +77,7 @@ func TestNotifierExecutorStart(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias})
 			msg, err := e.Enable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -159,7 +151,7 @@ func TestNotifierExecutorStop(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias})
 			msg, err := e.Disable(context.Background(), tc.CmdCtx)
 			if err != nil {
 				assert.EqualError(t, err, tc.ExpectedError)
@@ -212,7 +204,7 @@ func TestNotifierExecutorStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias}, notifierTestCfg)
+			e := NewNotifierExecutor(loggerx.NewNoop(), &fakeCfgPersistenceManager{expectedAlias: channelAlias})
 			mapping, err := NewCmdsMapping([]CommandExecutor{e})
 			require.NoError(t, err)
 			tc.CmdCtx.Mapping = mapping

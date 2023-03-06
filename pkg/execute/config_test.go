@@ -75,6 +75,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    enabled: false
 						    initialSyncTimeout: 0s
 						    tmpDir: ""
+						    deployment: {}
 						plugins:
 						    cacheDir: ""
 						    repositories: {}
