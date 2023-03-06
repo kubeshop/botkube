@@ -23,7 +23,15 @@ type RemoteConfigPersistenceManager struct {
 var _ ConfigPersistenceManager = (*RemoteConfigPersistenceManager)(nil)
 
 func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
-	m.log.Debugf("Sending new notification configuration for: %s", m.gql.DeploymentID)
+	logger := m.log.WithFields(logrus.Fields{
+		"deploymentID":    m.gql.DeploymentID,
+		"resourceVersion": m.getResourceVersion(),
+		"commGroupName":   commGroupName,
+		"platform":        platform.String(),
+		"channelAlias":    channelAlias,
+		"disabled":        !enabled,
+	})
+	logger.Debug("Updating notification configuration")
 
 	if _, ok := supportedPlatformsSourceBindings[platform]; !ok {
 		return ErrUnsupportedPlatform
@@ -54,7 +62,15 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 }
 
 func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
-	m.log.Debugf("Sending new source binding configuration for: %s", m.gql.DeploymentID)
+	logger := m.log.WithFields(logrus.Fields{
+		"deploymentID":    m.gql.DeploymentID,
+		"resourceVersion": m.getResourceVersion(),
+		"commGroupName":   commGroupName,
+		"platform":        platform.String(),
+		"channelAlias":    channelAlias,
+		"sourceBindings":  sourceBindings,
+	})
+	logger.Debug("Updating source bindings configuration")
 
 	if _, ok := supportedPlatformsNotifications[platform]; !ok {
 		return ErrUnsupportedPlatform
