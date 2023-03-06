@@ -3,16 +3,18 @@ package reloader
 import (
 	"context"
 	"fmt"
-	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/pkg/config"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"time"
+
+	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // DeploymentClient defines GraphQL client.
 type DeploymentClient interface {
-	GetConfigWithResourceVersion(ctx context.Context) (intconfig.Deployment, error)
+	GetConfigWithResourceVersion(ctx context.Context) (remote.Deployment, error)
 }
 
 // NewRemote returns new ConfigUpdater.
@@ -61,6 +63,9 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 				u.log.Debugf("Config version (%d) is the same as the latest one. Skipping...", resVer)
 				continue
 			}
+
+			// TODO: check diff
+
 
 			u.latestCfg = cfg
 			u.setResourceVersionForAll(resVer)

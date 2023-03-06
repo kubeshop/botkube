@@ -1,8 +1,7 @@
-package graphql
+package remote
 
 import (
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/hasura/go-graphql-client"
@@ -12,16 +11,7 @@ const (
 	defaultTimeout = 30 * time.Second
 	//nolint:gosec // warns us about 'Potential hardcoded credentials' but there is no security issue here
 	apiKeyHeaderName = "X-API-Key"
-
-	GqlProviderEndpointEnvKey   = "CONFIG_PROVIDER_ENDPOINT"
-	GqlProviderIdentifierEnvKey = "CONFIG_PROVIDER_IDENTIFIER"
-	//nolint:gosec // warns us about 'Potential hardcoded credentials' but there is no security issue here
-	GqlProviderAPIKeyEnvKey = "CONFIG_PROVIDER_API_KEY"
 )
-
-func IsRemoteConfigEnabled() bool {
-	return os.Getenv(GqlProviderIdentifierEnvKey) != ""
-}
 
 // Option define GraphQL client option.
 type Option func(*Gql)
@@ -29,30 +19,30 @@ type Option func(*Gql)
 // WithEndpoint configures ApiURL for GraphQL endpoint.
 func WithEndpoint(url string) Option {
 	return func(client *Gql) {
-		client.Endpoint = url
+		client.endpoint = url
 	}
 }
 
 // WithAPIKey configures API key for GraphQL endpoint.
 func WithAPIKey(apiKey string) Option {
 	return func(client *Gql) {
-		client.APIKey = apiKey
+		client.apiKey = apiKey
 	}
 }
 
 // WithDeploymentID configures deployment id for GraphQL endpoint.
 func WithDeploymentID(id string) Option {
 	return func(client *Gql) {
-		client.DeploymentID = id
+		client.deployID = id
 	}
 }
 
 // Gql defines GraphQL client data structure.
 type Gql struct {
-	Cli          *graphql.Client
-	Endpoint     string
-	APIKey       string
-	DeploymentID string
+	cli      *graphql.Client
+	endpoint string
+	apiKey   string
+	deployID string
 }
 
 // NewGqlClient initializes GraphQL client.
@@ -63,25 +53,36 @@ func NewGqlClient(options ...Option) *Gql {
 	}
 
 	// skip client creation when not requested
-	if c.Endpoint == "" {
-		return c
+	if c.endpoint == "" {
+		return nil
 	}
 
 	httpCli := &http.Client{
-		Transport: newAPIKeySecuredTransport(c.APIKey),
+		Transport: newAPIKeySecuredTransport(c.apiKey),
 		Timeout:   defaultTimeout,
 	}
 
-	c.Cli = graphql.NewClient(c.Endpoint, httpCli)
+	c.cli = graphql.NewClient(c.endpoint, httpCli)
 	return c
 }
 
-func NewDefaultGqlClient() *Gql {
+// NewDefaultGqlClient initializes GraphQL client with default options.
+func NewDefaultGqlClient(remoteCfg Config) *Gql {
 	return NewGqlClient(
-		WithEndpoint(os.Getenv(GqlProviderEndpointEnvKey)),
-		WithAPIKey(os.Getenv(GqlProviderAPIKeyEnvKey)),
-		WithDeploymentID(os.Getenv(GqlProviderIdentifierEnvKey)),
+		WithEndpoint(remoteCfg.Endpoint),
+		WithAPIKey(remoteCfg.APIKey),
+		WithDeploymentID(remoteCfg.Identifier),
 	)
+}
+
+// DeploymentID returns deployment ID.
+func (g *Gql) DeploymentID() string {
+	return g.deployID
+}
+
+// Client returns GraphQL client.
+func (g *Gql) Client() *graphql.Client {
+	return g.cli
 }
 
 type apiKeySecuredTransport struct {
@@ -96,6 +97,7 @@ func newAPIKeySecuredTransport(apiKey string) *apiKeySecuredTransport {
 	}
 }
 
+// RoundTrip adds API key to request header and executes RoundTrip for the underlying transport.
 func (t *apiKeySecuredTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.apiKey != "" {
 		req.Header.Set(apiKeyHeaderName, t.apiKey)

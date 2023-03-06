@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/config/reloader"
 	"log"
 	"net/http"
 	"time"
@@ -29,7 +28,8 @@ import (
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/command"
 	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/internal/graphql"
+	"github.com/kubeshop/botkube/internal/config/reloader"
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -75,11 +75,11 @@ func run(ctx context.Context) error {
 	// Load configuration
 	intconfig.RegisterFlags(pflag.CommandLine)
 
-	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
-	gqlClient := graphql.NewDefaultGqlClient()
-	deployClient := intconfig.NewDeploymentClient(gqlClient)
+	remoteCfg, remoteCfgEnabled := remote.GetConfig()
+	gqlClient := remote.NewDefaultGqlClient(remoteCfg)
+	deployClient := remote.NewDeploymentClient(gqlClient)
 
-	cfgProvider := intconfig.GetProvider(remoteCfgSyncEnabled, deployClient)
+	cfgProvider := intconfig.GetProvider(remoteCfgEnabled, deployClient)
 	configs, cfgVersion, err := cfgProvider.Configs(ctx)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
@@ -95,11 +95,11 @@ func run(ctx context.Context) error {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 
-	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, deployClient, cfgVersion)
-	auditReporter := audit.NewAuditReporter(remoteCfgSyncEnabled, logger, gqlClient)
+	statusReporter := status.GetReporter(remoteCfgEnabled, logger, gqlClient, deployClient, cfgVersion)
+	auditReporter := audit.GetReporter(remoteCfgEnabled, logger, gqlClient)
 
 	// Set up analytics reporter
-	reporter, err := newAnalyticsReporter(conf.Analytics.Disable, logger)
+	reporter, err := getAnalyticsReporter(conf.Analytics.Disable, logger)
 	if err != nil {
 		return fmt.Errorf("while creating analytics reporter: %w", err)
 	}
@@ -309,7 +309,7 @@ func run(ctx context.Context) error {
 	}
 
 	cfgReloader := reloader.Get(
-		remoteCfgSyncEnabled,
+		remoteCfgEnabled,
 		logger.WithField(componentLogFieldKey, "Config Updater"),
 		configUpdaterInterval,
 		deployClient,
@@ -430,7 +430,7 @@ func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
+func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
 	if disableAnalytics {
 		logger.Info("Analytics disabled via configuration settings.")
 		return analytics.NewNoopReporter(), nil

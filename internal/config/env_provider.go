@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	// EnvProviderConfigPathsEnvKey holds config paths separated by comma.
 	EnvProviderConfigPathsEnvKey = "BOTKUBE_CONFIG_PATHS"
 )
 

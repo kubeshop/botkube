@@ -1,8 +1,9 @@
 package reloader
 
 import (
-	"github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Get returns Reloader based on remoteCfgEnabled flag.

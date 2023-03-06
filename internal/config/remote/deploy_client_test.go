@@ -1,4 +1,4 @@
-package config
+package remote_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/internal/graphql"
+	"github.com/kubeshop/botkube/internal/config/remote"
 )
 
 func TestGql_GetDeployment(t *testing.T) {
@@ -43,12 +43,12 @@ func TestGql_GetDeployment(t *testing.T) {
 	}))
 	defer svr.Close()
 
-	gqlClient := graphql.NewGqlClient(
-		graphql.WithEndpoint(svr.URL),
-		graphql.WithAPIKey("api-key"),
-		graphql.WithDeploymentID("my-id"),
+	gqlClient := remote.NewGqlClient(
+		remote.WithEndpoint(svr.URL),
+		remote.WithAPIKey("api-key"),
+		remote.WithDeploymentID("my-id"),
 	)
-	g := NewDeploymentClient(gqlClient)
+	g := remote.NewDeploymentClient(gqlClient)
 	deployment, err := g.GetConfigWithResourceVersion(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment.YAMLConfig)

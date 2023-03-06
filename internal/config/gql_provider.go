@@ -5,8 +5,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/config"
 )
+
+type DeploymentClient interface {
+	GetConfigWithResourceVersion(ctx context.Context) (remote.Deployment, error)
+}
 
 // GqlProvider is GraphQL provider
 type GqlProvider struct {

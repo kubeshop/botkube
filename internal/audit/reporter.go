@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 // AuditReporter defines interface for reporting audit events
@@ -32,8 +30,8 @@ type SourceAuditEvent struct {
 	Bindings   []string
 }
 
-// NewAuditReporter creates new AuditReporter
-func NewAuditReporter(remoteCfgSyncEnabled bool, logger logrus.FieldLogger, gql *graphql.Gql) AuditReporter {
+// GetReporter creates new AuditReporter
+func GetReporter(remoteCfgSyncEnabled bool, logger logrus.FieldLogger, gql GraphQLClient) AuditReporter {
 	if remoteCfgSyncEnabled {
 		return newGraphQLAuditReporter(logger.WithField("component", "GraphQLAuditReporter"), gql)
 	}
