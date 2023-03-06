@@ -80,7 +80,7 @@ func consumeEvents(ctx context.Context, s Source) {
 
 	for {
 		req := GetEventsRequest{
-			Project:  "botkube",
+			Project:  s.config.Project,
 			FromTime: time.Now().Add(-time.Second * pollPeriodInSeconds),
 		}
 		res, err := keptn.Events(ctx, &req)
