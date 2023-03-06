@@ -250,7 +250,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli)
+			manager := config.NewManager(false, loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli, nil)
 
 			// when
 			err := manager.PersistSourceBindings(context.Background(), commGroupName, testCase.InputPlatform, testCase.InputChannel, testCase.InputSourceBindings)
@@ -395,8 +395,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Startup: cfg}, k8sCli)
-
+			manager := config.NewManager(false, loggerx.NewNoop(), config.PersistentConfig{Startup: cfg}, k8sCli, nil)
 			// when
 			err := manager.PersistNotificationsEnabled(context.Background(), commGroupName, testCase.InputPlatform, testCase.InputChannel, testCase.InputEnabled)
 
@@ -474,7 +473,7 @@ func TestPersistenceManager_PersistActionEnabled(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			k8sCli := fake.NewSimpleClientset(testCase.InputCfgMap)
-			manager := config.NewManager(loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli)
+			manager := config.NewManager(false, loggerx.NewNoop(), config.PersistentConfig{Runtime: cfg}, k8sCli, nil)
 
 			err := manager.PersistActionEnabled(context.Background(), testCase.ActionName, testCase.Enabled)
 			assert.Equal(t, testCase.Err, err)
