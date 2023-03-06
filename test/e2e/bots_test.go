@@ -844,7 +844,11 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot event message...")
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+		// we check last 3 messages as we can get:
+		// - message with recommendations from 'k8s-events'
+		// - massage with pod create event from 'k8s-pod-create-events'
+		// - message with kc execution via 'get-created-resource' automation
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 3, ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
