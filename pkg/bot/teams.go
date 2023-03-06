@@ -116,31 +116,7 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		MessagePath:     msgPath,
 		Port:            port,
 		renderer:        NewTeamsRenderer(),
-		conversations: map[string]conversation{
-			"19:39fc9559b2be4e098daa72c099f838b4@thread.tacv2": {
-				ref: schema.ConversationReference{
-					ActivityID: "1677752792830",
-					User: schema.ChannelAccount{
-						ID:          "29:1ebCmxp-seBXPQ6sIKRy5KdCBGmgoUA66Z4yuIRHeeUc73LZP6kSQpBJp1HD_zJbZ1nHugmmoHwKwtv3v8vILMQ",
-						Name:        "Mateusz Szostok",
-						AadObjectID: "28faef42-04c2-48d5-bc8b-73d86a88124b",
-					},
-					Bot: schema.ChannelAccount{
-						ID:   "28:2f0817e7-430b-410f-bece-21b54ac253b7",
-						Name: "BotkubeCloud",
-					},
-					Conversation: schema.ConversationAccount{
-						IsGroup:          true,
-						ConversationType: "channel",
-						TenantID:         "2a3ed9f9-4029-49df-bd97-452fc58e7050",
-						ID:               "19:39fc9559b2be4e098daa72c099f838b4@thread.tacv2",
-					},
-					ChannelID:  "19:39fc9559b2be4e098daa72c099f838b4@thread.tacv2",
-					ServiceURL: "https://smba.trafficmanager.net/amer/",
-				},
-				notify: true,
-			},
-		},
+		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
 	}, nil
 }

@@ -33,12 +33,12 @@
       },
       {
         "title": "Messages",
-        "value": "• Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt\n• Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium\n• At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium\n",
+        "value": "• Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt\n• Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium\n• At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium",
         "short": false
       },
       {
         "title": "Issues",
-        "value": "• Issue item 1\n• Issue item 2\n• Issue item 3\n",
+        "value": "• Issue item 1\n• Issue item 2\n• Issue item 3",
         "short": false
       }
     ],

@@ -67,6 +67,7 @@ func messageAttachments(event event.Event) string {
 	var additionalMsgStrBuilder strings.Builder
 	if len(event.Messages) > 0 {
 		additionalMsgStrBuilder.WriteString(JoinMessages(event.Messages))
+		additionalMsgStrBuilder.WriteString("\n")
 	}
 	if len(event.Recommendations) > 0 {
 		additionalMsgStrBuilder.WriteString("Recommendations:\n")

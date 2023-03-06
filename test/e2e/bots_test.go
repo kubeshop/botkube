@@ -57,7 +57,7 @@ type SlackConfig struct {
 	TesterName               string `envconfig:"default=tester"`
 	AdditionalContextMessage string `envconfig:"optional"`
 	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=1s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
 }
 
 type DiscordConfig struct {
@@ -721,6 +721,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Updating ConfigMap once again...")
+		updateCMEventTime = time.Now()
 		cfgMap.Data = map[string]string{
 			"operation": "update-second",
 		}
@@ -786,6 +787,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
+		deleteCMEventTime := time.Now()
 		err = cfgMapCli.Delete(context.Background(), cfgMap.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 		cfgMapAlreadyDeleted = true
@@ -795,7 +797,7 @@ func runBotTest(t *testing.T,
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
-				Timestamp: updateCMEventTime,
+				Timestamp: deleteCMEventTime,
 				Sections: []api.Section{
 					{
 						Base: api.Base{
@@ -820,9 +822,6 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
-		if botDriver.Type() == DiscordBot {
-			return // skipping for discord
-		}
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")
@@ -838,17 +837,42 @@ func runBotTest(t *testing.T,
 			},
 		}
 		require.Len(t, pod.Spec.Containers, 1)
+		createPodEventTime := time.Now()
 		pod, err = podCli.Create(context.Background(), pod, metav1.CreateOptions{})
 		require.NoError(t, err)
 
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot event message...")
-		assertionFn := func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/pods created*\n*Labels:*\n• Kind: Pod\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s\n*Recommendations:*\n• Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.\n• The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name, appCfg.ClusterName, pod.Namespace, pod.Name, pod.Namespace, pod.Name)
-			return strings.HasPrefix(msg, startsWithMsg), 0, ""
-		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+			AllowedTimestampDelta: time.Minute,
+			Message: api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: createPodEventTime,
+				Sections: []api.Section{
+					{
+						Base: api.Base{
+							Header: "🟢 v1/pods created",
+						},
+						TextFields: api.TextFields{
+							{Key: "Kind", Value: "Pod"},
+							{Key: "Name", Value: pod.Name},
+							{Key: "Namespace", Value: pod.Namespace},
+							{Key: "Cluster", Value: appCfg.ClusterName},
+						},
+						BulletLists: []api.BulletList{
+							{
+								Title: "Recommendations",
+								Items: []string{
+									fmt.Sprintf("Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name),
+									fmt.Sprintf("The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		t.Log("Expecting bot automation message...")

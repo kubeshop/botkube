@@ -67,6 +67,9 @@ func (msg *Message) IsEmpty() bool {
 	if msg.HasSections() {
 		return false
 	}
+	if !msg.Timestamp.IsZero() {
+		return false
+	}
 
 	return true
 }
@@ -117,8 +120,10 @@ type Section struct {
 	Context         ContextItems
 }
 
+// BulletLists holds the bullet lists.
 type BulletLists []BulletList
 
+// AreItemsDefined returns true if at least one list has items defined.
 func (l BulletLists) AreItemsDefined() bool {
 	for _, list := range l {
 		if len(list.Items) > 0 {
@@ -148,6 +153,7 @@ func (t *TextField) IsEmpty() bool {
 	return t.Value == "" && t.Key == ""
 }
 
+// BulletList defines a bullet list primitive.
 type BulletList struct {
 	Title string
 	Items []string
@@ -180,7 +186,7 @@ const (
 	DispatchInputActionOnCharacter DispatchedInputAction = "on_character_entered"
 )
 
-// LabelInput is used to create input elements to use in slack messages.
+// LabelInput is used to create input elements to use in messages.
 type LabelInput struct {
 	Command          string
 	Text             string

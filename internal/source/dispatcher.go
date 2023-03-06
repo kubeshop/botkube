@@ -10,6 +10,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -109,7 +110,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, dispatch.sourceName, dispatch.pluginName)
+				d.dispatch(ctx, event, dispatch)
 			case msg := <-out.Event:
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, dispatch)
@@ -190,28 +191,18 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 	}
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, source string, pluginName string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, dispatch PluginDispatch) {
 	if event == nil {
 		return
 	}
-	allNotifiers := append([]notifier.Notifier{}, d.markdownNotifiers...)
-	allNotifiers = append(allNotifiers, d.interactiveNotifiers...)
-	for _, n := range allNotifiers {
-		go func(n notifier.Notifier) {
-			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
-			e := string(event)
-			msg := interactive.CoreMessage{
-				Description: e,
-			}
-			err := n.SendMessage(ctx, msg, []string{source})
-			if err != nil {
-				d.log.Errorf("while sending event: %s, data: %v", err.Error(), string(event))
-			}
-			if err := d.reportAudit(ctx, pluginName, e, source); err != nil {
-				d.log.Errorf("while reporting audit event: %s", err.Error())
-			}
-		}(n)
-	}
+
+	d.dispatchMsg(ctx, source.Event{
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: string(event),
+			},
+		},
+	}, dispatch)
 }
 
 func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event, source string) error {

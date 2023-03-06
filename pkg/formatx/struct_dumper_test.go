@@ -31,11 +31,11 @@ func TestStructDumper(t *testing.T) {
 		},
 	})
 	expected := heredoc.Doc(`
-		format_test.Message{
+		formatx_test.Message{
 		  Text: "Hello, Botkube!",
 		  UserID: 3,
-		  Threads: []format_test.Thread{
-		    format_test.Thread{
+		  Threads: []formatx_test.Thread{
+		    formatx_test.Thread{
 		      TimeStamp: 2344442424,
 		      Team: "MetalHead",
 		    },
