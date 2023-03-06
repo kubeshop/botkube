@@ -7,8 +7,9 @@ import (
 	"sync"
 
 	"github.com/hasura/go-graphql-client"
-	gql "github.com/kubeshop/botkube/internal/graphql"
 	"github.com/sirupsen/logrus"
+
+	gql "github.com/kubeshop/botkube/internal/graphql"
 )
 
 // RemotePersistenceManager manages persistence of the configuration.

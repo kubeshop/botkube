@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/kubeshop/botkube/internal/graphql"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 var (

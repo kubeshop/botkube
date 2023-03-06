@@ -46,11 +46,6 @@ func (e *SourceBindingExecutor) Commands() map[command.Verb]CommandFn {
 	}
 }
 
-// BindingsStorage provides functionality to persist source binding for a given channel.
-// type BindingsStorage interface {
-// 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
-// }
-
 // SourceBindingExecutor provides functionality to run all Botkube SourceBinding related commands.
 type SourceBindingExecutor struct {
 	log        logrus.FieldLogger
