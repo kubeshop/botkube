@@ -75,6 +75,14 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 				bindSources[name] = struct{}{}
 			}
 		}
+
+		if commGroupCfg.Elasticsearch.Enabled {
+			for _, index := range commGroupCfg.Elasticsearch.Indices {
+				for _, name := range index.Bindings.Sources {
+					bindSources[name] = struct{}{}
+				}
+			}
+		}
 	}
 
 	// Collect all used executors/sources by actions
