@@ -11,13 +11,14 @@ import (
 
 // Notifier sends event notifications and messages on the communication channels.
 type Notifier interface {
+
 	// SendMessageToAll is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
 	// TODO: Consider option per channel to turn on/off "announcements" (Botkube start/stop/upgrade, notify/config change).
 	SendMessageToAll(context.Context, interactive.CoreMessage) error
 
 	// SendMessage sends a generic message for a given source bindings.
-	SendMessage(context.Context, interactive.CoreMessage, []string) error
+	SendMessage(context.Context, interactive.CoreMessage, []string, any) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration

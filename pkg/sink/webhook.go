@@ -12,10 +12,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
@@ -31,29 +28,9 @@ type Webhook struct {
 
 // WebhookPayload contains json payload to be sent to webhook url
 type WebhookPayload struct {
-	EventMeta       EventMeta   `json:"meta"`
-	EventStatus     EventStatus `json:"status"`
-	EventSummary    string      `json:"summary"`
-	TimeStamp       time.Time   `json:"timestamp"`
-	Recommendations []string    `json:"recommendations,omitempty"`
-	Warnings        []string    `json:"warnings,omitempty"`
-}
-
-// EventMeta contains the metadata about the event occurred
-type EventMeta struct {
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Cluster   string `json:"cluster,omitempty"`
-}
-
-// EventStatus contains the status about the event occurred
-type EventStatus struct {
-	Type     config.EventType `json:"type"`
-	Level    config.Level     `json:"level"`
-	Reason   string           `json:"reason,omitempty"`
-	Error    string           `json:"error,omitempty"`
-	Messages []string         `json:"messages,omitempty"`
+	Source    string    `json:"source,omitempty"`
+	Data      any       `json:"data,omitempty"`
+	TimeStamp time.Time `json:"timeStamp"`
 }
 
 // NewWebhook creates a new Webhook instance.
@@ -73,49 +50,24 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 	return whNotifier, nil
 }
 
-// SendEvent sends event notification to Webhook url
-func (w *Webhook) SendEvent(ctx context.Context, event event.Event, eventSources []string) (err error) {
-	if !sliceutil.Intersect(w.Bindings.Sources, eventSources) {
-		w.log.Debugf("Event sources do not match Webhook sources, event: %+v, eventSources: %+v", event, eventSources)
-		return nil
-	}
-
-	jsonPayload := &WebhookPayload{
-		EventMeta: EventMeta{
-			Kind:      event.Kind,
-			Name:      event.Name,
-			Namespace: event.Namespace,
-			Cluster:   event.Cluster,
-		},
-		EventStatus: EventStatus{
-			Type:     event.Type,
-			Level:    event.Level,
-			Reason:   event.Reason,
-			Error:    event.Error,
-			Messages: event.Messages,
-		},
-		EventSummary:    formatx.ShortMessage(event),
-		TimeStamp:       event.TimeStamp,
-		Recommendations: event.Recommendations,
-		Warnings:        event.Warnings,
-	}
-
-	err = w.PostWebhook(ctx, jsonPayload)
-	if err != nil {
-		return fmt.Errorf("while sending event to webhook: %w", err)
-	}
-
-	w.log.Debugf("Event successfully sent to Webhook: %+v", event)
-	return nil
-}
-
 // SendMessageToAll is no-op.
 func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.CoreMessage) error {
 	return nil
 }
 
 // SendMessage is no-op.
-func (w *Webhook) SendMessage(_ context.Context, _ interactive.CoreMessage, _ []string) error {
+func (w *Webhook) SendMessage(ctx context.Context, _ interactive.CoreMessage, sources []string, rawData any) error {
+	jsonPayload := &WebhookPayload{
+		Source: sources[0],
+		Data:   rawData,
+	}
+
+	err := w.PostWebhook(ctx, jsonPayload)
+	if err != nil {
+		return fmt.Errorf("while sending message to webhook: %w", err)
+	}
+
+	w.log.Debugf("Message successfully sent to Webhook: %+v", rawData)
 	return nil
 }
 

@@ -141,7 +141,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 			msg := interactive.CoreMessage{
 				Message: event.Message,
 			}
-			err := n.SendMessage(ctx, msg, sources)
+			err := n.SendMessage(ctx, msg, sources, event.RawObject)
 			if err != nil {
 				reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
 					IntegrationType:       n.Type(),
@@ -182,7 +182,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 		for _, n := range d.getNotifiers(dispatch) {
 			go func(n notifier.Notifier) {
 				defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
-				err := n.SendMessage(ctx, genericMsg, sources)
+				err := n.SendMessage(ctx, genericMsg, sources, event.RawObject)
 				if err != nil {
 					d.log.Errorf("while sending action result message: %s", err.Error())
 				}

@@ -202,7 +202,7 @@ func (e *Elasticsearch) SendMessageToAll(_ context.Context, _ interactive.CoreMe
 }
 
 // SendMessage is no-op.
-func (e *Elasticsearch) SendMessage(_ context.Context, _ interactive.CoreMessage, _ []string) error {
+func (e *Elasticsearch) SendMessage(_ context.Context, _ interactive.CoreMessage, _ []string, _ any) error {
 	return nil
 }
 
