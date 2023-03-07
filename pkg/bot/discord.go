@@ -121,7 +121,7 @@ func (b *Discord) Start(ctx context.Context) error {
 
 // SendMessage sends interactive message to selected Discord channels.
 // Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
+func (b *Discord) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string, _ any) error {
 	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
 		err := b.send(channelID, msg)

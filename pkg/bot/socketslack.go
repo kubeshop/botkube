@@ -437,7 +437,7 @@ func (b *SocketSlack) getChannelsToNotify(sourceBindings []string) []string {
 }
 
 // SendMessage sends message with interactive sections to selected Slack channels.
-func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
+func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string, _ any) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
 		msgMetadata := socketSlackMessage{
