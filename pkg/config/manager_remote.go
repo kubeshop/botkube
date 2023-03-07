@@ -42,11 +42,10 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 		return ErrUnsupportedPlatform
 	}
 	var mutation struct {
-		PatchDeploymentConfig struct {
-			ID graphql.ID
-		} `graphql:"patchDeploymentConfig(input: $input)"`
+		Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 	}
 	variables := map[string]interface{}{
+		"id": graphql.ID(m.gql.DeploymentID),
 		"input": PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
 			Notification: &NotificationPatchDeploymentConfigInput{
@@ -81,11 +80,10 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 		return ErrUnsupportedPlatform
 	}
 	var mutation struct {
-		PatchDeploymentConfig struct {
-			ID graphql.ID
-		} `graphql:"patchDeploymentConfig(input: $input)"`
+		Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 	}
 	variables := map[string]interface{}{
+		"id": graphql.ID(m.gql.DeploymentID),
 		"input": PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
 			SourceBinding: &SourceBindingPatchDeploymentConfigInput{
