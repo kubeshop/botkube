@@ -391,10 +391,9 @@ func (s *slackTester) cutLastLine(in string) (before string, after string) {
 }
 
 var emojiSlackMapping = map[string]string{
-	"🟢":  ":large_green_circle:",
-	"⚠️": ":warning:",
-	"ℹ️": ":information_source:",
-	"❗":  ":exclamation:",
+	"🟢": ":large_green_circle:",
+	"💡": ":bulb:",
+	"❗": ":exclamation:",
 }
 
 func replaceEmojiWithTags(content string) string {

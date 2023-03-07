@@ -13,11 +13,9 @@ import (
 )
 
 var emojiForLevel = map[config.Level]string{
-	config.Info:     "🟢",
-	config.Warn:     "⚠️",
-	config.Debug:    "ℹ️",
-	config.Error:    "❗",
-	config.Critical: "❗",
+	config.Success: "🟢",
+	config.Info:    "💡",
+	config.Error:   "❗",
 }
 
 type EventCommandsGetter interface {

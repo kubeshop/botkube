@@ -678,7 +678,7 @@ func runBotTest(t *testing.T,
 					Sections: []api.Section{
 						{
 							Base: api.Base{
-								Header: "⚠️ v1/configmaps updated",
+								Header: "💡 v1/configmaps updated",
 							},
 							TextFields: api.TextFields{
 								{Key: "Kind", Value: "ConfigMap"},
@@ -742,7 +742,7 @@ func runBotTest(t *testing.T,
 				Sections: []api.Section{
 					{
 						Base: api.Base{
-							Header: "⚠️ v1/configmaps updated",
+							Header: "💡 v1/configmaps updated",
 						},
 						TextFields: api.TextFields{
 							{Key: "Kind", Value: "ConfigMap"},

@@ -242,15 +242,10 @@ type Level string
 
 const (
 	// Info level
-	Info Level = "info"
-	// Warn level
-	Warn Level = "warn"
-	// Debug level
-	Debug Level = "debug"
+	Info    Level = "info"
+	Success Level = "success"
 	// Error level
 	Error Level = "error"
-	// Critical level
-	Critical Level = "critical"
 )
 
 const (

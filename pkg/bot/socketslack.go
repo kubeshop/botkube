@@ -45,7 +45,6 @@ type SocketSlack struct {
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
 	renderer        *SlackRenderer
-	mdFormatter     interactive.MDFormatter
 }
 
 type socketSlackMessage struct {
@@ -362,7 +361,7 @@ func (b *SocketSlack) send(ctx context.Context, event socketSlackMessage, resp i
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+	markdown := b.renderer.MessageToMarkdown(resp)
 
 	if len(markdown) == 0 {
 		return errors.New("while reading Slack response: empty response")
