@@ -321,9 +321,10 @@ func run(ctx context.Context) error {
 		cfgReloader := reloader.Get(
 			remoteCfgEnabled,
 			logger.WithField(componentLogFieldKey, "Config Updater"),
-			conf.ConfigWatcher.Remote.PollInterval,
 			deployClient,
 			restarter,
+			*conf,
+			cfgVersion,
 			statusReporter,
 		)
 		errGroup.Go(func() error {

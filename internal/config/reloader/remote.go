@@ -20,10 +20,12 @@ type DeploymentClient interface {
 }
 
 // NewRemote returns new ConfigUpdater.
-func NewRemote(log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, restarter *Restarter, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
+func NewRemote(log logrus.FieldLogger, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
 	return &RemoteConfigReloader{
 		log:           log,
-		interval:      interval,
+		currentCfg:    cfg,
+		resVersion:    cfgVer,
+		interval:      cfg.ConfigWatcher.Remote.PollInterval,
 		deployCli:     deployCli,
 		resVerHolders: resVerHolders,
 		restarter:     restarter,
@@ -35,7 +37,7 @@ type RemoteConfigReloader struct {
 	interval      time.Duration
 	resVerHolders []ResourceVersionHolder
 
-	latestCfg  config.Config
+	currentCfg config.Config
 	resVersion int
 
 	deployCli DeploymentClient
@@ -56,13 +58,13 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 		case <-ticker.C:
 			u.log.Debug("Querying the latest configuration...")
 			// Check periodically
-			cfg, resVer, err := u.queryConfig(ctx)
+			cfgBytes, resVer, err := u.queryConfig(ctx)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while getting latest config: %w", err)
 				u.log.Error(wrappedErr.Error())
 				continue
 			}
-			cfgDiff, err := u.processNewConfig(cfg, resVer)
+			cfgDiff, err := u.processNewConfig(cfgBytes, resVer)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while processing new config: %w", err)
 				u.log.Error(wrappedErr.Error())
@@ -83,26 +85,26 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 	}
 }
 
-func (u *RemoteConfigReloader) queryConfig(ctx context.Context) (config.Config, int, error) {
+func (u *RemoteConfigReloader) queryConfig(ctx context.Context) ([]byte, int, error) {
 	deploy, err := u.deployCli.GetConfigWithResourceVersion(ctx)
 	if err != nil {
-		return config.Config{}, 0, fmt.Errorf("while getting deployment: %w", err)
+		return nil, 0, fmt.Errorf("while getting deployment: %w", err)
 	}
 
 	var latestCfg config.Config
 	err = yaml.Unmarshal([]byte(deploy.YAMLConfig), &latestCfg)
 	if err != nil {
-		return config.Config{}, 0, fmt.Errorf("while unmarshaling config: %w", err)
+		return nil, 0, fmt.Errorf("while unmarshaling config: %w", err)
 	}
 
-	return latestCfg, deploy.ResourceVersion, nil
+	return []byte(deploy.YAMLConfig), deploy.ResourceVersion, nil
 }
 
 type configDiff struct {
 	shouldRestart bool
 }
 
-func (u *RemoteConfigReloader) processNewConfig(newCfg config.Config, newResVer int) (configDiff, error) {
+func (u *RemoteConfigReloader) processNewConfig(newCfgBytes []byte, newResVer int) (configDiff, error) {
 	if newResVer == u.resVersion {
 		u.log.Debugf("Config version (%d) is the same as the latest one. Skipping...", newResVer)
 		return configDiff{}, nil
@@ -112,7 +114,15 @@ func (u *RemoteConfigReloader) processNewConfig(newCfg config.Config, newResVer 
 	}
 	u.setResourceVersionForAll(newResVer)
 
-	changelog, err := diff.Diff(u.latestCfg, newCfg, diff.DisableStructValues(), diff.AllowTypeMismatch(true))
+	newCfg, _, err := config.LoadWithDefaults([][]byte{newCfgBytes})
+	if err != nil {
+		return configDiff{}, fmt.Errorf("while loading new config: %w", err)
+	}
+	if newCfg == nil {
+		return configDiff{}, fmt.Errorf("new config is nil")
+	}
+
+	changelog, err := diff.Diff(u.currentCfg, *newCfg, diff.DisableStructValues(), diff.SliceOrdering(false), diff.AllowTypeMismatch(true))
 	if err != nil {
 		return configDiff{}, fmt.Errorf("while diffing configs: %w", err)
 	}
@@ -135,7 +145,7 @@ func (u *RemoteConfigReloader) processNewConfig(newCfg config.Config, newResVer 
 	//    - same for remote config reloader
 	//  - do not restart the app
 
-	u.latestCfg = newCfg
+	u.currentCfg = *newCfg
 	u.log.Debugf("Successfully set newer config version (%d). Config should be reloaded soon", newResVer)
 	return configDiff{
 		shouldRestart: true,

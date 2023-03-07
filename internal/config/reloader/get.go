@@ -1,15 +1,15 @@
 package reloader
 
 import (
-	"time"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // Get returns Reloader based on remoteCfgEnabled flag.
-func Get(remoteCfgEnabled bool, log logrus.FieldLogger, interval time.Duration, deployCli DeploymentClient, restarter *Restarter, resVerHolders ...ResourceVersionHolder) Reloader {
+func Get(remoteCfgEnabled bool, log logrus.FieldLogger, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) Reloader {
 	if remoteCfgEnabled {
-		return NewRemote(log, interval, deployCli, restarter, resVerHolders...)
+		return NewRemote(log, deployCli, restarter, cfg, cfgVer, resVerHolders...)
 	}
 
 	return NewNoopReloader()
