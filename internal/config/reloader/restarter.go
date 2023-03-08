@@ -61,5 +61,6 @@ func (r *Restarter) Do(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("while restarting the Deployment: %w", err)
 	}
+	r.log.Infof(`Restarting deployment "%s/%s" ended successfully.`, r.deploy.Namespace, r.deploy.Name)
 	return nil
 }

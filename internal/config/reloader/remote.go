@@ -16,6 +16,7 @@ import (
 
 // DeploymentClient defines GraphQL client.
 type DeploymentClient interface {
+	GetResourceVersion(ctx context.Context) (int, error)
 	GetConfigWithResourceVersion(ctx context.Context) (remote.Deployment, error)
 }
 
@@ -57,13 +58,31 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			u.log.Debug("Querying the latest configuration...")
-			// Check periodically
+
+			resVer, err := u.queryResourceVersion(ctx)
+			if err != nil {
+				u.log.Error(err.Error())
+				continue
+			}
+
+			shouldUpdateCfg, err := u.compareResVer(resVer)
+			if err != nil {
+				u.log.Error(err.Error())
+				continue
+			}
+
+			if !shouldUpdateCfg {
+				u.log.Debugf("Config version (%d) is the same as the latest one. Skipping...", resVer)
+				continue
+			}
+
 			cfgBytes, resVer, err := u.queryConfig(ctx)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while getting latest config: %w", err)
 				u.log.Error(wrappedErr.Error())
 				continue
 			}
+
 			cfgDiff, err := u.processNewConfig(cfgBytes, resVer)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while processing new config: %w", err)
@@ -85,6 +104,15 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 	}
 }
 
+func (u *RemoteConfigReloader) queryResourceVersion(ctx context.Context) (int, error) {
+	resVer, err := u.deployCli.GetResourceVersion(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("while getting resource version: %w", err)
+	}
+
+	return resVer, nil
+}
+
 func (u *RemoteConfigReloader) queryConfig(ctx context.Context) ([]byte, int, error) {
 	deploy, err := u.deployCli.GetConfigWithResourceVersion(ctx)
 	if err != nil {
@@ -100,17 +128,31 @@ func (u *RemoteConfigReloader) queryConfig(ctx context.Context) ([]byte, int, er
 	return []byte(deploy.YAMLConfig), deploy.ResourceVersion, nil
 }
 
+func (u *RemoteConfigReloader) compareResVer(newResVer int) (bool, error) {
+	if newResVer == u.resVersion {
+		return false, nil
+	}
+	if newResVer < u.resVersion {
+		return false, fmt.Errorf("while comparing config versions: current config version (%d) is newer than the latest one (%d)", u.resVersion, newResVer)
+	}
+
+	return true, nil
+}
+
 type configDiff struct {
 	shouldRestart bool
 }
 
 func (u *RemoteConfigReloader) processNewConfig(newCfgBytes []byte, newResVer int) (configDiff, error) {
-	if newResVer == u.resVersion {
-		u.log.Debugf("Config version (%d) is the same as the latest one. Skipping...", newResVer)
-		return configDiff{}, nil
+	// another resource version check, because it can change between the first and second query
+	shouldUpdate, err := u.compareResVer(newResVer)
+	if err != nil {
+		return configDiff{}, err
 	}
-	if newResVer < u.resVersion {
-		return configDiff{}, fmt.Errorf("current config version (%d) is newer than the latest one (%d)", u.resVersion, newResVer)
+	if !shouldUpdate {
+		// this shouldn't happen, but better to be safe than sorry
+		u.log.Debugf("After second query, config version (%d) is the same as the latest one. This shouldn't happen. Skipping...", newResVer)
+		return configDiff{}, nil
 	}
 	u.setResourceVersionForAll(newResVer)
 

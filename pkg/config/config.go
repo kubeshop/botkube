@@ -683,9 +683,8 @@ type Logger struct {
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
 type LifecycleServer struct {
-	Enabled    bool           `yaml:"enabled"`
-	Port       int            `yaml:"port"` // String for consistency
-	Deployment K8sResourceRef `yaml:"deployment"`
+	Enabled bool `yaml:"enabled"`
+	Port    int  `yaml:"port"` // String for consistency
 }
 
 // PersistentConfig contains configuration for persistent storage.

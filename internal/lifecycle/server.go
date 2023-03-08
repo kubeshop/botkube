@@ -1,59 +1,38 @@
 package lifecycle
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 )
 
-const (
-	k8sDeploymentRestartPatchFmt = `{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`
-	reloadMsgFmt                 = ":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec..."
-)
+type Restarter interface {
+	Do(ctx context.Context) error
+}
 
 // SendMessageFn defines a function which sends a given message.
 type SendMessageFn func(msg string) error
 
 // NewServer creates a new httpsrv.Server that exposes lifecycle methods as HTTP endpoints.
-func NewServer(log logrus.FieldLogger, k8sCli kubernetes.Interface, cfg config.LifecycleServer, clusterName string, sendMsgFn SendMessageFn) *httpsrv.Server {
+func NewServer(log logrus.FieldLogger, cfg config.LifecycleServer, restarter Restarter) *httpsrv.Server {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	router := mux.NewRouter()
-	reloadHandler := newReloadHandler(log, k8sCli, cfg.Deployment, clusterName, sendMsgFn)
+	reloadHandler := newReloadHandler(log, restarter)
 	router.HandleFunc("/reload", reloadHandler)
 	return httpsrv.New(log, addr, router)
 }
 
-func newReloadHandler(log logrus.FieldLogger, k8sCli kubernetes.Interface, deploy config.K8sResourceRef, clusterName string, sendMsgFn SendMessageFn) http.HandlerFunc {
+func newReloadHandler(log logrus.FieldLogger, restarter Restarter) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		log.Info("Reload requested. Sending last message before exit...")
-		err := sendMsgFn(fmt.Sprintf(reloadMsgFmt, clusterName))
-		if err != nil {
-			errMsg := fmt.Sprintf("while sending last message: %s", err.Error())
-			log.Errorf(errMsg)
+		log.Debug("Reload handler called. Executing restart...")
 
-			// continue anyway, this is a non-blocking error
-		}
-
-		log.Infof(`Reloading te the deployment "%s/%s"...`, deploy.Namespace, deploy.Name)
-		// This is what `kubectl rollout restart` does.
-		restartData := fmt.Sprintf(k8sDeploymentRestartPatchFmt, time.Now().String())
-		ctx := request.Context()
-		_, err = k8sCli.AppsV1().Deployments(deploy.Namespace).Patch(
-			ctx,
-			deploy.Name,
-			types.StrategicMergePatchType,
-			[]byte(restartData),
-			metav1.PatchOptions{FieldManager: "kubectl-rollout"},
-		)
+		err := restarter.Do(request.Context())
 		if err != nil {
 			errMsg := fmt.Sprintf("while restarting the Deployment: %s", err.Error())
 			log.Error(errMsg)
@@ -61,7 +40,7 @@ func newReloadHandler(log logrus.FieldLogger, k8sCli kubernetes.Interface, deplo
 		}
 
 		writer.WriteHeader(http.StatusOK)
-		_, err = writer.Write([]byte(fmt.Sprintf(`Deployment "%s/%s" restarted successfully.`, deploy.Namespace, deploy.Name)))
+		_, err = writer.Write([]byte("Deployment restarted successfully."))
 		if err != nil {
 			log.Errorf("while writing success response: %s", err.Error())
 		}

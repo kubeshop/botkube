@@ -290,34 +290,17 @@ func run(ctx context.Context) error {
 		}
 	}
 
-	// TODO: Remove once we migrate to ConfigMap-based config reloader
-	// Lifecycle server
-	if conf.Settings.LifecycleServer.Enabled {
-		lifecycleSrv := lifecycle.NewServer(
-			logger.WithField(componentLogFieldKey, "Lifecycle server"),
-			k8sCli,
-			conf.Settings.LifecycleServer,
-			conf.Settings.ClusterName,
-			func(msg string) error {
-				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
-			},
-		)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return lifecycleSrv.Serve(ctx)
-		})
-	}
-
+	// TODO(https://github.com/kubeshop/botkube/issues/1011): Move restarter under `if conf.ConfigWatcher.Enabled {`
+	restarter := reloader.NewRestarter(
+		logger.WithField(componentLogFieldKey, "Restarter"),
+		k8sCli,
+		conf.ConfigWatcher.Deployment,
+		conf.Settings.ClusterName,
+		func(msg string) error {
+			return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+		},
+	)
 	if conf.ConfigWatcher.Enabled {
-		restarter := reloader.NewRestarter(
-			logger.WithField(componentLogFieldKey, "Restarter"),
-			k8sCli,
-			conf.ConfigWatcher.Deployment,
-			conf.Settings.ClusterName,
-			func(msg string) error {
-				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
-			},
-		)
 		cfgReloader := reloader.Get(
 			remoteCfgEnabled,
 			logger.WithField(componentLogFieldKey, "Config Updater"),
@@ -332,7 +315,7 @@ func run(ctx context.Context) error {
 			return cfgReloader.Do(ctx)
 		})
 
-		// TODO: Remove once we migrate to ConfigMap-based config reloader
+		// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
 		err := config.WaitForWatcherSync(
 			ctx,
 			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),
@@ -346,6 +329,20 @@ func run(ctx context.Context) error {
 			// non-blocking error, move forward
 			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running Botkube...")
 		}
+	}
+
+	// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
+	// Lifecycle server
+	if conf.Settings.LifecycleServer.Enabled {
+		lifecycleSrv := lifecycle.NewServer(
+			logger.WithField(componentLogFieldKey, "Lifecycle server"),
+			conf.Settings.LifecycleServer,
+			restarter,
+		)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return lifecycleSrv.Serve(ctx)
+		})
 	}
 
 	// Send help message

@@ -57,3 +57,9 @@ Create the name of the service account to use
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "botkube.remoteConfigEnabled" -}}
+{{ if .Values.config.provider.identifier }}
+    {{- true -}}
+{{- end -}}
+{{- end -}}

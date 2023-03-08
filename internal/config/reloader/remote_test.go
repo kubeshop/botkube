@@ -44,7 +44,7 @@ func TestRemote_ProcessConfig(t *testing.T) {
 			NewConfig:     "",
 			NewResVer:     1,
 
-			ExpectedErrMessage: "current config version (2) is newer than the latest one (1)",
+			ExpectedErrMessage: "while comparing config versions: current config version (2) is newer than the latest one (1)",
 			ExpectedCfg:        config.Config{},
 			ExpectedResVer:     2,
 			ExpectedCfgDiff:    configDiff{},

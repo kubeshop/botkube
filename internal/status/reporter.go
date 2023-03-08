@@ -14,7 +14,7 @@ type StatusReporter interface {
 }
 
 func GetReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql GraphQLClient, resVerClient ResVerClient, cfgVersion int) StatusReporter {
-	if !remoteCfgEnabled {
+	if remoteCfgEnabled {
 		return newGraphQLStatusReporter(
 			logger.WithField("component", "GraphQLStatusReporter"),
 			gql,

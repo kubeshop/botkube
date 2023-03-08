@@ -65,7 +65,6 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    lifecycleServer:
 						        enabled: false
 						        port: 0
-						        deployment: {}
 						    log:
 						        level: ""
 						        disableColors: false
