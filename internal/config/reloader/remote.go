@@ -76,6 +76,7 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 				continue
 			}
 
+			u.log.Debugf("Config version changed (%d). Querying the latest config...", resVer)
 			cfgBytes, resVer, err := u.queryConfig(ctx)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while getting latest config: %w", err)
