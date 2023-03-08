@@ -1,4 +1,4 @@
-package format_test
+package formatx_test
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 func TestShortMessage(t *testing.T) {
@@ -169,7 +169,7 @@ func TestShortMessage(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			// when
-			actual := format.ShortMessage(tc.Input)
+			actual := formatx.ShortMessage(tc.Input)
 
 			// then
 			assert.Equal(t, tc.Expected, actual)

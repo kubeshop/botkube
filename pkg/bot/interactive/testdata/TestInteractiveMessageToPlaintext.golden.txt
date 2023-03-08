@@ -1,39 +1,39 @@
 Ping your cluster
 Check the status of connected Kubernetes cluster(s).
-  - @Botkube ping
+  • @Botkube ping
 
 Manage incoming notifications
 @Botkube [enable|disable|status] notifications
 
-  - @Botkube enable notifications
-  - @Botkube disable notifications
-  - @Botkube status notifications
+  • @Botkube enable notifications
+  • @Botkube disable notifications
+  • @Botkube status notifications
 
 Notification settings for this channel
 By default, Botkube will notify only about cluster errors and recommendations.
-  - @Botkube edit SourceBindings
+  • @Botkube edit SourceBindings
 
 Manage automated actions
 @Botkube [list|enable|disable] action [action name]
 
-  - @Botkube list actions
+  • @Botkube list actions
 
 View current Botkube configuration
 @Botkube show config
 
-  - @Botkube show config
+  • @Botkube show config
 
 Run kubectl commands (if enabled)
 You can run kubectl commands directly from Platform!
-  - @Botkube kubectl get services
-  - @Botkube kubectl get pods
-  - @Botkube kubectl get deployments
+  • @Botkube kubectl get services
+  • @Botkube kubectl get pods
+  • @Botkube kubectl get deployments
 
 To list all enabled executors
-  - @Botkube list executors
+  • @Botkube list executors
 
 To list all command aliases
-  - @Botkube list aliases
+  • @Botkube list aliases
 
 Filters (advanced)
 You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters

@@ -409,8 +409,6 @@ communications:
                             - k8s-events
                         executors:
                             - kubectl-read-only
-            notification:
-                type: short
             token: xoxb-token-from-env
         socketSlack:
             enabled: true
@@ -424,8 +422,6 @@ communications:
                             - k8s-events
                         executors:
                             - kubectl-read-only
-            notification:
-                type: short
             botToken: xoxb-token-from-env
             appToken: xapp-token-from-env
         mattermost:
@@ -444,8 +440,6 @@ communications:
                             - k8s-events
                         executors:
                             - kubectl-read-only
-            notification:
-                type: short
         discord:
             enabled: false
             token: DISCORD_TOKEN
@@ -460,8 +454,6 @@ communications:
                             - k8s-events
                         executors:
                             - kubectl-read-only
-            notification:
-                type: short
         teams:
             enabled: false
             appID: APPLICATION_ID
@@ -472,8 +464,6 @@ communications:
                     - k8s-events
                 executors:
                     - kubectl-read-only
-            notification:
-                type: short
         webhook:
             enabled: false
             url: WEBHOOK_URL

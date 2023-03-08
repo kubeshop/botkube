@@ -13,9 +13,9 @@ import (
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -49,7 +49,6 @@ type Mattermost struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
-	notification    config.Notification
 	serverURL       string
 	botName         string
 	teamName        string
@@ -61,7 +60,7 @@ type Mattermost struct {
 	channels        map[string]channelConfigByID
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
-	mdFormatter     interactive.MDFormatter
+	renderer        *MattermostRenderer
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -114,7 +113,6 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
-		notification:    cfg.Notification,
 		serverURL:       cfg.URL,
 		botName:         cfg.BotName,
 		teamName:        cfg.Team,
@@ -123,7 +121,7 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 		commGroupName:   commGroupName,
 		channels:        channelsByIDCfg,
 		botMentionRegex: botMentionRegex,
-		mdFormatter:     interactive.DefaultMDFormatter(),
+		renderer:        NewMattermostRenderer(),
 	}, nil
 }
 
@@ -249,44 +247,63 @@ func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error 
 	b.log.Debugf("Sending message to channel %q: %+v", channelID, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := interactive.RenderMessage(b.mdFormatter, resp)
-
-	if len(markdown) == 0 {
-		return errors.New("while reading Mattermost response: empty response")
+	post, err := b.formatMessage(resp, channelID)
+	if err != nil {
+		return fmt.Errorf("while formatting message: %w", err)
 	}
 
-	// Create file if message is too large
-	if len(markdown) >= mattermostMaxMessageSize {
+	if _, _, err := b.apiClient.CreatePost(post); err != nil {
+		b.log.Error("Failed to send message. Error: ", err)
+	}
+
+	b.log.Debugf("Message successfully sent to channel %q", channelID)
+	return nil
+}
+
+func (b *Mattermost) formatMessage(msg interactive.CoreMessage, channelID string) (*model.Post, error) {
+	// 1. Check the size and upload message as a file if it's too long
+	plaintext := interactive.MessageToPlaintext(msg, interactive.NewlineFormatter)
+	if len(plaintext) == 0 {
+		return nil, errors.New("while reading Mattermost response: empty response")
+	}
+	if len(plaintext) >= mattermostMaxMessageSize {
 		uploadResponse, _, err := b.apiClient.UploadFileAsRequestBody(
-			[]byte(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
+			[]byte(plaintext),
 			channelID,
 			responseFileName,
 		)
 		if err != nil {
-			return fmt.Errorf("while uploading file: %w", err)
+			return nil, fmt.Errorf("while uploading file: %w", err)
 		}
 
-		post := &model.Post{}
-		post.ChannelId = channelID
-		post.Message = resp.Description
-		post.FileIds = []string{uploadResponse.FileInfos[0].Id}
-
-		if _, _, err := b.apiClient.CreatePost(post); err != nil {
-			return fmt.Errorf("while sending attachment message: %w", err)
-		}
-
-		return nil
+		return &model.Post{
+			ChannelId: channelID,
+			Message:   msg.Description,
+			FileIds:   []string{uploadResponse.FileInfos[0].Id},
+		}, nil
 	}
 
-	post := &model.Post{
+	// 2. If it's not a simplified event, render as markdown
+	if msg.Type != api.NonInteractiveSingleSection {
+		return &model.Post{
+			ChannelId: channelID,
+			Message:   b.renderer.MessageToMarkdown(msg),
+		}, nil
+	}
+
+	// FIXME: For now, we just render only with a few fields that are always present in the event message.
+	// This should be removed once we will add support for rendering AdaptiveCard with all message primitives.
+	attachments, err := b.renderer.NonInteractiveSectionToCard(msg)
+	if err != nil {
+		return nil, fmt.Errorf("while rendering event message embed: %w", err)
+	}
+
+	return &model.Post{
+		Props: map[string]interface{}{
+			"attachments": attachments,
+		},
 		ChannelId: channelID,
-		Message:   markdown,
-	}
-	if _, _, err := b.apiClient.CreatePost(post); err != nil {
-		b.log.Error("Failed to send message. Error: ", err)
-	}
-	b.log.Debugf("Message successfully sent to channel %q", channelID)
-	return nil
+	}, nil
 }
 
 // Check if Mattermost server is reachable
@@ -370,41 +387,6 @@ func (b *Mattermost) listen(ctx context.Context) {
 			}
 		}
 	}
-}
-
-// SendEvent sends event notification to Mattermost
-func (b *Mattermost) SendEvent(_ context.Context, event event.Event, eventSources []string) error {
-	b.log.Debugf("Sending to Mattermost: %+v", event)
-	attachment := b.formatAttachments(event)
-
-	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotifyForEvent(event, eventSources) {
-		post := &model.Post{
-			Props: map[string]interface{}{
-				"attachments": attachment,
-			},
-			ChannelId: channelID,
-		}
-
-		_, _, err := b.apiClient.CreatePost(post)
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelID, err))
-			continue
-		}
-
-		b.log.Debugf("Event successfully sent to channel %q", post.ChannelId)
-	}
-
-	return errs.ErrorOrNil()
-}
-
-func (b *Mattermost) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
-	// support custom event routing
-	if event.Channel != "" {
-		return []string{event.Channel}
-	}
-
-	return b.getChannelsToNotify(sourceBindings)
 }
 
 func (b *Mattermost) getChannelsToNotify(eventSources []string) []string {

@@ -1,11 +1,11 @@
-package format_test
+package formatx_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 func TestRemoveHyperlinks(t *testing.T) {
@@ -46,7 +46,7 @@ func TestRemoveHyperlinks(t *testing.T) {
 	}
 
 	for _, ts := range tests {
-		got := format.RemoveHyperlinks(ts.input)
+		got := formatx.RemoveHyperlinks(ts.input)
 		if got != ts.expected {
 			t.Errorf("expected: %v, got: %v", ts.expected, got)
 		}

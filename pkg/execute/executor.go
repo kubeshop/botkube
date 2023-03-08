@@ -17,7 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 const (
@@ -41,7 +41,6 @@ type DefaultExecutor struct {
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
-	filterExecutor        *FilterExecutor
 	pingExecutor          *PingExecutor
 	versionExecutor       *VersionExecutor
 	helpExecutor          *HelpExecutor
@@ -268,7 +267,7 @@ func respond(body string, cmdCtx CommandContext) interactive.CoreMessage {
 }
 
 func sanitizeCommand(cmd string) string {
-	outCmd := format.RemoveHyperlinks(cmd)
+	outCmd := formatx.RemoveHyperlinks(cmd)
 	outCmd = strings.NewReplacer(`“`, `"`, `”`, `"`, `‘`, `"`, `’`, `"`).Replace(outCmd)
 	outCmd = strings.TrimSpace(outCmd)
 	return outCmd

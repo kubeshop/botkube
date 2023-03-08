@@ -18,11 +18,9 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -34,26 +32,19 @@ import (
 
 var _ Bot = &SocketSlack{}
 
-// EventCommandProvider describes a provider for event commands.
-type EventCommandProvider interface {
-	GetCommandsForEvent(event event.Event, executorBindings []string) ([]kubectl.Command, error)
-}
-
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log              logrus.FieldLogger
-	executorFactory  ExecutorFactory
-	reporter         socketSlackAnalyticsReporter
-	eventCmdProvider EventCommandProvider
-	botID            string
-	client           *slack.Client
-	channelsMutex    sync.RWMutex
-	channels         map[string]channelConfigByName
-	notifyMutex      sync.Mutex
-	botMentionRegex  *regexp.Regexp
-	commGroupName    string
-	renderer         *SlackRenderer
-	mdFormatter      interactive.MDFormatter
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+	reporter        socketSlackAnalyticsReporter
+	botID           string
+	client          *slack.Client
+	channelsMutex   sync.RWMutex
+	channels        map[string]channelConfigByName
+	notifyMutex     sync.Mutex
+	botMentionRegex *regexp.Regexp
+	commGroupName   string
+	renderer        *SlackRenderer
 }
 
 type socketSlackMessage struct {
@@ -75,7 +66,7 @@ type socketSlackAnalyticsReporter interface {
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, eventCmdProvider EventCommandProvider, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
@@ -94,19 +85,16 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, mdHeaderFormatter)
 	return &SocketSlack{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		botID:            botID,
-		client:           client,
-		channels:         channels,
-		commGroupName:    commGroupName,
-		eventCmdProvider: eventCmdProvider,
-		renderer:         NewSlackRenderer(cfg.Notification),
-		botMentionRegex:  botMentionRegex,
-		mdFormatter:      mdFormatter,
+		log:             log,
+		executorFactory: executorFactory,
+		reporter:        reporter,
+		botID:           botID,
+		client:          client,
+		channels:        channels,
+		commGroupName:   commGroupName,
+		renderer:        NewSlackRenderer(),
+		botMentionRegex: botMentionRegex,
 	}, nil
 }
 
@@ -149,11 +137,11 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				}
 				websocketClient.Ack(*event.Request)
 				if eventsAPIEvent.Type == slackevents.CallbackEvent {
-					b.log.Debugf("Got callback event %s", format.StructDumper().Sdump(eventsAPIEvent))
+					b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(eventsAPIEvent))
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
-						b.log.Debugf("Got app mention %s", format.StructDumper().Sdump(innerEvent))
+						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
 						msg := socketSlackMessage{
 							Text:            ev.Text,
 							Channel:         ev.Channel,
@@ -177,7 +165,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 				switch callback.Type {
 				case slack.InteractionTypeBlockActions:
-					b.log.Debugf("Got block action %s", format.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+					b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback.ActionCallback.BlockActions))
 
 					if len(callback.ActionCallback.BlockActions) != 1 {
 						b.log.Debug("Ignoring callback as the number of actions is different from 1")
@@ -373,7 +361,7 @@ func (b *SocketSlack) send(ctx context.Context, event socketSlackMessage, resp i
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := interactive.RenderMessage(b.mdFormatter, resp)
+	markdown := b.renderer.MessageToMarkdown(resp)
 
 	if len(markdown) == 0 {
 		return errors.New("while reading Slack response: empty response")
@@ -429,73 +417,6 @@ func (b *SocketSlack) send(ctx context.Context, event socketSlackMessage, resp i
 
 	b.log.Debugf("Message successfully sent to channel %q", event.Channel)
 	return nil
-}
-
-// SendEvent sends event notification to slack
-func (b *SocketSlack) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
-	b.log.Debugf("Sending to Slack: %+v", event)
-
-	errs := multierror.New()
-	for _, channelName := range b.getChannelsToNotifyForEvent(event, eventSources) {
-		additionalSection := b.getInteractiveEventSectionIfShould(event, channelName)
-
-		var additionalSections []api.Section
-		if additionalSection != nil {
-			additionalSections = append(additionalSections, *additionalSection)
-		}
-		msg := b.renderer.RenderEventMessage(event, additionalSections...)
-
-		options := []slack.MsgOption{
-			b.renderer.RenderInteractiveMessage(msg),
-		}
-
-		channelID, timestamp, err := b.client.PostMessageContext(ctx, channelName, options...)
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", channelName, err))
-			continue
-		}
-
-		b.log.Debugf("Event successfully sent to channel %q (ID: %q) at %b", channelName, channelID, timestamp)
-	}
-
-	return errs.ErrorOrNil()
-}
-
-func (b *SocketSlack) getInteractiveEventSectionIfShould(event event.Event, channelName string) *api.Section {
-	channel, isAuthChannel := b.getChannels()[channelName]
-	if !isAuthChannel {
-		return nil
-	}
-
-	commands, err := b.eventCmdProvider.GetCommandsForEvent(event, channel.Bindings.Executors)
-	if err != nil {
-		b.log.Errorf("while getting commands for event: %w", err)
-		return nil
-	}
-
-	if len(commands) == 0 {
-		return nil
-	}
-
-	cmdPrefix := fmt.Sprintf("%s kubectl", b.BotName())
-	var optionItems []api.OptionItem
-	for _, cmd := range commands {
-		optionItems = append(optionItems, api.OptionItem{
-			Name:  cmd.Name,
-			Value: cmd.Cmd,
-		})
-	}
-	section := interactive.EventCommandsSection(cmdPrefix, optionItems)
-	return &section
-}
-
-func (b *SocketSlack) getChannelsToNotifyForEvent(event event.Event, sourceBindings []string) []string {
-	// support custom event routing
-	if event.Channel != "" {
-		return []string{event.Channel}
-	}
-
-	return b.getChannelsToNotify(sourceBindings)
 }
 
 func (b *SocketSlack) getChannelsToNotify(sourceBindings []string) []string {

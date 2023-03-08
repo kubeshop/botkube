@@ -16,9 +16,9 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
@@ -27,12 +27,10 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//  - see if we cannot set conversation ref without waiting for `@Botkube notify start` message.
-//  - support source and executor bindings per channel
-//  - see if a public endpoint can be avoided to handle Teams messages.
-//  - see if we can use different library
-//  - split to multiple files in a separate package,
-//  - review all the methods and see if they can be simplified.
+//  - We can set conversation ref without waiting for `@Botkube notify start` message.
+//    It just a matter of handling the onConversationUpdate event and caching conversation ref for a given channel.
+//  - Support source and executor bindings per channel.
+//  - Review all the methods and see if they can be simplified.
 
 const (
 	defaultPort        = "3978"
@@ -74,17 +72,15 @@ type Teams struct {
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
-	longFormatter      interactive.MDFormatter
-	shortFormatter     interactive.MDFormatter
 
-	botName      string
-	AppID        string
-	AppPassword  string
-	MessagePath  string
-	Port         string
-	ClusterName  string
-	Notification config.Notification
-	Adapter      core.Adapter
+	botName     string
+	AppID       string
+	AppPassword string
+	MessagePath string
+	Port        string
+	ClusterName string
+	Adapter     core.Adapter
+	renderer    *TeamsRenderer
 }
 
 type consentContext struct {
@@ -107,9 +103,6 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		msgPath = "/"
 	}
 
-	longFormatter := interactive.NewMDFormatter(longLineFormatter, interactive.MdHeaderFormatter)
-	shortFormatter := interactive.NewMDFormatter(shortLineFormatter, interactive.MdHeaderFormatter)
-
 	return &Teams{
 		log:             log,
 		executorFactory: executorFactory,
@@ -118,15 +111,13 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		ClusterName:     clusterName,
 		AppID:           cfg.AppID,
 		AppPassword:     cfg.AppPassword,
-		Notification:    cfg.Notification,
 		bindings:        cfg.Bindings,
 		commGroupName:   commGroupName,
 		MessagePath:     msgPath,
 		Port:            port,
+		renderer:        NewTeamsRenderer(),
 		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
-		longFormatter:   longFormatter,
-		shortFormatter:  shortFormatter,
 	}, nil
 }
 
@@ -308,16 +299,7 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 func (b *Teams) convertInteractiveMessage(in interactive.CoreMessage, forceMarkdown bool) (int, string) {
 	in.ReplaceBotNamePlaceholder(b.BotName())
 
-	var out string
-
-	if in.HasSections() {
-		// MS Teams doesn't respect multiple new lines, so it needs to be rendered
-		// with `<br>` tags instead  ¯\_(ツ)_/¯
-		out = interactive.RenderMessage(b.longFormatter, in)
-	} else {
-		out = interactive.RenderMessage(b.shortFormatter, in)
-	}
-
+	out := b.renderer.MessageToMarkdown(in)
 	actualLength := len(out)
 
 	if !forceMarkdown && actualLength >= teamsMaxMessageSize {
@@ -357,46 +339,22 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 	return nil
 }
 
-// SendEvent sends event message via Bot interface
-func (b *Teams) SendEvent(ctx context.Context, event event.Event, eventSources []string) error {
-	b.log.Debugf("Sending to Teams: %+v", event)
-	card := b.formatMessage(event, b.Notification)
-
-	if !sliceutil.Intersect(eventSources, b.bindings.Sources) {
-		b.log.Debugf(
-			"Event was not sent as bot source bindings: %+v do not overlap with the event's sources: %+v",
-			b.bindings.Sources,
-			eventSources,
-		)
-		return nil
-	}
-
-	errs := multierror.New()
-	for _, convRef := range b.getConversationRefsToNotify(eventSources) {
-		err := b.sendProactiveMessage(ctx, convRef, card)
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while posting message to channel %q: %w", convRef.ChannelID, err))
-			continue
-		}
-
-		b.log.Debugf("Event successfully sent to channel %q at %b", convRef.ChannelID)
-	}
-
-	return errs.ErrorOrNil()
-}
-
 // SendMessage sends message to MS Teams to selected conversations.
 func (b *Teams) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	msg.ReplaceBotNamePlaceholder(b.BotName())
 	errs := multierror.New()
+
+	activityMsg, err := b.renderMessage(msg)
+	if err != nil {
+		return err
+	}
+
 	for _, ref := range b.getConversationRefsToNotify(sourceBindings) {
 		channelID := ref.ChannelID
-
-		_, converted := b.convertInteractiveMessage(msg, true)
-		b.log.Debugf("Sending message to channel %q: %+v", channelID, converted)
+		b.log.Debugf("Sending message to channel %q", channelID)
 		err := b.Adapter.ProactiveMessage(ctx, ref, coreActivity.HandlerFuncs{
 			OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-				return turn.SendActivity(coreActivity.MsgOptionText(converted))
+				return turn.SendActivity(activityMsg)
 			},
 		})
 		if err != nil {
@@ -482,19 +440,26 @@ func (b *Teams) BotName() string {
 	return fmt.Sprintf("@%s", b.botName)
 }
 
-func (b *Teams) sendProactiveMessage(ctx context.Context, convRef schema.ConversationReference, card map[string]interface{}) error {
-	err := b.Adapter.ProactiveMessage(ctx, convRef, coreActivity.HandlerFuncs{
-		OnMessageFunc: func(turn *coreActivity.TurnContext) (schema.Activity, error) {
-			attachments := []schema.Attachment{
-				{
-					ContentType: contentTypeCard,
-					Content:     card,
-				},
-			}
-			return turn.SendActivity(coreActivity.MsgOptionAttachments(attachments))
+func (b *Teams) renderMessage(msg interactive.CoreMessage) (coreActivity.MsgOption, error) {
+	if msg.Type != api.NonInteractiveSingleSection {
+		_, converted := b.convertInteractiveMessage(msg, true)
+		return coreActivity.MsgOptionText(converted), nil
+	}
+
+	// FIXME: For now, we just render AdaptiveCard only with a few fields that are always present in the event message.
+	// This should be removed once we will add support for rendering AdaptiveCard with all message primitives.
+	card, err := b.renderer.NonInteractiveSectionToCard(msg)
+	if err != nil {
+		return nil, fmt.Errorf("while rendering event message card: %w", err)
+	}
+
+	attachments := []schema.Attachment{
+		{
+			ContentType: contentTypeCard,
+			Content:     card,
 		},
-	})
-	return err
+	}
+	return coreActivity.MsgOptionAttachments(attachments), nil
 }
 
 func (b *Teams) getConversationRefsToNotify(sourceBindings []string) []schema.ConversationReference {
@@ -585,20 +550,6 @@ func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
 	}
 
 	return botMentionRegex, nil
-}
-
-// longLineFormatter represents new line formatting for MS Teams where message has multiple sections.
-// Unfortunately, it's different from all others integrations.
-func longLineFormatter(msg string) string {
-	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
-	msg = replaceEmojiTagsWithActualOne(msg)
-	return fmt.Sprintf("%s<br>", msg)
-}
-
-func shortLineFormatter(msg string) string {
-	// e.g. `:rocket:` is not supported by MS Teams, so we need to replace it with actual emoji
-	msg = replaceEmojiTagsWithActualOne(msg)
-	return fmt.Sprintf("%s\n", msg)
 }
 
 // replaceEmojiTagsWithActualOne replaces the emoji tag with actual emoji.

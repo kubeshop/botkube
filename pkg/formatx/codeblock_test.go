@@ -1,4 +1,4 @@
-package format_test
+package formatx_test
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 func TestCodeBlock(t *testing.T) {
@@ -18,7 +18,7 @@ func TestCodeBlock(t *testing.T) {
 	`) + "```"
 
 	// when
-	actual := format.CodeBlock(in)
+	actual := formatx.CodeBlock(in)
 
 	// then
 	assert.Equal(t, expected, actual)
@@ -47,7 +47,7 @@ func TestAdaptiveCodeBlock(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			actual := format.AdaptiveCodeBlock(tc.in)
+			actual := formatx.AdaptiveCodeBlock(tc.in)
 
 			// then
 			assert.Equal(t, tc.expected, actual)

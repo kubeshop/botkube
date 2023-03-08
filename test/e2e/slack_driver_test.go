@@ -7,26 +7,19 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/araddon/dateparse"
 	"github.com/google/uuid"
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/format"
-	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
-
-var SlackAttachmentColorStatus = AttachmentStatus{
-	config.Info:     "2eb886",
-	config.Debug:    "2eb886",
-	config.Warn:     "daa038",
-	config.Error:    "a30200",
-	config.Critical: "a30200",
-}
 
 type SlackChannel struct {
 	*slack.Channel
@@ -74,10 +67,10 @@ func (s *slackTester) InitUsers(t *testing.T) {
 }
 
 func (s *slackTester) InitChannels(t *testing.T) []func() {
-	channel, cleanupChannelFn := s.createChannel(t)
+	channel, cleanupChannelFn := s.createChannel(t, "first")
 	s.channel = &SlackChannel{Channel: channel}
 
-	secondChannel, cleanupSecondChannelFn := s.createChannel(t)
+	secondChannel, cleanupSecondChannelFn := s.createChannel(t, "second")
 	s.secondChannel = &SlackChannel{Channel: secondChannel}
 
 	return []func(){
@@ -156,7 +149,7 @@ func (s *slackTester) WaitForLastMessageContains(userID, channelID, expectedMsgS
 func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		msg = s.trimNewLine(msg)
-		msg = format.RemoveHyperlinks(msg) // normalize the message URLs
+		msg = formatx.RemoveHyperlinks(msg) // normalize the message URLs
 		if msg != expectedMsg {
 			count := countMatchBlock(expectedMsg, msg)
 			msgDiff := diff(expectedMsg, msg)
@@ -267,78 +260,45 @@ func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 	return nil
 }
 
-func (s *slackTester) WaitForLastMessagePostedWithAttachment(userID, channelID string, assertFn AttachmentAssertion) error {
-	return s.WaitForMessagePostedWithAttachment(userID, channelID, 1, assertFn)
-}
+func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn ExpAttachmentInput) error {
+	renderer := bot.NewSlackRenderer()
 
-func (s *slackTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn AttachmentAssertion) error {
-	var fetchedMessages []slack.Message
-	var lastErr error
-	var diffMessage string
-	var highestCommonBlockCount int
-	if limitMessages == 1 {
-		highestCommonBlockCount = -1 // a single message is fetched, always print diff
+	var expTime time.Time
+	if !assertFn.Message.Timestamp.IsZero() {
+		expTime = assertFn.Message.Timestamp
+		assertFn.Message.Timestamp = time.Time{}
 	}
 
-	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
-		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
-			ChannelID: channelID, Limit: limitMessages,
+	// we don't support the attachment anymore, so content is available as normal message
+	return s.WaitForMessagePosted(userID, channelID, limitMessages, func(content string) (bool, int, string) {
+		// for now, we use old slack, so we send messages as a markdown
+		expMsg := renderer.MessageToMarkdown(interactive.CoreMessage{
+			Message: assertFn.Message,
 		})
-		if err != nil {
-			lastErr = err
-			return false, nil
+
+		if !expTime.IsZero() {
+			body, timestamp := s.cutLastLine(content)
+			content = body // update content, so timestamp doesn't impact static content assertion
+
+			gotEventTime, err := dateparse.ParseAny(timestamp)
+			if err != nil {
+				return false, 0, err.Error()
+			}
+
+			if err = timeWithinDuration(expTime, gotEventTime, time.Minute); err != nil {
+				return false, 0, err.Error()
+			}
 		}
 
-		fetchedMessages = historyRes.Messages
-		for _, msg := range historyRes.Messages {
-			if msg.User != userID {
-				continue
-			}
-
-			if len(msg.Attachments) != 1 {
-				continue
-			}
-
-			attachment := msg.Attachments[0]
-			if len(attachment.Fields) != 1 {
-				continue
-			}
-
-			equal, commonCount, diffStr := assertFn(attachment.Fields[0].Value)
-			if !equal {
-				// different message; update the diff if it's more similar than the previous one or initial value
-				if commonCount > highestCommonBlockCount {
-					highestCommonBlockCount = commonCount
-					diffMessage = diffStr
-				}
-				continue
-			}
-
-			return true, nil
+		expMsg = replaceEmojiWithTags(expMsg)
+		if !strings.EqualFold(expMsg, content) {
+			count := countMatchBlock(expMsg, content)
+			msgDiff := diff(expMsg, content)
+			return false, count, msgDiff
 		}
 
-		return false, nil
+		return true, 0, ""
 	})
-	if lastErr == nil {
-		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
-	}
-	if err != nil {
-		if err == wait.ErrWaitTimeout {
-			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (s *slackTester) WaitForMessagesPostedOnChannelsWithAttachment(userID string, channelIDs []string, assertFn AttachmentAssertion) error {
-	errs := multierror.New()
-	for _, channelID := range channelIDs {
-		errs = multierror.Append(errs, s.WaitForLastMessagePostedWithAttachment(userID, channelID, assertFn))
-	}
-
-	return errs.ErrorOrNil()
 }
 
 // TODO: This contains an implementation for socket mode slack apps. Once needed, you can see the already implemented
@@ -370,10 +330,6 @@ func (s *slackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 	})
 }
 
-func (s *slackTester) GetColorByLevel(level config.Level) string {
-	return SlackAttachmentColorStatus[level]
-}
-
 func (s *slackTester) findUserID(t *testing.T, name string) string {
 	t.Log("Getting users...")
 	res, err := s.cli.GetUsers()
@@ -390,10 +346,10 @@ func (s *slackTester) findUserID(t *testing.T, name string) string {
 	return ""
 }
 
-func (s *slackTester) createChannel(t *testing.T) (*slack.Channel, func(t *testing.T)) {
+func (s *slackTester) createChannel(t *testing.T, prefix string) (*slack.Channel, func(t *testing.T)) {
 	t.Helper()
 	randomID := uuid.New()
-	channelName := fmt.Sprintf("%s-%s", channelNamePrefix, randomID.String())
+	channelName := fmt.Sprintf("%s-%s-%s", channelNamePrefix, prefix, randomID.String())
 
 	t.Logf("Creating channel %q...", channelName)
 	// > There’s no limit to how many unique channels you can have in Slack — go ahead, create as many as you’d like!
@@ -419,4 +375,30 @@ func (s *slackTester) trimNewLine(msg string) string {
 	// There is always a `\n` on Slack messages due to Markdown formatting.
 	// That should be replaced for RTM
 	return strings.TrimSuffix(msg, "\n")
+}
+
+func (s *slackTester) cutLastLine(in string) (before string, after string) {
+	in = strings.TrimSpace(in)
+	if in == "" {
+		return "", ""
+	}
+	lastNewLine := strings.LastIndexAny(in, "\n")
+	if lastNewLine == -1 {
+		return in, ""
+	}
+
+	return in[:lastNewLine], in[lastNewLine+1:]
+}
+
+var emojiSlackMapping = map[string]string{
+	"🟢": ":large_green_circle:",
+	"💡": ":bulb:",
+	"❗": ":exclamation:",
+}
+
+func replaceEmojiWithTags(content string) string {
+	for emoji, tag := range emojiSlackMapping {
+		content = strings.ReplaceAll(content, emoji, tag)
+	}
+	return content
 }

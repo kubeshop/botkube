@@ -44,7 +44,7 @@ func (f *NodeEventsChecker) Run(_ context.Context, event *event.Event) error {
 	switch event.Reason {
 	case NodeNotReady:
 		event.Type = config.ErrorEvent
-		event.Level = config.Critical
+		event.Level = config.Error
 	case NodeReady:
 		event.Type = config.InfoEvent
 		event.Level = config.Info

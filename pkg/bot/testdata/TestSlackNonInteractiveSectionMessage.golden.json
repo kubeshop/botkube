@@ -1,0 +1,46 @@
+[
+  {
+    "type": "section",
+    "text": {
+      "type": "mrkdwn",
+      "text": "*Section Header*"
+    }
+  },
+  {
+    "type": "section",
+    "fields": [
+      {
+        "type": "mrkdwn",
+        "text": "*Kind:* pod"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Namespace:* botkube"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Name:* webapp-server-68c5c57f6f"
+      },
+      {
+        "type": "mrkdwn",
+        "text": "*Reason:* BackOff"
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "text": {
+      "type": "mrkdwn",
+      "text": "*Messages*\n• Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt\n• Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium\n• At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium\n*Issues*\n• Issue item 1\n• Issue item 2\n• Issue item 3\n"
+    }
+  },
+  {
+    "type": "context",
+    "elements": [
+      {
+        "type": "mrkdwn",
+        "text": "\u003c!date^1650508980^{date_num} {time_secs}|Thu, 21 Apr 2022 02:43:00 UTC\u003e"
+      }
+    ]
+  }
+]

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 )
 
@@ -34,7 +34,7 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	basePath := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	builder := plugin.NewIndexBuilder(logrus.New())
+	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
 
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
 		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static")

@@ -178,7 +178,6 @@ func run(ctx context.Context) error {
 	}
 
 	cmdGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
-	commander := kubectl.NewCommander(logger.WithField(componentLogFieldKey, "Commander"), kcMerger, cmdGuard)
 
 	runner := &execute.OSCommand{}
 	k8sVersion, err := findK8sVersion(runner)
@@ -241,7 +240,7 @@ func run(ctx context.Context) error {
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, commander, reporter)
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
