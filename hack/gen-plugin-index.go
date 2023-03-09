@@ -19,6 +19,7 @@ func main() {
 		urlBasePath = flag.String("url-base-path", os.Getenv("PLUGIN_DOWNLOAD_URL_BASE_PATH"), "Defines the URL base path for downloading the plugin binaries")
 		binsDir     = flag.String("binaries-path", "./plugin-dist", "Defines the local path to plugins binaries folder")
 		output      = flag.String("output-path", "./plugins-index.yaml", "Defines the local path where index YAML should be saved")
+		filter	  = flag.String("filter", "", "Defines the filter for plugin binaries to be included in the index")
 	)
 
 	flag.Parse()
@@ -29,11 +30,14 @@ func main() {
 	absBinsDir, err := filepath.Abs(*binsDir)
 	exitOnError("while resolving an absolute path of binaries folder", err)
 
-	logger.WithFields(logrus.Fields{
+	log := logger.WithFields(logrus.Fields{
 		"binDir":      absBinsDir,
 		"urlBasePath": *urlBasePath,
-	}).Info("Building index..")
-	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath)
+		"filter": *filter,
+	})
+
+	log.Info("Building index..")
+	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *filter)
 	exitOnError("while building plugin index", err)
 
 	raw, err := yaml.Marshal(idx)
