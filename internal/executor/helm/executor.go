@@ -184,29 +184,53 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-04/schema#",
-			"title": "botkube/helm",
-			"description": "%s",
-			"type": "object",
-			"properties": {
+			{
+			  "$schema": "http://json-schema.org/draft-07/schema#",
+			  "title": "Helm",
+			  "description": "%s",
+			  "type": "object",
+			  "properties": {
+				"defaultNamespace": {
+				  "title": "Default Kubernetes Namespace",
+				  "description": "Namespace used if not explicitly specified during command execution.",
+				  "type": "string",
+				  "default": "default"
+				},
 				"helmDriver": {
-					"description": "Storage driver for Helm",
-					"type": "string",
-					"default": "secret",
-					"enum": ["configmap", "secret", "memory"]
+				  "title": "Storage driver",
+				  "description": "Storage driver for Helm.",
+				  "type": "string",
+				  "default": "secret",
+				  "oneOf": [
+					{
+					  "const": "configmap",
+					  "title": "ConfigMap"
+					},
+					{
+					  "const": "secret",
+					  "title": "Secret"
+					},
+					{
+					  "const": "memory",
+					  "title": "Memory"
+					}
+				  ]
 				},
 				"helmCacheDir": {
-					"description": "Path of the cache directory",
-					"type": "string",
-					"default": "/tmp/helm/.cache"
+				  "title": "Cache directory",
+				  "description": "Path of the cache directory.",
+				  "type": "string",
+				  "default": "/tmp/helm/.cache"
 				},
 				"helmConfigDir": {
-					"description": "Path of the configuration directory",
-					"type": "string",
-					"default": "/tmp/helm/"
+				  "title": "Configuration directory",
+				  "description": "Path of the configuration directory.",
+				  "type": "string",
+				  "default": "/tmp/helm/"
 				}
-			},
-			"required": []
+			  },
+			  "required": []
+			}
 		}`, description),
 	}
 }
