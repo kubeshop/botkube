@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.CoreMessage)
 // SendMessage is no-op.
 func (w *Webhook) SendMessage(ctx context.Context, _ interactive.CoreMessage, sources []string, rawData any) error {
 	jsonPayload := &WebhookPayload{
-		Source: sources[0],
+		Source: strings.Join(sources, ","),
 		Data:   rawData,
 	}
 
