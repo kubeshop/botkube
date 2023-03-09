@@ -44,6 +44,7 @@ release:
     - glob: ./plugin-dist/executor_*
     - glob: ./plugin-dist/source_*
     - glob: ./plugins-index.yaml
+    - glob: ./plugins-dev-index.yaml
 
 changelog:
   skip: false

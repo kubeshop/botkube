@@ -3,8 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/xeipuuv/gojsonschema"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,8 +10,10 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 type metadataGetter interface {
@@ -40,8 +40,8 @@ func NewIndexBuilder(log logrus.FieldLogger) *IndexBuilder {
 }
 
 // Build returns plugin index built based on plugins found in a given directory.
-func (i *IndexBuilder) Build(dir, urlBasePath, filter string) (Index, error) {
-	regex, err := regexp.Compile(filter)
+func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, error) {
+	pluginNameRegex, err := regexp.Compile(pluginNameFilter)
 	if err != nil {
 		return Index{}, fmt.Errorf("while compiling filter regex: %w", err)
 	}
@@ -58,7 +58,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, filter string) (Index, error) {
 			continue
 		}
 
-		err := i.appendIndexEntry(entries, entry.Name(), regex)
+		err := i.appendIndexEntry(entries, entry.Name(), pluginNameRegex)
 		if err != nil {
 			return Index{}, fmt.Errorf("while adding executor entry: %w", err)
 		}
@@ -159,14 +159,9 @@ func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex)
 	return nil, fmt.Errorf("cannot find binary for %s/%s", os, arch)
 }
 
-func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex, entryName string, regex *regexp.Regexp) error {
+func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex, entryName string, pNameRegex *regexp.Regexp) error {
 	if !strings.HasPrefix(entryName, TypeExecutor.String()) && !strings.HasPrefix(entryName, TypeSource.String()) {
 		i.log.WithField("file", entryName).Debug("Ignoring file as not recognized as plugin")
-		return nil
-	}
-
-	if !regex.MatchString(entryName) {
-		i.log.WithField("file", entryName).Debug("Ignoring file as it doesn't match filter")
 		return nil
 	}
 
@@ -176,6 +171,11 @@ func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex
 	}
 
 	pType, pName, os, arch := parts[0], parts[1], parts[2], parts[3]
+	if !pNameRegex.MatchString(pName) {
+		i.log.WithField("file", entryName).Debug("Ignoring file as it doesn't match filter")
+		return nil
+	}
+
 	i.log.WithFields(logrus.Fields{
 		"type": pType,
 		"name": pName,
@@ -194,7 +194,6 @@ func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex
 	return nil
 }
 
-
 const jsonSchemaSpecURL = "https://json-schema.org/draft-07/schema"
 
 func (i *IndexBuilder) validateJSONSchemas(in Index) error {
@@ -206,7 +205,6 @@ func (i *IndexBuilder) validateJSONSchemas(in Index) error {
 
 	errs := multierror.New()
 	for _, entry := range in.Entries {
-
 		entrySchemaLoader := i.getJSONSchemaLoaderForEntry(entry)
 		if err != nil {
 			wrappedErr := fmt.Errorf("while loading JSON schema for %s: %w", entry.Name, err)

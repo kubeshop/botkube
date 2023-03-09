@@ -1,10 +1,12 @@
 package plugin
 
 import (
-	"github.com/MakeNowJust/heredoc"
-	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/MakeNowJust/heredoc"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
@@ -14,7 +16,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 			{
 				Name: "value-ok",
 				JSONSchema: JSONSchema{
-					Value:  heredoc.Doc(`
+					Value: heredoc.Doc(`
 					{
 						"$schema": "http://json-schema.org/draft-04/schema#",
 						"title": "botkube/helm",
@@ -35,7 +37,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 			{
 				Name: "ref-ok",
 				JSONSchema: JSONSchema{
-					RefURL:  "https://json-schema.org/draft-07/schema",
+					RefURL: "https://json-schema.org/draft-07/schema",
 				},
 			},
 			{
@@ -44,7 +46,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 			{
 				Name: "value-invalid1",
 				JSONSchema: JSONSchema{
-					Value:  heredoc.Doc(`{
+					Value: heredoc.Doc(`{
 						"$schema": "http://json-schema.org/draft-04/schema#",
 						"type": "object",
 						"properties": {
@@ -61,13 +63,13 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 			{
 				Name: "value-invalid2",
 				JSONSchema: JSONSchema{
-					Value:  "test",
+					Value: "test",
 				},
 			},
 			{
 				Name: "ref-invalid",
 				JSONSchema: JSONSchema{
-					RefURL:  "http://example.com/invalid-schema/",
+					RefURL: "http://example.com/invalid-schema/",
 				},
 			},
 		},
