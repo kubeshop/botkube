@@ -30,7 +30,7 @@ const (
 	// PluginName is the name of the Kubernetes Botkube plugin.
 	PluginName = "kubernetes"
 
-	description = "Kubernetes plugin consumes Kubernetes events."
+	description = "Consume Kubernetes events and get notifications with additional warnings and recommendations."
 
 	componentLogFieldKey = "component"
 )
@@ -540,6 +540,7 @@ func jsonSchema() api.JSONSchema {
     },
     "KubernetesFilter": {
       "type": "object",
+      "title": "Kubernetes Filter",
       "additionalProperties": false,
       "properties": {
         "objectAnnotationChecker": {
@@ -550,8 +551,7 @@ func jsonSchema() api.JSONSchema {
           "type": "boolean",
           "description": "If true, filters out Node-related events that are not important."
         }
-      },
-      "title": "Kubernetes Filter"
+      }
     }
   }
 }

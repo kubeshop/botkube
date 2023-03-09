@@ -129,6 +129,8 @@ func jsonSchema(description string) api.JSONSchema {
 			},
 			"log": {
 			  "title": "Logging",
+			  "description": "Logging configuration for the plugin.",
+			  "type": "object",
 			  "properties": {
 				"level": {
 				  "title": "Log Level",

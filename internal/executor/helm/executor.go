@@ -16,7 +16,7 @@ const (
 	// PluginName is the name of the Helm Botkube plugin.
 	PluginName     = "helm"
 	helmBinaryName = "helm"
-	description    = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
+	description    = "Run the Helm CLI commands directly from your favorite communication platform."
 )
 
 // Links source: https://github.com/helm/helm/releases/tag/v3.6.3
@@ -184,7 +184,6 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
-			{
 			  "$schema": "http://json-schema.org/draft-07/schema#",
 			  "title": "Helm",
 			  "description": "%s",
@@ -230,7 +229,6 @@ func jsonSchema() api.JSONSchema {
 				}
 			  },
 			  "required": []
-			}
-		}`, description),
+			}`, description),
 	}
 }

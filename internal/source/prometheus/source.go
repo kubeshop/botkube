@@ -11,14 +11,13 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 const (
 	// PluginName is the name of the Prometheus Botkube plugin.
 	PluginName = "prometheus"
 
-	description = "Prometheus plugin polls alerts from configured Prometheus AlertManager."
+	description = "Get notifications about alerts polled from configured Prometheus AlertManager."
 
 	pollPeriodInSeconds = 5
 )
@@ -59,9 +58,7 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 }
 
 func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- source.Event) {
-	log := loggerx.New(config.Logger{
-		Level: cfg.Log.Level,
-	})
+	log := loggerx.New(cfg.Log)
 	prometheus, err := NewClient(cfg.URL)
 	exitOnError(err, log)
 
@@ -108,60 +105,107 @@ func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- source
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`
-		  {
-			"$schema": "http://json-schema.org/draft-04/schema#",
-			"title": "Prometheus",
-			"description": "%s",
-			"type": "object",
-			"properties": {
-			  "url": {
-				"description": "Prometheus endpoint without api version and resource",
+		Value: heredoc.Docf(`{
+		  "$schema": "http://json-schema.org/draft-07/schema#",
+		  "title": "Prometheus",
+		  "description": "%s",
+		  "type": "object",
+		  "properties": {
+			"url": {
+			  "title": "Endpoint",
+			  "description": "Prometheus endpoint without API version and resource.",
+			  "type": "string",
+			  "format": "uri",
+			  "default": "http://localhost:9090"
+			},
+			"ignoreOldAlerts": {
+			  "title": "Ignore old alerts",
+			  "description": "If set to true, Prometheus source plugin will not send alerts that is created before the plugin start time.",
+			  "type": "boolean",
+			  "default": true
+			},
+			"alertStates": {
+			  "title": "Alert states",
+			  "description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
+			  "type": "array",
+			  "default": [
+				"firing",
+				"pending",
+				"inactive"
+			  ],
+			  "items": {
 				"type": "string",
-				"default": "http://localhost:9090"
-			  },
-			  "ignoreOldAlerts": {
-				"description": "If set as true, Prometheus source plugin will not send alerts that is created before plugin start time",
-				"type": "boolean",
-				"enum": [
-				  "true",
-				  "false"
-				],
-				"default": true
-			  },
-			  "alertStates": {
-				"description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
-				"type": "array",
-				"default": [
-				  "firing",
-				  "pending",
-				  "inactive"
-				],
-				"enum": [
-				  "firing",
-				  "pending",
-				  "inactive"
+				"title": "Alert state",
+				"oneOf": [
+				  {
+					"const": "firing",
+					"title": "Firing"
+				  },
+				  {
+					"const": "pending",
+					"title": "Pending"
+				  },
+				  {
+					"const": "inactive",
+					"title": "Inactive"
+				  }
 				]
 			  },
-			  "log": {
-				"description": "Logging configuration",
-				"type": "object",
-				"properties": {
-				  "level": {
-					"description": "Log level",
-					"type": "string",
-					"default": "info",
-					"enum": [
-					  "info",
-					  "debug",
-					  "error"
-					]
-				  }
+			  "uniqueItems": true,
+			  "minItems": 1
+			},
+			"log": {
+			  "title": "Logging",
+			  "description": "Logging configuration for the plugin.",
+			  "type": "object",
+			  "properties": {
+				"level": {
+				  "title": "Log Level",
+				  "description": "Define log level for the plugin. Ensure that Botkube has plugin logging enabled for standard output.",
+				  "type": "string",
+				  "default": "info",
+				  "oneOf": [
+					{
+					  "const": "panic",
+					  "title": "Panic"
+					},
+					{
+					  "const": "fatal",
+					  "title": "Fatal"
+					},
+					{
+					  "const": "error",
+					  "title": "Error"
+					},
+					{
+					  "const": "warn",
+					  "title": "Warning"
+					},
+					{
+					  "const": "info",
+					  "title": "Info"
+					},
+					{
+					  "const": "debug",
+					  "title": "Debug"
+					},
+					{
+					  "const": "trace",
+					  "title": "Trace"
+					}
+				  ]
+				},
+				"disableColors": {
+				  "type": "boolean",
+				  "default": false,
+				  "description": "If enabled, disables color logging output.",
+				  "title": "Disable Colors"
 				}
 			  }
-			},
-			"required": []
-		  }`, description),
+			}
+		  },
+		  "required": []
+		}`, description),
 	}
 }
 

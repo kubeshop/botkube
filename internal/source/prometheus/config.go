@@ -6,6 +6,7 @@ import (
 	promApi "github.com/prometheus/client_golang/api/prometheus/v1"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
@@ -15,12 +16,7 @@ type Config struct {
 	URL             string               `yaml:"url,omitempty"`
 	AlertStates     []promApi.AlertState `yaml:"alertStates,omitempty"`
 	IgnoreOldAlerts *bool                `yaml:"ignoreOldAlerts,omitempty"`
-	Log             Log                  `yaml:"log,omitempty"`
-}
-
-// Log logging configuration
-type Log struct {
-	Level string `yaml:"level"`
+	Log             config.Logger        `yaml:"log"`
 }
 
 // MergeConfigs merges all input configuration.
@@ -29,9 +25,6 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		URL:             "http://localhost:9090",
 		AlertStates:     []promApi.AlertState{promApi.AlertStateFiring, promApi.AlertStatePending, promApi.AlertStateInactive},
 		IgnoreOldAlerts: ptr.Bool(true),
-		Log: Log{
-			Level: "info",
-		},
 	}
 
 	var out Config
