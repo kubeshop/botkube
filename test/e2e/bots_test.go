@@ -15,6 +15,7 @@ import (
 	"github.com/vrischmann/envconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -41,6 +42,8 @@ type Config struct {
 			DefaultDiscordChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"`
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
 			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"`
+			LabelActionEnabledName        string `envconfig:"default=BOTKUBE_ACTIONS_LABEL-CREATED-SVC-RESOURCE_ENABLED"`
+			StandaloneActionEnabledName   string `envconfig:"default=BOTKUBE_ACTIONS_GET-CREATED-RESOURCE_ENABLED"`
 		}
 	}
 	Plugins   fake.PluginConfig
@@ -823,6 +826,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
+		svcCli := k8sCli.CoreV1().Services(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")
 		pod := &v1.Pod{
@@ -892,15 +896,57 @@ func runBotTest(t *testing.T,
 		}
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
+
+		t.Log("Creating Service...")
+		svc := &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      botDriver.Channel().Name(),
+				Namespace: appCfg.Deployment.Namespace,
+				Labels: map[string]string{
+					"app": "e2e-test",
+				},
+			},
+			Spec: v1.ServiceSpec{
+				Selector: map[string]string{
+					"app": "e2e-test",
+				},
+				Ports: []v1.ServicePort{
+					{Port: 8080},
+				},
+			},
+		}
+
+		svc, err = svcCli.Create(context.Background(), svc, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		t.Cleanup(func() { cleanupCreatedSvc(t, svcCli, svc.Name) })
+
+		t.Log("Ensuring bot didn't post anything new on first channel...")
+		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		// same expected message as before
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, automationAssertionFn)
+		require.NoError(t, err)
+
+		t.Log("Ensuring bot automation was executed and label created Service...")
+		err = wait.PollImmediate(pollInterval, appCfg.Slack.MessageWaitTimeout, func() (done bool, err error) {
+			svc, err := svcCli.Get(context.Background(), svc.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			_, found := svc.GetLabels()["botkube-action"]
+			return found, nil
+		})
+		assert.NoError(t, err, "while waiting for Service to be labeled by not bind automation")
 	})
 
 	t.Run("List actions", func(t *testing.T) {
 		command := "list actions"
 		expectedBody := codeBlock(heredoc.Doc(`
-			ACTION                    ENABLED  DISPLAY NAME
-			describe-created-resource false    Describe created resource
-			get-created-resource      true     Get created resource
-			show-logs-on-error        false    Show logs on error`))
+			ACTION                     ENABLED  DISPLAY NAME
+			describe-created-resource  false    Describe created resource
+			get-created-resource       true     Get created resource
+			label-created-svc-resource true     Label created Service
+			show-logs-on-error         false    Show logs on error`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -993,6 +1039,12 @@ func cleanupCreatedCfgMapIfShould(t *testing.T, cfgMapCli corev1.ConfigMapInterf
 
 func cleanupCreatedPod(t *testing.T, podCli corev1.PodInterface, name string) {
 	t.Log("Cleaning up created Pod...")
+	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
+	assert.NoError(t, err)
+}
+
+func cleanupCreatedSvc(t *testing.T, podCli corev1.ServiceInterface, name string) {
+	t.Log("Cleaning up created Service...")
 	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }

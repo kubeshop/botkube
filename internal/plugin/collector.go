@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -17,14 +18,14 @@ func NewCollector(log logrus.FieldLogger) *Collector {
 }
 
 // GetAllEnabledAndUsedPlugins returns the list of all plugins that are both enabled and bind to at
-// least one communicator that is also enabled.
+// least one communicator or action (automation) that is enabled.
 func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, []string) {
-	// Collect all used executor/sources
 	var (
 		bindExecutors = map[string]struct{}{}
 		bindSources   = map[string]struct{}{}
 	)
 
+	// Collect all used executors/sources by communication platforms
 	collect := func(channels config.IdentifiableMap[config.ChannelBindingsByName]) {
 		for _, bindings := range channels {
 			for _, name := range bindings.Bindings.Executors {
@@ -70,8 +71,21 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 		}
 	}
 
-	// Collect all executors that are both enabled and bind to at least one communicator that is enabled.
-	var usedExecutorPlugins []string
+	// Collect all used executors/sources by actions
+	for _, act := range cfg.Actions {
+		if !act.Enabled {
+			continue
+		}
+		for _, executorCfgName := range act.Bindings.Executors {
+			bindExecutors[executorCfgName] = struct{}{}
+		}
+		for _, sourceCfgName := range act.Bindings.Sources {
+			bindSources[sourceCfgName] = struct{}{}
+		}
+	}
+
+	// Collect all executors that are both enabled and bind to at least one communicator or action (automation) that is enabled..
+	usedExecutorPlugins := map[string]struct{}{}
 	for groupName, groupItems := range cfg.Executors {
 		for name, executor := range groupItems.Plugins {
 			l := c.log.WithFields(logrus.Fields{
@@ -86,28 +100,39 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 
 			_, found := bindExecutors[groupName]
 			if !found {
-				l.Debug("Executor plugin defined and enabled but not used by any platform")
+				l.Debug("Executor plugin defined and enabled but not used by any platform or standalone action")
 				continue
 			}
 
-			usedExecutorPlugins = append(usedExecutorPlugins, name)
+			l.Debug("Marking executor plugin as enabled")
+			usedExecutorPlugins[name] = struct{}{}
 		}
 	}
 
 	// Collect all sources that are both enabled and bind to at least one communicator that is enabled.
-	var usedSourcePlugins []string
+	usedSourcePlugins := map[string]struct{}{}
 	for groupName, groupItems := range cfg.Sources {
 		for name, source := range groupItems.Plugins {
+			l := c.log.WithFields(logrus.Fields{
+				"groupName": groupName,
+				"pluginKey": name,
+			})
+
 			if !source.Enabled {
+				l.Debug("Source plugin defined but not enabled.")
+
 				continue
 			}
 			_, found := bindSources[groupName]
 			if !found {
+				l.Debug("Source plugin defined and enabled but not used by any platform or standalone action")
 				continue
 			}
 
-			usedSourcePlugins = append(usedSourcePlugins, name)
+			l.Debug("Marking source plugin as enabled")
+			usedSourcePlugins[name] = struct{}{}
 		}
 	}
-	return usedExecutorPlugins, usedSourcePlugins
+
+	return maps.Keys(usedExecutorPlugins), maps.Keys(usedSourcePlugins)
 }

@@ -118,6 +118,20 @@ sources:
         resources:
           - type: v1/pods
 
+  'k8s-service-create-event-for-action-only':
+    displayName: "K8s Service creation, used only by action"
+    'botkube/kubernetes':
+      enabled: true
+      config:
+        namespaces:
+          include:
+            - botkube
+        event:
+          types:
+            - create
+        resources:
+          - type: v1/services
+
   'k8s-updates':
     displayName: "K8s ConfigMaps updates"
     'botkube/kubernetes':
@@ -199,6 +213,15 @@ executors:
         verbs: [ "port-forward" ]
         resources: [ "deployments" ]
 
+  'kubectl-with-svc-label-perms':
+    kubectl:
+      enabled: true
+      namespaces:
+        include: [ ".*" ]
+      commands:
+        verbs: [ "label" ]
+        resources: [ "services" ]
+
   'plugin-based':
     botkube/echo@v1.0.1-devel:
       enabled: true
@@ -215,7 +238,7 @@ plugins:
 
 actions:
   'get-created-resource':
-    enabled: true
+    enabled: false # it's enabled in e2e test, otherwise Botkube tries to download all dependencies when starting
     displayName: "Get created resource"
     command: "kubectl get {{ .Event.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}"
     bindings:
@@ -223,6 +246,15 @@ actions:
         - k8s-pod-create-events
       executors:
         - k8s-default-tools
+  label-created-svc-resource:
+    enabled: false # it's enabled in e2e test, otherwise Botkube tries to download all dependencies when starting
+    displayName: "Label created Service"
+    command: "kubectl label svc {{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }} botkube-action=true"
+    bindings:
+      sources:
+        - k8s-service-create-event-for-action-only
+      executors:
+        - kubectl-with-svc-label-perms
 
 aliases:
   kc:
@@ -255,6 +287,17 @@ settings:
 
 extraAnnotations:
   botkube.io/disable: "true"
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [ "*" ]
+      resources: [ "*" ]
+      verbs: [ "get", "watch", "list" ] # defaults
+    - apiGroups: [ "" ]
+      resources: [ "services" ]
+      verbs: [ "patch" ] # needed for label action
+
 
 extraEnv:
   - name: LOG_LEVEL_SOURCE_BOTKUBE_KUBERNETES
