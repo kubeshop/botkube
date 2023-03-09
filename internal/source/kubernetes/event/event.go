@@ -58,9 +58,12 @@ func (e *Event) HasRecommendationsOrWarnings() bool {
 
 // LevelMap is a map of event type to Level
 var LevelMap = map[config.EventType]config.Level{
-	config.CreateEvent:  config.Info,
-	config.UpdateEvent:  config.Warn,
-	config.DeleteEvent:  config.Critical,
+	config.NormalEvent:  config.Info,
+	config.InfoEvent:    config.Info,
+	config.AllEvent:     config.Info,
+	config.CreateEvent:  config.Success,
+	config.UpdateEvent:  config.Info,
+	config.DeleteEvent:  config.Error,
 	config.ErrorEvent:   config.Error,
 	config.WarningEvent: config.Error,
 }

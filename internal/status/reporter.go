@@ -2,7 +2,6 @@ package status
 
 import (
 	"context"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -10,14 +9,21 @@ import (
 )
 
 type StatusReporter interface {
-	ReportDeploymentStartup(ctx context.Context) (bool, error)
-	ReportDeploymentShutdown(ctx context.Context) (bool, error)
-	ReportDeploymentFailed(ctx context.Context) (bool, error)
+	ReportDeploymentStartup(ctx context.Context) error
+	ReportDeploymentShutdown(ctx context.Context) error
+	ReportDeploymentFailed(ctx context.Context) error
+	SetResourceVersion(resourceVersion int)
 }
 
-func NewStatusReporter(logger logrus.FieldLogger, gql *graphql.Gql) StatusReporter {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
-		return newGraphQLStatusReporter(logger.WithField("component", "GraphQLStatusReporter"), gql)
+func NewStatusReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql *graphql.Gql, resVerClient ResVerClient, cfgVersion int) StatusReporter {
+	if remoteCfgEnabled {
+		return newGraphQLStatusReporter(
+			logger.WithField("component", "GraphQLStatusReporter"),
+			gql,
+			resVerClient,
+			cfgVersion,
+		)
 	}
-	return newNoopStatusReporter(logger.WithField("component", "NoopStatusReporter"))
+
+	return newNoopStatusReporter()
 }

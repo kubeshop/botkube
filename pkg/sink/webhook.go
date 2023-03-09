@@ -13,7 +13,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -94,7 +94,7 @@ func (w *Webhook) SendEvent(ctx context.Context, event event.Event, eventSources
 			Error:    event.Error,
 			Messages: event.Messages,
 		},
-		EventSummary:    format.ShortMessage(event),
+		EventSummary:    formatx.ShortMessage(event),
 		TimeStamp:       event.TimeStamp,
 		Recommendations: event.Recommendations,
 		Warnings:        event.Warnings,

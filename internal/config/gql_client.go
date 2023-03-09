@@ -11,7 +11,7 @@ import (
 
 // DeploymentClient defines GraphQL client.
 type DeploymentClient interface {
-	GetDeployment(ctx context.Context) (Deployment, error)
+	GetConfigWithResourceVersion(ctx context.Context) (Deployment, error)
 }
 
 // Gql defines GraphQL client data structure.
@@ -27,11 +27,12 @@ func NewDeploymentClient(client *gql.Gql) *Gql {
 
 // Deployment returns deployment with Botkube configuration.
 type Deployment struct {
-	BotkubeConfig string
+	ResourceVersion int
+	YAMLConfig      string
 }
 
-// GetDeployment retrieves deployment by id.
-func (g *Gql) GetDeployment(ctx context.Context) (Deployment, error) {
+// GetConfigWithResourceVersion retrieves deployment by id.
+func (g *Gql) GetConfigWithResourceVersion(ctx context.Context) (Deployment, error) {
 	var query struct {
 		Deployment Deployment `graphql:"deployment(id: $id)"`
 	}
@@ -40,7 +41,24 @@ func (g *Gql) GetDeployment(ctx context.Context) (Deployment, error) {
 	}
 	err := g.client.Cli.Query(ctx, &query, variables)
 	if err != nil {
-		return Deployment{}, fmt.Errorf("while querying deployment details for %q: %w", g.deploymentID, err)
+		return Deployment{}, fmt.Errorf("while getting config with resource version for %q: %w", g.deploymentID, err)
 	}
 	return query.Deployment, nil
+}
+
+// GetResourceVersion retrieves resource version for Deployment.
+func (g *Gql) GetResourceVersion(ctx context.Context) (int, error) {
+	var query struct {
+		Deployment struct {
+			ResourceVersion int
+		} `graphql:"deployment(id: $id)"`
+	}
+	variables := map[string]interface{}{
+		"id": graphql.ID(g.deploymentID),
+	}
+	err := g.client.Cli.Query(ctx, &query, variables)
+	if err != nil {
+		return 0, fmt.Errorf("while querying deployment details for %q: %w", g.deploymentID, err)
+	}
+	return query.Deployment.ResourceVersion, nil
 }

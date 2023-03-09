@@ -3,11 +3,12 @@ package interactive
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/golden"
 
 	"github.com/kubeshop/botkube/pkg/api"
-	formatx "github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 // go test -run=TestInteractiveMessageToMarkdownMultiSelect ./pkg/bot/interactive/... -test.update-golden
@@ -16,8 +17,8 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 	message := CoreMessage{
 		Header:      "Adjust notifications",
 		Description: "Adjust notifications description",
-
 		Message: api.Message{
+			Timestamp: time.Date(2022, 04, 21, 2, 43, 0, 0, time.UTC),
 			Sections: []api.Section{
 				{
 					MultiSelect: api.MultiSelect{
@@ -34,6 +35,46 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 							{
 								Name:  "K8s recommendations",
 								Value: "k8s-recommendations",
+							},
+						},
+					},
+				},
+				{
+					TextFields: api.TextFields{
+						{
+							Key:   "Kind",
+							Value: "pod",
+						},
+						{
+							Key:   "Namespace",
+							Value: "botkube",
+						},
+						{
+							Key:   "Name",
+							Value: "webapp-server-68c5c57f6f",
+						},
+						{
+							Key:   "Reason",
+							Value: "BackOff",
+						},
+					},
+				},
+				{
+					BulletLists: api.BulletLists{
+						{
+							Title: "Messages",
+							Items: []string{
+								"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt",
+								"Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium",
+								"At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium",
+							},
+						},
+						{
+							Title: "Issues",
+							Items: []string{
+								"Issue item 1",
+								"Issue item 2",
+								"Issue item 3",
 							},
 						},
 					},

@@ -3,15 +3,35 @@ Adjust notifications description
 
 Select notification sources
 
-Available options:
- - `k8s-all-events`
- - `k8s-recommendations`
+**Available options**
+ • `k8s-all-events`
+ • `k8s-recommendations`
+
+**Fields**
+ • **Kind**: pod
+ • **Namespace**: botkube
+ • **Name**: webapp-server-68c5c57f6f
+ • **Reason**: BackOff
 
 
-Available options:
- - Workloads:
-  - `pods`
-  - `deployments`
- - Data:
-  - `configmap`
-  - `secrets`
+
+**Messages**
+ • Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+ • Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium
+ • At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium
+
+**Issues**
+ • Issue item 1
+ • Issue item 2
+ • Issue item 3
+
+
+**Available options**
+ • Workloads
+    • `pods`
+    • `deployments`
+ • Data
+    • `configmap`
+    • `secrets`
+
+Thu, 21 Apr 2022 02:43:00 UTC

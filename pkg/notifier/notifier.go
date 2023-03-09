@@ -7,15 +7,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 )
 
 // Notifier sends event notifications and messages on the communication channels.
 type Notifier interface {
-
-	// SendEvent notifies about new incoming event from source.
-	SendEvent(context.Context, event.Event, []string) error
-
 	// SendMessageToAll is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
 	// TODO: Consider option per channel to turn on/off "announcements" (Botkube start/stop/upgrade, notify/config change).

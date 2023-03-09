@@ -3,6 +3,9 @@
 package e2e
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -35,4 +38,13 @@ func countMatchBlock(expect string, actual string) int {
 		count += match.Size
 	}
 	return count
+}
+
+func timeWithinDuration(expected, actual time.Time, delta time.Duration) error {
+	dt := expected.Sub(actual)
+	if dt < -delta || dt > delta {
+		return fmt.Errorf("max difference between %v and %v allowed is %v, but difference was %v", expected, actual, delta, dt)
+	}
+
+	return nil
 }

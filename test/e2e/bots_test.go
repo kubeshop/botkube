@@ -19,9 +19,10 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/filterengine"
 	"github.com/kubeshop/botkube/test/fake"
 )
 
@@ -51,8 +52,6 @@ type Config struct {
 	Discord     DiscordConfig
 }
 
-type AttachmentStatus = map[config.Level]string
-
 type SlackConfig struct {
 	BotName                  string `envconfig:"default=botkube"`
 	TesterName               string `envconfig:"default=tester"`
@@ -77,8 +76,6 @@ const (
 	welcomeText         = "Let the tests begin 🤞"
 	pollInterval        = time.Second
 	globalConfigMapName = "botkube-global-config"
-	slackAnnotation     = "<http://botkube.io/*|botkube.io/*>"
-	discordAnnotation   = "botkube.io/*"
 	discordInvalidCmd   = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
 )
 
@@ -594,9 +591,6 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Multi-channel notifications", func(t *testing.T) {
-		if botDriver.Type() == DiscordBot {
-			return // skipping for discord
-		}
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
 		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
@@ -630,24 +624,34 @@ func runBotTest(t *testing.T,
 				Labels:    configMapLabels,
 			},
 		}
+
+		createCMEventTime := time.Now()
 		cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})
 		require.NoError(t, err)
 
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		attachAssertionFn := func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/configmaps created*\n*Labels:*\n• Kind: ConfigMap\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			contains := strings.HasPrefix(msg, startsWithMsg)
-			if !contains {
-				count := countMatchBlock(startsWithMsg, msg)
-				msgDiff := diff(startsWithMsg, msg)
-				return false, count, msgDiff
-			}
-			return contains, 0, ""
-		}
-
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+			AllowedTimestampDelta: time.Minute,
+			Message: api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: createCMEventTime,
+				Sections: []api.Section{
+					{
+						Base: api.Base{
+							Header: "🟢 v1/configmaps created",
+						},
+						TextFields: api.TextFields{
+							{Key: "Kind", Value: "ConfigMap"},
+							{Key: "Name", Value: cfgMap.Name},
+							{Key: "Namespace", Value: cfgMap.Namespace},
+							{Key: "Cluster", Value: appCfg.ClusterName},
+						},
+					},
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -660,22 +664,32 @@ func runBotTest(t *testing.T,
 		cfgMap.Data = map[string]string{
 			"operation": "update",
 		}
+		updateCMEventTime := time.Now()
 		cfgMap, err = cfgMapCli.Update(context.Background(), cfgMap, metav1.UpdateOptions{})
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
-		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			contains := strings.HasPrefix(msg, startsWithMsg)
-			if !contains {
-				count := countMatchBlock(startsWithMsg, msg)
-				msgDiff := diff(startsWithMsg, msg)
-				return false, count, msgDiff
-			}
-			return contains, 0, ""
-		}
 		for _, channelID := range channelIDs {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), channelID, 2, attachAssertionFn)
+			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, ExpAttachmentInput{
+				AllowedTimestampDelta: time.Minute,
+				Message: api.Message{
+					Type:      api.NonInteractiveSingleSection,
+					Timestamp: updateCMEventTime,
+					Sections: []api.Section{
+						{
+							Base: api.Base{
+								Header: "💡 v1/configmaps updated",
+							},
+							TextFields: api.TextFields{
+								{Key: "Kind", Value: "ConfigMap"},
+								{Key: "Name", Value: cfgMap.Name},
+								{Key: "Namespace", Value: cfgMap.Namespace},
+								{Key: "Cluster", Value: appCfg.ClusterName},
+							},
+						},
+					},
+				},
+			})
 			require.NoError(t, err)
 		}
 
@@ -707,6 +721,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 
 		t.Log("Updating ConfigMap once again...")
+		updateCMEventTime = time.Now()
 		cfgMap.Data = map[string]string{
 			"operation": "update-second",
 		}
@@ -719,18 +734,28 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		require.NoError(t, err)
 
-		t.Log("Expecting bot message in second channel...")
-		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s\n• Cluster: %s", cfgMap.Namespace, cfgMap.Name, appCfg.ClusterName)
-			contains := strings.HasPrefix(msg, startsWithMsg)
-			if !contains {
-				count := countMatchBlock(startsWithMsg, msg)
-				msgDiff := diff(startsWithMsg, msg)
-				return false, count, msgDiff
-			}
-			return contains, 0, ""
+		secondCMUpdate := ExpAttachmentInput{
+			AllowedTimestampDelta: time.Minute,
+			Message: api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: updateCMEventTime,
+				Sections: []api.Section{
+					{
+						Base: api.Base{
+							Header: "💡 v1/configmaps updated",
+						},
+						TextFields: api.TextFields{
+							{Key: "Kind", Value: "ConfigMap"},
+							{Key: "Name", Value: cfgMap.Name},
+							{Key: "Namespace", Value: cfgMap.Namespace},
+							{Key: "Cluster", Value: appCfg.ClusterName},
+						},
+					},
+				},
+			},
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
+		t.Log("Expecting bot message in second channel...")
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
 
 		t.Log("Starting notifier in first channel")
 		command = "enable notifications"
@@ -747,7 +772,7 @@ func runBotTest(t *testing.T,
 				Name:      fmt.Sprintf("%s-ignored", botDriver.Channel().Name()),
 				Namespace: appCfg.Deployment.Namespace,
 				Annotations: map[string]string{
-					filterengine.DisableAnnotation: "true",
+					filters.DisableAnnotation: "true",
 				},
 			},
 		}
@@ -762,44 +787,41 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
+		deleteCMEventTime := time.Now()
 		err = cfgMapCli.Delete(context.Background(), cfgMap.Name, metav1.DeleteOptions{})
 		require.NoError(t, err)
 		cfgMapAlreadyDeleted = true
 
 		t.Log("Expecting bot message on first channel...")
-		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:x: v1/configmaps deleted*\n*Labels:*\n• Kind: ConfigMap\n• Type: delete\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
-			contains := strings.HasPrefix(msg, startsWithMsg)
-			if !contains {
-				count := countMatchBlock(startsWithMsg, msg)
-				msgDiff := diff(startsWithMsg, msg)
-				return false, count, msgDiff
-			}
-			return contains, 0, ""
-		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, attachAssertionFn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+			AllowedTimestampDelta: time.Minute,
+			Message: api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: deleteCMEventTime,
+				Sections: []api.Section{
+					{
+						Base: api.Base{
+							Header: "❗ v1/configmaps deleted",
+						},
+						TextFields: api.TextFields{
+							{Key: "Kind", Value: "ConfigMap"},
+							{Key: "Name", Value: cfgMap.Name},
+							{Key: "Namespace", Value: cfgMap.Namespace},
+							{Key: "Cluster", Value: appCfg.ClusterName},
+						},
+					},
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		attachAssertionFn = func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:warning: v1/configmaps updated*\n*Labels:*\n• Kind: ConfigMap\n• Type: update\n• Namespace: %s\n• Name: %s", cfgMap.Namespace, cfgMap.Name)
-			contains := strings.HasPrefix(msg, startsWithMsg)
-			if !contains {
-				count := countMatchBlock(startsWithMsg, msg)
-				msgDiff := diff(startsWithMsg, msg)
-				return false, count, msgDiff
-			}
-			return contains, 0, ""
-		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, attachAssertionFn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
 		require.NoError(t, err)
 	})
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
-		if botDriver.Type() == DiscordBot {
-			return // skipping for discord
-		}
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
 
 		t.Log("Creating Pod...")
@@ -815,17 +837,46 @@ func runBotTest(t *testing.T,
 			},
 		}
 		require.Len(t, pod.Spec.Containers, 1)
+		createPodEventTime := time.Now()
 		pod, err = podCli.Create(context.Background(), pod, metav1.CreateOptions{})
 		require.NoError(t, err)
 
 		t.Cleanup(func() { cleanupCreatedPod(t, podCli, pod.Name) })
 
 		t.Log("Expecting bot event message...")
-		assertionFn := func(msg string) (bool, int, string) {
-			startsWithMsg := fmt.Sprintf("*:large_green_circle: v1/pods created*\n*Labels:*\n• Kind: Pod\n• Type: create\n• Namespace: %s\n• Name: %s\n• Cluster: %s\n*Recommendations:*\n• Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.\n• The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name, appCfg.ClusterName, pod.Namespace, pod.Name, pod.Namespace, pod.Name)
-			return strings.HasPrefix(msg, startsWithMsg), 0, ""
-		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, assertionFn)
+		// we check last 3 messages as we can get:
+		// - message with recommendations from 'k8s-events'
+		// - massage with pod create event from 'k8s-pod-create-events'
+		// - message with kc execution via 'get-created-resource' automation
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 3, ExpAttachmentInput{
+			AllowedTimestampDelta: time.Minute,
+			Message: api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: createPodEventTime,
+				Sections: []api.Section{
+					{
+						Base: api.Base{
+							Header: "🟢 v1/pods created",
+						},
+						TextFields: api.TextFields{
+							{Key: "Kind", Value: "Pod"},
+							{Key: "Name", Value: pod.Name},
+							{Key: "Namespace", Value: pod.Namespace},
+							{Key: "Cluster", Value: appCfg.ClusterName},
+						},
+						BulletLists: []api.BulletList{
+							{
+								Title: "Recommendations",
+								Items: []string{
+									fmt.Sprintf("Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name),
+									fmt.Sprintf("The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		t.Log("Expecting bot automation message...")

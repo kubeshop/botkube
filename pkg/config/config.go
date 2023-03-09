@@ -3,7 +3,6 @@ package config
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -12,20 +11,12 @@ import (
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/spf13/pflag"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
-	"github.com/kubeshop/botkube/internal/config"
-	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/internal/graphql"
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 //go:embed default.yaml
 var defaultConfiguration []byte
-
-var configPathsFlag []string
 
 const (
 	configEnvVariablePrefix = "BOTKUBE_"
@@ -126,16 +117,6 @@ const (
 	SinkIntegrationType IntegrationType = "sink"
 )
 
-// NotificationType to change notification type
-type NotificationType string
-
-const (
-	// ShortNotification is the default NotificationType
-	ShortNotification NotificationType = "short"
-	// LongNotification for short events notification
-	LongNotification NotificationType = "long"
-)
-
 // Config structure of configuration yaml file
 type Config struct {
 	Actions        Actions                   `yaml:"actions" validate:"dive"`
@@ -218,7 +199,7 @@ type ActionBindings struct {
 type Sources struct {
 	DisplayName string           `yaml:"displayName"`
 	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     Plugins          `koanf:",remain"`
+	Plugins     Plugins          `yaml:",inline" koanf:",remain"`
 }
 
 // GetPlugins returns Sources.Plugins.
@@ -380,7 +361,7 @@ const (
 // Executors contains executors configuration parameters.
 type Executors struct {
 	Kubectl Kubectl `yaml:"kubectl"`
-	Plugins Plugins `koanf:",remain"`
+	Plugins Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
@@ -551,11 +532,6 @@ func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
 	return false, nil
 }
 
-// Notification holds notification configuration.
-type Notification struct {
-	Type NotificationType
-}
-
 // ChannelNotification contains notification configuration for a given platform.
 type ChannelNotification struct {
 	Disabled bool `yaml:"disabled"`
@@ -576,19 +552,17 @@ type Communications struct {
 // Deprecated: Legacy Slack integration has been deprecated and removed from the Slack App Directory.
 // Use SocketSlack integration instead.
 type Slack struct {
-	Enabled      bool                                   `yaml:"enabled"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Notification Notification                           `yaml:"notification,omitempty"`
-	Token        string                                 `yaml:"token,omitempty"`
+	Enabled  bool                                   `yaml:"enabled"`
+	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	Token    string                                 `yaml:"token,omitempty"`
 }
 
 // SocketSlack configuration to authentication and send notifications
 type SocketSlack struct {
-	Enabled      bool                                   `yaml:"enabled"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Notification Notification                           `yaml:"notification,omitempty"`
-	BotToken     string                                 `yaml:"botToken,omitempty"`
-	AppToken     string                                 `yaml:"appToken,omitempty"`
+	Enabled  bool                                   `yaml:"enabled"`
+	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	BotToken string                                 `yaml:"botToken,omitempty"`
+	AppToken string                                 `yaml:"appToken,omitempty"`
 }
 
 // Elasticsearch config auth settings
@@ -621,13 +595,12 @@ type ELSIndex struct {
 
 // Mattermost configuration to authentication and send notifications
 type Mattermost struct {
-	Enabled      bool                                   `yaml:"enabled"`
-	BotName      string                                 `yaml:"botName"`
-	URL          string                                 `yaml:"url"`
-	Token        string                                 `yaml:"token"`
-	Team         string                                 `yaml:"team"`
-	Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Notification Notification                           `yaml:"notification,omitempty"`
+	Enabled  bool                                   `yaml:"enabled"`
+	BotName  string                                 `yaml:"botName"`
+	URL      string                                 `yaml:"url"`
+	Token    string                                 `yaml:"token"`
+	Team     string                                 `yaml:"team"`
+	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 }
 
 // Teams creds for authentication with MS Teams
@@ -640,17 +613,15 @@ type Teams struct {
 	MessagePath string `yaml:"messagePath,omitempty"`
 	// TODO: Be consistent with other communicators when MS Teams support multiple channels
 	//Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"`
-	Bindings     BotBindings  `yaml:"bindings" validate:"required_if=Enabled true"`
-	Notification Notification `yaml:"notification,omitempty"`
+	Bindings BotBindings `yaml:"bindings" validate:"required_if=Enabled true"`
 }
 
 // Discord configuration for authentication and send notifications
 type Discord struct {
-	Enabled      bool                                 `yaml:"enabled"`
-	Token        string                               `yaml:"token"`
-	BotID        string                               `yaml:"botID"`
-	Channels     IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Notification Notification                         `yaml:"notification,omitempty"`
+	Enabled  bool                                 `yaml:"enabled"`
+	Token    string                               `yaml:"token"`
+	BotID    string                               `yaml:"botID"`
+	Channels IdentifiableMap[ChannelBindingsByID] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 }
 
 // Webhook configuration to send notifications
@@ -691,9 +662,15 @@ type Settings struct {
 	MetricsPort           string           `yaml:"metricsPort"`
 	HealthPort            string           `yaml:"healthPort"`
 	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
-	Log                   loggerx.Config   `yaml:"log"`
+	Log                   Logger           `yaml:"log"`
 	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig            string           `yaml:"kubeconfig"`
+}
+
+// Logger holds logger configuration parameters.
+type Logger struct {
+	Level         string `yaml:"level"`
+	DisableColors bool   `yaml:"disableColors"`
 }
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
@@ -773,26 +750,6 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	return &cfg, LoadWithDefaultsDetails{
 		ValidateWarnings: result.Warnings.ErrorOrNil(),
 	}, nil
-}
-
-// GetProvider resolves and returns paths for config files.
-// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
-func GetProvider(gql *graphql.Gql) config.Provider {
-	if _, provided := os.LookupEnv(graphql.GqlProviderIdentifierEnvKey); provided {
-		dc := intconfig.NewDeploymentClient(gql)
-		return config.NewGqlProvider(dc)
-	}
-
-	if os.Getenv(intconfig.EnvProviderConfigPathsEnvKey) != "" {
-		return config.NewEnvProvider()
-	}
-
-	return config.NewFileSystemProvider(configPathsFlag)
-}
-
-// RegisterFlags registers config related flags.
-func RegisterFlags(flags *pflag.FlagSet) {
-	flags.StringSliceVarP(&configPathsFlag, "config", "c", nil, "Specify configuration file in YAML format (can specify multiple).")
 }
 
 func normalizeConfigEnvName(name string) string {

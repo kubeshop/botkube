@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 // GqlProvider is GraphQL provider
@@ -18,17 +19,13 @@ func NewGqlProvider(dc DeploymentClient) *GqlProvider {
 }
 
 // Configs returns list of config files
-func (g *GqlProvider) Configs(ctx context.Context) (YAMLFiles, error) {
-	deployment, err := g.client.GetDeployment(ctx)
+func (g *GqlProvider) Configs(ctx context.Context) (config.YAMLFiles, int, error) {
+	deployment, err := g.client.GetConfigWithResourceVersion(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "while getting deployment")
-	}
-	conf, err := yaml.JSONToYAML([]byte(deployment.BotkubeConfig))
-	if err != nil {
-		return nil, errors.Wrapf(err, "while converting json to yaml for deployment")
+		return nil, 0, errors.Wrapf(err, "while getting deployment")
 	}
 
 	return [][]byte{
-		conf,
-	}, nil
+		[]byte(deployment.YAMLConfig),
+	}, deployment.ResourceVersion, nil
 }

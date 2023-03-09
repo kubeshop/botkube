@@ -11,9 +11,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -27,9 +27,6 @@ import (
 var _ Bot = &Discord{}
 
 const (
-	// customTimeFormat holds custom time format string.
-	customTimeFormat = "2006-01-02T15:04:05Z"
-
 	// discordBotMentionRegexFmt supports also nicknames (the exclamation mark).
 	// Read more: https://discordjs.guide/miscellaneous/parsing-mention-arguments.html#how-discord-mentions-work
 	discordBotMentionRegexFmt = "^<@!?%s>"
@@ -38,28 +35,19 @@ const (
 	discordMaxMessageSize = 2000
 )
 
-var embedColor = map[config.Level]int{
-	config.Info:     8311585,  // green
-	config.Warn:     16312092, // yellow
-	config.Debug:    8311585,  // green
-	config.Error:    13632027, // red
-	config.Critical: 13632027, // red
-}
-
 // Discord listens for user's message, execute commands and sends back the response.
 type Discord struct {
 	log             logrus.FieldLogger
 	executorFactory ExecutorFactory
 	reporter        AnalyticsReporter
 	api             *discordgo.Session
-	notification    config.Notification
 	botID           string
 	channelsMutex   sync.RWMutex
 	channels        map[string]channelConfigByID
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
-	mdFormatter     interactive.MDFormatter
+	renderer        *DiscordRenderer
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -87,11 +75,10 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		executorFactory: executorFactory,
 		api:             api,
 		botID:           cfg.BotID,
-		notification:    cfg.Notification,
 		commGroupName:   commGroupName,
 		channels:        channelsCfg,
 		botMentionRegex: botMentionRegex,
-		mdFormatter:     interactive.DefaultMDFormatter(),
+		renderer:        NewDiscordRenderer(),
 	}, nil
 }
 
@@ -130,27 +117,6 @@ func (b *Discord) Start(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// SendEvent sends event notification to Discord ChannelID.
-// Context is not supported by client: See https://github.com/bwmarrin/discordgo/issues/752.
-func (b *Discord) SendEvent(_ context.Context, event event.Event, eventSources []string) (err error) {
-	b.log.Debugf("Sending to Discord: %+v", event)
-
-	msgToSend := b.formatMessage(event)
-
-	errs := multierror.New()
-	for _, channelID := range b.getChannelsToNotify(eventSources) {
-		msg := msgToSend // copy as the struct is modified when using Discord API client
-		if _, err := b.api.ChannelMessageSendComplex(channelID, &msg); err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("while sending Discord message to channel %q: %w", channelID, err))
-			continue
-		}
-
-		b.log.Debugf("Event successfully sent to channel %q", channelID)
-	}
-
-	return errs.ErrorOrNil()
 }
 
 // SendMessage sends interactive message to selected Discord channels.
@@ -282,30 +248,12 @@ func (b *Discord) send(channelID string, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", channelID, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := interactive.RenderMessage(b.mdFormatter, resp)
 
-	if len(markdown) == 0 {
-		return errors.New("while reading Discord response: empty response")
+	discordMsg, err := b.formatMessage(resp)
+	if err != nil {
+		return fmt.Errorf("while formatting message: %w", err)
 	}
-
-	// Upload message as a file if too long
-	if len(markdown) >= discordMaxMessageSize {
-		params := &discordgo.MessageSend{
-			Content: resp.Description,
-			Files: []*discordgo.File{
-				{
-					Name:   "Response.txt",
-					Reader: strings.NewReader(interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)),
-				},
-			},
-		}
-		if _, err := b.api.ChannelMessageSendComplex(channelID, params); err != nil {
-			return fmt.Errorf("while uploading file: %w", err)
-		}
-		return nil
-	}
-
-	if _, err := b.api.ChannelMessageSend(channelID, markdown); err != nil {
+	if _, err := b.api.ChannelMessageSendComplex(channelID, discordMsg); err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
 
@@ -340,6 +288,45 @@ func (b *Discord) findAndTrimBotMention(msg string) (string, bool) {
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
+func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.MessageSend, error) {
+	// 1. Check the size and upload message as a file if it's too long
+	plaintext := interactive.MessageToPlaintext(msg, interactive.NewlineFormatter)
+	if len(plaintext) == 0 {
+		return nil, errors.New("while reading Discord response: empty response")
+	}
+	if len(plaintext) >= discordMaxMessageSize {
+		return &discordgo.MessageSend{
+			Content: msg.Description,
+			Files: []*discordgo.File{
+				{
+					Name:   "Response.txt",
+					Reader: strings.NewReader(plaintext),
+				},
+			},
+		}, nil
+	}
+
+	// 2. If it's not a simplified event, render as markdown
+	if msg.Type != api.NonInteractiveSingleSection {
+		return &discordgo.MessageSend{
+			Content: b.renderer.MessageToMarkdown(msg),
+		}, nil
+	}
+
+	// FIXME: For now, we just render only with a few fields that are always present in the event message.
+	// This should be removed once we will add support for rendering AdaptiveCard with all message primitives.
+	messageEmbed, err := b.renderer.NonInteractiveSectionToCard(msg)
+	if err != nil {
+		return nil, fmt.Errorf("while rendering event message embed: %w", err)
+	}
+
+	return &discordgo.MessageSend{
+		Embeds: []*discordgo.MessageEmbed{
+			&messageEmbed,
+		},
+	}, nil
 }
 
 func discordChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) map[string]channelConfigByID {

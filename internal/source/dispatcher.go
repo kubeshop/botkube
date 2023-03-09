@@ -10,6 +10,7 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -19,12 +20,13 @@ import (
 
 // Dispatcher provides functionality to starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
 type Dispatcher struct {
-	log            logrus.FieldLogger
-	notifiers      []notifier.Notifier
-	manager        *plugin.Manager
-	actionProvider ActionProvider
-	reporter       AnalyticsReporter
-	auditReporter  audit.AuditReporter
+	log                  logrus.FieldLogger
+	manager              *plugin.Manager
+	actionProvider       ActionProvider
+	reporter             AnalyticsReporter
+	auditReporter        audit.AuditReporter
+	markdownNotifiers    []notifier.Notifier
+	interactiveNotifiers []notifier.Notifier
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.
@@ -50,13 +52,27 @@ type AnalyticsReporter interface {
 
 // NewDispatcher create a new Dispatcher instance.
 func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter) *Dispatcher {
+	var (
+		interactiveNotifiers []notifier.Notifier
+		markdownNotifiers    []notifier.Notifier
+	)
+	for _, n := range notifiers {
+		if n.IntegrationName().IsInteractive() {
+			interactiveNotifiers = append(interactiveNotifiers, n)
+			continue
+		}
+
+		markdownNotifiers = append(markdownNotifiers, n)
+	}
+
 	return &Dispatcher{
-		log:            log,
-		notifiers:      notifiers,
-		manager:        manager,
-		actionProvider: actionProvider,
-		reporter:       reporter,
-		auditReporter:  auditReporter,
+		log:                  log,
+		manager:              manager,
+		actionProvider:       actionProvider,
+		reporter:             reporter,
+		auditReporter:        auditReporter,
+		interactiveNotifiers: interactiveNotifiers,
+		markdownNotifiers:    markdownNotifiers,
 	}
 }
 
@@ -66,7 +82,7 @@ func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Notifier, manage
 func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	log := d.log.WithFields(logrus.Fields{
 		"pluginName": dispatch.pluginName,
-		"sources":    dispatch.sources,
+		"sourceName": dispatch.sourceName,
 	})
 
 	log.Info("Start source streaming...")
@@ -80,8 +96,9 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	out, err := sourceClient.Stream(ctx, source.StreamInput{
 		Configs: dispatch.pluginConfigs,
 		Context: source.StreamInputContext{
-			ClusterName: dispatch.cfg.Settings.ClusterName,
-			KubeConfig:  dispatch.cfg.Settings.Kubeconfig,
+			IsInteractivitySupported: dispatch.isInteractivitySupported,
+			ClusterName:              dispatch.cfg.Settings.ClusterName,
+			KubeConfig:               dispatch.cfg.Settings.Kubeconfig,
 		},
 	})
 	if err != nil {
@@ -93,10 +110,10 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			select {
 			case event := <-out.Output:
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, dispatch.sources, dispatch.pluginName)
+				d.dispatch(ctx, event, dispatch)
 			case msg := <-out.Event:
 				log.WithField("message", msg).Debug("Dispatching received message...")
-				d.dispatchMsg(ctx, msg, dispatch.sources, dispatch.pluginName)
+				d.dispatchMsg(ctx, msg, dispatch)
 			case <-ctx.Done():
 				return
 			}
@@ -105,8 +122,20 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	return nil
 }
 
-func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, sources []string, pluginName string) {
-	for _, n := range d.notifiers {
+func (d *Dispatcher) getNotifiers(dispatch PluginDispatch) []notifier.Notifier {
+	if dispatch.isInteractivitySupported {
+		return d.interactiveNotifiers
+	}
+	return d.markdownNotifiers
+}
+
+func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispatch PluginDispatch) {
+	var (
+		pluginName = dispatch.pluginName
+		sources    = []string{dispatch.sourceName}
+	)
+
+	for _, n := range d.getNotifiers(dispatch) {
 		go func(n notifier.Notifier) {
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			msg := interactive.CoreMessage{
@@ -135,7 +164,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, source
 			if reportErr != nil {
 				d.log.Errorf("while reporting analytics: %w", err)
 			}
-			if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sources); err != nil {
+			if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), dispatch.sourceName); err != nil {
 				d.log.Errorf("while reporting audit event: %s", err.Error())
 			}
 		}(n)
@@ -150,7 +179,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, source
 	for _, act := range actions {
 		d.log.Infof("Executing action %q (command: %q)...", act.DisplayName, act.Command)
 		genericMsg := d.actionProvider.ExecuteAction(ctx, act)
-		for _, n := range d.notifiers {
+		for _, n := range d.getNotifiers(dispatch) {
 			go func(n notifier.Notifier) {
 				defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 				err := n.SendMessage(ctx, genericMsg, sources)
@@ -162,34 +191,26 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, source
 	}
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, sources []string, pluginName string) {
+func (d *Dispatcher) dispatch(ctx context.Context, event []byte, dispatch PluginDispatch) {
 	if event == nil {
 		return
 	}
-	for _, n := range d.notifiers {
-		go func(n notifier.Notifier) {
-			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
-			e := string(event)
-			msg := interactive.CoreMessage{
-				Description: e,
-			}
-			err := n.SendMessage(ctx, msg, sources)
-			if err != nil {
-				d.log.Errorf("while sending event: %s, data: %v", err.Error(), string(event))
-			}
-			if err := d.reportAudit(ctx, pluginName, e, sources); err != nil {
-				d.log.Errorf("while reporting audit event: %s", err.Error())
-			}
-		}(n)
-	}
+
+	d.dispatchMsg(ctx, source.Event{
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: string(event),
+			},
+		},
+	}, dispatch)
 }
 
-func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event string, sources []string) error {
+func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event, source string) error {
 	e := audit.SourceAuditEvent{
 		CreatedAt:  time.Now().Format(time.RFC3339),
 		PluginName: pluginName,
 		Event:      event,
-		Bindings:   sources,
+		Bindings:   []string{source},
 	}
 	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
 }

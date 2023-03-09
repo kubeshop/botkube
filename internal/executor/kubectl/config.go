@@ -7,15 +7,15 @@ import (
 	"k8s.io/utils/strings/slices"
 
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // Config holds Kubectl plugin configuration parameters.
 type Config struct {
-	Log                loggerx.Config `yaml:"log"`
+	Log                config.Logger  `yaml:"log"`
 	DefaultNamespace   string         `yaml:"defaultNamespace,omitempty"`
 	InteractiveBuilder builder.Config `yaml:"interactiveBuilder,omitempty"`
 }

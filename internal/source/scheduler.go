@@ -16,11 +16,12 @@ type pluginDispatcher interface {
 }
 
 type PluginDispatch struct {
-	ctx           context.Context
-	pluginName    string
-	pluginConfigs []*source.Config
-	sources       []string
-	cfg           *config.Config
+	ctx                      context.Context
+	pluginName               string
+	pluginConfigs            []*source.Config
+	sourceName               string
+	isInteractivitySupported bool
+	cfg                      *config.Config
 }
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
@@ -52,7 +53,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 	for _, commGroupCfg := range d.cfg.Communications {
 		if commGroupCfg.Slack.Enabled {
 			for _, channel := range commGroupCfg.Slack.Channels {
-				if err := d.schedule(ctx, channel.Bindings.Sources); err != nil {
+				if err := d.schedule(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -60,7 +61,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.SocketSlack.Enabled {
 			for _, channel := range commGroupCfg.SocketSlack.Channels {
-				if err := d.schedule(ctx, channel.Bindings.Sources); err != nil {
+				if err := d.schedule(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -68,21 +69,21 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.Mattermost.Enabled {
 			for _, channel := range commGroupCfg.Mattermost.Channels {
-				if err := d.schedule(ctx, channel.Bindings.Sources); err != nil {
+				if err := d.schedule(ctx, config.MattermostCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			if err := d.schedule(ctx, commGroupCfg.Teams.Bindings.Sources); err != nil {
+			if err := d.schedule(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources); err != nil {
 				return err
 			}
 		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, channel := range commGroupCfg.Discord.Channels {
-				if err := d.schedule(ctx, channel.Bindings.Sources); err != nil {
+				if err := d.schedule(ctx, config.DiscordCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -92,9 +93,9 @@ func (d *Scheduler) Start(ctx context.Context) error {
 	return nil
 }
 
-func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
+func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool, bindSources []string) error {
 	for _, bindSource := range bindSources {
-		err := d.schedulePlugin(ctx, bindSource)
+		err := d.schedulePlugin(ctx, isInteractivitySupported, bindSource)
 		if err != nil {
 			return err
 		}
@@ -102,17 +103,24 @@ func (d *Scheduler) schedule(ctx context.Context, bindSources []string) error {
 	return nil
 }
 
-func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
+func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
+	// As not all of our platforms supports interactivity, we need to schedule the same source twice. For example:
+	//  - botkube/kubernetes@1.0.0_interactive/true
+	//  - botkube/kubernetes@1.0.0_interactive/false
+	// As a result each Stream method will know if it can produce interactive message or not.
+	key := fmt.Sprintf("%s_interactive/%v", sourceName, isInteractivitySupported)
+
 	_, found := d.startProcesses[key]
 	if found {
+		d.log.Infof("Not starting %q as it was already started.", key)
 		return nil // such configuration was already started
 	}
+
+	d.log.Infof("Starting a new stream for %q.", key)
 	d.startProcesses[key] = struct{}{}
 
-	// Holds the array of configs for a given plugin. Currently, we have only one key for backward compatibility
-	// For example, ['botkube/kubernetes@v1.0.0']->[]{"cfg1"}
 	sourcePluginConfigs := map[string][]*source.Config{}
-	plugins := d.cfg.Sources[key].Plugins
+	plugins := d.cfg.Sources[sourceName].Plugins
 	for pluginName, pluginCfg := range plugins {
 		if !pluginCfg.Enabled {
 			continue
@@ -122,7 +130,7 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
 		// https://github.com/go-yaml/yaml/issues/13
 		rawYAML, err := yaml.Marshal(pluginCfg.Config)
 		if err != nil {
-			return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, key, err)
+			return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, sourceName, err)
 		}
 		sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], &source.Config{
 			RawYAML: rawYAML,
@@ -131,11 +139,12 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, key string) error {
 
 	for pluginName, configs := range sourcePluginConfigs {
 		err := d.dispatcher.Dispatch(PluginDispatch{
-			ctx:           ctx,
-			pluginName:    pluginName,
-			pluginConfigs: configs,
-			sources:       []string{key},
-			cfg:           d.cfg,
+			ctx:                      ctx,
+			pluginName:               pluginName,
+			pluginConfigs:            configs,
+			isInteractivitySupported: isInteractivitySupported,
+			sourceName:               sourceName,
+			cfg:                      d.cfg,
 		})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)

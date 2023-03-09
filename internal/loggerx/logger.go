@@ -4,16 +4,12 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
-// Config holds logger configuration parameters.
-type Config struct {
-	Level         string `yaml:"level"`
-	DisableColors bool   `yaml:"disableColors"`
-}
-
 // New returns a new logger based on a given configuration.
-func New(cfg Config) logrus.FieldLogger {
+func New(cfg config.Logger) logrus.FieldLogger {
 	logger := logrus.New()
 	// Output to stdout instead of the default stderr
 	logger.SetOutput(os.Stdout)

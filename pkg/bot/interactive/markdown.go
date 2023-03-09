@@ -3,9 +3,10 @@ package interactive
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kubeshop/botkube/pkg/api"
-	formatx "github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 // MDFormatter represents the capability of Markdown Formatter
@@ -65,6 +66,14 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 			addLine(mdFormatter.headerFormatter(section.Header))
 		}
 
+		if len(section.TextFields) > 0 {
+			addLine(mdFormatter.headerFormatter("Fields"))
+			for _, field := range section.TextFields {
+				addLine(fmt.Sprintf(" • %s: %s", mdFormatter.headerFormatter(field.Key), field.Value))
+			}
+			addLine("") // new line to separate other
+		}
+
 		if section.Description != "" {
 			addLine(section.Description)
 		}
@@ -79,6 +88,17 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 			addLine(mdFormatter.codeBlockFormatter(section.Body.CodeBlock))
 		}
 
+		if section.BulletLists.AreItemsDefined() {
+			for _, item := range section.BulletLists {
+				addLine("") // new line
+				addLine(mdFormatter.headerFormatter(item.Title))
+
+				for _, opt := range item.Items {
+					addLine(fmt.Sprintf(" • %s", opt))
+				}
+			}
+		}
+
 		if section.MultiSelect.AreOptionsDefined() {
 			ms := section.MultiSelect
 
@@ -91,22 +111,22 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 			}
 
 			addLine("") // new line
-			addLine("Available options:")
+			addLine(mdFormatter.headerFormatter("Available options"))
 
 			for _, opt := range ms.Options {
-				addLine(fmt.Sprintf(" - %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
+				addLine(fmt.Sprintf(" • %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
 			}
 		}
 
 		if section.Selects.AreOptionsDefined() {
 			addLine("") // new line
-			addLine("Available options:")
+			addLine(mdFormatter.headerFormatter("Available options"))
 
 			for _, item := range section.Selects.Items {
 				for _, group := range item.OptionGroups {
-					addLine(fmt.Sprintf(" - %s:", group.Name))
+					addLine(fmt.Sprintf(" • %s", group.Name))
 					for _, opt := range group.Options {
-						addLine(fmt.Sprintf("  - %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
+						addLine(fmt.Sprintf("    • %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
 					}
 				}
 			}
@@ -118,7 +138,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 				continue
 			}
 			if btn.Command != "" {
-				addLine(fmt.Sprintf("  - %s", mdFormatter.adaptiveCodeBlockFormatter(btn.Command)))
+				addLine(fmt.Sprintf("  • %s", mdFormatter.adaptiveCodeBlockFormatter(btn.Command)))
 				continue
 			}
 		}
@@ -126,6 +146,10 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		for _, ctxItem := range section.Context {
 			addLine(ctxItem.Text)
 		}
+	}
+	if !msg.Timestamp.IsZero() {
+		addLine("") // new line
+		addLine(msg.Timestamp.Format(time.RFC1123))
 	}
 
 	return out.String()

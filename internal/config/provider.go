@@ -1,19 +1,21 @@
 package config
 
 import (
-	"bytes"
-	"context"
+	"os"
+
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
-// YAMLFiles denotes list of configurations in bytes
-type YAMLFiles [][]byte
+// GetProvider resolves and returns paths for config files.
+// It reads them the 'BOTKUBE_CONFIG_PATHS' env variable. If not found, then it uses '--config' flag.
+func GetProvider(remoteCfgSyncEnabled bool, deployClient DeploymentClient) config.Provider {
+	if remoteCfgSyncEnabled {
+		return NewGqlProvider(deployClient)
+	}
 
-// Merge flattens 2d config bytes
-func (y YAMLFiles) Merge() []byte {
-	return bytes.Join(y, nil)
-}
+	if os.Getenv(EnvProviderConfigPathsEnvKey) != "" {
+		return NewEnvProvider()
+	}
 
-// Provider for configuration sources
-type Provider interface {
-	Configs(ctx context.Context) (YAMLFiles, error)
+	return NewFileSystemProvider(configPathsFlag)
 }
