@@ -1,12 +1,13 @@
 package maputil
 
-import "sort"
+import (
+	"sort"
+
+	"golang.org/x/exp/maps"
+)
 
 func SortKeys[T any](in map[string]T) []string {
-	keys := make([]string, 0, len(in))
-	for k := range in {
-		keys = append(keys, k)
-	}
+	keys := maps.Keys(in)
 	sort.Strings(keys)
 	return keys
 }

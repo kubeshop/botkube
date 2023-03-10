@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/strings/slices"
 )
 
 // PersistenceManager manages persistence of the configuration.

@@ -90,6 +90,16 @@ func (d *Scheduler) Start(ctx context.Context) error {
 		}
 	}
 
+	// Schedule all sources used by actions
+	for _, act := range d.cfg.Actions {
+		if !act.Enabled {
+			continue
+		}
+		if err := d.schedule(ctx, false, act.Bindings.Sources); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

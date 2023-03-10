@@ -49,16 +49,25 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		require.NoError(t, err)
 	}
 
+	enabled := strconv.FormatBool(true)
 	newEnvs := []v1.EnvVar{
 		{
 			Name:  appCfg.Deployment.Envs.BotkubePluginRepoURL,
 			Value: pluginRepoURL,
 		},
+		{
+			Name:  appCfg.Deployment.Envs.StandaloneActionEnabledName,
+			Value: enabled,
+		},
+		{
+			Name:  appCfg.Deployment.Envs.LabelActionEnabledName,
+			Value: enabled,
+		},
 	}
 
 	if len(channels) > 0 && driverType == SlackBot {
 		slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName
-		newEnvs = append(newEnvs, v1.EnvVar{Name: slackEnabledEnvName, Value: strconv.FormatBool(true)})
+		newEnvs = append(newEnvs, v1.EnvVar{Name: slackEnabledEnvName, Value: enabled})
 
 		for envName, channel := range channels {
 			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: channel.Identifier()})
@@ -67,7 +76,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 
 	if len(channels) > 0 && driverType == DiscordBot {
 		discordEnabledEnvName := appCfg.Deployment.Envs.DiscordEnabledName
-		newEnvs = append(newEnvs, v1.EnvVar{Name: discordEnabledEnvName, Value: strconv.FormatBool(true)})
+		newEnvs = append(newEnvs, v1.EnvVar{Name: discordEnabledEnvName, Value: enabled})
 
 		for envName, channels := range channels {
 			newEnvs = append(newEnvs, v1.EnvVar{Name: envName, Value: channels.Identifier()})

@@ -1,7 +1,7 @@
 package event
 
 import (
-	"k8s.io/utils/strings/slices"
+	"golang.org/x/exp/slices"
 )
 
 // allowedApiVersions contains a list of resource apiVersion that can be collected

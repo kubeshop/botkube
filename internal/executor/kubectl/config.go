@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"k8s.io/utils/strings/slices"
+	"golang.org/x/exp/slices"
 
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
 	"github.com/kubeshop/botkube/pkg/api"

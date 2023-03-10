@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 const (
@@ -361,15 +361,8 @@ func (e *KubectlCmdBuilder) appendNamespaceSuffixIfDefault(in dropdownItem) drop
 
 func (e *KubectlCmdBuilder) getEnableKubectlDetails(bindings []string) (verbs []string, resources []string, namespace string) {
 	enabledKubectls := e.merger.MergeAllEnabled(bindings)
-	for key := range enabledKubectls.AllowedKubectlResource {
-		resources = append(resources, key)
-	}
-	sort.Strings(resources)
-
-	for key := range enabledKubectls.AllowedKubectlVerb {
-		verbs = append(verbs, key)
-	}
-	sort.Strings(verbs)
+	resources = maputil.SortKeys(enabledKubectls.AllowedKubectlResource)
+	verbs = maputil.SortKeys(enabledKubectls.AllowedKubectlVerb)
 
 	if enabledKubectls.DefaultNamespace == "" {
 		enabledKubectls.DefaultNamespace = kubectlDefaultNamespace
