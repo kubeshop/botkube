@@ -7,19 +7,23 @@ import (
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
-
-	gql "github.com/kubeshop/botkube/internal/graphql"
 )
 
 var _ AuditReporter = (*GraphQLAuditReporter)(nil)
 
+// GraphQLClient defines GraphQL client.
+type GraphQLClient interface {
+	Client() *graphql.Client
+	DeploymentID() string
+}
+
 // GraphQLAuditReporter is the graphql audit reporter
 type GraphQLAuditReporter struct {
 	log logrus.FieldLogger
-	gql *gql.Gql
+	gql GraphQLClient
 }
 
-func newGraphQLAuditReporter(logger logrus.FieldLogger, client *gql.Gql) *GraphQLAuditReporter {
+func newGraphQLAuditReporter(logger logrus.FieldLogger, client GraphQLClient) *GraphQLAuditReporter {
 	return &GraphQLAuditReporter{
 		log: logger,
 		gql: client,
@@ -28,7 +32,7 @@ func newGraphQLAuditReporter(logger logrus.FieldLogger, client *gql.Gql) *GraphQ
 
 // ReportExecutorAuditEvent reports executor audit event using graphql interface
 func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e ExecutorAuditEvent) error {
-	r.log.Debugf("Reporting executor audit event for ID: %s", r.gql.DeploymentID)
+	r.log.Debugf("Reporting executor audit event for ID %q", r.gql.DeploymentID())
 	var mutation struct {
 		CreateAuditEvent struct {
 			ID graphql.ID
@@ -38,7 +42,7 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e E
 		"input": AuditEventCreateInput{
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
-			DeploymentID: r.gql.DeploymentID,
+			DeploymentID: r.gql.DeploymentID(),
 			Type:         AuditEventTypeCommandExecuted,
 			CommandExecuted: &AuditEventCommandCreateInput{
 				PlatformUser: e.PlatformUser,
@@ -49,12 +53,12 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e E
 		},
 	}
 
-	return r.gql.Cli.Mutate(ctx, &mutation, variables)
+	return r.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
 // ReportSourceAuditEvent reports source audit event using graphql interface
 func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e SourceAuditEvent) error {
-	r.log.Debugf("Reporting source audit event for ID: %s", r.gql.DeploymentID)
+	r.log.Debugf("Reporting source audit event for ID %q", r.gql.DeploymentID())
 	var mutation struct {
 		CreateAuditEvent struct {
 			ID graphql.ID
@@ -64,7 +68,7 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Sou
 		"input": AuditEventCreateInput{
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
-			DeploymentID: r.gql.DeploymentID,
+			DeploymentID: r.gql.DeploymentID(),
 			Type:         AuditEventTypeSourceEventEmitted,
 			SourceEventEmitted: &AuditEventSourceCreateInput{
 				Event:    e.Event,
@@ -73,7 +77,7 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Sou
 		},
 	}
 
-	return r.gql.Cli.Mutate(ctx, &mutation, variables)
+	return r.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
 // AuditEventCreateInput contains generic create input

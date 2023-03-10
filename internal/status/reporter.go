@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 type StatusReporter interface {
@@ -15,7 +13,7 @@ type StatusReporter interface {
 	SetResourceVersion(resourceVersion int)
 }
 
-func NewStatusReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql *graphql.Gql, resVerClient ResVerClient, cfgVersion int) StatusReporter {
+func GetReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql GraphQLClient, resVerClient ResVerClient, cfgVersion int) StatusReporter {
 	if remoteCfgEnabled {
 		return newGraphQLStatusReporter(
 			logger.WithField("component", "GraphQLStatusReporter"),

@@ -28,7 +28,8 @@ import (
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/command"
 	intconfig "github.com/kubeshop/botkube/internal/config"
-	"github.com/kubeshop/botkube/internal/graphql"
+	"github.com/kubeshop/botkube/internal/config/reloader"
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -49,13 +50,12 @@ import (
 )
 
 const (
-	componentLogFieldKey  = "component"
-	botLogFieldKey        = "bot"
-	sinkLogFieldKey       = "sink"
-	commGroupFieldKey     = "commGroup"
-	healthEndpointName    = "/healthz"
-	printAPIKeyCharCount  = 3
-	configUpdaterInterval = 15 * time.Second
+	componentLogFieldKey = "component"
+	botLogFieldKey       = "bot"
+	sinkLogFieldKey      = "sink"
+	commGroupFieldKey    = "commGroup"
+	healthEndpointName   = "/healthz"
+	printAPIKeyCharCount = 3
 )
 
 func main() {
@@ -74,11 +74,17 @@ func run(ctx context.Context) error {
 	// Load configuration
 	intconfig.RegisterFlags(pflag.CommandLine)
 
-	remoteCfgSyncEnabled := graphql.IsRemoteConfigEnabled()
-	gqlClient := graphql.NewDefaultGqlClient()
-	deployClient := intconfig.NewDeploymentClient(gqlClient)
+	remoteCfg, remoteCfgEnabled := remote.GetConfig()
+	var (
+		gqlClient    *remote.Gql
+		deployClient *remote.DeploymentClient
+	)
+	if remoteCfgEnabled {
+		gqlClient = remote.NewDefaultGqlClient(remoteCfg)
+		deployClient = remote.NewDeploymentClient(gqlClient)
+	}
 
-	cfgProvider := intconfig.GetProvider(remoteCfgSyncEnabled, deployClient)
+	cfgProvider := intconfig.GetProvider(remoteCfgEnabled, deployClient)
 	configs, cfgVersion, err := cfgProvider.Configs(ctx)
 	if err != nil {
 		return fmt.Errorf("while loading configuration files: %w", err)
@@ -94,11 +100,11 @@ func run(ctx context.Context) error {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 
-	statusReporter := status.NewStatusReporter(remoteCfgSyncEnabled, logger, gqlClient, deployClient, cfgVersion)
-	auditReporter := audit.NewAuditReporter(remoteCfgSyncEnabled, logger, gqlClient)
+	statusReporter := status.GetReporter(remoteCfgEnabled, logger, gqlClient, deployClient, cfgVersion)
+	auditReporter := audit.GetReporter(remoteCfgEnabled, logger, gqlClient)
 
 	// Set up analytics reporter
-	reporter, err := newAnalyticsReporter(conf.Analytics.Disable, logger)
+	reporter, err := getAnalyticsReporter(conf.Analytics.Disable, logger)
 	if err != nil {
 		return fmt.Errorf("while creating analytics reporter: %w", err)
 	}
@@ -290,36 +296,32 @@ func run(ctx context.Context) error {
 		}
 	}
 
-	// Lifecycle server
-	if conf.Settings.LifecycleServer.Enabled {
-		lifecycleSrv := lifecycle.NewServer(
-			logger.WithField(componentLogFieldKey, "Lifecycle server"),
-			k8sCli,
-			conf.Settings.LifecycleServer,
-			conf.Settings.ClusterName,
-			func(msg string) error {
-				return notifier.SendPlaintextMessage(ctx, notifiers, msg)
-			},
+	// TODO(https://github.com/kubeshop/botkube/issues/1011): Move restarter under `if conf.ConfigWatcher.Enabled {`
+	restarter := reloader.NewRestarter(
+		logger.WithField(componentLogFieldKey, "Restarter"),
+		k8sCli,
+		conf.ConfigWatcher.Deployment,
+		conf.Settings.ClusterName,
+		func(msg string) error {
+			return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+		},
+	)
+	if conf.ConfigWatcher.Enabled {
+		cfgReloader := reloader.Get(
+			remoteCfgEnabled,
+			logger.WithField(componentLogFieldKey, "Config Updater"),
+			deployClient,
+			restarter,
+			*conf,
+			cfgVersion,
+			statusReporter,
 		)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return lifecycleSrv.Serve(ctx)
+			return cfgReloader.Do(ctx)
 		})
-	}
 
-	cfgUpdater := intconfig.GetConfigUpdater(
-		remoteCfgSyncEnabled,
-		logger.WithField(componentLogFieldKey, "Config Updater"),
-		configUpdaterInterval,
-		deployClient,
-		statusReporter,
-	)
-	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
-		return cfgUpdater.Do(ctx)
-	})
-
-	if conf.ConfigWatcher.Enabled {
+		// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
 		err := config.WaitForWatcherSync(
 			ctx,
 			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),
@@ -333,6 +335,20 @@ func run(ctx context.Context) error {
 			// non-blocking error, move forward
 			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running Botkube...")
 		}
+	}
+
+	// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
+	// Lifecycle server
+	if conf.Settings.LifecycleServer.Enabled {
+		lifecycleSrv := lifecycle.NewServer(
+			logger.WithField(componentLogFieldKey, "Lifecycle server"),
+			conf.Settings.LifecycleServer,
+			restarter,
+		)
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return lifecycleSrv.Serve(ctx)
+		})
 	}
 
 	// Send help message
@@ -429,7 +445,7 @@ func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func newAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
+func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
 	if disableAnalytics {
 		logger.Info("Analytics disabled via configuration settings.")
 		return analytics.NewNoopReporter(), nil

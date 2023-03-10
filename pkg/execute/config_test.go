@@ -65,7 +65,6 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    lifecycleServer:
 						        enabled: false
 						        port: 0
-						        deployment: {}
 						    log:
 						        level: ""
 						        disableColors: false
@@ -73,8 +72,11 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    kubeconfig: ""
 						configWatcher:
 						    enabled: false
+						    remote:
+						        pollInterval: 0s
 						    initialSyncTimeout: 0s
 						    tmpDir: ""
+						    deployment: {}
 						plugins:
 						    cacheDir: ""
 						    repositories: {}

@@ -515,7 +515,6 @@ settings:
     lifecycleServer:
         enabled: false
         port: 0
-        deployment: {}
     log:
         level: error
         disableColors: false
@@ -523,8 +522,11 @@ settings:
     kubeconfig: kubeconfig-from-env
 configWatcher:
     enabled: false
+    remote:
+        pollInterval: 15s
     initialSyncTimeout: 0s
     tmpDir: ""
+    deployment: {}
 plugins:
     cacheDir: /tmp
     repositories:

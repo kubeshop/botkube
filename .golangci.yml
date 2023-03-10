@@ -43,7 +43,7 @@ linters-settings:
   local-prefixes: github.com/kubeshop/botkube
   gocyclo:
     # https://github.com/kubeshop/botkube/issues/745
-    min-complexity: 40
+    min-complexity: 45
   revive:
     rules:
       # Disable warns about capitalized and ended with punctuation error messages

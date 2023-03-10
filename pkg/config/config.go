@@ -539,13 +539,13 @@ type ChannelNotification struct {
 
 // Communications contains communication platforms that are supported.
 type Communications struct {
-	Slack         Slack         `yaml:"slack"`
-	SocketSlack   SocketSlack   `yaml:"socketSlack"`
-	Mattermost    Mattermost    `yaml:"mattermost"`
-	Discord       Discord       `yaml:"discord"`
-	Teams         Teams         `yaml:"teams"`
-	Webhook       Webhook       `yaml:"webhook"`
-	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
+	Slack         Slack         `yaml:"slack,omitempty"`
+	SocketSlack   SocketSlack   `yaml:"socketSlack,omitempty"`
+	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
+	Discord       Discord       `yaml:"discord,omitempty"`
+	Teams         Teams         `yaml:"teams,omitempty"`
+	Webhook       Webhook       `yaml:"webhook,omitempty"`
+	Elasticsearch Elasticsearch `yaml:"elasticsearch,omitempty"`
 }
 
 // Slack holds Slack integration config.
@@ -648,9 +648,17 @@ type Commands struct {
 
 // CfgWatcher describes configuration for watching the configuration.
 type CfgWatcher struct {
-	Enabled            bool          `yaml:"enabled"`
-	InitialSyncTimeout time.Duration `yaml:"initialSyncTimeout"`
-	TmpDir             string        `yaml:"tmpDir"`
+	Enabled bool             `yaml:"enabled"`
+	Remote  RemoteCfgWatcher `yaml:"remote"`
+
+	InitialSyncTimeout time.Duration  `yaml:"initialSyncTimeout"`
+	TmpDir             string         `yaml:"tmpDir"`
+	Deployment         K8sResourceRef `yaml:"deployment"`
+}
+
+// RemoteCfgWatcher describes configuration for watching the configuration using remote config provider.
+type RemoteCfgWatcher struct {
+	PollInterval time.Duration `yaml:"pollInterval"`
 }
 
 // Settings contains Botkube's related configuration.
@@ -675,9 +683,8 @@ type Logger struct {
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
 type LifecycleServer struct {
-	Enabled    bool           `yaml:"enabled"`
-	Port       int            `yaml:"port"` // String for consistency
-	Deployment K8sResourceRef `yaml:"deployment"`
+	Enabled bool `yaml:"enabled"`
+	Port    int  `yaml:"port"` // String for consistency
 }
 
 // PersistentConfig contains configuration for persistent storage.

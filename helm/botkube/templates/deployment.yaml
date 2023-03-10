@@ -74,10 +74,14 @@ spec:
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp
+          {{- if not (include "botkube.remoteConfigEnabled" $) }}
             - name: config-volume
               mountPath: "/config"
             - name: startup-config
               mountPath: "/startup-config"
+            - name: cfg-watcher-tmp
+              mountPath: {{ .Values.configWatcher.tmpDir }}
+          {{- end }}
           {{- with .Values.extraVolumeMounts }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -92,8 +96,6 @@ spec:
           {{ end }}
             - name: cache
               mountPath: "/.kube/cache"
-            - name: cfg-watcher-tmp
-              mountPath: {{ .Values.configWatcher.tmpDir }}
           env:
             - name: BOTKUBE_CONFIG_PATHS
               value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
@@ -109,14 +111,12 @@ spec:
               value: "{{.Release.Namespace}}"
             - name: BOTKUBE_SETTINGS_PERSISTENT__CONFIG_STARTUP_CONFIG__MAP_NAMESPACE
               value: "{{.Release.Namespace}}"
-            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAMESPACE
+            - name: BOTKUBE_CONFIG__WATCHER_DEPLOYMENT_NAMESPACE
               value: "{{.Release.Namespace}}"
-            - name: BOTKUBE_SETTINGS_LIFECYCLE__SERVER_DEPLOYMENT_NAME
+            - name: BOTKUBE_CONFIG__WATCHER_DEPLOYMENT_NAME
               value: "{{ include "botkube.fullname" . }}"
-            {{- if .Values.config.provider.endpoint }}
             - name: CONFIG_PROVIDER_ENDPOINT
               value: {{ .Values.config.provider.endpoint }}
-            {{- end }}
             {{- if .Values.config.provider.identifier }}
             - name: CONFIG_PROVIDER_IDENTIFIER
               value: "{{ .Values.config.provider.identifier }}"
@@ -132,7 +132,7 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
-        {{- if .Values.configWatcher.enabled }}
+        {{- if and (.Values.configWatcher.enabled) (not (include "botkube.remoteConfigEnabled" $))}}
         - name: cfg-watcher
           image: "{{ .Values.configWatcher.image.registry }}/{{ .Values.configWatcher.image.repository }}:{{ .Values.configWatcher.image.tag }}"
           imagePullPolicy: "{{ .Values.configWatcher.image.pullPolicy }}"
@@ -162,9 +162,10 @@ spec:
               mountPath: {{ .Values.configWatcher.tmpDir }}
         {{- end }}
       volumes:
-        - name: cfg-watcher-tmp
-          emptyDir: {}
         - name: cache-volume
+          emptyDir: {}
+        {{- if not (include "botkube.remoteConfigEnabled" $) }}
+        - name: cfg-watcher-tmp
           emptyDir: {}
         - name: config-volume
           projected:
@@ -180,6 +181,7 @@ spec:
         - name: startup-config
           configMap:
             name: {{ .Values.settings.persistentConfig.startup.configMap.name }}
+        {{ end}}
       {{- with .Values.extraVolumes }}
         {{ toYaml . | nindent 8 }}
       {{- end }}

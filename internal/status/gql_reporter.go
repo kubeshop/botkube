@@ -9,26 +9,31 @@ import (
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	gql "github.com/kubeshop/botkube/internal/graphql"
 )
 
 var _ StatusReporter = (*GraphQLStatusReporter)(nil)
+
+// GraphQLClient defines GraphQL client.
+type GraphQLClient interface {
+	Client() *graphql.Client
+	DeploymentID() string
+}
 
 // ResVerClient defines client for getting resource version.
 type ResVerClient interface {
 	GetResourceVersion(ctx context.Context) (int, error)
 }
 
+// GraphQLStatusReporter reports status to GraphQL server.
 type GraphQLStatusReporter struct {
 	log             logrus.FieldLogger
-	gql             *gql.Gql
+	gql             GraphQLClient
 	resVerClient    ResVerClient
 	resourceVersion int
 	resVerMutex     sync.RWMutex
 }
 
-func newGraphQLStatusReporter(logger logrus.FieldLogger, client *gql.Gql, resVerClient ResVerClient, cfgVersion int) *GraphQLStatusReporter {
+func newGraphQLStatusReporter(logger logrus.FieldLogger, client GraphQLClient, resVerClient ResVerClient, cfgVersion int) *GraphQLStatusReporter {
 	return &GraphQLStatusReporter{
 		log:             logger,
 		gql:             client,
@@ -37,6 +42,7 @@ func newGraphQLStatusReporter(logger logrus.FieldLogger, client *gql.Gql, resVer
 	}
 }
 
+// ReportDeploymentStartup reports deployment startup to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
 		"deploymentID":    r.gql.DeploymentID,
@@ -50,10 +56,10 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) err
 			Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion)"`
 		}
 		variables := map[string]interface{}{
-			"id":              graphql.ID(r.gql.DeploymentID),
+			"id":              graphql.ID(r.gql.DeploymentID()),
 			"resourceVersion": r.getResourceVersion(),
 		}
-		err := r.gql.Cli.Mutate(ctx, &mutation, variables)
+		err := r.gql.Client().Mutate(ctx, &mutation, variables)
 		return err
 	})
 	if err != nil {
@@ -64,6 +70,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) err
 	return nil
 }
 
+// ReportDeploymentShutdown reports deployment shutdown to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
 		"deploymentID":    r.gql.DeploymentID,
@@ -77,10 +84,10 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) er
 			Success bool `graphql:"reportDeploymentShutdown(id: $id, resourceVersion: $resourceVersion)"`
 		}
 		variables := map[string]interface{}{
-			"id":              graphql.ID(r.gql.DeploymentID),
+			"id":              graphql.ID(r.gql.DeploymentID()),
 			"resourceVersion": r.getResourceVersion(),
 		}
-		return r.gql.Cli.Mutate(ctx, &mutation, variables)
+		return r.gql.Client().Mutate(ctx, &mutation, variables)
 	})
 	if err != nil {
 		return errors.Wrap(err, "while reporting deployment shutdown")
@@ -90,6 +97,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) er
 	return nil
 }
 
+// ReportDeploymentFailed reports deployment failure to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
 		"deploymentID":    r.gql.DeploymentID,
@@ -103,10 +111,10 @@ func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) erro
 			Success bool `graphql:"reportDeploymentFailed(id: $id, resourceVersion: $resourceVersion)"`
 		}
 		variables := map[string]interface{}{
-			"id":              graphql.ID(r.gql.DeploymentID),
+			"id":              graphql.ID(r.gql.DeploymentID()),
 			"resourceVersion": r.getResourceVersion(),
 		}
-		return r.gql.Cli.Mutate(ctx, &mutation, variables)
+		return r.gql.Client().Mutate(ctx, &mutation, variables)
 	})
 	if err != nil {
 		return errors.Wrap(err, "while reporting deployment shutdown")
@@ -116,6 +124,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) erro
 	return nil
 }
 
+// SetResourceVersion sets resource version.
 func (r *GraphQLStatusReporter) SetResourceVersion(resourceVersion int) {
 	r.resVerMutex.Lock()
 	defer r.resVerMutex.Unlock()

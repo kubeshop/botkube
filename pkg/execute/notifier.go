@@ -52,7 +52,7 @@ type NotifierExecutor struct {
 }
 
 // NewNotifierExecutor creates a new instance of NotifierExecutor
-func NewNotifierExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager, cfg config.Config) *NotifierExecutor {
+func NewNotifierExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager) *NotifierExecutor {
 	return &NotifierExecutor{
 		log:        log,
 		cfgManager: cfgManager,
