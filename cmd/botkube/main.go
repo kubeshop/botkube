@@ -75,8 +75,14 @@ func run(ctx context.Context) error {
 	intconfig.RegisterFlags(pflag.CommandLine)
 
 	remoteCfg, remoteCfgEnabled := remote.GetConfig()
-	gqlClient := remote.NewDefaultGqlClient(remoteCfg)
-	deployClient := remote.NewDeploymentClient(gqlClient)
+	var (
+		gqlClient    *remote.Gql
+		deployClient *remote.DeploymentClient
+	)
+	if remoteCfgEnabled {
+		gqlClient = remote.NewDefaultGqlClient(remoteCfg)
+		deployClient = remote.NewDeploymentClient(gqlClient)
+	}
 
 	cfgProvider := intconfig.GetProvider(remoteCfgEnabled, deployClient)
 	configs, cfgVersion, err := cfgProvider.Configs(ctx)

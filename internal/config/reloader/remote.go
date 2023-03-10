@@ -20,7 +20,7 @@ type DeploymentClient interface {
 	GetConfigWithResourceVersion(ctx context.Context) (remote.Deployment, error)
 }
 
-// NewRemote returns new ConfigUpdater.
+// NewRemote returns new RemoteConfigReloader.
 func NewRemote(log logrus.FieldLogger, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
 	return &RemoteConfigReloader{
 		log:           log,
@@ -33,6 +33,7 @@ func NewRemote(log logrus.FieldLogger, deployCli DeploymentClient, restarter *Re
 	}
 }
 
+// RemoteConfigReloader is responsible for reloading configuration from remote source.
 type RemoteConfigReloader struct {
 	log           logrus.FieldLogger
 	interval      time.Duration
@@ -45,6 +46,7 @@ type RemoteConfigReloader struct {
 	restarter *Restarter
 }
 
+// Do starts the remote config reloader.
 func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 	u.log.Info("Starting...")
 
@@ -181,12 +183,7 @@ func (u *RemoteConfigReloader) processNewConfig(newCfgBytes []byte, newResVer in
 	}
 	u.log.Debugf("detected config changes on paths:\n%s", strings.Join(paths, "\n"))
 
-	// TODO: check if notifications are enabled and if so:
-	//  - update notifications for a given channel (this needs a global state)
-	//  - send message to a given channel (this needs a rework for the notifier executor)
-	//    - updating notifications should happen after ConfigMap update, not before
-	//    - same for remote config reloader
-	//  - do not restart the app
+	// TODO(https://github.com/kubeshop/botkube/issues/1012): check if notifications are enabled and if so, do not restart the app
 
 	u.currentCfg = *newCfg
 	u.log.Debugf("Successfully set newer config version (%d). Config should be reloaded soon", newResVer)

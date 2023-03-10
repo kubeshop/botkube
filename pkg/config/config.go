@@ -539,13 +539,13 @@ type ChannelNotification struct {
 
 // Communications contains communication platforms that are supported.
 type Communications struct {
-	Slack         Slack         `yaml:"slack"`
-	SocketSlack   SocketSlack   `yaml:"socketSlack"`
-	Mattermost    Mattermost    `yaml:"mattermost"`
-	Discord       Discord       `yaml:"discord"`
-	Teams         Teams         `yaml:"teams"`
-	Webhook       Webhook       `yaml:"webhook"`
-	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
+	Slack         Slack         `yaml:"slack,omitempty"`
+	SocketSlack   SocketSlack   `yaml:"socketSlack,omitempty"`
+	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
+	Discord       Discord       `yaml:"discord,omitempty"`
+	Teams         Teams         `yaml:"teams,omitempty"`
+	Webhook       Webhook       `yaml:"webhook,omitempty"`
+	Elasticsearch Elasticsearch `yaml:"elasticsearch,omitempty"`
 }
 
 // Slack holds Slack integration config.

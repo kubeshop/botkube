@@ -16,11 +16,13 @@ import (
 const (
 	k8sDeploymentRestartPatchFmt = `{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`
 	reloadMsgFmt                 = ":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec..."
+	fieldManagerName             = "botkube"
 )
 
 // SendMessageFn defines a function which sends a given message.
 type SendMessageFn func(msg string) error
 
+// Restarter is responsible for restarting the deployment.
 type Restarter struct {
 	log         logrus.FieldLogger
 	k8sCli      kubernetes.Interface
@@ -29,6 +31,7 @@ type Restarter struct {
 	sendMsgFn   SendMessageFn
 }
 
+// NewRestarter returns new Restarter.
 func NewRestarter(log logrus.FieldLogger, k8sCli kubernetes.Interface, deploy config.K8sResourceRef, clusterName string, sendMsgFn SendMessageFn) *Restarter {
 	return &Restarter{
 		log:         log,
@@ -39,6 +42,7 @@ func NewRestarter(log logrus.FieldLogger, k8sCli kubernetes.Interface, deploy co
 	}
 }
 
+// Do restarts the deployment.
 func (r *Restarter) Do(ctx context.Context) error {
 	r.log.Info("Reload requested. Sending last message before exit...")
 	err := r.sendMsgFn(fmt.Sprintf(reloadMsgFmt, r.clusterName))
@@ -56,7 +60,7 @@ func (r *Restarter) Do(ctx context.Context) error {
 		r.deploy.Name,
 		types.StrategicMergePatchType,
 		[]byte(restartData),
-		metav1.PatchOptions{FieldManager: "kubectl-rollout"},
+		metav1.PatchOptions{FieldManager: fieldManagerName},
 	)
 	if err != nil {
 		return fmt.Errorf("while restarting the Deployment: %w", err)
