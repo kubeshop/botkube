@@ -216,8 +216,9 @@ func run(ctx context.Context) error {
 	}
 
 	var (
-		notifiers []notifier.Notifier
-		bots      = map[string]bot.Bot{}
+		botNotifiers  []notifier.Bot
+		sinkNotifiers []notifier.Sink
+		bots          = map[string]bot.Bot{}
 	)
 
 	// TODO: Current limitation: Communication platform config should be separate inside every group:
@@ -227,8 +228,8 @@ func run(ctx context.Context) error {
 	for commGroupName, commGroupCfg := range conf.Communications {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
 
-		scheduleBot := func(in bot.Bot) {
-			notifiers = append(notifiers, in)
+		scheduleBotNotifier := func(in bot.Bot) {
+			botNotifiers = append(botNotifiers, in)
 			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
@@ -242,7 +243,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating Slack bot", err)
 			}
-			scheduleBot(sb)
+			scheduleBotNotifier(sb)
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
@@ -250,7 +251,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
-			scheduleBot(sb)
+			scheduleBotNotifier(sb)
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
@@ -258,7 +259,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
-			scheduleBot(mb)
+			scheduleBotNotifier(mb)
 		}
 
 		if commGroupCfg.Teams.Enabled {
@@ -266,7 +267,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating Teams bot", err)
 			}
-			scheduleBot(tb)
+			scheduleBotNotifier(tb)
 		}
 
 		if commGroupCfg.Discord.Enabled {
@@ -274,7 +275,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating Discord bot", err)
 			}
-			scheduleBot(db)
+			scheduleBotNotifier(db)
 		}
 
 		// Run sinks
@@ -283,7 +284,7 @@ func run(ctx context.Context) error {
 			if err != nil {
 				return reportFatalError("while creating Elasticsearch sink", err)
 			}
-			notifiers = append(notifiers, es)
+			sinkNotifiers = append(sinkNotifiers, es)
 		}
 
 		if commGroupCfg.Webhook.Enabled {
@@ -292,7 +293,7 @@ func run(ctx context.Context) error {
 				return reportFatalError("while creating Webhook sink", err)
 			}
 
-			notifiers = append(notifiers, wh)
+			sinkNotifiers = append(sinkNotifiers, wh)
 		}
 	}
 
@@ -303,7 +304,7 @@ func run(ctx context.Context) error {
 		conf.ConfigWatcher.Deployment,
 		conf.Settings.ClusterName,
 		func(msg string) error {
-			return notifier.SendPlaintextMessage(ctx, notifiers, msg)
+			return notifier.SendPlaintextMessage(ctx, botNotifiers, msg)
 		},
 	)
 	if conf.ConfigWatcher.Enabled {
@@ -365,7 +366,7 @@ func run(ctx context.Context) error {
 	if conf.Settings.UpgradeNotifier {
 		upgradeChecker := controller.NewUpgradeChecker(
 			logger.WithField(componentLogFieldKey, "Upgrade Checker"),
-			notifiers,
+			botNotifiers,
 			ghCli.Repositories,
 		)
 		errGroup.Go(func() error {
@@ -376,7 +377,7 @@ func run(ctx context.Context) error {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, notifiers, pluginManager, actionProvider, reporter, auditReporter)
+	sourcePluginDispatcher := source.NewDispatcher(logger, botNotifiers, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {
@@ -387,7 +388,7 @@ func run(ctx context.Context) error {
 	ctrl := controller.New(
 		logger.WithField(componentLogFieldKey, "Controller"),
 		conf,
-		notifiers,
+		botNotifiers,
 		statusReporter,
 	)
 

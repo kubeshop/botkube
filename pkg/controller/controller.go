@@ -31,12 +31,12 @@ type ActionProvider interface {
 type Controller struct {
 	log            logrus.FieldLogger
 	conf           *config.Config
-	notifiers      []notifier.Notifier
+	notifiers      []notifier.Bot
 	statusReporter status.StatusReporter
 }
 
 // New create a new Controller instance.
-func New(log logrus.FieldLogger, conf *config.Config, notifiers []notifier.Notifier, reporter status.StatusReporter) *Controller {
+func New(log logrus.FieldLogger, conf *config.Config, notifiers []notifier.Bot, reporter status.StatusReporter) *Controller {
 	return &Controller{
 		log:            log,
 		conf:           conf,

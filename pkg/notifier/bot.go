@@ -9,8 +9,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-// Notifier sends event notifications and messages on the communication channels.
-type Notifier interface {
+// Bot sends event notifications and messages on the communication channels.
+type Bot interface {
 
 	// SendMessageToAll is used for notifying about Botkube start/stop listening, possible Botkube upgrades and other events.
 	// Some integrations may decide to ignore such messages and have SendMessage method no-op.
@@ -18,7 +18,7 @@ type Notifier interface {
 	SendMessageToAll(context.Context, interactive.CoreMessage) error
 
 	// SendMessage sends a generic message for a given source bindings.
-	SendMessage(context.Context, interactive.CoreMessage, []string, any) error
+	SendMessage(context.Context, interactive.CoreMessage, []string) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration
@@ -28,7 +28,7 @@ type Notifier interface {
 }
 
 // SendPlaintextMessage sends a plaintext message to specified providers.
-func SendPlaintextMessage(ctx context.Context, notifiers []Notifier, msg string) error {
+func SendPlaintextMessage(ctx context.Context, notifiers []Bot, msg string) error {
 	if msg == "" {
 		return fmt.Errorf("message cannot be empty")
 	}

@@ -307,7 +307,7 @@ func (b *Slack) getChannelsToNotify(sourceBindings []string) []string {
 }
 
 // SendMessage sends message to selected Slack channels.
-func (b *Slack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string, _ any) error {
+func (b *Slack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
 		msgMetadata := slackMessage{

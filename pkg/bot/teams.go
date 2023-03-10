@@ -340,7 +340,7 @@ func (b *Teams) putRequest(u string, data []byte) (err error) {
 }
 
 // SendMessage sends message to MS Teams to selected conversations.
-func (b *Teams) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string, _ any) error {
+func (b *Teams) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	msg.ReplaceBotNamePlaceholder(b.BotName())
 	errs := multierror.New()
 

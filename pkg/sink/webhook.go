@@ -11,7 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
@@ -51,13 +50,8 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 	return whNotifier, nil
 }
 
-// SendMessageToAll is no-op.
-func (w *Webhook) SendMessageToAll(_ context.Context, _ interactive.CoreMessage) error {
-	return nil
-}
-
 // SendMessage is no-op.
-func (w *Webhook) SendMessage(ctx context.Context, _ interactive.CoreMessage, sources []string, rawData any) error {
+func (w *Webhook) SendMessage(ctx context.Context, rawData any, sources []string) error {
 	jsonPayload := &WebhookPayload{
 		Source: strings.Join(sources, ","),
 		Data:   rawData,

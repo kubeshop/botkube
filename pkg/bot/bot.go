@@ -11,7 +11,7 @@ import (
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
-	notifier.Notifier
+	notifier.Bot
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.

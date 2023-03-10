@@ -28,12 +28,12 @@ type GitHubRepoClient interface {
 // UpgradeChecker checks for new Botkube releases.
 type UpgradeChecker struct {
 	log       logrus.FieldLogger
-	notifiers []notifier.Notifier
+	notifiers []notifier.Bot
 	ghRepoCli GitHubRepoClient
 }
 
 // NewUpgradeChecker creates a new instance of the Upgrade Checker.
-func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notifier.Notifier, ghCli GitHubRepoClient) *UpgradeChecker {
+func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notifier.Bot, ghCli GitHubRepoClient) *UpgradeChecker {
 	return &UpgradeChecker{log: log, notifiers: notifiers, ghRepoCli: ghCli}
 }
 
