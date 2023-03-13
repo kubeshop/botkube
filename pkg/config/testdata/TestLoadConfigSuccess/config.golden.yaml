@@ -489,10 +489,6 @@ communications:
                     bindings:
                         sources:
                             - k8s-events
-filters:
-    kubernetes:
-        objectAnnotationChecker: false
-        nodeEventsChecker: true
 analytics:
     disable: true
 settings:

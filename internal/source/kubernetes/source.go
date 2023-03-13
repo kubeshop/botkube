@@ -99,7 +99,7 @@ func consumeEvents(ctx context.Context, s Source) {
 	client, err := NewClient(s.kubeConfig)
 	exitOnError(err, s.logger)
 
-	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, *s.config.InformerReSyncPeriod)
+	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, s.config.InformerResyncPeriod)
 	router := NewRouter(client.mapper, client.dynamicCli, s.logger)
 	router.BuildTable(&s.config)
 	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)

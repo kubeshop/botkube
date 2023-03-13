@@ -348,7 +348,7 @@ sources:
 # You can enable or disable filters with `@Botkube enable/disable filters` commands.
 filters:
   kubernetes:
-    # If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+    # If true, enables support for `botkube.io/disable` resource annotation.
     objectAnnotationChecker: true
     # If true, filters out Node-related events that are not important.
     nodeEventsChecker: true

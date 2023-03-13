@@ -43,10 +43,6 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						executors: {}
 						aliases: {}
 						communications: {}
-						filters:
-						    kubernetes:
-						        objectAnnotationChecker: false
-						        nodeEventsChecker: false
 						analytics:
 						    disable: false
 						settings:

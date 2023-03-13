@@ -20,11 +20,11 @@ func WithAllFilters(logger logrus.FieldLogger, dynamicCli dynamic.Interface, map
 	filterEngine.Register([]RegisteredFilter{
 		{
 			Filter:  filters.NewObjectAnnotationChecker(logger.WithField(filterLogFieldKey, "Object Annotation Checker"), dynamicCli, mapper),
-			Enabled: cfg.Kubernetes.ObjectAnnotationChecker,
+			Enabled: cfg.ObjectAnnotationChecker,
 		},
 		{
 			Filter:  filters.NewNodeEventsChecker(logger.WithField(filterLogFieldKey, "Node Events Checker")),
-			Enabled: cfg.Kubernetes.NodeEventsChecker,
+			Enabled: cfg.NodeEventsChecker,
 		},
 	}...)
 

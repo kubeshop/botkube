@@ -125,7 +125,6 @@ type Config struct {
 	Aliases        Aliases                   `yaml:"aliases" validate:"dive"`
 	Communications map[string]Communications `yaml:"communications"  validate:"required,min=1,dive"`
 
-	Filters       Filters          `yaml:"filters"`
 	Analytics     Analytics        `yaml:"analytics"`
 	Settings      Settings         `yaml:"settings"`
 	ConfigWatcher CfgWatcher       `yaml:"configWatcher"`
@@ -386,35 +385,6 @@ type Aliases map[string]Alias
 type Alias struct {
 	Command     string `yaml:"command" validate:"required"`
 	DisplayName string `yaml:"displayName"`
-}
-
-// Filters contains configuration for built-in filters.
-type Filters struct {
-	Kubernetes KubernetesFilters `yaml:"kubernetes"`
-}
-
-// KubernetesFilters contains configuration for Kubernetes-related filters.
-type KubernetesFilters struct {
-	// ObjectAnnotationChecker enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
-	ObjectAnnotationChecker bool `yaml:"objectAnnotationChecker"`
-
-	// NodeEventsChecker filters out Node-related events that are not important.
-	NodeEventsChecker bool `yaml:"nodeEventsChecker"`
-}
-
-// SetEnabled enables or disables a given filter.
-func (f *KubernetesFilters) SetEnabled(name string, enabled bool) error {
-	if name == "ObjectAnnotationChecker" {
-		f.ObjectAnnotationChecker = enabled
-		return nil
-	}
-
-	if name == "NodeEventsChecker" {
-		f.NodeEventsChecker = enabled
-		return nil
-	}
-
-	return fmt.Errorf("Filter with name %q not found", name)
 }
 
 // Analytics contains configuration parameters for analytics collection.

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"regexp"
 	"strings"
 	"time"
@@ -13,8 +14,8 @@ import (
 
 // Config Kubernetes configuration
 type Config struct {
-	InformerReSyncPeriod *time.Duration     `yaml:"informerReSyncPeriod"`
-	Log                  *Log               `yaml:"log"`
+	InformerResyncPeriod time.Duration      `yaml:"informerResyncPeriod"`
+	Log                  config.Logger      `yaml:"log"`
 	Recommendations      *Recommendations   `yaml:"recommendations"`
 	Event                *KubernetesEvent   `yaml:"event"`
 	Resources            []Resource         `yaml:"resources" validate:"dive"`
@@ -183,19 +184,9 @@ type UpdateSetting struct {
 	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
-// Log logging configuration
-type Log struct {
-	Level string `yaml:"level"`
-}
-
 // Filters contains configuration for built-in filters.
 type Filters struct {
-	Kubernetes KubernetesFilters `yaml:"kubernetes"`
-}
-
-// KubernetesFilters contains configuration for Kubernetes-related filters.
-type KubernetesFilters struct {
-	// ObjectAnnotationChecker enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
+	// ObjectAnnotationChecker enables support for `botkube.io/disable` resource annotation.
 	ObjectAnnotationChecker bool `yaml:"objectAnnotationChecker"`
 
 	// NodeEventsChecker filters out Node-related events that are not important.
@@ -204,12 +195,11 @@ type KubernetesFilters struct {
 
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
-	t := 30 * time.Minute
 	defaults := Config{
-		Log: &Log{
+		Log: config.Logger{
 			Level: "info",
 		},
-		InformerReSyncPeriod: &t,
+		InformerResyncPeriod: 30 * time.Minute,
 		Recommendations: &Recommendations{
 			Pod: PodRecommendations{
 				NoLatestImageTag: ptr.Bool(false),
@@ -224,10 +214,10 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 			Verbs:     []string{"api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"},
 			Resources: []string{"deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"},
 		},
-		Filters: &Filters{Kubernetes: KubernetesFilters{
+		Filters: &Filters{
 			ObjectAnnotationChecker: true,
 			NodeEventsChecker:       true,
-		}},
+		},
 	}
 	var out Config
 	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
