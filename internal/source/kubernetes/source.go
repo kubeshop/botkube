@@ -258,7 +258,8 @@ func strToGVR(arg string) (schema.GroupVersionResource, error) {
 	}
 }
 
-// jsonSchema contains JSON schema with duplications, but unfortunately some UI components don't support nested defaults for definitions.
+// jsonSchema contains JSON schema with duplications,
+// as some UI components (e.g. https://github.com/rjsf-team/react-jsonschema-form) don't support nested defaults for definitions.
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
@@ -318,6 +319,14 @@ func jsonSchema() api.JSONSchema {
 			},
 			"event": {
 			  "$ref": "#/definitions/Event",
+"default": {
+"types": [
+					"error"
+				  ],
+"required": [
+				"types"
+			  ]
+},
 			  "description": "Describes event constraints for Kubernetes resources. These constraints are applied for every resource specified in the \"Resources\" list, unless they are overridden by the resource's own \"Events\" configuration."
 			},
 			"annotations": {
@@ -422,19 +431,11 @@ func jsonSchema() api.JSONSchema {
 				  },
 				  "annotations": {
 					"description": "Overrides Annotations defined in global scope for all resources. Each resource needs to have all the specified annotations. Regex patterns are not supported.",
-					"title": "Resource annotations",
-					"type": "object",
-					"additionalProperties": {
-					  "type": "string"
-					}
+					"$ref": "#/definitions/Annotations"
 				  },
 				  "labels": {
 					"description": "Overrides Labels defined in global scope for all resources. Each resource needs to have all the specified annotations. Regex patterns are not supported.",
-					"title": "Resource labels",
-					"type": "object",
-					"additionalProperties": {
-					  "type": "string"
-					}
+					"$ref": "#/definitions/Labels"
 				  },
 				  "name": {
 					"title": "Name pattern",
@@ -690,9 +691,6 @@ func jsonSchema() api.JSONSchema {
 			},
 			"Event": {
 			  "title": "Event",
-			  "required": [
-				"types"
-			  ],
 			  "type": "object",
 			  "additionalProperties": false,
 			  "properties": {
@@ -734,9 +732,6 @@ func jsonSchema() api.JSONSchema {
 					  }
 					]
 				  },
-				  "default": [
-					"error"
-				  ],
 				  "uniqueItems": true
 				},
 				"reason": {
