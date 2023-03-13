@@ -8,14 +8,12 @@ import (
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
-
-	gql "github.com/kubeshop/botkube/internal/graphql"
 )
 
 // RemotePersistenceManager manages persistence of the configuration.
 type RemoteConfigPersistenceManager struct {
 	log             logrus.FieldLogger
-	gql             *gql.Gql
+	gql             GraphQLClient
 	resourceVersion int
 	resVerMutex     sync.RWMutex
 }
@@ -45,7 +43,7 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 		Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 	}
 	variables := map[string]interface{}{
-		"id": graphql.ID(m.gql.DeploymentID),
+		"id": graphql.ID(m.gql.DeploymentID()),
 		"input": PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
 			Notification: &NotificationPatchDeploymentConfigInput{
@@ -57,7 +55,7 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 		},
 	}
 
-	return m.gql.Cli.Mutate(ctx, &mutation, variables)
+	return m.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
 func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
@@ -83,7 +81,7 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 		Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 	}
 	variables := map[string]interface{}{
-		"id": graphql.ID(m.gql.DeploymentID),
+		"id": graphql.ID(m.gql.DeploymentID()),
 		"input": PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
 			SourceBinding: &SourceBindingPatchDeploymentConfigInput{
@@ -95,7 +93,7 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 		},
 	}
 
-	return m.gql.Cli.Mutate(ctx, &mutation, variables)
+	return m.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
 func (m *RemoteConfigPersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {

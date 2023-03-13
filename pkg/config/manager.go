@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/kubeshop/botkube/internal/graphql"
 )
 
 var (
@@ -26,6 +25,12 @@ var (
 	}
 )
 
+// GraphQLClient defines GraphQL client.
+type GraphQLClient interface {
+	Client() *graphql.Client
+	DeploymentID() string
+}
+
 // ConfigPersistenceManager manages persistence of the configuration.
 type ConfigPersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error
@@ -39,11 +44,11 @@ type ConfigPersistenceManager interface {
 var ErrUnsupportedPlatform = errors.New("unsupported platform to persist data")
 
 // NewManager creates a new PersistenceManager instance.
-func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, k8sCli kubernetes.Interface, gql *graphql.Gql) ConfigPersistenceManager {
+func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, k8sCli kubernetes.Interface, client GraphQLClient) ConfigPersistenceManager {
 	if remoteCfgEnabled {
 		return &RemoteConfigPersistenceManager{
 			log: log,
-			gql: gql,
+			gql: client,
 		}
 	}
 	return &LocalConfigPersistenceManager{
