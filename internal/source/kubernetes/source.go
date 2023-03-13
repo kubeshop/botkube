@@ -258,6 +258,7 @@ func strToGVR(arg string) (schema.GroupVersionResource, error) {
 	}
 }
 
+// jsonSchema contains JSON schema with duplications, but unfortunately some UI components don't support nested defaults for definitions.
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
@@ -327,7 +328,7 @@ func jsonSchema() api.JSONSchema {
     },
     "resources": {
       "title": "Resources",
-      "description": "Describes the Kubernetes resources to watch. Resources are identified by its type in '{group}/{version}/{kind (plural)}' format. Examples: 'apps/v1/deployments', 'v1/pods'. Each resource can override the namespaces and event configuration by using dedicated 'event' and 'namespaces' field. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex.",
+      "description": "Describes the Kubernetes resources to watch. Each resource can override the namespaces and event configuration. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex.",
       "type": "array",
       "default": [
         {
@@ -381,6 +382,7 @@ func jsonSchema() api.JSONSchema {
       ],
       "items": {
         "title": "Resource",
+		"type": "object",
         "required": [
           "type"
         ],
@@ -498,7 +500,7 @@ func jsonSchema() api.JSONSchema {
         "objectAnnotationChecker": {
           "type": "boolean",
           "title": "Object Annotation Checker",
-          "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations.",
+          "description": "If true, enables support for \"botkube.io/disable\" resource annotation.",
           "default": true
         },
         "nodeEventsChecker": {
