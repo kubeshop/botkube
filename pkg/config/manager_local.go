@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// LocalConfigPersistenceManager manages persistence of the configuration.
-type LocalConfigPersistenceManager struct {
+// K8sConfigPersistenceManager manages persistence of the configuration.
+type K8sConfigPersistenceManager struct {
 	log    logrus.FieldLogger
 	cfg    PersistentConfig
 	k8sCli kubernetes.Interface
