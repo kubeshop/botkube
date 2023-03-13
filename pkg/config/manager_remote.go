@@ -11,7 +11,7 @@ import (
 )
 
 // RemotePersistenceManager manages persistence of the configuration.
-type RemoteConfigPersistenceManager struct {
+type RemotePersistenceManager struct {
 	log             logrus.FieldLogger
 	gql             GraphQLClient
 	resourceVersion int
