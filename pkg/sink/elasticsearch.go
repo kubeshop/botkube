@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"net/http"
 	"os"
 	"time"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 var _ Sink = &Elasticsearch{}
