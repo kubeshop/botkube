@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/status"
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
@@ -27,16 +28,16 @@ type ActionProvider interface {
 	ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage
 }
 
-// Controller watches Kubernetes resources and send events to notifiers.
+// Controller watches Kubernetes resources and send events to bots.
 type Controller struct {
 	log            logrus.FieldLogger
 	conf           *config.Config
-	notifiers      []notifier.Notifier
+	notifiers      map[string]bot.Bot
 	statusReporter status.StatusReporter
 }
 
 // New create a new Controller instance.
-func New(log logrus.FieldLogger, conf *config.Config, notifiers []notifier.Notifier, reporter status.StatusReporter) *Controller {
+func New(log logrus.FieldLogger, conf *config.Config, notifiers map[string]bot.Bot, reporter status.StatusReporter) *Controller {
 	return &Controller{
 		log:            log,
 		conf:           conf,
@@ -50,7 +51,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.log.Info("Starting controller...")
 
 	c.log.Info("Sending welcome message...")
-	err := notifier.SendPlaintextMessage(ctx, c.notifiers, fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
+	err := notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(c.notifiers), fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending first message: %w", err)
 	}
@@ -61,7 +62,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.log.Info("Shutdown requested. Sending final message...")
 	finalMsgCtx, cancelFn := context.WithTimeout(context.Background(), finalMessageTimeout)
 	defer cancelFn()
-	err = notifier.SendPlaintextMessage(finalMsgCtx, c.notifiers, fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
+	err = notifier.SendPlaintextMessage(finalMsgCtx, bot.AsNotifiers(c.notifiers), fmt.Sprintf(controllerStopMsg, c.conf.Settings.ClusterName))
 	if err != nil {
 		return fmt.Errorf("while sending final message: %w", err)
 	}

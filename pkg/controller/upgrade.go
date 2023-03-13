@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-github/v44/github"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/version"
 )
@@ -28,13 +29,13 @@ type GitHubRepoClient interface {
 // UpgradeChecker checks for new Botkube releases.
 type UpgradeChecker struct {
 	log       logrus.FieldLogger
-	notifiers []notifier.Notifier
+	bots      map[string]bot.Bot
 	ghRepoCli GitHubRepoClient
 }
 
 // NewUpgradeChecker creates a new instance of the Upgrade Checker.
-func NewUpgradeChecker(log logrus.FieldLogger, notifiers []notifier.Notifier, ghCli GitHubRepoClient) *UpgradeChecker {
-	return &UpgradeChecker{log: log, notifiers: notifiers, ghRepoCli: ghCli}
+func NewUpgradeChecker(log logrus.FieldLogger, notifiers map[string]bot.Bot, ghCli GitHubRepoClient) *UpgradeChecker {
+	return &UpgradeChecker{log: log, bots: notifiers, ghRepoCli: ghCli}
 }
 
 // Run runs the Upgrade Checker and checks for new Botkube releases periodically.
@@ -92,7 +93,7 @@ func (c *UpgradeChecker) notifyAboutUpgradeIfShould(ctx context.Context) (bool, 
 		return false, nil
 	}
 
-	err = notifier.SendPlaintextMessage(ctx, c.notifiers, fmt.Sprintf(upgradeMsgFmt, *release.TagName))
+	err = notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(c.bots), fmt.Sprintf(upgradeMsgFmt, *release.TagName))
 	if err != nil {
 		return false, fmt.Errorf("while sending message about new release: %w", err)
 	}

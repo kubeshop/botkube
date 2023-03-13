@@ -11,7 +11,7 @@ import (
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
-	notifier.Notifier
+	notifier.Bot
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.
@@ -48,4 +48,12 @@ type channelConfigByName struct {
 
 	alias  string
 	notify bool
+}
+
+func AsNotifiers(bots map[string]Bot) []notifier.Bot {
+	notifiers := make([]notifier.Bot, 0, len(bots))
+	for _, bot := range bots {
+		notifiers = append(notifiers, bot)
+	}
+	return notifiers
 }

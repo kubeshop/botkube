@@ -88,6 +88,12 @@ func (d *Scheduler) Start(ctx context.Context) error {
 				}
 			}
 		}
+
+		if commGroupCfg.Webhook.Enabled {
+			if err := d.schedule(ctx, false, commGroupCfg.Webhook.Bindings.Sources); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Schedule all sources used by actions

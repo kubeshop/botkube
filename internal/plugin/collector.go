@@ -69,6 +69,12 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 				}
 			}
 		}
+
+		if commGroupCfg.Webhook.Enabled {
+			for _, name := range commGroupCfg.Webhook.Bindings.Sources {
+				bindSources[name] = struct{}{}
+			}
+		}
 	}
 
 	// Collect all used executors/sources by actions
