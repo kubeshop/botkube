@@ -35,7 +35,7 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 		return ErrUnsupportedPlatform
 	}
 
-	p, err := NewBotPlatform(string(platform))
+	p, err := NewBotPlatform(platform.String())
 	if err != nil {
 		return ErrUnsupportedPlatform
 	}
