@@ -32,7 +32,7 @@ type GraphQLClient interface {
 }
 
 // ConfigPersistenceManager manages persistence of the configuration.
-type ConfigPersistenceManager interface {
+type PersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error
 	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
