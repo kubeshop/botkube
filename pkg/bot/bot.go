@@ -51,7 +51,7 @@ type channelConfigByName struct {
 }
 
 func AsNotifiers(bots map[string]Bot) []notifier.Bot {
-	notifiers := make([]notifier.Bot, len(bots))
+	notifiers := make([]notifier.Bot, 0, len(bots))
 	for _, bot := range bots {
 		notifiers = append(notifiers, bot)
 	}
