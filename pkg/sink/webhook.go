@@ -50,7 +50,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 	return whNotifier, nil
 }
 
-// SendMessage is no-op.
+// SendEvent is no-op.
 func (w *Webhook) SendEvent(ctx context.Context, rawData any, sources []string) error {
 	jsonPayload := &WebhookPayload{
 		Source: strings.Join(sources, ","),

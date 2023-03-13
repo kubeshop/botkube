@@ -80,6 +80,7 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(false),
+			elastic.SetTraceLog(log),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
@@ -91,6 +92,7 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(true),
+			elastic.SetTraceLog(log),
 		}
 
 		if c.SkipTLSVerify {
@@ -196,8 +198,21 @@ func (e *Elasticsearch) SendMessage(ctx context.Context, event event.Event, even
 }
 
 // SendEvent is no-op.
-func (e *Elasticsearch) SendEvent(_ context.Context, _ any, _ []string) error {
-	return nil
+func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, sources []string) error {
+	e.log.Debugf(">> Sending to Elasticsearch: %+v", rawData)
+
+	errs := multierror.New()
+	for _, indexCfg := range e.indices {
+		err := e.flushIndex(ctx, indexCfg, rawData)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
+			continue
+		}
+
+		e.log.Debugf("Event successfully sent to Elasticsearch index %q", indexCfg.Name)
+	}
+
+	return errs.ErrorOrNil()
 }
 
 // IntegrationName describes the notifier integration name.

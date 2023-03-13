@@ -97,7 +97,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.Elasticsearch.Enabled {
 			for _, index := range commGroupCfg.Elasticsearch.Indices {
-				if err := d.schedule(ctx, index.Bindings.Sources); err != nil {
+				if err := d.schedule(ctx, false, index.Bindings.Sources); err != nil {
 					return err
 				}
 			}

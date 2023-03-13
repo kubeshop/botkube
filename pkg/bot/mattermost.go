@@ -405,7 +405,7 @@ func (b *Mattermost) getChannelsToNotify(eventSources []string) []string {
 }
 
 // SendMessage sends message to selected Mattermost channels.
-func (b *Mattermost) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string, _ any) error {
+func (b *Mattermost) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
 		err := b.send(channelID, msg)
