@@ -12,7 +12,9 @@ import (
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
@@ -52,7 +54,7 @@ type AnalyticsReporter interface {
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers []notifier.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter) *Dispatcher {
 	var (
 		interactiveNotifiers []notifier.Bot
 		markdownNotifiers    []notifier.Bot
@@ -145,29 +147,18 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
-				reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
-					IntegrationType:       n.Type(),
-					Platform:              n.IntegrationName(),
-					PluginName:            pluginName,
-					AnonymizedEventFields: event.AnalyticsLabels,
-				}, err)
+				reportErr := d.reportError(ctx, err, n, pluginName, event, dispatch.sourceName)
 				if reportErr != nil {
-					err = multierror.Append(err, fmt.Errorf("while reporting bot analytics: %w", reportErr))
+					err = multierror.Append(err, fmt.Errorf("while reporting error: %w", reportErr))
 				}
 
 				d.log.Errorf("while sending bot message: %s", err.Error())
+				return
 			}
-			reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
-				IntegrationType:       n.Type(),
-				Platform:              n.IntegrationName(),
-				PluginName:            pluginName,
-				AnonymizedEventFields: event.AnalyticsLabels,
-			})
+
+			reportErr := d.reportSuccess(ctx, n, pluginName, event, dispatch.sourceName)
 			if reportErr != nil {
-				d.log.Errorf("while reporting bot analytics: %w", err)
-			}
-			if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), dispatch.sourceName); err != nil {
-				d.log.Errorf("while reporting bot audit event: %s", err.Error())
+				d.log.Error(err)
 			}
 		}(n)
 	}
@@ -175,31 +166,20 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 	for _, n := range d.sinkNotifiers {
 		go func(n notifier.Sink) {
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
-			err := n.SendMessage(ctx, event.RawObject, sources)
+			err := n.SendEvent(ctx, event.RawObject, sources)
 			if err != nil {
-				reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
-					IntegrationType:       n.Type(),
-					Platform:              n.IntegrationName(),
-					PluginName:            pluginName,
-					AnonymizedEventFields: event.AnalyticsLabels,
-				}, err)
+				reportErr := d.reportError(ctx, err, n, pluginName, event, dispatch.sourceName)
 				if reportErr != nil {
-					err = multierror.Append(err, fmt.Errorf("while reporting sink analytics: %w", reportErr))
+					err = multierror.Append(err, fmt.Errorf("while reporting error: %w", reportErr))
 				}
 
 				d.log.Errorf("while sending sink message: %s", err.Error())
+				return
 			}
-			reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
-				IntegrationType:       n.Type(),
-				Platform:              n.IntegrationName(),
-				PluginName:            pluginName,
-				AnonymizedEventFields: event.AnalyticsLabels,
-			})
+
+			reportErr := d.reportSuccess(ctx, n, pluginName, event, dispatch.sourceName)
 			if reportErr != nil {
-				d.log.Errorf("while reporting sink analytics: %w", err)
-			}
-			if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), dispatch.sourceName); err != nil {
-				d.log.Errorf("while reporting sink audit event: %s", err.Error())
+				d.log.Error(err)
 			}
 		}(n)
 	}
@@ -247,4 +227,46 @@ func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event, source 
 		Bindings:   []string{source},
 	}
 	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
+}
+
+type genericNotifier interface {
+	IntegrationName() config.CommPlatformIntegration
+	Type() config.IntegrationType
+}
+
+func (d *Dispatcher) reportSuccess(ctx context.Context, n genericNotifier, pluginName string, event source.Event, sourceName string) error {
+	errs := multierror.New()
+	reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
+		IntegrationType:       n.Type(),
+		Platform:              n.IntegrationName(),
+		PluginName:            pluginName,
+		AnonymizedEventFields: event.AnalyticsLabels,
+	})
+	if reportErr != nil {
+		errs = multierror.Append(errs, fmt.Errorf("while reporting %s analytics: %w", n.Type(), reportErr))
+	}
+	if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sourceName); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("while reporting %s audit event: %w", n.Type(), reportErr))
+	}
+
+	return errs.ErrorOrNil()
+}
+
+func (d *Dispatcher) reportError(ctx context.Context, err error, n genericNotifier, pluginName string, event source.Event, sourceName string) error {
+	errs := multierror.New()
+	reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
+		IntegrationType:       n.Type(),
+		Platform:              n.IntegrationName(),
+		PluginName:            pluginName,
+		AnonymizedEventFields: event.AnalyticsLabels,
+	}, err)
+	if reportErr != nil {
+		errs = multierror.Append(errs, fmt.Errorf("while reporting %s analytics: %w", n.Type(), reportErr))
+	}
+	// TODO: add additional metadata about event failed to send
+	if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sourceName); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("while reporting %s audit event: %w", n.Type(), reportErr))
+	}
+
+	return errs.ErrorOrNil()
 }

@@ -216,7 +216,6 @@ func run(ctx context.Context) error {
 	}
 
 	var (
-		botNotifiers  []notifier.Bot
 		sinkNotifiers []notifier.Sink
 		bots          = map[string]bot.Bot{}
 	)
@@ -229,7 +228,6 @@ func run(ctx context.Context) error {
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
 
 		scheduleBotNotifier := func(in bot.Bot) {
-			botNotifiers = append(botNotifiers, in)
 			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
@@ -304,7 +302,7 @@ func run(ctx context.Context) error {
 		conf.ConfigWatcher.Deployment,
 		conf.Settings.ClusterName,
 		func(msg string) error {
-			return notifier.SendPlaintextMessage(ctx, botNotifiers, msg)
+			return notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(bots), msg)
 		},
 	)
 	if conf.ConfigWatcher.Enabled {
@@ -366,7 +364,7 @@ func run(ctx context.Context) error {
 	if conf.Settings.UpgradeNotifier {
 		upgradeChecker := controller.NewUpgradeChecker(
 			logger.WithField(componentLogFieldKey, "Upgrade Checker"),
-			botNotifiers,
+			bots,
 			ghCli.Repositories,
 		)
 		errGroup.Go(func() error {
@@ -377,7 +375,7 @@ func run(ctx context.Context) error {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, botNotifiers, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter)
+	sourcePluginDispatcher := source.NewDispatcher(logger, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {
@@ -388,7 +386,7 @@ func run(ctx context.Context) error {
 	ctrl := controller.New(
 		logger.WithField(componentLogFieldKey, "Controller"),
 		conf,
-		botNotifiers,
+		bots,
 		statusReporter,
 	)
 

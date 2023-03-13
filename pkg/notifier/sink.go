@@ -8,8 +8,8 @@ import (
 
 // Sink sends event notifications to the sinks.
 type Sink interface {
-	// SendMessage sends a generic message for a given source bindings.
-	SendMessage(context.Context, any, []string) error
+	// SendEvent sends a generic event for a given source bindings.
+	SendEvent(context.Context, any, []string) error
 
 	// IntegrationName returns a name of a given communication platform.
 	IntegrationName() config.CommPlatformIntegration

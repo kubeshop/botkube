@@ -173,8 +173,8 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 	return nil
 }
 
-// SendEvent sends event notification to Elasticsearch
-func (e *Elasticsearch) SendEvent(ctx context.Context, event event.Event, eventSources []string) (err error) {
+// SendMessage sends event notification to Elasticsearch
+func (e *Elasticsearch) SendMessage(ctx context.Context, event event.Event, eventSources []string) (err error) {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
 
 	errs := multierror.New()
@@ -195,8 +195,8 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, event event.Event, eventS
 	return errs.ErrorOrNil()
 }
 
-// SendMessage is no-op.
-func (e *Elasticsearch) SendMessage(_ context.Context, _ any, _ []string) error {
+// SendEvent is no-op.
+func (e *Elasticsearch) SendEvent(_ context.Context, _ any, _ []string) error {
 	return nil
 }
 

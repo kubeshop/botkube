@@ -49,3 +49,11 @@ type channelConfigByName struct {
 	alias  string
 	notify bool
 }
+
+func AsNotifiers(bots map[string]Bot) []notifier.Bot {
+	notifiers := make([]notifier.Bot, len(bots))
+	for _, bot := range bots {
+		notifiers = append(notifiers, bot)
+	}
+	return notifiers
+}
