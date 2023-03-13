@@ -260,62 +260,195 @@ func strToGVR(arg string) (schema.GroupVersionResource, error) {
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`
-{
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "$ref": "#/definitions/Kubernetes",
+		Value: heredoc.Docf(`{
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Kubernetes",
   "description": "%s",
-  "definitions": {
-    "Kubernetes": {
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "recommendations": {
+      "title": "Recommendations",
+      "description": "Configure various recommendation insights. If enabled, recommendations work globally for all namespaces.",
+      "type": "object",
+      "properties": {
+        "pod": {
+          "title": "Pod Recommendations",
+          "description": "Recommendations for Pod Kubernetes resource.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "noLatestImageTag": {
+              "title": "No \"latest\" image tag",
+              "type": "boolean",
+              "description": "If true, notifies about Pod containers that use latest tag for images."
+            },
+            "labelsSet": {
+              "title": "No labels set",
+              "type": "boolean",
+              "description": "If true, notifies about Pod resources created without labels."
+            }
+          }
+        },
+        "ingress": {
+          "title": "Ingress Recommendations",
+          "description": "Recommendations for Ingress Kubernetes resource.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backendServiceValid": {
+              "title": "Backend Service valid",
+              "type": "boolean",
+              "description": "If true, notifies about Ingress resources with invalid backend service reference."
+            },
+            "tlsSecretValid": {
+              "title": "TLS Secret valid",
+              "type": "boolean",
+              "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "namespaces": {
+      "description": "Describes namespaces for every Kubernetes resources you want to watch or exclude. These namespaces are applied to every resource specified in the resources list.",
+      "$ref": "#/definitions/Namespaces"
+    },
+    "event": {
+      "$ref": "#/definitions/Event",
+      "description": "Describes event constraints for Kubernetes resources. These constraints are applied for every resource specified in the \"Resources\" list, unless they are overridden by the resource's own \"Events\" configuration."
+    },
+    "annotations": {
+      "$ref": "#/definitions/Annotations"
+    },
+    "labels": {
+      "$ref": "#/definitions/Labels"
+    },
+    "resources": {
+      "title": "Resources",
+      "description": "Describes the Kubernetes resources to watch. Resources are identified by its type in '{group}/{version}/{kind (plural)}' format. Examples: 'apps/v1/deployments', 'v1/pods'. Each resource can override the namespaces and event configuration by using dedicated 'event' and 'namespaces' field. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex.",
+      "type": "array",
+      "default": [
+        {
+          "type": "v1/pods"
+        },
+        {
+          "type": "v1/services"
+        },
+        {
+          "type": "networking.k8s.io/v1/ingresses"
+        },
+        {
+          "type": "v1/nodes"
+        },
+        {
+          "type": "v1/namespaces"
+        },
+        {
+          "type": "v1/persistentvolumes"
+        },
+        {
+          "type": "v1/persistentvolumeclaims"
+        },
+        {
+          "type": "v1/configmaps"
+        },
+        {
+          "type": "rbac.authorization.k8s.io/v1/roles"
+        },
+        {
+          "type": "rbac.authorization.k8s.io/v1/rolebindings"
+        },
+        {
+          "type": "rbac.authorization.k8s.io/v1/clusterrolebindings"
+        },
+        {
+          "type": "rbac.authorization.k8s.io/v1/clusterroles"
+        },
+        {
+          "type": "apps/v1/deployments"
+        },
+        {
+          "type": "apps/v1/statefulsets"
+        },
+        {
+          "type": "apps/v1/daemonsets"
+        },
+        {
+          "type": "batch/v1/jobs"
+        }
+      ],
+      "items": {
+        "title": "Resource",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Kubernetes resource type in the format \"{group}/{version}/{kind (plural)}\" format, such as \"apps/v1/deployments\", or \"v1/pods\"."
+          },
+          "namespaces": {
+            "description": "Overrides Namespaces defined in global scope for all resources. Describes namespaces for every Kubernetes resources you want to watch or exclude.",
+            "$ref": "#/definitions/Namespaces"
+          },
+          "annotations": {
+            "description": "Overrides Annotations defined in global scope for all resources. Each resource needs to have all the specified annotations. Regex patterns are not supported.",
+            "$ref": "#/definitions/Annotations"
+          },
+          "labels": {
+            "description": "Overrides Labels defined in global scope for all resources. Each resource needs to have all the specified annotations. Regex patterns are not supported.",
+            "$ref": "#/definitions/Labels"
+          },
+          "name": {
+            "title": "Name pattern",
+            "description": "Optional resource name regex.",
+            "type": "string",
+            "default": ""
+          },
+          "event": {
+            "description": "Overrides kubernetes.event",
+            "$ref": "#/definitions/Event"
+          },
+          "updateSetting": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "includeDiff": {
+                "title": "Include diff",
+                "description": "Includes diff for resource in event notification.",
+                "type": "boolean"
+              },
+              "fields": {
+                "title": "Fields",
+                "description": "Define which properties should be included in the diff. Full JSON field path, such as \"status.phase\", or \"spec.template.spec.containers[*].image\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "title": "Field path"
+                },
+                "minItems": 0
+              }
+            },
+            "title": "Update settings",
+            "description": "Additional settings for \"Update\" event type."
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "commands": {
+      "title": "Commands",
+      "description": "Configure allowed verbs and resources to display interactive commands on incoming notifications.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "clusterName": {
-          "description": "Cluster name to differentiate incoming messages.",
-          "type": "string"
-        },
-        "informerReSyncPeriod": {
-          "description": "Resync period of Kubernetes informer. e.g. 30s",
-          "type": "string"
-        },
-        "log": {
-          "description": "Logging configuration.",
-          "$ref": "#/definitions/Log"
-        },
-        "namespaces": {
-          "description": "Describes namespaces for every Kubernetes resources you want to watch or exclude. These namespaces are applied to every resource specified in the resources list. However, every specified resource can override this by using its own namespaces object.",
-          "$ref": "#/definitions/Namespaces"
-        },
-        "event": {
-          "description": "These constraints are applied for every resource specified in the 'resources' list, unless they are overridden by the resource's own 'events' object.",
-          "$ref": "#/definitions/Event"
-        },
-        "annotations": {
-          "description": "Filters Kubernetes resources to watch by annotations.",
-          "$ref": "#/definitions/Annotations"
-        },
-        "labels": {
-          "description": "Filters Kubernetes resources to watch by labels.",
-          "$ref": "#/definitions/Labels"
-        },
-        "resources": {
-          "description": "Resources are identified by its type in '{group}/{version}/{kind (plural)}' format. Examples: 'apps/v1/deployments', 'v1/pods'. Each resource can override the namespaces and event configuration by using dedicated 'event' and 'namespaces' field. Also, each resource can specify its own 'annotations', 'labels' and 'name' regex. @default -- See the 'values.yaml' file for full object.",
+        "verbs": {
           "type": "array",
-          "items": {
-            "$ref": "#/definitions/Resource"
-          }
-        },
-        "filters": {
-          "description": "Filter settings for various sources.",
-          "$ref": "#/definitions/Filter"
-        },
-        "actionVerbs": {
-          "description": "Allowed verbs for actionable events.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
+          "title": "Verbs",
+          "description": "Kubectl verbs enabled for interactive notifications.",
           "default": [
             "api-resources",
             "api-versions",
@@ -326,15 +459,16 @@ func jsonSchema() api.JSONSchema {
             "logs",
             "top"
           ],
-          "title": "Action Verbs",
-          "uniqueItems": true
-        },
-        "actionResources": {
-          "description": "Allowed resources for actionable events.",
-          "type": "array",
           "items": {
+            "title": "Verb",
             "type": "string"
           },
+          "minItems": 0
+        },
+        "resources": {
+          "type": "array",
+          "title": "Resources",
+          "description": "List of allowed resources for interactive notifications. Each resource must be provided as a plural noun, such as \"deployments\", \"services\" or \"pods\".",
           "default": [
             "deployments",
             "pods",
@@ -347,215 +481,206 @@ func jsonSchema() api.JSONSchema {
             "services",
             "ingresses"
           ],
-          "title": "Action Resources",
-          "uniqueItems": true
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "title": "Resource"
+          }
         }
-      },
-      "title": "Kubernetes"
+      }
+    },
+    "filters": {
+      "additionalProperties": false,
+      "title": "Filters",
+      "type": "object",
+      "description": "Configure filters to skip events based on their properties.",
+      "properties": {
+        "objectAnnotationChecker": {
+          "type": "boolean",
+          "title": "Object Annotation Checker",
+          "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations.",
+          "default": true
+        },
+        "nodeEventsChecker": {
+          "type": "boolean",
+          "title": "Node Events Checker",
+          "description": "If true, filters out Node-related events that are not important.",
+          "default": true
+        }
+      }
+    },
+    "informerResyncPeriod": {
+      "description": "Resync period of Kubernetes informer in a form of a duration string. A duration string is a sequence of decimal numbers, each with optional fraction and a unit suffix, such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".",
+      "type": "string",
+      "default": "30m"
+    },
+    "log": {
+      "title": "Logging",
+      "description": "Logging configuration for the plugin.",
+      "type": "object",
+      "properties": {
+        "level": {
+          "title": "Log Level",
+          "description": "Define log level for the plugin. Ensure that Botkube has plugin logging enabled for standard output.",
+          "type": "string",
+          "default": "info",
+          "oneOf": [
+            {
+              "const": "panic",
+              "title": "Panic"
+            },
+            {
+              "const": "fatal",
+              "title": "Fatal"
+            },
+            {
+              "const": "error",
+              "title": "Error"
+            },
+            {
+              "const": "warn",
+              "title": "Warning"
+            },
+            {
+              "const": "info",
+              "title": "Info"
+            },
+            {
+              "const": "debug",
+              "title": "Debug"
+            },
+            {
+              "const": "trace",
+              "title": "Trace"
+            }
+          ]
+        },
+        "disableColors": {
+          "type": "boolean",
+          "default": false,
+          "description": "If enabled, disables color logging output.",
+          "title": "Disable Colors"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Labels": {
+      "title": "Resource labels",
+      "description": "Filters Kubernetes resources by labels. Each resource needs to have all the specified labels. Regex patterns are not supported.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "Annotations": {
+      "title": "Resource annotations",
+      "description": "Filters Kubernetes resources by annotations. Each resource needs to have all the specified annotations. Regex patterns are not supported.",
       "type": "object",
-      "additionalProperties": false,
-      "title": "Annotations"
-    },
-    "Labels": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "Labels"
-    },
-    "Event": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "types": {
-          "description": "Lists all event types to be watched.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "create",
-            "update",
-            "delete",
-            "error",
-            "warning",
-            "normal",
-            "info",
-            "all"
-          ],
-          "title": "Event Types",
-          "uniqueItems": true
-        },
-        "reason": {
-          "description": "Optional regex to filter events by event reason.",
-          "type": "string"
-        },
-        "message": {
-          "description": "Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
-          "type": "string"
-        }
-      },
-      "title": "Event"
-    },
-    "Resource": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string"
-        },
-        "namespaces": {
-          "description": "Overrides kubernetes.namespaces",
-          "$ref": "#/definitions/Namespaces"
-        },
-        "annotations": {
-          "description": "Overrides kubernetes.annotations",
-          "$ref": "#/definitions/Annotations"
-        },
-        "labels": {
-          "description": "Overrides kubernetes.labels",
-          "$ref": "#/definitions/Annotations"
-        },
-        "name": {
-          "description": "Optional resource name regex.",
-          "type": "string"
-        },
-        "event": {
-          "description": "Overrides kubernetes.event",
-          "$ref": "#/definitions/Event"
-        },
-        "updateSetting": {
-          "$ref": "#/definitions/UpdateSetting"
-        }
-      },
-      "title": "Resource"
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "Namespaces": {
+      "title": "Namespaces",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "include": {
+          "title": "Include",
           "type": "array",
+          "default": [
+            ".*"
+          ],
           "items": {
-            "type": "string"
+            "type": "string",
+            "title": "Namespace"
           },
+          "minItems": 1,
           "description": "List of allowed Kubernetes Namespaces for command execution. It can also contain a regex expressions: \".*\" - to specify all Namespaces."
         },
         "exclude": {
+          "title": "Exclude",
           "type": "array",
+          "default": [],
           "items": {
-            "type": "string"
+            "type": "string",
+            "title": "Namespace"
           },
           "description": "List of ignored Kubernetes Namespace. It can also contain a regex expressions: \"test-.*\" - to specify all Namespaces."
         }
       },
       "required": [
-        "exclude",
         "include"
-      ],
-      "title": "Namespaces"
+      ]
     },
-    "UpdateSetting": {
+    "Event": {
+      "title": "Event",
+      "required": [
+        "types"
+      ],
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "includeDiff": {
-          "type": "boolean"
-        },
-        "fields": {
+        "types": {
+          "title": "Types",
+          "description": "Lists all event types to be watched.",
           "type": "array",
           "items": {
-            "type": "string"
-          }
-        }
-      },
-      "title": "UpdateSetting"
-    },
-    "Log": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "level": {
+            "type": "string",
+            "title": "Event type",
+            "oneOf": [
+              {
+                "const": "create",
+                "title": "Create"
+              },
+              {
+                "const": "update",
+                "title": "Update"
+              },
+              {
+                "const": "delete",
+                "title": "Delete"
+              },
+              {
+                "const": "error",
+                "title": "Error"
+              },
+              {
+                "const": "warning",
+                "title": "Warning"
+              },
+              {
+                "const": "normal",
+                "title": "Normal"
+              },
+              {
+                "const": "info",
+                "title": "Info"
+              }
+            ]
+          },
+          "default": [
+            "error"
+          ],
+          "uniqueItems": true
+        },
+        "reason": {
+          "title": "Reason",
+          "description": "Optional regex to filter events by event reason.",
           "type": "string",
-          "description": "Log level"
-        }
-      },
-      "title": "Log"
-    },
-    "Recommendations": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "pod": {
-          "description": "Recommendations for Pod Kubernetes resource.",
-          "$ref": "#/definitions/PodRecommendation"
+          "default": ""
         },
-        "ingress": {
-          "description": "Recommendations for Ingress Kubernetes resource.",
-          "$ref": "#/definitions/IngressRecommendation"
-        }
-      },
-      "title": "Recommendations"
-    },
-    "PodRecommendation": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "noLatestImageTag": {
-          "type": "boolean",
-          "description": "If true, notifies about Pod containers that use latest tag for images."
-        },
-        "labelsSet": {
-          "type": "boolean",
-          "description": "If true, notifies about Pod resources created without labels."
-        }
-      },
-      "title": "Pod Recommendations"
-    },
-    "IngressRecommendation": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "backendServiceValid": {
-          "type": "boolean",
-          "description": "If true, notifies about Ingress resources with invalid backend service reference."
-        },
-        "tlsSecretValid": {
-          "type": "boolean",
-          "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
-        }
-      },
-      "title": "Ingress Recommendations"
-    },
-    "Filter": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "kubernetes": {
-          "description": "Kubernetes filter.",
-          "$ref": "#/definitions/KubernetesFilter"
-        }
-      },
-      "title": "Filter"
-    },
-    "KubernetesFilter": {
-      "type": "object",
-      "title": "Kubernetes Filter",
-      "additionalProperties": false,
-      "properties": {
-        "objectAnnotationChecker": {
-          "type": "boolean",
-          "description": "If true, enables support for 'botkube.io/disable' and 'botkube.io/channel' resource annotations."
-        },
-        "nodeEventsChecker": {
-          "type": "boolean",
-          "description": "If true, filters out Node-related events that are not important."
+        "message": {
+          "title": "Message",
+          "description": "Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
+          "type": "string",
+          "default": ""
         }
       }
     }
   }
-}
-`, description),
+}`, description),
 	}
 }
 func exitOnError(err error, log logrus.FieldLogger) {

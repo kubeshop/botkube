@@ -2,12 +2,12 @@ package config
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
