@@ -94,6 +94,14 @@ func (d *Scheduler) Start(ctx context.Context) error {
 				return err
 			}
 		}
+
+		if commGroupCfg.Elasticsearch.Enabled {
+			for _, index := range commGroupCfg.Elasticsearch.Indices {
+				if err := d.schedule(ctx, false, index.Bindings.Sources); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	// Schedule all sources used by actions

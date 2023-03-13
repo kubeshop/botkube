@@ -19,7 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -173,17 +172,16 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 	return nil
 }
 
-// SendMessage sends event notification to Elasticsearch
-func (e *Elasticsearch) SendMessage(ctx context.Context, event event.Event, eventSources []string) (err error) {
-	e.log.Debugf(">> Sending to Elasticsearch: %+v", event)
+// SendEvent sends an event to a configured elasticsearch server.
+func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, sources []string) error {
+	e.log.Debugf(">> Sending to Elasticsearch: %+v", rawData)
 
 	errs := multierror.New()
 	for _, indexCfg := range e.indices {
-		if !sliceutil.Intersect(indexCfg.Bindings.Sources, eventSources) {
+		if !sliceutil.Intersect(indexCfg.Bindings.Sources, sources) {
 			continue
 		}
-
-		err := e.flushIndex(ctx, indexCfg, event)
+		err := e.flushIndex(ctx, indexCfg, rawData)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
 			continue
@@ -193,11 +191,6 @@ func (e *Elasticsearch) SendMessage(ctx context.Context, event event.Event, even
 	}
 
 	return errs.ErrorOrNil()
-}
-
-// SendEvent is no-op.
-func (e *Elasticsearch) SendEvent(_ context.Context, _ any, _ []string) error {
-	return nil
 }
 
 // IntegrationName describes the notifier integration name.
