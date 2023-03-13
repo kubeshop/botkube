@@ -80,7 +80,6 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(false),
-			elastic.SetTraceLog(log),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
@@ -92,7 +91,6 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(true),
-			elastic.SetTraceLog(log),
 		}
 
 		if c.SkipTLSVerify {
