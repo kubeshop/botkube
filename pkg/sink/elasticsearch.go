@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"net/http"
 	"os"
 	"time"
@@ -172,11 +173,14 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 }
 
 // SendEvent sends an event to a configured elasticsearch server.
-func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, _ []string) error {
+func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, sources []string) error {
 	e.log.Debugf(">> Sending to Elasticsearch: %+v", rawData)
 
 	errs := multierror.New()
 	for _, indexCfg := range e.indices {
+		if !sliceutil.Intersect(indexCfg.Bindings.Sources, sources) {
+			continue
+		}
 		err := e.flushIndex(ctx, indexCfg, rawData)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
