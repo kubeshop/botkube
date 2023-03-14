@@ -60,13 +60,6 @@ type Executor interface {
 	Execute(context.Context) interactive.CoreMessage
 }
 
-// ConfigPersistenceManager manages persistence of the configuration.
-// type ConfigPersistenceManager interface {
-// 	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
-// 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
-// 	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
-// }
-
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.

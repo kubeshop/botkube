@@ -354,13 +354,3 @@ func (f *fakeBindingsStorage) PersistSourceBindings(_ context.Context, commGroup
 	f.sourceBindings = sourceBindings
 	return nil
 }
-
-func (f *fakeBindingsStorage) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error {
-	return nil
-}
-
-func (f *fakeBindingsStorage) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
-	return nil
-}
-
-func (f *fakeBindingsStorage) SetResourceVersion(resourceVersion int) {}
