@@ -14,10 +14,10 @@ type K8sConfigPersistenceManager struct {
 	k8sCli kubernetes.Interface
 }
 
-var _ ConfigPersistenceManager = (*LocalConfigPersistenceManager)(nil)
+var _ PersistenceManager = (*K8sConfigPersistenceManager)(nil)
 
 // PersistSourceBindings persists source bindings configuration for a given channel in a given platform.
-func (m *LocalConfigPersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
+func (m *K8sConfigPersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
 	if _, ok := supportedPlatformsSourceBindings[platform]; !ok {
 		return ErrUnsupportedPlatform
 	}
@@ -84,7 +84,7 @@ func (m *LocalConfigPersistenceManager) PersistSourceBindings(ctx context.Contex
 
 // PersistNotificationsEnabled persists notifications state for a given channel.
 // While this method updates the Botkube ConfigMap, it doesn't reload Botkube itself.
-func (m *LocalConfigPersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
+func (m *K8sConfigPersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
 	if _, ok := supportedPlatformsNotifications[platform]; !ok {
 		return ErrUnsupportedPlatform
 	}
@@ -131,31 +131,8 @@ func (m *LocalConfigPersistenceManager) PersistNotificationsEnabled(ctx context.
 	return nil
 }
 
-// PersistFilterEnabled persists status for a given filter.
-// While this method updates the Botkube ConfigMap, it doesn't reload Botkube itself.
-func (m *LocalConfigPersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
-	cmStorage := configMapStorage[StartupState]{k8sCli: m.k8sCli, cfg: m.cfg.Startup}
-
-	state, cm, err := cmStorage.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = state.Filters.Kubernetes.SetEnabled(name, enabled)
-	if err != nil {
-		return err
-	}
-
-	err = cmStorage.Update(ctx, cm, state)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // PersistActionEnabled updates runtime config map with desired action.enabled parameter
-func (m *LocalConfigPersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
+func (m *K8sConfigPersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
 	cmStorage := configMapStorage[RuntimeState]{k8sCli: m.k8sCli, cfg: m.cfg.Runtime}
 
 	state, cm, err := cmStorage.Get(ctx)
@@ -171,4 +148,4 @@ func (m *LocalConfigPersistenceManager) PersistActionEnabled(ctx context.Context
 	return cmStorage.Update(ctx, cm, state)
 }
 
-func (m *LocalConfigPersistenceManager) SetResourceVersion(resourceVersion int) {}
+func (m *K8sConfigPersistenceManager) SetResourceVersion(resourceVersion int) {}

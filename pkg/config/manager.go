@@ -35,7 +35,6 @@ type GraphQLClient interface {
 type PersistenceManager interface {
 	PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error
-	PersistFilterEnabled(ctx context.Context, name string, enabled bool) error
 	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
 	SetResourceVersion(resourceVersion int)
 }
@@ -44,14 +43,14 @@ type PersistenceManager interface {
 var ErrUnsupportedPlatform = errors.New("unsupported platform to persist data")
 
 // NewManager creates a new PersistenceManager instance.
-func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, k8sCli kubernetes.Interface, client GraphQLClient) ConfigPersistenceManager {
+func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, k8sCli kubernetes.Interface, client GraphQLClient) PersistenceManager {
 	if remoteCfgEnabled {
-		return &RemoteConfigPersistenceManager{
+		return &RemotePersistenceManager{
 			log: log,
 			gql: client,
 		}
 	}
-	return &LocalConfigPersistenceManager{
+	return &K8sConfigPersistenceManager{
 		log:    log,
 		cfg:    cfg,
 		k8sCli: k8sCli,

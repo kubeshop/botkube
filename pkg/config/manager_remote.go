@@ -2,12 +2,12 @@ package config
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
+
+	remoteapi "github.com/kubeshop/botkube/internal/remote"
 )
 
 // RemotePersistenceManager manages persistence of the configuration.
@@ -18,9 +18,9 @@ type RemotePersistenceManager struct {
 	resVerMutex     sync.RWMutex
 }
 
-var _ ConfigPersistenceManager = (*RemoteConfigPersistenceManager)(nil)
+var _ PersistenceManager = (*RemotePersistenceManager)(nil)
 
-func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
+func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
 	logger := m.log.WithFields(logrus.Fields{
 		"deploymentID":    m.gql.DeploymentID,
 		"resourceVersion": m.getResourceVersion(),
@@ -35,7 +35,7 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 		return ErrUnsupportedPlatform
 	}
 
-	p, err := NewBotPlatform(platform.String())
+	p, err := remoteapi.NewBotPlatform(platform.String())
 	if err != nil {
 		return ErrUnsupportedPlatform
 	}
@@ -44,9 +44,9 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 	}
 	variables := map[string]interface{}{
 		"id": graphql.ID(m.gql.DeploymentID()),
-		"input": PatchDeploymentConfigInput{
+		"input": remoteapi.PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
-			Notification: &NotificationPatchDeploymentConfigInput{
+			Notification: &remoteapi.NotificationPatchDeploymentConfigInput{
 				CommunicationGroupName: commGroupName,
 				Platform:               p,
 				ChannelAlias:           channelAlias,
@@ -58,7 +58,7 @@ func (m *RemoteConfigPersistenceManager) PersistNotificationsEnabled(ctx context
 	return m.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
-func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
+func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
 	logger := m.log.WithFields(logrus.Fields{
 		"deploymentID":    m.gql.DeploymentID,
 		"resourceVersion": m.getResourceVersion(),
@@ -73,7 +73,7 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 		return ErrUnsupportedPlatform
 	}
 
-	p, err := NewBotPlatform(string(platform))
+	p, err := remoteapi.NewBotPlatform(string(platform))
 	if err != nil {
 		return ErrUnsupportedPlatform
 	}
@@ -82,9 +82,9 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 	}
 	variables := map[string]interface{}{
 		"id": graphql.ID(m.gql.DeploymentID()),
-		"input": PatchDeploymentConfigInput{
+		"input": remoteapi.PatchDeploymentConfigInput{
 			ResourceVersion: m.getResourceVersion(),
-			SourceBinding: &SourceBindingPatchDeploymentConfigInput{
+			SourceBinding: &remoteapi.SourceBindingPatchDeploymentConfigInput{
 				CommunicationGroupName: commGroupName,
 				Platform:               p,
 				ChannelAlias:           channelAlias,
@@ -96,74 +96,17 @@ func (m *RemoteConfigPersistenceManager) PersistSourceBindings(ctx context.Conte
 	return m.gql.Client().Mutate(ctx, &mutation, variables)
 }
 
-func (m *RemoteConfigPersistenceManager) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
-	panic("Filter moved to kubectl plugin")
-}
-
-func (m *RemoteConfigPersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
+func (m *RemotePersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
 	panic("Implement me")
 }
 
-type PatchDeploymentConfigInput struct {
-	ResourceVersion int                                      `json:"resourceVersion"`
-	Notification    *NotificationPatchDeploymentConfigInput  `json:"notification"`
-	SourceBinding   *SourceBindingPatchDeploymentConfigInput `json:"sourceBinding"`
-}
-
-type NotificationPatchDeploymentConfigInput struct {
-	CommunicationGroupName string      `json:"communicationGroupName"`
-	Platform               BotPlatform `json:"platform"`
-	ChannelAlias           string      `json:"channelAlias"`
-	Disabled               bool        `json:"disabled"`
-}
-
-type SourceBindingPatchDeploymentConfigInput struct {
-	CommunicationGroupName string      `json:"communicationGroupName"`
-	Platform               BotPlatform `json:"platform"`
-	ChannelAlias           string      `json:"channelAlias"`
-	SourceBindings         []string    `json:"sourceBindings"`
-}
-
-type BotPlatform string
-
-const (
-	// BotPlatformSlack is the slack platform
-	BotPlatformSlack BotPlatform = "SLACK"
-	// BotPlatformDiscord is the discord platform
-	BotPlatformDiscord BotPlatform = "DISCORD"
-	// BotPlatformMattermost is the mattermost platform
-	BotPlatformMattermost BotPlatform = "MATTERMOST"
-	// BotPlatformMsTeams is the teams platform
-	BotPlatformMsTeams BotPlatform = "MS_TEAMS"
-)
-
-// NewBotPlatform creates new BotPlatform from string
-func NewBotPlatform(s string) (BotPlatform, error) {
-	switch strings.ToUpper(s) {
-	case "SLACK":
-		fallthrough
-	case "SOCKETSLACK":
-		return BotPlatformSlack, nil
-	case "DISCORD":
-		return BotPlatformDiscord, nil
-	case "MATTERMOST":
-		return BotPlatformMattermost, nil
-	case "TEAMS":
-		fallthrough
-	case "MS_TEAMS":
-		return BotPlatformMsTeams, nil
-	default:
-		return "", fmt.Errorf("given BotPlatform %s is not supported", s)
-	}
-}
-
-func (m *RemoteConfigPersistenceManager) SetResourceVersion(resourceVersion int) {
+func (m *RemotePersistenceManager) SetResourceVersion(resourceVersion int) {
 	m.resVerMutex.Lock()
 	defer m.resVerMutex.Unlock()
 	m.resourceVersion = resourceVersion
 }
 
-func (m *RemoteConfigPersistenceManager) getResourceVersion() int {
+func (m *RemotePersistenceManager) getResourceVersion() int {
 	m.resVerMutex.RLock()
 	defer m.resVerMutex.RUnlock()
 	return m.resourceVersion

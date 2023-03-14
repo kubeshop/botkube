@@ -359,10 +359,6 @@ func (f *fakeBindingsStorage) PersistNotificationsEnabled(ctx context.Context, c
 	return nil
 }
 
-func (f *fakeBindingsStorage) PersistFilterEnabled(ctx context.Context, name string, enabled bool) error {
-	return nil
-}
-
 func (f *fakeBindingsStorage) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
 	return nil
 }

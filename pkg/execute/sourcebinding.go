@@ -46,16 +46,20 @@ func (e *SourceBindingExecutor) Commands() map[command.Verb]CommandFn {
 	}
 }
 
+type BindingsStorage interface {
+	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
+}
+
 // SourceBindingExecutor provides functionality to run all Botkube SourceBinding related commands.
 type SourceBindingExecutor struct {
 	log        logrus.FieldLogger
-	cfgManager ConfigPersistenceManager
+	cfgManager BindingsStorage
 	sources    map[string]string
 	cfg        config.Config
 }
 
 // NewSourceBindingExecutor returns a new SourceBindingExecutor instance.
-func NewSourceBindingExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager, cfg config.Config) *SourceBindingExecutor {
+func NewSourceBindingExecutor(log logrus.FieldLogger, cfgManager BindingsStorage, cfg config.Config) *SourceBindingExecutor {
 	normalizedSource := map[string]string{}
 	for key, item := range cfg.Sources {
 		displayName := item.DisplayName
