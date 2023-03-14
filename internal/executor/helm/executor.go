@@ -181,6 +181,8 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	}, nil
 }
 
+// jsonSchema returns JSON schema for the executor.
+// helmCacheDir and helmConfigDir were skipped as the options are not user-facing.
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
@@ -214,18 +216,6 @@ func jsonSchema() api.JSONSchema {
 					  "title": "Memory"
 					}
 				  ]
-				},
-				"helmCacheDir": {
-				  "title": "Cache directory",
-				  "description": "Path of the cache directory.",
-				  "type": "string",
-				  "default": "/tmp/helm/.cache"
-				},
-				"helmConfigDir": {
-				  "title": "Configuration directory",
-				  "description": "Path of the configuration directory.",
-				  "type": "string",
-				  "default": "/tmp/helm/"
 				}
 			  },
 			  "required": []

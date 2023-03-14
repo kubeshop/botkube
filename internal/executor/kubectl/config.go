@@ -53,6 +53,45 @@ func jsonSchema(description string) api.JSONSchema {
 		  "description": "%s",
 		  "type": "object",
 		  "additionalProperties": false,
+		  "uiSchema": {
+			"interactiveBuilder": {
+			  "allowed": {
+				"verbs": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				},
+				"resources": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				},
+				"namespaces": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				}
+			  }
+			}
+		  },
 		  "properties": {
 			"defaultNamespace": {
 			  "description": "Namespace used if not explicitly specified during command execution.",
