@@ -55,12 +55,11 @@ type DefaultExecutor struct {
 	platform              config.CommPlatformIntegration
 	conversation          Conversation
 	merger                *kubectl.Merger
-	// cfgManager            ConfigPersistenceManager
-	commGroupName     string
-	user              string
-	kubectlCmdBuilder *KubectlCmdBuilder
-	cmdsMapping       *CommandMapping
-	auditReporter     audit.AuditReporter
+	commGroupName         string
+	user                  string
+	kubectlCmdBuilder     *KubectlCmdBuilder
+	cmdsMapping           *CommandMapping
+	auditReporter         audit.AuditReporter
 }
 
 // CommandFlags creates custom type for flags in botkube

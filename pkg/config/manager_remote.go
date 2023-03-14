@@ -2,6 +2,9 @@ package config
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/hasura/go-graphql-client"
@@ -55,7 +58,15 @@ func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Conte
 		},
 	}
 
-	return m.gql.Client().Mutate(ctx, &mutation, variables)
+	if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+		return err
+	}
+
+	if !mutation.Success {
+		return fmt.Errorf("failed to persist notifications config enabled=%t for channel %s", enabled, channelAlias)
+	}
+
+	return nil
 }
 
 func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
@@ -93,11 +104,19 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 		},
 	}
 
-	return m.gql.Client().Mutate(ctx, &mutation, variables)
+	if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+		return err
+	}
+
+	if !mutation.Success {
+		return fmt.Errorf("failed to persist source bindings config sources=[%s] for channel %s", strings.Join(sourceBindings, ", "), channelAlias)
+	}
+
+	return nil
 }
 
 func (m *RemotePersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
-	panic("Implement me")
+	return errors.New("PersistActionEnabled is not implemented for GQL manager")
 }
 
 func (m *RemotePersistenceManager) SetResourceVersion(resourceVersion int) {
