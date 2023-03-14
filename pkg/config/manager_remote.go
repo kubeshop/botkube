@@ -25,7 +25,7 @@ var _ PersistenceManager = (*RemotePersistenceManager)(nil)
 
 func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, enabled bool) error {
 	logger := m.log.WithFields(logrus.Fields{
-		"deploymentID":    m.gql.DeploymentID,
+		"deploymentID":    m.gql.DeploymentID(),
 		"resourceVersion": m.getResourceVersion(),
 		"commGroupName":   commGroupName,
 		"platform":        platform.String(),
@@ -71,7 +71,7 @@ func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Conte
 
 func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, commGroupName string, platform CommPlatformIntegration, channelAlias string, sourceBindings []string) error {
 	logger := m.log.WithFields(logrus.Fields{
-		"deploymentID":    m.gql.DeploymentID,
+		"deploymentID":    m.gql.DeploymentID(),
 		"resourceVersion": m.getResourceVersion(),
 		"commGroupName":   commGroupName,
 		"platform":        platform.String(),
