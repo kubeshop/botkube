@@ -267,6 +267,257 @@ func jsonSchema() api.JSONSchema {
 		  "title": "Kubernetes",
 		  "description": "%s",
 		  "type": "object",
+		  "uiSchema": {
+			"namespaces": {
+			  "include": {
+				"ui:classNames": "non-orderable",
+				"ui:options": {
+				  "orderable": false
+				},
+				"items": {
+				  "ui:options": {
+					"label": false
+				  }
+				}
+			  },
+			  "exclude": {
+				"ui:classNames": "non-orderable",
+				"ui:options": {
+				  "orderable": false
+				},
+				"items": {
+				  "ui:options": {
+					"label": false
+				  }
+				}
+			  }
+			},
+			"event": {
+			  "reason": {
+				"include": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				},
+				"exclude": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				}
+			  },
+			  "message": {
+				"include": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				},
+				"exclude": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				}
+			  }
+			},
+			"annotations": {
+			  "ui:classNames": "obj-properties",
+			  "additionalProperties": {
+				"ui:options": {
+				  "label": false
+				}
+			  }
+			},
+			"labels": {
+			  "ui:classNames": "obj-properties",
+			  "additionalProperties": {
+				"ui:options": {
+				  "label": false
+				}
+			  }
+			},
+			"resources": {
+			  "ui:classNames": "non-orderable",
+			  "ui:options": {
+				"orderable": false
+			  },
+			  "items": {
+				"name": {
+				  "include": {
+					"ui:classNames": "non-orderable",
+					"ui:options": {
+					  "orderable": false
+					},
+					"items": {
+					  "ui:options": {
+						"label": false
+					  }
+					}
+				  },
+				  "exclude": {
+					"ui:classNames": "non-orderable",
+					"ui:options": {
+					  "orderable": false
+					},
+					"items": {
+					  "ui:options": {
+						"label": false
+					  }
+					}
+				  }
+				},
+				"namespaces": {
+				  "include": {
+					"ui:classNames": "non-orderable",
+					"ui:options": {
+					  "orderable": false
+					},
+					"items": {
+					  "ui:options": {
+						"label": false
+					  }
+					}
+				  },
+				  "exclude": {
+					"ui:classNames": "non-orderable",
+					"ui:options": {
+					  "orderable": false
+					},
+					"items": {
+					  "ui:options": {
+						"label": false
+					  }
+					}
+				  }
+				},
+				"event": {
+				  "reason": {
+					"include": {
+					  "ui:classNames": "non-orderable",
+					  "ui:options": {
+						"orderable": false
+					  },
+					  "items": {
+						"ui:options": {
+						  "label": false
+						}
+					  }
+					},
+					"exclude": {
+					  "ui:classNames": "non-orderable",
+					  "ui:options": {
+						"orderable": false
+					  },
+					  "items": {
+						"ui:options": {
+						  "label": false
+						}
+					  }
+					}
+				  },
+				  "message": {
+					"include": {
+					  "ui:classNames": "non-orderable",
+					  "ui:options": {
+						"orderable": false
+					  },
+					  "items": {
+						"ui:options": {
+						  "label": false
+						}
+					  }
+					},
+					"exclude": {
+					  "ui:classNames": "non-orderable",
+					  "ui:options": {
+						"orderable": false
+					  },
+					  "items": {
+						"ui:options": {
+						  "label": false
+						}
+					  }
+					}
+				  }
+				}
+			  },
+			  "annotations": {
+				"ui:classNames": "obj-properties",
+				"additionalProperties": {
+				  "ui:options": {
+					"label": false
+				  }
+				}
+			  },
+			  "labels": {
+				"ui:classNames": "obj-properties",
+				"additionalProperties": {
+				  "ui:options": {
+					"label": false
+				  }
+				}
+			  },
+			  "updateSetting": {
+				"fields": {
+				  "ui:classNames": "non-orderable",
+				  "ui:options": {
+					"orderable": false
+				  },
+				  "items": {
+					"ui:options": {
+					  "label": false
+					}
+				  }
+				}
+			  }
+			}
+		  },
+		  "commands": {
+			"verbs": {
+			  "ui:classNames": "non-orderable",
+			  "ui:options": {
+				"orderable": false
+			  },
+			  "items": {
+				"ui:options": {
+				  "label": false
+				}
+			  }
+			},
+			"resources": {
+			  "ui:classNames": "non-orderable",
+			  "ui:options": {
+				"orderable": false
+			  },
+			  "items": {
+				"ui:options": {
+				  "label": false
+				}
+			  }
+			}
+		  },
 		  "additionalProperties": false,
 		  "properties": {
 			"recommendations": {
@@ -283,12 +534,14 @@ func jsonSchema() api.JSONSchema {
 					"noLatestImageTag": {
 					  "title": "No \"latest\" image tag",
 					  "type": "boolean",
-					  "description": "If true, notifies about Pod containers that use latest tag for images."
+					  "description": "If true, notifies about Pod containers that use latest tag for images.",
+					  "default": true
 					},
 					"labelsSet": {
 					  "title": "No labels set",
 					  "type": "boolean",
-					  "description": "If true, notifies about Pod resources created without labels."
+					  "description": "If true, notifies about Pod resources created without labels.",
+					  "default": true
 					}
 				  }
 				},
@@ -301,12 +554,14 @@ func jsonSchema() api.JSONSchema {
 					"backendServiceValid": {
 					  "title": "Backend Service valid",
 					  "type": "boolean",
-					  "description": "If true, notifies about Ingress resources with invalid backend service reference."
+					  "description": "If true, notifies about Ingress resources with invalid backend service reference.",
+					  "default": true
 					},
 					"tlsSecretValid": {
 					  "title": "TLS Secret valid",
 					  "type": "boolean",
-					  "description": "If true, notifies about Ingress resources with invalid TLS secret reference."
+					  "description": "If true, notifies about Ingress resources with invalid TLS secret reference.",
+					  "default": true
 					}
 				  }
 				}
@@ -319,14 +574,11 @@ func jsonSchema() api.JSONSchema {
 			},
 			"event": {
 			  "$ref": "#/definitions/Event",
-"default": {
-"types": [
-					"error"
-				  ],
-"required": [
-				"types"
-			  ]
-},
+			  "default": {
+				"types": [
+				  "error"
+				]
+			  },
 			  "description": "Describes event constraints for Kubernetes resources. These constraints are applied for every resource specified in the \"Resources\" list, unless they are overridden by the resource's own \"Events\" configuration."
 			},
 			"annotations": {
@@ -439,11 +691,32 @@ func jsonSchema() api.JSONSchema {
 				  },
 				  "name": {
 					"title": "Name pattern",
-					"description": "Optional resource name regex.",
-					"type": "string"
+					"description": "Optional patterns to filter events by resource name.",
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+					  "include": {
+						"title": "Include",
+						"type": "array",
+						"items": {
+						  "type": "string",
+						  "title": "Reason"
+						},
+						"description": "List of allowed resource names. It can also contain a regex expressions."
+					  },
+					  "exclude": {
+						"title": "Exclude",
+						"type": "array",
+						"items": {
+						  "type": "string",
+						  "title": "Reason"
+						},
+						"description": "List of excluded resource names. It can also contain a regex expressions."
+					  }
+					}
 				  },
 				  "event": {
-					"description": "Overrides kubernetes.event",
+					"description": "Overrides Event constraints defined in global scope for all resources.",
 					"title": "Event",
 					"type": "object",
 					"additionalProperties": false,
@@ -475,18 +748,62 @@ func jsonSchema() api.JSONSchema {
 							{
 							  "const": "warning",
 							  "title": "Warning"
-							},
-							{
-							  "const": "normal",
-							  "title": "Normal"
-							},
-							{
-							  "const": "info",
-							  "title": "Info"
 							}
 						  ]
 						},
 						"uniqueItems": true
+					  },
+					  "reason": {
+						"title": "Reason",
+						"description": "Optional patterns to filter events by event reason.",
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+						  "include": {
+							"title": "Include",
+							"type": "array",
+							"items": {
+							  "type": "string",
+							  "title": "Reason"
+							},
+							"description": "List of allowed event reasons. It can also contain a regex expressions."
+						  },
+						  "exclude": {
+							"title": "Exclude",
+							"type": "array",
+							"items": {
+							  "type": "string",
+							  "title": "Reason"
+							},
+							"description": "List of excluded event reasons. It can also contain a regex expressions."
+						  }
+						}
+					  },
+					  "message": {
+						"title": "Message",
+						"description": "Optional patterns to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+						  "include": {
+							"title": "Include",
+							"type": "array",
+							"items": {
+							  "type": "string",
+							  "title": "Message"
+							},
+							"description": "List of allowed event message patterns."
+						  },
+						  "exclude": {
+							"title": "Exclude",
+							"type": "array",
+							"items": {
+							  "type": "string",
+							  "title": "Message"
+							},
+							"description": "List of excluded event message patterns."
+						  }
+						}
 					  }
 					}
 				  },
@@ -693,6 +1010,9 @@ func jsonSchema() api.JSONSchema {
 			  "title": "Event",
 			  "type": "object",
 			  "additionalProperties": false,
+			  "required": [
+				"types"
+			  ],
 			  "properties": {
 				"types": {
 				  "title": "Types",
@@ -721,14 +1041,6 @@ func jsonSchema() api.JSONSchema {
 					  {
 						"const": "warning",
 						"title": "Warning"
-					  },
-					  {
-						"const": "normal",
-						"title": "Normal"
-					  },
-					  {
-						"const": "info",
-						"title": "Info"
 					  }
 					]
 				  },
@@ -736,15 +1048,55 @@ func jsonSchema() api.JSONSchema {
 				},
 				"reason": {
 				  "title": "Reason",
-				  "description": "Optional regex to filter events by event reason.",
-				  "type": "string",
-				  "default": ""
+				  "description": "Optional patterns to filter events by event reason.",
+				  "type": "object",
+				  "additionalProperties": false,
+				  "properties": {
+					"include": {
+					  "title": "Include",
+					  "type": "array",
+					  "items": {
+						"type": "string",
+						"title": "Reason"
+					  },
+					  "description": "List of allowed event reasons. It can also contain a regex expressions."
+					},
+					"exclude": {
+					  "title": "Exclude",
+					  "type": "array",
+					  "items": {
+						"type": "string",
+						"title": "Reason"
+					  },
+					  "description": "List of excluded event reasons. It can also contain a regex expressions."
+					}
+				  }
 				},
 				"message": {
 				  "title": "Message",
-				  "description": "Optional regex to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
-				  "type": "string",
-				  "default": ""
+				  "description": "Optional patterns to filter events by message. If a given event has multiple messages, it is considered a match if any of the messages match the regex.",
+				  "type": "object",
+				  "additionalProperties": false,
+				  "properties": {
+					"include": {
+					  "title": "Include",
+					  "type": "array",
+					  "items": {
+						"type": "string",
+						"title": "Message"
+					  },
+					  "description": "List of allowed event message patterns."
+					},
+					"exclude": {
+					  "title": "Exclude",
+					  "type": "array",
+					  "items": {
+						"type": "string",
+						"title": "Message"
+					  },
+					  "description": "List of excluded event message patterns."
+					}
+				  }
 				}
 			  }
 			}
