@@ -45,6 +45,7 @@ var (
 	}
 )
 
+// NotificationsStorage provides functionality to persist notifications config for a given channel.
 type NotificationsStorage interface {
 	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
 }
