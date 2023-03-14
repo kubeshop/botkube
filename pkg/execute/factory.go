@@ -33,7 +33,6 @@ type DefaultExecutorFactory struct {
 	execExecutor          *ExecExecutor
 	sourceExecutor        *SourceExecutor
 	merger                *kubectl.Merger
-	cfgManager            config.PersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
