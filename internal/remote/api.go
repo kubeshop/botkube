@@ -78,6 +78,7 @@ type PatchDeploymentConfigInput struct {
 	ResourceVersion int                                      `json:"resourceVersion"`
 	Notification    *NotificationPatchDeploymentConfigInput  `json:"notification"`
 	SourceBinding   *SourceBindingPatchDeploymentConfigInput `json:"sourceBinding"`
+	Action          *ActionPatchDeploymentConfigInput        `json:"action"`
 }
 
 // NotificationPatchDeploymentConfigInput contains patch input specific to notifications
@@ -94,4 +95,9 @@ type SourceBindingPatchDeploymentConfigInput struct {
 	Platform               BotPlatform `json:"platform"`
 	ChannelAlias           string      `json:"channelAlias"`
 	SourceBindings         []string    `json:"sourceBindings"`
+}
+
+type ActionPatchDeploymentConfigInput struct {
+	Name    string `json:"name"`
+	Enabled *bool  `json:"enabled"`
 }
