@@ -18,7 +18,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 				JSONSchema: JSONSchema{
 					Value: heredoc.Doc(`
 					{
-						"$schema": "http://json-schema.org/draft-04/schema#",
+						"$schema": "http://json-schema.org/draft-07/schema#",
 						"title": "botkube/helm",
 						"description": "Helm",
 						"type": "object",
@@ -47,7 +47,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 				Name: "value-invalid1",
 				JSONSchema: JSONSchema{
 					Value: heredoc.Doc(`{
-						"$schema": "http://json-schema.org/draft-04/schema#",
+						"$schema": "http://json-schema.org/draft-07/schema#",
 						"type": "object",
 						"properties": {
 							"helmDriver": {
@@ -72,13 +72,31 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 					RefURL: "http://example.com/invalid-schema/",
 				},
 			},
+			{
+				Name: "validation-error",
+				JSONSchema: JSONSchema{
+					Value: heredoc.Doc(`{
+						"$schema": "http://json-schema.org/draft-07/schema#",
+						"type": "object",
+						"properties": {
+							"helmDriver": {
+								"description": "Storage driver for Helm",
+								"type": "uknown",
+								"enum": ["configmap", "secret", "memory"]
+							}
+						}
+					}`),
+				},
+			},
 		},
 	}
 	expectedErrMsg := heredoc.Doc(`
-				3 errors occurred:
-					* while validating JSON schema for value-invalid1: invalid character '}' looking for beginning of object key string
-					* while validating JSON schema for value-invalid2: invalid character 'e' in literal true (expecting 'r')
-					* while validating JSON schema for ref-invalid: Could not read schema from HTTP, response status is 404 Not Found`)
+				5 errors occurred:
+					* while validating JSON schema for "value-invalid1": invalid character '}' looking for beginning of object key string
+					* while validating JSON schema for "value-invalid2": invalid character 'e' in literal true (expecting 'r')
+					* while validating JSON schema for "ref-invalid": Could not read schema from HTTP, response status is 404 Not Found
+					* invalid schema "validation-error": properties.helmDriver.type: Must validate at least one schema (anyOf)
+					* invalid schema "validation-error": properties.helmDriver.type: properties.helmDriver.type must be one of the following: "array", "boolean", "integer", "null", "number", "object", "string"`)
 	log := loggerx.NewNoop()
 	bldr := NewIndexBuilder(log)
 

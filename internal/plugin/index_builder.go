@@ -217,13 +217,13 @@ func (i *IndexBuilder) validateJSONSchemas(in Index) error {
 
 		jsonSchemaValidationResult, err := schemaDraft07.Validate(entrySchemaLoader)
 		if err != nil {
-			wrappedErr := fmt.Errorf("while validating JSON schema for %s: %w", entry.Name, err)
+			wrappedErr := fmt.Errorf("while validating JSON schema for %q: %w", entry.Name, err)
 			errs = multierror.Append(errs, wrappedErr)
 			continue
 		}
 
 		for _, err := range jsonSchemaValidationResult.Errors() {
-			wrappedErr := fmt.Errorf("while validating JSON schema for %s: %s", entry.Name, err)
+			wrappedErr := fmt.Errorf("invalid schema %q: %s", entry.Name, err)
 			errs = multierror.Append(errs, wrappedErr)
 		}
 	}
