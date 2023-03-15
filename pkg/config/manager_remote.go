@@ -100,30 +100,35 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 	if err != nil {
 		return ErrUnsupportedPlatform
 	}
-	var mutation struct {
-		Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
-	}
-	variables := map[string]interface{}{
-		"id": graphql.ID(m.gql.DeploymentID()),
-		"input": remoteapi.PatchDeploymentConfigInput{
-			ResourceVersion: m.getResourceVersion(),
-			SourceBinding: &remoteapi.SourceBindingPatchDeploymentConfigInput{
-				CommunicationGroupName: commGroupName,
-				Platform:               p,
-				ChannelAlias:           channelAlias,
-				SourceBindings:         sourceBindings,
+	err = m.withRetry(ctx, logger, func() error {
+		var mutation struct {
+			Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
+		}
+		variables := map[string]interface{}{
+			"id": graphql.ID(m.gql.DeploymentID()),
+			"input": remoteapi.PatchDeploymentConfigInput{
+				ResourceVersion: m.getResourceVersion(),
+				SourceBinding: &remoteapi.SourceBindingPatchDeploymentConfigInput{
+					CommunicationGroupName: commGroupName,
+					Platform:               p,
+					ChannelAlias:           channelAlias,
+					SourceBindings:         sourceBindings,
+				},
 			},
-		},
-	}
+		}
 
-	if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
-		return err
-	}
+		if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+			return err
+		}
 
-	if !mutation.Success {
-		return fmt.Errorf("failed to persist source bindings config sources=[%s] for channel %s", strings.Join(sourceBindings, ", "), channelAlias)
+		if !mutation.Success {
+			return fmt.Errorf("failed to persist source bindings config sources=[%s] for channel %s", strings.Join(sourceBindings, ", "), channelAlias)
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "while persisting source bindings config")
 	}
-
 	return nil
 }
 
