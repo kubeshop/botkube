@@ -43,11 +43,13 @@ type PersistenceManager interface {
 var ErrUnsupportedPlatform = errors.New("unsupported platform to persist data")
 
 // NewManager creates a new PersistenceManager instance.
-func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, k8sCli kubernetes.Interface, client GraphQLClient) PersistenceManager {
+func NewManager(remoteCfgEnabled bool, log logrus.FieldLogger, cfg PersistentConfig, cfgVersion int, k8sCli kubernetes.Interface, client GraphQLClient, resVerClient ResVerClient) PersistenceManager {
 	if remoteCfgEnabled {
 		return &RemotePersistenceManager{
-			log: log,
-			gql: client,
+			log:             log,
+			gql:             client,
+			resourceVersion: cfgVersion,
+			resVerClient:    resVerClient,
 		}
 	}
 	return &K8sConfigPersistenceManager{
