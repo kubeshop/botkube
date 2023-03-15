@@ -45,14 +45,19 @@ var (
 	}
 )
 
+// NotificationsStorage provides functionality to persist notifications config for a given channel.
+type NotificationsStorage interface {
+	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
+}
+
 // NotifierExecutor executes all commands that are related to notifications.
 type NotifierExecutor struct {
 	log        logrus.FieldLogger
-	cfgManager ConfigPersistenceManager
+	cfgManager NotificationsStorage
 }
 
 // NewNotifierExecutor creates a new instance of NotifierExecutor
-func NewNotifierExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager) *NotifierExecutor {
+func NewNotifierExecutor(log logrus.FieldLogger, cfgManager NotificationsStorage) *NotifierExecutor {
 	return &NotifierExecutor{
 		log:        log,
 		cfgManager: cfgManager,

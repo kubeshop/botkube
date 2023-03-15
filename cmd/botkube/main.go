@@ -193,7 +193,7 @@ func run(ctx context.Context) error {
 	botkubeVersion := findBotkubeVersion(k8sVersion)
 
 	// Create executor factory
-	cfgManager := config.NewManager(logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, k8sCli)
+	cfgManager := config.NewManager(remoteCfgEnabled, logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, cfgVersion, k8sCli, gqlClient, deployClient)
 	executorFactory, err := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
@@ -314,6 +314,7 @@ func run(ctx context.Context) error {
 			*conf,
 			cfgVersion,
 			statusReporter,
+			cfgManager,
 		)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)

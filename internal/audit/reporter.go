@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
+
+	remoteapi "github.com/kubeshop/botkube/internal/remote"
 )
 
 // AuditReporter defines interface for reporting audit events
@@ -17,7 +19,7 @@ type ExecutorAuditEvent struct {
 	CreatedAt    string
 	PluginName   string
 	PlatformUser string
-	BotPlatform  BotPlatform
+	BotPlatform  remoteapi.BotPlatform
 	Command      string
 	Channel      string
 }

@@ -27,15 +27,19 @@ var (
 	}
 )
 
+type ActionsStorage interface {
+	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
+}
+
 // ActionExecutor executes all commands that are related to actions.
 type ActionExecutor struct {
 	log        logrus.FieldLogger
-	cfgManager ConfigPersistenceManager
+	cfgManager ActionsStorage
 	actions    map[string]config.Action
 }
 
 // NewActionExecutor returns a new ActionExecutor instance.
-func NewActionExecutor(log logrus.FieldLogger, cfgManager ConfigPersistenceManager, cfg config.Config) *ActionExecutor {
+func NewActionExecutor(log logrus.FieldLogger, cfgManager ActionsStorage, cfg config.Config) *ActionExecutor {
 	return &ActionExecutor{
 		log:        log,
 		cfgManager: cfgManager,
