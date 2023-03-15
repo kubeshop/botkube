@@ -22,7 +22,7 @@ const (
 	// PluginName is the name of the Helm Botkube plugin.
 	PluginName       = "kubectl"
 	defaultNamespace = "default"
-	description      = "Kubectl is the Botkube executor plugin that allows you to run the Kubectl CLI commands directly from any communication platform."
+	description      = "Run the Kubectl CLI commands directly from your favorite communication platform."
 )
 
 var kcBinaryDownloadLinks = map[string]string{

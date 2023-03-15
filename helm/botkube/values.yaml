@@ -144,15 +144,12 @@ sources:
       enabled: true
       config:
         # -- Filter settings for various sources.
-        # Currently, all filters are globally enabled or disabled.
-        # You can enable or disable filters with `@Botkube enable/disable filters` commands.
         # @default -- See the `values.yaml` file for full object.
         filters:
-          kubernetes:
-            # -- If true, enables support for `botkube.io/disable` and `botkube.io/channel` resource annotations.
-            objectAnnotationChecker: true
-            # -- If true, filters out Node-related events that are not important.
-            nodeEventsChecker: true
+          # -- If true, enables support for `botkube.io/disable` resource annotation.
+          objectAnnotationChecker: true
+          # -- If true, filters out Node-related events that are not important.
+          nodeEventsChecker: true
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
         # These namespaces are applied to every resource specified in the resources list.
         # However, every specified resource can override this by using its own namespaces object.

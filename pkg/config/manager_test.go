@@ -345,10 +345,6 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
                               general:
                                 notification:
                                   disabled: true
-                      filters:
-                        kubernetes:
-                          objectAnnotationChecker: true
-                          nodeEventsChecker: true
 					`),
 				},
 			},
@@ -369,10 +365,6 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
                               general:
                                 notification:
                                   disabled: false
-                      filters:
-                        kubernetes:
-                          objectAnnotationChecker: true
-                          nodeEventsChecker: true
 					`),
 				},
 			},

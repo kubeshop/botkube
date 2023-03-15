@@ -16,7 +16,7 @@ const (
 	// PluginName is the name of the Helm Botkube plugin.
 	PluginName     = "helm"
 	helmBinaryName = "helm"
-	description    = "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform."
+	description    = "Run the Helm CLI commands directly from your favorite communication platform."
 )
 
 // Links source: https://github.com/helm/helm/releases/tag/v3.6.3
@@ -181,32 +181,44 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	}, nil
 }
 
+// jsonSchema returns JSON schema for the executor.
+// helmCacheDir and helmConfigDir were skipped as the options are not user-facing.
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-04/schema#",
-			"title": "botkube/helm",
-			"description": "%s",
-			"type": "object",
-			"properties": {
+			  "$schema": "http://json-schema.org/draft-07/schema#",
+			  "title": "Helm",
+			  "description": "%s",
+			  "type": "object",
+			  "properties": {
+				"defaultNamespace": {
+				  "title": "Default Kubernetes Namespace",
+				  "description": "Namespace used if not explicitly specified during command execution.",
+				  "type": "string",
+				  "default": "default"
+				},
 				"helmDriver": {
-					"description": "Storage driver for Helm",
-					"type": "string",
-					"default": "secret",
-					"enum": ["configmap", "secret", "memory"]
-				},
-				"helmCacheDir": {
-					"description": "Path of the cache directory",
-					"type": "string",
-					"default": "/tmp/helm/.cache"
-				},
-				"helmConfigDir": {
-					"description": "Path of the configuration directory",
-					"type": "string",
-					"default": "/tmp/helm/"
+				  "title": "Storage driver",
+				  "description": "Storage driver for Helm.",
+				  "type": "string",
+				  "default": "secret",
+				  "oneOf": [
+					{
+					  "const": "configmap",
+					  "title": "ConfigMap"
+					},
+					{
+					  "const": "secret",
+					  "title": "Secret"
+					},
+					{
+					  "const": "memory",
+					  "title": "Memory"
+					}
+				  ]
 				}
-			},
-			"required": []
-		}`, description),
+			  },
+			  "required": []
+			}`, description),
 	}
 }

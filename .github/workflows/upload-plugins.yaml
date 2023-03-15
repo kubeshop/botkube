@@ -51,5 +51,10 @@ jobs:
       with:
           path: 'plugins-index.yaml'
           destination: 'botkube-plugins-latest/'
+    - name: Upload plugin index to GCS
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+        path: 'plugins-dev-index.yaml'
+        destination: 'botkube-plugins-latest/'
     - name: 'Disable caching'
       run: 'gsutil -m setmeta -h "Cache-Control: no-cache, no-store"  gs://botkube-plugins-latest/*'
