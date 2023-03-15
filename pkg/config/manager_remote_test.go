@@ -40,7 +40,7 @@ func TestPersistNotificationsEnabled(t *testing.T) {
 		},
 		{
 			Name:          "Received Success == false",
-			ErrMsg:        "failed to persist notifications config enabled=true for channel botkube",
+			ErrMsg:        "while persisting notifications config: while retrying: failed to persist notifications config enabled=true for channel botkube",
 			m:             newRemotePersistenceManager(`{"data": {"patchDeploymentConfig": false}}`),
 			commGroupName: "default",
 			platform:      DiscordCommPlatformIntegration,
@@ -49,7 +49,7 @@ func TestPersistNotificationsEnabled(t *testing.T) {
 		},
 		{
 			Name:   "Received error",
-			ErrMsg: "Message: this is an error, Locations: []",
+			ErrMsg: "while persisting notifications config: while retrying: Message: this is an error, Locations: []",
 			m: newRemotePersistenceManager(`{
 				"errors": [
 					{
@@ -102,7 +102,7 @@ func TestPersistSourceBindings(t *testing.T) {
 		},
 		{
 			Name:          "Received Success == false",
-			ErrMsg:        "failed to persist source bindings config sources=[aaa, bbb, ccc] for channel botkube",
+			ErrMsg:        "while persisting source bindings config: while retrying: failed to persist source bindings config sources=[aaa, bbb, ccc] for channel botkube",
 			m:             newRemotePersistenceManager(`{"data": {"patchDeploymentConfig": false}}`),
 			commGroupName: "default",
 			platform:      DiscordCommPlatformIntegration,
@@ -111,7 +111,7 @@ func TestPersistSourceBindings(t *testing.T) {
 		},
 		{
 			Name:   "Received error",
-			ErrMsg: "Message: this is an error, Locations: []",
+			ErrMsg: "while persisting source bindings config: while retrying: Message: this is an error, Locations: []",
 			m: newRemotePersistenceManager(`{
 				"errors": [
 					{
@@ -147,8 +147,9 @@ func newRemotePersistenceManager(resp string) *RemotePersistenceManager {
 	client := graphql.NewClient("/graphql", &http.Client{Transport: localRoundTripper{handler: mux}})
 
 	return &RemotePersistenceManager{
-		log: logrus.New(),
-		gql: &fakeGraphql{c: client},
+		log:          logrus.New(),
+		gql:          &fakeGraphql{c: client},
+		resVerClient: fakeVersionClient{},
 	}
 }
 
@@ -162,6 +163,12 @@ func (f *fakeGraphql) Client() *graphql.Client {
 
 func (f *fakeGraphql) DeploymentID() string {
 	return "10"
+}
+
+type fakeVersionClient struct{}
+
+func (fakeVersionClient) GetResourceVersion(ctx context.Context) (int, error) {
+	return 0, nil
 }
 
 // localRoundTripper is an http.RoundTripper that executes HTTP transactions
