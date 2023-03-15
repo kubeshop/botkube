@@ -137,6 +137,54 @@ func TestPersistSourceBindings(t *testing.T) {
 	}
 }
 
+func TestPersistAction(t *testing.T) {
+	testCases := []struct {
+		Name       string
+		ErrMsg     string
+		m          *RemotePersistenceManager
+		actionName string
+		enabled    bool
+	}{
+		{
+			Name:       "OK",
+			ErrMsg:     "",
+			m:          newRemotePersistenceManager(`{"data": {"patchDeploymentConfig": true}}`),
+			actionName: "action-1",
+			enabled:    true,
+		},
+		{
+			Name:       "Received Success == false",
+			ErrMsg:     "while persisting action: while retrying: failed to persist action action-1 enabled=true",
+			m:          newRemotePersistenceManager(`{"data": {"patchDeploymentConfig": false}}`),
+			actionName: "action-1",
+			enabled:    true,
+		},
+		{
+			Name:   "Received error",
+			ErrMsg: "while persisting action: while retrying: Message: this is an error, Locations: []",
+			m: newRemotePersistenceManager(`{
+				"errors": [
+					{
+						"message": "this is an error"
+					}
+				]
+			}`),
+			actionName: "action-1",
+			enabled:    true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			err := tc.m.PersistActionEnabled(context.TODO(), tc.actionName, tc.enabled)
+			if tc.ErrMsg != "" {
+				assert.EqualError(t, err, tc.ErrMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func newRemotePersistenceManager(resp string) *RemotePersistenceManager {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {

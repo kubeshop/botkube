@@ -92,7 +92,7 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 	})
 	logger.Debug("Updating source bindings configuration")
 
-	if _, ok := supportedPlatformsNotifications[platform]; !ok {
+	if _, ok := supportedPlatformsSourceBindings[platform]; !ok {
 		return ErrUnsupportedPlatform
 	}
 
@@ -133,7 +133,41 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 }
 
 func (m *RemotePersistenceManager) PersistActionEnabled(ctx context.Context, name string, enabled bool) error {
-	return errors.New("PersistActionEnabled is not implemented for GQL manager")
+	logger := m.log.WithFields(logrus.Fields{
+		"deploymentID":    m.gql.DeploymentID(),
+		"resourceVersion": m.getResourceVersion(),
+		"actionName":      name,
+		"enabled":         enabled,
+	})
+	logger.Debug("Updating action configuration")
+
+	err := m.withRetry(ctx, logger, func() error {
+		var mutation struct {
+			Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
+		}
+		variables := map[string]interface{}{
+			"id": graphql.ID(m.gql.DeploymentID()),
+			"input": remoteapi.PatchDeploymentConfigInput{
+				ResourceVersion: m.getResourceVersion(),
+				Action: &remoteapi.ActionPatchDeploymentConfigInput{
+					Name:    name,
+					Enabled: &enabled,
+				},
+			},
+		}
+		if err := m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+			return err
+		}
+
+		if !mutation.Success {
+			return fmt.Errorf("failed to persist action %s enabled=%t", name, enabled)
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "while persisting action")
+	}
+	return nil
 }
 
 func (m *RemotePersistenceManager) SetResourceVersion(resourceVersion int) {
