@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/avast/retry-go/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,8 +12,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/heartbeat"
 )
-
-const infiniteRetry = 0
 
 type K8sCollector struct {
 	k8sCli                  kubernetes.Interface
@@ -31,8 +28,16 @@ func NewK8sCollector(k8sCli kubernetes.Interface, reporter heartbeat.HeartbeatRe
 
 // Start collects k8s insights, and it returns error once it cannot collect k8s node count.
 func (k *K8sCollector) Start(ctx context.Context) error {
-	err := retry.Do(
-		func() error {
+	ticker := time.NewTicker(time.Duration(k.reportHeartbeatInterval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			k.logger.Info("Shutdown requested. Finishing...")
+			return nil
+		case <-ticker.C:
+			k.logger.Debug("Collecting Kubernetes insights")
 			list, err := k.k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 			if err != nil {
 				k.logger.Errorf("while getting node count: %w", err)
@@ -45,19 +50,8 @@ func (k *K8sCollector) Start(ctx context.Context) error {
 				}
 			}
 			if k.failureCount.Load() >= int32(k.maxRetries) {
-				return retry.Unrecoverable(errors.New("reached maximum limit of node count retrieval"))
+				return errors.New("reached maximum limit of node count retrieval")
 			}
-
-			return retry.Error{} // This triggers retry, and with Attempts(0), it infinitely collects information until unrecoverable error.
-		},
-		retry.Delay(time.Duration(k.reportHeartbeatInterval)*time.Second),
-		retry.DelayType(retry.FixedDelay),
-		retry.Attempts(infiniteRetry),
-		retry.LastErrorOnly(true),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		return errors.Wrap(err, "while retrying")
+		}
 	}
-	return nil
 }
