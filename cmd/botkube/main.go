@@ -30,6 +30,7 @@ import (
 	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/config/reloader"
 	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -50,12 +51,13 @@ import (
 )
 
 const (
-	componentLogFieldKey = "component"
-	botLogFieldKey       = "bot"
-	sinkLogFieldKey      = "sink"
-	commGroupFieldKey    = "commGroup"
-	healthEndpointName   = "/healthz"
-	printAPIKeyCharCount = 3
+	componentLogFieldKey    = "component"
+	botLogFieldKey          = "bot"
+	sinkLogFieldKey         = "sink"
+	commGroupFieldKey       = "commGroup"
+	healthEndpointName      = "/healthz"
+	printAPIKeyCharCount    = 3
+	reportHeartbeatInterval = 10
 )
 
 func main() {
@@ -394,8 +396,20 @@ func run(ctx context.Context) error {
 		return reportFatalError("while reporting botkube startup", err)
 	}
 
+	errGroup.Go(func() error {
+		defer func() {
+			err := reportFatalError("while starting k8s collector", err)
+			if err != nil {
+				logger.Errorf("while reporting fatal error %w", err)
+			}
+		}()
+		k8sCollector := insights.NewK8sCollector(k8sCli, statusReporter, logger, reportHeartbeatInterval)
+		return k8sCollector.Start(ctx)
+	})
+
 	healthChecker.MarkAsReady()
 	err = ctrl.Start(ctx)
+
 	if err != nil {
 		return reportFatalError("while starting controller", err)
 	}

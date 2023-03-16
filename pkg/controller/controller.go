@@ -53,7 +53,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	c.log.Info("Sending welcome message...")
 	err := notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(c.notifiers), fmt.Sprintf(controllerStartMsg, c.conf.Settings.ClusterName))
 	if err != nil {
-		return fmt.Errorf("while sending first message: %w", err)
+		return fmt.Errorf("while sending welcome message: %w", err)
 	}
 
 	stopCh := ctx.Done()

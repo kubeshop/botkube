@@ -5,7 +5,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alexflint/go-arg v1.4.3
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/avast/retry-go/v4 v4.3.3
 	github.com/aws/aws-sdk-go v1.44.122
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/dustin/go-humanize v1.0.0
@@ -41,7 +41,7 @@ require (
 	github.com/slack-go/slack v0.12.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spiffe/spire v1.5.3
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 	golang.org/x/sync v0.1.0
@@ -175,6 +175,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/goleak v1.2.1 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect

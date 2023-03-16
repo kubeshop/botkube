@@ -49,7 +49,7 @@ type RemoteConfigReloader struct {
 // Do starts the remote config reloader.
 func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 	u.log.Info("Starting...")
-
+	u.interval = time.Second * 10
 	ticker := time.NewTicker(u.interval)
 	defer ticker.Stop()
 
