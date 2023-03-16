@@ -23,10 +23,6 @@ func (n NoopStatusReporter) ReportDeploymentFailed(context.Context) error {
 func (n NoopStatusReporter) SetResourceVersion(int) {
 }
 
-func (n NoopStatusReporter) ReportHeartbeat(context.Context, DeploymentHeartbeatInput) error {
-	return nil
-}
-
 func newNoopStatusReporter() *NoopStatusReporter {
 	return &NoopStatusReporter{}
 }

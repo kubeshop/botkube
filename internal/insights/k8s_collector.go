@@ -2,6 +2,7 @@ package insights
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/internal/heartbeat"
 	"sync/atomic"
 	"time"
 
@@ -10,23 +11,21 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/kubeshop/botkube/internal/status"
 )
 
 const infiniteRetry = 0
 
 type K8sCollector struct {
 	k8sCli                  kubernetes.Interface
-	statusReporter          status.StatusReporter
+	heartbeatReporter       heartbeat.HeartbeatReporter
 	logger                  logrus.FieldLogger
 	reportHeartbeatInterval int
 	maxRetries              int
 	failureCount            atomic.Int32
 }
 
-func NewK8sCollector(k8sCli kubernetes.Interface, reporter status.StatusReporter, logger logrus.FieldLogger, interval, maxRetries int) *K8sCollector {
-	return &K8sCollector{k8sCli: k8sCli, statusReporter: reporter, logger: logger, reportHeartbeatInterval: interval, maxRetries: maxRetries}
+func NewK8sCollector(k8sCli kubernetes.Interface, reporter heartbeat.HeartbeatReporter, logger logrus.FieldLogger, interval, maxRetries int) *K8sCollector {
+	return &K8sCollector{k8sCli: k8sCli, heartbeatReporter: reporter, logger: logger, reportHeartbeatInterval: interval, maxRetries: maxRetries}
 }
 
 // Start collects k8s insights, and it returns error once it cannot collect k8s node count.
@@ -39,7 +38,7 @@ func (k *K8sCollector) Start(ctx context.Context) error {
 				k.failureCount.Add(1)
 			} else {
 				k.failureCount.Store(0)
-				err = k.statusReporter.ReportHeartbeat(ctx, status.DeploymentHeartbeatInput{NodeCount: len(list.Items)})
+				err = k.heartbeatReporter.ReportHeartbeat(ctx, heartbeat.DeploymentHeartbeatInput{NodeCount: len(list.Items)})
 				if err != nil {
 					k.logger.Errorf("while reporting heartbeat: %w", err)
 				}

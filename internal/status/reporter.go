@@ -15,7 +15,6 @@ type StatusReporter interface {
 	ReportDeploymentShutdown(ctx context.Context) error
 	ReportDeploymentFailed(ctx context.Context) error
 	SetResourceVersion(resourceVersion int)
-	ReportHeartbeat(ctx context.Context, heartBeat DeploymentHeartbeatInput) error
 }
 
 func GetReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql GraphQLClient, resVerClient ResVerClient, cfgVersion int) StatusReporter {

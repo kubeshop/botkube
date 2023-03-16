@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/heartbeat"
 	"log"
 	"net/http"
 	"time"
@@ -405,7 +406,8 @@ func run(ctx context.Context) error {
 				logger.Errorf("while reporting fatal error %w", err)
 			}
 		}()
-		k8sCollector := insights.NewK8sCollector(k8sCli, statusReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
+		heartbeatReporter := heartbeat.GetReporter(remoteCfgEnabled, logger, gqlClient)
+		k8sCollector := insights.NewK8sCollector(k8sCli, heartbeatReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
 		return k8sCollector.Start(ctx)
 	})
 

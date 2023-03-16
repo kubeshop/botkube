@@ -3,6 +3,7 @@ package insights_test
 import (
 	"context"
 	"errors"
+	"github.com/kubeshop/botkube/internal/heartbeat"
 	"testing"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/internal/status"
 )
 
 func Test_Start_Success(t *testing.T) {
@@ -33,9 +33,9 @@ func Test_Start_Success(t *testing.T) {
 	}
 
 	k8sCli := fake.NewSimpleClientset(&wrkNode1, &wrkNode2)
-	statusReporter := status.NoopStatusReporter{}
+	heartbeatReporter := heartbeat.NoopHeartbeatReporter{}
 
-	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1, 1)
+	collector := insights.NewK8sCollector(k8sCli, heartbeatReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 	err := collector.Start(ctx)
@@ -47,9 +47,9 @@ func Test_Start_Failed(t *testing.T) {
 	k8sCli.CoreV1().(*fake2.FakeCoreV1).PrependReactor("list", "nodes", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.NodeList{}, errors.New("error listing nodes")
 	})
-	statusReporter := status.NoopStatusReporter{}
+	heartbeatReporter := heartbeat.NoopHeartbeatReporter{}
 
-	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1, 1)
+	collector := insights.NewK8sCollector(k8sCli, heartbeatReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 	err := collector.Start(ctx)
