@@ -78,7 +78,6 @@ data:
   {{- $prevStartupCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $startupStateCfgMap | default dict }}
   {{- $prevStartupFile := index ( $prevStartupCfgMap.data | default dict ) .Values.settings.persistentConfig.startup.fileName | default "" | fromYaml -}}
   {{- $mergedStartupCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.communications )) (mustDeepCopy .Values.communications) }}
-  {{- $mergedStartupFilters := mustMergeOverwrite (mustDeepCopy (default (dict) $prevStartupFile.filters )) (mustDeepCopy (default (dict) .Values.filters)) }}
   # This file has a special prefix to load it as the last config file during Botkube startup.
   {{ .Values.settings.persistentConfig.startup.fileName }}: |
     communications:
@@ -98,6 +97,4 @@ data:
         {{/* MS Teams doesn't support notification configuration via Botkube commands. */}}
       {{- end }}
     {{- end }}
-    filters:
-      {{- $mergedStartupFilters | toYaml | nindent 6 }}
 

@@ -33,7 +33,6 @@ type DefaultExecutorFactory struct {
 	execExecutor          *ExecExecutor
 	sourceExecutor        *SourceExecutor
 	merger                *kubectl.Merger
-	cfgManager            ConfigPersistenceManager
 	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
@@ -46,7 +45,7 @@ type DefaultExecutorFactoryParams struct {
 	Cfg               config.Config
 	KcChecker         *kubectl.Checker
 	Merger            *kubectl.Merger
-	CfgManager        ConfigPersistenceManager
+	CfgManager        config.PersistenceManager
 	AnalyticsReporter AnalyticsReporter
 	NamespaceLister   NamespaceLister
 	CommandGuard      CommandGuard
@@ -58,13 +57,6 @@ type DefaultExecutorFactoryParams struct {
 // Executor is an interface for processes to execute commands
 type Executor interface {
 	Execute(context.Context) interactive.CoreMessage
-}
-
-// ConfigPersistenceManager manages persistence of the configuration.
-type ConfigPersistenceManager interface {
-	PersistSourceBindings(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, sourceBindings []string) error
-	PersistNotificationsEnabled(ctx context.Context, commGroupName string, platform config.CommPlatformIntegration, channelAlias string, enabled bool) error
-	PersistActionEnabled(ctx context.Context, name string, enabled bool) error
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
@@ -179,7 +171,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		execExecutor:          execExecutor,
 		sourceExecutor:        sourceExecutor,
 		merger:                params.Merger,
-		cfgManager:            params.CfgManager,
 		kubectlExecutor:       kcExecutor,
 		cmdsMapping:           mappings,
 		auditReporter:         params.AuditReporter,
@@ -226,7 +217,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		execExecutor:          f.execExecutor,
 		sourceExecutor:        f.sourceExecutor,
 		merger:                f.merger,
-		cfgManager:            f.cfgManager,
 		kubectlCmdBuilder:     f.kubectlCmdBuilder,
 		cmdsMapping:           f.cmdsMapping,
 		auditReporter:         f.auditReporter,

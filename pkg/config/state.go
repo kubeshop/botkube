@@ -65,7 +65,6 @@ type ChannelRuntimeBindings struct {
 // StartupState represents the startup state.
 type StartupState struct {
 	Communications map[string]CommunicationsStartupState `yaml:"communications,omitempty"`
-	Filters        Filters                               `yaml:"filters,omitempty"`
 }
 
 // MarshalToMap marshals the startup state to a string map.

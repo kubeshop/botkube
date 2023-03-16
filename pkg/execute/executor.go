@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/audit"
+	remoteapi "github.com/kubeshop/botkube/internal/remote"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -54,7 +55,6 @@ type DefaultExecutor struct {
 	platform              config.CommPlatformIntegration
 	conversation          Conversation
 	merger                *kubectl.Merger
-	cfgManager            ConfigPersistenceManager
 	commGroupName         string
 	user                  string
 	kubectlCmdBuilder     *KubectlCmdBuilder
@@ -297,7 +297,7 @@ func (e *DefaultExecutor) reportCommand(ctx context.Context, verb string, withFi
 }
 
 func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, cmdCtx CommandContext) error {
-	platform, err := audit.NewBotPlatform(cmdCtx.Platform.String())
+	platform, err := remoteapi.NewBotPlatform(cmdCtx.Platform.String())
 	if err != nil {
 		return err
 	}
