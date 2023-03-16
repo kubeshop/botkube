@@ -6,10 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DeploymentHeartbeatInput struct {
-	NodeCount int `json:"nodeCount"`
-}
-
 type StatusReporter interface {
 	ReportDeploymentStartup(ctx context.Context) error
 	ReportDeploymentShutdown(ctx context.Context) error

@@ -16,7 +16,7 @@ type HeartbeatReporter interface {
 
 func GetReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql GraphQLClient) HeartbeatReporter {
 	if remoteCfgEnabled {
-		return newGraphQLStatusReporter(
+		return newGraphQLHeartbeatReporter(
 			logger.WithField("component", "GraphQLHeartbeatReporter"),
 			gql,
 		)

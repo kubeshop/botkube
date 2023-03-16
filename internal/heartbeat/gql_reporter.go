@@ -21,7 +21,7 @@ type GraphQLHeartbeatReporter struct {
 	gql GraphQLClient
 }
 
-func newGraphQLStatusReporter(logger logrus.FieldLogger, client GraphQLClient) *GraphQLHeartbeatReporter {
+func newGraphQLHeartbeatReporter(logger logrus.FieldLogger, client GraphQLClient) *GraphQLHeartbeatReporter {
 	return &GraphQLHeartbeatReporter{
 		log: logger,
 		gql: client,
