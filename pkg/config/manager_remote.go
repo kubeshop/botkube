@@ -3,11 +3,11 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
