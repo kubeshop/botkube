@@ -51,13 +51,14 @@ import (
 )
 
 const (
-	componentLogFieldKey    = "component"
-	botLogFieldKey          = "bot"
-	sinkLogFieldKey         = "sink"
-	commGroupFieldKey       = "commGroup"
-	healthEndpointName      = "/healthz"
-	printAPIKeyCharCount    = 3
-	reportHeartbeatInterval = 10
+	componentLogFieldKey      = "component"
+	botLogFieldKey            = "bot"
+	sinkLogFieldKey           = "sink"
+	commGroupFieldKey         = "commGroup"
+	healthEndpointName        = "/healthz"
+	printAPIKeyCharCount      = 3
+	reportHeartbeatInterval   = 10
+	reportHeartbeatMaxRetries = 30
 )
 
 func main() {
@@ -403,7 +404,7 @@ func run(ctx context.Context) error {
 				logger.Errorf("while reporting fatal error %w", err)
 			}
 		}()
-		k8sCollector := insights.NewK8sCollector(k8sCli, statusReporter, logger, reportHeartbeatInterval)
+		k8sCollector := insights.NewK8sCollector(k8sCli, statusReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
 		return k8sCollector.Start(ctx)
 	})
 

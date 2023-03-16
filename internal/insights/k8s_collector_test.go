@@ -35,7 +35,7 @@ func Test_Start_Success(t *testing.T) {
 	k8sCli := fake.NewSimpleClientset(&wrkNode1, &wrkNode2)
 	statusReporter := status.NoopStatusReporter{}
 
-	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1)
+	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 	err := collector.Start(ctx)
@@ -49,9 +49,9 @@ func Test_Start_Failed(t *testing.T) {
 	})
 	statusReporter := status.NoopStatusReporter{}
 
-	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1)
+	collector := insights.NewK8sCollector(k8sCli, statusReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 	err := collector.Start(ctx)
-	assert.Equal(t, err.Error(), "while retrying: while getting node count: error listing nodes")
+	assert.Contains(t, err.Error(), "reached maximum limit of node count retrieval")
 }
