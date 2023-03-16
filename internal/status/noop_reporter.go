@@ -8,19 +8,21 @@ var _ StatusReporter = (*NoopStatusReporter)(nil)
 
 type NoopStatusReporter struct{}
 
+func (n NoopStatusReporter) ReportDeploymentStartup(context.Context) error {
+	return nil
+}
+
+func (n NoopStatusReporter) ReportDeploymentShutdown(context.Context) error {
+	return nil
+}
+
+func (n NoopStatusReporter) ReportDeploymentFailed(context.Context) error {
+	return nil
+}
+
+func (n NoopStatusReporter) SetResourceVersion(int) {
+}
+
 func newNoopStatusReporter() *NoopStatusReporter {
 	return &NoopStatusReporter{}
 }
-func (r *NoopStatusReporter) ReportDeploymentStartup(context.Context) error {
-	return nil
-}
-
-func (r *NoopStatusReporter) ReportDeploymentShutdown(context.Context) error {
-	return nil
-}
-
-func (r *NoopStatusReporter) ReportDeploymentFailed(context.Context) error {
-	return nil
-}
-
-func (r *NoopStatusReporter) SetResourceVersion(int) {}
