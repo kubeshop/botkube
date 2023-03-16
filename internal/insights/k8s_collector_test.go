@@ -3,7 +3,6 @@ package insights_test
 import (
 	"context"
 	"errors"
-	"github.com/kubeshop/botkube/internal/heartbeat"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	fake2 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	testing2 "k8s.io/client-go/testing"
 
+	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/loggerx"
 )

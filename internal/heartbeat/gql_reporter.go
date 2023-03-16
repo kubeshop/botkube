@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"context"
+
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
