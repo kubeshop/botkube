@@ -151,7 +151,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return reportFatalError("while creating K8s clientset", err)
 	}
-	err = reporter.RegisterCurrentIdentity(ctx, k8sCli)
+	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, remoteCfg.Identifier)
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}

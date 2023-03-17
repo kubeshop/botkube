@@ -11,6 +11,34 @@
 				"buildDate": "unknown"
 			},
 			"controlPlaneNodeCount": 2,
+			"deploymentID": "",
+			"k8sVersion": {
+				"major": "k8s-major",
+				"minor": "k8s-minor",
+				"gitVersion": "k8s-git-version",
+				"gitCommit": "k8s-git-commit",
+				"gitTreeState": "k8s-git-tree-state",
+				"buildDate": "k8s-build-date",
+				"goVersion": "k8s-go-version",
+				"compiler": "k8s-compiler",
+				"platform": "k8s-platform"
+			},
+			"workerNodeCount": 3
+		}
+	},
+	{
+		"type": "identify",
+		"messageId": "1",
+		"anonymousId": "ff68560b-44e8-4b0d-880b-e114f5d15933",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"traits": {
+			"botkubeVersion": {
+				"version": "dev",
+				"gitCommit": "none",
+				"buildDate": "unknown"
+			},
+			"controlPlaneNodeCount": 2,
+			"deploymentID": "remote-deploy-id",
 			"k8sVersion": {
 				"major": "k8s-major",
 				"minor": "k8s-minor",

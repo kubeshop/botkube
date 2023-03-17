@@ -20,7 +20,7 @@ func NewNoopReporter() *NoopReporter {
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
-func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.Interface) error {
+func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.Interface, _ string) error {
 	return nil
 }
 
