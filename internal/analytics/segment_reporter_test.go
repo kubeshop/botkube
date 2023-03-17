@@ -82,12 +82,15 @@ func TestSegmentReporter_RegisterCurrentIdentity(t *testing.T) {
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(nil)
 
 	// when
-	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli)
+	err := segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli, "")
+	require.NoError(t, err)
+	err = segmentReporter.RegisterCurrentIdentity(context.Background(), k8sCli, "remote-deploy-id")
 	require.NoError(t, err)
 
 	// then
 	identity := segmentReporter.Identity()
-	assert.Equal(t, string(kubeSystemNs.UID), identity.ID)
+	assert.Equal(t, string(kubeSystemNs.UID), identity.AnonymousID)
+	assert.Equal(t, "remote-deploy-id", identity.DeploymentID)
 
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
 }
@@ -260,7 +263,7 @@ func compareMessagesAgainstGoldenFile(t *testing.T, actualMessages []segment.Mes
 
 func fixIdentity() *analytics.Identity {
 	return &analytics.Identity{
-		ID: "cluster-id",
+		AnonymousID: "cluster-id",
 		KubernetesVersion: k8sVersion.Info{
 			Major:        "k8s-major",
 			Minor:        "k8s-minor",

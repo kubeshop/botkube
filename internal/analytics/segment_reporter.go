@@ -49,10 +49,14 @@ func NewSegmentReporter(log logrus.FieldLogger, cli segment.Client) *SegmentRepo
 }
 
 // RegisterCurrentIdentity loads the current anonymous identity and registers it.
-func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface) error {
+func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, remoteDeployID string) error {
 	currentIdentity, err := r.load(ctx, k8sCli)
 	if err != nil {
 		return fmt.Errorf("while loading current identity: %w", err)
+	}
+
+	if remoteDeployID != "" {
+		currentIdentity.DeploymentID = remoteDeployID
 	}
 
 	err = r.registerIdentity(currentIdentity)
@@ -125,7 +129,7 @@ func (r *SegmentReporter) ReportFatalError(err error) error {
 
 	var anonymousID string
 	if r.identity != nil {
-		anonymousID = r.identity.ID
+		anonymousID = r.identity.AnonymousID
 	} else {
 		anonymousID = unknownIdentityID
 		properties["unknownIdentity"] = true
@@ -156,7 +160,7 @@ func (r *SegmentReporter) reportEvent(event string, properties map[string]interf
 	}
 
 	err := r.cli.Enqueue(segment.Track{
-		AnonymousId: r.identity.ID,
+		AnonymousId: r.identity.AnonymousID,
 		Event:       event,
 		Properties:  properties,
 	})
@@ -169,7 +173,7 @@ func (r *SegmentReporter) reportEvent(event string, properties map[string]interf
 
 func (r *SegmentReporter) registerIdentity(identity Identity) error {
 	err := r.cli.Enqueue(segment.Identify{
-		AnonymousId: identity.ID,
+		AnonymousId: identity.AnonymousID,
 		Traits:      identity.TraitsMap(),
 	})
 	if err != nil {
@@ -200,7 +204,7 @@ func (r *SegmentReporter) load(ctx context.Context, k8sCli kubernetes.Interface)
 	}
 
 	return Identity{
-		ID:                    clusterID,
+		AnonymousID:           clusterID,
 		KubernetesVersion:     *k8sServerVersion,
 		BotkubeVersion:        version.Info(),
 		WorkerNodeCount:       workerNodeCount,
