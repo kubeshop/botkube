@@ -8,6 +8,8 @@ import (
 	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -16,19 +18,25 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const (
+	kubeconfigDefaultValue = "default"
+)
+
 // PluginExecutor provides functionality to run registered Botkube plugins.
 type PluginExecutor struct {
 	log           logrus.FieldLogger
 	cfg           config.Config
 	pluginManager *plugin.Manager
+	restCfg       *rest.Config
 }
 
 // NewPluginExecutor creates a new instance of PluginExecutor.
-func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager) *PluginExecutor {
+func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg *rest.Config) *PluginExecutor {
 	return &PluginExecutor{
 		log:           log,
 		cfg:           cfg,
 		pluginManager: manager,
+		restCfg:       restCfg,
 	}
 }
 
@@ -71,6 +79,11 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, fmt.Errorf("while collecting configs: %w", err)
 	}
 
+	kubeconfig, err := e.generateKubeConfig(plugins[0].Context.RBAC)
+	if err != nil {
+		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)
+	}
+
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
@@ -82,6 +95,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		Context: executor.ExecuteInputContext{
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
 			SlackState:               slackState,
+			KubeConfig:               kubeconfig,
 		},
 	})
 	if err != nil {
@@ -233,4 +247,40 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 	}
 
 	return out, fullPluginName
+}
+
+func (e *PluginExecutor) generateKubeConfig(rbac config.PolicyRule) (string, error) {
+	apiCfg := clientcmdapi.Config{
+		Kind:       "Config",
+		APIVersion: "v1",
+		Clusters: map[string]*clientcmdapi.Cluster{
+			kubeconfigDefaultValue: {
+				Server:               e.restCfg.Host,
+				CertificateAuthority: e.restCfg.CAFile,
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			kubeconfigDefaultValue: {
+				Cluster:   kubeconfigDefaultValue,
+				Namespace: kubeconfigDefaultValue,
+				AuthInfo:  kubeconfigDefaultValue,
+			},
+		},
+		CurrentContext: kubeconfigDefaultValue,
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{
+			kubeconfigDefaultValue: {
+				Token:             e.restCfg.BearerToken,
+				TokenFile:         e.restCfg.BearerTokenFile,
+				Impersonate:       rbac.User.Static.Value, // TODO: generate dynamically
+				ImpersonateGroups: rbac.Group.Static.Values,
+			},
+		},
+	}
+
+	yamlKubeConfig, err := yaml.Marshal(apiCfg)
+	if err != nil {
+		return "", err
+	}
+
+	return string(yamlKubeConfig), nil
 }

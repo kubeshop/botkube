@@ -104,6 +104,11 @@ func run(ctx context.Context) error {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 
+	restCfg, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
 	statusReporter := status.GetReporter(remoteCfgEnabled, logger, gqlClient, deployClient, cfgVersion)
 	auditReporter := audit.GetReporter(remoteCfgEnabled, logger, gqlClient)
 
@@ -211,6 +216,7 @@ func run(ctx context.Context) error {
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
 			BotKubeVersion:    botkubeVersion,
+			RestCfg:           restCfg,
 			AuditReporter:     auditReporter,
 		},
 	)

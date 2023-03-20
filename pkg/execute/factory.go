@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
+	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/audit"
 	guard "github.com/kubeshop/botkube/internal/command"
@@ -50,6 +51,7 @@ type DefaultExecutorFactoryParams struct {
 	NamespaceLister   NamespaceLister
 	CommandGuard      CommandGuard
 	PluginManager     *plugin.Manager
+	RestCfg           *rest.Config
 	BotKubeVersion    string
 	AuditReporter     audit.AuditReporter
 }
@@ -160,6 +162,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 			params.Log.WithField("component", "Botkube Plugin Executor"),
 			params.Cfg,
 			params.PluginManager,
+			params.RestCfg,
 		),
 		sourceBindingExecutor: sourceBindingExecutor,
 		actionExecutor:        actionExecutor,

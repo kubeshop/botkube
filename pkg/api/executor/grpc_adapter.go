@@ -36,6 +36,9 @@ type (
 		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
 		IsInteractivitySupported bool
 
+		// KubeConfig is the path to kubectl configuration file.
+		KubeConfig string
+
 		// SlackState represents modal state. It's available only if:
 		//  - IsInteractivitySupported is set to true,
 		//  - and interactive actions were used in the response Message.
@@ -192,6 +195,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 		Context: ExecuteInputContext{
 			SlackState:               &slackState,
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,
+			KubeConfig:               request.Context.KubeConfig,
 		},
 	})
 	if err != nil {
