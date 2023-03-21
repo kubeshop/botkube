@@ -543,7 +543,7 @@ type fakeKcExecutor struct {
 	defaultNamespace string
 }
 
-func (r *fakeKcExecutor) RunKubectlCommand(_ context.Context, defaultNamespace, cmd string) (string, error) {
+func (r *fakeKcExecutor) RunKubectlCommand(_ context.Context, kubeConfigPath, defaultNamespace, cmd string) (string, error) {
 	r.defaultNamespace = defaultNamespace
 	r.command = cmd
 
@@ -552,7 +552,7 @@ func (r *fakeKcExecutor) RunKubectlCommand(_ context.Context, defaultNamespace, 
 
 type fakeErrorKcExecutor struct{}
 
-func (r *fakeErrorKcExecutor) RunKubectlCommand(context.Context, string, string) (string, error) {
+func (r *fakeErrorKcExecutor) RunKubectlCommand(context.Context, string, string, string) (string, error) {
 	return "", errors.New("fake error")
 }
 

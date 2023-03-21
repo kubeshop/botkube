@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -284,7 +285,7 @@ func (e *Kubectl) tryToGetResourceNamesSelect(ctx context.Context, state stateDe
 	}
 	e.log.Infof("Run cmd %q", cmd)
 
-	out, err := e.kcRunner.RunKubectlCommand(ctx, e.defaultNamespace, cmd)
+	out, err := e.kcRunner.RunKubectlCommand(ctx, os.Getenv("KUBECONFIG"), e.defaultNamespace, cmd)
 	if err != nil {
 		e.log.WithField("error", err.Error()).Error("Cannot fetch resource names. Returning empty resource name dropdown.")
 		return EmptyResourceNameDropdown()

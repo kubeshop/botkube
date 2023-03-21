@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -69,7 +69,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
-	}).Debugf("Handling plugin command...")
+	}).Debug("Handling plugin command...")
 
 	cmdName := cmdCtx.Args[0]
 	plugins, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
@@ -256,26 +256,35 @@ func (e *PluginExecutor) generateKubeConfig(rbac *config.PolicyRule) ([]byte, er
 	apiCfg := clientcmdapi.Config{
 		Kind:       "Config",
 		APIVersion: "v1",
-		Clusters: map[string]*clientcmdapi.Cluster{
-			kubeconfigDefaultValue: {
-				Server:               e.restCfg.Host,
-				CertificateAuthority: e.restCfg.CAFile,
+		Clusters: []clientcmdapi.NamedCluster{
+			{
+				Name: kubeconfigDefaultValue,
+				Cluster: clientcmdapi.Cluster{
+					Server:               e.restCfg.Host,
+					CertificateAuthority: e.restCfg.CAFile,
+				},
 			},
 		},
-		Contexts: map[string]*clientcmdapi.Context{
-			kubeconfigDefaultValue: {
-				Cluster:   kubeconfigDefaultValue,
-				Namespace: kubeconfigDefaultValue,
-				AuthInfo:  kubeconfigDefaultValue,
+		Contexts: []clientcmdapi.NamedContext{
+			{
+				Name: kubeconfigDefaultValue,
+				Context: clientcmdapi.Context{
+					Cluster:   kubeconfigDefaultValue,
+					Namespace: kubeconfigDefaultValue,
+					AuthInfo:  kubeconfigDefaultValue,
+				},
 			},
 		},
 		CurrentContext: kubeconfigDefaultValue,
-		AuthInfos: map[string]*clientcmdapi.AuthInfo{
-			kubeconfigDefaultValue: {
-				Token:             e.restCfg.BearerToken,
-				TokenFile:         e.restCfg.BearerTokenFile,
-				Impersonate:       generateUserSubject(rbac.User),
-				ImpersonateGroups: generateGroupSubject(rbac.Group),
+		AuthInfos: []clientcmdapi.NamedAuthInfo{
+			{
+				Name: kubeconfigDefaultValue,
+				AuthInfo: clientcmdapi.AuthInfo{
+					Token:             e.restCfg.BearerToken,
+					TokenFile:         e.restCfg.BearerTokenFile,
+					Impersonate:       generateUserSubject(rbac.User),
+					ImpersonateGroups: generateGroupSubject(rbac.Group),
+				},
 			},
 		},
 	}

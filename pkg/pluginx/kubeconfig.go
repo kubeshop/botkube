@@ -27,7 +27,7 @@ func PersistKubeConfig(ctx context.Context, kc []byte) (string, func(context.Con
 	}
 
 	deleteFn := func(context.Context) error {
-		return os.Remove(abs)
+		return os.RemoveAll(abs)
 	}
 
 	return abs, deleteFn, nil

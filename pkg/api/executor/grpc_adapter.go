@@ -118,6 +118,7 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 		Configs: in.Configs,
 		Context: &ExecuteContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+			KubeConfig:               in.Context.KubeConfig,
 		},
 	}
 
