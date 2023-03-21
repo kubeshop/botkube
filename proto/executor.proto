@@ -23,7 +23,7 @@ message ExecuteRequest {
 message ExecuteContext {
 	bool isInteractivitySupported = 1;
 	bytes slackState = 2;
-	string kubeConfig = 3;
+	bytes kubeConfig = 3;
 }
 
 message ExecuteResponse {

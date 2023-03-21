@@ -302,7 +302,7 @@ type Plugin struct {
 // PluginContext defines the context for given plugin.
 type PluginContext struct {
 	// RBAC defines the RBAC rules for given plugin.
-	RBAC PolicyRule `yaml:"rbac"`
+	RBAC *PolicyRule `yaml:"rbac"`
 }
 
 // PolicyRule is the RBAC rule.

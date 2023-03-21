@@ -102,7 +102,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		Context: source.StreamInputContext{
 			IsInteractivitySupported: dispatch.isInteractivitySupported,
 			ClusterName:              dispatch.cfg.Settings.ClusterName,
-			KubeConfig:               dispatch.cfg.Settings.Kubeconfig,
+			KubeConfig:               []byte(dispatch.cfg.Settings.Kubeconfig),
 		},
 	})
 	if err != nil {

@@ -35,7 +35,7 @@ type (
 		IsInteractivitySupported bool
 
 		// KubeConfig is the path to kubectl configuration file.
-		KubeConfig string
+		KubeConfig []byte
 
 		// ClusterName is the name of underlying Kubernetes cluster which is provided by end user.
 		ClusterName string
@@ -126,7 +126,7 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 		Configs: in.Configs,
 		Context: &StreamContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
-			KubeConfig:               in.Context.KubeConfig,
+			KubeConfigBytes:          in.Context.KubeConfig,
 			ClusterName:              in.Context.ClusterName,
 		},
 	}
@@ -218,7 +218,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 		Configs: req.Configs,
 		Context: StreamInputContext{
 			IsInteractivitySupported: req.Context.IsInteractivitySupported,
-			KubeConfig:               req.Context.KubeConfig,
+			KubeConfig:               req.Context.KubeConfigBytes,
 			ClusterName:              req.Context.ClusterName,
 		},
 	})

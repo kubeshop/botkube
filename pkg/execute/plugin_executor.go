@@ -249,7 +249,10 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 	return out, fullPluginName
 }
 
-func (e *PluginExecutor) generateKubeConfig(rbac config.PolicyRule) (string, error) {
+func (e *PluginExecutor) generateKubeConfig(rbac *config.PolicyRule) ([]byte, error) {
+	if rbac == nil {
+		return nil, nil
+	}
 	apiCfg := clientcmdapi.Config{
 		Kind:       "Config",
 		APIVersion: "v1",
@@ -271,16 +274,34 @@ func (e *PluginExecutor) generateKubeConfig(rbac config.PolicyRule) (string, err
 			kubeconfigDefaultValue: {
 				Token:             e.restCfg.BearerToken,
 				TokenFile:         e.restCfg.BearerTokenFile,
-				Impersonate:       rbac.User.Static.Value, // TODO: generate dynamically
-				ImpersonateGroups: rbac.Group.Static.Values,
+				Impersonate:       generateUserSubject(rbac.User),
+				ImpersonateGroups: generateGroupSubject(rbac.Group),
 			},
 		},
 	}
 
 	yamlKubeConfig, err := yaml.Marshal(apiCfg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(yamlKubeConfig), nil
+	return yamlKubeConfig, nil
+}
+
+func generateUserSubject(rbac config.UserPolicySubject) (user string) {
+	switch rbac.Type {
+	case config.StaticPolicySubjectType:
+		user = rbac.Prefix + rbac.Static.Value
+	}
+	return
+}
+
+func generateGroupSubject(rbac config.GroupPolicySubject) (group []string) {
+	switch rbac.Type {
+	case config.StaticPolicySubjectType:
+		for _, value := range rbac.Static.Values {
+			group = append(group, rbac.Prefix+value)
+		}
+	}
+	return
 }

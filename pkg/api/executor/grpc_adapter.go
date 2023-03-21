@@ -37,7 +37,7 @@ type (
 		IsInteractivitySupported bool
 
 		// KubeConfig is the path to kubectl configuration file.
-		KubeConfig string
+		KubeConfig []byte
 
 		// SlackState represents modal state. It's available only if:
 		//  - IsInteractivitySupported is set to true,

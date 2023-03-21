@@ -20,8 +20,11 @@ message StreamRequest {
 
 message StreamContext {
 	bool isInteractivitySupported = 1;
+	// kubeConfig is path to kubeConfig on local FS
 	string kubeConfig = 2;
 	string clusterName = 3;
+	// kubeConfigBytes is kubeConfig represented in bytes
+	bytes kubeConfigBytes = 4;
 }
 
 message StreamResponse {
