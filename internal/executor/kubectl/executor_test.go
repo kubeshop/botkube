@@ -65,6 +65,9 @@ func TestSetDefaultNamespace(t *testing.T) {
 						RawYAML: []byte(tc.givenConfig),
 					},
 				},
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then
@@ -107,6 +110,9 @@ func TestSetOptionsCommand(t *testing.T) {
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then
@@ -153,6 +159,9 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 			// when
 			out, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then

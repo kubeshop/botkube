@@ -13,6 +13,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 )
 
+const kc = "KUBECONFIG"
+
 func TestExecutorHelmInstall(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -60,6 +62,9 @@ func TestExecutorHelmInstall(t *testing.T) {
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.inputCommand,
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then
@@ -68,6 +73,10 @@ func TestExecutorHelmInstall(t *testing.T) {
 			assert.Equal(t, execOutput, out.Data)
 
 			assert.Equal(t, tc.expCommand, gotCmd)
+
+			_, ok := gotEnvs[kc]
+			assert.Equal(t, true, ok)
+			delete(gotEnvs, kc)
 			assert.Equal(t, map[string]string{
 				"HELM_DRIVER":      "secret",
 				"HELM_CACHE_HOME":  "/tmp/helm/.cache",
@@ -108,6 +117,9 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.inputCommand,
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then
@@ -145,6 +157,9 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.inputCommand,
+				Context: executor.ExecuteInputContext{
+					KubeConfig: []byte("not empty"),
+				},
 			})
 
 			// then
@@ -181,11 +196,17 @@ func TestExecutorConfigMerging(t *testing.T) {
 				RawYAML: mustYAMLMarshal(t, configB),
 			},
 		},
+		Context: executor.ExecuteInputContext{
+			KubeConfig: []byte("not empty"),
+		},
 	})
 
 	// then
 	require.NoError(t, err)
 
+	_, ok := gotEnvs[kc]
+	assert.Equal(t, true, ok)
+	delete(gotEnvs, kc)
 	assert.Equal(t, map[string]string{
 		"HELM_DRIVER":      "secret",
 		"HELM_CACHE_HOME":  "/tmp/helm/.cache",

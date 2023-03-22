@@ -437,7 +437,6 @@ sources:
     ## Prometheus source configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/prometheus:
-      context: *defaultExecutorContext
       # -- If true, enables `prometheus` source.
       enabled: false
       config:

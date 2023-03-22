@@ -112,7 +112,9 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
 	}
-	defer deleteFn(ctx)
+	defer func() {
+		_ = deleteFn(ctx)
+	}()
 
 	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
 	if err != nil {
