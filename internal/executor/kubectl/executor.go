@@ -108,11 +108,11 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		}, nil
 	}
 
-	kubeConfigPath, _, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
 	}
-	// defer deleteFn(ctx)
+	defer deleteFn(ctx)
 
 	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
 	if err != nil {
