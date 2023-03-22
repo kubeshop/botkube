@@ -71,8 +71,11 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Sou
 			DeploymentID: r.gql.DeploymentID(),
 			Type:         remoteapi.AuditEventTypeSourceEventEmitted,
 			SourceEventEmitted: &remoteapi.AuditEventSourceCreateInput{
-				Event:    e.Event,
-				Bindings: e.Bindings,
+				Event: e.Event,
+				Source: remoteapi.AuditEventSourceDetailsInput{
+					Name:        e.Source.Name,
+					DisplayName: e.Source.DisplayName,
+				},
 			},
 		},
 	}

@@ -51,6 +51,7 @@ type Mattermost struct {
 	reporter        AnalyticsReporter
 	serverURL       string
 	botName         string
+	botUserID       string
 	teamName        string
 	webSocketURL    string
 	wsClient        *model.WebSocketClient
@@ -109,12 +110,18 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
+	botUserID, err := getBotUserID(client, botTeam.Id, cfg.BotName)
+	if err != nil {
+		return nil, fmt.Errorf("while getting bot user ID: %w", err)
+	}
+
 	return &Mattermost{
 		log:             log,
 		executorFactory: executorFactory,
 		reporter:        reporter,
 		serverURL:       cfg.URL,
 		botName:         cfg.BotName,
+		botUserID:       botUserID,
 		teamName:        cfg.Team,
 		apiClient:       client,
 		webSocketURL:    webSocketURL,
@@ -206,6 +213,11 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 		return fmt.Errorf("while getting post from event: %w", err)
 	}
 
+	// Skip if message posted by Botkube
+	if post.UserId == b.botUserID {
+		return nil
+	}
+
 	// Handle message only if starts with mention
 	trimmedMsg, found := b.findAndTrimBotMention(post.Message)
 	if !found {
@@ -219,17 +231,27 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 	channel, exists := b.getChannels()[channelID]
 	mm.IsAuthChannel = exists
 
+	user, _, err := b.apiClient.GetUser(post.UserId, "")
+	if err != nil {
+		b.log.Errorf("while getting user with ID %q: %s", post.UserId, err.Error())
+	}
+
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
 			Alias:            channel.alias,
+			DisplayName:      channel.name,
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  mm.IsAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
+		},
+		User: execute.UserInput{
+			//Mention:     "", // not used currently
+			DisplayName: user.Username,
 		},
 		Message: req,
 	})
@@ -321,24 +343,6 @@ func (b *Mattermost) checkServerConnection() error {
 	return nil
 }
 
-// Check if team exists in Mattermost
-func (b *Mattermost) getTeam() *model.Team {
-	botTeam, _, err := b.apiClient.GetTeamByName(b.teamName, "")
-	if err != nil {
-		b.log.Fatalf("There was a problem finding Mattermost team %s. %s", b.teamName, err)
-	}
-	return botTeam
-}
-
-// Check if Botkube user exists in Mattermost
-func (b *Mattermost) getUser() *model.User {
-	users, _, err := b.apiClient.AutocompleteUsersInTeam(b.getTeam().Id, b.botName, 1, "")
-	if err != nil {
-		b.log.Fatalf("There was a problem finding Mattermost user %s. %s", b.botName, err)
-	}
-	return users.Users[0]
-}
-
 func (b *Mattermost) listen(ctx context.Context) {
 	b.wsClient.Listen()
 	defer b.wsClient.Close()
@@ -367,21 +371,11 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			post, err := postFromEvent(event)
-			if err != nil {
-				continue
-			}
-
-			// Skip if message posted by Botkube or doesn't start with mention
-			if post.UserId == b.getUser().Id {
-				continue
-			}
-
 			mm := &mattermostMessage{
 				Event:         event,
 				IsAuthChannel: false,
 			}
-			err = b.handleMessage(ctx, mm)
+			err := b.handleMessage(ctx, mm)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while handling message: %w", err)
 				b.log.Errorf(wrappedErr.Error())
@@ -458,6 +452,18 @@ func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
 	b.channels = channels
 }
 
+func getBotUserID(client *model.Client4, teamID, botName string) (string, error) {
+	users, _, err := client.AutocompleteUsersInTeam(teamID, botName, 1, "")
+	if err != nil {
+		return "", fmt.Errorf("while getting user with name %q: %w", botName, err)
+	}
+	if users == nil || len(users.Users) == 0 || users.Users[0] == nil {
+		return "", fmt.Errorf("user with name %q not found", botName)
+	}
+
+	return users.Users[0].Id, nil
+}
+
 func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
@@ -473,6 +479,7 @@ func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg
 			},
 			alias:  channAlias,
 			notify: !channCfg.Notification.Disabled,
+			name:   channCfg.Identifier(),
 		}
 	}
 

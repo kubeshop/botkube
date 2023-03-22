@@ -111,6 +111,10 @@ func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEvent) error {
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportHandledEventError(event ReportEvent, err error) error {
+	if err == nil {
+		return nil
+	}
+
 	return r.reportEvent("Event handled", map[string]interface{}{
 		"platform": event.Platform,
 		"type":     event.IntegrationType,
@@ -123,6 +127,10 @@ func (r *SegmentReporter) ReportHandledEventError(event ReportEvent, err error) 
 // ReportFatalError reports a fatal app error.
 // It doesn't need a registered identity.
 func (r *SegmentReporter) ReportFatalError(err error) error {
+	if err == nil {
+		return nil
+	}
+
 	properties := map[string]interface{}{
 		"error": err.Error(),
 	}

@@ -67,7 +67,10 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
 	}
 
-	channelsCfg := discordChannelsConfigFrom(cfg.Channels)
+	channelsCfg, err := discordChannelsConfigFrom(api, cfg.Channels)
+	if err != nil {
+		return nil, fmt.Errorf("while creating Discord channels config: %w", err)
+	}
 
 	return &Discord{
 		log:             log,
@@ -218,13 +221,13 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	b.log.Debugf("Discord incoming Request: %s", req)
 
 	channel, isAuthChannel := b.getChannels()[dm.Event.ChannelID]
-
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
 			Alias:            channel.alias,
+			DisplayName:      channel.name,
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
@@ -232,7 +235,10 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: req,
-		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),
+		User: execute.UserInput{
+			Mention:     fmt.Sprintf("<@%s>", dm.Event.Author.ID),
+			DisplayName: dm.Event.Author.String(),
+		},
 	})
 
 	response := e.Execute(ctx)
@@ -329,17 +335,23 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 	}, nil
 }
 
-func discordChannelsConfigFrom(channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) map[string]channelConfigByID {
+func discordChannelsConfigFrom(api *discordgo.Session, channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
+		channelData, err := api.Channel(channCfg.Identifier())
+		if err != nil {
+			return nil, fmt.Errorf("while getting channel name for ID %q: %w", channCfg.Identifier(), err)
+		}
+
 		res[channCfg.Identifier()] = channelConfigByID{
 			ChannelBindingsByID: channCfg,
 			alias:               channAlias,
 			notify:              !channCfg.Notification.Disabled,
+			name:                channelData.Name,
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func discordBotMentionRegex(botID string) (*regexp.Regexp, error) {

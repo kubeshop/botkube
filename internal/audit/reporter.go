@@ -19,7 +19,7 @@ type ExecutorAuditEvent struct {
 	CreatedAt    string
 	PluginName   string
 	PlatformUser string
-	BotPlatform  remoteapi.BotPlatform
+	BotPlatform  *remoteapi.BotPlatform
 	Command      string
 	Channel      string
 }
@@ -29,7 +29,12 @@ type SourceAuditEvent struct {
 	CreatedAt  string
 	PluginName string
 	Event      string
-	Bindings   []string
+	Source     SourceDetails
+}
+
+type SourceDetails struct {
+	Name        string
+	DisplayName string
 }
 
 // GetReporter creates new AuditReporter

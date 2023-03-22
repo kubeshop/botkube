@@ -89,6 +89,7 @@ func TestProvider_RenderedActionsForEvent(t *testing.T) {
 func TestProvider_ExecuteEventAction(t *testing.T) {
 	// given
 	botName := "my-bot"
+	userName := `Automation "Test"`
 	executorBindings := []string{"executor-binding1", "executor-binding2"}
 	eventAction := event.Action{
 		Command:          "kubectl get po foo",
@@ -96,18 +97,21 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 		DisplayName:      "Test",
 	}
 	expectedExecutorInput := execute.NewDefaultInput{
-		CommGroupName:   "unknown",
-		Platform:        "unknown",
+		CommGroupName:   "n/a",
+		Platform:        "n/a",
 		NotifierHandler: nil, // won't check it
 		Conversation: execute.Conversation{
-			Alias:            "unknown",
-			ID:               "unknown",
+			Alias:            "n/a",
+			ID:               "n/a",
 			ExecutorBindings: executorBindings,
 			IsAuthenticated:  true,
 			CommandOrigin:    command.AutomationOrigin,
 		},
 		Message: "kubectl get po foo",
-		User:    `Automation "Test"`,
+		User: execute.UserInput{
+			Mention:     userName,
+			DisplayName: userName,
+		},
 	}
 
 	execFactory := &fakeFactory{t: t, expectedInput: expectedExecutorInput}
