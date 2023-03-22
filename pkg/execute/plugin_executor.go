@@ -7,19 +7,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/rest"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-)
-
-const (
-	kubeconfigDefaultValue = "default"
 )
 
 // PluginExecutor provides functionality to run registered Botkube plugins.
@@ -79,7 +74,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, fmt.Errorf("while collecting configs: %w", err)
 	}
 
-	kubeconfig, err := e.generateKubeConfig(plugins[0].Context.RBAC)
+	kubeconfig, err := plugin.GenerateKubeConfig(e.restCfg, plugins[0].Context.RBAC)
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)
 	}
@@ -247,70 +242,4 @@ func (e *PluginExecutor) getEnabledPlugins(bindings []string, cmdName string) ([
 	}
 
 	return out, fullPluginName
-}
-
-func (e *PluginExecutor) generateKubeConfig(rbac *config.PolicyRule) ([]byte, error) {
-	if rbac == nil {
-		return nil, nil
-	}
-	apiCfg := clientcmdapi.Config{
-		Kind:       "Config",
-		APIVersion: "v1",
-		Clusters: []clientcmdapi.NamedCluster{
-			{
-				Name: kubeconfigDefaultValue,
-				Cluster: clientcmdapi.Cluster{
-					Server:               e.restCfg.Host,
-					CertificateAuthority: e.restCfg.CAFile,
-				},
-			},
-		},
-		Contexts: []clientcmdapi.NamedContext{
-			{
-				Name: kubeconfigDefaultValue,
-				Context: clientcmdapi.Context{
-					Cluster:   kubeconfigDefaultValue,
-					Namespace: kubeconfigDefaultValue,
-					AuthInfo:  kubeconfigDefaultValue,
-				},
-			},
-		},
-		CurrentContext: kubeconfigDefaultValue,
-		AuthInfos: []clientcmdapi.NamedAuthInfo{
-			{
-				Name: kubeconfigDefaultValue,
-				AuthInfo: clientcmdapi.AuthInfo{
-					Token:             e.restCfg.BearerToken,
-					TokenFile:         e.restCfg.BearerTokenFile,
-					Impersonate:       generateUserSubject(rbac.User),
-					ImpersonateGroups: generateGroupSubject(rbac.Group),
-				},
-			},
-		},
-	}
-
-	yamlKubeConfig, err := yaml.Marshal(apiCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return yamlKubeConfig, nil
-}
-
-func generateUserSubject(rbac config.UserPolicySubject) (user string) {
-	switch rbac.Type {
-	case config.StaticPolicySubjectType:
-		user = rbac.Prefix + rbac.Static.Value
-	}
-	return
-}
-
-func generateGroupSubject(rbac config.GroupPolicySubject) (group []string) {
-	switch rbac.Type {
-	case config.StaticPolicySubjectType:
-		for _, value := range rbac.Static.Values {
-			group = append(group, rbac.Prefix+value)
-		}
-	}
-	return
 }

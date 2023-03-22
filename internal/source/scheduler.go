@@ -22,6 +22,7 @@ type PluginDispatch struct {
 	sourceName               string
 	isInteractivitySupported bool
 	cfg                      *config.Config
+	pluginContext            config.PluginContext
 }
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
@@ -145,11 +146,12 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 
 	sourcePluginConfigs := map[string][]*source.Config{}
 	plugins := d.cfg.Sources[sourceName].Plugins
+	var pluginContext config.PluginContext
 	for pluginName, pluginCfg := range plugins {
 		if !pluginCfg.Enabled {
 			continue
 		}
-
+		pluginContext = pluginCfg.Context
 		// Unfortunately we need marshal it to get the raw data:
 		// https://github.com/go-yaml/yaml/issues/13
 		rawYAML, err := yaml.Marshal(pluginCfg.Config)
@@ -169,6 +171,7 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 			isInteractivitySupported: isInteractivitySupported,
 			sourceName:               sourceName,
 			cfg:                      d.cfg,
+			pluginContext:            pluginContext,
 		})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
