@@ -117,7 +117,7 @@ sources:
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
       context: &defaultExecutorContext
-        defaultNamespace: "botkube"
+        defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
           # -- Static impersonation for a given username and groups.

@@ -12,7 +12,8 @@ const (
 	kubeconfigDefaultValue = "default"
 )
 
-func GenerateKubeConfig(restCfg *rest.Config, rbac *config.PolicyRule) ([]byte, error) {
+func GenerateKubeConfig(restCfg *rest.Config, context config.PluginContext) ([]byte, error) {
+	rbac := context.RBAC
 	if rbac == nil {
 		return nil, nil
 	}
@@ -33,7 +34,7 @@ func GenerateKubeConfig(restCfg *rest.Config, rbac *config.PolicyRule) ([]byte, 
 				Name: kubeconfigDefaultValue,
 				Context: clientcmdapi.Context{
 					Cluster:   kubeconfigDefaultValue,
-					Namespace: kubeconfigDefaultValue,
+					Namespace: context.DefaultNamespace,
 					AuthInfo:  kubeconfigDefaultValue,
 				},
 			},

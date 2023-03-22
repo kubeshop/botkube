@@ -330,8 +330,7 @@ sources:
             enabled: true
             config:
                 field: value
-            context:
-                rbac: null
+            context: {}
 executors:
     kubectl-read-only:
         kubectl:
@@ -372,8 +371,7 @@ executors:
             enabled: true
             config:
                 changeResponseToUpperCase: true
-            context:
-                rbac: null
+            context: {}
 aliases: {}
 communications:
     default-workspace:

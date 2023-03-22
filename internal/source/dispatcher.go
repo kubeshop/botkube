@@ -99,7 +99,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
 	}
 
-	kubeconfig, err := plugin.GenerateKubeConfig(d.restCfg, dispatch.pluginContext.RBAC)
+	kubeconfig, err := plugin.GenerateKubeConfig(d.restCfg, dispatch.pluginContext)
 	if err != nil {
 		return fmt.Errorf("while generating kube config for %s: %w", dispatch.pluginName, err)
 	}
