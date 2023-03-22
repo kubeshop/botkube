@@ -131,10 +131,12 @@ type StreamContext struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	IsInteractivitySupported bool   `protobuf:"varint,1,opt,name=isInteractivitySupported,proto3" json:"isInteractivitySupported,omitempty"`
-	KubeConfig               string `protobuf:"bytes,2,opt,name=kubeConfig,proto3" json:"kubeConfig,omitempty"`
-	ClusterName              string `protobuf:"bytes,3,opt,name=clusterName,proto3" json:"clusterName,omitempty"`
-	KubeConfigBytes          []byte `protobuf:"bytes,4,opt,name=kubeConfigBytes,proto3" json:"kubeConfigBytes,omitempty"`
+	IsInteractivitySupported bool `protobuf:"varint,1,opt,name=isInteractivitySupported,proto3" json:"isInteractivitySupported,omitempty"`
+	// kubeConfig is path to kubeConfig on local FS
+	KubeConfig  string `protobuf:"bytes,2,opt,name=kubeConfig,proto3" json:"kubeConfig,omitempty"`
+	ClusterName string `protobuf:"bytes,3,opt,name=clusterName,proto3" json:"clusterName,omitempty"`
+	// kubeConfigBytes is kubeConfig represented in bytes
+	KubeConfigBytes []byte `protobuf:"bytes,4,opt,name=kubeConfigBytes,proto3" json:"kubeConfigBytes,omitempty"`
 }
 
 func (x *StreamContext) Reset() {
