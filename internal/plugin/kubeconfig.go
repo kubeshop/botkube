@@ -13,6 +13,7 @@ const (
 )
 
 type KubeConfigInput struct {
+	Channel string
 }
 
 func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
@@ -50,7 +51,7 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 					Token:             restCfg.BearerToken,
 					TokenFile:         restCfg.BearerTokenFile,
 					Impersonate:       generateUserSubject(rbac.User),
-					ImpersonateGroups: generateGroupSubject(rbac.Group),
+					ImpersonateGroups: generateGroupSubject(rbac.Group, input),
 				},
 			},
 		},
@@ -72,12 +73,14 @@ func generateUserSubject(rbac config.UserPolicySubject) (user string) {
 	return
 }
 
-func generateGroupSubject(rbac config.GroupPolicySubject) (group []string) {
+func generateGroupSubject(rbac config.GroupPolicySubject, input KubeConfigInput) (group []string) {
 	switch rbac.Type {
 	case config.StaticPolicySubjectType:
 		for _, value := range rbac.Static.Values {
 			group = append(group, rbac.Prefix+value)
 		}
+	case config.ChannelNamePolicySubjectType:
+		group = append(group, rbac.Prefix+input.Channel)
 	}
 	return
 }
