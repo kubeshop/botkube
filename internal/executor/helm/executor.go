@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
@@ -109,7 +110,9 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
 	}
 	defer func() {
-		_ = deleteFn(ctx)
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to delete cube config file %s: %v", kubeConfigPath, deleteErr)
+		}
 	}()
 
 	switch {

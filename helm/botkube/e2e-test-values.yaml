@@ -76,7 +76,7 @@ sources:
   'k8s-events':
     displayName: "K8s recommendations"
     'botkube/kubernetes':
-      context: &defaultExecutorContext
+      context: &defaultPluginContext
         defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
@@ -118,7 +118,7 @@ sources:
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
     'botkube/kubernetes':
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         log:
@@ -136,7 +136,7 @@ sources:
 
   'k8s-pod-create-events':
     'botkube/kubernetes':
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         log:
@@ -153,7 +153,7 @@ sources:
   'k8s-service-create-event-for-action-only':
     displayName: "K8s Service creation, used only by action"
     'botkube/kubernetes':
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         namespaces:
@@ -168,7 +168,7 @@ sources:
   'k8s-updates':
     displayName: "K8s ConfigMaps updates"
     'botkube/kubernetes':
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         log:
@@ -193,7 +193,7 @@ sources:
   'plugin-based':
     displayName: "K8s ConfigMaps changes"
     botkube/cm-watcher:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         configMap:
@@ -264,7 +264,7 @@ executors:
         changeResponseToUpperCase: true
 
     botkube/helm:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
 
 plugins:

@@ -12,8 +12,12 @@ const (
 	kubeconfigDefaultValue = "default"
 )
 
-func GenerateKubeConfig(restCfg *rest.Config, context config.PluginContext) ([]byte, error) {
-	rbac := context.RBAC
+type KubeConfigInput struct {
+	UserGroups []string
+}
+
+func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
+	rbac := pluginCtx.RBAC
 	if rbac == nil {
 		return nil, nil
 	}
@@ -34,7 +38,7 @@ func GenerateKubeConfig(restCfg *rest.Config, context config.PluginContext) ([]b
 				Name: kubeconfigDefaultValue,
 				Context: clientcmdapi.Context{
 					Cluster:   kubeconfigDefaultValue,
-					Namespace: context.DefaultNamespace,
+					Namespace: pluginCtx.DefaultNamespace,
 					AuthInfo:  kubeconfigDefaultValue,
 				},
 			},
@@ -47,7 +51,7 @@ func GenerateKubeConfig(restCfg *rest.Config, context config.PluginContext) ([]b
 					Token:             restCfg.BearerToken,
 					TokenFile:         restCfg.BearerTokenFile,
 					Impersonate:       generateUserSubject(rbac.User),
-					ImpersonateGroups: generateGroupSubject(rbac.Group),
+					ImpersonateGroups: generateGroupSubject(rbac.Group, input.UserGroups),
 				},
 			},
 		},
@@ -69,10 +73,14 @@ func generateUserSubject(rbac config.UserPolicySubject) (user string) {
 	return
 }
 
-func generateGroupSubject(rbac config.GroupPolicySubject) (group []string) {
+func generateGroupSubject(rbac config.GroupPolicySubject, userGroups []string) (group []string) {
 	switch rbac.Type {
 	case config.StaticPolicySubjectType:
 		for _, value := range rbac.Static.Values {
+			group = append(group, rbac.Prefix+value)
+		}
+	case config.ChannelNamePolicySubjectType:
+		for _, value := range userGroups {
 			group = append(group, rbac.Prefix+value)
 		}
 	}

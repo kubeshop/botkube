@@ -116,7 +116,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: &defaultExecutorContext
+      context: &defaultPluginContext
         defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
@@ -160,7 +160,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         # -- Filter settings for various sources.
@@ -333,7 +333,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -373,7 +373,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -404,7 +404,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -499,7 +499,7 @@ executors:
         helmConfigDir: "/tmp/helm/"
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
 
     ## Kubectl executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
@@ -524,7 +524,7 @@ executors:
       #      verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top" ]
       #      # Configures which K8s resource are displayed in resources dropdown.
       #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
-      context: *defaultExecutorContext
+      context: *defaultPluginContext
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.

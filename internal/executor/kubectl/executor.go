@@ -113,7 +113,9 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
 	}
 	defer func() {
-		_ = deleteFn(ctx)
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			log.Errorf("failed to delete cube config file %s: %w", kubeConfigPath, deleteErr)
+		}
 	}()
 
 	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
