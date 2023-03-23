@@ -126,7 +126,7 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 		Configs: in.Configs,
 		Context: &StreamContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
-			KubeConfigBytes:          in.Context.KubeConfig,
+			KubeConfig:               in.Context.KubeConfig,
 			ClusterName:              in.Context.ClusterName,
 		},
 	}
@@ -218,7 +218,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 		Configs: req.Configs,
 		Context: StreamInputContext{
 			IsInteractivitySupported: req.Context.IsInteractivitySupported,
-			KubeConfig:               req.Context.KubeConfigBytes,
+			KubeConfig:               req.Context.KubeConfig,
 			ClusterName:              req.Context.ClusterName,
 		},
 	})
