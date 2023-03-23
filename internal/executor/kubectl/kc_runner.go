@@ -3,7 +3,6 @@ package kubectl
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/gookit/color"
@@ -27,7 +26,7 @@ func NewBinaryRunner() *BinaryRunner {
 }
 
 // RunKubectlCommand runs a Kubectl CLI command and run output.
-func (e *BinaryRunner) RunKubectlCommand(ctx context.Context, defaultNamespace, cmd string) (string, error) {
+func (e *BinaryRunner) RunKubectlCommand(ctx context.Context, kubeConfigPath, defaultNamespace, cmd string) (string, error) {
 	if err := detectNotSupportedCommands(cmd); err != nil {
 		return "", err
 	}
@@ -51,8 +50,7 @@ func (e *BinaryRunner) RunKubectlCommand(ctx context.Context, defaultNamespace, 
 	}
 
 	envs := map[string]string{
-		// TODO: take it from the execute context.
-		"KUBECONFIG": os.Getenv("KUBECONFIG"),
+		"KUBECONFIG": kubeConfigPath,
 	}
 
 	runCmd := fmt.Sprintf("%s %s", binaryName, cmd)

@@ -7,7 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v3"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -21,14 +22,16 @@ type PluginExecutor struct {
 	log           logrus.FieldLogger
 	cfg           config.Config
 	pluginManager *plugin.Manager
+	restCfg       *rest.Config
 }
 
 // NewPluginExecutor creates a new instance of PluginExecutor.
-func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager) *PluginExecutor {
+func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg *rest.Config) *PluginExecutor {
 	return &PluginExecutor{
 		log:           log,
 		cfg:           cfg,
 		pluginManager: manager,
+		restCfg:       restCfg,
 	}
 }
 
@@ -61,7 +64,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
-	}).Debugf("Handling plugin command...")
+	}).Debug("Handling plugin command...")
 
 	cmdName := cmdCtx.Args[0]
 	plugins, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
@@ -69,6 +72,12 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	configs, err := e.collectConfigs(plugins)
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while collecting configs: %w", err)
+	}
+
+	input := plugin.KubeConfigInput{}
+	kubeconfig, err := plugin.GenerateKubeConfig(e.restCfg, plugins[0].Context, input)
+	if err != nil {
+		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)
 	}
 
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
@@ -82,6 +91,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		Context: executor.ExecuteInputContext{
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
 			SlackState:               slackState,
+			KubeConfig:               kubeconfig,
 		},
 	})
 	if err != nil {

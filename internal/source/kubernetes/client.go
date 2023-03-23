@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 // Client Kubernetes client
@@ -23,23 +22,10 @@ type Client struct {
 }
 
 // NewClient initializes Kubernetes client
-func NewClient(kubeConfigPath string) (*Client, error) {
-	var kubeConfig *rest.Config
-	if kubeConfigPath == "" {
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, fmt.Errorf("while loading in cluster config. %v", err)
-		}
-		kubeConfig = config
-	} else {
-		config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
-			&clientcmd.ConfigOverrides{ClusterInfo: api.Cluster{}},
-		).ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("while loading dynamic config. %v", err)
-		}
-		kubeConfig = config
+func NewClient(kubeConfigBytes []byte) (*Client, error) {
+	kubeConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigBytes)
+	if err != nil {
+		return nil, fmt.Errorf("while reading kube config. %v", err)
 	}
 	dynamicCli, discoveryCli, mapper, err := getK8sClients(kubeConfig)
 	if err != nil {

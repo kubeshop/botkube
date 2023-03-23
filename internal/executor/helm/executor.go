@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
@@ -104,37 +105,47 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		in.Command = fmt.Sprintf("%s -n %s", in.Command, cfg.DefaultNamespace)
 	}
 
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
+	}
+	defer func() {
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to delete cube config file %s: %v", kubeConfigPath, deleteErr)
+		}
+	}()
+
 	switch {
 	case helmCmd.Install != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Install, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Install, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.UninstallCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.UninstallCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.UninstallCommandAliases.Get(), cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.ListCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.ListCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.ListCommandAliases.Get(), cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Version != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Version, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Version, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Status != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Status, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Status, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Test != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Test, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Test, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Rollback != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Rollback, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Upgrade != nil:
-		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.Upgrade, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.HistoryCommandAliases.Get() != nil:
-		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, in.Command)
+		return e.handleHelmCommand(ctx, helmCmd.HistoryCommandAliases.Get(), cfg, wasHelpRequested, in.Command, kubeConfigPath)
 	case helmCmd.Get != nil:
 		switch {
 		case helmCmd.Get.All != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.All, cfg, wasHelpRequested, in.Command)
+			return e.handleHelmCommand(ctx, helmCmd.Get.All, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		case helmCmd.Get.Hooks != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Hooks, cfg, wasHelpRequested, in.Command)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Hooks, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		case helmCmd.Get.Manifest != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Manifest, cfg, wasHelpRequested, in.Command)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Manifest, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		case helmCmd.Get.Notes != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Notes, cfg, wasHelpRequested, in.Command)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Notes, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		case helmCmd.Get.Values != nil:
-			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, in.Command)
+			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		default:
 			return executor.ExecuteOutput{
 				Data: helmCmd.Get.Help(),
@@ -153,7 +164,7 @@ func (*Executor) Help(context.Context) (api.Message, error) {
 }
 
 // handleHelmList construct a Helm CLI command and run it.
-func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, rawCmd string) (executor.ExecuteOutput, error) {
+func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, rawCmd, kubeConfig string) (executor.ExecuteOutput, error) {
 	if wasHelpRequested {
 		return executor.ExecuteOutput{
 			Data: cmd.Help(),
@@ -169,6 +180,7 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 		"HELM_DRIVER":      cfg.HelmDriver,
 		"HELM_CACHE_HOME":  cfg.HelmCacheDir,
 		"HELM_CONFIG_HOME": cfg.HelmConfigDir,
+		"KUBECONFIG":       kubeConfig,
 	}
 
 	out, err := e.executeCommandWithEnvs(ctx, rawCmd, envs)

@@ -20,7 +20,8 @@ message StreamRequest {
 
 message StreamContext {
 	bool isInteractivitySupported = 1;
-	string kubeConfig = 2;
+	// kubeConfig is is kubeConfig represented in bytes
+	bytes kubeConfig = 2;
 	string clusterName = 3;
 }
 

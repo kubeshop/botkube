@@ -21,6 +21,14 @@ rules:
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get"]
+  - apiGroups:
+    - ""
+    resources:
+    - users
+    - groups
+    - serviceaccounts
+    verbs:
+    - impersonate
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

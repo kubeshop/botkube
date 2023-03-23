@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
@@ -40,7 +41,7 @@ var _ executor.Executor = &Executor{}
 
 type (
 	kcRunner interface {
-		RunKubectlCommand(ctx context.Context, defaultNamespace, cmd string) (string, error)
+		RunKubectlCommand(ctx context.Context, kubeConfigPath, defaultNamespace, cmd string) (string, error)
 	}
 )
 
@@ -107,7 +108,17 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		}, nil
 	}
 
-	out, err := e.kcRunner.RunKubectlCommand(ctx, cfg.DefaultNamespace, cmd)
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
+	}
+	defer func() {
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			log.Errorf("failed to delete cube config file %s: %w", kubeConfigPath, deleteErr)
+		}
+	}()
+
+	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}

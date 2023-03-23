@@ -50,7 +50,7 @@ type Source struct {
 	commandGuard             *command.CommandGuard
 	filterEngine             filterengine.FilterEngine
 	clusterName              string
-	kubeConfig               string
+	kubeConfig               []byte
 	messageBuilder           *MessageBuilder
 	isInteractivitySupported bool
 }

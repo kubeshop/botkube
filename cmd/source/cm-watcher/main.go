@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
@@ -76,13 +75,13 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 		Output: make(chan []byte),
 	}
 
-	go listenEvents(ctx, cfg.ConfigMap, out.Output)
+	go listenEvents(ctx, in.Context.KubeConfig, cfg.ConfigMap, out.Output)
 
 	return out, nil
 }
 
-func listenEvents(ctx context.Context, obj Object, sink chan<- []byte) {
-	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
+func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan<- []byte) {
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	exitOnError(err)
 	clientset, err := kubernetes.NewForConfig(config)
 	exitOnError(err)

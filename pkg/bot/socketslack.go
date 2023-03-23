@@ -149,6 +149,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							User:            ev.User,
 							CommandOrigin:   command.TypedOrigin,
 						}
+
 						if err := b.handleMessage(ctx, msg); err != nil {
 							b.log.Errorf("Message handling error: %s", err.Error())
 						}

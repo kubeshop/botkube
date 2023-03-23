@@ -359,6 +359,10 @@ func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfig
 			if !reflect.DeepEqual(firstRBAC, nextCfg.Context.RBAC) {
 				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, nextIdx)
 			}
+
+			if p1Cfg.Context.DefaultNamespace != nextCfg.Context.DefaultNamespace {
+				sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, nextIdx)
+			}
 		}
 	}
 }

@@ -17,7 +17,7 @@ type (
 
 	// KubectlRunner provides an option to run a given kubectl command.
 	KubectlRunner interface {
-		RunKubectlCommand(ctx context.Context, defaultNamespace, cmd string) (string, error)
+		RunKubectlCommand(ctx context.Context, kubeConfigPath, defaultNamespace, cmd string) (string, error)
 	}
 
 	// CommandGuard is an interface that allows to check if a given command is allowed to be executed.

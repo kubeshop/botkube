@@ -376,6 +376,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 			if post.UserId == b.getUser().Id {
 				continue
 			}
+
 			mm := &mattermostMessage{
 				Event:         event,
 				IsAuthChannel: false,

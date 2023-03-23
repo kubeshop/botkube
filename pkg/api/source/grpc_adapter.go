@@ -35,7 +35,7 @@ type (
 		IsInteractivitySupported bool
 
 		// KubeConfig is the path to kubectl configuration file.
-		KubeConfig string
+		KubeConfig []byte
 
 		// ClusterName is the name of underlying Kubernetes cluster which is provided by end user.
 		ClusterName string
