@@ -57,7 +57,6 @@ type socketSlackMessage struct {
 	State           *slack.BlockActionStates
 	ResponseURL     string
 	BlockID         string
-	UserGroup       string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -143,19 +142,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
 						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
-						channel, err := b.client.GetConversationInfo(&slack.GetConversationInfoInput{
-							ChannelID: ev.Channel,
-						})
-						if err != nil {
-							b.log.Errorf("while getting conversation info: %s", err.Error())
-						}
 						msg := socketSlackMessage{
 							Text:            ev.Text,
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
 							User:            ev.User,
 							CommandOrigin:   command.TypedOrigin,
-							UserGroup:       channel.Name,
 						}
 
 						if err := b.handleMessage(ctx, msg); err != nil {
@@ -353,7 +345,6 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    event.CommandOrigin,
 			SlackState:       event.State,
-			UserGroups:       []string{event.UserGroup},
 		},
 		Message: request,
 		User:    fmt.Sprintf("<@%s>", event.User),

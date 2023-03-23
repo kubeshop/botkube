@@ -52,8 +52,7 @@ type Discord struct {
 
 // discordMessage contains message details to execute command and send back the result.
 type discordMessage struct {
-	Event      *discordgo.MessageCreate
-	UserGroups []string
+	Event *discordgo.MessageCreate
 }
 
 // NewDiscord creates a new Discord instance.
@@ -89,16 +88,8 @@ func (b *Discord) Start(ctx context.Context) error {
 
 	// Register the messageCreate func as a callback for MessageCreate events.
 	b.api.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		var userGroups []string
-		if _, err := b.api.GuildRoles(m.GuildID); err == nil {
-			// for _, r := range roles {
-			//
-			// }
-		}
-
 		msg := discordMessage{
-			Event:      m,
-			UserGroups: userGroups,
+			Event: m,
 		}
 		if err := b.handleMessage(ctx, msg); err != nil {
 			b.log.Errorf("Message handling error: %s", err.Error())
@@ -239,7 +230,6 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
-			UserGroups:       dm.UserGroups,
 		},
 		Message: req,
 		User:    fmt.Sprintf("<@%s>", dm.Event.Author.ID),

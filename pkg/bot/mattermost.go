@@ -67,7 +67,6 @@ type Mattermost struct {
 type mattermostMessage struct {
 	Event         *model.WebSocketEvent
 	IsAuthChannel bool
-	UserGroups    []string
 }
 
 // NewMattermost creates a new Mattermost instance.
@@ -231,7 +230,6 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 			SourceBindings:   channel.Bindings.Sources,
 			IsAuthenticated:  mm.IsAuthChannel,
 			CommandOrigin:    command.TypedOrigin,
-			UserGroups:       mm.UserGroups,
 		},
 		Message: req,
 	})
@@ -379,18 +377,9 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			var userGroups []string
-
-			if groups, resp, err := b.apiClient.GetGroupsByUserId(post.UserId); err == nil && resp.StatusCode == 200 {
-				for _, g := range groups {
-					userGroups = append(userGroups, *g.Name)
-				}
-			}
-
 			mm := &mattermostMessage{
 				Event:         event,
 				IsAuthChannel: false,
-				UserGroups:    userGroups,
 			}
 			err = b.handleMessage(ctx, mm)
 			if err != nil {
