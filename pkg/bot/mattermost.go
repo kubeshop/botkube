@@ -62,6 +62,7 @@ type Mattermost struct {
 	notifyMutex     sync.Mutex
 	botMentionRegex *regexp.Regexp
 	renderer        *MattermostRenderer
+	userNamesForID  map[string]string
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -129,6 +130,7 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 		channels:        channelsByIDCfg,
 		botMentionRegex: botMentionRegex,
 		renderer:        NewMattermostRenderer(),
+		userNamesForID:  map[string]string{},
 	}, nil
 }
 
@@ -231,9 +233,12 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 	channel, exists := b.getChannels()[channelID]
 	mm.IsAuthChannel = exists
 
-	user, _, err := b.apiClient.GetUser(post.UserId, "")
+	userName, err := b.getUserName(post.UserId)
 	if err != nil {
-		b.log.Errorf("while getting user with ID %q: %s", post.UserId, err.Error())
+		b.log.Errorf("while getting user name: %v", err)
+	}
+	if userName == "" {
+		userName = post.UserId
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
@@ -251,7 +256,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 		},
 		User: execute.UserInput{
 			//Mention:     "", // not used currently
-			DisplayName: user.Username,
+			DisplayName: userName,
 		},
 		Message: req,
 	})
@@ -450,6 +455,21 @@ func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
 	b.channelsMutex.Lock()
 	defer b.channelsMutex.Unlock()
 	b.channels = channels
+}
+
+func (b *Mattermost) getUserName(userID string) (string, error) {
+	userName, exists := b.userNamesForID[userID]
+	if exists {
+		return userName, nil
+	}
+
+	user, _, err := b.apiClient.GetUser(userID, "")
+	if err != nil {
+		return "", fmt.Errorf("while getting user with ID %q: %w", userID, err)
+	}
+	b.userNamesForID[userID] = user.Username
+
+	return user.Username, nil
 }
 
 func getBotUserID(client *model.Client4, teamID, botName string) (string, error) {

@@ -403,9 +403,13 @@ func run(ctx context.Context) error {
 
 	errGroup.Go(func() error {
 		defer func() {
-			err := reportFatalError("while starting k8s collector", err)
-			if err != nil {
-				logger.Errorf("while reporting fatal error %w", err)
+			if err == nil {
+				return
+			}
+
+			reportErr := reportFatalError("while starting k8s collector", err)
+			if reportErr != nil {
+				logger.Errorf("while reporting fatal error: %s", reportErr.Error())
 			}
 		}()
 		heartbeatReporter := heartbeat.GetReporter(remoteCfgEnabled, logger, gqlClient)
