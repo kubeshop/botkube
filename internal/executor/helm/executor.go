@@ -3,7 +3,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
@@ -105,15 +104,16 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		in.Command = fmt.Sprintf("%s -n %s", in.Command, cfg.DefaultNamespace)
 	}
 
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, _, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
 	}
-	defer func() {
-		if deleteErr := deleteFn(ctx); deleteErr != nil {
-			fmt.Fprintf(os.Stderr, "failed to delete cube config file %s: %v", kubeConfigPath, deleteErr)
-		}
-	}()
+	fmt.Println("Helm plugin ", kubeConfigPath)
+	// defer func() {
+	// 	if deleteErr := deleteFn(ctx); deleteErr != nil {
+	// 		fmt.Fprintf(os.Stderr, "failed to delete cube config file %s: %v", kubeConfigPath, deleteErr)
+	// 	}
+	// }()
 
 	switch {
 	case helmCmd.Install != nil:
