@@ -220,7 +220,16 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 
 	b.log.Debugf("Discord incoming Request: %s", req)
 
-	channel, isAuthChannel := b.getChannels()[dm.Event.ChannelID]
+	channel, exists := b.getChannels()[dm.Event.ChannelID]
+	if !exists {
+		channel = channelConfigByID{
+			ChannelBindingsByID: config.ChannelBindingsByID{
+				ID: dm.Event.ChannelID,
+			},
+		}
+	}
+	isAuthChannel := exists
+
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
 		Platform:        b.IntegrationName(),

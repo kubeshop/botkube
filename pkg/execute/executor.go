@@ -301,7 +301,7 @@ func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, verb st
 func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, pluginName string, cmdCtx CommandContext) error {
 	platform := remoteapi.NewBotPlatform(cmdCtx.Platform.String())
 
-	channelName := cmdCtx.Conversation.Alias
+	channelName := cmdCtx.Conversation.ID
 	if cmdCtx.Conversation.DisplayName != "" {
 		channelName = cmdCtx.Conversation.DisplayName
 	}

@@ -231,6 +231,13 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 
 	channelID := mm.Event.GetBroadcast().ChannelId
 	channel, exists := b.getChannels()[channelID]
+	if !exists {
+		channel = channelConfigByID{
+			ChannelBindingsByID: config.ChannelBindingsByID{
+				ID: channelID,
+			},
+		}
+	}
 	mm.IsAuthChannel = exists
 
 	userName, err := b.getUserName(post.UserId)
