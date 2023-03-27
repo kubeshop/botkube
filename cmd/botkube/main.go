@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -138,14 +137,8 @@ func run(ctx context.Context) error {
 	}
 	defer pluginManager.Shutdown()
 
-	logger.Info("Found kube config: ", conf.Settings.Kubeconfig)
-
-	cfgLoader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: conf.Settings.Kubeconfig},
-		&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
-
 	// Prepare K8s clients and mapper
-	kubeConfig, err := cfgLoader.ClientConfig()
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
@@ -219,7 +212,7 @@ func run(ctx context.Context) error {
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
 			BotKubeVersion:    botkubeVersion,
-			RestCfg:           cfgLoader,
+			RestCfg:           kubeConfig,
 			AuditReporter:     auditReporter,
 		},
 	)
@@ -389,7 +382,7 @@ func run(ctx context.Context) error {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, cfgLoader)
+	sourcePluginDispatcher := source.NewDispatcher(logger, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {

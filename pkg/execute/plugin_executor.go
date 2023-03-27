@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -23,11 +23,11 @@ type PluginExecutor struct {
 	log           logrus.FieldLogger
 	cfg           config.Config
 	pluginManager *plugin.Manager
-	restCfg       clientcmd.ClientConfig
+	restCfg       *rest.Config
 }
 
 // NewPluginExecutor creates a new instance of PluginExecutor.
-func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg clientcmd.ClientConfig) *PluginExecutor {
+func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg *rest.Config) *PluginExecutor {
 	return &PluginExecutor{
 		log:           log,
 		cfg:           cfg,
