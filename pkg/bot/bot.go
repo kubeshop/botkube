@@ -41,6 +41,7 @@ type channelConfigByID struct {
 
 	alias  string
 	notify bool
+	name   string
 }
 
 type channelConfigByName struct {

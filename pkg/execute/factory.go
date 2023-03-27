@@ -183,6 +183,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 // Conversation contains details about the conversation.
 type Conversation struct {
 	Alias            string
+	DisplayName      string
 	ID               string
 	ExecutorBindings []string
 	SourceBindings   []string
@@ -198,7 +199,13 @@ type NewDefaultInput struct {
 	NotifierHandler NotifierHandler
 	Conversation    Conversation
 	Message         string
-	User            string
+	User            UserInput
+}
+
+// UserInput contains details about the user.
+type UserInput struct {
+	Mention     string
+	DisplayName string
 }
 
 // NewDefault creates new Default Executor.

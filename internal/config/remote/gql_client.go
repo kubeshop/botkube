@@ -52,11 +52,6 @@ func NewGqlClient(options ...Option) *Gql {
 		opt(c)
 	}
 
-	// skip client creation when not requested
-	if c.endpoint == "" {
-		return nil
-	}
-
 	httpCli := &http.Client{
 		Transport: newAPIKeySecuredTransport(c.apiKey),
 		Timeout:   defaultTimeout,

@@ -23,7 +23,7 @@ import (
 
 const (
 	// unknownValue defines an unknown string value.
-	unknownValue = "unknown"
+	unknownValue = "n/a"
 )
 
 // ExecutorFactory facilitates creation of execute.Executor instances.
@@ -80,6 +80,7 @@ func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]event.Acti
 
 // ExecuteAction executes action for given event.
 func (p *Provider) ExecuteAction(ctx context.Context, action event.Action) interactive.CoreMessage {
+	userName := fmt.Sprintf("Automation %q", action.DisplayName)
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
 			IsAuthenticated:  true,
@@ -92,7 +93,10 @@ func (p *Provider) ExecuteAction(ctx context.Context, action event.Action) inter
 		Platform:        unknownValue,
 		NotifierHandler: &universalNotifierHandler{},
 		Message:         strings.TrimSpace(strings.TrimPrefix(action.Command, api.MessageBotNamePlaceholder)),
-		User:            fmt.Sprintf("Automation %q", action.DisplayName),
+		User: execute.UserInput{
+			Mention:     userName,
+			DisplayName: userName,
+		},
 	})
 	response := e.Execute(ctx)
 

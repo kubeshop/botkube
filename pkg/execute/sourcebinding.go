@@ -108,7 +108,7 @@ func (e *SourceBindingExecutor) Edit(ctx context.Context, cmdCtx CommandContext)
 		return empty, errInvalidCommand
 	}
 	cmdArgs := cmdCtx.Args[2:]
-	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User)
+	msg, err := e.editSourceBindingHandler(ctx, cmdArgs, cmdCtx.CommGroupName, cmdCtx.Platform, cmdCtx.Conversation, cmdCtx.User.Mention)
 	if err != nil {
 		return empty, err
 	}
@@ -165,7 +165,11 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 	}
 
 	return interactive.CoreMessage{
-		Description: e.getEditedSourceBindingsMsg(userID, sourceList),
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: e.getEditedSourceBindingsMsg(userID, sourceList),
+			},
+		},
 	}, nil
 }
 
@@ -181,7 +185,11 @@ func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interac
 	list := english.OxfordWordSeries(e.quoteEachItem(unknown), "and")
 	word := english.PluralWord(len(unknown), "source was", "sources were")
 	return interactive.CoreMessage{
-		Description: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
+		Message: api.Message{
+			BaseBody: api.Body{
+				Plaintext: fmt.Sprintf(unknownSourcesMsgFmt, list, word),
+			},
+		},
 	}
 }
 

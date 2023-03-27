@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -155,7 +156,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 			}
 			err := n.SendMessage(ctx, msg, sources)
 			if err != nil {
-				reportErr := d.reportError(ctx, err, n, pluginName, event, dispatch.sourceName)
+				reportErr := d.reportError(err, n, pluginName, event)
 				if reportErr != nil {
 					err = multierror.Append(err, fmt.Errorf("while reporting error: %w", reportErr))
 				}
@@ -164,7 +165,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 				return
 			}
 
-			reportErr := d.reportSuccess(ctx, n, pluginName, event, dispatch.sourceName)
+			reportErr := d.reportSuccess(n, pluginName, event)
 			if reportErr != nil {
 				d.log.Error(err)
 			}
@@ -176,7 +177,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			err := n.SendEvent(ctx, event.RawObject, sources)
 			if err != nil {
-				reportErr := d.reportError(ctx, err, n, pluginName, event, dispatch.sourceName)
+				reportErr := d.reportError(err, n, pluginName, event)
 				if reportErr != nil {
 					err = multierror.Append(err, fmt.Errorf("while reporting error: %w", reportErr))
 				}
@@ -185,11 +186,15 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 				return
 			}
 
-			reportErr := d.reportSuccess(ctx, n, pluginName, event, dispatch.sourceName)
+			reportErr := d.reportSuccess(n, pluginName, event)
 			if reportErr != nil {
 				d.log.Error(err)
 			}
 		}(n)
+	}
+
+	if err := d.reportAuditEvent(ctx, pluginName, event.RawObject, dispatch.sourceName, dispatch.sourceDisplayName); err != nil {
+		d.log.Errorf("while reporting audit event for source %q: %s", dispatch.sourceName, err.Error())
 	}
 
 	// execute actions
@@ -227,12 +232,20 @@ func (d *Dispatcher) dispatch(ctx context.Context, event []byte, dispatch Plugin
 	}, dispatch)
 }
 
-func (d *Dispatcher) reportAudit(ctx context.Context, pluginName, event, source string) error {
+func (d *Dispatcher) reportAuditEvent(ctx context.Context, pluginName string, event any, sourceName, sourceDisplayName string) error {
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("while marshaling audit event: %w", err)
+	}
+
 	e := audit.SourceAuditEvent{
 		CreatedAt:  time.Now().Format(time.RFC3339),
 		PluginName: pluginName,
-		Event:      event,
-		Bindings:   []string{source},
+		Event:      string(eventBytes),
+		Source: audit.SourceDetails{
+			Name:        sourceName,
+			DisplayName: sourceDisplayName,
+		},
 	}
 	return d.auditReporter.ReportSourceAuditEvent(ctx, e)
 }
@@ -242,7 +255,7 @@ type genericNotifier interface {
 	Type() config.IntegrationType
 }
 
-func (d *Dispatcher) reportSuccess(ctx context.Context, n genericNotifier, pluginName string, event source.Event, sourceName string) error {
+func (d *Dispatcher) reportSuccess(n genericNotifier, pluginName string, event source.Event) error {
 	errs := multierror.New()
 	reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
 		IntegrationType:       n.Type(),
@@ -253,14 +266,10 @@ func (d *Dispatcher) reportSuccess(ctx context.Context, n genericNotifier, plugi
 	if reportErr != nil {
 		errs = multierror.Append(errs, fmt.Errorf("while reporting %s analytics: %w", n.Type(), reportErr))
 	}
-	if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sourceName); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("while reporting %s audit event: %w", n.Type(), reportErr))
-	}
-
 	return errs.ErrorOrNil()
 }
 
-func (d *Dispatcher) reportError(ctx context.Context, err error, n genericNotifier, pluginName string, event source.Event, sourceName string) error {
+func (d *Dispatcher) reportError(err error, n genericNotifier, pluginName string, event source.Event) error {
 	errs := multierror.New()
 	reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
 		IntegrationType:       n.Type(),
@@ -270,10 +279,6 @@ func (d *Dispatcher) reportError(ctx context.Context, err error, n genericNotifi
 	}, err)
 	if reportErr != nil {
 		errs = multierror.Append(errs, fmt.Errorf("while reporting %s analytics: %w", n.Type(), reportErr))
-	}
-	// TODO: add additional metadata about event failed to send
-	if err := d.reportAudit(ctx, pluginName, fmt.Sprintf("%v", event.RawObject), sourceName); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("while reporting %s audit event: %w", n.Type(), reportErr))
 	}
 
 	return errs.ErrorOrNil()

@@ -238,7 +238,10 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: request,
-		User:    fmt.Sprintf("<@%s>", msg.User),
+		User: execute.UserInput{
+			Mention:     fmt.Sprintf("<@%s>", msg.User),
+			DisplayName: msg.User, // this integration is officially not supported, so no need to ensure it has a nice display name
+		},
 	})
 	response := e.Execute(ctx)
 	err = b.send(ctx, msg, response, response.OnlyVisibleForYou)

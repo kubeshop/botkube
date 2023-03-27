@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -402,9 +403,13 @@ func run(ctx context.Context) error {
 
 	errGroup.Go(func() error {
 		defer func() {
-			err := reportFatalError("while starting k8s collector", err)
-			if err != nil {
-				logger.Errorf("while reporting fatal error %w", err)
+			if err == nil {
+				return
+			}
+
+			reportErr := reportFatalError("while starting k8s collector", err)
+			if reportErr != nil {
+				logger.Errorf("while reporting fatal error: %s", reportErr.Error())
 			}
 		}()
 		heartbeatReporter := heartbeat.GetReporter(remoteCfgEnabled, logger, gqlClient)
@@ -504,6 +509,11 @@ func getK8sClients(cfg *rest.Config) (discovery.DiscoveryInterface, error) {
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {
 	return func(ctx string, err error) error {
+		if errors.Is(err, context.Canceled) {
+			logger.Debugf("Context was cancelled. Skipping reporting error...")
+			return nil
+		}
+
 		// use separate ctx as parent ctx might be cancelled already
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()

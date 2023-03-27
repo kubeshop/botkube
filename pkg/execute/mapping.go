@@ -46,7 +46,7 @@ type CommandContext struct {
 	CommGroupName       string
 	CleanCmd            string
 	ProvidedClusterName string
-	User                string
+	User                UserInput
 	Conversation        Conversation
 	Platform            config.CommPlatformIntegration
 	ExecutorFilter      executorFilter

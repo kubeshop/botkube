@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -17,16 +16,21 @@ type AuditEventCreateInput struct {
 
 // AuditEventCommandCreateInput contains create input specific to executor events
 type AuditEventCommandCreateInput struct {
-	PlatformUser string      `json:"platformUser"`
-	Channel      string      `json:"channel"`
-	BotPlatform  BotPlatform `json:"botPlatform"`
-	Command      string      `json:"command"`
+	PlatformUser string       `json:"platformUser"`
+	Channel      string       `json:"channel"`
+	BotPlatform  *BotPlatform `json:"botPlatform"`
+	Command      string       `json:"command"`
 }
 
 // AuditEventSourceCreateInput contains create input specific to source events
 type AuditEventSourceCreateInput struct {
-	Event    string   `json:"event"`
-	Bindings []string `json:"bindings"`
+	Event  string                       `json:"event"`
+	Source AuditEventSourceDetailsInput `json:"source"`
+}
+
+type AuditEventSourceDetailsInput struct {
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
 }
 
 // BotPlatform are the supported bot platforms
@@ -44,23 +48,26 @@ const (
 )
 
 // NewBotPlatform creates new BotPlatform from string
-func NewBotPlatform(s string) (BotPlatform, error) {
+func NewBotPlatform(s string) *BotPlatform {
+	var platform BotPlatform
 	switch strings.ToUpper(s) {
 	case "SLACK":
 		fallthrough
 	case "SOCKETSLACK":
-		return BotPlatformSlack, nil
+		platform = BotPlatformSlack
 	case "DISCORD":
-		return BotPlatformDiscord, nil
+		platform = BotPlatformDiscord
 	case "MATTERMOST":
-		return BotPlatformMattermost, nil
+		platform = BotPlatformMattermost
 	case "TEAMS":
 		fallthrough
 	case "MS_TEAMS":
-		return BotPlatformMsTeams, nil
+		platform = BotPlatformMsTeams
 	default:
-		return "", fmt.Errorf("given BotPlatform %s is not supported", s)
+		return nil
 	}
+
+	return &platform
 }
 
 // AuditEventType is the type of audit events

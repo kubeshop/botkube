@@ -46,11 +46,12 @@ func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Conte
 		return ErrUnsupportedPlatform
 	}
 
-	p, err := remoteapi.NewBotPlatform(platform.String())
-	if err != nil {
+	p := remoteapi.NewBotPlatform(platform.String())
+	if p == nil {
 		return ErrUnsupportedPlatform
 	}
-	err = m.withRetry(ctx, logger, func() error {
+
+	err := m.withRetry(ctx, logger, func() error {
 		var mutation struct {
 			Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 		}
@@ -60,13 +61,13 @@ func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Conte
 				ResourceVersion: m.getResourceVersion(),
 				Notification: &remoteapi.NotificationPatchDeploymentConfigInput{
 					CommunicationGroupName: commGroupName,
-					Platform:               p,
+					Platform:               *p,
 					ChannelAlias:           channelAlias,
 					Disabled:               !enabled,
 				},
 			},
 		}
-		if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+		if err := m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
 			return err
 		}
 
@@ -96,11 +97,11 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 		return ErrUnsupportedPlatform
 	}
 
-	p, err := remoteapi.NewBotPlatform(string(platform))
-	if err != nil {
+	p := remoteapi.NewBotPlatform(string(platform))
+	if p == nil {
 		return ErrUnsupportedPlatform
 	}
-	err = m.withRetry(ctx, logger, func() error {
+	err := m.withRetry(ctx, logger, func() error {
 		var mutation struct {
 			Success bool `graphql:"patchDeploymentConfig(id: $id, input: $input)"`
 		}
@@ -110,14 +111,14 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 				ResourceVersion: m.getResourceVersion(),
 				SourceBinding: &remoteapi.SourceBindingPatchDeploymentConfigInput{
 					CommunicationGroupName: commGroupName,
-					Platform:               p,
+					Platform:               *p,
 					ChannelAlias:           channelAlias,
 					SourceBindings:         sourceBindings,
 				},
 			},
 		}
 
-		if err = m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
+		if err := m.gql.Client().Mutate(ctx, &mutation, variables); err != nil {
 			return err
 		}
 
@@ -181,16 +182,16 @@ const (
 	delay   = 200 * time.Millisecond
 )
 
-func (r *RemotePersistenceManager) withRetry(ctx context.Context, logger logrus.FieldLogger, fn func() error) error {
+func (m *RemotePersistenceManager) withRetry(ctx context.Context, logger logrus.FieldLogger, fn func() error) error {
 	err := retry.Do(
 		fn,
 		retry.OnRetry(func(n uint, err error) {
 			logger.Debugf("Retrying (attempt no %d/%d): %s.\nFetching latest resource version...", n+1, retries, err)
-			resVer, err := r.resVerClient.GetResourceVersion(ctx)
+			resVer, err := m.resVerClient.GetResourceVersion(ctx)
 			if err != nil {
 				logger.Errorf("Error while fetching resource version: %s", err)
 			}
-			r.SetResourceVersion(resVer)
+			m.SetResourceVersion(resVer)
 		}),
 		retry.Delay(delay),
 		retry.Attempts(retries),
@@ -206,6 +207,7 @@ func (r *RemotePersistenceManager) withRetry(ctx context.Context, logger logrus.
 
 func (m *RemotePersistenceManager) getResourceVersion() int {
 	m.resVerMutex.RLock()
+	fmt.Println("m.resourceVersion", m.resourceVersion)
 	defer m.resVerMutex.RUnlock()
 	return m.resourceVersion
 }

@@ -45,7 +45,7 @@ func newGraphQLStatusReporter(logger logrus.FieldLogger, client GraphQLClient, r
 // ReportDeploymentStartup reports deployment startup to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
-		"deploymentID":    r.gql.DeploymentID,
+		"deploymentID":    r.gql.DeploymentID(),
 		"resourceVersion": r.getResourceVersion(),
 		"type":            "startup",
 	})
@@ -73,7 +73,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) err
 // ReportDeploymentShutdown reports deployment shutdown to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
-		"deploymentID":    r.gql.DeploymentID,
+		"deploymentID":    r.gql.DeploymentID(),
 		"resourceVersion": r.getResourceVersion(),
 		"type":            "shutdown",
 	})
@@ -100,7 +100,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) er
 // ReportDeploymentFailed reports deployment failure to GraphQL server.
 func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) error {
 	logger := r.log.WithFields(logrus.Fields{
-		"deploymentID":    r.gql.DeploymentID,
+		"deploymentID":    r.gql.DeploymentID(),
 		"resourceVersion": r.getResourceVersion(),
 		"type":            "failure",
 	})

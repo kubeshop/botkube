@@ -133,10 +133,16 @@ func TestSourceBindingsHappyPath(t *testing.T) {
 				CommGroupName: groupName,
 				Platform:      platform,
 				Conversation:  conversation,
-				User:          userID,
+				User: UserInput{
+					Mention: userID,
+				},
 			}
 			expMessage := interactive.CoreMessage{
-				Description: tc.message,
+				Message: api.Message{
+					BaseBody: api.Body{
+						Plaintext: tc.message,
+					},
+				},
 			}
 			// when
 			msg, err := executor.Edit(context.Background(), cmdCtx)
@@ -165,7 +171,11 @@ func TestSourceBindingsErrors(t *testing.T) {
 
 			expErr: nil,
 			expMsg: interactive.CoreMessage{
-				Description: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
+				Message: api.Message{
+					BaseBody: api.Body{
+						Plaintext: ":exclamation: The `something-else` source was not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
+					},
+				},
 			},
 		},
 		{
@@ -174,7 +184,11 @@ func TestSourceBindingsErrors(t *testing.T) {
 
 			expErr: nil,
 			expMsg: interactive.CoreMessage{
-				Description: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
+				Message: api.Message{
+					BaseBody: api.Body{
+						Plaintext: ":exclamation: The `something-else` and `other` sources were not found in configuration. To learn how to add custom source, visit https://docs.botkube.io/configuration/source.",
+					},
+				},
 			},
 		},
 	}
@@ -188,7 +202,9 @@ func TestSourceBindingsErrors(t *testing.T) {
 				CommGroupName: groupName,
 				Platform:      platform,
 				Conversation:  conversation,
-				User:          userID,
+				User: UserInput{
+					Mention: userID,
+				},
 			}
 			// when
 			msg, err := executor.Edit(context.Background(), cmdCtx)
@@ -265,7 +281,9 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		CommGroupName: groupName,
 		Platform:      platform,
 		Conversation:  conversation,
-		User:          userID,
+		User: UserInput{
+			Mention: userID,
+		},
 	}
 	// when
 	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
@@ -329,7 +347,9 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		CommGroupName: groupName,
 		Platform:      platform,
 		Conversation:  conversation,
-		User:          userID,
+		User: UserInput{
+			Mention: userID,
+		},
 	}
 	// when
 	gotMsg, err := executor.Edit(context.Background(), cmdCtx)
