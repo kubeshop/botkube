@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeshop/botkube/internal/audit"
 	guard "github.com/kubeshop/botkube/internal/command"
@@ -51,7 +51,7 @@ type DefaultExecutorFactoryParams struct {
 	NamespaceLister   NamespaceLister
 	CommandGuard      CommandGuard
 	PluginManager     *plugin.Manager
-	RestCfg           *rest.Config
+	RestCfg           clientcmd.ClientConfig
 	BotKubeVersion    string
 	AuditReporter     audit.AuditReporter
 }

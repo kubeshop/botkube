@@ -7,11 +7,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	// authorizationv1 "k8s.io/api/authorization/v1"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	// "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
@@ -36,7 +32,7 @@ type Dispatcher struct {
 	markdownNotifiers    []notifier.Bot
 	interactiveNotifiers []notifier.Bot
 	sinkNotifiers        []notifier.Sink
-	restCfg              *rest.Config
+	cfgLoader            clientcmd.ClientConfig
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.
@@ -61,7 +57,7 @@ type AnalyticsReporter interface {
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, restCfg *rest.Config) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, cfgLoader clientcmd.ClientConfig) *Dispatcher {
 	var (
 		interactiveNotifiers []notifier.Bot
 		markdownNotifiers    []notifier.Bot
@@ -84,7 +80,7 @@ func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNot
 		interactiveNotifiers: interactiveNotifiers,
 		markdownNotifiers:    markdownNotifiers,
 		sinkNotifiers:        sinkNotifiers,
-		restCfg:              restCfg,
+		cfgLoader:            cfgLoader,
 	}
 }
 
@@ -104,7 +100,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
 	}
 
-	kubeconfig, err := plugin.GenerateKubeConfig(d.restCfg, dispatch.pluginContext, plugin.KubeConfigInput{})
+	kubeconfig, err := plugin.GenerateKubeConfig(d.cfgLoader, dispatch.pluginContext, plugin.KubeConfigInput{})
 	if err != nil {
 		return fmt.Errorf("while generating kube config for %s: %w", dispatch.pluginName, err)
 	}
@@ -126,15 +122,15 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		for {
 			select {
 			case event := <-out.Output:
-				if isAllowed(kubeconfig) {
-					log.WithField("event", string(event)).Debug("Dispatching received event...")
-					d.dispatch(ctx, event, dispatch)
-				}
+
+				log.WithField("event", string(event)).Debug("Dispatching received event...")
+				d.dispatch(ctx, event, dispatch)
+
 			case msg := <-out.Event:
-				if isAllowed(kubeconfig) {
-					log.WithField("message", msg).Debug("Dispatching received message...")
-					d.dispatchMsg(ctx, msg, dispatch)
-				}
+
+				log.WithField("message", msg).Debug("Dispatching received message...")
+				d.dispatchMsg(ctx, msg, dispatch)
+
 			case <-ctx.Done():
 				return
 			}

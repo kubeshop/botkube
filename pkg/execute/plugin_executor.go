@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"google.golang.org/grpc/status"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -15,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // PluginExecutor provides functionality to run registered Botkube plugins.
@@ -22,11 +23,11 @@ type PluginExecutor struct {
 	log           logrus.FieldLogger
 	cfg           config.Config
 	pluginManager *plugin.Manager
-	restCfg       *rest.Config
+	restCfg       clientcmd.ClientConfig
 }
 
 // NewPluginExecutor creates a new instance of PluginExecutor.
-func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg *rest.Config) *PluginExecutor {
+func NewPluginExecutor(log logrus.FieldLogger, cfg config.Config, manager *plugin.Manager, restCfg clientcmd.ClientConfig) *PluginExecutor {
 	return &PluginExecutor{
 		log:           log,
 		cfg:           cfg,
@@ -61,10 +62,11 @@ func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 
 // Execute executes plugin executor based on a given command.
 func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackState *slack.BlockActionStates, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	e.log.WithFields(logrus.Fields{
+	log := e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
-	}).Debug("Handling plugin command...")
+	})
+	log.Debug("Handling plugin command...")
 
 	cmdName := cmdCtx.Args[0]
 	plugins, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
@@ -81,6 +83,13 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)
 	}
+
+	kubeConfigPath, _, err := pluginx.PersistKubeConfig(ctx, kubeconfig)
+	if err != nil {
+		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
+	}
+
+	log.Info("kube config written at: ", kubeConfigPath)
 
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
 	if err != nil {
