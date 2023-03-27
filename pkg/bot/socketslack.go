@@ -154,14 +154,14 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 						user, err := b.client.GetUserInfoContext(ctx, ev.User)
 						if err != nil {
-							b.log.Errorf("While getting user info: %s", err.Error())
+							b.log.Errorf("while getting user info: %s", err.Error())
 						}
 						if user != nil && user.RealName != "" {
 							msg.UserName = user.RealName
 						}
 
 						if err := b.handleMessage(ctx, msg); err != nil {
-							b.log.Errorf("Message handling error: %s", err.Error())
+							b.log.Errorf("while handling message: %s", err.Error())
 						}
 					}
 				}

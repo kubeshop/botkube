@@ -242,7 +242,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 
 	userName, err := b.getUserName(post.UserId)
 	if err != nil {
-		b.log.Errorf("while getting user name: %v", err)
+		b.log.Errorf("while getting user name: %s", err.Error())
 	}
 	if userName == "" {
 		userName = post.UserId
