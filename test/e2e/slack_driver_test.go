@@ -130,7 +130,7 @@ func (s *slackTester) InviteBotToChannel(t *testing.T, channelID string) {
 
 func (s *slackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
-		msg = s.trimNewLine(msg)
+		msg = trimTrailingLine(msg)
 		if !strings.EqualFold(expectedMsg, msg) {
 			count := countMatchBlock(expectedMsg, msg)
 			msgDiff := diff(expectedMsg, msg)
@@ -142,13 +142,13 @@ func (s *slackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expec
 
 func (s *slackTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		return strings.Contains(s.trimNewLine(msg), expectedMsgSubstring), 0, ""
+		return strings.Contains(trimTrailingLine(msg), expectedMsgSubstring), 0, ""
 	})
 }
 
 func (s *slackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		msg = s.trimNewLine(msg)
+		msg = trimTrailingLine(msg)
 		msg = formatx.RemoveHyperlinks(msg) // normalize the message URLs
 		if msg != expectedMsg {
 			count := countMatchBlock(expectedMsg, msg)
@@ -371,7 +371,7 @@ func (s *slackTester) createChannel(t *testing.T, prefix string) (*slack.Channel
 	return channel, cleanupFn
 }
 
-func (s *slackTester) trimNewLine(msg string) string {
+func trimTrailingLine(msg string) string {
 	// There is always a `\n` on Slack messages due to Markdown formatting.
 	// That should be replaced for RTM
 	return strings.TrimSuffix(msg, "\n")

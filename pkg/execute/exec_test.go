@@ -25,14 +25,13 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			cfg: config.Config{
 				Executors: map[string]config.Executors{
 					"kubectl-team-a": {
-						Kubectl: config.Kubectl{
-							Enabled: true,
+						Plugins: map[string]config.Plugin{
+							"botkube/kubectl": {
+								Enabled: true,
+							},
 						},
 					},
 					"kubectl-team-b": {
-						Kubectl: config.Kubectl{
-							Enabled: false,
-						},
 						Plugins: map[string]config.Plugin{
 							"botkube/echo": {
 								Enabled: true,
@@ -51,28 +50,19 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
-				EXECUTOR     ENABLED ALIASES
-				botkube/echo true    
-				kubectl      true    k, kc`),
+				EXECUTOR        ENABLED ALIASES
+				botkube/echo    true    
+				botkube/kubectl true    k, kc`),
 		},
 		{
 			name: "executors and plugins",
 			cfg: config.Config{
 				Executors: map[string]config.Executors{
-					"kubectl-exec-cmd": {
-						Kubectl: config.Kubectl{
-							Enabled: false,
-						},
-					},
-					"kubectl-read-only": {
-						Kubectl: config.Kubectl{
-							Enabled: true,
-						},
-					},
-
-					"kubectl-wait-cmd": {
-						Kubectl: config.Kubectl{
-							Enabled: true,
+					"kubectl": {
+						Plugins: config.Plugins{
+							"botkube/kubectl": config.Plugin{
+								Enabled: true,
+							},
 						},
 					},
 					"botkube/helm": {
@@ -99,12 +89,12 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 					},
 				},
 			},
-			bindings: []string{"kubectl-exec-cmd", "kubectl-read-only", "kubectl-wait-cmd", "botkube/helm", "botkube/echo@v1.0.1-devel"},
+			bindings: []string{"kubectl", "botkube/helm", "botkube/echo@v1.0.1-devel"},
 			expOutput: heredoc.Doc(`
 				EXECUTOR                  ENABLED ALIASES
 				botkube/echo@v1.0.1-devel true    e
 				botkube/helm              true    h
-				kubectl                   true`),
+				botkube/kubectl           true`),
 		},
 	}
 	for _, tc := range testCases {

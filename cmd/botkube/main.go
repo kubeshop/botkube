@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -45,7 +44,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -172,43 +170,19 @@ func run(ctx context.Context) error {
 		return metricsSrv.Serve(ctx)
 	})
 
-	// Kubectl config merger
-	kcMerger := kubectl.NewMerger(conf.Executors)
-
-	// Load resource variants name if needed
-	var resourceNameNormalizerFunc kubectl.ResourceVariantsFunc
-	if kcMerger.IsAtLeastOneEnabled() {
-		resourceNameNormalizer, err := kubectl.NewResourceNormalizer(
-			logger.WithField(componentLogFieldKey, "Resource Name Normalizer"),
-			discoveryCli,
-		)
-		if err != nil {
-			return reportFatalError("while creating resource name normalizer", err)
-		}
-		resourceNameNormalizerFunc = resourceNameNormalizer.Normalize
-	}
-
 	cmdGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
-
-	runner := &execute.OSCommand{}
-	k8sVersion, err := findK8sVersion(runner)
+	botkubeVersion, err := findVersions(k8sCli)
 	if err != nil {
-		return reportFatalError("while fetching kubernetes version", err)
+		return reportFatalError("while fetching versions", err)
 	}
-	botkubeVersion := findBotkubeVersion(k8sVersion)
-
 	// Create executor factory
 	cfgManager := config.NewManager(remoteCfgEnabled, logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, cfgVersion, k8sCli, gqlClient, deployClient)
 	executorFactory, err := execute.NewExecutorFactory(
 		execute.DefaultExecutorFactoryParams{
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
-			CmdRunner:         runner,
 			Cfg:               *conf,
-			KcChecker:         kubectl.NewChecker(resourceNameNormalizerFunc),
-			Merger:            kcMerger,
 			CfgManager:        cfgManager,
 			AnalyticsReporter: reporter,
-			NamespaceLister:   k8sCli.CoreV1().Namespaces(),
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
 			BotKubeVersion:    botkubeVersion,
@@ -556,41 +530,16 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, executor
 	return s.MarkHelpAsSent(ctx, sent)
 }
 
-func findK8sVersion(runner *execute.OSCommand) (string, error) {
-	type kubectlVersionOutput struct {
-		Server struct {
-			GitVersion string `json:"gitVersion"`
-		} `json:"serverVersion"`
-	}
-
-	args := []string{"-c", fmt.Sprintf("%s version --output=json", execute.KubectlBinary)}
-	stdout, stderr, err := runner.RunSeparateOutput("sh", args)
+func findVersions(cli *kubernetes.Clientset) (string, error) {
+	k8sVer, err := cli.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("unable to execute kubectl version: %w [%q]", err, stderr)
+		return "", fmt.Errorf("while getting server version: %w", err)
 	}
 
-	var out kubectlVersionOutput
-	err = json.Unmarshal([]byte(stdout), &out)
-	if err != nil {
-		return "", err
-	}
-	if out.Server.GitVersion == "" {
-		return "", fmt.Errorf("unable to unmarshal server git version from %q", stdout)
-	}
-
-	ver := out.Server.GitVersion
-	if stderr != "" {
-		ver += "\n" + stderr
-	}
-
-	return ver, nil
-}
-
-func findBotkubeVersion(k8sVersion string) (versions string) {
 	botkubeVersion := version.Short()
 	if len(botkubeVersion) == 0 {
 		botkubeVersion = "Unknown"
 	}
 
-	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVersion, botkubeVersion)
+	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), nil
 }

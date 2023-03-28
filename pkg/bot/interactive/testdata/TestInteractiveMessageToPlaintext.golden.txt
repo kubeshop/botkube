@@ -23,20 +23,15 @@ View current Botkube configuration
 
   • @Botkube show config
 
+Manage executors
+  • @Botkube list executors
+  • @Botkube list aliases
+
 Run kubectl commands (if enabled)
 You can run kubectl commands directly from Platform!
   • @Botkube kubectl get services
   • @Botkube kubectl get pods
   • @Botkube kubectl get deployments
-
-To list all enabled executors
-  • @Botkube list executors
-
-To list all command aliases
-  • @Botkube list aliases
-
-Filters (advanced)
-You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters
 
 Angry? Amazed?
 Give feedback: https://feedback.botkube.io

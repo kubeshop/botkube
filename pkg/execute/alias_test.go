@@ -111,22 +111,22 @@ func fixAliasCfg() config.Config {
 	return config.Config{
 		Executors: map[string]config.Executors{
 			"binding1": {
-				Kubectl: config.Kubectl{
-					Enabled: true,
-				},
 				Plugins: config.Plugins{
 					"gh": config.Plugin{
 						Enabled: false,
 					},
+					"botkube/kubectl": config.Plugin{
+						Enabled: true,
+					},
 				},
 			},
 			"binding2": {
-				Kubectl: config.Kubectl{
-					Enabled: false,
-				},
 				Plugins: config.Plugins{
 					"gh": config.Plugin{
 						Enabled: true,
+					},
+					"botkube/kubectl": config.Plugin{
+						Enabled: false,
 					},
 				},
 			},

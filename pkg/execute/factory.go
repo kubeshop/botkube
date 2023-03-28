@@ -13,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
-	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 )
 
 // DefaultExecutorFactory facilitates creation of the Executor instances.
@@ -22,7 +21,6 @@ type DefaultExecutorFactory struct {
 	cfg                   config.Config
 	analyticsReporter     AnalyticsReporter
 	notifierExecutor      *NotifierExecutor
-	kubectlExecutor       *Kubectl
 	pluginExecutor        *PluginExecutor
 	sourceBindingExecutor *SourceBindingExecutor
 	actionExecutor        *ActionExecutor
@@ -33,8 +31,6 @@ type DefaultExecutorFactory struct {
 	configExecutor        *ConfigExecutor
 	execExecutor          *ExecExecutor
 	sourceExecutor        *SourceExecutor
-	merger                *kubectl.Merger
-	kubectlCmdBuilder     *KubectlCmdBuilder
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
 }
@@ -42,13 +38,9 @@ type DefaultExecutorFactory struct {
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
 type DefaultExecutorFactoryParams struct {
 	Log               logrus.FieldLogger
-	CmdRunner         CommandRunner
 	Cfg               config.Config
-	KcChecker         *kubectl.Checker
-	Merger            *kubectl.Merger
 	CfgManager        config.PersistenceManager
 	AnalyticsReporter AnalyticsReporter
-	NamespaceLister   NamespaceLister
 	CommandGuard      CommandGuard
 	PluginManager     *plugin.Manager
 	RestCfg           *rest.Config
@@ -76,13 +68,6 @@ type CommandGuard interface {
 
 // NewExecutorFactory creates new DefaultExecutorFactory.
 func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFactory, error) {
-	kcExecutor := NewKubectl(
-		params.Log.WithField("component", "Kubectl Executor"),
-		params.Cfg,
-		params.Merger,
-		params.KcChecker,
-		params.CmdRunner,
-	)
 	actionExecutor := NewActionExecutor(
 		params.Log.WithField("component", "Action Executor"),
 		params.CfgManager,
@@ -151,13 +136,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		cfg:               params.Cfg,
 		analyticsReporter: params.AnalyticsReporter,
 		notifierExecutor:  notifierExecutor,
-		kubectlCmdBuilder: NewKubectlCmdBuilder(
-			params.Log.WithField("component", "Kubectl Command Builder"),
-			params.Merger,
-			kcExecutor,
-			params.NamespaceLister,
-			params.CommandGuard,
-		),
 		pluginExecutor: NewPluginExecutor(
 			params.Log.WithField("component", "Botkube Plugin Executor"),
 			params.Cfg,
@@ -173,8 +151,6 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		configExecutor:        configExecutor,
 		execExecutor:          execExecutor,
 		sourceExecutor:        sourceExecutor,
-		merger:                params.Merger,
-		kubectlExecutor:       kcExecutor,
 		cmdsMapping:           mappings,
 		auditReporter:         params.AuditReporter,
 	}, nil
@@ -214,7 +190,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		log:                   f.log,
 		cfg:                   f.cfg,
 		analyticsReporter:     f.analyticsReporter,
-		kubectlExecutor:       f.kubectlExecutor,
 		pluginExecutor:        f.pluginExecutor,
 		notifierExecutor:      f.notifierExecutor,
 		sourceBindingExecutor: f.sourceBindingExecutor,
@@ -226,8 +201,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		configExecutor:        f.configExecutor,
 		execExecutor:          f.execExecutor,
 		sourceExecutor:        f.sourceExecutor,
-		merger:                f.merger,
-		kubectlCmdBuilder:     f.kubectlCmdBuilder,
 		cmdsMapping:           f.cmdsMapping,
 		auditReporter:         f.auditReporter,
 		user:                  cfg.User,

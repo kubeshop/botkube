@@ -5,8 +5,3 @@ communications: # req 1 elm.
         'alias':
           notification:
             disabled: true
-
-filters:
-  kubernetes:
-    objectAnnotationChecker: false
-    nodeEventsChecker: true

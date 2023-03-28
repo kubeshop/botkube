@@ -10,7 +10,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestSourceExecutor(t *testing.T) {
@@ -27,11 +26,9 @@ func TestSourceExecutor(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"kubectl-team-a": {
 						DisplayName: "kubectl-team-a",
-						Kubernetes: config.KubernetesSource{
-							Recommendations: config.Recommendations{
-								Pod: config.PodRecommendations{
-									NoLatestImageTag: ptr.Bool(true),
-								},
+						Plugins: map[string]config.Plugin{
+							"kubernetes": {
+								Enabled: true,
 							},
 						},
 					},
@@ -69,21 +66,17 @@ func TestSourceExecutor(t *testing.T) {
 				Sources: map[string]config.Sources{
 					"kubectl-team-a": {
 						DisplayName: "kubectl-team-a",
-						Kubernetes: config.KubernetesSource{
-							Recommendations: config.Recommendations{
-								Pod: config.PodRecommendations{
-									NoLatestImageTag: ptr.Bool(true),
-								},
+						Plugins: map[string]config.Plugin{
+							"kubernetes": {
+								Enabled: true,
 							},
 						},
 					},
 					"kubectl-team-b": {
 						DisplayName: "kubectl-team-b",
-						Kubernetes: config.KubernetesSource{
-							Recommendations: config.Recommendations{
-								Pod: config.PodRecommendations{
-									LabelsSet: ptr.Bool(true),
-								},
+						Plugins: map[string]config.Plugin{
+							"kubernetes": {
+								Enabled: true,
 							},
 						},
 					},

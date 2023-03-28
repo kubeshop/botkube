@@ -7,370 +7,34 @@ actions:
             sources:
                 - k8s-events
             executors:
-                - kubectl-read-only
+                - k8s-tools
 sources:
     k8s-events:
         displayName: Plugins & Builtins
-        kubernetes:
-            recommendations:
-                ingress:
-                    backendServiceValid: true
-                    tlsSecretValid: false
-                pod:
-                    noLatestImageTag: false
-                    labelsSet: true
-            event:
-                reason:
-                    include:
-                        - .*
-                message:
-                    include:
-                        - ^Error .*
-                types:
-                    - create
-                    - delete
-                    - error
-            resources:
-                - type: v1/pods
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/services
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: networking.k8s.io/v1/ingresses
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/nodes
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include:
-                            - NodeNotReady
-                    message:
-                        include:
-                            - status .*
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/namespaces
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/persistentvolumes
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/persistentvolumeclaims
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: v1/configmaps
-                  name:
-                    include: []
-                  namespaces:
-                    include:
-                        - default
-                    exclude:
-                        - kube-system
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: rbac.authorization.k8s.io/v1/roles
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: rbac.authorization.k8s.io/v1/rolebindings
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: rbac.authorization.k8s.io/v1/clusterrolebindings
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: rbac.authorization.k8s.io/v1/clusterroles
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types: []
-                  updateSetting:
-                    fields: []
-                    includeDiff: false
-                - type: apps/v1/daemonsets
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types:
-                        - create
-                        - update
-                        - delete
-                        - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.numberReady
-                    includeDiff: true
-                - type: batch/v1/jobs
-                  name:
-                    include:
-                        - my-.*
-                  namespaces:
-                    include: []
-                  annotations:
-                    my-own-annotation: "true"
-                  labels:
-                    my-own-label: "true"
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types:
-                        - create
-                        - update
-                        - delete
-                        - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.conditions[*].type
-                    includeDiff: true
-                - type: apps/v1/deployments
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types:
-                        - create
-                        - update
-                        - delete
-                        - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.availableReplicas
-                    includeDiff: true
-                - type: apps/v1/statefulsets
-                  name:
-                    include: []
-                  namespaces:
-                    include: []
-                  annotations: {}
-                  labels: {}
-                  event:
-                    reason:
-                        include: []
-                    message:
-                        include: []
-                    types:
-                        - create
-                        - update
-                        - delete
-                        - error
-                  updateSetting:
-                    fields:
-                        - spec.template.spec.containers[*].image
-                        - status.readyReplicas
-                    includeDiff: true
-            namespaces:
-                include:
-                    - .*
-            annotations:
-                my-annotation: "true"
-            labels:
-                my-label: "true"
         botkube/keptn:
             enabled: true
             config:
                 field: value
             context: {}
+        botkube/kubernetes:
+            enabled: false
+            config: null
+            context: {}
 executors:
-    kubectl-read-only:
-        kubectl:
-            namespaces:
-                include:
-                    - .*
-                exclude:
-                    - foo
-                    - bar
-                    - test-*-ns
-            enabled: false
-            commands:
-                verbs:
-                    - api-resources
-                    - api-versions
-                    - cluster-info
-                    - describe
-                    - diff
-                    - explain
-                    - get
-                    - logs
-                    - top
-                    - auth
-                resources:
-                    - deployments
-                    - pods
-                    - namespaces
-                    - daemonsets
-                    - statefulsets
-                    - storageclasses
-                    - nodes
-            defaultNamespace: default
-            restrictAccess: false
-    plugin-based:
-        kubectl:
-            enabled: false
+    echo:
         botkube/echo:
             enabled: true
             config:
                 changeResponseToUpperCase: true
+            context: {}
+    k8s-tools:
+        botkube/helm:
+            enabled: true
+            config: null
+            context: {}
+        botkube/kubectl:
+            enabled: true
+            config: null
             context: {}
 aliases: {}
 communications:
@@ -386,7 +50,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             token: xoxb-token-from-env
         socketSlack:
             enabled: true
@@ -399,7 +63,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
             botToken: xoxb-token-from-env
             appToken: xapp-token-from-env
         mattermost:
@@ -417,7 +81,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
         discord:
             enabled: false
             token: DISCORD_TOKEN
@@ -431,7 +95,7 @@ communications:
                         sources:
                             - k8s-events
                         executors:
-                            - kubectl-read-only
+                            - k8s-tools
         teams:
             enabled: false
             appID: APPLICATION_ID
@@ -441,7 +105,7 @@ communications:
                 sources:
                     - k8s-events
                 executors:
-                    - kubectl-read-only
+                    - k8s-tools
         webhook:
             enabled: false
             url: WEBHOOK_URL

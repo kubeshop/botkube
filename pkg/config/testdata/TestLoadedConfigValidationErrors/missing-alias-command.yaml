@@ -12,7 +12,7 @@ aliases:
 
 executors:
   'kubectl-read-only':
-    kubectl:
+    botkube/kubectl:
       enabled: true
   'helm':
     botkube/helm:

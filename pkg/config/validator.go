@@ -23,10 +23,8 @@ const (
 	invalidPluginDefinitionTag  = "invalid_plugin_definition"
 	invalidAliasCommandTag      = "invalid_alias_command"
 	invalidPluginRBACTag        = "invalid_plugin_rbac"
-	invalidPluginDefaultNSTag   = "invalid_plugin_ns"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
-	kubectlCommandName          = "kubectl"
 )
 
 var warnsOnlyTags = map[string]struct{}{
@@ -126,7 +124,6 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
 		invalidPluginRBACTag:        "Binding is referencing plugins of same kind with different RBAC. '{0}' and '{1}' bindings must be identical when used together.",
-		invalidPluginDefaultNSTag:   "Binding is referencing plugins of same kind with different default namespace. '{0}' and '{1}' bindings must be identical when used together.",
 	})
 }
 
@@ -358,10 +355,6 @@ func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfig
 
 			if !reflect.DeepEqual(firstRBAC, nextCfg.Context.RBAC) {
 				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, nextIdx)
-			}
-
-			if p1Cfg.Context.DefaultNamespace != nextCfg.Context.DefaultNamespace {
-				sl.ReportError(bindings, p1, p1, invalidPluginDefaultNSTag, nextIdx)
 			}
 		}
 	}

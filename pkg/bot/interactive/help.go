@@ -3,9 +3,10 @@ package interactive
 import (
 	"fmt"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 // RunCommandName defines the button name for the run commands.
@@ -44,7 +45,6 @@ func (h *HelpMessage) Build() CoreMessage {
 		h.configSections,
 		h.executorSections,
 		h.pluginHelpSections,
-		h.filters,
 		h.feedback,
 		h.footer,
 	}
@@ -83,19 +83,6 @@ func (h *HelpMessage) ping() []api.Section {
 			},
 			Buttons: []api.Button{
 				h.btnBuilder.ForCommandWithDescCmd("Check status", "ping"),
-			},
-		},
-	}
-}
-
-func (h *HelpMessage) filters() []api.Section {
-	return []api.Section{
-		{
-			Base: api.Base{
-				Header: "Filters (advanced)",
-				Body: api.Body{
-					Plaintext: "You can extend Botkube functionality by writing additional filters that can check resource specs, validate some checks and add messages to the Event struct. Learn more at https://docs.botkube.io/filters",
-				},
 			},
 		},
 	}
@@ -186,63 +173,14 @@ func (h *HelpMessage) configSections() []api.Section {
 }
 
 func (h *HelpMessage) executorSections() []api.Section {
-	if h.platform.IsInteractive() {
-		return []api.Section{
-			{
-				Base: api.Base{
-					Header:      "Interactive kubectl - no typing!",
-					Description: "Build kubectl commands interactively",
-				},
-				Buttons: []api.Button{
-					h.btnBuilder.ForCommandWithDescCmd("kubectl", "kubectl", api.ButtonStylePrimary),
-				},
-			},
-			{
-				Base: api.Base{
-					Description: "To list all enabled executors",
-				},
-				Buttons: []api.Button{
-					h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
-				},
-			},
-			{
-				Base: api.Base{
-					Description: "To list all command aliases",
-				},
-				Buttons: []api.Button{
-					h.btnBuilder.ForCommandWithDescCmd("List aliases", "list aliases"),
-				},
-			},
-		}
-	}
-
-	// without the kubectl command builder
 	return []api.Section{
 		{
 			Base: api.Base{
-				Header:      "Run kubectl commands (if enabled)",
-				Description: fmt.Sprintf("You can run kubectl commands directly from %s!", formatx.ToTitle(h.platform)),
-			},
-			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get services"),
-				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get pods"),
-				h.btnBuilder.ForCommandWithDescCmd(RunCommandName, "kubectl get deployments"),
-			},
-		},
-		{
-			Base: api.Base{
-				Description: "To list all enabled executors",
+				Header: "Manage executors",
 			},
 			Buttons: []api.Button{
 				h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
-			},
-		},
-		{
-			Base: api.Base{
-				Description: "To list all command aliases",
-			},
-			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd("List aliases", "list aliases"),
+				h.btnBuilder.ForCommandWithDescCmd("List executor aliases", "list aliases"),
 			},
 		},
 	}
@@ -250,18 +188,16 @@ func (h *HelpMessage) executorSections() []api.Section {
 
 func (h *HelpMessage) pluginHelpSections() []api.Section {
 	var out []api.Section
+
+	slices.Sort(h.enabledPluginExecutors) // to make the order predictable for testing
+
 	for _, name := range h.enabledPluginExecutors {
 		helpFn, found := pluginHelpProvider[name]
 		if !found {
 			continue
 		}
 
-		platformName := h.platform
-		if h.platform == config.SocketSlackCommPlatformIntegration {
-			platformName = "slack" // normalize the SocketSlack to Slack
-		}
-
-		helpSection := helpFn(formatx.ToTitle(platformName), h.btnBuilder)
+		helpSection := helpFn(h.platform, h.btnBuilder)
 		out = append(out, helpSection)
 	}
 	return out
