@@ -134,7 +134,7 @@ sources:
             # prefix: ""
             # static:
               # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
-              # value: *static-group-name
+              # value: ""
       enabled: true
       config:
         namespaces:
