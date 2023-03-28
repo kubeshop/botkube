@@ -407,7 +407,7 @@ sources:
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
       context: *default-plugin-context
-      enabled: false
+      enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
         # These namespaces are applied to every resource specified in the resources list.
@@ -475,7 +475,7 @@ executors:
         #  `- "test-.*"` - to specify all Namespaces.
         exclude: []
       # -- If true, enables `kubectl` commands execution.
-      enabled: true
+      enabled: false
       ## List of allowed `kubectl` commands.
       commands:
         # -- Configures which `kubectl` methods are allowed.
