@@ -108,7 +108,7 @@ func run(ctx context.Context) error {
 
 	reportFatalError := reportFatalErrFn(logger, reporter)
 
-	errGroup, ctx := errgroup.WithContext(ctx)
+	errGroup, _ := errgroup.WithContext(context.Background())
 
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
