@@ -122,46 +122,17 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		for {
 			select {
 			case event := <-out.Output:
-
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
 				d.dispatch(ctx, event, dispatch)
-
 			case msg := <-out.Event:
-
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, dispatch)
-
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 	return nil
-}
-
-func isAllowed(kubeconfig []byte) bool {
-	// config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
-	// if err != nil {
-	// 	return false
-	// }
-	// clientset, err := kubernetes.NewForConfig(config)
-	// if err != nil {
-	// 	return false
-	// }
-
-	// sar := &authorizationv1.SelfSubjectAccessReview{
-	// 	Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-	// 		ResourceAttributes: &authorizationv1.ResourceAttributes{
-	// 			// TODO:
-	// 		},
-	// 	},
-	// }
-	// reviewResult, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), sar, metav1.CreateOptions{})
-	// if err != nil {
-	// 	return false
-	// }
-	// return reviewResult.Status.Allowed
-	return true
 }
 
 func (d *Dispatcher) getBotNotifiers(dispatch PluginDispatch) []notifier.Bot {

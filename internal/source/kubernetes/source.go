@@ -24,6 +24,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	pkgConfig "github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
@@ -96,6 +97,9 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 }
 
 func consumeEvents(ctx context.Context, s Source) {
+	kubeConfigPath, _, _ := pluginx.PersistKubeConfig(ctx, s.kubeConfig)
+	s.logger.Infof("Kube config written to: %s\n", kubeConfigPath)
+
 	client, err := NewClient(s.kubeConfig)
 	exitOnError(err, s.logger)
 

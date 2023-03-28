@@ -15,7 +15,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // PluginExecutor provides functionality to run registered Botkube plugins.
@@ -62,11 +61,10 @@ func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 
 // Execute executes plugin executor based on a given command.
 func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackState *slack.BlockActionStates, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	log := e.log.WithFields(logrus.Fields{
+	e.log.WithFields(logrus.Fields{
 		"bindings": bindings,
 		"command":  cmdCtx.CleanCmd,
-	})
-	log.Debug("Handling plugin command...")
+	}).Debug("Handling plugin command...")
 
 	cmdName := cmdCtx.Args[0]
 	plugins, fullPluginName := e.getEnabledPlugins(bindings, cmdName)
@@ -83,13 +81,6 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)
 	}
-
-	kubeConfigPath, _, err := pluginx.PersistKubeConfig(ctx, kubeconfig)
-	if err != nil {
-		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
-	}
-
-	log.Info("kube config written at: ", kubeConfigPath)
 
 	cli, err := e.pluginManager.GetExecutor(fullPluginName)
 	if err != nil {

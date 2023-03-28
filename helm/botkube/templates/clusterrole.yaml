@@ -43,4 +43,18 @@ rules:
 {{- with .Values.rbac.rules }}
 {{- toYaml . | nindent 2 }}
 {{- end }}
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: {{ .Values.rbac.channelGroupName }}
+#   labels:
+#     app.kubernetes.io/name: {{ include "botkube.name" . }}
+#     helm.sh/chart: {{ include "botkube.chart" . }}
+#     app.kubernetes.io/instance: {{ .Release.Name }}
+#     app.kubernetes.io/managed-by: {{ .Release.Service }}
+# rules:
+# {{- with .Values.rbac.rules }}
+# {{- toYaml . | nindent 2 }}
+# {{- end }}
 {{ end }}

@@ -31,7 +31,25 @@ roleRef:
   kind: ClusterRole
   name: {{ .Values.rbac.staticGroupName }}
 subjects:
-- kind: Group
+- kind: User
   name: {{ .Values.rbac.staticGroupName }}
-  apiGroup: rbac.authorization.k8s.io  
+  apiGroup: rbac.authorization.k8s.io
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: {{ .Values.rbac.channelGroupName }}
+#   labels:
+#     app.kubernetes.io/name: {{ include "botkube.name" . }}
+#     helm.sh/chart: {{ include "botkube.chart" . }}
+#     app.kubernetes.io/instance: {{ .Release.Name }}
+#     app.kubernetes.io/managed-by: {{ .Release.Service }}
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: {{ .Values.rbac.channelGroupName }}
+# subjects:
+# - kind: Group
+#   name: {{ .Values.rbac.channelGroupName }}
+#   apiGroup: rbac.authorization.k8s.io
 {{ end }}
