@@ -407,7 +407,7 @@ sources:
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
       context: *default-plugin-context
-      enabled: true
+      enabled: false
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
         # These namespaces are applied to every resource specified in the resources list.
@@ -491,7 +491,7 @@ executors:
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/helm:
       # -- If true, enables `helm` commands execution.
-      enabled: true
+      enabled: false
       config:
         # Configures the default Namespace for executing Botkube `helm` commands. If not set, uses 'default'.
         defaultNamespace: "default"
@@ -506,7 +506,7 @@ executors:
     ## Kubectl executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/kubectl:
-      enabled: true
+      enabled: false
       # -- Custom kubectl configuration.
       # @default -- See the `values.yaml` file for full object including optional properties related to interactive builder.
       config:
