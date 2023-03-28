@@ -351,7 +351,6 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 		NotifierHandler: b,
 		Conversation: execute.Conversation{
 			Alias:            channel.alias,
-			DisplayName:      channel.Name,
 			ID:               channel.Identifier(),
 			DisplayName:      info.Name,
 			ExecutorBindings: channel.Bindings.Executors,
