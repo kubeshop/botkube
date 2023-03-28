@@ -13,6 +13,7 @@ const (
 )
 
 type KubeConfigInput struct {
+	Channel string
 }
 
 func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
@@ -27,8 +28,9 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 			{
 				Name: kubeconfigDefaultValue,
 				Cluster: clientcmdapi.Cluster{
-					Server:               restCfg.Host,
-					CertificateAuthority: restCfg.CAFile,
+					Server:                   restCfg.Host,
+					CertificateAuthority:     restCfg.CAFile,
+					CertificateAuthorityData: restCfg.CAData,
 				},
 			},
 		},
@@ -47,10 +49,12 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 			{
 				Name: kubeconfigDefaultValue,
 				AuthInfo: clientcmdapi.AuthInfo{
-					Token:             restCfg.BearerToken,
-					TokenFile:         restCfg.BearerTokenFile,
-					Impersonate:       generateUserSubject(rbac.User),
-					ImpersonateGroups: generateGroupSubject(rbac.Group),
+					Token:                 restCfg.BearerToken,
+					TokenFile:             restCfg.BearerTokenFile,
+					ClientCertificateData: restCfg.CertData,
+					ClientKeyData:         restCfg.KeyData,
+					Impersonate:           generateUserSubject(rbac.User, rbac.Group, input),
+					ImpersonateGroups:     generateGroupSubject(rbac.Group, input),
 				},
 			},
 		},
@@ -64,20 +68,28 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 	return yamlKubeConfig, nil
 }
 
-func generateUserSubject(rbac config.UserPolicySubject) (user string) {
+func generateUserSubject(rbac config.UserPolicySubject, group config.GroupPolicySubject, input KubeConfigInput) (user string) {
 	switch rbac.Type {
 	case config.StaticPolicySubjectType:
 		user = rbac.Prefix + rbac.Static.Value
+	case config.ChannelNamePolicySubjectType:
+		user = rbac.Prefix + input.Channel
+	default:
+		if group.Type != config.EmptyPolicySubjectType {
+			user = "botkube-internal-static-user"
+		}
 	}
 	return
 }
 
-func generateGroupSubject(rbac config.GroupPolicySubject) (group []string) {
+func generateGroupSubject(rbac config.GroupPolicySubject, input KubeConfigInput) (group []string) {
 	switch rbac.Type {
 	case config.StaticPolicySubjectType:
 		for _, value := range rbac.Static.Values {
 			group = append(group, rbac.Prefix+value)
 		}
+	case config.ChannelNamePolicySubjectType:
+		group = append(group, rbac.Prefix+input.Channel)
 	}
 	return
 }

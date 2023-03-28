@@ -116,25 +116,25 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: &defaultPluginContext
+      context: &default-plugin-context
         defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
-          # -- Static impersonation for a given username and groups.
           group:
+            # -- Static impersonation for a given username and groups.
             type: Static
             # -- Prefix that will be applied to .static.value[*].
             prefix: ""
             static:
               # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              values: [*static-group-name] # "botkube-plugins-read-only" is the default
-          user:
-            type: Static
+              values: [*static-group-name]
+          # user:
+            # type: Static
             # -- Prefix that will be applied to .static.value[*].
-            prefix: ""
-            static:
+            # prefix: ""
+            # static:
               # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
-              value: *static-group-name
+              # value: ""
       enabled: true
       config:
         namespaces:
@@ -160,7 +160,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultPluginContext
+      context: *default-plugin-context
       enabled: true
       config:
         # -- Filter settings for various sources.
@@ -333,7 +333,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultPluginContext
+      context: *default-plugin-context
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -373,7 +373,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultPluginContext
+      context: *default-plugin-context
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -404,7 +404,7 @@ sources:
     # -- Describes Kubernetes source configuration.
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
-      context: *defaultPluginContext
+      context: *default-plugin-context
       enabled: true
       config:
         # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
@@ -499,7 +499,7 @@ executors:
         helmConfigDir: "/tmp/helm/"
         # -- Location for storing cached files. Must be under the Helm config directory.
         helmCacheDir: "/tmp/helm/.cache"
-      context: *defaultPluginContext
+      context: *default-plugin-context
 
     ## Kubectl executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
@@ -524,7 +524,7 @@ executors:
       #      verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top" ]
       #      # Configures which K8s resource are displayed in resources dropdown.
       #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
-      context: *defaultPluginContext
+      context: *default-plugin-context
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
