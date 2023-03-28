@@ -47,8 +47,6 @@ rbac:
       resources: ["*"]
       verbs: ["get", "watch", "list"]
   staticGroupName: &static-group-name "botkube-plugins-default"
-  # default channel in slack & discord is called "general"
-  channelGroupName: &channel-group-name "general"
 
 ## Kubeconfig settings used by Botkube.
 kubeconfig:
@@ -122,21 +120,21 @@ sources:
         defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
-          # -- Static impersonation for a given username and groups.
-          user:
-            type: Static
-            # -- Prefix that will be applied to .static.value[*].
-            prefix: ""
-            static:
-              # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
-              value: *static-group-name
           group:
+            # -- Static impersonation for a given username and groups.
             type: Static
             # -- Prefix that will be applied to .static.value[*].
             prefix: ""
             static:
               # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              values: [*static-group-name] # "botkube-plugins-read-only" is the default
+              values: [*static-group-name]
+          # user:
+            # type: Static
+            # -- Prefix that will be applied to .static.value[*].
+            # prefix: ""
+            # static:
+              # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
+              # value: *static-group-name
       enabled: true
       config:
         namespaces:
