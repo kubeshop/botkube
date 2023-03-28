@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"k8s.io/client-go/rest"
-
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/yaml"
 
@@ -22,7 +21,6 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 	if rbac == nil {
 		return nil, nil
 	}
-
 	apiCfg := clientcmdapi.Config{
 		Kind:       "Config",
 		APIVersion: "v1",
@@ -55,7 +53,7 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 					TokenFile:             restCfg.BearerTokenFile,
 					ClientCertificateData: restCfg.CertData,
 					ClientKeyData:         restCfg.KeyData,
-					Impersonate:           generateUserSubject(rbac.User, input),
+					Impersonate:           generateUserSubject(rbac.User, rbac.Group, input),
 					ImpersonateGroups:     generateGroupSubject(rbac.Group, input),
 				},
 			},
@@ -70,12 +68,16 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 	return yamlKubeConfig, nil
 }
 
-func generateUserSubject(rbac config.UserPolicySubject, input KubeConfigInput) (user string) {
+func generateUserSubject(rbac config.UserPolicySubject, group config.GroupPolicySubject, input KubeConfigInput) (user string) {
 	switch rbac.Type {
 	case config.StaticPolicySubjectType:
 		user = rbac.Prefix + rbac.Static.Value
 	case config.ChannelNamePolicySubjectType:
 		user = rbac.Prefix + input.Channel
+	default:
+		if group.Type != config.EmptyPolicySubjectType {
+			user = "botkube-internal-static-user"
+		}
 	}
 	return
 }
