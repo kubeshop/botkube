@@ -26,9 +26,6 @@ const (
 )
 
 const (
-	// AllNamespaceIndicator represents a keyword for allowing all Kubernetes Namespaces.
-	AllNamespaceIndicator = allValuesPattern
-
 	// allValuesPattern represents a keyword for allowing all values.
 	allValuesPattern = ".*"
 )
@@ -196,97 +193,13 @@ type ActionBindings struct {
 
 // Sources contains configuration for Botkube app sources.
 type Sources struct {
-	DisplayName string           `yaml:"displayName"`
-	Kubernetes  KubernetesSource `yaml:"kubernetes"`
-	Plugins     Plugins          `yaml:",inline" koanf:",remain"`
+	DisplayName string  `yaml:"displayName"`
+	Plugins     Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // GetPlugins returns Sources.Plugins.
 func (s Sources) GetPlugins() Plugins {
 	return s.Plugins
-}
-
-// KubernetesSource contains configuration for Kubernetes sources.
-type KubernetesSource struct {
-	Recommendations Recommendations   `yaml:"recommendations"`
-	Event           KubernetesEvent   `yaml:"event"`
-	Resources       []Resource        `yaml:"resources" validate:"dive"`
-	Namespaces      RegexConstraints  `yaml:"namespaces"`
-	Annotations     map[string]string `yaml:"annotations"`
-	Labels          map[string]string `yaml:"labels"`
-}
-
-// KubernetesEvent contains configuration for Kubernetes events.
-type KubernetesEvent struct {
-	Reason  RegexConstraints             `yaml:"reason"`
-	Message RegexConstraints             `yaml:"message"`
-	Types   KubernetesResourceEventTypes `yaml:"types"`
-}
-
-// AreConstraintsDefined checks if any of the event constraints are defined.
-func (e KubernetesEvent) AreConstraintsDefined() bool {
-	return e.Reason.AreConstraintsDefined() || e.Message.AreConstraintsDefined()
-}
-
-// IsAllowed checks if a given resource event is allowed according to the configuration.
-func (r *KubernetesSource) IsAllowed(resourceType, namespace string, eventType EventType) bool {
-	if r == nil || len(r.Resources) == 0 {
-		return false
-	}
-
-	isEventAllowed := func(resourceEvents KubernetesResourceEventTypes) bool {
-		if len(resourceEvents) > 0 { // if resource overrides the global events, use them
-			return resourceEvents.Contains(eventType)
-		}
-		return r.Event.Types.Contains(eventType) // check global events
-	}
-
-	for _, resource := range r.Resources {
-		var nsConstraints RegexConstraints
-		if resource.Namespaces.AreConstraintsDefined() {
-			nsConstraints = resource.Namespaces
-		} else {
-			nsConstraints = r.Namespaces
-		}
-
-		namespaceAllowed, err := nsConstraints.IsAllowed(namespace)
-		if err != nil {
-			// regex error, so don't allow the event
-			return false
-		}
-
-		if resource.Type == resourceType &&
-			isEventAllowed(resource.Event.Types) &&
-			namespaceAllowed {
-			return true
-		}
-	}
-
-	return false
-}
-
-// Recommendations contains configuration for various recommendation insights.
-type Recommendations struct {
-	Ingress IngressRecommendations `yaml:"ingress"`
-	Pod     PodRecommendations     `yaml:"pod"`
-}
-
-// PodRecommendations contains configuration for pods recommendations.
-type PodRecommendations struct {
-	// NoLatestImageTag notifies about Pod containers that use `latest` tag for images.
-	NoLatestImageTag *bool `yaml:"noLatestImageTag,omitempty"`
-
-	// LabelsSet notifies about Pod resources created without labels.
-	LabelsSet *bool `yaml:"labelsSet,omitempty"`
-}
-
-// IngressRecommendations contains configuration for ingress recommendations.
-type IngressRecommendations struct {
-	// BackendServiceValid notifies about Ingress resources with invalid backend service reference.
-	BackendServiceValid *bool `yaml:"backendServiceValid,omitempty"`
-
-	// TLSSecretValid notifies about Ingress resources with invalid TLS secret reference.
-	TLSSecretValid *bool `yaml:"tlsSecretValid,omitempty"`
 }
 
 // Plugins contains plugins configuration parameters defined in groups.
@@ -302,8 +215,7 @@ type Plugin struct {
 // PluginContext defines the context for given plugin.
 type PluginContext struct {
 	// RBAC defines the RBAC rules for given plugin.
-	RBAC             *PolicyRule `yaml:"rbac,omitempty"`
-	DefaultNamespace string      `yaml:"defaultNamespace,omitempty"`
+	RBAC *PolicyRule `yaml:"rbac,omitempty"`
 }
 
 // PolicyRule is the RBAC rule.
@@ -360,17 +272,15 @@ const (
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Kubectl Kubectl `yaml:"kubectl"`
 	Plugins Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
 func (e Executors) CollectCommandPrefixes() []string {
-	prefixes := []string{kubectlCommandName}
+	var prefixes []string
 	for pluginName := range e.Plugins {
 		prefixes = append(prefixes, ExecutorNameForKey(pluginName))
 	}
-
 	return prefixes
 }
 
@@ -391,46 +301,6 @@ type Alias struct {
 // Analytics contains configuration parameters for analytics collection.
 type Analytics struct {
 	Disable bool `yaml:"disable"`
-}
-
-// Resource contains resources to watch
-type Resource struct {
-	Type          string            `yaml:"type"`
-	Name          RegexConstraints  `yaml:"name"`
-	Namespaces    RegexConstraints  `yaml:"namespaces"`
-	Annotations   map[string]string `yaml:"annotations"`
-	Labels        map[string]string `yaml:"labels"`
-	Event         KubernetesEvent   `yaml:"event"`
-	UpdateSetting UpdateSetting     `yaml:"updateSetting"`
-}
-
-// KubernetesResourceEventTypes contains events to watch for a resource.
-type KubernetesResourceEventTypes []EventType
-
-// Contains checks if event is contained in the events slice.
-// If the slice contains AllEvent, then the result is true.
-func (e *KubernetesResourceEventTypes) Contains(eventType EventType) bool {
-	if e == nil {
-		return false
-	}
-
-	for _, event := range *e {
-		if event == AllEvent {
-			return true
-		}
-
-		if event == eventType {
-			return true
-		}
-	}
-
-	return false
-}
-
-// UpdateSetting struct defines updateEvent fields specification
-type UpdateSetting struct {
-	Fields      []string `yaml:"fields"`
-	IncludeDiff bool     `yaml:"includeDiff"`
 }
 
 // RegexConstraints contains a list of allowed and excluded values.
@@ -600,21 +470,6 @@ type Webhook struct {
 	Enabled  bool         `yaml:"enabled"`
 	URL      string       `yaml:"url"`
 	Bindings SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
-}
-
-// Kubectl configuration for executing commands inside cluster
-type Kubectl struct {
-	Namespaces       RegexConstraints `yaml:"namespaces,omitempty"`
-	Enabled          bool             `yaml:"enabled"`
-	Commands         Commands         `yaml:"commands,omitempty"`
-	DefaultNamespace string           `yaml:"defaultNamespace,omitempty"`
-	RestrictAccess   *bool            `yaml:"restrictAccess,omitempty"`
-}
-
-// Commands allowed in bot
-type Commands struct {
-	Verbs     []string `yaml:"verbs"`
-	Resources []string `yaml:"resources"`
 }
 
 // CfgWatcher describes configuration for watching the configuration.

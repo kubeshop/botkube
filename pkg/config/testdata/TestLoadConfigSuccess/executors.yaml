@@ -1,25 +1,11 @@
 executors:
-  'kubectl-read-only':
-    # Kubectl executor configs
-    kubectl:
-      namespaces:
-        include: [ ".*" ]
-        exclude: [ "foo", "bar", "test-*-ns" ]
-
-      # Set true to enable kubectl commands execution
-      enabled: false
-      # List of allowed commands
-      commands:
-        # method which are allowed
-        verbs: [ "api-resources", "api-versions", "cluster-info", "describe", "diff", "explain", "get", "logs", "top", "auth" ]
-        # resource configuration which is allowed
-        resources: [ "deployments", "pods" , "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes" ]
-      # set Namespace to execute botkube kubectl commands by default
-      defaultNamespace: default
-      # Set true to enable commands execution from configured channel only
-      restrictAccess: false
-  'plugin-based':
-    botkube/echo: # <repo>/<plugin> is syntax for plugin based executors
+  'k8s-tools':
+    botkube/kubectl:
+      enabled: true
+    botkube/helm:
+      enabled: true
+  'echo':
+    botkube/echo:
       enabled: true
       config:
         changeResponseToUpperCase: true

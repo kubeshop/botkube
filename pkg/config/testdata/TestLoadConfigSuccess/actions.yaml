@@ -7,4 +7,4 @@ actions:
       sources:
         - k8s-events
       executors:
-        - kubectl-read-only
+        - k8s-tools

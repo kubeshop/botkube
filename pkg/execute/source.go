@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"text/tabwriter"
 
 	"github.com/sirupsen/logrus"
@@ -21,8 +20,6 @@ var (
 		Aliases: []string{"sources", "src"},
 	}
 )
-
-const kubernetesBuiltinSourceName = "kubernetes"
 
 // SourceExecutor executes all commands that are related to sources.
 type SourceExecutor struct {
@@ -67,11 +64,6 @@ func (e *SourceExecutor) TabularOutput(bindings []string) string {
 
 		for name, plugin := range s.Plugins {
 			sources[name] = plugin.Enabled
-		}
-
-		// TODO: Remove once we extract the source to a separate plugin
-		if !reflect.DeepEqual(s.Kubernetes, config.KubernetesSource{}) {
-			sources[kubernetesBuiltinSourceName] = true
 		}
 	}
 

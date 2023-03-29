@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	kubeconfigDefaultValue = "default"
+	kubeconfigDefaultValue     = "default"
+	kubeconfigDefaultNamespace = "default"
 )
 
 type KubeConfigInput struct {
@@ -39,7 +40,7 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 				Name: kubeconfigDefaultValue,
 				Context: clientcmdapi.Context{
 					Cluster:   kubeconfigDefaultValue,
-					Namespace: pluginCtx.DefaultNamespace,
+					Namespace: kubeconfigDefaultNamespace,
 					AuthInfo:  kubeconfigDefaultValue,
 				},
 			},

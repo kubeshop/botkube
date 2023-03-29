@@ -459,32 +459,6 @@ sources:
 ## Format: executors.{alias}
 executors:
   k8s-default-tools:
-    ## Built-in Kubectl executor configuration.
-    ## DEPRECATED: The botkube/kubectl plugin version should be used instead. If both are enabled the plugin version takes the precedences.
-    kubectl:
-      namespaces:
-        # -- List of allowed Kubernetes Namespaces for command execution.
-        # It can also contain a regex expressions:
-        #  `- ".*"` - to specify all Namespaces.
-        include:
-          - ".*"
-        # -- List of ignored Kubernetes Namespace.
-        # It can also contain a regex expressions:
-        #  `- "test-.*"` - to specify all Namespaces.
-        exclude: []
-      # -- If true, enables `kubectl` commands execution.
-      enabled: false
-      ## List of allowed `kubectl` commands.
-      commands:
-        # -- Configures which `kubectl` methods are allowed.
-        verbs: ["api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"]
-        # -- Configures which K8s resource are allowed.
-        resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"]
-      # -- Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses the 'default'.
-      defaultNamespace: default
-      # -- If true, enables commands execution from configured channel only.
-      restrictAccess: false
-
     ## Helm executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/helm:

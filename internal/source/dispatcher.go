@@ -204,8 +204,14 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 		return
 	}
 	for _, act := range actions {
-		d.log.Infof("Executing action %q (command: %q)...", act.DisplayName, act.Command)
+		log := d.log.WithFields(logrus.Fields{
+			"name":    act.DisplayName,
+			"command": act.Command,
+		})
+		log.Infof("Executing automated action...")
 		genericMsg := d.actionProvider.ExecuteAction(ctx, act)
+		log.WithField("message", fmt.Sprintf("%+v", genericMsg)).Debug("Automated action executed. Printing output message...")
+
 		for _, n := range d.getBotNotifiers(dispatch) {
 			go func(n notifier.Bot) {
 				defer analytics.ReportPanicIfOccurs(d.log, d.reporter)

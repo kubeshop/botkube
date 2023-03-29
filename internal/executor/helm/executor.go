@@ -107,11 +107,11 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 
 	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeConfig file: %w", err)
+		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
 	}
 	defer func() {
 		if deleteErr := deleteFn(ctx); deleteErr != nil {
-			fmt.Fprintf(os.Stderr, "failed to delete cube config file %s: %v", kubeConfigPath, deleteErr)
+			fmt.Fprintf(os.Stderr, "failed to delete kubeconfig file %s: %v", kubeConfigPath, deleteErr)
 		}
 	}()
 

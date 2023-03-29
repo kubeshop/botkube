@@ -49,41 +49,6 @@ func TestLoadConfigSuccess(t *testing.T) {
 	golden.Assert(t, string(gotData), filepath.Join(t.Name(), "config.golden.yaml"))
 }
 
-func TestLoadConfigWithPlugins(t *testing.T) {
-	// given
-	expSourcePlugin := config.Plugins{
-		"botkube/keptn": {
-			Enabled: true,
-			Config: map[string]interface{}{
-				"field": "value",
-			},
-		},
-	}
-
-	expExecutorPlugin := config.Plugins{
-		"botkube/echo": {
-			Enabled: true,
-			Config: map[string]interface{}{
-				"changeResponseToUpperCase": true,
-			},
-		},
-	}
-
-	files := config.YAMLFiles{
-		readTestdataFile(t, "config-all.yaml"),
-	}
-
-	// when
-	gotCfg, _, err := config.LoadWithDefaults(files)
-
-	//then
-	require.NoError(t, err)
-	require.NotNil(t, gotCfg)
-
-	assert.Equal(t, expSourcePlugin, gotCfg.Sources["k8s-events"].Plugins)
-	assert.Equal(t, expExecutorPlugin, gotCfg.Executors["plugin-based"].Plugins)
-}
-
 func TestNormalizeConfigEnvName(t *testing.T) {
 	// given
 	tests := []struct {
@@ -263,37 +228,6 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			assert.Nil(t, cfg)
 			assert.NoError(t, details.ValidateWarnings)
 			assert.EqualError(t, err, tc.expErrMsg)
-		})
-	}
-}
-
-func TestLoadedConfigValidationWarnings(t *testing.T) {
-	// given
-	tests := []struct {
-		name       string
-		expWarnMsg string
-		configs    [][]byte
-	}{
-		{
-			name: "executor specifies all and exact namespace in include property",
-			expWarnMsg: heredoc.Doc(`
-				2 errors occurred:
-					* Key: 'Config.Sources[k8s-events].Kubernetes.Resources[0].Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values
-					* Key: 'Config.Executors[kubectl-read-only].Kubectl.Namespaces.Include' Include contains multiple constraints, but it does already include a regex pattern for all values`),
-			configs: [][]byte{
-				readTestdataFile(t, "executors-include-warning.yaml"),
-			},
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// when
-			cfg, details, err := config.LoadWithDefaults(tc.configs)
-
-			// then
-			assert.NotNil(t, cfg)
-			assert.NoError(t, err)
-			assert.EqualError(t, details.ValidateWarnings, tc.expWarnMsg)
 		})
 	}
 }

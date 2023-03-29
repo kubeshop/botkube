@@ -7,9 +7,6 @@ rbac:
     - apiGroups: [ "*" ]
       resources: [ "*" ]
       verbs: [ "get", "watch", "list" ] # defaults
-    - apiGroups: [ "" ]
-      resources: [ "services" ]
-      verbs: [ "patch" ] # needed for label action
   staticGroupName: &static-group-name "botkube-plugins-default"
 
 communications:
@@ -22,16 +19,14 @@ communications:
           name: "" # Tests will override this temporarily
           bindings:
             executors:
-              - k8s-default-tools
-              - kubectl-wait-cmd
+              - kubectl-first-channel-cmd
               - kubectl-exec-cmd
-              - kubectl-allow-all
-              - plugin-based
+              - other-plugins
             sources:
               - k8s-events
               - k8s-annotated-cm-delete
               - k8s-pod-create-events
-              - plugin-based
+              - other-plugins
         'secondary':
           name: "" # Tests will override this temporarily
           notification:
@@ -50,16 +45,14 @@ communications:
           id: "" # Tests will override this channel ID temporarily
           bindings:
             executors:
-              - k8s-default-tools
-              - kubectl-wait-cmd
+              - kubectl-first-channel-cmd
               - kubectl-exec-cmd
-              - kubectl-allow-all
-              - plugin-based
+              - other-plugins
             sources:
               - k8s-events
               - k8s-annotated-cm-delete
               - k8s-pod-create-events
-              - plugin-based
+              - other-plugins
         'secondary':
           id: "" # Tests will override this channel ID temporarily
           notification:
@@ -77,24 +70,16 @@ sources:
     displayName: "K8s recommendations"
     'botkube/kubernetes':
       context: &defaultPluginContext
-        defaultNamespace: "default"
-        # -- RBAC configuration for this plugin.
         rbac:
-          # -- Static impersonation for a given username and groups.
           group:
             type: Static
-            # -- Prefix that will be applied to .static.value[*].
-            prefix: ""
             static:
-              # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              values: [*static-group-name] # "botkube-plugins-read-only" is the default
+              values: [ *static-group-name ] # "botkube-plugins-read-only" is the default
           user:
             type: Static
-            # -- Prefix that will be applied to .static.value[*].
-            prefix: ""
             static:
-              # -- Name of user.rbac.authorization.k8s.io the plugin will be bound to.
               value: *static-group-name
+
       enabled: true
       config:
         log:
@@ -190,7 +175,7 @@ sources:
               types:
                 - update
 
-  'plugin-based':
+  'other-plugins':
     displayName: "K8s ConfigMaps changes"
     botkube/cm-watcher:
       context: *defaultPluginContext
@@ -203,61 +188,49 @@ sources:
 
 executors:
   'k8s-default-tools':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - botkube
-          - default
-  'kubectl-wait-cmd':
-    kubectl:
+  'kubectl-first-channel-cmd':
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - botkube
-          - default
-      commands:
-        verbs: [ "wait" ]
-      restrictAccess: false
+      context:
+        rbac:
+          user:
+            type: Static
+            static:
+              value: "kubectl-first-channel"
   'kubectl-exec-cmd':
-    kubectl:
+    botkube/kubectl:
       enabled: false
-      namespaces:
-        include:
-          - botkube
-          - default
-      commands:
-        verbs: [ "exec" ]
-      restrictAccess: false
-  'kubectl-allow-all':
-    kubectl:
-      enabled: true
-      namespaces:
-        include:
-          - ".*"
-      commands:
-        verbs: [ "get" ]
-        resources: [ "deployments" ]
+      context:
+        rbac:
+          user:
+            type: Static
+            static:
+              # 'exec' verb perms on  'botkube' and 'default' namespaces
+              value: "kc-exec-only"
   'kubectl-not-bound-to-any-channel':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include:
-          - ".*"
-      commands:
-        verbs: [ "port-forward" ]
-        resources: [ "deployments" ]
-
+      context:
+        rbac:
+          user:
+            type: Static
+            static:
+              # deployments port-forward across all namespaces
+              value: "kubectl-first-channel"
   'kubectl-with-svc-label-perms':
-    kubectl:
+    botkube/kubectl:
       enabled: true
-      namespaces:
-        include: [ ".*" ]
-      commands:
-        verbs: [ "label" ]
-        resources: [ "services" ]
+      context:
+        rbac:
+          user:
+            type: Static
+            static:
+              # service labeling across all namespaces
+              value: "kc-label-svc-all"
 
-  'plugin-based':
+  'other-plugins':
     botkube/echo@v1.0.1-devel:
       enabled: true
       config:
@@ -327,3 +300,118 @@ extraAnnotations:
 extraEnv:
   - name: LOG_LEVEL_SOURCE_BOTKUBE_KUBERNETES
     value: debug
+
+extraObjects:
+
+  # Group 'kubectl-first-channel': permissions for kubectl for first channel
+  ## namespace scoped permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata: &kubectl-wait
+      name: kubectl-first-channel-namespaced-perms
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "apps" ]
+        resources: [ "deployments" ]
+        verbs: [ "get","watch","list" ]
+      - apiGroups: [ "" ]
+        resources: [ "configmaps", "pods" ]
+        verbs: [ "get", "watch", "list" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kubectl-wait
+      namespace: botkube
+    roleRef: &kubectl-wait-role
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubectl-first-channel-namespaced-perms
+    subjects: &kubectl-first-channel-subject
+      - kind: User
+        name: kubectl-first-channel
+        apiGroup: rbac.authorization.k8s.io
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kubectl-wait
+      namespace: default
+    roleRef: *kubectl-wait-role
+    subjects: *kubectl-first-channel-subject
+
+  ### cluster permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata: &kubectl-deploy-all-meta
+      name: kc-first-channel-cluster-perms
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "apps" ]
+        resources: [ "deployments" ]
+        verbs: [ "get", "list" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: *kubectl-deploy-all-meta
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-first-channel-cluster-perms
+    subjects: *kubectl-first-channel-subject
+
+  # Group 'kc-exec-only'
+  ## exec only for default and botkube namespaces:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata: &kc-exec-only-meta
+      name: kc-exec-only
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "pods/exec" ]
+        verbs: [ "create" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kc-exec-only-meta
+      namespace: botkube
+    roleRef: &kc-exec-only-role
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-exec-only
+    subjects: &kc-exec-only-subject
+      - kind: User
+        name: kc-exec-only
+        apiGroup: rbac.authorization.k8s.io
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kc-exec-only-meta
+      namespace: default
+    roleRef: *kc-exec-only-role
+    subjects: *kc-exec-only-subject
+
+  # Group 'kc-label-svc-all':
+  ## namespace scoped permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata: &kc-label-svc-all-meta
+      name: kc-label-svc-all
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "services" ]
+        verbs: [ "get", "patch" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: *kc-label-svc-all-meta
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-label-svc-all
+    subjects:
+      - kind: User
+        name: kc-label-svc-all
+        apiGroup: rbac.authorization.k8s.io

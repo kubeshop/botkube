@@ -92,19 +92,36 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    go build ./cmd/botkube/
    ```
 
-2. Use templates to create configuration files:
-
-   ```sh
-   cp global_config.yaml.tpl resource_config.yaml
-   cp comm_config.yaml.tpl comm_config.yaml
+2. Create a local configuration file to override default values. For example, set communication credentials, specify cluster name, and disable analytics:  
+   
+   ```yaml
+   cat <<EOF > local_config.yaml
+   communications:
+     default-group:
+       socketSlack:
+         enabled: true
+         channels:
+           default:
+             name: random
+         appToken: "xapp-xxxx"
+         botToken: "xoxb-xxxx"   
+   configWatcher:
+      enabled: false
+   settings:
+     clusterName: "labs"
+   analytics:
+     # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
+     # see [Privacy Policy](https://botkube.io/privacy#privacy-policy).
+     disable: true
+   EOF
    ```
 
-   Edit the newly created `resource_config.yaml` and `comm_config.yaml` files to configure resource and set communication credentials.
+   To learn more about configuration, visit https://docs.botkube.io/configuration/.
 
-3. Export the path to directory of `config.yaml`
-
+3. Export paths to configuration files. The priority will be given to the last (right-most) file specified.
+   
    ```sh
-   export BOTKUBE_CONFIG_PATHS="$(pwd)/resource_config.yaml,$(pwd)/comm_config.yaml"
+   export BOTKUBE_CONFIG_PATHS="$(pwd)/helm/botkube/values.yaml,$(pwd)/local_config.yaml"
    ```
 
 4. Export the path to Kubeconfig:
@@ -145,8 +162,8 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    go run test/helpers/plugin_server.go
    ```
 
-	 > **Note**
-	 > If Botkube runs inside the k3d cluster, export the `PLUGIN_SERVER_HOST=http://host.k3d.internal` environment variable.
+   > **Note**
+   > If Botkube runs inside the k3d cluster, export the `PLUGIN_SERVER_HOST=http://host.k3d.internal` environment variable.
 
 2. Export Botkube plugins cache directory:
 

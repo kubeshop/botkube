@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -79,17 +80,18 @@ const (
 	welcomeText         = "Let the tests begin 🤞"
 	pollInterval        = time.Second
 	globalConfigMapName = "botkube-global-config"
-	discordInvalidCmd   = "You must specify the type of resource to get. Use \"kubectl api-resources\" for a complete list of supported resources.\n\nerror: Required resource not specified.\nUse \"kubectl explain <resource>\" for a detailed description of that resource (e.g. kubectl explain pods).\nSee 'kubectl get -h' for help and examples\nexit status 1"
 )
 
 var (
-	slackInvalidCmd = heredoc.Doc(`
+	discordInvalidCmd = heredoc.Doc(`
 				You must specify the type of resource to get. Use "kubectl api-resources" for a complete list of supported resources.
 
 				error: Required resource not specified.
-				Use "kubectl explain &lt;resource&gt;" for a detailed description of that resource (e.g. kubectl explain pods).
+				Use "kubectl explain <resource>" for a detailed description of that resource (e.g. kubectl explain pods).
 				See 'kubectl get -h' for help and examples
+
 				exit status 1`)
+	slackInvalidCmd = strings.NewReplacer("<", "&lt;", ">", "&gt;").Replace(discordInvalidCmd)
 	configMapLabels = map[string]string{
 		"test.botkube.io": "true",
 	}
@@ -193,7 +195,7 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
-	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm"}).Build()
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
 	expMessage.ReplaceBotNamePlaceholder(botDriver.BotName())
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
@@ -219,7 +221,7 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm"}).Build()
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
 		expectedMessage.ReplaceBotNamePlaceholder(botDriver.BotName())
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
@@ -482,7 +484,10 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
 			command := "kubectl get role"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'role' resources in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
+			expectedBody := codeBlock(heredoc.Docf(`
+				Error from server (Forbidden): roles.rbac.authorization.k8s.io is forbidden: User "kubectl-first-channel" cannot list resource "roles" in API group "rbac.authorization.k8s.io" in the namespace "default"
+
+				exit status 1`))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -512,7 +517,10 @@ func runBotTest(t *testing.T,
 
 		t.Run("Specify forbidden namespace", func(t *testing.T) {
 			command := "kubectl get po --namespace team-b"
-			expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'po' resources in the 'team-b' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
+			expectedBody := codeBlock(heredoc.Docf(`
+				Error from server (Forbidden): pods is forbidden: User "kubectl-first-channel" cannot list resource "pods" in API group "" in the namespace "team-b"
+
+				exit status 1`))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -521,21 +529,9 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Based on other bindings", func(t *testing.T) {
-			t.Run("Wait for Deployment (the 2st binding)", func(t *testing.T) {
+			t.Run("Wait for Deployment", func(t *testing.T) {
 				command := fmt.Sprintf("kubectl wait deployment -n %s %s --for condition=Available=True", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
-				assertionFn := func(msg string) (bool, int, string) {
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						strings.Contains(msg, "deployment.apps/botkube condition met"), 0, ""
-				}
-
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
-				assert.NoError(t, err)
-			})
-
-			t.Run("Exec (the 3rd binding which is disabled)", func(t *testing.T) {
-				command := "kubectl exec"
-				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl 'exec' command cannot be executed in the 'default' Namespace on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
+				expectedBody := codeBlock(`The "wait" command is not supported by the Botkube kubectl plugin.`)
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -543,10 +539,43 @@ func runBotTest(t *testing.T,
 				assert.NoError(t, err)
 			})
 
-			t.Run("Get all Pods (the 4th binding) with alias", func(t *testing.T) {
+			t.Run("Exec (the kubectl which is disabled)", func(t *testing.T) {
+				command := fmt.Sprintf("kubectl exec deploy/%s -n %s -- date", appCfg.Deployment.Name, appCfg.Deployment.Namespace)
+				expectedBody := codeBlock(heredoc.Docf(`
+				Defaulted container "botkube" out of: botkube, cfg-watcher
+				Error from server (Forbidden): pods "botkube-pod" is forbidden: User "kubectl-first-channel" cannot create resource "pods/exec" in API group "" in the namespace "botkube"
+
+				exit status 1`))
+				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+
+				podName, err := regexp.Compile(`"botkube-.*-.*" is`)
+				assert.NoError(t, err)
+
+				assertionFn := func(msg string) (bool, int, string) {
+					msg = podName.ReplaceAllString(msg, `"botkube-pod" is`)
+					msg = trimTrailingLine(msg)
+					if !strings.EqualFold(expectedMessage, msg) {
+						count := countMatchBlock(expectedMessage, msg)
+						msgDiff := diff(expectedMessage, msg)
+						return false, count, msgDiff
+					}
+					return true, 0, ""
+				}
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				assert.NoError(t, err)
+			})
+
+			t.Run("Get all Pods with alias", func(t *testing.T) {
 				aliasedCommand := "kgp -A"
 				expandedCommand := "kubectl get pods -A"
-				expectedBody := codeBlock(fmt.Sprintf("Sorry, the kubectl command is not authorized to work with 'pods' resources for all Namespaces on cluster '%s'. Use 'list executors' to see allowed executors.", appCfg.ClusterName))
+
+				expectedBody := codeBlock(heredoc.Docf(`
+				Error from server (Forbidden): pods is forbidden: User "kubectl-first-channel" cannot list resource "pods" in API group "" at the cluster scope
+
+				exit status 1`))
+
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(expandedCommand), expectedBody)
 
 				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
@@ -554,7 +583,7 @@ func runBotTest(t *testing.T,
 				assert.NoError(t, err)
 			})
 
-			t.Run("Get all Deployments (the 4th binding) with alias", func(t *testing.T) {
+			t.Run("Get all Deployments with alias", func(t *testing.T) {
 				aliasedCommand := "kgda"
 				expandedCommand := "kubectl get deployments -A"
 				assertionFn := func(msg string) (bool, int, string) {
@@ -960,8 +989,7 @@ func runBotTest(t *testing.T,
 			EXECUTOR                  ENABLED ALIASES
 			botkube/echo@v1.0.1-devel true    e
 			botkube/helm              true    
-			botkube/kubectl           false   k, kc
-			kubectl                   true    k, kc`))
+			botkube/kubectl           true    k, kc`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
