@@ -1137,7 +1137,7 @@ func runBotTest(t *testing.T,
 				},
 				Rules: []v12.PolicyRule{
 					{
-						APIGroups: []string{""},
+						APIGroups: []string{"networking.k8s.io/v1"},
 						Resources: []string{"ingresses"},
 						Verbs:     []string{"get"},
 					},
@@ -1188,6 +1188,7 @@ func runBotTest(t *testing.T,
 				},
 			}
 
+			t.Log("Creating Ingress...")
 			ingressCli := k8sCli.NetworkingV1().Ingresses(appCfg.Deployment.Namespace)
 			ingress, err := ingressCli.Create(context.Background(), ing, metav1.CreateOptions{})
 			require.NoError(t, err)
