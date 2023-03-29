@@ -176,7 +176,7 @@ func (h *HelpMessage) executorSections() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
-				Header: "Manage executors",
+				Header: "List executors and aliases",
 			},
 			Buttons: []api.Button{
 				h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),

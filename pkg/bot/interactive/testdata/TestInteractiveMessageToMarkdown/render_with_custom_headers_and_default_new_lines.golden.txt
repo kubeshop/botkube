@@ -28,7 +28,7 @@ By default, Botkube will notify only about cluster errors and recommendations.
 ```
   • `@Botkube show config`
 
-*Manage executors*
+*List executors and aliases*
   • `@Botkube list executors`
   • `@Botkube list aliases`
 

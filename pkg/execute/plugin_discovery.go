@@ -1,8 +1,8 @@
 package execute
 
 var staticPluginDiscovery = map[string]string{
-	"kubectl": "No `kubectl` commands are enabled in this channel. To learn how to enable them, visit https://docs.botkube.io/configuration/executor/kubectl",
-	"helm":    "No `helm` commands are enabled in this channel. To learn how to enable them, visit https://docs.botkube.io/configuration/executor/helm",
+	"kubectl": "`kubectl` commands are disabled for this channel. To learn how to enable Kubectl executor, visit https://docs.botkube.io/configuration/executor/kubectl",
+	"helm":    "`helm` commands are disabled for this channel. To learn how to enable Helm executor, visit https://docs.botkube.io/configuration/executor/helm",
 }
 
 // GetInstallHelpForKnownPlugin returns install help for a known plugin.

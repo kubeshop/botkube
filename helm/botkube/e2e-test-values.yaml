@@ -74,7 +74,7 @@ sources:
           group:
             type: Static
             static:
-              values: [*static-group-name] # "botkube-plugins-read-only" is the default
+              values: [ *static-group-name ] # "botkube-plugins-read-only" is the default
           user:
             type: Static
             static:
@@ -195,40 +195,40 @@ executors:
       enabled: true
       context:
         rbac:
-          group:
+          user:
             type: Static
             static:
-              values: [ "kubectl-first-channel" ]
+              value: "kubectl-first-channel"
   'kubectl-exec-cmd':
     botkube/kubectl:
       enabled: false
       context:
         rbac:
-          group:
+          user:
             type: Static
             static:
               # 'exec' verb perms on  'botkube' and 'default' namespaces
-              values: [ "kc-exec-only" ]
+              value: "kc-exec-only"
   'kubectl-not-bound-to-any-channel':
     botkube/kubectl:
       enabled: true
       context:
         rbac:
-          group:
+          user:
             type: Static
             static:
               # deployments port-forward across all namespaces
-              values: [ "kubectl-first-channel" ]
+              value: "kubectl-first-channel"
   'kubectl-with-svc-label-perms':
     botkube/kubectl:
       enabled: true
       context:
         rbac:
-          group:
+          user:
             type: Static
             static:
               # service labeling across all namespaces
-              values: [ "kc-label-svc-all" ]
+              value: "kc-label-svc-all"
 
   'other-plugins':
     botkube/echo@v1.0.1-devel:
@@ -303,115 +303,115 @@ extraEnv:
 
 extraObjects:
 
-# Group 'kubectl-first-channel': permissions for kubectl for first channel
-## namespace scoped permissions
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRole
-  metadata: &kubectl-wait
-    name: kubectl-first-channel-namespaced-perms
-    labels:
-      app.kubernetes.io/instance: botkube-e2e-test
-  rules:
-    - apiGroups: [ "apps" ]
-      resources: [ "deployments" ]
-      verbs: [ "get","watch","list" ]
-    - apiGroups: [""]
-      resources: ["configmaps", "pods"]
-      verbs: ["get", "watch", "list"]
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    <<: *kubectl-wait
-    namespace: botkube
-  roleRef: &kubectl-wait-role
-    apiGroup: rbac.authorization.k8s.io
+  # Group 'kubectl-first-channel': permissions for kubectl for first channel
+  ## namespace scoped permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
-    name: kubectl-first-channel-namespaced-perms
-  subjects: &kubectl-first-channel-subject
-    - kind: Group
-      name: kubectl-first-channel
+    metadata: &kubectl-wait
+      name: kubectl-first-channel-namespaced-perms
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "apps" ]
+        resources: [ "deployments" ]
+        verbs: [ "get","watch","list" ]
+      - apiGroups: [ "" ]
+        resources: [ "configmaps", "pods" ]
+        verbs: [ "get", "watch", "list" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kubectl-wait
+      namespace: botkube
+    roleRef: &kubectl-wait-role
       apiGroup: rbac.authorization.k8s.io
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    <<: *kubectl-wait
-    namespace: default
-  roleRef: *kubectl-wait-role
-  subjects: *kubectl-first-channel-subject
+      kind: ClusterRole
+      name: kubectl-first-channel-namespaced-perms
+    subjects: &kubectl-first-channel-subject
+      - kind: User
+        name: kubectl-first-channel
+        apiGroup: rbac.authorization.k8s.io
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kubectl-wait
+      namespace: default
+    roleRef: *kubectl-wait-role
+    subjects: *kubectl-first-channel-subject
 
-### cluster permissions
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRole
-  metadata: &kubectl-deploy-all-meta
-    name: kc-first-channel-cluster-perms
-    labels:
-      app.kubernetes.io/instance: botkube-e2e-test
-  rules:
-    - apiGroups: [ "apps" ]
-      resources: [ "deployments" ]
-      verbs: [ "get", "list" ]
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRoleBinding
-  metadata: *kubectl-deploy-all-meta
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
+  ### cluster permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
-    name: kc-first-channel-cluster-perms
-  subjects: *kubectl-first-channel-subject
+    metadata: &kubectl-deploy-all-meta
+      name: kc-first-channel-cluster-perms
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "apps" ]
+        resources: [ "deployments" ]
+        verbs: [ "get", "list" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: *kubectl-deploy-all-meta
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-first-channel-cluster-perms
+    subjects: *kubectl-first-channel-subject
 
-# Group 'kc-exec-only'
-## exec only for default and botkube namespaces:
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRole
-  metadata: &kc-exec-only-meta
-    name: kc-exec-only
-    labels:
-      app.kubernetes.io/instance: botkube-e2e-test
-  rules:
-    - apiGroups: [""]
-      resources: ["pods/exec"]
-      verbs: ["create"]
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    <<: *kc-exec-only-meta
-    namespace: botkube
-  roleRef: &kc-exec-only-role
-    apiGroup: rbac.authorization.k8s.io
+  # Group 'kc-exec-only'
+  ## exec only for default and botkube namespaces:
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
-    name: kc-exec-only
-  subjects: &kc-exec-only-subject
-    - kind: Group
+    metadata: &kc-exec-only-meta
       name: kc-exec-only
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "pods/exec" ]
+        verbs: [ "create" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kc-exec-only-meta
+      namespace: botkube
+    roleRef: &kc-exec-only-role
       apiGroup: rbac.authorization.k8s.io
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
-  metadata:
-    <<: *kc-exec-only-meta
-    namespace: default
-  roleRef: *kc-exec-only-role
-  subjects: *kc-exec-only-subject
+      kind: ClusterRole
+      name: kc-exec-only
+    subjects: &kc-exec-only-subject
+      - kind: User
+        name: kc-exec-only
+        apiGroup: rbac.authorization.k8s.io
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      <<: *kc-exec-only-meta
+      namespace: default
+    roleRef: *kc-exec-only-role
+    subjects: *kc-exec-only-subject
 
-# Group 'kc-label-svc-all':
-## namespace scoped permissions
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRole
-  metadata: &kc-label-svc-all-meta
-    name: kc-label-svc-all
-    labels:
-      app.kubernetes.io/instance: botkube-e2e-test
-  rules:
-    - apiGroups: [ "" ]
-      resources: [ "services" ]
-      verbs: [ "get", "patch" ]
-- apiVersion: rbac.authorization.k8s.io/v1
-  kind: ClusterRoleBinding
-  metadata: *kc-label-svc-all-meta
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
+  # Group 'kc-label-svc-all':
+  ## namespace scoped permissions
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
-    name: kc-label-svc-all
-  subjects:
-    - kind: Group
+    metadata: &kc-label-svc-all-meta
       name: kc-label-svc-all
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "services" ]
+        verbs: [ "get", "patch" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: *kc-label-svc-all-meta
+    roleRef:
       apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-label-svc-all
+    subjects:
+      - kind: User
+        name: kc-label-svc-all
+        apiGroup: rbac.authorization.k8s.io
