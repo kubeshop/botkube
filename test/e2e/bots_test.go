@@ -5,14 +5,15 @@ package e2e
 import (
 	"context"
 	"fmt"
-	v13 "k8s.io/api/networking/v1"
-	v12 "k8s.io/api/rbac/v1"
-	v14 "k8s.io/client-go/kubernetes/typed/networking/v1"
-	v15 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	v13 "k8s.io/api/networking/v1"
+	v12 "k8s.io/api/rbac/v1"
+	v14 "k8s.io/client-go/kubernetes/typed/networking/v1"
+	v15 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
@@ -1081,7 +1082,6 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
-
 		})
 
 		t.Run("Static mapping", func(t *testing.T) {
