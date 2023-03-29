@@ -1137,7 +1137,7 @@ func runBotTest(t *testing.T,
 				},
 				Rules: []v12.PolicyRule{
 					{
-						APIGroups: []string{"networking.k8s.io/v1"},
+						APIGroups: []string{"*"},
 						Resources: []string{"ingresses"},
 						Verbs:     []string{"get"},
 					},
