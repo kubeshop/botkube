@@ -1130,14 +1130,13 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("ChannelName mapping", func(t *testing.T) {
-			t.Log("Creating RBAC ConfigMap for ChannelName mapping...")
 			clusterRole := &v12.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: botDriver.ThirdChannel().Identifier(),
 				},
 				Rules: []v12.PolicyRule{
 					{
-						APIGroups: []string{"*"},
+						APIGroups: []string{"networking.k8s.io"},
 						Resources: []string{"ingresses"},
 						Verbs:     []string{"get"},
 					},
@@ -1203,7 +1202,6 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot event message...")
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.ThirdChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
-
 			t.Cleanup(func() { cleanupCreatedIng(t, ingressCli, ingress.Name) })
 			t.Cleanup(func() { cleanupCreatedClusterRole(t, clusterRoleCli, cr.Name) })
 			t.Cleanup(func() { cleanupCreatedClusterRoleBinding(t, clusterRoleBindingCli, crb.Name) })

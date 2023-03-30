@@ -303,11 +303,15 @@ executors:
   'rbac-with-channel-mapping':
     botkube/kubectl:
       enabled: true
-      context:
+      config:
         defaultNamespace: botkube
+      context:
         rbac:
           group:
             type: ChannelName
+          user:
+            type: Static
+            value: "rbac-with-channel-mapping"
 
 plugins:
   repositories:
