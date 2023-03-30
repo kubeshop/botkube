@@ -1160,7 +1160,7 @@ func runBotTest(t *testing.T,
 				Subjects: []v12.Subject{
 					{
 						Kind:     "Group",
-						Name:     botDriver.ThirdChannel().Identifier(),
+						Name:     botDriver.ThirdChannel().Name(),
 						APIGroup: "rbac.authorization.k8s.io",
 					},
 				},
