@@ -104,7 +104,16 @@ type SourceBindingPatchDeploymentConfigInput struct {
 	SourceBindings         []string    `json:"sourceBindings"`
 }
 
+// ActionPatchDeploymentConfigInput contains action's updatable fields.
 type ActionPatchDeploymentConfigInput struct {
 	Name    string `json:"name"`
 	Enabled *bool  `json:"enabled"`
+}
+
+// DeploymentFailureInput represents the input data structure for reporting a deployment failure.
+type DeploymentFailureInput struct {
+	// ResourceVersion is the deployment version that we want to alter.
+	ResourceVersion int `json:"resourceVersion"`
+	// Message is a human-readable message describing the deployment failure.
+	Message string `json:"message"`
 }
