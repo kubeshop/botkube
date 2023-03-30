@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	v13 "k8s.io/api/networking/v1"
-	v12 "k8s.io/api/rbac/v1"
-	v14 "k8s.io/client-go/kubernetes/typed/networking/v1"
-	v15 "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	netapiv1 "k8s.io/api/networking/v1"
+	rbacapiv1 "k8s.io/api/rbac/v1"
+	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
+	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
@@ -1130,11 +1130,11 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("ChannelName mapping", func(t *testing.T) {
-			clusterRole := &v12.ClusterRole{
+			clusterRole := &rbacapiv1.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: botDriver.ThirdChannel().Identifier(),
 				},
-				Rules: []v12.PolicyRule{
+				Rules: []rbacapiv1.PolicyRule{
 					{
 						APIGroups: []string{"networking.k8s.io"},
 						Resources: []string{"ingresses"},
@@ -1148,16 +1148,16 @@ func runBotTest(t *testing.T,
 			cr, err := clusterRoleCli.Create(context.Background(), clusterRole, metav1.CreateOptions{})
 			require.NoError(t, err)
 
-			clusterRoleBinding := &v12.ClusterRoleBinding{
+			clusterRoleBinding := &rbacapiv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: botDriver.ThirdChannel().Identifier(),
 				},
-				RoleRef: v12.RoleRef{
+				RoleRef: rbacapiv1.RoleRef{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "ClusterRole",
 					Name:     botDriver.ThirdChannel().Identifier(),
 				},
-				Subjects: []v12.Subject{
+				Subjects: []rbacapiv1.Subject{
 					{
 						Kind:     "Group",
 						Name:     botDriver.ThirdChannel().Name(),
@@ -1171,15 +1171,15 @@ func runBotTest(t *testing.T,
 			crb, err := clusterRoleBindingCli.Create(context.Background(), clusterRoleBinding, metav1.CreateOptions{})
 			require.NoError(t, err)
 
-			ing := &v13.Ingress{
+			ing := &netapiv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ing-rbac-channel",
 				},
-				Spec: v13.IngressSpec{
-					DefaultBackend: &v13.IngressBackend{
-						Service: &v13.IngressServiceBackend{
+				Spec: netapiv1.IngressSpec{
+					DefaultBackend: &netapiv1.IngressBackend{
+						Service: &netapiv1.IngressServiceBackend{
 							Name: "test",
-							Port: v13.ServiceBackendPort{
+							Port: netapiv1.ServiceBackendPort{
 								Number: int32(8080),
 							},
 						},
@@ -1252,19 +1252,19 @@ func cleanupCreatedSvc(t *testing.T, podCli corev1.ServiceInterface, name string
 	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }
-func cleanupCreatedIng(t *testing.T, ingressCli v14.IngressInterface, name string) {
+func cleanupCreatedIng(t *testing.T, ingressCli netv1.IngressInterface, name string) {
 	t.Log("Cleaning up created Ingress...")
 	err := ingressCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }
 
-func cleanupCreatedClusterRole(t *testing.T, clusterRoleCli v15.ClusterRoleInterface, name string) {
+func cleanupCreatedClusterRole(t *testing.T, clusterRoleCli rbacv1.ClusterRoleInterface, name string) {
 	t.Log("Cleaning up created ClusterRole...")
 	err := clusterRoleCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }
 
-func cleanupCreatedClusterRoleBinding(t *testing.T, clusterRoleBindingCli v15.ClusterRoleBindingInterface, name string) {
+func cleanupCreatedClusterRoleBinding(t *testing.T, clusterRoleBindingCli rbacv1.ClusterRoleBindingInterface, name string) {
 	t.Log("Cleaning up created ClusterRoleBinding...")
 	err := clusterRoleBindingCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
