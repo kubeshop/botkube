@@ -1156,7 +1156,7 @@ func runBotTest(t *testing.T,
 				RoleRef: v12.RoleRef{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "ClusterRole",
-					Name:     "ing-rbac-channel",
+					Name:     botDriver.ThirdChannel().Identifier(),
 				},
 				Subjects: []v12.Subject{
 					{
