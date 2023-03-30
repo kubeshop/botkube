@@ -304,6 +304,7 @@ executors:
     botkube/kubectl:
       enabled: true
       context:
+        defaultNamespace: botkube
         rbac:
           group:
             type: ChannelName
