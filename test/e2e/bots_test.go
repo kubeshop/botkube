@@ -1133,7 +1133,7 @@ func runBotTest(t *testing.T,
 			t.Log("Creating RBAC ConfigMap for ChannelName mapping...")
 			clusterRole := &v12.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "ing-rbac-channel",
+					Name: botDriver.ThirdChannel().Identifier(),
 				},
 				Rules: []v12.PolicyRule{
 					{
@@ -1151,7 +1151,7 @@ func runBotTest(t *testing.T,
 
 			clusterRoleBinding := &v12.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "ing-rbac-channel",
+					Name: botDriver.ThirdChannel().Identifier(),
 				},
 				RoleRef: v12.RoleRef{
 					APIGroup: "rbac.authorization.k8s.io",
