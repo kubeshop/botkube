@@ -233,6 +233,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 		Conversation: execute.Conversation{
 			Alias:            channel.alias,
 			ID:               channel.Identifier(),
+			DisplayName:      channel.Name,
 			ExecutorBindings: channel.Bindings.Executors,
 			IsAuthenticated:  isAuthChannel,
 			CommandOrigin:    command.TypedOrigin,

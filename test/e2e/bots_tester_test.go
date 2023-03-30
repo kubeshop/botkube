@@ -64,6 +64,7 @@ type BotDriver interface {
 	WaitForMessagePostedWithAttachment(userID, channel string, limitMessages int, expInput ExpAttachmentInput) error
 	Channel() Channel
 	SecondChannel() Channel
+	ThirdChannel() Channel
 	BotName() string
 	BotUserID() string
 	TesterUserID() string

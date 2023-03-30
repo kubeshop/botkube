@@ -41,6 +41,7 @@ type discordTester struct {
 	testerUserID  string
 	channel       Channel
 	secondChannel Channel
+	thirdChannel  Channel
 	mdFormatter   interactive.MDFormatter
 }
 
@@ -76,6 +77,10 @@ func (d *discordTester) SecondChannel() Channel {
 	return d.secondChannel
 }
 
+func (d *discordTester) ThirdChannel() Channel {
+	return d.thirdChannel
+}
+
 func (d *discordTester) InitUsers(t *testing.T) {
 	t.Helper()
 
@@ -101,9 +106,13 @@ func (d *discordTester) InitChannels(t *testing.T) []func() {
 	secondChannel, cleanupSecondChannelFn := d.createChannel(t, "second")
 	d.secondChannel = &DiscordChannel{Channel: secondChannel}
 
+	thirdChannel, cleanupThirdChannelFn := d.createChannel(t, "rbac")
+	d.thirdChannel = &DiscordChannel{Channel: thirdChannel}
+
 	return []func(){
 		func() { cleanupChannelFn(t) },
 		func() { cleanupSecondChannelFn(t) },
+		func() { cleanupThirdChannelFn(t) },
 	}
 }
 

@@ -42,6 +42,7 @@ type slackTester struct {
 	testerUserID  string
 	channel       Channel
 	secondChannel Channel
+	thirdChannel  Channel
 	mdFormatter   interactive.MDFormatter
 }
 
@@ -73,9 +74,13 @@ func (s *slackTester) InitChannels(t *testing.T) []func() {
 	secondChannel, cleanupSecondChannelFn := s.createChannel(t, "second")
 	s.secondChannel = &SlackChannel{Channel: secondChannel}
 
+	thirdChannel, cleanupThirdChannelFn := s.createChannel(t, "rbac")
+	s.thirdChannel = &SlackChannel{Channel: thirdChannel}
+
 	return []func(){
 		func() { cleanupChannelFn(t) },
 		func() { cleanupSecondChannelFn(t) },
+		func() { cleanupThirdChannelFn(t) },
 	}
 }
 
@@ -101,6 +106,10 @@ func (s *slackTester) Channel() Channel {
 
 func (s *slackTester) SecondChannel() Channel {
 	return s.secondChannel
+}
+
+func (s *slackTester) ThirdChannel() Channel {
+	return s.thirdChannel
 }
 
 func (s *slackTester) PostInitialMessage(t *testing.T, channelName string) {

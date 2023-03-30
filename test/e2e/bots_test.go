@@ -10,6 +10,11 @@ import (
 	"testing"
 	"time"
 
+	netapiv1 "k8s.io/api/networking/v1"
+	rbacapiv1 "k8s.io/api/rbac/v1"
+	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
+	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,9 +44,11 @@ type Config struct {
 			SlackEnabledName              string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_ENABLED"`
 			DefaultSlackChannelIDName     string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_DEFAULT_NAME"`
 			SecondarySlackChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_SECONDARY_NAME"`
+			ThirdSlackChannelIDName       string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_SLACK_CHANNELS_THIRD_NAME"`
 			DiscordEnabledName            string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_ENABLED"`
 			DefaultDiscordChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"`
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
+			ThirdDiscordChannelIDName     string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_THIRD_ID"`
 			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"`
 			LabelActionEnabledName        string `envconfig:"default=BOTKUBE_ACTIONS_LABEL-CREATED-SVC-RESOURCE_ENABLED"`
 			StandaloneActionEnabledName   string `envconfig:"default=BOTKUBE_ACTIONS_GET-CREATED-RESOURCE_ENABLED"`
@@ -109,6 +116,7 @@ func TestSlack(t *testing.T) {
 		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
+		appCfg.Deployment.Envs.ThirdSlackChannelIDName,
 	)
 }
 
@@ -124,6 +132,7 @@ func TestDiscord(t *testing.T) {
 		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
+		appCfg.Deployment.Envs.ThirdDiscordChannelIDName,
 	)
 }
 
@@ -142,7 +151,8 @@ func runBotTest(t *testing.T,
 	driverType DriverType,
 	invalidCmdTemplate,
 	deployEnvChannelIDName,
-	deployEnvSecondaryChannelIDName string,
+	deployEnvSecondaryChannelIDName,
+	deployEnvRbacChannelIDName string,
 ) {
 	t.Logf("Creating API client with provided token for %s...", driverType)
 	botDriver, err := newBotDriver(appCfg, driverType)
@@ -171,6 +181,7 @@ func runBotTest(t *testing.T,
 	channels := map[string]Channel{
 		deployEnvChannelIDName:          botDriver.Channel(),
 		deployEnvSecondaryChannelIDName: botDriver.SecondChannel(),
+		deployEnvRbacChannelIDName:      botDriver.ThirdChannel(),
 	}
 
 	for _, currentChannel := range channels {
@@ -642,10 +653,8 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
-		var channelIDs []string
-		for _, channel := range channels {
-			channelIDs = append(channelIDs, channel.ID())
-		}
+		// Third (RBAC) channel is isolated from this
+		channelIDs := []string{channels[deployEnvChannelIDName].ID(), channels[deployEnvSecondaryChannelIDName].ID()}
 
 		t.Log("Creating ConfigMap...")
 		var cfgMapAlreadyDeleted bool
@@ -1031,6 +1040,173 @@ func runBotTest(t *testing.T,
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
+
+	t.Run("RBAC", func(t *testing.T) {
+		t.Run("No configuration", func(t *testing.T) {
+			echoParam := "john doe"
+			command := fmt.Sprintf("echo %s", echoParam)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					strings.Contains(msg, "JOHN DOE"), 0, ""
+			}
+
+			botDriver.PostMessageToBot(t, botDriver.ThirdChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.ThirdChannel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
+
+		t.Run("Default configuration", func(t *testing.T) {
+			t.Log("Creating RBAC ConfigMap...")
+			cfgMap := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cm-rbac",
+					Namespace: appCfg.Deployment.Namespace,
+					Labels: map[string]string{
+						"rbac.botkube.io": "true",
+					},
+				},
+			}
+
+			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+			cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			var cfgMapAlreadyDeleted bool
+			err = cfgMapCli.Delete(context.Background(), cfgMap.Name, metav1.DeleteOptions{})
+			require.NoError(t, err)
+			cfgMapAlreadyDeleted = true
+
+			t.Log("Expecting bot message in third channel...")
+			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `DELETED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.ThirdChannel().ID(), expectedMsg)
+			require.NoError(t, err)
+
+			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
+		})
+
+		t.Run("Static mapping", func(t *testing.T) {
+			t.Log("Creating RBAC ConfigMap with Static mapping...")
+			cfgMap := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cm-rbac-static",
+					Namespace: appCfg.Deployment.Namespace,
+					Annotations: map[string]string{
+						"rbac.botkube.io": "true",
+					},
+				},
+			}
+
+			createCMEventTime := time.Now()
+			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+			cfgMap, err = cfgMapCli.Create(context.Background(), cfgMap, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			t.Log("Expecting bot event message...")
+			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+				AllowedTimestampDelta: time.Minute,
+				Message: api.Message{
+					Type:      api.NonInteractiveSingleSection,
+					Timestamp: createCMEventTime,
+					Sections: []api.Section{
+						{
+							Base: api.Base{
+								Header: "🟢 v1/configmaps created",
+							},
+							TextFields: api.TextFields{
+								{Key: "Kind", Value: "ConfigMap"},
+								{Key: "Name", Value: cfgMap.Name},
+								{Key: "Namespace", Value: cfgMap.Namespace},
+								{Key: "Cluster", Value: appCfg.ClusterName},
+							},
+						},
+					},
+				},
+			})
+			require.NoError(t, err)
+
+			cfgMapAlreadyDeleted := false
+
+			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
+		})
+
+		t.Run("ChannelName mapping", func(t *testing.T) {
+			clusterRole := &rbacapiv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: botDriver.ThirdChannel().Identifier(),
+				},
+				Rules: []rbacapiv1.PolicyRule{
+					{
+						APIGroups: []string{"networking.k8s.io"},
+						Resources: []string{"ingresses"},
+						Verbs:     []string{"get"},
+					},
+				},
+			}
+
+			t.Log("Creating RBAC ClusterRole for ChannelName mapping...")
+			clusterRoleCli := k8sCli.RbacV1().ClusterRoles()
+			cr, err := clusterRoleCli.Create(context.Background(), clusterRole, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			clusterRoleBinding := &rbacapiv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: botDriver.ThirdChannel().Identifier(),
+				},
+				RoleRef: rbacapiv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     botDriver.ThirdChannel().Identifier(),
+				},
+				Subjects: []rbacapiv1.Subject{
+					{
+						Kind:     "Group",
+						Name:     botDriver.ThirdChannel().Name(),
+						APIGroup: "rbac.authorization.k8s.io",
+					},
+				},
+			}
+
+			t.Log("Creating RBAC ClusterRoleBinding for ChannelName mapping...")
+			clusterRoleBindingCli := k8sCli.RbacV1().ClusterRoleBindings()
+			crb, err := clusterRoleBindingCli.Create(context.Background(), clusterRoleBinding, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			ing := &netapiv1.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ing-rbac-channel",
+				},
+				Spec: netapiv1.IngressSpec{
+					DefaultBackend: &netapiv1.IngressBackend{
+						Service: &netapiv1.IngressServiceBackend{
+							Name: "test",
+							Port: netapiv1.ServiceBackendPort{
+								Number: int32(8080),
+							},
+						},
+					},
+				},
+			}
+
+			t.Log("Creating Ingress...")
+			ingressCli := k8sCli.NetworkingV1().Ingresses(appCfg.Deployment.Namespace)
+			ingress, err := ingressCli.Create(context.Background(), ing, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			command := fmt.Sprintf("kubectl get ing %s -n %s -o yaml", ingress.Name, ingress.Namespace)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+					strings.Contains(msg, "creationTimestamp:"), 0, ""
+			}
+			botDriver.PostMessageToBot(t, botDriver.ThirdChannel().Identifier(), command)
+
+			t.Log("Expecting bot event message...")
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.ThirdChannel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+			t.Cleanup(func() { cleanupCreatedIng(t, ingressCli, ingress.Name) })
+			t.Cleanup(func() { cleanupCreatedClusterRole(t, clusterRoleCli, cr.Name) })
+			t.Cleanup(func() { cleanupCreatedClusterRoleBinding(t, clusterRoleBindingCli, crb.Name) })
+		})
+	})
 }
 
 type aliasedCmd struct {
@@ -1074,5 +1250,22 @@ func cleanupCreatedPod(t *testing.T, podCli corev1.PodInterface, name string) {
 func cleanupCreatedSvc(t *testing.T, podCli corev1.ServiceInterface, name string) {
 	t.Log("Cleaning up created Service...")
 	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
+	assert.NoError(t, err)
+}
+func cleanupCreatedIng(t *testing.T, ingressCli netv1.IngressInterface, name string) {
+	t.Log("Cleaning up created Ingress...")
+	err := ingressCli.Delete(context.Background(), name, metav1.DeleteOptions{})
+	assert.NoError(t, err)
+}
+
+func cleanupCreatedClusterRole(t *testing.T, clusterRoleCli rbacv1.ClusterRoleInterface, name string) {
+	t.Log("Cleaning up created ClusterRole...")
+	err := clusterRoleCli.Delete(context.Background(), name, metav1.DeleteOptions{})
+	assert.NoError(t, err)
+}
+
+func cleanupCreatedClusterRoleBinding(t *testing.T, clusterRoleBindingCli rbacv1.ClusterRoleBindingInterface, name string) {
+	t.Log("Cleaning up created ClusterRoleBinding...")
+	err := clusterRoleBindingCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
 }

@@ -36,6 +36,15 @@ communications:
               - k8s-default-tools
             sources:
               - k8s-updates
+        'third': # This channel is dedicated to RBAC-related tests
+          name: "" # Tests will override this temporarily
+          bindings:
+            executors:
+              - rbac-with-no-configuration
+              - rbac-with-channel-mapping
+            sources:
+              - rbac-with-static-mapping
+              - rbac-with-default-configuration
     discord:
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for Botkube app
@@ -64,6 +73,15 @@ communications:
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-updates
+        'third': # This channel is dedicated to RBAC-related tests
+          id: "" # Tests will override this temporarily
+          bindings:
+            executors:
+              - rbac-with-no-configuration
+              - rbac-with-channel-mapping
+            sources:
+              - rbac-with-static-mapping
+              - rbac-with-default-configuration
 
 sources:
   'k8s-events':
@@ -185,6 +203,42 @@ sources:
           name: cm-watcher-trigger
           namespace: botkube
           event: ADDED
+  'rbac-with-default-configuration':
+    botkube/cm-watcher:
+      context: *defaultPluginContext
+      enabled: true
+      config:
+        configMap:
+          name: cm-rbac
+          namespace: botkube
+          event: DELETED
+
+  'rbac-with-static-mapping':
+    botkube/kubernetes:
+      enabled: true
+      config:
+        namespaces:
+          include:
+            - botkube
+        annotations:
+          "rbac.botkube.io": "true"
+        event:
+          types:
+            - create
+        resources:
+          - type: v1/configmaps
+      context:
+        rbac:
+          group:
+            type: Static
+            prefix: ""
+            static:
+              values: [ "kc-watch-cm" ]
+          user:
+            type: Static
+            prefix: ""
+            static:
+              value: "kc-watch-cm"
 
 executors:
   'k8s-default-tools':
@@ -239,6 +293,22 @@ executors:
     botkube/helm:
       context: *defaultPluginContext
       enabled: true
+
+  'rbac-with-no-configuration':
+    botkube/echo:
+      enabled: true
+      config:
+        changeResponseToUpperCase: true
+
+  'rbac-with-channel-mapping':
+    botkube/kubectl:
+      enabled: true
+      config:
+        defaultNamespace: botkube
+      context:
+        rbac:
+          group:
+            type: ChannelName
 
 plugins:
   repositories:
@@ -414,4 +484,27 @@ extraObjects:
     subjects:
       - kind: User
         name: kc-label-svc-all
+        apiGroup: rbac.authorization.k8s.io
+
+  # Group 'rbac-with-static-mapping':
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata: &k8s-cm-watch-meta
+      name: kc-watch-cm
+      labels:
+        app.kubernetes.io/instance: botkube-e2e-test
+    rules:
+      - apiGroups: [ "" ]
+        resources: [ "configmaps" ]
+        verbs: [ "watch", "list" ]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: *k8s-cm-watch-meta
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kc-watch-cm
+    subjects:
+      - kind: Group
+        name: kc-watch-cm
         apiGroup: rbac.authorization.k8s.io
