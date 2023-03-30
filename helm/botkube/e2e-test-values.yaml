@@ -309,9 +309,6 @@ executors:
         rbac:
           group:
             type: ChannelName
-          user:
-            type: Static
-            value: "rbac-with-channel-mapping"
 
 plugins:
   repositories:
