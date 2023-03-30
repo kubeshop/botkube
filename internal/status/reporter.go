@@ -9,7 +9,7 @@ import (
 type StatusReporter interface {
 	ReportDeploymentStartup(ctx context.Context) error
 	ReportDeploymentShutdown(ctx context.Context) error
-	ReportDeploymentFailed(ctx context.Context) error
+	ReportDeploymentFailure(ctx context.Context, errMsg string) error
 	SetResourceVersion(resourceVersion int)
 }
 

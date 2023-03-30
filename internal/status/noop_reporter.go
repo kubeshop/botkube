@@ -16,7 +16,7 @@ func (n NoopStatusReporter) ReportDeploymentShutdown(context.Context) error {
 	return nil
 }
 
-func (n NoopStatusReporter) ReportDeploymentFailed(context.Context) error {
+func (n NoopStatusReporter) ReportDeploymentFailure(context.Context, string) error {
 	return nil
 }
 

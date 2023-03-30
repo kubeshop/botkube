@@ -9,6 +9,8 @@ import (
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/internal/remote"
 )
 
 var _ StatusReporter = (*GraphQLStatusReporter)(nil)
@@ -97,8 +99,8 @@ func (r *GraphQLStatusReporter) ReportDeploymentShutdown(ctx context.Context) er
 	return nil
 }
 
-// ReportDeploymentFailed reports deployment failure to GraphQL server.
-func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) error {
+// ReportDeploymentFailure reports deployment failure to GraphQL server.
+func (r *GraphQLStatusReporter) ReportDeploymentFailure(ctx context.Context, errMsg string) error {
 	logger := r.log.WithFields(logrus.Fields{
 		"deploymentID":    r.gql.DeploymentID(),
 		"resourceVersion": r.getResourceVersion(),
@@ -108,11 +110,15 @@ func (r *GraphQLStatusReporter) ReportDeploymentFailed(ctx context.Context) erro
 
 	err := r.withRetry(ctx, logger, func() error {
 		var mutation struct {
-			Success bool `graphql:"reportDeploymentFailed(id: $id, resourceVersion: $resourceVersion)"`
+			Success bool `graphql:"reportDeploymentFailure(id: $id, in: $input)"`
 		}
+
 		variables := map[string]interface{}{
-			"id":              graphql.ID(r.gql.DeploymentID()),
-			"resourceVersion": r.getResourceVersion(),
+			"id": graphql.ID(r.gql.DeploymentID()),
+			"input": remote.DeploymentFailureInput{
+				Message:         errMsg,
+				ResourceVersion: r.getResourceVersion(),
+			},
 		}
 		return r.gql.Client().Mutate(ctx, &mutation, variables)
 	})

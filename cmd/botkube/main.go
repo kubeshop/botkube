@@ -483,6 +483,9 @@ func getK8sClients(cfg *rest.Config) (discovery.DiscoveryInterface, error) {
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {
 	return func(ctx string, err error) error {
+		if err == nil {
+			return nil
+		}
 		if errors.Is(err, context.Canceled) {
 			logger.Debugf("Context was cancelled. Skipping reporting error...")
 			return nil
@@ -497,7 +500,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, st
 			logger.Errorf("while reporting fatal error: %s", err.Error())
 		}
 
-		if err := status.ReportDeploymentFailed(ctxTimeout); err != nil {
+		if err := status.ReportDeploymentFailure(ctxTimeout, err.Error()); err != nil {
 			logger.Errorf("while reporting deployment failure: %s", err.Error())
 		}
 
