@@ -38,7 +38,7 @@ func Test_Start_Success(t *testing.T) {
 	collector := insights.NewK8sCollector(k8sCli, heartbeatReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
-	err := collector.Start(ctx, true)
+	err := collector.Start(ctx)
 	assert.True(t, retry.IsRecoverable(err))
 }
 
@@ -52,23 +52,6 @@ func Test_Start_Failed(t *testing.T) {
 	collector := insights.NewK8sCollector(k8sCli, heartbeatReporter, loggerx.NewNoop(), 1, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
-	err := collector.Start(ctx, true)
+	err := collector.Start(ctx)
 	assert.Contains(t, err.Error(), "reached maximum limit of node count retrieval")
-}
-
-func Test_Start_Skip(t *testing.T) {
-	wrkNode1 := v1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "worker1",
-		},
-	}
-
-	k8sCli := fake.NewSimpleClientset(&wrkNode1)
-	heartbeatReporter := heartbeat.NoopHeartbeatReporter{}
-
-	collector := insights.NewK8sCollector(k8sCli, heartbeatReporter, loggerx.NewNoop(), 1, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
-	defer cancel()
-	err := collector.Start(ctx, false)
-	assert.Nil(t, err)
 }
