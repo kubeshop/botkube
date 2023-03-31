@@ -45,6 +45,7 @@ var resourcelessCommands = map[string]struct{}{
 	"uncordon":      {},
 	"run":           {},
 	"api-resources": {},
+	"rollout":       {},
 }
 
 // Kubectl executes kubectl commands using local binary.

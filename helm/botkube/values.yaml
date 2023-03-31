@@ -13,11 +13,11 @@ image:
   # -- Botkube container image registry.
   registry: ghcr.io
   # -- Botkube container image repository.
-  repository: kubeshop/botkube
+  repository: kubeshop/pr/botkube
   # -- Botkube container image pull policy.
   pullPolicy: IfNotPresent
   # -- Botkube container image tag. Default tag is `appVersion` from Chart.yaml.
-  tag: v0.18.0
+  tag: 1030-PR
 
 # -- Configures Pod Security Policy to allow Botkube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
@@ -406,9 +406,9 @@ executors:
       ## List of allowed `kubectl` commands.
       commands:
         # -- Configures which `kubectl` methods are allowed.
-        verbs: ["api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"]
+        verbs: ["rollout", "api-resources", "api-versions", "cluster-info", "describe", "explain", "get", "logs", "top"]
         # -- Configures which K8s resource are allowed.
-        resources: ["deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"]
+        resources: [ "restart", "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses"]
       # -- Configures the default Namespace for executing Botkube `kubectl` commands. If not set, uses the 'default'.
       defaultNamespace: default
       # -- If true, enables commands execution from configured channel only.
