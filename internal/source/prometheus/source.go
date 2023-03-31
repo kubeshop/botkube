@@ -115,7 +115,7 @@ func jsonSchema() api.JSONSchema {
 			  "title": "Endpoint",
 			  "description": "Prometheus endpoint without API version and resource.",
 			  "type": "string",
-			  "format": "uri",
+			  "format": "uri"
 			},
 			"ignoreOldAlerts": {
 			  "title": "Ignore old alerts",
