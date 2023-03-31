@@ -40,13 +40,13 @@ func (k *K8sCollector) Start(ctx context.Context) error {
 			k.logger.Debug("Collecting Kubernetes insights")
 			list, err := k.k8sCli.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 			if err != nil {
-				k.logger.Errorf("while getting node count: %w", err)
+				k.logger.Errorf("while getting node count: %s", err.Error())
 				k.failureCount.Add(1)
 			} else {
 				k.failureCount.Store(0)
 				err = k.heartbeatReporter.ReportHeartbeat(ctx, heartbeat.DeploymentHeartbeatInput{NodeCount: len(list.Items)})
 				if err != nil {
-					k.logger.Errorf("while reporting heartbeat: %w", err)
+					k.logger.Errorf("while reporting heartbeat: %s", err.Error())
 				}
 			}
 			if k.failureCount.Load() >= int32(k.maxRetries) {
