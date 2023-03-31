@@ -14,13 +14,9 @@ type HeartbeatReporter interface {
 	ReportHeartbeat(ctx context.Context, heartBeat DeploymentHeartbeatInput) error
 }
 
-func GetReporter(remoteCfgEnabled bool, logger logrus.FieldLogger, gql GraphQLClient) HeartbeatReporter {
-	if remoteCfgEnabled {
-		return newGraphQLHeartbeatReporter(
-			logger.WithField("component", "GraphQLHeartbeatReporter"),
-			gql,
-		)
-	}
-
-	return newNoopHeartbeatReporter()
+func GetReporter(logger logrus.FieldLogger, gql GraphQLClient) HeartbeatReporter {
+	return newGraphQLHeartbeatReporter(
+		logger.WithField("component", "GraphQLHeartbeatReporter"),
+		gql,
+	)
 }
