@@ -11,7 +11,3 @@ type NoopHeartbeatReporter struct{}
 func (n NoopHeartbeatReporter) ReportHeartbeat(context.Context, DeploymentHeartbeatInput) error {
 	return nil
 }
-
-func newNoopHeartbeatReporter() *NoopHeartbeatReporter {
-	return &NoopHeartbeatReporter{}
-}
