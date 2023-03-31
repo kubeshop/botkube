@@ -27,7 +27,11 @@ func NewK8sCollector(k8sCli kubernetes.Interface, reporter heartbeat.HeartbeatRe
 }
 
 // Start collects k8s insights, and it returns error once it cannot collect k8s node count.
-func (k *K8sCollector) Start(ctx context.Context) error {
+func (k *K8sCollector) Start(ctx context.Context, remoteCfgEnabled bool) error {
+	if !remoteCfgEnabled {
+		k.logger.Debug("Remote config is not enabled, skipping k8s insights collection...")
+		return nil
+	}
 	ticker := time.NewTicker(time.Duration(k.reportHeartbeatInterval) * time.Second)
 	defer ticker.Stop()
 

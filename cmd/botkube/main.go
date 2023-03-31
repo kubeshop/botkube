@@ -388,7 +388,7 @@ func run(ctx context.Context) error {
 		}()
 		heartbeatReporter := heartbeat.GetReporter(remoteCfgEnabled, logger, gqlClient)
 		k8sCollector := insights.NewK8sCollector(k8sCli, heartbeatReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
-		return k8sCollector.Start(ctx)
+		return k8sCollector.Start(ctx, remoteCfgEnabled)
 	})
 
 	healthChecker.MarkAsReady()
