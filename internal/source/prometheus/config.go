@@ -22,7 +22,6 @@ type Config struct {
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{
-		URL:             "http://localhost:9090",
 		AlertStates:     []promApi.AlertState{promApi.AlertStateFiring, promApi.AlertStatePending, promApi.AlertStateInactive},
 		IgnoreOldAlerts: ptr.Bool(true),
 	}

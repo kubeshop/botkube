@@ -116,7 +116,6 @@ func jsonSchema() api.JSONSchema {
 			  "description": "Prometheus endpoint without API version and resource.",
 			  "type": "string",
 			  "format": "uri",
-			  "default": "http://localhost:9090"
 			},
 			"ignoreOldAlerts": {
 			  "title": "Ignore old alerts",
@@ -204,7 +203,7 @@ func jsonSchema() api.JSONSchema {
 			  }
 			}
 		  },
-		  "required": []
+		  "required": ["url"]
 		}`, description),
 	}
 }
