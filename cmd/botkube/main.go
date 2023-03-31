@@ -376,6 +376,10 @@ func run(ctx context.Context) error {
 	}
 
 	errGroup.Go(func() error {
+		if !remoteCfgEnabled {
+			logger.Debug("Remote config is not enabled, skipping k8s insights collection...")
+			return nil
+		}
 		defer func() {
 			if err == nil {
 				return
@@ -386,7 +390,7 @@ func run(ctx context.Context) error {
 				logger.Errorf("while reporting fatal error: %s", reportErr.Error())
 			}
 		}()
-		heartbeatReporter := heartbeat.GetReporter(remoteCfgEnabled, logger, gqlClient)
+		heartbeatReporter := heartbeat.GetReporter(logger, gqlClient)
 		k8sCollector := insights.NewK8sCollector(k8sCli, heartbeatReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
 		return k8sCollector.Start(ctx)
 	})
