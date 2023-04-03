@@ -159,7 +159,7 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 			var event Event
 			if len(feature.Event) != 0 && string(feature.Event) != "" {
 				if err := json.Unmarshal(feature.Event, &event); err != nil {
-					log.Print(fmt.Errorf("while unmarshalling message from JSON: %w", err))
+					log.Printf("while unmarshalling message from JSON: %s", err.Error())
 					return
 				}
 			}
