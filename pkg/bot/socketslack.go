@@ -45,6 +45,7 @@ type SocketSlack struct {
 	botMentionRegex *regexp.Regexp
 	commGroupName   string
 	renderer        *SlackRenderer
+	realNamesForID  map[string]string
 }
 
 type socketSlackMessage struct {
@@ -96,6 +97,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		commGroupName:   commGroupName,
 		renderer:        NewSlackRenderer(),
 		botMentionRegex: botMentionRegex,
+		realNamesForID:  map[string]string{},
 	}, nil
 }
 
@@ -143,21 +145,14 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					switch ev := innerEvent.Data.(type) {
 					case *slackevents.AppMentionEvent:
 						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
+						userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
 						msg := socketSlackMessage{
 							Text:            ev.Text,
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
 							UserID:          ev.User,
-							UserName:        ev.User, // set to user ID if we can't get the real name
+							UserName:        userName,
 							CommandOrigin:   command.TypedOrigin,
-						}
-
-						user, err := b.client.GetUserInfoContext(ctx, ev.User)
-						if err != nil {
-							b.log.Errorf("while getting user info: %s", err.Error())
-						}
-						if user != nil && user.RealName != "" {
-							msg.UserName = user.RealName
 						}
 
 						if err := b.handleMessage(ctx, msg); err != nil {
@@ -211,13 +206,14 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
 
+					userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
 					msg := socketSlackMessage{
 						Text:            cmd,
 						Channel:         channelID,
 						ThreadTimeStamp: threadTs,
 						TriggerID:       callback.TriggerID,
 						UserID:          callback.User.ID,
-						UserName:        callback.User.RealName,
+						UserName:        userName,
 						CommandOrigin:   cmdOrigin,
 						State:           state,
 						ResponseURL:     callback.ResponseURL,
@@ -234,11 +230,12 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 							act.ActionID = actID // normalize event
 
 							cmd, cmdOrigin := resolveBlockActionCommand(act)
+							userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
 							msg := socketSlackMessage{
 								Text:          cmd,
 								Channel:       callback.View.PrivateMetadata,
 								UserID:        callback.User.ID,
-								UserName:      callback.User.RealName,
+								UserName:      userName,
 								CommandOrigin: cmdOrigin,
 							}
 
@@ -564,4 +561,24 @@ func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *sl
 	}
 
 	return nil
+}
+
+func (b *SocketSlack) getRealNameWithFallbackToUserID(ctx context.Context, userID string) string {
+	realName, exists := b.realNamesForID[userID]
+	if exists {
+		return realName
+	}
+
+	user, err := b.client.GetUserInfoContext(ctx, userID)
+	if err != nil {
+		b.log.Errorf("while getting user info: %s", err.Error())
+		return userID
+	}
+
+	if user == nil || user.RealName == "" {
+		return userID
+	}
+
+	b.realNamesForID[userID] = user.RealName
+	return user.RealName
 }
