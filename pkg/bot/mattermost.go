@@ -84,9 +84,9 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 	}
 
 	// Create WebSocketClient and handle messages
-	webSocketURL := WebSocketProtocol + checkURL.Host
+	webSocketURL := WebSocketProtocol + checkURL.Host + checkURL.Path
 	if checkURL.Scheme == httpsScheme {
-		webSocketURL = WebSocketSecureProtocol + checkURL.Host
+		webSocketURL = WebSocketSecureProtocol + checkURL.Host + checkURL.Path
 	}
 
 	client := model.NewAPIv4Client(cfg.URL)
