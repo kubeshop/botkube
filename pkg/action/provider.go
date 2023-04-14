@@ -14,7 +14,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -25,6 +24,13 @@ const (
 	// unknownValue defines an unknown string value.
 	unknownValue = "n/a"
 )
+
+// Action describes an automated action for a given event.
+type Action struct {
+	Command          string
+	ExecutorBindings []string
+	DisplayName      string
+}
 
 // ExecutorFactory facilitates creation of execute.Executor instances.
 type ExecutorFactory interface {
@@ -44,8 +50,8 @@ func NewProvider(log logrus.FieldLogger, cfg config.Actions, executorFactory Exe
 }
 
 // RenderedActions finds and processes actions for given data.
-func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]event.Action, error) {
-	var actions []event.Action
+func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]Action, error) {
+	var actions []Action
 	errs := multierror.New()
 	for _, action := range p.cfg {
 		if !action.Enabled {
@@ -68,7 +74,7 @@ func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]event.Acti
 
 		p.log.Debugf("Rendered command: %q", renderedCmd)
 
-		actions = append(actions, event.Action{
+		actions = append(actions, Action{
 			DisplayName:      action.DisplayName,
 			Command:          fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, renderedCmd),
 			ExecutorBindings: action.Bindings.Executors,
@@ -79,7 +85,7 @@ func (p *Provider) RenderedActions(e any, sourceBindings []string) ([]event.Acti
 }
 
 // ExecuteAction executes action for given event.
-func (p *Provider) ExecuteAction(ctx context.Context, action event.Action) interactive.CoreMessage {
+func (p *Provider) ExecuteAction(ctx context.Context, action Action) interactive.CoreMessage {
 	userName := fmt.Sprintf("Automation %q", action.DisplayName)
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
