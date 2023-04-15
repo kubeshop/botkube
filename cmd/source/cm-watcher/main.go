@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
@@ -17,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -82,9 +82,9 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 
 func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan<- []byte) {
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
-	exitOnError(err)
+	loggerx.ExitOnError(err, "while creating kubeconfig")
 	clientset, err := kubernetes.NewForConfig(config)
-	exitOnError(err)
+	loggerx.ExitOnError(err, "while creating k8s client")
 
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", obj.Name).String()
 	lw := &cache.ListWatch{
@@ -110,7 +110,7 @@ func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan<
 	}
 
 	_, err = watchtools.UntilWithSync(ctx, lw, &corev1.ConfigMap{}, nil, infiniteWatch)
-	exitOnError(err)
+	loggerx.ExitOnError(err, "while watching for ConfigMaps")
 }
 
 func main() {
@@ -119,12 +119,6 @@ func main() {
 			Source: &CMWatcher{},
 		},
 	})
-}
-
-func exitOnError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func jsonSchema() api.JSONSchema {

@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/test/fake"
 )
 
 func main() {
 	dir, err := os.Getwd()
-	exitOnErr(err)
+	loggerx.ExitOnError(err, "while getting current directory")
 
 	host := os.Getenv("PLUGIN_SERVER_HOST")
 	if host == "" {
@@ -29,11 +30,5 @@ func main() {
 	log.Printf("Service plugin binaries from %s\n", binDir)
 	log.Printf("Botkube repository index URL: %s", indexEndpoint)
 	err = startServerFn()
-	exitOnErr(err)
-}
-
-func exitOnErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	loggerx.ExitOnError(err, "while starting server")
 }

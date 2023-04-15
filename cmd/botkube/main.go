@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -67,9 +66,8 @@ func main() {
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
 
-	if err := run(ctx); err != nil {
-		log.Fatal(err)
-	}
+	err := run(ctx)
+	loggerx.ExitOnError(err, "while running app")
 }
 
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
