@@ -9,9 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/bot"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
@@ -21,12 +19,6 @@ const (
 
 	finalMessageTimeout = 20 * time.Second
 )
-
-// ActionProvider defines a provider that is responsible for automated actions.
-type ActionProvider interface {
-	RenderedActionsForEvent(event event.Event, sourceBindings []string) ([]event.Action, error)
-	ExecuteEventAction(ctx context.Context, action event.Action) interactive.CoreMessage
-}
 
 // Controller watches Kubernetes resources and send events to bots.
 type Controller struct {
