@@ -12,12 +12,12 @@ import (
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/event"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 )
@@ -37,8 +37,8 @@ type Dispatcher struct {
 
 // ActionProvider defines a provider that is responsible for automated actions.
 type ActionProvider interface {
-	RenderedActions(data any, sourceBindings []string) ([]event.Action, error)
-	ExecuteAction(ctx context.Context, action event.Action) interactive.CoreMessage
+	RenderedActions(data any, sourceBindings []string) ([]action.Action, error)
+	ExecuteAction(ctx context.Context, action action.Action) interactive.CoreMessage
 }
 
 // AnalyticsReporter defines a reporter that collects analytics data.
