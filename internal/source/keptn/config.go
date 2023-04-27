@@ -2,6 +2,7 @@ package keptn
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -9,11 +10,11 @@ import (
 
 // Config prometheus configuration
 type Config struct {
-	URL     string `yaml:"url,omitempty"`
-	Token   string `yaml:"token,omitempty"`
-	Project string `yaml:"project,omitempty"`
-	Service string `yaml:"service,omitempty"`
-	Log     Log    `yaml:"log,omitempty"`
+	URL     string        `yaml:"url,omitempty"`
+	Token   string        `yaml:"token,omitempty"`
+	Project string        `yaml:"project,omitempty"`
+	Service string        `yaml:"service,omitempty"`
+	Log     config.Logger `yaml:"log,omitempty"`
 }
 
 // Log logging configuration
@@ -23,11 +24,7 @@ type Log struct {
 
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
-	defaults := Config{
-		Log: Log{
-			Level: "info",
-		},
-	}
+	defaults := Config{}
 
 	var out Config
 	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {

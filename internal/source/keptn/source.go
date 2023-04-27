@@ -3,14 +3,13 @@ package keptn
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/format"
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"strings"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
@@ -48,21 +47,14 @@ func NewSource(version string) *Source {
 
 // Stream streams Keptn events
 func (p *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
+	out := source.StreamOutput{Event: make(chan source.Event)}
 	config, err := MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
-	s := Source{
-		eventCh: make(chan source.Event),
-		config:  config,
-		logger: loggerx.New(loggerx.Config{
-			Level: config.Log.Level,
-		}),
-	}
-	go consumeEvents(ctx, s)
-	return source.StreamOutput{
-		Event: s.eventCh,
-	}, nil
+	go p.consumeEvents(ctx, config, out.Event)
+
+	return out, nil
 }
 
 // Metadata returns metadata of Keptn configuration
@@ -74,49 +66,57 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func consumeEvents(ctx context.Context, s Source) {
-	keptn, err := NewClient(s.config.URL, s.config.Token)
-	exitOnError(err, s.logger)
+func (p *Source) consumeEvents(ctx context.Context, cfg Config, ch chan<- source.Event) {
+	keptn, err := NewClient(cfg.URL, cfg.Token)
+	log := loggerx.New(cfg.Log)
+	exitOnError(err, log)
 
 	for {
 		req := GetEventsRequest{
-			Project:  s.config.Project,
+			Project:  cfg.Project,
 			FromTime: time.Now().Add(-time.Second * pollPeriodInSeconds),
 		}
 		res, err := keptn.Events(ctx, &req)
 		if err != nil {
-			s.logger.Errorf("failed to get events. %v", err)
+			log.Errorf("failed to get events. %v", err)
 		}
 		for _, event := range res {
-			message := source.Event{
-				Message:         messageFrom(event, s),
-				RawObject:       event,
-				AnalyticsLabels: event.ToAnonymizedEventDetails(),
+			textFields := []api.TextField{
+				{Key: "Source", Value: PluginName},
+				{Key: "Type", Value: event.Type},
 			}
-			s.eventCh <- message
+			if event.Data.Status != "" {
+				textFields = append(textFields, api.TextField{Key: "State", Value: event.Data.Status})
+			}
+
+			var bulletLists []api.BulletList
+			if event.Data.Message != "" {
+				bulletLists = []api.BulletList{
+					{
+						Title: "Description",
+						Items: []string{
+							event.Data.Message,
+						},
+					},
+				}
+			}
+			msg := api.Message{
+				Type:      api.NonInteractiveSingleSection,
+				Timestamp: time.Now(),
+				Sections: []api.Section{
+					{
+						TextFields:  textFields,
+						BulletLists: bulletLists,
+					},
+				},
+			}
+			ch <- source.Event{
+				Message:   msg,
+				RawObject: event,
+			}
 		}
 		// Fetch events periodically with given frequency
 		time.Sleep(time.Second * pollPeriodInSeconds)
-	}
-}
-
-func messageFrom(event Event, s Source) api.Message {
-	emoji := ""
-	if event.Data.Status != "" {
-		emoji = emojiForStatus[event.Data.Status]
-	}
-	section := api.Section{
-		Base: api.Base{
-			Header: fmt.Sprintf("%s %s", emoji, event.Type),
-		},
-	}
-	s.logger.Debugf("plaintext: %s", format.StructDumper().Sdump(event))
-	a := bulletPointEventAttachments(event)
-	s.logger.Debugf("plaintext2: %s", format.StructDumper().Sdump(a))
-	section.Body.Plaintext = bulletPointEventAttachments(event)
-
-	return api.Message{
-		Sections: []api.Section{section},
 	}
 }
 
@@ -165,9 +165,8 @@ func joinMessages(msgs []string, msgPrefix string) string {
 
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
-		Value: heredoc.Docf(`
-		  {
-			"$schema": "http://json-schema.org/draft-04/schema#",
+		Value: heredoc.Docf(`{
+			"$schema": "http://json-schema.org/draft-07/schema#",
 			"title": "Keptn",
 			"description": "%s",
 			"type": "object",
@@ -188,7 +187,7 @@ func jsonSchema() api.JSONSchema {
 			  "service": {
 				"description": "Keptn Service",
 				"type": "string"
-			  },
+			  }
 			},
 			"required": []
 		  }`, description),
