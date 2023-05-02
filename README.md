@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="./docs/assets/botkube-title.png" alt="Botkube Logo Light" />
+  <a href="https://botkube.io">
+    <img src="./docs/assets/botkube-title.png" alt="Botkube Logo Light" />
+  </a>
 </p>
 
 <p align="center">
