@@ -3,13 +3,12 @@ package keptn
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/loggerx"
-	"strings"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
@@ -23,19 +22,9 @@ const (
 	pollPeriodInSeconds = 5
 )
 
-var emojiForStatus = map[string]string{
-	"succeeded": ":large_green_circle:",
-	"errored":   ":x:",
-	"aborted":   ":warning:",
-	"":          ":email:",
-}
-
 // Source prometheus source plugin data structure
 type Source struct {
 	pluginVersion string
-	config        Config
-	logger        logrus.FieldLogger
-	eventCh       chan source.Event
 }
 
 // NewSource returns a new instance of Source.
@@ -118,49 +107,6 @@ func (p *Source) consumeEvents(ctx context.Context, cfg Config, ch chan<- source
 		// Fetch events periodically with given frequency
 		time.Sleep(time.Second * pollPeriodInSeconds)
 	}
-}
-
-func bulletPointEventAttachments(event Event) string {
-	strBuilder := strings.Builder{}
-	var labels []string
-	appendToListIfNotEmpty(&labels, "ID", event.ID)
-	appendToListIfNotEmpty(&labels, "Source", event.Source)
-	appendToListIfNotEmpty(&labels, "Message", event.Data.Message)
-	writeStringIfNotEmpty(&strBuilder, "Labels", bulletPointListFromMessages(labels))
-	return strBuilder.String()
-}
-
-func appendToListIfNotEmpty(msgs *[]string, title, in string) {
-	if in == "" {
-		return
-	}
-
-	*msgs = append(*msgs, fmt.Sprintf("%s: %s", title, in))
-}
-
-func writeStringIfNotEmpty(strBuilder *strings.Builder, title, in string) {
-	if in == "" {
-		return
-	}
-
-	strBuilder.WriteString(fmt.Sprintf("*%s:*\n%s", title, in))
-}
-
-func bulletPointListFromMessages(msgs []string) string {
-	return joinMessages(msgs, "• ")
-}
-
-func joinMessages(msgs []string, msgPrefix string) string {
-	if len(msgs) == 0 {
-		return ""
-	}
-
-	var strBuilder strings.Builder
-	for _, m := range msgs {
-		strBuilder.WriteString(fmt.Sprintf("%s%s\n", msgPrefix, m))
-	}
-
-	return strBuilder.String()
 }
 
 func jsonSchema() api.JSONSchema {

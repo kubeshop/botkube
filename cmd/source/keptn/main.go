@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/hashicorp/go-plugin"
-	"github.com/kubeshop/botkube/internal/source/keptn"
 
+	"github.com/kubeshop/botkube/internal/source/keptn"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
 

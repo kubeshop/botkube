@@ -2,8 +2,9 @@ package keptn
 
 import (
 	"context"
-	api "github.com/keptn/go-utils/pkg/api/utils/v2"
 	"time"
+
+	api "github.com/keptn/go-utils/pkg/api/utils/v2"
 )
 
 // Client Keptn client
@@ -80,5 +81,4 @@ func (c *Client) Events(ctx context.Context, request *GetEventsRequest) ([]Event
 		})
 	}
 	return events, nil
-
 }

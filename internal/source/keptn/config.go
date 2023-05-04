@@ -2,9 +2,9 @@ package keptn
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
