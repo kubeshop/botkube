@@ -2,6 +2,7 @@ package status
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/version"
 	"sync"
 	"time"
 
@@ -55,11 +56,12 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) err
 
 	err := r.withRetry(ctx, logger, func() error {
 		var mutation struct {
-			Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion)"`
+			Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion, botkubeVersion: $botkubeVersion)"`
 		}
 		variables := map[string]interface{}{
 			"id":              graphql.ID(r.gql.DeploymentID()),
 			"resourceVersion": r.getResourceVersion(),
+			"botkubeVersion":  version.Info().Version,
 		}
 		err := r.gql.Client().Mutate(ctx, &mutation, variables)
 		return err
