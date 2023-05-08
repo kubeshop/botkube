@@ -2,7 +2,6 @@ package status
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/version"
 	"sync"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/remote"
+	"github.com/kubeshop/botkube/pkg/version"
 )
 
 var _ StatusReporter = (*GraphQLStatusReporter)(nil)
