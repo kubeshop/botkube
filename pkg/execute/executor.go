@@ -28,6 +28,8 @@ const (
 	anonymizedInvalidVerb = "{invalid verb}"
 
 	lineLimitToShowFilter = 16
+
+	invalidCmdWithUsage = "error: unknown option `%s`\nusage: %s"
 )
 
 var newLinePattern = regexp.MustCompile(`\r?\n`)
@@ -168,8 +170,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 			reportedCmd = fmt.Sprintf("%s {invalid feature}", reportedCmd)
 		}
 		e.reportCommand(ctx, "", reportedCmd, false, cmdCtx)
-		msg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
-		return respond(msg, cmdCtx)
+		helpMsg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
+		responseMsg := fmt.Sprintf(invalidCmdWithUsage, cmdRes, helpMsg)
+		return respond(responseMsg, cmdCtx)
 	} else {
 		cmdToReport := string(cmdVerb)
 		if cmdRes != "" {
