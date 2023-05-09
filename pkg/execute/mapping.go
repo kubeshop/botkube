@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	helpMsgHeader = "%s %s [feature]\n\nAvailable features:\n"
+	helpMsgHeaderWithFeatures = "%s %s [feature]\n\nAvailable features:\n"
+	helpMsgHeader             = "%s %s"
 	// noFeature is used for commands that have no features defined
 	noFeature = ""
 	// incompleteCmdMsg incomplete command response message
@@ -127,8 +128,12 @@ func (m *CommandMapping) HelpMessageForVerb(verb command.Verb) string {
 	}
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 3, 0, 1, ' ', 0)
+	if len(cmd) > 0 && cmd[0].Name != "" {
+		fmt.Fprintf(w, helpMsgHeaderWithFeatures, api.MessageBotNamePlaceholder, verb)
+	} else {
+		fmt.Fprintf(w, helpMsgHeader, api.MessageBotNamePlaceholder, verb)
+	}
 
-	fmt.Fprintf(w, helpMsgHeader, api.MessageBotNamePlaceholder, verb)
 	for _, feature := range cmd {
 		aliases := removeEmptyFeatures(feature.Aliases)
 		fmtStr := fmt.Sprintf("%s\t", feature.Name)
