@@ -170,8 +170,8 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 			reportedCmd = fmt.Sprintf("%s {invalid feature}", reportedCmd)
 		}
 		e.reportCommand(ctx, "", reportedCmd, false, cmdCtx)
-		helmMsg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
-		responseMsg := fmt.Sprintf(invalidCmdWithUsage, cmdRes, helmMsg)
+		helpMsg := e.cmdsMapping.HelpMessageForVerb(cmdVerb)
+		responseMsg := fmt.Sprintf(invalidCmdWithUsage, cmdRes, helpMsg)
 		return respond(responseMsg, cmdCtx)
 	} else {
 		cmdToReport := string(cmdVerb)
