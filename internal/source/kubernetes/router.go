@@ -194,12 +194,12 @@ func (r *Router) mergeEventRoutes(resource string, cfg *config.Config) map[confi
 
 	// add routes related to recommendations
 	resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
-	r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, resource)
+	r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, resource, cfg)
 
 	return out
 }
 
-func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, resourceType string) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, resourceType string, cfg *config.Config) {
 	if routeMap == nil {
 		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
@@ -211,9 +211,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	}
 
 	recommRoute := route{
-		namespaces: &config.RegexConstraints{
-			Include: []string{config.AllNamespaceIndicator},
-		},
+		namespaces: cfg.Namespaces,
 		event: &config.KubernetesEvent{
 			Reason:  config.RegexConstraints{},
 			Message: config.RegexConstraints{},
@@ -224,7 +222,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	// Override route and get all these events for all namespaces.
 	// The events without recommendations will be filtered out when sending the event.
 	for i, r := range (*routeMap)[eventType] {
-		recommRoute.namespaces = r.namespaces
+		recommRoute.namespaces = resourceNamespaces(cfg.Namespaces, *r.namespaces)
 		(*routeMap)[eventType][i] = recommRoute
 		return
 	}
