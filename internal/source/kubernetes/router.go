@@ -176,7 +176,7 @@ func (r *Router) mergeEventRoutes(resource string, cfg *config.Config) map[confi
 			}
 
 			route := route{
-				namespaces:   resourceNamespaces(cfg.Namespaces, r.Namespaces),
+				namespaces:   resourceNamespaces(cfg.Namespaces, &r.Namespaces),
 				annotations:  resourceStringMap(cfg.Annotations, r.Annotations),
 				labels:       resourceStringMap(cfg.Labels, r.Labels),
 				resourceName: r.Name,
@@ -222,7 +222,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	// Override route and get all these events for all namespaces.
 	// The events without recommendations will be filtered out when sending the event.
 	for i, r := range (*routeMap)[eventType] {
-		recommRoute.namespaces = resourceNamespaces(cfg.Namespaces, *r.namespaces)
+		recommRoute.namespaces = resourceNamespaces(cfg.Namespaces, r.namespaces)
 		(*routeMap)[eventType][i] = recommRoute
 		return
 	}
@@ -292,9 +292,9 @@ func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.Ku
 
 // resourceNamespaces returns the kubernetes global namespaces
 // unless the resource namespaces are configured.
-func resourceNamespaces(sourceNs *config.RegexConstraints, resourceNs config.RegexConstraints) *config.RegexConstraints {
-	if resourceNs.AreConstraintsDefined() {
-		return &resourceNs
+func resourceNamespaces(sourceNs *config.RegexConstraints, resourceNs *config.RegexConstraints) *config.RegexConstraints {
+	if resourceNs != nil && resourceNs.AreConstraintsDefined() {
+		return resourceNs
 	}
 	return sourceNs
 }

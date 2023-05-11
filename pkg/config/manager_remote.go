@@ -207,7 +207,6 @@ func (m *RemotePersistenceManager) withRetry(ctx context.Context, logger logrus.
 
 func (m *RemotePersistenceManager) getResourceVersion() int {
 	m.resVerMutex.RLock()
-	fmt.Println("m.resourceVersion", m.resourceVersion)
 	defer m.resVerMutex.RUnlock()
 	return m.resourceVersion
 }
