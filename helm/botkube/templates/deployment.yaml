@@ -54,20 +54,20 @@ spec:
           {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           {{ end }}
           readinessProbe:
-            successThreshold: 1
-            failureThreshold: 3
-            periodSeconds: 5
-            initialDelaySeconds: 1
-            timeoutSeconds: 1
+            successThreshold: {{ .Values.deployment.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.deployment.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.deployment.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.deployment.readinessProbe.timeoutSeconds }}
             httpGet:
               path: /healthz
               port: {{ .Values.settings.healthPort }}
           livenessProbe:
-            successThreshold: 1
-            failureThreshold: 3
-            periodSeconds: 10
-            initialDelaySeconds: 1
-            timeoutSeconds: 1
+            successThreshold: {{ .Values.deployment.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.deployment.livenessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.deployment.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.deployment.livenessProbe.timeoutSeconds }}
             httpGet:
               path: /healthz
               port: {{ .Values.settings.healthPort }}
