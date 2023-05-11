@@ -795,30 +795,30 @@ serviceMonitor:
 deployment:
   # -- Extra annotations to pass to the Botkube Deployment.
   annotations: {}
-  # -- Liveness probe
+  # -- Liveness probe.
   livenessProbe:
-    # -- The liveness probe initial delay seconds
+    # -- The liveness probe initial delay seconds.
     initialDelaySeconds: 1
-    # -- The liveness probe period seconds
+    # -- The liveness probe period seconds.
     periodSeconds: 30
-    # -- The liveness probe timeout seconds
+    # -- The liveness probe timeout seconds.
     timeoutSeconds: 1
-    # -- The liveness probe failure threshold
+    # -- The liveness probe failure threshold.
     failureThreshold: 3
-    # -- The liveness probe success threshold
+    # -- The liveness probe success threshold.
     successThreshold: 1
 
-  # -- Readiness probe
+  # -- Readiness probe.
   readinessProbe:
-    # -- The readiness probe initial delay seconds
+    # -- The readiness probe initial delay seconds.
     initialDelaySeconds: 1
-    # -- The readiness probe period seconds
+    # -- The readiness probe period seconds.
     periodSeconds: 30
-    # -- The readiness probe timeout seconds
+    # -- The readiness probe timeout seconds.
     timeoutSeconds: 1
-    # -- The readiness probe failure threshold
+    # -- The readiness probe failure threshold.
     failureThreshold: 3
-    # -- The readiness probe success threshold
+    # -- The readiness probe success threshold.
     successThreshold: 1
 
 # -- Number of Botkube pods to load balance between.
