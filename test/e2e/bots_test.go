@@ -341,7 +341,7 @@ func runBotTest(t *testing.T,
 
 				Usage:
 				  helm [command]
-
+				
 				Available Commands:
 				  install     # Installs a given chart to cluster where Botkube is installed.
 				  list        # Lists all releases on cluster where Botkube is installed.
@@ -353,12 +353,12 @@ func runBotTest(t *testing.T,
 				  version     # Shows the version of the Helm CLI used by this Botkube plugin.
 				  history     # Shows release history
 				  get         # Shows extended information of a named release
-
+				
 				Flags:
 				    --namespace,-n
 				    --debug
 				    --burst-limit
-
+				
 				Use "helm [command] --help" for more information about the command.`))
 
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
