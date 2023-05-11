@@ -633,6 +633,7 @@ func runBotTest(t *testing.T,
 		}
 	})
 
+	var firstCMUpdate ExpAttachmentInput
 	t.Run("Multi-channel notifications", func(t *testing.T) {
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
@@ -833,8 +834,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 		cfgMapAlreadyDeleted = true
 
-		t.Log("Expecting bot message on first channel...")
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+		firstCMUpdate = ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -853,7 +853,9 @@ func runBotTest(t *testing.T,
 					},
 				},
 			},
-		})
+		}
+		t.Log("Expecting bot message on first channel...")
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -864,7 +866,28 @@ func runBotTest(t *testing.T,
 
 	t.Run("Recommendations and actions", func(t *testing.T) {
 		podCli := k8sCli.CoreV1().Pods(appCfg.Deployment.Namespace)
+		podDefaultNSCli := k8sCli.CoreV1().Pods("default")
 		svcCli := k8sCli.CoreV1().Services(appCfg.Deployment.Namespace)
+
+		t.Log("Creating Pod in namespace 'default'. This pod should not be included in recommendations...")
+		podIgnored := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      botDriver.Channel().Name(),
+				Namespace: "default",
+			},
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
+					{Name: "nginx", Image: "nginx:latest"},
+				},
+			},
+		}
+		podIgnored, err = podDefaultNSCli.Create(context.Background(), podIgnored, metav1.CreateOptions{})
+		require.NoError(t, err)
+		t.Cleanup(func() { cleanupCreatedPod(t, podDefaultNSCli, podIgnored.Name) })
+
+		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 1, firstCMUpdate)
+		require.NoError(t, err)
 
 		t.Log("Creating Pod...")
 		pod := &v1.Pod{
