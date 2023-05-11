@@ -1020,7 +1020,7 @@ func runBotTest(t *testing.T,
 		expectedBody := codeBlock(heredoc.Doc(`
 			EXECUTOR                  ENABLED ALIASES
 			botkube/echo@v1.0.1-devel true    e
-			botkube/helm              true
+			botkube/helm              true    
 			botkube/kubectl           true    k, kc`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
@@ -1033,7 +1033,7 @@ func runBotTest(t *testing.T,
 		command := "list aliases"
 		expectedBody := codeBlock(heredoc.Doc(`
 			ALIAS COMMAND                    DISPLAY NAME
-			e     echo
+			e     echo                       
 			k     kubectl                    Kubectl alias
 			kc    kubectl                    Kubectl alias
 			kgda  kubectl get deployments -A Get Deployments
