@@ -194,18 +194,18 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [ingress](./values.yaml#L776) | object | `{"annotations":{"kubernetes.io/ingress.class":"nginx"},"create":false,"host":"HOST","tls":{"enabled":false,"secretName":""}}` | Configures Ingress settings that exposes MS Teams endpoint. [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource). |
 | [serviceMonitor](./values.yaml#L787) | object | `{"enabled":false,"interval":"10s","labels":{},"path":"/metrics","port":"metrics"}` | Configures ServiceMonitor settings. [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
 | [deployment.annotations](./values.yaml#L797) | object | `{}` | Extra annotations to pass to the Botkube Deployment. |
-| [deployment.livenessProbe](./values.yaml#L799) | object | `{"failureThreshold":3,"initialDelaySeconds":1,"periodSeconds":30,"successThreshold":1,"timeoutSeconds":1}` | Liveness probe |
-| [deployment.livenessProbe.initialDelaySeconds](./values.yaml#L801) | int | `1` | The liveness probe initial delay seconds |
-| [deployment.livenessProbe.periodSeconds](./values.yaml#L803) | int | `30` | The liveness probe period seconds |
-| [deployment.livenessProbe.timeoutSeconds](./values.yaml#L805) | int | `1` | The liveness probe timeout seconds |
-| [deployment.livenessProbe.failureThreshold](./values.yaml#L807) | int | `3` | The liveness probe failure threshold |
-| [deployment.livenessProbe.successThreshold](./values.yaml#L809) | int | `1` | The liveness probe success threshold |
-| [deployment.readinessProbe](./values.yaml#L812) | object | `{"failureThreshold":3,"initialDelaySeconds":1,"periodSeconds":30,"successThreshold":1,"timeoutSeconds":1}` | Readiness probe |
-| [deployment.readinessProbe.initialDelaySeconds](./values.yaml#L814) | int | `1` | The readiness probe initial delay seconds |
-| [deployment.readinessProbe.periodSeconds](./values.yaml#L816) | int | `30` | The readiness probe period seconds |
-| [deployment.readinessProbe.timeoutSeconds](./values.yaml#L818) | int | `1` | The readiness probe timeout seconds |
-| [deployment.readinessProbe.failureThreshold](./values.yaml#L820) | int | `3` | The readiness probe failure threshold |
-| [deployment.readinessProbe.successThreshold](./values.yaml#L822) | int | `1` | The readiness probe success threshold |
+| [deployment.livenessProbe](./values.yaml#L799) | object | `{"failureThreshold":5,"initialDelaySeconds":1,"periodSeconds":15,"successThreshold":1,"timeoutSeconds":1}` | Liveness probe. |
+| [deployment.livenessProbe.initialDelaySeconds](./values.yaml#L801) | int | `1` | The liveness probe initial delay seconds. |
+| [deployment.livenessProbe.periodSeconds](./values.yaml#L803) | int | `15` | The liveness probe period seconds. |
+| [deployment.livenessProbe.timeoutSeconds](./values.yaml#L805) | int | `1` | The liveness probe timeout seconds. |
+| [deployment.livenessProbe.failureThreshold](./values.yaml#L807) | int | `5` | The liveness probe failure threshold. |
+| [deployment.livenessProbe.successThreshold](./values.yaml#L809) | int | `1` | The liveness probe success threshold. |
+| [deployment.readinessProbe](./values.yaml#L812) | object | `{"failureThreshold":5,"initialDelaySeconds":1,"periodSeconds":15,"successThreshold":1,"timeoutSeconds":1}` | Readiness probe. |
+| [deployment.readinessProbe.initialDelaySeconds](./values.yaml#L814) | int | `1` | The readiness probe initial delay seconds. |
+| [deployment.readinessProbe.periodSeconds](./values.yaml#L816) | int | `15` | The readiness probe period seconds. |
+| [deployment.readinessProbe.timeoutSeconds](./values.yaml#L818) | int | `1` | The readiness probe timeout seconds. |
+| [deployment.readinessProbe.failureThreshold](./values.yaml#L820) | int | `5` | The readiness probe failure threshold. |
+| [deployment.readinessProbe.successThreshold](./values.yaml#L822) | int | `1` | The readiness probe success threshold. |
 | [extraAnnotations](./values.yaml#L829) | object | `{}` | Extra annotations to pass to the Botkube Pod. |
 | [extraLabels](./values.yaml#L831) | object | `{}` | Extra labels to pass to the Botkube Pod. |
 | [priorityClassName](./values.yaml#L833) | string | `""` | Priority class name for the Botkube Pod. |
