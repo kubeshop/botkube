@@ -99,7 +99,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 	cmdCtx.ExecutorFilter = newExecutorTextFilter(flags.Filter)
 
 	if len(cmdCtx.Args) == 0 {
-		if e.conversation.IsAuthenticated {
+		if e.conversation.IsKnown {
 			msg, err := e.helpExecutor.Help(ctx, cmdCtx)
 			if err != nil {
 				e.log.Errorf("while getting help message: %s", err.Error())
@@ -118,8 +118,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		return empty // user specified different target cluster
 	}
 
-	// commands below are executed only if the channel is authorized
-	if !e.conversation.IsAuthenticated {
+	// commands below are executed only if the channel is configured
+	if !e.conversation.IsKnown {
+		e.log.Infof("Unknown conversation with ID %q. Returning empty message...", e.conversation.ID)
 		return empty
 	}
 

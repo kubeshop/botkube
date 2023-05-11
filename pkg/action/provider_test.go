@@ -103,7 +103,7 @@ func TestProvider_ExecuteEventAction(t *testing.T) {
 			Alias:            "n/a",
 			ID:               "n/a",
 			ExecutorBindings: executorBindings,
-			IsAuthenticated:  true,
+			IsKnown:          true,
 			CommandOrigin:    command.AutomationOrigin,
 		},
 		Message: "kubectl get po foo",

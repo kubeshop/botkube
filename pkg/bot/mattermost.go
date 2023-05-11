@@ -67,8 +67,7 @@ type Mattermost struct {
 
 // mattermostMessage contains message details to execute command and send back the result
 type mattermostMessage struct {
-	Event         *model.WebSocketEvent
-	IsAuthChannel bool
+	Event *model.WebSocketEvent
 }
 
 // NewMattermost creates a new Mattermost instance.
@@ -238,7 +237,6 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 			},
 		}
 	}
-	mm.IsAuthChannel = exists
 
 	userName, err := b.getUserName(post.UserId)
 	if err != nil {
@@ -258,7 +256,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
-			IsAuthenticated:  mm.IsAuthChannel,
+			IsKnown:          exists,
 			CommandOrigin:    command.TypedOrigin,
 		},
 		User: execute.UserInput{
@@ -384,8 +382,7 @@ func (b *Mattermost) listen(ctx context.Context) {
 			}
 
 			mm := &mattermostMessage{
-				Event:         event,
-				IsAuthChannel: false,
+				Event: event,
 			}
 			err := b.handleMessage(ctx, mm)
 			if err != nil {
