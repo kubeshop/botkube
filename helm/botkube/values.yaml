@@ -800,11 +800,11 @@ deployment:
     # -- The liveness probe initial delay seconds.
     initialDelaySeconds: 1
     # -- The liveness probe period seconds.
-    periodSeconds: 30
+    periodSeconds: 15
     # -- The liveness probe timeout seconds.
     timeoutSeconds: 1
     # -- The liveness probe failure threshold.
-    failureThreshold: 3
+    failureThreshold: 5
     # -- The liveness probe success threshold.
     successThreshold: 1
 
@@ -813,11 +813,11 @@ deployment:
     # -- The readiness probe initial delay seconds.
     initialDelaySeconds: 1
     # -- The readiness probe period seconds.
-    periodSeconds: 30
+    periodSeconds: 15
     # -- The readiness probe timeout seconds.
     timeoutSeconds: 1
     # -- The readiness probe failure threshold.
-    failureThreshold: 3
+    failureThreshold: 5
     # -- The readiness probe success threshold.
     successThreshold: 1
 
