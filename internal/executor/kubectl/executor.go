@@ -3,7 +3,6 @@ package kubectl
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/discovery"
@@ -91,8 +90,18 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
+	}
+	defer func() {
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			log.Errorf("failed to delete kubeconfig file %s: %w", kubeConfigPath, deleteErr)
+		}
+	}()
+
 	if builder.ShouldHandle(cmd) {
-		guard, k8sCli, err := getBuilderDependencies(log, os.Getenv("KUBECONFIG")) // TODO: take kubeconfig from execution context
+		guard, k8sCli, err := getBuilderDependencies(log, kubeConfigPath)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while creating builder dependecies: %w", err)
 		}
@@ -107,16 +116,6 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 			Message: msg,
 		}, nil
 	}
-
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
-	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
-	}
-	defer func() {
-		if deleteErr := deleteFn(ctx); deleteErr != nil {
-			log.Errorf("failed to delete kubeconfig file %s: %w", kubeConfigPath, deleteErr)
-		}
-	}()
 
 	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
 	if err != nil {
