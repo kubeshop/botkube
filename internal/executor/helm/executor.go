@@ -84,6 +84,10 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // - history
 // - get [all|manifest|hooks|notes]
 func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
+	if err := pluginx.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
 	cfg, err := MergeConfigs(in.Configs)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configs: %w", err)
