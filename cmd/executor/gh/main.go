@@ -8,8 +8,10 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -30,6 +32,7 @@ type Config struct {
 		Repository    string
 		IssueTemplate string
 	}
+	Log config.Logger `yaml:"log"`
 }
 
 // Commands defines all supported GitHub plugin commands and their flags.
@@ -78,7 +81,19 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 		}, nil
 	}
 
-	issueDetails, err := getIssueDetails(ctx, cmd.Create.Issue.Namespace, cmd.Create.Issue.Type)
+	log := loggerx.New(cfg.Log)
+
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	if err != nil {
+		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
+	}
+	defer func() {
+		if deleteErr := deleteFn(ctx); deleteErr != nil {
+			log.Errorf("failed to delete kubeconfig file %s: %w", kubeConfigPath, deleteErr)
+		}
+	}()
+
+	issueDetails, err := getIssueDetails(ctx, cmd.Create.Issue.Namespace, cmd.Create.Issue.Type, kubeConfigPath)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while fetching logs : %w", err)
 	}
@@ -105,20 +120,22 @@ func (*GHExecutor) Help(context.Context) (api.Message, error) {
 }
 
 var depsDownloadLinks = map[string]api.Dependency{
-	// Links source: https://github.com/cli/cli/releases/tag/v2.21.2
+	// Links source: https://github.com/cli/cli/releases/tag/v2.29.0
 	"gh": {
 		URLs: map[string]string{
 			// Using go-getter syntax to unwrap the underlying directory structure.
 			// Read more on https://github.com/hashicorp/go-getter#subdirectories
-			"darwin/amd64": "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_macOS_amd64.tar.gz//gh_2.21.2_macOS_amd64/bin",
-			"linux/amd64":  "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_amd64.tar.gz//gh_2.21.2_linux_amd64/bin",
-			"linux/arm64":  "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_arm64.tar.gz//gh_2.21.2_linux_arm64/bin",
-			"linux/386":    "https://github.com/cli/cli/releases/download/v2.21.2/gh_2.21.2_linux_386.tar.gz//gh_2.21.2_linux_386/bin",
+			"darwin/amd64": "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_macOS_amd64.zip//gh_2.29.0_macOS_amd64/bin",
+			"darwin/arm64": "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_macOS_arm64.zip//gh_2.29.0_macOS_arm64/bin",
+			"linux/amd64":  "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_amd64.zip//gh_2.29.0_linux_amd64/bin",
+			"linux/arm64":  "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_arm64.zip//gh_2.29.0_linux_arm64/bin",
+			"linux/386":    "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_386.zip//gh_2.29.0_linux_386/bin",
 		},
 	},
 	"kubectl": {
 		URLs: map[string]string{
 			"darwin/amd64": "https://dl.k8s.io/release/v1.26.0/bin/darwin/amd64/kubectl",
+			"darwin/arm64": "https://dl.k8s.io/release/v1.26.0/bin/darwin/arm64/kubectl",
 			"linux/amd64":  "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl",
 			"linux/arm64":  "https://dl.k8s.io/release/v1.26.0/bin/linux/arm64/kubectl",
 			"linux/386":    "https://dl.k8s.io/release/v1.26.0/bin/linux/386/kubectl",
@@ -152,15 +169,16 @@ type IssueDetails struct {
 	Version   string
 }
 
-func getIssueDetails(ctx context.Context, namespace, name string) (IssueDetails, error) {
+func getIssueDetails(ctx context.Context, namespace, name, kubeConfigPath string) (IssueDetails, error) {
 	if namespace == "" {
 		namespace = defaultNamespace
 	}
-	logs, err := pluginx.ExecuteCommand(ctx, fmt.Sprintf("kubectl logs %s -n %s --tail %d", name, namespace, logsTailLines))
+
+	logs, err := pluginx.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s logs %s -n %s --tail %d", kubeConfigPath, name, namespace, logsTailLines))
 	if err != nil {
 		return IssueDetails{}, fmt.Errorf("while getting logs: %w", err)
 	}
-	ver, err := pluginx.ExecuteCommand(ctx, "kubectl version -o yaml")
+	ver, err := pluginx.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s version -o yaml", kubeConfigPath))
 	if err != nil {
 		return IssueDetails{}, fmt.Errorf("while getting version: %w", err)
 	}
