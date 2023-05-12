@@ -228,7 +228,6 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 			},
 		}
 	}
-	isAuthChannel := exists
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
@@ -240,7 +239,7 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
-			IsAuthenticated:  isAuthChannel,
+			IsKnown:          exists,
 			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: req,

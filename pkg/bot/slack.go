@@ -224,7 +224,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
 
-	channel, isAuthChannel := b.getChannels()[info.Name]
+	channel, exists := b.getChannels()[info.Name]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
@@ -235,7 +235,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 			ID:               channel.Identifier(),
 			DisplayName:      channel.Name,
 			ExecutorBindings: channel.Bindings.Executors,
-			IsAuthenticated:  isAuthChannel,
+			IsKnown:          exists,
 			CommandOrigin:    command.TypedOrigin,
 		},
 		Message: request,

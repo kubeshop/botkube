@@ -340,7 +340,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 		return fmt.Errorf("while getting conversation info: %w", err)
 	}
 
-	channel, isAuthChannel := b.getChannels()[info.Name]
+	channel, exists := b.getChannels()[info.Name]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
@@ -352,7 +352,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			DisplayName:      info.Name,
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
-			IsAuthenticated:  isAuthChannel,
+			IsKnown:          exists,
 			CommandOrigin:    event.CommandOrigin,
 			SlackState:       event.State,
 		},
