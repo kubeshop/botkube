@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -114,11 +115,13 @@ func (p *Plugin) GRPCServer(_ *plugin.GRPCBroker, s *grpc.Server) error {
 func (p *Plugin) GRPCClient(_ context.Context, _ *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	return &grpcClient{
 		client: NewSourceClient(c),
+		logger: NewLogger(),
 	}, nil
 }
 
 type grpcClient struct {
 	client SourceClient
+	logger logrus.FieldLogger
 }
 
 func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, error) {
@@ -152,20 +155,22 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 			// On any other error, the stream is aborted and the error contains the RPC
 			// status.
 			if err != nil {
-				log.Print(err)
+				p.logger.Errorf("canceling streaming: %s", status.Convert(err).Message())
 				// TODO: we should consider adding error feedback channel to StreamOutput.
 				return
 			}
 			var event Event
 			if len(feature.Event) != 0 && string(feature.Event) != "" {
 				if err := json.Unmarshal(feature.Event, &event); err != nil {
-					log.Printf("while unmarshalling message from JSON: %s", err.Error())
+					p.logger.Errorf("canceling streaming: cannot unmarshal JSON message: %s", err.Error())
 					return
 				}
 			}
 			out.Output <- feature.Output
 			out.Event <- event
 		}
+		close(out.Output)
+		close(out.Event)
 	}()
 
 	return out, nil

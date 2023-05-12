@@ -84,7 +84,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // - history
 // - get [all|manifest|hooks|notes]
 func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	if err := pluginx.CheckKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
+	if err := pluginx.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 

@@ -121,10 +121,16 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	go func() {
 		for {
 			select {
-			case event := <-out.Output:
+			case event, ok := <-out.Output:
+				if !ok {
+					return
+				}
 				log.WithField("event", string(event)).Debug("Dispatching received event...")
 				d.dispatch(ctx, event, dispatch)
-			case msg := <-out.Event:
+			case msg, ok := <-out.Event:
+				if !ok {
+					return
+				}
 				log.WithField("message", msg).Debug("Dispatching received message...")
 				d.dispatchMsg(ctx, msg, dispatch)
 			case <-ctx.Done():

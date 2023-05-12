@@ -65,7 +65,7 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	if err := pluginx.CheckKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
+	if err := pluginx.ValidateKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
 		return source.StreamOutput{}, err
 	}
 

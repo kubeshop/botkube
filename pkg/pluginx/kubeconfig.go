@@ -35,8 +35,8 @@ func PersistKubeConfig(_ context.Context, kc []byte) (string, func(context.Conte
 	return abs, deleteFn, nil
 }
 
-// CheckKubeConfigProvided returns an error if a given kubeconfig is empty or nil.
-func CheckKubeConfigProvided(pluginName string, kubeconfig []byte) error {
+// ValidateKubeConfigProvided returns an error if a given kubeconfig is empty or nil.
+func ValidateKubeConfigProvided(pluginName string, kubeconfig []byte) error {
 	if len(kubeconfig) != 0 {
 		return nil
 	}
