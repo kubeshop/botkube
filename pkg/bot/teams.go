@@ -285,7 +285,7 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 		NotifierHandler: newTeamsNotifMgrForActivity(b, ref),
 		Conversation: execute.Conversation{
 			Alias:            "",
-			IsAuthenticated:  true,
+			IsKnown:          true,
 			ID:               ref.ChannelID,
 			ExecutorBindings: b.bindings.Executors,
 			SourceBindings:   b.bindings.Sources,
