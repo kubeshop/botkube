@@ -163,7 +163,7 @@ type Conversation struct {
 	ID               string
 	ExecutorBindings []string
 	SourceBindings   []string
-	IsAuthenticated  bool
+	IsKnown          bool
 	CommandOrigin    command.Origin
 	SlackState       *slack.BlockActionStates
 }

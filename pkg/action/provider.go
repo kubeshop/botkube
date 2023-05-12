@@ -89,7 +89,7 @@ func (p *Provider) ExecuteAction(ctx context.Context, action Action) interactive
 	userName := fmt.Sprintf("Automation %q", action.DisplayName)
 	e := p.executorFactory.NewDefault(execute.NewDefaultInput{
 		Conversation: execute.Conversation{
-			IsAuthenticated:  true,
+			IsKnown:          true,
 			ExecutorBindings: action.ExecutorBindings,
 			CommandOrigin:    command.AutomationOrigin,
 			Alias:            unknownValue,

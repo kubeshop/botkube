@@ -118,7 +118,6 @@ sources:
     # @default -- See the `values.yaml` file for full object.
     botkube/kubernetes:
       context: &default-plugin-context
-        defaultNamespace: "default"
         # -- RBAC configuration for this plugin.
         rbac:
           group:
