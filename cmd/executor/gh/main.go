@@ -63,6 +63,10 @@ func (*GHExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 
 // Execute returns a given command as a response.
 func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
+	if err := pluginx.ValidateKubeConfigProvided(pluginName, in.Context.KubeConfig); err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+
 	var cfg Config
 	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
