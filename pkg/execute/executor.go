@@ -120,7 +120,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	// commands below are executed only if the channel is configured
 	if !e.conversation.IsKnown {
-		e.log.Infof("Unknown conversation with ID %q. Returning empty message...", e.conversation.ID)
+		e.log.Info("Unknown conversation. Returning empty message...")
 		return empty
 	}
 
