@@ -226,6 +226,9 @@ func TestExecutorConfigMergingErrors(t *testing.T) {
 	// when
 	_, err := hExec.Execute(context.Background(), executor.ExecuteInput{
 		Command: "helm install",
+		Context: executor.ExecuteInputContext{
+			KubeConfig: []byte("fake config"),
+		},
 		Configs: []*executor.Config{
 			{
 				RawYAML: mustYAMLMarshal(t, configA),

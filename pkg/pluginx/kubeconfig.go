@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func PersistKubeConfig(ctx context.Context, kc []byte) (string, func(context.Context) error, error) {
+func PersistKubeConfig(_ context.Context, kc []byte) (string, func(context.Context) error, error) {
 	if len(kc) == 0 {
 		return "", nil, fmt.Errorf("received empty kube config")
 	}
@@ -33,4 +33,12 @@ func PersistKubeConfig(ctx context.Context, kc []byte) (string, func(context.Con
 	}
 
 	return abs, deleteFn, nil
+}
+
+// ValidateKubeConfigProvided returns an error if a given kubeconfig is empty or nil.
+func ValidateKubeConfigProvided(pluginName string, kubeconfig []byte) error {
+	if len(kubeconfig) != 0 {
+		return nil
+	}
+	return fmt.Errorf("The kubeconfig data is missing. Please make sure that you have specified a valid RBAC configuration for %q plugin. Learn more at https://docs.botkube.io/configuration/rbac.", pluginName)
 }
