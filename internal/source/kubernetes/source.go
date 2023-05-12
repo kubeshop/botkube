@@ -24,6 +24,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	pkgConfig "github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
@@ -64,6 +65,10 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
+	if err := pluginx.CheckKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
+		return source.StreamOutput{}, err
+	}
+
 	cfg, err := config.MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)

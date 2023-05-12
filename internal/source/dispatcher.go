@@ -115,7 +115,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("while opening stream for %s: %w", dispatch.pluginName, err)
+		return fmt.Errorf(`while opening stream for "%s.%s" source: %w`, dispatch.sourceName, dispatch.pluginName, err)
 	}
 
 	go func() {
