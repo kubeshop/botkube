@@ -370,10 +370,11 @@ func validateActionExecutors(sl validator.StructLevel, executors map[string]Exec
 			if !plugin.Enabled {
 				continue
 			}
-			if plugin.Context.RBAC != nil {
-				if plugin.Context.RBAC.Group.Type == ChannelNamePolicySubjectType {
-					sl.ReportError(bindings, pluginKey, executor, invalidActionRBACTag, "")
-				}
+			if plugin.Context.RBAC == nil {
+				continue
+			}
+			if plugin.Context.RBAC.Group.Type == ChannelNamePolicySubjectType {
+				sl.ReportError(bindings, pluginKey, executor, invalidActionRBACTag, "")
 			}
 		}
 	}
