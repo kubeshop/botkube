@@ -125,7 +125,7 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
 		invalidPluginRBACTag:        "Binding is referencing plugins of same kind with different RBAC. '{0}' and '{1}' bindings must be identical when used together.",
-		invalidActionRBACTag:        "Plugin {0} has 'ChannelName' RBAC policy. This is not supported for actions.",
+		invalidActionRBACTag:        "Plugin {0} has 'ChannelName' RBAC policy. This is not supported for actions. See https://docs.botkube.io/configuration/action#rbac",
 	})
 }
 
