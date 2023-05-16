@@ -23,6 +23,7 @@ const (
 	invalidPluginDefinitionTag  = "invalid_plugin_definition"
 	invalidAliasCommandTag      = "invalid_alias_command"
 	invalidPluginRBACTag        = "invalid_plugin_rbac"
+	invalidActionRBACTag        = "invalid_action_tag"
 	appTokenPrefix              = "xapp-"
 	botTokenPrefix              = "xoxb-"
 )
@@ -124,6 +125,7 @@ func registerBindingsValidator(validate *validator.Validate, trans ut.Translator
 		conflictingPluginVersionTag: "{0}{1}",
 		invalidPluginDefinitionTag:  "{0}{1}",
 		invalidPluginRBACTag:        "Binding is referencing plugins of same kind with different RBAC. '{0}' and '{1}' bindings must be identical when used together.",
+		invalidActionRBACTag:        "Plugin {0} has 'ChannelName' RBAC policy. This is not supported for actions. See https://docs.botkube.io/configuration/action#rbac",
 	})
 }
 
@@ -245,6 +247,7 @@ func actionBindingsStructValidator(sl validator.StructLevel) {
 	}
 	validateSourceBindings(sl, conf.Sources, bindings.Sources)
 	validateExecutorBindings(sl, conf.Executors, bindings.Executors)
+	validateActionExecutors(sl, conf.Executors, bindings.Executors)
 }
 
 func aliasesStructValidator(sl validator.StructLevel) {
@@ -355,6 +358,23 @@ func validatePluginRBAC[P pluginProvider](sl validator.StructLevel, pluginConfig
 
 			if !reflect.DeepEqual(firstRBAC, nextCfg.Context.RBAC) {
 				sl.ReportError(bindings, p1, p1, invalidPluginRBACTag, nextIdx)
+			}
+		}
+	}
+}
+
+func validateActionExecutors(sl validator.StructLevel, executors map[string]Executors, bindings []string) {
+	for _, executor := range bindings {
+		execConf := executors[executor]
+		for pluginKey, plugin := range execConf.Plugins {
+			if !plugin.Enabled {
+				continue
+			}
+			if plugin.Context.RBAC == nil {
+				continue
+			}
+			if plugin.Context.RBAC.Group.Type == ChannelNamePolicySubjectType {
+				sl.ReportError(bindings, pluginKey, executor, invalidActionRBACTag, "")
 			}
 		}
 	}
