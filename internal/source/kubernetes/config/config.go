@@ -14,6 +14,7 @@ import (
 
 // Config Kubernetes configuration
 type Config struct {
+	Actions              []Action           `yaml:"actions"`
 	InformerResyncPeriod time.Duration      `yaml:"informerResyncPeriod"`
 	Log                  config.Logger      `yaml:"log"`
 	Recommendations      *Recommendations   `yaml:"recommendations"`
@@ -25,6 +26,20 @@ type Config struct {
 	Labels               *map[string]string `yaml:"labels"`
 	Filters              *Filters           `yaml:"filters"`
 }
+
+type (
+	Action struct {
+		Trigger Trigger `yaml:"trigger"`
+		Button  Button  `yaml:"button"`
+	}
+	Button struct {
+		CommandTpl  string `yaml:"commandTpl"`
+		DisplayName string `yaml:"displayName"`
+	}
+	Trigger struct {
+		Type []string `yaml:"type"`
+	}
+)
 
 // Commands contains allowed verbs and resources
 type Commands struct {

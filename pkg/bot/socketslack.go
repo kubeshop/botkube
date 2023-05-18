@@ -67,9 +67,20 @@ type socketSlackAnalyticsReporter interface {
 	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
 }
 
+type outputter struct{}
+
+func (o *outputter) Output(_ int, msg string) error {
+	fmt.Println(msg)
+	return nil
+}
+
 // NewSocketSlack creates a new SocketSlack instance.
 func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+	client := slack.New(cfg.BotToken,
+		slack.OptionAppLevelToken(cfg.AppToken),
+		slack.OptionDebug(true),
+		slack.OptionLog(&outputter{}),
+	)
 
 	authResp, err := client.AuthTest()
 	if err != nil {

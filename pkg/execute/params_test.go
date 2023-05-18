@@ -17,7 +17,7 @@ func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 	}{
 		{
 			Name:        "Combination cluster name and filter + quotes",
-			Input:       `kubectl get po -A --filter="before after" --cluster-name=cluster-a1`,
+			Input:       `chatgpt how to solve BackOff problem with Pod resource on k8s. Return list of possible kubectl commands. --bk-cmd-header="get help"`,
 			Cmd:         "kubectl get po -A",
 			ClusterName: "cluster-a1",
 			Filter:      "before after",

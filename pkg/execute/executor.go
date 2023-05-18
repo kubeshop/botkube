@@ -95,6 +95,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	cmdCtx.CleanCmd = flags.CleanCmd
 	cmdCtx.ProvidedClusterName = flags.ClusterName
+	cmdCtx.CmdHeader = flags.CmdHeader
 	cmdCtx.Args = flags.TokenizedCmd
 	cmdCtx.ExecutorFilter = newExecutorTextFilter(flags.Filter)
 
@@ -243,6 +244,9 @@ func header(cmdCtx CommandContext) string {
 	cmd = strings.TrimSpace(cmd)
 	cmd = fmt.Sprintf("`%s`", cmd)
 
+	if cmdCtx.CmdHeader != "" {
+		cmd = cmdCtx.CmdHeader
+	}
 	out := fmt.Sprintf("%s on `%s`", cmd, cmdCtx.ClusterName)
 	return appendByUserOnlyIfNeeded(out, cmdCtx.User.Mention, cmdCtx.Conversation.CommandOrigin)
 }
