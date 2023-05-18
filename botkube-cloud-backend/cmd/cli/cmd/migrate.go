@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
@@ -26,12 +25,13 @@ func NewMigrate() *cobra.Command {
 			}()
 
 			status.Step("Fetching Botkube configuration")
-			file, err := os.ReadFile(opts.ConfigFile)
+			cfg, err := migrate.GetConfigFromCluster(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
 
-			instanceID, err := migrate.Run(cmd.Context(), status, file, opts)
+			status.Step("Run Botkube migration")
+			instanceID, err := migrate.Run(cmd.Context(), status, cfg, opts)
 			if err != nil {
 				return err
 			}
@@ -47,7 +47,8 @@ func NewMigrate() *cobra.Command {
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudAPIURL, "cloud-dashboard-url", "http://localhost:8080/graphql", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-api-url", "http://localhost:3000", "Botkube Cloud Instance name that will be created")
-	flags.StringVar(&opts.ConfigFile, "config-file", "./final-cfg.yaml", "Botkube deployment configuration")
+	flags.StringVarP(&opts.Label, "label", "l", "app=botkube", "Label of botkube pod")
+	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of botkube pod")
 
 	return login
 }

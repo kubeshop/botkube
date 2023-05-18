@@ -5,5 +5,6 @@ type Options struct {
 	InstanceName      string `survey:"instanceName"`
 	CloudDashboardURL string
 	CloudAPIURL       string
-	ConfigFile        string
+	Namespace         string
+	Label             string
 }
