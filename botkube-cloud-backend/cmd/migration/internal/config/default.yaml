@@ -1,0 +1,21 @@
+settings:
+  metricsPort: "2112"
+  healthPort: "2114"
+  log:
+    level: "error"
+    disableColors: "false"
+  informersResyncPeriod: "30m"
+
+  systemConfigMap:
+    name: botkube-system
+    namespace: botkube
+
+plugins:
+  cacheDir: "/tmp"
+
+analytics:
+  disable: false
+
+configWatcher:
+  remote:
+    pollInterval: "15s"
