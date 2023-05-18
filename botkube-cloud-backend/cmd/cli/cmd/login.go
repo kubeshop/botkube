@@ -52,7 +52,7 @@ func runLogin(_ context.Context, w io.Writer) error {
 	}
 
 	okCheck := color.New(color.FgGreen).FprintlnFunc()
-	okCheck(w, "Login Succeeded\n")
+	okCheck(w, "Login Succeeded")
 
 	return nil
 }
@@ -87,6 +87,10 @@ func fetchToken(addr, authUrl string) (*tokenResp, error) {
 		}
 	}()
 
+	fmt.Println(heredoc.Docf(`
+			Your browser has been opened to visit:
+				 %s
+		`, authUrl))
 	err := browser.OpenURL(authUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open page: %v", err)
