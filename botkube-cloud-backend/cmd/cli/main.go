@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/cmd/cli/cmd"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/loggerx"
 )
 
 func main() {
@@ -16,5 +16,9 @@ func main() {
 	defer cancelCtxFn()
 
 	err := rootCmd.ExecuteContext(ctx)
-	loggerx.ExitOnError(err, "while running CLI")
+	if err != nil {
+		// error is already printed by cobra, we can here add error switch
+		// in case we would like to exit with different codes
+		os.Exit(1)
+	}
 }

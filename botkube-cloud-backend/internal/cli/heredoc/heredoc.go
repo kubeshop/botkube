@@ -13,3 +13,8 @@ const cliTag = "<cli>"
 func WithCLIName(raw string, cliName string) string {
 	return strings.ReplaceAll(heredoc.Doc(raw), cliTag, cliName)
 }
+
+// Docf returns unindented and formatted string as here-document.
+func Docf(raw string, args ...interface{}) string {
+	return heredoc.Docf(raw, args...)
+}

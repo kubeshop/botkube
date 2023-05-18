@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/client-go/util/homedir"
+
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/heredoc"
-	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, cli.Name)
 )
 
-// Config is botkuce cli config
+// Config is botkube cli config
 type Config struct {
 	Token string `json:"token"`
 }
