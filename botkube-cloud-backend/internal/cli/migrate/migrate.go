@@ -6,17 +6,27 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hasura/go-graphql-client"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/muesli/reflow/indent"
 	"golang.org/x/oauth2"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	cliconfig "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/cmd/cli/cmd/config"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/printer"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
+)
+
+const (
+	migrationName = "botkube-migration"
 )
 
 // Run runs the migration process.
@@ -108,7 +118,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	}
 	if !run {
 		status.Infof("Skipping command execution. Remember to run it manually to finish the migration process.")
-		return "", nil
+		return mutation.CreateDeployment.ID, nil
 	}
 
 	status.Infof("Running helm upgrade")
@@ -151,4 +161,115 @@ func getInstanceName(opts Options) (string, error) {
 	}
 
 	return opts.InstanceName, nil
+}
+
+func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, error) {
+	k8sCli, err := newK8sClient()
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup(ctx, k8sCli, opts)
+
+	if err = createMigrationJob(ctx, k8sCli, opts); err != nil {
+		return nil, err
+	}
+
+	if err = waitForMigrationJob(ctx, k8sCli, opts); err != nil {
+		return nil, err
+	}
+
+	return readConfigFromCM(ctx, k8sCli, opts)
+}
+
+func newK8sClient() (*kubernetes.Clientset, error) {
+	k8sConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(k8sConfig)
+}
+
+func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) (*corev1.Pod, error) {
+	pods, err := k8sCli.CoreV1().Pods(opts.Namespace).List(ctx, metav1.ListOptions{LabelSelector: opts.Label})
+	if err != nil {
+		return nil, err
+	}
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("no botkube pod found")
+	}
+	return &pods.Items[0], nil
+}
+
+func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
+	botkubePod, err := getBotkubePod(ctx, k8sCli, opts)
+	if err != nil {
+		return err
+	}
+
+	var container corev1.Container
+	for _, c := range botkubePod.Spec.Containers {
+		if c.Name == "botkube" {
+			container = c
+			break
+		}
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      migrationName,
+			Namespace: botkubePod.Namespace,
+			Labels: map[string]string{
+				"app": migrationName,
+			},
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:            migrationName,
+							Image:           "docker.io/jkarasek/botkube-migration:v1.0.0",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Env:             container.Env,
+							VolumeMounts:    container.VolumeMounts,
+						},
+					},
+					Volumes:            botkubePod.Spec.Volumes,
+					ServiceAccountName: botkubePod.Spec.ServiceAccountName,
+					RestartPolicy:      corev1.RestartPolicyNever,
+				},
+			},
+		},
+	}
+
+	_, err = k8sCli.BatchV1().Jobs(botkubePod.Namespace).Create(ctx, job, metav1.CreateOptions{})
+
+	return err
+}
+
+func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
+	for i := 0; i < 10; i++ {
+		job, err := k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if job.Status.Succeeded > 0 {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("migration job failed")
+}
+
+func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) ([]byte, error) {
+	configMap, err := k8sCli.CoreV1().ConfigMaps(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return configMap.BinaryData["config.yaml"], nil
+}
+
+func cleanup(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) {
+	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
+	_ = k8sCli.CoreV1().ConfigMaps(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
 }
