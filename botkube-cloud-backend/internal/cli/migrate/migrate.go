@@ -27,6 +27,7 @@ import (
 
 const (
 	migrationName = "botkube-migration"
+	jobImage      = "docker.io/jkarasek/botkube-migration:v1.0.0"
 )
 
 // Run runs the migration process.
@@ -228,7 +229,7 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts 
 					Containers: []corev1.Container{
 						{
 							Name:            migrationName,
-							Image:           "docker.io/jkarasek/botkube-migration:v1.0.0",
+							Image:           jobImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env:             container.Env,
 							VolumeMounts:    container.VolumeMounts,
@@ -248,7 +249,7 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts 
 }
 
 func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		job, err := k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -270,6 +271,7 @@ func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Op
 }
 
 func cleanup(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) {
-	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
+	foreground := metav1.DeletePropagationForeground
+	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{PropagationPolicy: &foreground})
 	_ = k8sCli.CoreV1().ConfigMaps(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
 }
