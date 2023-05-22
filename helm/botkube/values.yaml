@@ -976,7 +976,7 @@ plugins:
   repositories:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
-      url: https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml
+      url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
 
 # -- Configuration for synchronizing Botkube configuration.
 config:

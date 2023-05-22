@@ -230,10 +230,10 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [configWatcher.image.repository](./values.yaml#L965) | string | `"kubeshop/k8s-sidecar"` | Config watcher image repository. |
 | [configWatcher.image.tag](./values.yaml#L967) | string | `"ignore-initial-events"` | Config watcher image tag. |
 | [configWatcher.image.pullPolicy](./values.yaml#L969) | string | `"IfNotPresent"` | Config watcher image pull policy. |
-| [plugins](./values.yaml#L972) | object | `{"cacheDir":"/tmp","repositories":{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}}}` | Configuration for Botkube executors and sources plugins. |
+| [plugins](./values.yaml#L972) | object | `{"cacheDir":"/tmp","repositories":{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}}}` | Configuration for Botkube executors and sources plugins. |
 | [plugins.cacheDir](./values.yaml#L974) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
-| [plugins.repositories](./values.yaml#L976) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}}` | List of plugins repositories. |
-| [plugins.repositories.botkube](./values.yaml#L978) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v9.99.9-dev/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
+| [plugins.repositories](./values.yaml#L976) | object | `{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}}` | List of plugins repositories. |
+| [plugins.repositories.botkube](./values.yaml#L978) | object | `{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
 | [config](./values.yaml#L982) | object | `{"provider":{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}}` | Configuration for synchronizing Botkube configuration. |
 | [config.provider](./values.yaml#L984) | object | `{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}` | Base provider definition. |
 | [config.provider.identifier](./values.yaml#L987) | string | `""` | Unique identifier for remote Botkube settings. If set to an empty string, Botkube won't fetch remote configuration. |
