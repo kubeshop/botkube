@@ -127,7 +127,7 @@ func (i *IndexBuilder) calculateChecksum(bin string) (string, error) {
 	if info, err := os.Stat(bin); err != nil || info.IsDir() {
 		return "", fmt.Errorf("while getting file info: %w", err)
 	}
-	file, err := os.Open(bin)
+	file, err := os.Open(filepath.Clean(bin))
 	if err != nil {
 		return "", fmt.Errorf("while opening file: %w", err)
 	}
