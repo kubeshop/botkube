@@ -15,6 +15,7 @@ import (
 const (
 	urlButtonActionIDPrefix = "url:"
 	cmdButtonActionIDPrefix = "cmd:"
+	maxActionIDLen          = 254
 )
 
 // SlackRenderer provides functionality to render Slack specific messages from a generic models.
@@ -352,11 +353,24 @@ func (b *SlackRenderer) renderButton(btn api.Button) slack.BlockElement {
 	}
 }
 
+// id must be less than 256 characters, see:
+// https://api.slack.com/reference/block-kit/block-elements#button
 func (b *SlackRenderer) genBtnActionID(btn api.Button) string {
 	if btn.Command != "" {
-		return cmdButtonActionIDPrefix + btn.Command
+		stop := b.intWithMax(maxActionIDLen-len(cmdButtonActionIDPrefix), len(btn.Command))
+		return cmdButtonActionIDPrefix + btn.Command[:stop]
 	}
-	return urlButtonActionIDPrefix + btn.URL
+
+	// must be less than 256 characters
+	stop := b.intWithMax(maxActionIDLen-len(urlButtonActionIDPrefix), len(btn.URL))
+	return urlButtonActionIDPrefix + btn.URL[:stop]
+}
+
+func (*SlackRenderer) intWithMax(a, max int) int {
+	if a > max {
+		return max
+	}
+	return a
 }
 
 func (*SlackRenderer) mdTextSection(in string, args ...any) *slack.SectionBlock {
