@@ -146,14 +146,9 @@ func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[str
 		if !exists {
 			continue
 		}
-		checksum, exists := depDetails.Checksums.For(bin.OS, bin.Arch)
-		if !exists {
-			continue
-		}
 
 		out[depName] = Dependency{
-			URL:      url,
-			Checksum: checksum,
+			URL: url,
 		}
 	}
 

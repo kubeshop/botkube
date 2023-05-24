@@ -52,8 +52,6 @@ message JSONSchema {
 message Dependency {
 	// urls is the map of URL of the dependency. The key is in format of "os/arch", such as "linux/amd64".
 	map<string, string> urls = 1;
-	// checksums is the map of checksum of the dependency. The key is identical to the url var.
-	map<string, string> checksums = 2;
 }
 
 service Source {

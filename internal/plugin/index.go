@@ -77,8 +77,7 @@ type (
 
 	// Dependency holds the dependency information.
 	Dependency struct {
-		URL      string `yaml:"url"`
-		Checksum string `yaml:"checksum"`
+		URL string `yaml:"url"`
 	}
 )
 

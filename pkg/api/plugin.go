@@ -39,24 +39,15 @@ type JSONSchema struct {
 // Dependency holds the dependency information.
 type Dependency struct {
 	// URLs holds the URLs for a given dependency depending on the platform and architecture.
-	URLs      URLs      `yaml:"urls"`
-	Checksums Checksums `yaml:"checksums"`
+	URLs URLs `yaml:"urls"`
 }
 
 // URLs is a map of URLs for different platform and architecture.
 // The key format is "{os}/{arch}".
 type URLs map[string]string
 
-type Checksums map[string]string
-
 // For returns the URL for a given platform and architecture.
 func (u URLs) For(os, arch string) (string, bool) {
-	key := fmt.Sprintf("%s/%s", os, arch)
-	val, exists := u[key]
-	return val, exists
-}
-
-func (u Checksums) For(os, arch string) (string, bool) {
 	key := fmt.Sprintf("%s/%s", os, arch)
 	val, exists := u[key]
 	return val, exists
@@ -103,7 +94,6 @@ func (m MetadataOutput) Validate() error {
 // PluginDependencyURLsGetter is an interface for getting plugin dependency URLs.
 type PluginDependencyURLsGetter interface {
 	GetUrls() map[string]string
-	GetChecksums() map[string]string
 }
 
 // ConvertDependenciesToAPI converts source/executor plugin dependencies to API dependencies.
@@ -111,8 +101,7 @@ func ConvertDependenciesToAPI[T PluginDependencyURLsGetter](resp map[string]T) m
 	dependencies := make(map[string]Dependency, len(resp))
 	for depName, depDetails := range resp {
 		dependencies[depName] = Dependency{
-			URLs:      depDetails.GetUrls(),
-			Checksums: depDetails.GetChecksums(),
+			URLs: depDetails.GetUrls(),
 		}
 	}
 
@@ -122,7 +111,6 @@ func ConvertDependenciesToAPI[T PluginDependencyURLsGetter](resp map[string]T) m
 // PluginDependencyURLsSetter is an interface for setting plugin dependency URLs.
 type PluginDependencyURLsSetter[T any] interface {
 	SetUrls(in map[string]string)
-	SetChecksums(in map[string]string)
 	*T // This is needed to ensure we can create an instance of the concrete type as a part of the ConvertDependenciesFromAPI function.
 }
 
@@ -134,7 +122,6 @@ func ConvertDependenciesFromAPI[T PluginDependencyURLsSetter[P], P any](in map[s
 		var underlying P
 		dep := T(&underlying)
 		dep.SetUrls(depDetails.URLs)
-		dep.SetChecksums(depDetails.Checksums)
 		dependencies[depName] = dep
 	}
 

@@ -439,7 +439,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"dependencyUrl":  depURL,
 		}).Info("Downloading dependency...")
 
-		err := DownloadBinary(ctx, depPath, depURL)
+		err := DownloadBinary(ctx, depPath, URL{URL: depURL})
 		if err != nil {
 			return fmt.Errorf("while downloading dependency %q for %q: %w", depName, binPath, err)
 		}

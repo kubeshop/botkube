@@ -23,7 +23,7 @@ type (
 		Description  string
 		Version      string
 		URLs         map[string]URL
-		Dependencies map[string]map[string]URL
+		Dependencies map[string]map[string]string
 		JSONSchema   JSONSchema
 	}
 
@@ -124,9 +124,9 @@ func (s storeRepository) key(repo, name string) string {
 	return fmt.Sprintf("%s/%s", repo, name)
 }
 
-func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]URL) {
+func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]string) {
 	out := make(map[string]URL)
-	var deps map[string]map[string]URL
+	var deps map[string]map[string]string
 	for _, item := range in {
 		key := item.Platform.OS + "/" + item.Platform.Arch
 		out[key] = URL{
@@ -136,17 +136,14 @@ func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]URL) {
 
 		for depName, dep := range item.Dependencies {
 			if deps == nil {
-				deps = make(map[string]map[string]URL)
+				deps = make(map[string]map[string]string)
 			}
 
 			if deps[depName] == nil {
-				deps[depName] = make(map[string]URL)
+				deps[depName] = make(map[string]string)
 			}
 
-			deps[depName][key] = URL{
-				URL:      dep.URL,
-				Checksum: dep.Checksum,
-			}
+			deps[depName][key] = dep.URL
 		}
 	}
 
