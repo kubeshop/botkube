@@ -8,3 +8,7 @@ package executor
 func (d *Dependency) SetUrls(in map[string]string) {
 	d.Urls = in
 }
+
+func (d *Dependency) SetChecksums(in map[string]string) {
+	d.Urls = in
+}

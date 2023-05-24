@@ -35,6 +35,18 @@ var helmBinaryDownloadLinks = map[string]string{
 	"windows/amd64": "https://get.helm.sh/helm-v3.6.3-windows-amd64.zip//windows-amd64",
 }
 
+var helmBinaryChecksums = map[string]string{
+	"darwin/amd64":  "file:https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz.sha256sum",
+	"darwin/arm64":  "file:https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz.sha256sum",
+	"linux/amd64":   "file:https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz.sha256sum",
+	"linux/arm":     "file:https://get.helm.sh/helm-v3.6.3-linux-arm.tar.gz.sha256sum",
+	"linux/arm64":   "file:https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz.sha256sum",
+	"linux/386":     "file:https://get.helm.sh/helm-v3.6.3-linux-386.tar.gz.sha256sum",
+	"linux/ppc64le": "file:https://get.helm.sh/helm-v3.6.3-linux-ppc64le.tar.gz.sha256sum",
+	"linux/s390x":   "file:https://get.helm.sh/helm-v3.6.3-linux-s390x.tar.gz.sha256sum",
+	"windows/amd64": "file:https://get.helm.sh/helm-v3.6.3-windows-amd64.tar.gz.sha256sum",
+}
+
 type command interface {
 	Validate() error
 	Help() string
@@ -64,7 +76,8 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		JSONSchema:  jsonSchema(),
 		Dependencies: map[string]api.Dependency{
 			helmBinaryName: {
-				URLs: helmBinaryDownloadLinks,
+				URLs:      helmBinaryDownloadLinks,
+				Checksums: helmBinaryChecksums,
 			},
 		},
 	}, nil

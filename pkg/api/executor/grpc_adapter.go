@@ -153,7 +153,6 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	if err != nil {
 		return api.MetadataOutput{}, err
 	}
-
 	return api.MetadataOutput{
 		Version:     resp.Version,
 		Description: resp.Description,

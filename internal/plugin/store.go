@@ -22,9 +22,14 @@ type (
 	storeEntry struct {
 		Description  string
 		Version      string
-		URLs         map[string]string
-		Dependencies map[string]map[string]string
+		URLs         map[string]URL
+		Dependencies map[string]map[string]URL
 		JSONSchema   JSONSchema
+	}
+
+	URL struct {
+		URL      string
+		Checksum string
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.
@@ -119,23 +124,29 @@ func (s storeRepository) key(repo, name string) string {
 	return fmt.Sprintf("%s/%s", repo, name)
 }
 
-func mapBinaryURLs(in []IndexURL) (map[string]string, map[string]map[string]string) {
-	out := make(map[string]string)
-	var deps map[string]map[string]string
+func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]URL) {
+	out := make(map[string]URL)
+	var deps map[string]map[string]URL
 	for _, item := range in {
 		key := item.Platform.OS + "/" + item.Platform.Arch
-		out[key] = item.URL
+		out[key] = URL{
+			URL:      item.URL,
+			Checksum: item.Checksum,
+		}
 
 		for depName, dep := range item.Dependencies {
 			if deps == nil {
-				deps = make(map[string]map[string]string)
+				deps = make(map[string]map[string]URL)
 			}
 
 			if deps[depName] == nil {
-				deps[depName] = make(map[string]string)
+				deps[depName] = make(map[string]URL)
 			}
 
-			deps[depName][key] = dep.URL
+			deps[depName][key] = URL{
+				URL:      dep.URL,
+				Checksum: dep.Checksum,
+			}
 		}
 	}
 

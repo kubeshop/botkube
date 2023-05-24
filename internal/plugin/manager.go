@@ -449,7 +449,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 }
 
 // DownloadBinary downloads binary into specific destination.
-func DownloadBinary(ctx context.Context, destPath, url string) error {
+func DownloadBinary(ctx context.Context, destPath string, url URL) error {
 	dir, filename := filepath.Split(destPath)
 	err := os.MkdirAll(dir, dirPerms)
 	if err != nil {
@@ -461,12 +461,21 @@ func DownloadBinary(ctx context.Context, destPath, url string) error {
 		return fmt.Errorf("while getting working directory: %w", err)
 	}
 
-	urlWithGoGetterMagicParams := fmt.Sprintf("%s?filename=%s", url, filename)
+	tmpDestPath := destPath + ".downloading"
+	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
+		if err = os.RemoveAll(tmpDestPath); err != nil {
+			return fmt.Errorf("while deleting temporary directory %q: %w", tmpDestPath, err)
+		}
+	}
 
+	urlWithGoGetterMagicParams := fmt.Sprintf("%s?filename=%s", url.URL, filename)
+	if url.Checksum != "" {
+		urlWithGoGetterMagicParams = fmt.Sprintf("%s&checksum=%s", urlWithGoGetterMagicParams, url.Checksum)
+	}
 	getterCli := &getter.Client{
 		Ctx:  ctx,
 		Src:  urlWithGoGetterMagicParams,
-		Dst:  dir,
+		Dst:  tmpDestPath,
 		Pwd:  pwd,
 		Dir:  false,
 		Mode: getter.ClientModeAny,
@@ -477,6 +486,15 @@ func DownloadBinary(ctx context.Context, destPath, url string) error {
 		return fmt.Errorf("while downloading binary from URL %q: %w", url, err)
 	}
 
+	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
+		tempFileName := filepath.Join(tmpDestPath, filename)
+		if err = os.Rename(tempFileName, destPath); err != nil {
+			return fmt.Errorf("while renaming binary %q: %w", tempFileName, err)
+		}
+		if err = os.RemoveAll(tmpDestPath); err != nil {
+			return fmt.Errorf("while deleting temporary directory %q: %w", tmpDestPath, err)
+		}
+	}
 	if stat, err := os.Stat(destPath); err == nil && !stat.IsDir() {
 		err = os.Chmod(destPath, binPerms)
 		if err != nil {

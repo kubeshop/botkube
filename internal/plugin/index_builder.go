@@ -2,7 +2,10 @@ package plugin
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -71,6 +74,11 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, 
 			return Index{}, fmt.Errorf("while getting plugin metadata: %w", err)
 		}
 
+		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies)
+		if err != nil {
+			return Index{}, err
+		}
+
 		pType, pName, _ := strings.Cut(key, "/")
 		out.Entries = append(out.Entries, IndexEntry{
 			Name:        pName,
@@ -81,7 +89,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, 
 				Value:  meta.JSONSchema.Value,
 				RefURL: meta.JSONSchema.RefURL,
 			},
-			URLs: i.mapToIndexURLs(bins, urlBasePath, meta.Dependencies),
+			URLs: urls,
 		})
 	}
 
@@ -94,11 +102,16 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, 
 	return out, nil
 }
 
-func (i *IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency) []IndexURL {
+func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency) ([]IndexURL, error) {
 	var urls []IndexURL
 	for _, bin := range bins {
+		checksum, err := i.calculateChecksum(filepath.Join(parentDir, bin.BinaryPath))
+		if err != nil {
+			return nil, fmt.Errorf("while calculating checksum: %w", err)
+		}
 		urls = append(urls, IndexURL{
-			URL: fmt.Sprintf("%s/%s", urlBasePath, bin.BinaryPath),
+			URL:      fmt.Sprintf("%s/%s", urlBasePath, bin.BinaryPath),
+			Checksum: checksum,
 			Platform: IndexURLPlatform{
 				OS:   bin.OS,
 				Arch: bin.Arch,
@@ -107,7 +120,23 @@ func (i *IndexBuilder) mapToIndexURLs(bins []pluginBinariesIndex, urlBasePath st
 		})
 	}
 
-	return urls
+	return urls, nil
+}
+
+func (i *IndexBuilder) calculateChecksum(bin string) (string, error) {
+	if info, err := os.Stat(bin); err != nil || info.IsDir() {
+		return "", fmt.Errorf("while getting file info: %w", err)
+	}
+	file, err := os.Open(bin)
+	if err != nil {
+		return "", fmt.Errorf("while opening file: %w", err)
+	}
+	defer file.Close()
+	provider := sha256.New()
+	if _, err := io.Copy(provider, file); err != nil {
+		return "", fmt.Errorf("while calculating checksum: %w", err)
+	}
+	return hex.EncodeToString(provider.Sum(nil)), nil
 }
 
 func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[string]api.Dependency) Dependencies {
@@ -117,9 +146,14 @@ func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[str
 		if !exists {
 			continue
 		}
+		checksum, exists := depDetails.Checksums.For(bin.OS, bin.Arch)
+		if !exists {
+			continue
+		}
 
 		out[depName] = Dependency{
-			URL: url,
+			URL:      url,
+			Checksum: checksum,
 		}
 	}
 

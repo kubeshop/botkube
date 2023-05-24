@@ -135,6 +135,13 @@ var depsDownloadLinks = map[string]api.Dependency{
 			"linux/arm64":  "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_arm64.zip//gh_2.29.0_linux_arm64/bin",
 			"linux/386":    "https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_386.zip//gh_2.29.0_linux_386/bin",
 		},
+		Checksums: map[string]string{
+			"darwin/amd64": "",
+			"darwin/arm64": "",
+			"linux/amd64":  "",
+			"linux/arm64":  "",
+			"linux/386":    "",
+		},
 	},
 	"kubectl": {
 		URLs: map[string]string{
@@ -143,6 +150,13 @@ var depsDownloadLinks = map[string]api.Dependency{
 			"linux/amd64":  "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl",
 			"linux/arm64":  "https://dl.k8s.io/release/v1.26.0/bin/linux/arm64/kubectl",
 			"linux/386":    "https://dl.k8s.io/release/v1.26.0/bin/linux/386/kubectl",
+		},
+		Checksums: map[string]string{
+			"darwin/amd64": "",
+			"darwin/arm64": "",
+			"linux/amd64":  "",
+			"linux/arm64":  "",
+			"linux/386":    "",
 		},
 	},
 }
