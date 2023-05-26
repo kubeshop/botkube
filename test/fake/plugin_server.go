@@ -35,11 +35,13 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 
 	basePath := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
-	idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*")
-	if err != nil {
-		log.Fatalf("Cannot build index file: %s", err.Error())
-	}
+
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
+		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*", true)
+		if err != nil {
+			log.Printf("Cannot build index file: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		out, err := yaml.Marshal(idx)
 		if err != nil {
 			log.Printf("Cannot marshall index file: %s", err.Error())

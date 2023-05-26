@@ -37,7 +37,7 @@ func main() {
 	})
 
 	log.Info("Building index..")
-	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *pluginNameFilter)
+	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *pluginNameFilter, false)
 	exitOnError("while building plugin index", err)
 
 	raw, err := yaml.Marshal(idx)

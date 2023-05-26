@@ -43,7 +43,7 @@ func NewIndexBuilder(log logrus.FieldLogger) *IndexBuilder {
 }
 
 // Build returns plugin index built based on plugins found in a given directory.
-func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, error) {
+func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChecksum bool) (Index, error) {
 	pluginNameRegex, err := regexp.Compile(pluginNameFilter)
 	if err != nil {
 		return Index{}, fmt.Errorf("while compiling filter regex: %w", err)
@@ -74,7 +74,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, 
 			return Index{}, fmt.Errorf("while getting plugin metadata: %w", err)
 		}
 
-		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies)
+		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies, skipChecksum)
 		if err != nil {
 			return Index{}, err
 		}
@@ -102,12 +102,16 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string) (Index, 
 	return out, nil
 }
 
-func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency) ([]IndexURL, error) {
+func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency, skipChecksum bool) ([]IndexURL, error) {
 	var urls []IndexURL
+	var checksum string
+	var err error
 	for _, bin := range bins {
-		checksum, err := i.calculateChecksum(filepath.Join(parentDir, bin.BinaryPath))
-		if err != nil {
-			return nil, fmt.Errorf("while calculating checksum: %w", err)
+		if !skipChecksum {
+			checksum, err = i.calculateChecksum(filepath.Join(parentDir, bin.BinaryPath))
+			if err != nil {
+				return nil, fmt.Errorf("while calculating checksum: %w", err)
+			}
 		}
 		urls = append(urls, IndexURL{
 			URL:      fmt.Sprintf("%s/%s", urlBasePath, bin.BinaryPath),
