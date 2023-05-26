@@ -61,6 +61,7 @@ type (
 	// IndexURL holds the binary url details.
 	IndexURL struct {
 		URL          string           `yaml:"url"`
+		Checksum     string           `yaml:"checksum"`
 		Platform     IndexURLPlatform `yaml:"platform"`
 		Dependencies Dependencies     `yaml:"dependencies,omitempty"`
 	}

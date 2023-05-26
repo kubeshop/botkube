@@ -21,21 +21,21 @@ func TestNewStoreRepository(t *testing.T) {
 			{
 				Description: "Kubectl executor plugin.",
 				Version:     "v1.5.0",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-amd64",
-					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-arm64",
-					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-amd64",
-					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-arm64",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-amd64"},
+					"darwin/arm64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-darwin-arm64"},
+					"linux/amd64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-amd64"},
+					"linux/arm64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.27.0/executor_kubectl-linux-arm64"},
 				},
 			},
 			{
 				Description: "Kubectl executor plugin.",
 				Version:     "v1.0.0",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64",
-					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64",
-					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64",
-					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-amd64"},
+					"darwin/arm64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-darwin-arm64"},
+					"linux/amd64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-amd64"},
+					"linux/arm64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/executor_kubectl-linux-arm64"},
 				},
 			},
 		},
@@ -43,11 +43,11 @@ func TestNewStoreRepository(t *testing.T) {
 			{
 				Description: "Helm is the Botkube executor plugin that allows you to run the Helm CLI commands directly from any communication platform.",
 				Version:     "v0.1.0",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_amd64",
-					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_arm64",
-					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_amd64",
-					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_arm64",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_amd64"},
+					"darwin/arm64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_darwin_arm64"},
+					"linux/amd64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_amd64"},
+					"linux/arm64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/executor_helm_linux_arm64"},
 				},
 				Dependencies: map[string]map[string]string{
 					"helm": {
@@ -63,11 +63,11 @@ func TestNewStoreRepository(t *testing.T) {
 			{
 				Description: "Executor suitable for e2e testing. It returns the command that was send as an input.",
 				Version:     "v1.0.2",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-amd64",
-					"darwin/arm64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-arm64",
-					"linux/amd64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-amd64",
-					"linux/arm64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-arm64",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-amd64"},
+					"darwin/arm64": {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-darwin-arm64"},
+					"linux/amd64":  {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-amd64"},
+					"linux/arm64":  {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.2/executor_echo-linux-arm64"},
 				},
 			},
 		},
@@ -77,21 +77,21 @@ func TestNewStoreRepository(t *testing.T) {
 			{
 				Description: "Kubernetes source",
 				Version:     "v1.0.0",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes",
-					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_arm64_source_kubernetes",
-					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_md64_source_kubernetes",
-					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_rm64_source_kubernetes",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_amd64_source_kubernetes"},
+					"darwin/arm64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/darwin_arm64_source_kubernetes"},
+					"linux/amd64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_md64_source_kubernetes"},
+					"linux/arm64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.17.0/linux-_rm64_source_kubernetes"},
 				},
 			},
 			{
 				Description: "Kubernetes source",
 				Version:     "0.1.0", // should support also version without `v`
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_amd64_source_kubernetes",
-					"darwin/arm64": "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_arm64_source_kubernetes",
-					"linux/amd64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_md64_source_kubernetes",
-					"linux/arm64":  "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_amd64_source_kubernetes"},
+					"darwin/arm64": {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/darwin_arm64_source_kubernetes"},
+					"linux/amd64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_md64_source_kubernetes"},
+					"linux/arm64":  {URL: "https://github.com/kubeshop/botkube/releases/download/v0.1.0/linux-_rm64_source_kubernetes"},
 				},
 			},
 		},
@@ -99,11 +99,11 @@ func TestNewStoreRepository(t *testing.T) {
 			{
 				Description: "Source suitable for e2e testing.",
 				Version:     "v1.0.0",
-				URLs: map[string]string{
-					"darwin/amd64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_amd64_cmd-watcher",
-					"darwin/arm64": "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_arm64_cmd-watcher",
-					"linux/amd64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_md64_cmd-watcher",
-					"linux/arm64":  "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_rm64_cmd-watcher",
+				URLs: map[string]URL{
+					"darwin/amd64": {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_amd64_cmd-watcher"},
+					"darwin/arm64": {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/darwin_arm64_cmd-watcher"},
+					"linux/amd64":  {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_md64_cmd-watcher"},
+					"linux/arm64":  {URL: "https://github.com/mszostok/botkube-plugins/releases/download/v1.0.0/linux-_rm64_cmd-watcher"},
 				},
 			},
 		},
