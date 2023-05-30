@@ -130,6 +130,8 @@ spec:
             - name: CONFIG_PROVIDER_API_KEY
               value: "{{ .Values.config.provider.apiKey }}"
             {{- end }}
+            - name: BOTKUBE_SETTINGS_SA_PATH
+              value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}

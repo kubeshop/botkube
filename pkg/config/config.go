@@ -499,6 +499,7 @@ type Settings struct {
 	Log                   Logger           `yaml:"log"`
 	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig            string           `yaml:"kubeconfig"`
+	SaPath                string           `yaml:"saPath"`
 }
 
 // Logger holds logger configuration parameters.

@@ -1,9 +1,12 @@
 package main
 
+import "C"
 import (
 	"context"
 	"errors"
 	"fmt"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 	"log"
 	"net/http"
 	"time"
@@ -136,7 +139,8 @@ func run(ctx context.Context) error {
 	defer pluginManager.Shutdown()
 
 	// Prepare K8s clients and mapper
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
+	kubeConfig, err := buildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SaPath)
+	//kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
@@ -549,4 +553,24 @@ func findVersions(cli *kubernetes.Clientset) (string, error) {
 	}
 
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), nil
+}
+
+func buildConfigFromFlags(masterUrl, kubeconfigPath, saTokenPath string) (*rest.Config, error) {
+	if kubeconfigPath == "" && masterUrl == "" {
+		klog.Warning("Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.")
+		kubeconfig, err := rest.InClusterConfig()
+		if err == nil {
+			return kubeconfig, nil
+		}
+		kubeconfig.AuthProvider = &clientcmdapi.AuthProviderConfig{
+			Name: "token-file",
+			Config: map[string]string{
+				"token-file": saTokenPath,
+			},
+		}
+		klog.Warning("error creating inClusterConfig, falling back to default config: ", err)
+	}
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+		&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: masterUrl}}).ClientConfig()
 }
