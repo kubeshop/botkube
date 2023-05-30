@@ -1,3 +1,5 @@
+{{- $uuid := include "botkube.uuid" . -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -74,6 +76,9 @@ spec:
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp
+            - name: {{ $uuid }}
+              mountPath: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount
+              readOnly: true
           {{- if not (include "botkube.remoteConfigEnabled" $) }}
             - name: config-volume
               mountPath: "/config"
@@ -164,6 +169,12 @@ spec:
       volumes:
         - name: cache-volume
           emptyDir: {}
+        - name: {{ $uuid }}
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: {{ $uuid }}
+                  expirationSeconds: 3600
         {{- if not (include "botkube.remoteConfigEnabled" $) }}
         - name: cfg-watcher-tmp
           emptyDir: {}
