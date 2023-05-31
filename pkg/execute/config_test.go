@@ -66,6 +66,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						        disableColors: false
 						    informersResyncPeriod: 0s
 						    kubeconfig: ""
+						    saCredentialsPathPrefix: ""
 						configWatcher:
 						    enabled: false
 						    remote:

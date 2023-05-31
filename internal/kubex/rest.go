@@ -42,6 +42,7 @@ func inClusterConfig(saTokenPrefix string) (*rest.Config, error) {
 		return nil, rest.ErrNotInCluster
 	}
 
+	// #nosec G304
 	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
