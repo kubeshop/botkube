@@ -1,7 +1,6 @@
 package kubex
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 
@@ -43,7 +42,7 @@ func inClusterConfig(saTokenPrefix string) (*rest.Config, error) {
 		return nil, rest.ErrNotInCluster
 	}
 
-	token, err := ioutil.ReadFile(tokenFile)
+	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
 	}
