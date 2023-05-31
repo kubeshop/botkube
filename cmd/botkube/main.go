@@ -232,6 +232,14 @@ func run(ctx context.Context) error {
 			scheduleBotNotifier(sb)
 		}
 
+		if commGroupCfg.CloudSlack.Enabled {
+			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupName, commGroupCfg.CloudSlack, executorFactory, reporter)
+			if err != nil {
+				return reportFatalError("while creating CloudSlack bot", err)
+			}
+			scheduleBotNotifier(sb)
+		}
+
 		if commGroupCfg.Mattermost.Enabled {
 			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
 			if err != nil {
