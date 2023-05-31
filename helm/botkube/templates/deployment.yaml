@@ -37,6 +37,7 @@ spec:
 {{ toYaml .Values.extraAnnotations | indent 8 }}
       {{- end }}
     spec:
+      automountServiceAccountToken: false
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{ .Values.priorityClassName }}"
       {{- end }}
@@ -130,7 +131,7 @@ spec:
             - name: CONFIG_PROVIDER_API_KEY
               value: "{{ .Values.config.provider.apiKey }}"
             {{- end }}
-            - name: BOTKUBE_SETTINGS_SA_PATH
+            - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
               value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
@@ -175,8 +176,13 @@ spec:
           projected:
             sources:
               - serviceAccountToken:
-                  path: {{ $uuid }}
+                  path: {{ $uuid }}-token
                   expirationSeconds: 3600
+              - configMap:
+                  items:
+                  - key: ca.crt
+                    path: {{ $uuid }}-ca.crt
+                  name: kube-root-ca.crt
         {{- if not (include "botkube.remoteConfigEnabled" $) }}
         - name: cfg-watcher-tmp
           emptyDir: {}
