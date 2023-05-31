@@ -78,6 +78,9 @@ const (
 	// SocketSlackCommPlatformIntegration defines Slack integration.
 	SocketSlackCommPlatformIntegration CommPlatformIntegration = "socketSlack"
 
+	// CloudSlackCommPlatformIntegration defines Slack integration.
+	CloudSlackCommPlatformIntegration CommPlatformIntegration = "cloudSlack"
+
 	// MattermostCommPlatformIntegration defines Mattermost integration.
 	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
 
@@ -382,6 +385,7 @@ type ChannelNotification struct {
 type Communications struct {
 	Slack         Slack         `yaml:"slack,omitempty"`
 	SocketSlack   SocketSlack   `yaml:"socketSlack,omitempty"`
+	CloudSlack    CloudSlack    `yaml:"cloudSlack,omitempty"`
 	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
 	Discord       Discord       `yaml:"discord,omitempty"`
 	Teams         Teams         `yaml:"teams,omitempty"`
@@ -404,6 +408,14 @@ type SocketSlack struct {
 	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	BotToken string                                 `yaml:"botToken,omitempty"`
 	AppToken string                                 `yaml:"appToken,omitempty"`
+}
+
+type CloudSlack struct {
+	Enabled  bool                                   `yaml:"enabled"`
+	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	BotToken string                                 `yaml:"botToken,omitempty"`
+	AppToken string                                 `yaml:"appToken,omitempty"`
+	Server   string                                 `yaml:"server"`
 }
 
 // Elasticsearch config auth settings
