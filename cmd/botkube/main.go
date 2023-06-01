@@ -136,7 +136,7 @@ func run(ctx context.Context) error {
 	defer pluginManager.Shutdown()
 
 	// Prepare K8s clients and mapper
-	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SaCredentialsPathPrefix)
+	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SACredentialsPathPrefix)
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}

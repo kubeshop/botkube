@@ -499,7 +499,7 @@ type Settings struct {
 	Log                     Logger           `yaml:"log"`
 	InformersResyncPeriod   time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig              string           `yaml:"kubeconfig"`
-	SaCredentialsPathPrefix string           `yaml:"saCredentialsPathPrefix"`
+	SACredentialsPathPrefix string           `yaml:"saCredentialsPathPrefix"`
 }
 
 // Logger holds logger configuration parameters.

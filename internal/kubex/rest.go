@@ -11,7 +11,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// BuildConfigFromFlags Kubeconfig config initialization
+// BuildConfigFromFlags modified after copied from here https://github.com/kubernetes/client-go/blob/cf830e3cb3abbcc32cc1b6bea4feb1a9a1881af3/tools/clientcmd/client_config.go#L616
 func BuildConfigFromFlags(masterUrl, kubeconfigPath, saTokenPath string) (*rest.Config, error) {
 	if kubeconfigPath == "" && masterUrl == "" {
 		klog.Warning("Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.")
@@ -19,7 +19,6 @@ func BuildConfigFromFlags(masterUrl, kubeconfigPath, saTokenPath string) (*rest.
 		if err == nil {
 			return kubeconfig, nil
 		}
-		klog.Warningf("kube: %v", kubeconfig)
 		kubeconfig.AuthProvider = &clientcmdapi.AuthProviderConfig{
 			Name: "token-file",
 			Config: map[string]string{
