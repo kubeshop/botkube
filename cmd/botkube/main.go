@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -32,6 +31,7 @@ import (
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/insights"
+	"github.com/kubeshop/botkube/internal/kubex"
 	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -136,7 +136,7 @@ func run(ctx context.Context) error {
 	defer pluginManager.Shutdown()
 
 	// Prepare K8s clients and mapper
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", conf.Settings.Kubeconfig)
+	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SACredentialsPathPrefix)
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}

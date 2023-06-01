@@ -489,16 +489,17 @@ type RemoteCfgWatcher struct {
 
 // Settings contains Botkube's related configuration.
 type Settings struct {
-	ClusterName           string           `yaml:"clusterName"`
-	UpgradeNotifier       bool             `yaml:"upgradeNotifier"`
-	SystemConfigMap       K8sResourceRef   `yaml:"systemConfigMap"`
-	PersistentConfig      PersistentConfig `yaml:"persistentConfig"`
-	MetricsPort           string           `yaml:"metricsPort"`
-	HealthPort            string           `yaml:"healthPort"`
-	LifecycleServer       LifecycleServer  `yaml:"lifecycleServer"`
-	Log                   Logger           `yaml:"log"`
-	InformersResyncPeriod time.Duration    `yaml:"informersResyncPeriod"`
-	Kubeconfig            string           `yaml:"kubeconfig"`
+	ClusterName             string           `yaml:"clusterName"`
+	UpgradeNotifier         bool             `yaml:"upgradeNotifier"`
+	SystemConfigMap         K8sResourceRef   `yaml:"systemConfigMap"`
+	PersistentConfig        PersistentConfig `yaml:"persistentConfig"`
+	MetricsPort             string           `yaml:"metricsPort"`
+	HealthPort              string           `yaml:"healthPort"`
+	LifecycleServer         LifecycleServer  `yaml:"lifecycleServer"`
+	Log                     Logger           `yaml:"log"`
+	InformersResyncPeriod   time.Duration    `yaml:"informersResyncPeriod"`
+	Kubeconfig              string           `yaml:"kubeconfig"`
+	SACredentialsPathPrefix string           `yaml:"saCredentialsPathPrefix"`
 }
 
 // Logger holds logger configuration parameters.

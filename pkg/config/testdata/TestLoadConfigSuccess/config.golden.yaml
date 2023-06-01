@@ -158,6 +158,7 @@ settings:
         disableColors: false
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env
+    saCredentialsPathPrefix: ""
 configWatcher:
     enabled: false
     remote:

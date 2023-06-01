@@ -63,3 +63,8 @@ Create the name of the service account to use
     {{- true -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "botkube.uuid" -}}
+{{- $uuid := printf "%s-%s-%s-%s-%s" (randAlphaNum 8) (randAlphaNum 4) "4" (randAlphaNum 3) (randAlphaNum 12) -}}
+{{- $uuid | lower -}}
+{{- end -}}

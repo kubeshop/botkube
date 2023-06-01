@@ -1,3 +1,5 @@
+{{- $uuid := include "botkube.uuid" . -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,6 +37,7 @@ spec:
 {{ toYaml .Values.extraAnnotations | indent 8 }}
       {{- end }}
     spec:
+      automountServiceAccountToken: false
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{ .Values.priorityClassName }}"
       {{- end }}
@@ -74,6 +77,9 @@ spec:
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp
+            - name: {{ $uuid }}
+              mountPath: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount
+              readOnly: true
           {{- if not (include "botkube.remoteConfigEnabled" $) }}
             - name: config-volume
               mountPath: "/config"
@@ -125,6 +131,8 @@ spec:
             - name: CONFIG_PROVIDER_API_KEY
               value: "{{ .Values.config.provider.apiKey }}"
             {{- end }}
+            - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
+              value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -164,6 +172,17 @@ spec:
       volumes:
         - name: cache-volume
           emptyDir: {}
+        - name: {{ $uuid }}
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: {{ $uuid }}-token
+                  expirationSeconds: 3600
+              - configMap:
+                  items:
+                  - key: ca.crt
+                    path: {{ $uuid }}-ca.crt
+                  name: kube-root-ca.crt
         {{- if not (include "botkube.remoteConfigEnabled" $) }}
         - name: cfg-watcher-tmp
           emptyDir: {}
