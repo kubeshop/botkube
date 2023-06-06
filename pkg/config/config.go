@@ -413,8 +413,8 @@ type SocketSlack struct {
 type CloudSlack struct {
 	Enabled  bool                                   `yaml:"enabled"`
 	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	BotToken string                                 `yaml:"botToken,omitempty"`
-	AppToken string                                 `yaml:"appToken,omitempty"`
+	Token    string                                 `yaml:"token"`
+	BotID    string                                 `yaml:"botID,omitempty"`
 	Server   string                                 `yaml:"server"`
 }
 

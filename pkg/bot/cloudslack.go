@@ -4,13 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/bot/slackeventsx"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -53,15 +58,14 @@ func NewCloudSlack(log logrus.FieldLogger,
 	executorFactory ExecutorFactory,
 	reporter cloudSlackAnalyticsReporter) (*CloudSlack, error) {
 
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+	client := slack.New(cfg.Token)
 
-	authResp, err := client.AuthTest()
+	_, err := client.AuthTest()
 	if err != nil {
 		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
 	}
-	botID := authResp.UserID
 
-	botMentionRegex, err := slackBotMentionRegex(botID)
+	botMentionRegex, err := slackBotMentionRegex(cfg.BotID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +82,6 @@ func NewCloudSlack(log logrus.FieldLogger,
 		reporter:        reporter,
 		commGroupName:   commGroupName,
 		botMentionRegex: botMentionRegex,
-		botID:           botID,
 		renderer:        NewSlackRenderer(),
 		channels:        channels,
 		client:          client,
@@ -116,13 +119,13 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		event, err := slackeventsx.ParseEvent(data.Event, slackeventsx.OptionNoVerifyToken())
+		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
 		switch event.Type {
-		case slackeventsx.CallbackEvent:
+		case slackevents.CallbackEvent:
 			b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(event))
 			innerEvent := event.InnerEvent
 			switch ev := innerEvent.Data.(type) {
-			case *slackeventsx.AppMentionEvent:
+			case *slackevents.AppMentionEvent:
 				b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
 				userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
 				msg := socketSlackMessage{
@@ -138,17 +141,131 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 					b.log.Errorf("while handling message: %s", err.Error())
 				}
 			}
+		case string(socketmode.EventTypeInteractive):
+			callback, ok := event.Data.(slack.InteractionCallback)
+			if !ok {
+				b.log.Errorf("Invalid event %+v\n", event.Data)
+				continue
+			}
+
+			switch callback.Type {
+			case slack.InteractionTypeBlockActions:
+				b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+
+				if len(callback.ActionCallback.BlockActions) != 1 {
+					b.log.Debug("Ignoring callback as the number of actions is different from 1")
+					continue
+				}
+
+				act := callback.ActionCallback.BlockActions[0]
+				if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
+					reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
+					if reportErr != nil {
+						b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
+					}
+					continue // skip the url actions
+				}
+
+				channelID := callback.Channel.ID
+				if channelID == "" && callback.View.ID != "" {
+					// TODO: add support when we will need to handle button clicks from active modal.
+					//
+					// The request is coming from active modal, currently we don't support that.
+					// We process that only when the modal is submitted (see slack.InteractionTypeViewSubmission action type).
+					b.log.Debug("Ignoring callback as its source is an active modal")
+					continue
+				}
+
+				cmd, cmdOrigin := resolveBlockActionCommand(*act)
+				// Use thread's TS if interactive call triggered within thread.
+				threadTs := callback.MessageTs
+				if callback.Message.Msg.ThreadTimestamp != "" {
+					threadTs = callback.Message.Msg.ThreadTimestamp
+				}
+
+				state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
+
+				userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
+				msg := socketSlackMessage{
+					Text:            cmd,
+					Channel:         channelID,
+					ThreadTimeStamp: threadTs,
+					TriggerID:       callback.TriggerID,
+					UserID:          callback.User.ID,
+					UserName:        userName,
+					CommandOrigin:   cmdOrigin,
+					State:           state,
+					ResponseURL:     callback.ResponseURL,
+					BlockID:         act.BlockID,
+				}
+				if err := b.handleMessage(ctx, msg); err != nil {
+					b.log.Errorf("Message handling error: %s", err.Error())
+				}
+			case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
+
+				// the map key is the ID of the input block, for us, it's autogenerated
+				for _, item := range callback.View.State.Values {
+					for actID, act := range item {
+						act.ActionID = actID // normalize event
+
+						cmd, cmdOrigin := resolveBlockActionCommand(act)
+						userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
+						msg := socketSlackMessage{
+							Text:          cmd,
+							Channel:       callback.View.PrivateMetadata,
+							UserID:        callback.User.ID,
+							UserName:      userName,
+							CommandOrigin: cmdOrigin,
+						}
+
+						if err := b.handleMessage(ctx, msg); err != nil {
+							b.log.Errorf("Message handling error: %s", err.Error())
+						}
+					}
+				}
+			default:
+				b.log.Debugf("get unhandled event %s", callback.Type)
+			}
 		}
 		fmt.Printf("received: %q\n", event)
 	}
 }
 
 func (b *CloudSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
-	return nil
+	errs := multierror.New()
+	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
+		msgMetadata := socketSlackMessage{
+			Channel:         channelName,
+			ThreadTimeStamp: "",
+			BlockID:         uuid.New().String(),
+			CommandOrigin:   command.AutomationOrigin,
+		}
+		err := b.send(ctx, msgMetadata, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q: %w", channelName, err))
+			continue
+		}
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (b *CloudSlack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
-	return nil
+	errs := multierror.New()
+	for _, channel := range b.getChannels() {
+		channelName := channel.Name
+		msgMetadata := socketSlackMessage{
+			Channel: channelName,
+			BlockID: uuid.New().String(),
+		}
+		err := b.send(ctx, msgMetadata, msg)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while sending Slack message to channel %q (alias: %q): %w", channelName, channel.alias, err))
+			continue
+		}
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (b *CloudSlack) Type() config.IntegrationType {
@@ -182,6 +299,7 @@ func (b *CloudSlack) getRealNameWithFallbackToUserID(ctx context.Context, userID
 func (b *CloudSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
+	// TODO: Add global bot id here
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
@@ -365,4 +483,21 @@ func (b *CloudSlack) setChannels(channels map[string]channelConfigByName) {
 	b.channelsMutex.Lock()
 	defer b.channelsMutex.Unlock()
 	b.channels = channels
+}
+
+func (b *CloudSlack) getChannelsToNotify(sourceBindings []string) []string {
+	var out []string
+	for _, cfg := range b.getChannels() {
+		if !cfg.notify {
+			b.log.Infof("Skipping notification for channel %q as notifications are disabled.", cfg.Identifier())
+			continue
+		}
+
+		if !sliceutil.Intersect(sourceBindings, cfg.Bindings.Sources) {
+			continue
+		}
+
+		out = append(out, cfg.Identifier())
+	}
+	return out
 }
