@@ -103,7 +103,7 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 
 	remoteConfig, ok := remote.GetConfig()
 	if !ok {
-		return fmt.Errorf("while getting remote config for %s")
+		return fmt.Errorf("while getting remote config for %s", config.CloudSlackCommPlatformIntegration)
 	}
 
 	req := &pb.ConnectRequest{
