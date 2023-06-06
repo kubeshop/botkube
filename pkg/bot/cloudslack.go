@@ -5,27 +5,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+	"sync"
+
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api"
+	pb "github.com/kubeshop/botkube/pkg/api/cloudslack"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
-	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
-	"regexp"
-	"strings"
-	"sync"
-
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	pb "github.com/kubeshop/botkube/pkg/api/cloudslack"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 var _ Bot = &CloudSlack{}
@@ -58,7 +58,6 @@ func NewCloudSlack(log logrus.FieldLogger,
 	cfg config.CloudSlack,
 	executorFactory ExecutorFactory,
 	reporter cloudSlackAnalyticsReporter) (*CloudSlack, error) {
-
 	client := slack.New(cfg.Token)
 
 	_, err := client.AuthTest()
@@ -111,22 +110,30 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	}
 	var conOpts []grpc.CallOption
 	c, err := pb.NewCloudSlackClient(conn).Connect(ctx, conOpts...)
-	defer c.CloseSend()
 	if err != nil {
-		return err
+		return fmt.Errorf("while initializing gRPC cloud client. %w", err)
 	}
+	defer func(c pb.CloudSlack_ConnectClient) {
+		err := c.CloseSend()
+		if err != nil {
+			b.log.Errorf("while closing connection: %s", err.Error())
+		}
+	}(c)
 
 	err = c.Send(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("while sending gRPC connection request. %w", err)
 	}
 
 	for {
 		data, err := c.Recv()
 		if err != nil {
-			return err
+			return fmt.Errorf("while receiving cloud slack events. %w", err)
 		}
 		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
+		if err != nil {
+			return fmt.Errorf("while parsing event: %w", err)
+		}
 		switch event.Type {
 		case slackevents.CallbackEvent:
 			b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(event))
@@ -235,7 +242,7 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 				b.log.Debugf("get unhandled event %s", callback.Type)
 			}
 		}
-		fmt.Printf("received: %q\n", event)
+		b.log.Debugf("received: %q\n", event)
 	}
 }
 
