@@ -72,6 +72,7 @@ type ConnectResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// event is the event received from slack slackevents.EventsAPIEvent
 	Event []byte `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
 }
 
