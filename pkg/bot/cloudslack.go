@@ -2,9 +2,11 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -13,7 +15,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
-	"github.com/slack-go/slack/socketmode"
 	"regexp"
 	"strings"
 	"sync"
@@ -85,6 +86,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 		renderer:        NewSlackRenderer(),
 		channels:        channels,
 		client:          client,
+		botID:           cfg.BotID,
 		realNamesForID:  map[string]string{},
 	}, nil
 }
@@ -99,8 +101,13 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	}
 	defer conn.Close()
 
+	remoteConfig, ok := remote.GetConfig()
+	if !ok {
+		return fmt.Errorf("while getting remote config for %s")
+	}
+
 	req := &pb.ConnectRequest{
-		InstanceId: "test",
+		InstanceId: remoteConfig.Identifier,
 	}
 	var conOpts []grpc.CallOption
 	c, err := pb.NewCloudSlackClient(conn).Connect(ctx, conOpts...)
@@ -141,16 +148,17 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 					b.log.Errorf("while handling message: %s", err.Error())
 				}
 			}
-		case string(socketmode.EventTypeInteractive):
-			callback, ok := event.Data.(slack.InteractionCallback)
-			if !ok {
-				b.log.Errorf("Invalid event %+v\n", event.Data)
+		case string(slack.InteractionTypeBlockActions), string(slack.InteractionTypeViewSubmission):
+			var callback slack.InteractionCallback
+			err = json.Unmarshal(data.Event, &callback)
+			if err != nil {
+				b.log.Errorf("Invalid event %+v\n", data.Event)
 				continue
 			}
 
 			switch callback.Type {
 			case slack.InteractionTypeBlockActions:
-				b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+				b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback))
 
 				if len(callback.ActionCallback.BlockActions) != 1 {
 					b.log.Debug("Ignoring callback as the number of actions is different from 1")
