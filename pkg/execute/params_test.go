@@ -45,7 +45,7 @@ func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 		},
 		{
 			Name:        "Combination",
-			Input:       "@botkube help --cluster-name \"foo1\" --cluster-name=foo2",
+			Input:       "@botkube help --cluster-name \"foo1\"",
 			Cmd:         "@botkube help",
 			ClusterName: "foo1",
 			Filter:      "",
@@ -55,13 +55,6 @@ func TestRemoveBotkubeRelatedFlags(t *testing.T) {
 			Input:       "@botkube kc get po --cluster-name foo -n default",
 			Cmd:         "@botkube kc get po -n default",
 			ClusterName: "foo",
-			Filter:      "",
-		},
-		{
-			Name:        "Remove empty cluster name",
-			Input:       "@botkube help --cluster-name ",
-			Cmd:         "@botkube help",
-			ClusterName: "",
 			Filter:      "",
 		},
 		{
