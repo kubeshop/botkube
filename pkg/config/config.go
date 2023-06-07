@@ -410,6 +410,7 @@ type SocketSlack struct {
 	AppToken string                                 `yaml:"appToken,omitempty"`
 }
 
+// CloudSlack configuration for multi-slack support
 type CloudSlack struct {
 	Enabled  bool                                   `yaml:"enabled"`
 	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
@@ -418,6 +419,7 @@ type CloudSlack struct {
 	Server   GRPCServer                             `yaml:"server"`
 }
 
+// GRPCServer config for gRPC server
 type GRPCServer struct {
 	URL string `yaml:"url"`
 }
