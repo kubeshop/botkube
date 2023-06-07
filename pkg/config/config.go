@@ -415,7 +415,11 @@ type CloudSlack struct {
 	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	Token    string                                 `yaml:"token"`
 	BotID    string                                 `yaml:"botID,omitempty"`
-	Server   string                                 `yaml:"server"`
+	Server   GRPCServer                             `yaml:"server"`
+}
+
+type GRPCServer struct {
+	URL string `yaml:"url"`
 }
 
 // Elasticsearch config auth settings

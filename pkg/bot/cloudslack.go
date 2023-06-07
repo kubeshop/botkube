@@ -94,7 +94,7 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{creds}
 
-	conn, err := grpc.Dial(b.cfg.Server, opts...)
+	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
 	if err != nil {
 		return err
 	}
@@ -108,8 +108,7 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	req := &pb.ConnectRequest{
 		InstanceId: remoteConfig.Identifier,
 	}
-	var conOpts []grpc.CallOption
-	c, err := pb.NewCloudSlackClient(conn).Connect(ctx, conOpts...)
+	c, err := pb.NewCloudSlackClient(conn).Connect(ctx)
 	if err != nil {
 		return fmt.Errorf("while initializing gRPC cloud client. %w", err)
 	}
