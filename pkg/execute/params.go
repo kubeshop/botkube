@@ -22,7 +22,7 @@ Use --filter="value" or --filter value`
 )
 
 var (
-	clusterNameFlagRegex = regexp.MustCompile(`--cluster-name[=|\s]*(\S*)`)
+	clusterNameFlagRegex = regexp.MustCompile(`--cluster-name(?:=|\s+)(.*)`)
 )
 
 // Flags contains cmd line arguments for executors.
