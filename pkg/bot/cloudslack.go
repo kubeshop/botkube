@@ -15,6 +15,7 @@ import (
 	"github.com/slack-go/slack/slackevents"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -26,6 +27,11 @@ import (
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
+)
+
+const (
+	APIKeyContextKey       = "X-Api-Key"       // #nosec
+	DeploymentIDContextKey = "X-Deployment-Id" // #nosec
 )
 
 var _ Bot = &CloudSlack{}
@@ -92,7 +98,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 
 func (b *CloudSlack) Start(ctx context.Context) error {
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-	opts := []grpc.DialOption{creds}
+	opts := []grpc.DialOption{creds, grpc.WithStreamInterceptor(b.addCredentials())}
 
 	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
 	if err != nil {
@@ -514,4 +520,26 @@ func (b *CloudSlack) getChannelsToNotify(sourceBindings []string) []string {
 		out = append(out, cfg.Identifier())
 	}
 	return out
+}
+
+func (b *CloudSlack) addCredentials() grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		remoteCfg, ok := remote.GetConfig()
+		if !ok {
+			return nil, errors.New("while getting remote configuration")
+		}
+		md := metadata.New(map[string]string{
+			APIKeyContextKey:       remoteCfg.APIKey,
+			DeploymentIDContextKey: remoteCfg.Identifier,
+		})
+
+		ctx = metadata.NewOutgoingContext(ctx, md)
+
+		clientStream, err := streamer(ctx, desc, cc, method, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		return clientStream, nil
+	}
 }
