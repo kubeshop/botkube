@@ -46,6 +46,10 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 			collect(commGroupCfg.SocketSlack.Channels)
 		}
 
+		if commGroupCfg.CloudSlack.Enabled {
+			collect(commGroupCfg.CloudSlack.Channels)
+		}
+
 		if commGroupCfg.Mattermost.Enabled {
 			collect(commGroupCfg.Mattermost.Channels)
 		}

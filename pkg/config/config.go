@@ -78,6 +78,9 @@ const (
 	// SocketSlackCommPlatformIntegration defines Slack integration.
 	SocketSlackCommPlatformIntegration CommPlatformIntegration = "socketSlack"
 
+	// CloudSlackCommPlatformIntegration defines Slack integration.
+	CloudSlackCommPlatformIntegration CommPlatformIntegration = "cloudSlack"
+
 	// MattermostCommPlatformIntegration defines Mattermost integration.
 	MattermostCommPlatformIntegration CommPlatformIntegration = "mattermost"
 
@@ -95,7 +98,7 @@ const (
 )
 
 func (c CommPlatformIntegration) IsInteractive() bool {
-	return c == SocketSlackCommPlatformIntegration
+	return c == SocketSlackCommPlatformIntegration || c == CloudSlackCommPlatformIntegration
 }
 
 // String returns string platform name.
@@ -382,6 +385,7 @@ type ChannelNotification struct {
 type Communications struct {
 	Slack         Slack         `yaml:"slack,omitempty"`
 	SocketSlack   SocketSlack   `yaml:"socketSlack,omitempty"`
+	CloudSlack    CloudSlack    `yaml:"cloudSlack,omitempty"`
 	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
 	Discord       Discord       `yaml:"discord,omitempty"`
 	Teams         Teams         `yaml:"teams,omitempty"`
@@ -404,6 +408,20 @@ type SocketSlack struct {
 	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
 	BotToken string                                 `yaml:"botToken,omitempty"`
 	AppToken string                                 `yaml:"appToken,omitempty"`
+}
+
+// CloudSlack configuration for multi-slack support
+type CloudSlack struct {
+	Enabled  bool                                   `yaml:"enabled"`
+	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	Token    string                                 `yaml:"token"`
+	BotID    string                                 `yaml:"botID,omitempty"`
+	Server   GRPCServer                             `yaml:"server"`
+}
+
+// GRPCServer config for gRPC server
+type GRPCServer struct {
+	URL string `yaml:"url"`
 }
 
 // Elasticsearch config auth settings

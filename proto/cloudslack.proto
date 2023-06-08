@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "pkg/api/cloudslack";
+
+package cloudslack;
+
+message ConnectRequest {
+  string instanceId = 1;
+}
+
+message ConnectResponse {
+  // event is the event received from slack slackevents.EventsAPIEvent
+  bytes event = 1;
+}
+
+service CloudSlack {
+  rpc Connect(stream ConnectRequest) returns (stream ConnectResponse) {}
+}
