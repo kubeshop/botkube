@@ -38,6 +38,14 @@ func ParseFlags(cmd string) (Flags, error) {
 	if err != nil {
 		return Flags{}, err
 	}
+
+	// all-clusters flag is the flag used when multiple clusters are connected to the same instance,
+	// we need to remove it so other commands won't report problems with unknown flag.
+	cmd, _, err = extractBoolParam(cmd, "all-clusters")
+	if err != nil {
+		return Flags{}, fmt.Errorf("while extracting all-cluster flag: %w", err)
+	}
+
 	tokenized, err := shellwords.Parse(cmd)
 	if err != nil {
 		return Flags{}, errors.New(cantParseCmd)
@@ -93,4 +101,42 @@ func extractParam(cmd, flagName string) (string, string, error) {
 		cmd = strings.Replace(cmd, fmt.Sprintf(" %s", matches[0]), "", -1)
 	}
 	return cmd, withParam, nil
+}
+
+func extractBoolParam(cmd, flagName string) (string, bool, error) {
+	flag := fmt.Sprintf("--%s", flagName)
+	var isSet bool
+	args, _ := shellwords.Parse(cmd)
+	f := pflag.NewFlagSet("extract-params", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
+	f.ParseErrorsWhitelist.UnknownFlags = true
+	f.BoolVar(&isSet, flagName, false, "Boolean flag")
+	if err := f.Parse(args); err != nil {
+		return "", false, fmt.Errorf(incorrectParamFlag, flag, err)
+	}
+
+	for _, val := range []string{"true", "false"} {
+		paramFlagRegex, err := regexFlag(flag, val)
+		if err != nil {
+			return "", false, fmt.Errorf("could not extract provided %s", flagName)
+		}
+
+		matches := paramFlagRegex.FindStringSubmatch(cmd)
+		if len(matches) == 0 {
+			continue
+		}
+		cmd = strings.Replace(cmd, fmt.Sprintf(" %s", matches[0]), "", -1)
+	}
+
+	cmd = strings.ReplaceAll(cmd, flag, "")
+	return cmd, isSet, nil
+}
+
+func regexFlag(flag, escapedParamVal string) (*regexp.Regexp, error) {
+	return regexp.Compile(fmt.Sprintf(`%s[=|(' ')]*('%s'|"%s"|%s)("|')*`,
+		flag,
+		escapedParamVal,
+		escapedParamVal,
+		escapedParamVal))
 }
