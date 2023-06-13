@@ -529,7 +529,7 @@ func (b *CloudSlack) addStreamingClientCredentials() grpc.StreamClientIntercepto
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		remoteCfg, ok := remote.GetConfig()
 		if !ok {
-			return nil, errors.New("while getting remote configuration")
+			return nil, errors.New("empty remote configuration")
 		}
 		md := metadata.New(map[string]string{
 			APIKeyContextKey:       remoteCfg.APIKey,
@@ -551,7 +551,7 @@ func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		remoteCfg, ok := remote.GetConfig()
 		if !ok {
-			return errors.New("while getting remote configuration")
+			return errors.New("empty remote configuration")
 		}
 		md := metadata.New(map[string]string{
 			APIKeyContextKey:       remoteCfg.APIKey,
