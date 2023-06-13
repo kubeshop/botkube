@@ -98,7 +98,10 @@ func NewCloudSlack(log logrus.FieldLogger,
 
 func (b *CloudSlack) Start(ctx context.Context) error {
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-	opts := []grpc.DialOption{creds, grpc.WithStreamInterceptor(b.addCredentials())}
+	opts := []grpc.DialOption{creds,
+		grpc.WithStreamInterceptor(b.addStreamingClientCredentials()),
+		grpc.WithUnaryInterceptor(b.addUnaryClientCredentials()),
+	}
 
 	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
 	if err != nil {
@@ -522,7 +525,7 @@ func (b *CloudSlack) getChannelsToNotify(sourceBindings []string) []string {
 	return out
 }
 
-func (b *CloudSlack) addCredentials() grpc.StreamClientInterceptor {
+func (b *CloudSlack) addStreamingClientCredentials() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		remoteCfg, ok := remote.GetConfig()
 		if !ok {
@@ -541,5 +544,21 @@ func (b *CloudSlack) addCredentials() grpc.StreamClientInterceptor {
 		}
 
 		return clientStream, nil
+	}
+}
+
+func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		remoteCfg, ok := remote.GetConfig()
+		if !ok {
+			return errors.New("while getting remote configuration")
+		}
+		md := metadata.New(map[string]string{
+			APIKeyContextKey:       remoteCfg.APIKey,
+			DeploymentIDContextKey: remoteCfg.Identifier,
+		})
+
+		ctx = metadata.NewOutgoingContext(ctx, md)
+		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
