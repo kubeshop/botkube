@@ -9,6 +9,9 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -119,7 +122,7 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	}
 	c, err := pb.NewCloudSlackClient(conn).Connect(ctx)
 	if err != nil {
-		return fmt.Errorf("while initializing gRPC cloud client. %w", err)
+		return fmt.Errorf("while initializing gRPC cloud client: %w", err)
 	}
 	defer func(c pb.CloudSlack_ConnectClient) {
 		err := c.CloseSend()
@@ -136,7 +139,13 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 	for {
 		data, err := c.Recv()
 		if err != nil {
-			return fmt.Errorf("while receiving cloud slack events. %w", err)
+			errStatus, ok := status.FromError(err)
+			if ok && errStatus.Code() == codes.Canceled && errStatus.Message() == context.Canceled.Error() {
+				b.log.Debugf("Context was cancelled. Skipping returning error...")
+				return nil
+			}
+
+			return fmt.Errorf("while receiving cloud slack events: %w", err)
 		}
 		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
 		if err != nil {

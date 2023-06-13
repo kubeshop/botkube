@@ -122,8 +122,14 @@ func run(ctx context.Context) error {
 	defer analytics.ReportPanicIfOccurs(logger, reporter)
 
 	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
-
 	errGroup, ctx := errgroup.WithContext(ctx)
+	defer func() {
+		err := errGroup.Wait()
+		if err != nil {
+			wrappedErr := reportFatalError("while waiting for goroutines to finish gracefully", err)
+			logger.Errorf(wrappedErr.Error())
+		}
+	}()
 
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
@@ -405,14 +411,14 @@ func run(ctx context.Context) error {
 
 	healthChecker.MarkAsReady()
 	err = ctrl.Start(ctx)
-
 	if err != nil {
 		return reportFatalError("while starting controller", err)
 	}
 
 	err = errGroup.Wait()
 	if err != nil {
-		return reportFatalError("while waiting for goroutines to finish gracefully", err)
+		// error from errGroup reported on defer, no need to do it twice
+		return err
 	}
 
 	return nil
