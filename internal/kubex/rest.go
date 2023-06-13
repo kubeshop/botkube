@@ -19,6 +19,10 @@ func BuildConfigFromFlags(masterUrl, kubeconfigPath, saTokenPath string) (*rest.
 		if err == nil {
 			return kubeconfig, nil
 		}
+
+		if kubeconfig == nil {
+			kubeconfig = &rest.Config{}
+		}
 		kubeconfig.AuthProvider = &clientcmdapi.AuthProviderConfig{
 			Name: "token-file",
 			Config: map[string]string{

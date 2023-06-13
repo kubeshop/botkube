@@ -6,7 +6,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"traits": {
 			"botkubeVersion": {
-				"version": "dev",
+				"version": "v9.99.9-dev",
 				"gitCommit": "none",
 				"buildDate": "unknown"
 			},
@@ -33,7 +33,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"traits": {
 			"botkubeVersion": {
-				"version": "dev",
+				"version": "v9.99.9-dev",
 				"gitCommit": "none",
 				"buildDate": "unknown"
 			},

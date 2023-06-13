@@ -2,7 +2,7 @@ package version
 
 // Version The below variables are overridden using the build process
 // name of the release
-var Version = "dev"
+var Version = "v9.99.9-dev"
 
 // GitCommitID git commit id of the release
 var GitCommitID = "none"
