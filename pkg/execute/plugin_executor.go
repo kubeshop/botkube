@@ -3,6 +3,7 @@ package execute
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -87,6 +88,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, fmt.Errorf("while getting concrete plugin client: %w", err)
 	}
 
+	if slackState != nil {
+		e.sanitizeSlackStateIDs(slackState)
+	}
+
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
 		Command: cmdCtx.CleanCmd,
 		Configs: configs,
@@ -124,6 +129,34 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	}
 
 	return out, nil
+}
+
+// sanitizeSlackStateIDs makes sure that the slack state doesn't contain the --cluster-name
+// in the ids. Example state before sanitizing:
+//
+//	Values: map[string]map[string]slack.BlockAction{
+//	  "6f79d399-e607-4744-80e8-6eb8e5a7743e": map[string]slack.BlockAction{
+//	    "kubectl @builder --resource-type --cluster-name=`"stage\"": slack.BlockAction{}
+//	  }
+//	}
+func (e *PluginExecutor) sanitizeSlackStateIDs(slackState *slack.BlockActionStates) {
+	flag := fmt.Sprintf("--cluster-name=%q ", e.cfg.Settings.ClusterName)
+
+	for id, blocks := range slackState.Values {
+		updated := make(map[string]slack.BlockAction, len(blocks))
+		for id, act := range blocks {
+			cleanID := strings.ReplaceAll(id, flag, "")
+			act.Value = strings.ReplaceAll(act.Value, flag, "")
+			act.SelectedOption.Value = strings.ReplaceAll(act.SelectedOption.Value, flag, "")
+			act.ActionID = strings.ReplaceAll(act.ActionID, flag, "")
+			act.BlockID = strings.ReplaceAll(act.BlockID, flag, "")
+			updated[cleanID] = act
+		}
+
+		delete(slackState.Values, id)
+		cleanID := strings.ReplaceAll(id, flag, "")
+		slackState.Values[cleanID] = updated
+	}
 }
 
 func (e *PluginExecutor) Help(ctx context.Context, bindings []string, cmdCtx CommandContext) (interactive.CoreMessage, error) {

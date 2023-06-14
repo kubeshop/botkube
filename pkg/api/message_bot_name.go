@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -10,26 +11,47 @@ const (
 	maxReplaceNo              = 100
 )
 
+// BotNameOption allows modifying ReplaceBotNamePlaceholder related options.
+type BotNameOption func(opts *BotNameOptions)
+
+// BotNameOptions holds options used in ReplaceBotNamePlaceholder func
+type BotNameOptions struct {
+	ClusterName string
+}
+
+// BotNameWithClusterName sets the cluster name for places where MessageBotNamePlaceholder was also specified.
+func BotNameWithClusterName(clusterName string) BotNameOption {
+	return func(opts *BotNameOptions) {
+		opts.ClusterName = clusterName
+	}
+}
+
 // ReplaceBotNamePlaceholder replaces bot name placeholder with a given name.
-func (msg *Message) ReplaceBotNamePlaceholder(new string) {
+func (msg *Message) ReplaceBotNamePlaceholder(new string, opts ...BotNameOption) {
+	var options BotNameOptions
+	for _, mutate := range opts {
+		mutate(&options)
+	}
+
 	for idx, item := range msg.Sections {
-		msg.Sections[idx].Buttons = ReplaceBotNameInButtons(item.Buttons, new)
-		msg.Sections[idx].PlaintextInputs = ReplaceBotNameInLabels(item.PlaintextInputs, new)
-		msg.Sections[idx].Selects = ReplaceBotNameInSelects(item.Selects, new)
-		msg.Sections[idx].MultiSelect = ReplaceBotNameInMultiSelect(item.MultiSelect, new)
+		msg.Sections[idx].Buttons = ReplaceBotNameInButtons(item.Buttons, new, options)
+		msg.Sections[idx].PlaintextInputs = ReplaceBotNameInLabels(item.PlaintextInputs, new, options)
+		msg.Sections[idx].Selects = ReplaceBotNameInSelects(item.Selects, new, options)
+		msg.Sections[idx].MultiSelect = ReplaceBotNameInMultiSelect(item.MultiSelect, new, options)
 
 		msg.Sections[idx].Base = ReplaceBotNameInBase(item.Base, new)
 		msg.Sections[idx].TextFields = ReplaceBotNameInTextFields(item.TextFields, new)
 		msg.Sections[idx].Context = ReplaceBotNameInContextItems(item.Context, new)
 	}
-	msg.PlaintextInputs = ReplaceBotNameInLabels(msg.PlaintextInputs, new)
+
+	msg.PlaintextInputs = ReplaceBotNameInLabels(msg.PlaintextInputs, new, options)
 	msg.BaseBody = ReplaceBotNameInBody(msg.BaseBody, new)
 }
 
 // ReplaceBotNameInButtons replaces bot name placeholder with a given name.
-func ReplaceBotNameInButtons(btns Buttons, name string) Buttons {
+func ReplaceBotNameInButtons(btns Buttons, name string, opts BotNameOptions) Buttons {
 	for i, item := range btns {
-		btns[i].Command = replace(item.Command, name)
+		btns[i].Command = commandReplaceWithAppend(item.Command, name, opts)
 		btns[i].Description = replace(btns[i].Description, name)
 		btns[i].Name = replace(btns[i].Name, name)
 	}
@@ -37,9 +59,9 @@ func ReplaceBotNameInButtons(btns Buttons, name string) Buttons {
 }
 
 // ReplaceBotNameInLabels replaces bot name placeholder with a given name.
-func ReplaceBotNameInLabels(labels LabelInputs, name string) LabelInputs {
+func ReplaceBotNameInLabels(labels LabelInputs, name string, opts BotNameOptions) LabelInputs {
 	for i, item := range labels {
-		labels[i].Command = replace(item.Command, name)
+		labels[i].Command = commandReplacePrepend(item.Command, name, opts)
 		labels[i].Text = replace(item.Text, name)
 		labels[i].Placeholder = replace(item.Placeholder, name)
 	}
@@ -47,9 +69,9 @@ func ReplaceBotNameInLabels(labels LabelInputs, name string) LabelInputs {
 }
 
 // ReplaceBotNameInSelects replaces bot name placeholder with a given name.
-func ReplaceBotNameInSelects(selects Selects, name string) Selects {
+func ReplaceBotNameInSelects(selects Selects, name string, opts BotNameOptions) Selects {
 	for i, item := range selects.Items {
-		selects.Items[i].Command = replace(item.Command, name)
+		selects.Items[i].Command = commandReplacePrepend(item.Command, name, opts)
 		selects.Items[i].Name = replace(item.Name, name)
 		selects.Items[i].OptionGroups = ReplaceBotNameInOptionGroups(item.OptionGroups, name)
 		selects.Items[i].InitialOption = ReplaceBotNameInOptionItem(item.InitialOption, name)
@@ -58,8 +80,8 @@ func ReplaceBotNameInSelects(selects Selects, name string) Selects {
 }
 
 // ReplaceBotNameInMultiSelect replaces bot name placeholder with a given name.
-func ReplaceBotNameInMultiSelect(ms MultiSelect, name string) MultiSelect {
-	ms.Command = replace(ms.Command, name)
+func ReplaceBotNameInMultiSelect(ms MultiSelect, name string, opts BotNameOptions) MultiSelect {
+	ms.Command = commandReplacePrepend(ms.Command, name, opts)
 	ms.Name = replace(ms.Name, name)
 	ms.Description = ReplaceBotNameInBody(ms.Description, name)
 	ms.InitialOptions = ReplaceBotNameInOptions(ms.InitialOptions, name)
@@ -129,4 +151,57 @@ func ReplaceBotNameInOptionGroups(groups []OptionGroup, name string) []OptionGro
 
 func replace(text, new string) string {
 	return strings.Replace(text, MessageBotNamePlaceholder, new, maxReplaceNo)
+}
+
+func commandReplaceWithAppend(cmd, botName string, opts BotNameOptions) string {
+	if cmd == "" {
+		return cmd
+	}
+	if !strings.Contains(cmd, MessageBotNamePlaceholder) {
+		return cmd
+	}
+
+	cmd = replace(cmd, botName)
+	if opts.ClusterName == "" {
+		return cmd
+	}
+
+	return fmt.Sprintf("%s --cluster-name=%q ", cmd, opts.ClusterName)
+}
+
+func commandReplacePrepend(cmd, botName string, opts BotNameOptions) string {
+	if cmd == "" {
+		return cmd
+	}
+	cmd = replace(cmd, botName)
+
+	if !strings.Contains(cmd, MessageBotNamePlaceholder) {
+		return cmd
+	}
+	if opts.ClusterName == "" {
+		return cmd
+	}
+
+	parts := strings.SplitAfterN(cmd, botName, 2)
+	switch len(parts) {
+	case 0, 1: // if there is no bot name we don't need to add cluster name as this command won't be never executed against our instance
+		return cmd
+	default:
+		// we need to append the --cluster-name flag right after the `@Botkube {plugin_name}`
+		// As a result, we won't break the order of other flags.
+
+		tokenized := strings.Fields(parts[1])
+		if len(tokenized) < 2 {
+			return cmd
+		}
+
+		pluginName := tokenized[0]
+		// we cannot do `strings.Join` on tokenized slice, as we need to preserve all whitespaces that where declared by plugin
+		// e.g. `--filter=` is different from `--filter ` and we don't know which one was used, so we can break it if we won't preserve the space.
+		restMessage := strings.TrimPrefix(tokenized[0], parts[1])
+
+		cmd = fmt.Sprintf("%s %s --cluster-name=%q %s", botName, pluginName, opts.ClusterName, restMessage)
+	}
+
+	return cmd
 }
