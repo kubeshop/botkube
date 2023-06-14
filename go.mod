@@ -41,12 +41,12 @@ require (
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/pflag v1.0.5
 	github.com/spiffe/spire v1.5.3
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	github.com/vrischmann/envconfig v1.3.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 	golang.org/x/sync v0.1.0
-	golang.org/x/text v0.7.0
+	golang.org/x/text v0.9.0
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -78,7 +78,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dyatlov/go-opengraph v0.0.0-20210112100619-dae8665a5b09 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
@@ -93,7 +93,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/goccy/go-json v0.4.8 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -121,12 +121,12 @@ require (
 	github.com/klauspost/compress v1.15.13 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
-	github.com/lestrrat-go/backoff/v2 v2.0.7 // indirect
-	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
-	github.com/lestrrat-go/httpcc v1.0.0 // indirect
-	github.com/lestrrat-go/iter v1.0.1 // indirect
-	github.com/lestrrat-go/jwx v1.1.7 // indirect
-	github.com/lestrrat-go/option v1.0.0 // indirect
+	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/iter v1.0.2 // indirect
+	github.com/lestrrat-go/jwx v1.2.26 // indirect
+	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattermost/go-i18n v1.11.1-0.20211013152124-5c415071e404 // indirect
@@ -183,11 +183,11 @@ require (
 	go.uber.org/goleak v1.2.1 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.1.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.103.0 // indirect
