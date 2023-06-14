@@ -45,6 +45,8 @@ const (
 	BotPlatformMattermost BotPlatform = "MATTERMOST"
 	// BotPlatformMsTeams is the teams platform
 	BotPlatformMsTeams BotPlatform = "MS_TEAMS"
+	// BotPlatformUnknown is the unknown platform
+	BotPlatformUnknown BotPlatform = "UNKNOWN"
 )
 
 // NewBotPlatform creates new BotPlatform from string
@@ -52,6 +54,8 @@ func NewBotPlatform(s string) *BotPlatform {
 	var platform BotPlatform
 	switch strings.ToUpper(s) {
 	case "SLACK":
+		fallthrough
+	case "CLOUDSLACK":
 		fallthrough
 	case "SOCKETSLACK":
 		platform = BotPlatformSlack
@@ -64,7 +68,7 @@ func NewBotPlatform(s string) *BotPlatform {
 	case "MS_TEAMS":
 		platform = BotPlatformMsTeams
 	default:
-		return nil
+		platform = BotPlatformUnknown
 	}
 
 	return &platform
