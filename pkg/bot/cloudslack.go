@@ -408,16 +408,18 @@ func (b *CloudSlack) send(ctx context.Context, event socketSlackMessage, resp in
 		}
 	}
 
+	// TODO: Currently, we don't get the channel ID once we use modal. This needs to be investigated and fixed.
+	//
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
-	if resp.Type == api.PopupMessage && event.TriggerID != "" {
-		modalView := b.renderer.RenderModal(resp)
-		modalView.PrivateMetadata = event.Channel
-		_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
-		if err != nil {
-			return fmt.Errorf("while opening modal: %w", err)
-		}
-		return nil
-	}
+	//if resp.Type == api.PopupMessage && event.TriggerID != "" {
+	//	modalView := b.renderer.RenderModal(resp)
+	//	modalView.PrivateMetadata = event.Channel
+	//	_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
+	//	if err != nil {
+	//		return fmt.Errorf("while opening modal: %w", err)
+	//	}
+	//	return nil
+	//}
 
 	options := []slack.MsgOption{
 		b.renderer.RenderInteractiveMessage(resp),
