@@ -239,7 +239,7 @@ func run(ctx context.Context) error {
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupName, commGroupCfg.CloudSlack, executorFactory, reporter)
+			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupName, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating CloudSlack bot", err)
 			}
