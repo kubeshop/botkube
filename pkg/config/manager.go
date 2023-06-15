@@ -12,6 +12,7 @@ import (
 var (
 	supportedPlatformsSourceBindings = map[CommPlatformIntegration]struct{}{
 		SlackCommPlatformIntegration:       {},
+		CloudSlackCommPlatformIntegration:  {},
 		SocketSlackCommPlatformIntegration: {},
 		DiscordCommPlatformIntegration:     {},
 		MattermostCommPlatformIntegration:  {},
@@ -19,6 +20,7 @@ var (
 	}
 	supportedPlatformsNotifications = map[CommPlatformIntegration]struct{}{
 		SlackCommPlatformIntegration:       {},
+		CloudSlackCommPlatformIntegration:  {},
 		SocketSlackCommPlatformIntegration: {},
 		DiscordCommPlatformIntegration:     {},
 		MattermostCommPlatformIntegration:  {},

@@ -125,6 +125,22 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 
 	if len(sourceBindings) == 0 {
 		selectedOptions := e.mapToOptions(e.currentlySelectedOptions(commGroupName, platform, conversation.ID))
+		allOpts := e.allOptions()
+		if len(allOpts) == 0 {
+			return interactive.CoreMessage{
+				Header: "Adjust notifications",
+				Message: api.Message{
+					OnlyVisibleForYou: true,
+					Sections: []api.Section{
+						{
+							Base: api.Base{
+								Description: "You haven't configured any source plugins. For instructions on how to configure source plugins, please visit https://docs.botkube.io/usage/source.",
+							},
+						},
+					},
+				},
+			}, nil
+		}
 		return interactive.CoreMessage{
 			Header: "Adjust notifications",
 			Message: api.Message{
@@ -138,7 +154,7 @@ func (e *SourceBindingExecutor) editSourceBindingHandler(ctx context.Context, cm
 								Plaintext: "Select notification sources.",
 							},
 							Command:        fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, "edit SourceBindings"),
-							Options:        e.allOptions(),
+							Options:        allOpts,
 							InitialOptions: selectedOptions,
 						},
 					},
@@ -197,6 +213,14 @@ func (e *SourceBindingExecutor) currentlySelectedOptions(commGroupName string, p
 	switch platform {
 	case config.SlackCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].Slack.Channels
+		for _, channel := range channels {
+			if channel.Identifier() != conversationID {
+				continue
+			}
+			return channel.Bindings.Sources
+		}
+	case config.CloudSlackCommPlatformIntegration:
+		channels := e.cfg.Communications[commGroupName].CloudSlack.Channels
 		for _, channel := range channels {
 			if channel.Identifier() != conversationID {
 				continue
