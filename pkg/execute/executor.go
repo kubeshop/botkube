@@ -287,9 +287,9 @@ func appendByUserOnlyIfNeeded(cmd, user string, origin command.Origin) string {
 	return fmt.Sprintf("%s by %s", cmd, user)
 }
 
-func filterInput(id string) api.LabelInput {
+func filterInput(cmd string) api.LabelInput {
 	return api.LabelInput{
-		Command:          fmt.Sprintf("%s %s --filter=", api.MessageBotNamePlaceholder, id),
+		Command:          fmt.Sprintf("%s %s --filter=", api.MessageBotNamePlaceholder, cmd),
 		DispatchedAction: api.DispatchInputActionOnEnter,
 		Placeholder:      "String pattern to filter by",
 		Text:             "Filter output",

@@ -53,6 +53,7 @@ type CloudSlack struct {
 	renderer        *SlackRenderer
 	channels        map[string]channelConfigByName
 	notifyMutex     sync.Mutex
+	clusterName     string
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -64,6 +65,7 @@ type cloudSlackAnalyticsReporter interface {
 func NewCloudSlack(log logrus.FieldLogger,
 	commGroupName string,
 	cfg config.CloudSlack,
+	clusterName string,
 	executorFactory ExecutorFactory,
 	reporter cloudSlackAnalyticsReporter) (*CloudSlack, error) {
 	client := slack.New(cfg.Token)
@@ -94,6 +96,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 		channels:        channels,
 		client:          client,
 		botID:           cfg.BotID,
+		clusterName:     clusterName,
 		realNamesForID:  map[string]string{},
 	}, nil
 }
@@ -330,7 +333,6 @@ func (b *CloudSlack) getRealNameWithFallbackToUserID(ctx context.Context, userID
 func (b *CloudSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
-	// TODO: Add global bot id here
 	if !found {
 		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
 		return nil
@@ -384,7 +386,7 @@ func (b *CloudSlack) handleMessage(ctx context.Context, event socketSlackMessage
 func (b *CloudSlack) send(ctx context.Context, event socketSlackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
-	resp.ReplaceBotNamePlaceholder(b.BotName())
+	resp.ReplaceBotNamePlaceholder(b.BotName(), api.BotNameWithClusterName(b.clusterName))
 	markdown := b.renderer.MessageToMarkdown(resp)
 
 	if len(markdown) == 0 {

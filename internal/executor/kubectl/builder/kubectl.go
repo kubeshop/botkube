@@ -97,6 +97,7 @@ func (e *Kubectl) Handle(ctx context.Context, cmd string, isInteractivitySupport
 		"resourceName": stateDetails.resourceName,
 		"resourceType": stateDetails.resourceType,
 		"verb":         stateDetails.verb,
+		"cmd":          cmd,
 	}).Debug("Extracted Slack state")
 
 	cmds := executorsRunner{
