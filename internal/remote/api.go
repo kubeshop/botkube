@@ -53,11 +53,7 @@ const (
 func NewBotPlatform(s string) *BotPlatform {
 	var platform BotPlatform
 	switch strings.ToUpper(s) {
-	case "SLACK":
-		fallthrough
-	case "CLOUDSLACK":
-		fallthrough
-	case "SOCKETSLACK":
+	case "SLACK", "CLOUDSLACK", "SOCKETSLACK":
 		platform = BotPlatformSlack
 	case "DISCORD":
 		platform = BotPlatformDiscord
