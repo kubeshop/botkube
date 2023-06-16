@@ -165,9 +165,14 @@ spec:
               value: "POST"
             - name: IGNORE_ALREADY_PROCESSED
               value: "true"
+            - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
+              value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
           volumeMounts:
             - name: cfg-watcher-tmp
               mountPath: {{ .Values.configWatcher.tmpDir }}
+            - name: {{ $uuid }}
+              mountPath: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount
+              readOnly: true
         {{- end }}
       volumes:
         - name: cache-volume
