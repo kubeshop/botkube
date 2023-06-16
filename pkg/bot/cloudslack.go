@@ -38,7 +38,7 @@ const (
 	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
 	retryDelay              = time.Second
 	maxRetries              = 25
-	successIntervalDuration = 5 * time.Minute
+	successIntervalDuration = 3 * time.Minute
 )
 
 var _ Bot = &CloudSlack{}
