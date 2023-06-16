@@ -964,7 +964,7 @@ configWatcher:
     # -- Config watcher image repository.
     repository: kubeshop/k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kubeshop/k8s-sidecar/pull/1
     # -- Config watcher image tag.
-    tag: ignore-initial-events
+    tag: in-cluster-config
     # -- Config watcher image pull policy.
     pullPolicy: IfNotPresent
 
