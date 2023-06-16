@@ -228,7 +228,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [configWatcher.initialSyncTimeout](./values.yaml#L960) | int | `0` | Timeout for the initial Config Watcher sync. If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload Botkube app during the first few seconds after Botkube startup. |
 | [configWatcher.image.registry](./values.yaml#L963) | string | `"ghcr.io"` | Config watcher image registry. |
 | [configWatcher.image.repository](./values.yaml#L965) | string | `"kubeshop/k8s-sidecar"` | Config watcher image repository. |
-| [configWatcher.image.tag](./values.yaml#L967) | string | `"ignore-initial-events"` | Config watcher image tag. |
+| [configWatcher.image.tag](./values.yaml#L967) | string | `"in-cluster-config"` | Config watcher image tag. |
 | [configWatcher.image.pullPolicy](./values.yaml#L969) | string | `"IfNotPresent"` | Config watcher image pull policy. |
 | [plugins](./values.yaml#L972) | object | `{"cacheDir":"/tmp","repositories":{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}}}` | Configuration for Botkube executors and sources plugins. |
 | [plugins.cacheDir](./values.yaml#L974) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
