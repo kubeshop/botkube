@@ -104,13 +104,14 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		}
 	}()
 
+	scopedKubectlRunner := NewKubeconfigScopedRunner(e.kcRunner, kubeConfigPath)
 	if builder.ShouldHandle(cmd) {
 		guard, k8sCli, err := getBuilderDependencies(log, kubeConfigPath)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while creating builder dependecies: %w", err)
 		}
 
-		kcBuilder := builder.NewKubectl(e.kcRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, k8sCli.CoreV1().Namespaces(), accessreview.NewK8sAuth(k8sCli.AuthorizationV1()))
+		kcBuilder := builder.NewKubectl(scopedKubectlRunner, cfg.InteractiveBuilder, log, guard, cfg.DefaultNamespace, k8sCli.CoreV1().Namespaces(), accessreview.NewK8sAuth(k8sCli.AuthorizationV1()))
 		msg, err := kcBuilder.Handle(ctx, cmd, in.Context.IsInteractivitySupported, in.Context.SlackState)
 		if err != nil {
 			return executor.ExecuteOutput{}, fmt.Errorf("while running command builder: %w", err)
@@ -121,7 +122,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		}, nil
 	}
 
-	out, err := e.kcRunner.RunKubectlCommand(ctx, kubeConfigPath, cfg.DefaultNamespace, cmd)
+	out, err := scopedKubectlRunner.RunKubectlCommand(ctx, cfg.DefaultNamespace, cmd)
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
