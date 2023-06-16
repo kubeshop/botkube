@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -32,8 +34,11 @@ import (
 )
 
 const (
-	APIKeyContextKey       = "X-Api-Key"       // #nosec
-	DeploymentIDContextKey = "X-Deployment-Id" // #nosec
+	APIKeyContextKey        = "X-Api-Key"       // #nosec
+	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
+	retryDelay              = time.Second
+	maxRetries              = 25
+	successIntervalDuration = 3 * time.Minute
 )
 
 var _ Bot = &CloudSlack{}
@@ -102,6 +107,43 @@ func NewCloudSlack(log logrus.FieldLogger,
 }
 
 func (b *CloudSlack) Start(ctx context.Context) error {
+	return withRetries(ctx, b.log, maxRetries, func() error {
+		return b.start(ctx)
+	})
+}
+
+func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
+	failuresNo := 0
+	return retry.Do(
+		func() error {
+			tn := time.Now()
+			err := fn()
+			if err != nil {
+				if time.Since(tn) > successIntervalDuration {
+					// if the last run was long enough, we treat is as success, so we reset failures
+					failuresNo = 0
+				}
+
+				if failuresNo >= maxRetries {
+					log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
+					return retry.Unrecoverable(err)
+				}
+				failuresNo++
+				return err
+			}
+			return nil
+		},
+		retry.OnRetry(func(n uint, err error) {
+			log.Warnf("Retrying Cloud Slack startup (attempt no %d): %s", n, err)
+		}),
+		retry.Delay(retryDelay),
+		retry.Attempts(0), // infinite, we cancel that by our own
+		retry.LastErrorOnly(true),
+		retry.Context(ctx),
+	)
+}
+
+func (b *CloudSlack) start(ctx context.Context) error {
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{creds,
 		grpc.WithStreamInterceptor(b.addStreamingClientCredentials()),

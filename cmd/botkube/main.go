@@ -125,9 +125,9 @@ func run(ctx context.Context) error {
 	errGroup, ctx := errgroup.WithContext(ctx)
 	defer func() {
 		err := errGroup.Wait()
-		if err != nil {
-			wrappedErr := reportFatalError("while waiting for goroutines to finish gracefully", err)
-			logger.Errorf(wrappedErr.Error())
+		wrappedErr := reportFatalError("while waiting for goroutines to finish gracefully", err)
+		if wrappedErr != nil {
+			logger.Error(wrappedErr.Error())
 		}
 	}()
 
