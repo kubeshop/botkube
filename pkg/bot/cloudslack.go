@@ -37,7 +37,7 @@ const (
 	APIKeyContextKey        = "X-Api-Key"       // #nosec
 	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
 	retryDelay              = time.Second
-	maxRetries              = 25
+	maxRetries              = 30
 	successIntervalDuration = 3 * time.Minute
 )
 
@@ -114,13 +114,14 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 
 func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
 	failuresNo := 0
+	var lastFailureTimestamp time.Time
 	return retry.Do(
 		func() error {
-			tn := time.Now()
 			err := fn()
 			if err != nil {
-				if time.Since(tn) > successIntervalDuration {
+				if !lastFailureTimestamp.IsZero() && time.Since(lastFailureTimestamp) >= successIntervalDuration {
 					// if the last run was long enough, we treat is as success, so we reset failures
+					log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
 					failuresNo = 0
 				}
 
@@ -128,13 +129,15 @@ func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn
 					log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
 					return retry.Unrecoverable(err)
 				}
+
+				lastFailureTimestamp = time.Now()
 				failuresNo++
 				return err
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			log.Warnf("Retrying Cloud Slack startup (attempt no %d): %s", n, err)
+		retry.OnRetry(func(_ uint, err error) {
+			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", failuresNo, maxRetries, err)
 		}),
 		retry.Delay(retryDelay),
 		retry.Attempts(0), // infinite, we cancel that by our own
