@@ -37,6 +37,20 @@ func (c *Converter) ConvertActions(actions bkconfig.Actions) []*gqlModel.ActionC
 	return out
 }
 
+// ConvertAliases converts Aliases.
+func (c *Converter) ConvertAliases(aliases bkconfig.Aliases, instanceID string) []*gqlModel.AliasCreateInput {
+	var out []*gqlModel.AliasCreateInput
+	for name, alias := range aliases {
+		out = append(out, &gqlModel.AliasCreateInput{
+			Name:          name,
+			DisplayName:   alias.DisplayName,
+			Command:       alias.Command,
+			DeploymentIds: []string{instanceID},
+		})
+	}
+	return out
+}
+
 // ConvertPlugins converts all plugins.
 func (c *Converter) ConvertPlugins(exec map[string]bkconfig.Executors, sources map[string]bkconfig.Sources) ([]*gqlModel.PluginsCreateInput, error) {
 	createSources, err := c.convertSources(sources)

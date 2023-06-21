@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "cloud.json")
+	configFilePath = filepath.Clean(filepath.Join(homedir.HomeDir(), ".botkube", "cloud.json"))
 	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, cli.Name)
 )
 
@@ -58,7 +58,7 @@ func (c *Config) Save() error {
 
 // Read reads Config from local FS
 func (c *Config) Read() error {
-	data, err := os.ReadFile(filepath.Clean(configFilePath))
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}

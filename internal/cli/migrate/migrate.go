@@ -11,6 +11,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hasura/go-graphql-client"
 	"github.com/muesli/reflow/indent"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,9 +33,13 @@ const (
 
 // Run runs the migration process.
 func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts Options) (string, error) {
-	cfg, err := cliconfig.New()
-	if err != nil {
-		return "", err
+	var authToken string = opts.Token
+	if authToken == "" {
+		cfg, err := cliconfig.New()
+		if err != nil {
+			return "", err
+		}
+		authToken = cfg.Token
 	}
 
 	status.Step("Parsing Botkube configuration")
@@ -43,7 +48,7 @@ func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts
 		return "", err
 	}
 
-	return migrate(ctx, status, opts, botkubeClusterConfig, cfg.Token)
+	return migrate(ctx, status, opts, botkubeClusterConfig, authToken)
 }
 
 func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, botkubeClusterConfig *bkconfig.Config, token string) (string, error) {
@@ -56,7 +61,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	plugins, err := converter.ConvertPlugins(botkubeClusterConfig.Executors, botkubeClusterConfig.Sources)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while converting plugins")
 	}
 	status.Step("Converted %d plugins", len(plugins))
 
@@ -73,7 +78,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	instanceName, err := getInstanceName(opts)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while parsing instance name")
 	}
 	status.Step("Creating %q Cloud Instance", instanceName)
 	var mutation struct {
@@ -91,7 +96,30 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while creating deployment")
+	}
+
+	aliases := converter.ConvertAliases(botkubeClusterConfig.Aliases, mutation.CreateDeployment.ID)
+	status.Step("Converted %d aliases", len(aliases))
+
+	for _, alias := range aliases {
+		status.Step("Migrating Alias %q", alias.Name)
+		var aliasMutation struct {
+			CreateAlias struct {
+				ID string `json:"id"`
+			} `graphql:"createAlias(input: $input)"`
+		}
+		err = client.Mutate(ctx, &aliasMutation, map[string]interface{}{
+			"input": *alias,
+		})
+		if err != nil {
+			return "", errors.Wrap(err, "while creating alias")
+		}
+	}
+
+	if opts.SkipConnect {
+		status.End(true)
+		return mutation.CreateDeployment.ID, nil
 	}
 
 	helmCmd := ptr.ToValue(mutation.CreateDeployment.HelmCommand)
@@ -109,13 +137,13 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	run := false
 	prompt := &survey.Confirm{
-		Message: "Would you like to run the upgrade?",
+		Message: "Would you like to continue?",
 		Default: true,
 	}
 
 	err = survey.AskOne(prompt, &run)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while asking for confirmation")
 	}
 	if !run {
 		status.Infof("Skipping command execution. Remember to run it manually to finish the migration process.")
@@ -164,22 +192,30 @@ func getInstanceName(opts Options) (string, error) {
 	return opts.InstanceName, nil
 }
 
-func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, error) {
+func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Pod, error) {
 	k8sCli, err := newK8sClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cleanup(ctx, k8sCli, opts)
 
-	if err = createMigrationJob(ctx, k8sCli, opts); err != nil {
-		return nil, err
+	botkubePod, err := getBotkubePod(ctx, k8sCli, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = createMigrationJob(ctx, k8sCli, botkubePod, opts); err != nil {
+		return nil, nil, err
 	}
 
 	if err = waitForMigrationJob(ctx, k8sCli, opts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return readConfigFromCM(ctx, k8sCli, opts)
+	config, err := readConfigFromCM(ctx, k8sCli, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	return config, botkubePod, nil
 }
 
 func newK8sClient() (*kubernetes.Clientset, error) {
@@ -201,12 +237,7 @@ func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Optio
 	return &pods.Items[0], nil
 }
 
-func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
-	botkubePod, err := getBotkubePod(ctx, k8sCli, opts)
-	if err != nil {
-		return err
-	}
-
+func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod, opts Options) error {
 	var container corev1.Container
 	for _, c := range botkubePod.Spec.Containers {
 		if c.Name == "botkube" {
@@ -243,13 +274,13 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts 
 		},
 	}
 
-	_, err = k8sCli.BatchV1().Jobs(botkubePod.Namespace).Create(ctx, job, metav1.CreateOptions{})
+	_, err := k8sCli.BatchV1().Jobs(botkubePod.Namespace).Create(ctx, job, metav1.CreateOptions{})
 
 	return err
 }
 
 func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 30; i++ {
 		job, err := k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
 		if err != nil {
 			return err

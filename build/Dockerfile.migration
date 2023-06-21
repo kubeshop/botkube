@@ -1,0 +1,14 @@
+FROM gcr.io/distroless/static:latest
+
+ARG botkube_version="dev"
+
+LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
+      org.opencontainers.image.title="Botkube Cloud Migration" \
+      org.opencontainers.image.version="${botkube_cloud_migration_version}" \
+      org.opencontainers.image.description="Botkube is a messaging bot for monitoring and debugging Kubernetes clusters" \
+      org.opencontainers.image.documentation="https://docs.botkube.io" \
+      org.opencontainers.image.licenses="MIT"
+
+COPY botkube-cloud-migration /usr/local/bin/botkube-cloud-migration
+
+CMD ["botkube-cloud-migration"]

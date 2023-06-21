@@ -1,0 +1,48 @@
+project_name: botkube-cli
+
+env:
+  - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
+  - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY"  }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: botkube-cli
+    binary: botkube
+    main: cmd/cli/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "7"
+  - id: botkube-cloud-migration
+    binary: botkube-cloud-migration
+    main: cmd/migration/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "7"
+dockers:
+  - image_templates:
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:latest-amd64"
+    use: buildx
+    dockerfile: "build/Dockerfile.migration"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+# GoReleaser already creates Botkube artifacts in the ./dist folder.
+# To not override them during release, we use a different folder
+dist: cli-dist

@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.documentation="https://docs.botkube.io" \
       org.opencontainers.image.licenses="MIT"
 
-COPY botkube /usr/local/bin/botkube
+COPY botkube-agent /usr/local/bin/botkube-agent
 
 # Create Non Privileged user
 RUN addgroup --gid 1001 botkube && \
@@ -16,4 +16,4 @@ RUN addgroup --gid 1001 botkube && \
 # Run as Non Privileged user
 USER botkube
 
-ENTRYPOINT /usr/local/bin/botkube
+ENTRYPOINT /usr/local/bin/botkube-agent
