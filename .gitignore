@@ -38,6 +38,7 @@ tags
 /bin
 
 ./botkube
+./botkube-agent
 ./botkube-test
 
 # Release

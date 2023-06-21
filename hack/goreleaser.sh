@@ -108,9 +108,9 @@ build_single() {
     -w /go/src/github.com/kubeshop/botkube \
     -e IMAGE_TAG=${IMAGE_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
-    goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube -o "./botkube"
+    goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube-agent -o "./botkube-agent"
   docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
-  rm "$PWD/botkube"
+  rm "$PWD/botkube-agent"
 }
 
 usage() {

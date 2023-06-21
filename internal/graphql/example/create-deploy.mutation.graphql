@@ -1,0 +1,9 @@
+# This is a basic mutation to create Botkube Deployment.
+mutation CreateDeployment($input: DeploymentCreateInput!) {
+    createDeployment(input: $input) {
+        id
+        apiKey {
+            value
+        }
+    }
+}

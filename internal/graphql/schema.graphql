@@ -1,0 +1,772 @@
+scalar Any
+scalar Timestamp
+
+directive @hasScopes(scopes: [String!], disableEmailValidation: Boolean) on FIELD_DEFINITION
+
+directive @restrictDeploymentAccessForSameID(idInputFieldName: String!) on FIELD_DEFINITION
+
+directive @restrictOnOrgUpdatesBlocked on FIELD_DEFINITION
+
+type PageInfo {
+    limit: Int!
+    offset: Int!
+    hasNextPage: Boolean!
+}
+
+interface Pageable {
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+# Audit
+enum BotPlatform {
+    SLACK
+    DISCORD
+    MATTERMOST
+    MS_TEAMS
+}
+
+enum AuditEventType {
+    COMMAND_EXECUTED
+    SOURCE_EVENT_EMITTED
+}
+
+interface AuditEvent {
+    id: ID!
+    type: AuditEventType
+    deploymentId: ID!
+    createdAt: Timestamp!
+    pluginName: String!
+    deployment: Deployment @hasScopes(scopes: ["deployment:get"])
+}
+
+type CommandExecutedEvent implements AuditEvent {
+    id: ID!
+    type: AuditEventType
+    platformUser: String
+    deploymentId: ID!
+    deployment: Deployment @hasScopes(scopes: ["deployment:get"])
+    createdAt: Timestamp!
+    command: String!
+    botPlatform: BotPlatform
+    channel: String!
+    pluginName: String!
+}
+
+type SourceEventEmittedEvent implements AuditEvent {
+    id: ID!
+    type: AuditEventType!
+    deploymentId: ID!
+    deployment: Deployment @hasScopes(scopes: ["deployment:get"])
+    createdAt: Timestamp!
+    event: Any!
+    source: SourceEventDetails!
+    pluginName: String!
+}
+
+type SourceEventDetails {
+    name: String!
+    displayName: String!
+}
+
+type AuditEventPage implements Pageable {
+    data: [AuditEvent!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+    totalPages: Int!
+}
+
+input AuditEventFilter {
+    deploymentId: ID
+    startDate: Timestamp
+    endDate: Timestamp
+}
+
+input AuditEventCreateInput {
+    type: AuditEventType!
+    createdAt: Timestamp!
+    deploymentId: ID!
+    pluginName: String!
+    sourceEventEmitted: AuditEventSourceCreateInput
+    commandExecuted: AuditEventCommandCreateInput
+}
+
+input AuditEventSourceCreateInput {
+    event: String!
+    source: AuditEventSourceDetailsInput
+}
+
+input AuditEventSourceDetailsInput {
+    name: String!
+    displayName: String!
+}
+
+input AuditEventCommandCreateInput {
+    platformUser: String!
+    channel: String!
+    botPlatform: BotPlatform
+    command: String!
+}
+
+# Alias
+type Alias {
+    id: ID!
+    name: String!
+    displayName: String!
+    command: String!
+    deployments: [DeploymentInfo!]! @hasScopes(scopes: ["deployment:list"])
+}
+
+type DeploymentInfo {
+    id: ID!
+    name: String!
+}
+
+input AliasCreateInput {
+    name: String!
+    displayName: String!
+    command: String!
+    deploymentIds: [ID!]!
+}
+
+input AliasUpdateInput {
+    name: String
+    displayName: String
+    command: String
+    deploymentIds: [ID!]!
+}
+
+type AliasPage implements Pageable {
+    data: [Alias!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+    totalPages: Int!
+}
+
+# Deployment
+enum DeploymentStatusPhase {
+    CONNECTED
+    DISCONNECTED
+    FAILED
+    CREATING
+    UPDATING
+    DELETED
+}
+
+type Deployment {
+    id: ID!
+    name: String!
+    actions: [Action!]!
+    plugins: [Plugin!]!
+    platforms: Platforms!
+    status: DeploymentStatus!
+    apiKey: ApiKey
+    yamlConfig: String
+    aliases: [Alias!]
+    helmCommand: String
+    resourceVersion: Int!
+    heartbeat: Heartbeat
+}
+
+type Heartbeat {
+    nodeCount: Int
+}
+
+type DeploymentStatus {
+    phase: DeploymentStatusPhase!
+    message: String
+    botkubeVersion: String
+    upgrade: DeploymentUpgradeStatus
+    lastTransitionTime: Timestamp
+}
+
+type DeploymentUpgradeStatus {
+    needsUpgrade: Boolean!
+    targetBotkubeVersion: String!
+}
+
+input DeploymentStatusInput {
+    message: String
+    phase: DeploymentStatusPhase
+}
+
+input DeploymentCreateInput {
+    name: String!
+    plugins: [PluginsCreateInput]
+    platforms: PlatformsCreateInput!
+    actions: [ActionCreateUpdateInput!]
+}
+
+input DeploymentUpdateInput {
+    name: String!
+    platforms: PlatformsUpdateInput!
+    plugins: [PluginsUpdateInput!]!
+    actions: [ActionCreateUpdateInput!]!
+    resourceVersion: Int!
+}
+
+input DeploymentHeartbeatInput {
+    nodeCount: Int!
+}
+
+input DeploymentFailureInput {
+    resourceVersion: Int!
+    message: String!
+}
+
+type DeploymentPage implements Pageable {
+    data: [Deployment!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+# Patch deployment config
+input PatchDeploymentConfigInput {
+    resourceVersion: Int!
+    notification: NotificationPatchDeploymentConfigInput
+    sourceBinding: SourceBindingPatchDeploymentConfigInput
+    action: ActionPatchDeploymentConfigInput
+}
+
+input NotificationPatchDeploymentConfigInput {
+    communicationGroupName: String!
+    platform: BotPlatform!
+    channelAlias: String!
+    disabled: Boolean!
+}
+
+input SourceBindingPatchDeploymentConfigInput {
+    communicationGroupName: String!
+    platform: BotPlatform!
+    channelAlias: String!
+    sourceBindings: [String!]!
+}
+
+input ActionPatchDeploymentConfigInput {
+    name: ID!
+    enabled: Boolean
+}
+
+type DeploymentConfig {
+    resourceVersion: Int!
+    value: Any!
+}
+
+# API Key
+type ApiKey {
+    name: String!
+    value: String!
+}
+
+type Platforms {
+    socketSlacks: [SocketSlack!]
+    discords: [Discord!]
+    mattermosts: [Mattermost!]
+    webhooks: [Webhook!]
+    msTeams: [MsTeams!]
+    elasticsearches: [Elasticsearch!]
+}
+
+type ChannelBindingsByName {
+    name: String!
+    bindings: BotBindings!
+    notificationsDisabled: Boolean
+}
+
+type ChannelBindingsByID {
+    id: String!
+    bindings: BotBindings!
+    notificationsDisabled: Boolean
+}
+
+type BotBindings {
+    sources: [String!]
+    executors: [String!]
+}
+
+type SinkBindings {
+    sources: [String!]
+}
+
+input ChannelBindingsByNameCreateInput {
+    name: String!
+    bindings: BotBindingsCreateInput!
+    notificationsDisabled: Boolean
+}
+
+input ChannelBindingsByNameUpdateInput {
+    name: String!
+    bindings: BotBindingsUpdateInput!
+}
+
+input ChannelBindingsByIDCreateInput {
+    id: String!
+    bindings: BotBindingsCreateInput!
+    notificationsDisabled: Boolean
+}
+
+input ChannelBindingsByIDUpdateInput {
+    id: String!
+    bindings: BotBindingsUpdateInput!
+}
+
+input BotBindingsCreateInput {
+    sources: [String]
+    executors: [String]
+}
+
+input BotBindingsUpdateInput {
+    sources: [String]
+    executors: [String]
+}
+
+input SinkBindingsCreateInput {
+    sources: [String]
+}
+
+input SinkBindingsUpdateInput {
+    sources: [String]
+}
+
+input PlatformsCreateInput {
+    discords: [DiscordCreateInput]
+    socketSlacks: [SocketSlackCreateInput]
+    mattermosts: [MattermostCreateInput]
+    webhooks: [WebhookCreateInput]
+    msTeams: [MsTeamsCreateInput]
+    elasticsearches: [ElasticsearchCreateInput]
+}
+
+input PlatformsUpdateInput {
+    socketSlacks: [SocketSlackUpdateInput]
+    discords: [DiscordUpdateInput]
+    mattermosts: [MattermostUpdateInput]
+    webhooks: [WebhookUpdateInput]
+    msTeams: [MsTeamsUpdateInput]
+    elasticsearches: [ElasticsearchUpdateInput]
+}
+
+## Socket Slack
+type SocketSlack {
+    id: ID!
+    name: String!
+    appToken: String!
+    botToken: String!
+    channels: [ChannelBindingsByName!]!
+}
+
+input SocketSlackCreateInput {
+    name: String!
+    appToken: String!
+    botToken: String!
+    channels: [ChannelBindingsByNameCreateInput!]!
+}
+
+input SocketSlackUpdateInput {
+    id: ID
+    name: String!
+    appToken: String!
+    botToken: String!
+    channels: [ChannelBindingsByNameUpdateInput!]!
+}
+
+## Discord
+type Discord {
+    id: ID!
+    name: String!
+    token: String!
+    botId: String!
+    channels: [ChannelBindingsByID!]!
+}
+
+input DiscordCreateInput {
+    name: String!
+    token: String!
+    botId: String!
+    channels: [ChannelBindingsByIDCreateInput!]!
+}
+
+input DiscordUpdateInput {
+    id: ID
+    name: String!
+    token: String!
+    botId: String!
+    channels: [ChannelBindingsByIDUpdateInput!]!
+}
+
+## Mattermost
+type Mattermost {
+    id: ID!
+    name: String!
+    botName: String!
+    url: String!
+    token: String!
+    team: String!
+    channels: [ChannelBindingsByName!]!
+}
+
+input MattermostCreateInput {
+    name: String!
+    botName: String!
+    url: String!
+    token: String!
+    team: String!
+    channels: [ChannelBindingsByNameCreateInput!]!
+}
+
+input MattermostUpdateInput {
+    id: ID
+    name: String!
+    botName: String!
+    url: String!
+    token: String!
+    team: String!
+    channels: [ChannelBindingsByNameUpdateInput!]!
+}
+
+## Webhook
+type Webhook {
+    id: ID!
+    name: String!
+    url: String!
+    bindings: SinkBindings!
+}
+
+input WebhookCreateInput {
+    name: String!
+    url: String!
+    bindings: SinkBindingsCreateInput!
+}
+
+input WebhookUpdateInput {
+    id: ID
+    name: String!
+    url: String!
+    bindings: SinkBindingsUpdateInput!
+}
+
+## MsTeams
+type MsTeams {
+    id: ID!
+    name: String!
+    botName: String!
+    appId: String!
+    appPassword: String!
+    port: String!
+    messagePath: String!
+    notificationsDisabled: Boolean
+    bindings: BotBindings!
+}
+
+input MsTeamsCreateInput {
+    name: String!
+    botName: String!
+    appId: String!
+    appPassword: String!
+    port: String!
+    messagePath: String!
+    notificationsDisabled: Boolean
+    bindings: BotBindingsCreateInput!
+}
+
+input MsTeamsUpdateInput {
+    id: ID
+    name: String!
+    botName: String!
+    appId: String!
+    appPassword: String!
+    port: String!
+    messagePath: String!
+    bindings: BotBindingsUpdateInput!
+}
+
+## Elasticsearch
+type Elasticsearch {
+    id: ID!
+    name: String!
+    username: String!
+    password: String!
+    server: String!
+    skipTlsVerify: Boolean!
+    awsSigningRegion: String
+    awsSigningRoleArn: String
+    indices: [ElasticsearchIndex!]!
+}
+
+type ElasticsearchIndex {
+    id: ID!
+    name: String!
+    type: String!
+    shards: Int!
+    replicas: Int!
+    bindings: SinkBindings
+}
+
+input ElasticsearchCreateInput {
+    name: String!
+    username: String!
+    password: String!
+    server: String!
+    skipTlsVerify: Boolean!
+    awsSigningRegion: String
+    awsSigningRoleArn: String
+    indices: [ElasticsearchIndexCreateInput!]!
+}
+
+input ElasticsearchUpdateInput {
+    id: ID
+    name: String!
+    username: String!
+    password: String!
+    server: String!
+    skipTlsVerify: Boolean!
+    awsSigningRegion: String
+    awsSigningRoleArn: String
+    indices: [ElasticsearchIndexUpdateInput!]!
+}
+
+input ElasticsearchIndexCreateInput {
+    name: String!
+    type: String!
+    shards: Int!
+    replicas: Int!
+    bindings: SinkBindingsCreateInput
+}
+
+input ElasticsearchIndexUpdateInput {
+    name: String!
+    type: String!
+    shards: Int!
+    replicas: Int!
+    bindings: SinkBindingsUpdateInput
+}
+
+# Plugin
+# TODO: This will be handled separately soon
+enum PluginType {
+    SOURCE
+    EXECUTOR
+}
+
+type Plugin {
+    id: ID!
+    name: String!
+    displayName: String!
+    type: PluginType!
+    configurationName: String!
+    configuration: String!
+}
+
+input PluginsCreateInput {
+    groups: [PluginConfigurationGroupInput!]!
+}
+
+input PluginsUpdateInput {
+    groups: [PluginConfigurationGroupUpdateInput!]!
+}
+
+input PluginConfigurationGroupInput {
+    name: String!
+    displayName: String!
+    type: PluginType!
+    configurations: [PluginConfigurationInput!]!
+}
+
+input PluginConfigurationGroupUpdateInput {
+    id: ID
+    name: String!
+    displayName: String!
+    type: PluginType!
+    configurations: [PluginConfigurationInput!]!
+}
+
+input PluginConfigurationInput {
+    name: String!
+    configuration: String!
+}
+
+type PluginPage implements Pageable {
+    data: [Plugin!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type PluginTemplate {
+    name: String!
+    title: String!
+    description: String!
+    type: PluginType!
+    schema: Any
+}
+
+type PluginTemplatePage {
+    data: [PluginTemplate!]!
+}
+
+type User {
+    id: ID!
+    email: String!
+}
+
+type Organization {
+    id: ID!
+    displayName: String!
+    subscription: OrganizationSubscription!
+    ownerId: ID!
+    owner: User!
+    members: [User!]!
+    quota: Quota
+    billingHistoryAvailable: Boolean!
+    updateOperations: OrganizationUpdateOperations
+    usage: Usage
+}
+
+type OrganizationUpdateOperations {
+    blocked: Boolean!
+    reasons: [String!]
+}
+
+type OrganizationSubscription {
+    planName: String!
+    customerId: String
+    subscriptionId: String
+    planDisplayName: String
+    isDefaultPlan: Boolean
+    trialConsumed: Boolean!
+    invoice: Invoice
+}
+
+type Invoice {
+    isOnTrial: Boolean!
+    # Amount is provided in a currency’s smallest unit.
+    # For example, the 10 USD is 1000 (that is, 1000 cents).
+    upcomingAmount: Int!
+    currency: String!
+    endOfBillingCycleDate: String
+    endOfTrialDate: String
+    items: [InvoiceItem!]!
+}
+
+type InvoiceItem {
+    amount: Int!
+    # Unit Amount is in float format to represent values lower that 1 cent
+    priceUnitAmount: String!
+    currency: String!
+    description: String
+}
+
+type Quota {
+    deploymentCount: Int
+    auditRetentionPeriod: Int
+    memberCount: Int
+    nodeCount: Int
+}
+
+type Usage {
+    deploymentCount: Int
+    memberCount: Int
+    nodeCount: Int
+}
+
+input OrganizationCreateInput {
+    displayName: String!
+}
+
+input OrganizationUpdateInput {
+    displayName: String!
+}
+
+input AddMemberForOrganizationInput {
+    orgId: ID!
+    # userID cannot be specified together with userEmail
+    userId: ID
+    # userEmail cannot be specified together with userID
+    userEmail: String
+}
+
+input RemoveMemberFromOrganizationInput {
+    orgId: ID!
+    userId: ID!
+}
+
+type SubscriptionPlan {
+    name: String!
+    displayName: String!
+    isDefault: Boolean!
+    displayUnitPrice: Int!
+    trialPeriodDays: Int!
+}
+
+input ActionCreateUpdateInputBindings {
+    sources: [String!]
+    executors: [String!]
+}
+
+input ActionCreateUpdateInput {
+    id: ID
+    name: String!
+    displayName: String!
+    enabled: Boolean!
+    command: String!
+    bindings: ActionCreateUpdateInputBindings!
+}
+
+type ActionBindings {
+    sources: [String!]!
+    executors: [String!]!
+}
+
+type Action {
+    id: ID!
+    name: String!
+    displayName: String!
+    enabled: Boolean!
+    command: String!
+    bindings: ActionBindings!
+}
+
+type Query {
+    auditEvents(filter: AuditEventFilter, offset: Int = 0, limit: Int = 20): AuditEventPage! @hasScopes(scopes: ["audit_log:list"])
+
+    aliases(offset: Int = 0, limit: Int = 20): AliasPage! @hasScopes(scopes: ["alias:list"])
+
+    deployments(offset: Int = 0, limit: Int = 20): DeploymentPage! @hasScopes(scopes: ["deployment:list"])
+    deployment(id: ID!): Deployment! @hasScopes(scopes: ["deployment:get"]) @restrictDeploymentAccessForSameID(idInputFieldName: "id")
+
+    pluginTemplates: PluginTemplatePage! @hasScopes(scopes: ["plugin_template:list"])
+    pluginTemplate(name: String!): PluginTemplate @hasScopes(scopes: ["plugin_template:get"])
+
+    organizations: [Organization!] @hasScopes(scopes: ["org:list"])
+    organization(id: ID!): Organization! @hasScopes(scopes: ["org:get"])
+
+    subscriptionPlans: [SubscriptionPlan!]!  @hasScopes(scopes: ["org:list"])
+}
+
+type Mutation {
+    createAuditEvent(input: AuditEventCreateInput!): AuditEvent! @hasScopes(scopes: ["audit_log:create"])
+
+    createAlias(input: AliasCreateInput!): Alias! @hasScopes(scopes: ["alias:create"]) @restrictOnOrgUpdatesBlocked
+    updateAlias(id: ID!, input: AliasUpdateInput!): Alias! @hasScopes(scopes: ["alias:update"]) @restrictOnOrgUpdatesBlocked
+    deleteAlias(id: ID!): Boolean @hasScopes(scopes: ["alias:delete"]) @restrictOnOrgUpdatesBlocked
+
+    createDeployment(input: DeploymentCreateInput!): Deployment! @hasScopes(scopes: ["deployment:create", "api_key:create"]) @restrictOnOrgUpdatesBlocked
+    updateDeployment(id: ID!, input: DeploymentUpdateInput!): Deployment! @hasScopes(scopes: ["deployment:update"]) @restrictOnOrgUpdatesBlocked
+    deleteDeployment(id: ID!): Boolean @hasScopes(scopes: ["deployment:delete"])
+    patchDeploymentConfig(id: ID!, input: PatchDeploymentConfigInput!): Boolean @hasScopes(scopes: ["deployment:update_config"]) @restrictOnOrgUpdatesBlocked
+    regenerateDeploymentApiKey(id: ID!): ApiKey! @hasScopes(scopes: ["api_key:update", "deployment:update"]) @restrictOnOrgUpdatesBlocked
+
+    reportDeploymentStartup(id: ID!, resourceVersion: Int!, botkubeVersion: String): Boolean @hasScopes(scopes: ["deployment:report_status"]) @restrictDeploymentAccessForSameID(idInputFieldName: "id")
+    reportDeploymentShutdown(id: ID!, resourceVersion: Int!): Boolean @hasScopes(scopes: ["deployment:report_status"]) @restrictDeploymentAccessForSameID(idInputFieldName: "id")
+    reportDeploymentFailure(id: ID!, in: DeploymentFailureInput!): Boolean @hasScopes(scopes: ["deployment:report_status"]) @restrictDeploymentAccessForSameID(idInputFieldName: "id")
+    reportDeploymentHeartbeat(id: ID!, in: DeploymentHeartbeatInput!): Boolean @hasScopes(scopes: ["deployment:report_status"]) @restrictDeploymentAccessForSameID(idInputFieldName: "id")
+
+    createOrganization(input: OrganizationCreateInput!): Organization! @hasScopes(scopes: "org:create")
+    updateOrganization(id: ID!, input: OrganizationUpdateInput!): Organization! @hasScopes(scopes: "org:update") @restrictOnOrgUpdatesBlocked
+    addMemberForOrganization(input: AddMemberForOrganizationInput!): Organization! @hasScopes(scopes: "org:add_member") @restrictOnOrgUpdatesBlocked
+    removeMemberFromOrganization(input: RemoveMemberFromOrganizationInput!): Organization! @hasScopes(scopes: "org:remove_member")
+
+    generateCheckoutURL(planName: String!): String! @hasScopes(scopes: "org:update")
+    generateBillingPortalURL: String! @hasScopes(scopes: "org:update")
+
+    resendEmailVerification: Boolean! @hasScopes(scopes: "user:update", disableEmailValidation: true)
+}

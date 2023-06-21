@@ -1,0 +1,98 @@
+
+query deploy {
+    deployment(id: "ef6e7703-5e7c-45aa-bb76-c88f62a98765") {
+        id
+        name
+        yamlConfig
+        plugins {
+            id
+            name
+            displayName
+            type
+            configurationName
+            configuration
+        }
+        platforms {
+            socketSlacks {
+                id
+                name
+                appToken
+                botToken
+                channels {
+                    name
+                    bindings {
+                        sources
+                        executors
+                    }
+                }
+            }
+            discords {
+                id
+                name
+                token
+                botId
+                channels {
+                    id
+                    bindings {
+                        sources
+                        executors
+                    }
+                }
+            }
+            mattermosts {
+                id
+                name
+                token
+                botName
+                channels {
+                    name
+                    bindings {
+                        sources
+                        executors
+                    }
+                }
+            }
+            msTeams {
+                id
+                name
+                botName
+                appId
+                appPassword
+                port
+                messagePath
+                bindings {
+                    sources
+                    executors
+                }
+            }
+            webhooks {
+                id
+                name
+                url
+                bindings {
+                    sources
+                }
+            }
+            elasticsearches {
+                id
+                name
+                username
+                password
+                server
+                skipTlsVerify
+                awsSigningRegion
+                awsSigningRoleArn
+                indices {
+                    id
+                    name
+                    type
+                    shards
+                    replicas
+                    bindings {
+                        sources
+                    }
+                }
+            }
+        }
+    }
+}

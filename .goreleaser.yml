@@ -8,9 +8,9 @@ before:
   hooks:
     - go mod download
 builds:
-  - id: botkube
-    binary: botkube
-    main: cmd/botkube/main.go
+  - id: botkube-agent
+    binary: botkube-agent
+    main: cmd/botkube-agent/main.go
     ldflags: &ldflags
       - -s -w
         -X github.com/kubeshop/botkube/pkg/version.Version={{ .Env.IMAGE_TAG }}
@@ -26,7 +26,7 @@ builds:
       - arm
       - arm64
     goarm:
-      - 7
+      - "7"
 
 snapshot:
   name_template: "{{ .Env.IMAGE_TAG }}"

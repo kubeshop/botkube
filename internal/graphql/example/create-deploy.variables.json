@@ -1,0 +1,145 @@
+{
+  "input": {
+    "name": "test",
+    "platforms": {
+      "socketSlacks": [
+        {
+          "name": "Slack",
+          "appToken": "xapp-...",
+          "botToken": "xoxb-...",
+          "channels": [
+            {
+              "name": "botkube-demo",
+              "bindings": {
+                "sources": [
+                  "botkube/kubernetes_rO7iL",
+                  "botkube/kubernetes_ig8kh",
+                  "botkube/kubernetes_TckMy",
+                  "botkube/kubernetes_sA8UA"
+                ],
+                "executors": [
+                  "botkube/helm_gejC3",
+                  "botkube/kubectl_QYWyO"
+                ]
+              }
+            },
+            {
+              "name": "priv-channel",
+              "bindings": {
+                "sources": [
+                  "botkube/kubernetes_rO7iL",
+                  "botkube/kubernetes_sA8UA"
+                ],
+                "executors": [
+                  "botkube/helm_gejC3",
+                  "botkube/kubectl_QYWyO"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "discords": [
+        {
+          "name": "Discord",
+          "botId": "...",
+          "token": "...",
+          "channels": [
+            {
+              "id": "...",
+              "bindings": {
+                "sources": [
+                  "botkube/kubernetes_rO7iL",
+                  "botkube/kubernetes_ig8kh",
+                  "botkube/kubernetes_TckMy",
+                  "botkube/kubernetes_sA8UA"
+                ],
+                "executors": [
+                  "botkube/helm_gejC3",
+                  "botkube/kubectl_QYWyO"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "msTeams": [],
+      "mattermosts": [],
+      "webhooks": [],
+      "elasticsearches": []
+    },
+    "plugins": [
+      {
+        "groups": [
+          {
+            "name": "botkube/kubernetes",
+            "displayName": "Kubernetes",
+            "type": "SOURCE",
+            "configurations": [
+              {
+                "name": "botkube/kubernetes_rO7iL",
+                "configuration": "{\"namespaces\":{\"include\":[\".*\"]},\"event\":{\"types\":[\"create\",\"delete\",\"error\"]},\"resources\":[{\"type\":\"v1/pods\"}],\"recommendations\":{\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true},\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true}}}"
+              }
+            ]
+          },
+          {
+            "name": "botkube/helm",
+            "displayName": "helm",
+            "type": "EXECUTOR",
+            "configurations": [
+              {
+                "name": "botkube/helm_gejC3",
+                "configuration": "{\"helmDriver\":\"secret\"}"
+              }
+            ]
+          },
+          {
+            "name": "botkube/kubectl",
+            "displayName": "kubectl",
+            "type": "EXECUTOR",
+            "configurations": [
+              {
+                "name": "botkube/kubectl_QYWyO",
+                "configuration": "{\"defaultNamespace\": \"default\"}"
+              }
+            ]
+          },
+          {
+            "name": "botkube/kubernetes",
+            "displayName": "Kubernetes",
+            "type": "SOURCE",
+            "configurations": [
+              {
+                "name": "botkube/kubernetes_ig8kh",
+                "configuration": "{\"namespaces\":{\"include\":[\".*\"]},\"event\":{\"types\":[\"create\",\"delete\",\"error\"]},\"resources\":[{\"type\":\"v1/configmaps\"}],\"recommendations\":{\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}"
+              }
+            ]
+          },
+          {
+            "name": "botkube/kubernetes",
+            "displayName": "Kubernetes",
+            "type": "SOURCE",
+            "configurations": [
+              {
+                "name": "botkube/kubernetes_TckMy",
+                "configuration": "{\"namespaces\":{\"include\":[\".*\"]},\"event\":{\"types\":[\"create\",\"delete\",\"error\"]},\"resources\":[{\"type\":\"v1/services\"}],\"recommendations\":{\"ingress\":{\"backendServiceValid\":false,\"tlsSecretValid\":false}}}"
+              }
+            ]
+          },
+          {
+            "name": "botkube/kubernetes",
+            "displayName": "Kubernetes",
+            "type": "SOURCE",
+            "configurations": [
+              {
+                "name": "botkube/kubernetes_sA8UA",
+                "configuration": "{\"namespaces\":{\"include\":[\".*\"]},\"event\":{\"types\":[\"create\",\"delete\",\"error\"]},\"resources\":[{\"type\":\"apps/v1/deployments\"}],\"recommendations\":{\"ingress\":{\"backendServiceValid\":false,\"tlsSecretValid\":false}}}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
