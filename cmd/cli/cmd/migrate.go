@@ -101,6 +101,7 @@ func NewMigrate() *cobra.Command {
 	}
 
 	flags := login.Flags()
+	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io", "Botkube Cloud API URL")
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")

@@ -32,9 +32,13 @@ const (
 
 // Run runs the migration process.
 func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts Options) (string, error) {
-	cfg, err := cliconfig.New()
-	if err != nil {
-		return "", err
+	var authToken string = opts.Token
+	if authToken == "" {
+		cfg, err := cliconfig.New()
+		if err != nil {
+			return "", err
+		}
+		authToken = cfg.Token
 	}
 
 	status.Step("Parsing Botkube configuration")
@@ -43,7 +47,7 @@ func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts
 		return "", err
 	}
 
-	return migrate(ctx, status, opts, botkubeClusterConfig, cfg.Token)
+	return migrate(ctx, status, opts, botkubeClusterConfig, authToken)
 }
 
 func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, botkubeClusterConfig *bkconfig.Config, token string) (string, error) {
