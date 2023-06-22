@@ -33,7 +33,9 @@ func NewRoot() *cobra.Command {
             `, cli.Name),
 		SilenceUsage: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Fatalf("while printing help: %v", cmd.Help())
+			if err := cmd.Help(); err != nil {
+				log.Fatalf("while printing help: %v", err)
+			}
 		},
 	}
 

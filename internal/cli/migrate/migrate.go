@@ -94,6 +94,24 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		return "", err
 	}
 
+	aliases := converter.ConvertAliases(botkubeClusterConfig.Aliases, mutation.CreateDeployment.ID)
+	status.Step("Converted %d aliases", len(aliases))
+
+	var aliasMutation struct {
+		Alias struct {
+			ID string `json:"id"`
+		} `graphql:"createAlias(input: $input)"`
+	}
+	for _, alias := range aliases {
+		status.Step("Migrating Alias %q", alias.Name)
+		err = client.Mutate(ctx, &aliasMutation, map[string]interface{}{
+			"input": alias,
+		})
+		if err != nil {
+			return "", err
+		}
+	}
+
 	helmCmd := ptr.ToValue(mutation.CreateDeployment.HelmCommand)
 	cmds := []string{
 		"helm repo add botkube https://charts.botkube.io",
@@ -109,7 +127,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	run := false
 	prompt := &survey.Confirm{
-		Message: "Would you like to run the upgrade?",
+		Message: "Would you like to continue?",
 		Default: true,
 	}
 
@@ -164,22 +182,30 @@ func getInstanceName(opts Options) (string, error) {
 	return opts.InstanceName, nil
 }
 
-func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, error) {
+func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Pod, error) {
 	k8sCli, err := newK8sClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cleanup(ctx, k8sCli, opts)
 
-	if err = createMigrationJob(ctx, k8sCli, opts); err != nil {
-		return nil, err
+	botkubePod, err := getBotkubePod(ctx, k8sCli, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = createMigrationJob(ctx, k8sCli, botkubePod, opts); err != nil {
+		return nil, nil, err
 	}
 
 	if err = waitForMigrationJob(ctx, k8sCli, opts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return readConfigFromCM(ctx, k8sCli, opts)
+	config, err := readConfigFromCM(ctx, k8sCli, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	return config, botkubePod, nil
 }
 
 func newK8sClient() (*kubernetes.Clientset, error) {
@@ -201,12 +227,7 @@ func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Optio
 	return &pods.Items[0], nil
 }
 
-func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
-	botkubePod, err := getBotkubePod(ctx, k8sCli, opts)
-	if err != nil {
-		return err
-	}
-
+func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod, opts Options) error {
 	var container corev1.Container
 	for _, c := range botkubePod.Spec.Containers {
 		if c.Name == "botkube" {
@@ -243,13 +264,13 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts 
 		},
 	}
 
-	_, err = k8sCli.BatchV1().Jobs(botkubePod.Namespace).Create(ctx, job, metav1.CreateOptions{})
+	_, err := k8sCli.BatchV1().Jobs(botkubePod.Namespace).Create(ctx, job, metav1.CreateOptions{})
 
 	return err
 }
 
 func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		job, err := k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -271,6 +292,7 @@ func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Op
 }
 
 func cleanup(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) {
-	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
+	policy := metav1.DeletePropagationForeground
+	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{PropagationPolicy: &policy})
 	_ = k8sCli.CoreV1().ConfigMaps(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
 }
