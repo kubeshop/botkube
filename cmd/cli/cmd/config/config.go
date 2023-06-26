@@ -8,8 +8,8 @@ import (
 
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/heredoc"
+	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
 
 var (

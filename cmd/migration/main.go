@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/cmd/migration/internal/config"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,6 +10,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/kubeshop/botkube/cmd/migration/internal/config"
 )
 
 func main() {
@@ -29,7 +30,6 @@ func main() {
 	if err := createOrUpdateCM(context.Background(), yamlBytes); err != nil {
 		panic(err)
 	}
-
 }
 
 func createOrUpdateCM(ctx context.Context, config []byte) error {

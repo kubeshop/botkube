@@ -25,11 +25,6 @@ const (
 	nestedFieldDelimiter    = "_"
 )
 
-const (
-	// allValuesPattern represents a keyword for allowing all values.
-	allValuesPattern = ".*"
-)
-
 // EventType to watch
 type EventType string
 

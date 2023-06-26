@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"k8s.io/apimachinery/pkg/util/duration"
 
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli"
 )
 
 // Spinner defines interface for terminal spinner.

@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/migrate"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/cli/migrate"
+	"github.com/kubeshop/botkube/internal/cli/printer"
 )
 
 // NewMigrate returns a cobra.Command for migrate the OS into Cloud.
