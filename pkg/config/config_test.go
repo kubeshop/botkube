@@ -176,8 +176,8 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			name: "missing action bindings",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 2 errors occurred:
-					* Key: 'Config.Actions[show-created-resource].Bindings.k8s-err-events' 'k8s-err-events' binding not defined in Config.Sources
-					* Key: 'Config.Actions[show-created-resource].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
+					* Key: 'Config.ExtraButtons[show-created-resource].Bindings.k8s-err-events' 'k8s-err-events' binding not defined in Config.Sources
+					* Key: 'Config.ExtraButtons[show-created-resource].Bindings.kubectl-read-only' 'kubectl-read-only' binding not defined in Config.Executors`),
 			configs: [][]byte{
 				readTestdataFile(t, "missing-action-bindings.yaml"),
 			},

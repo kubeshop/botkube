@@ -14,7 +14,7 @@ import (
 
 // Config Kubernetes configuration
 type Config struct {
-	Actions              []Action           `yaml:"actions"`
+	ExtraButtons         []ExtraButtons     `yaml:"extraButtons"`
 	InformerResyncPeriod time.Duration      `yaml:"informerResyncPeriod"`
 	Log                  config.Logger      `yaml:"log"`
 	Recommendations      *Recommendations   `yaml:"recommendations"`
@@ -28,7 +28,8 @@ type Config struct {
 }
 
 type (
-	Action struct {
+	ExtraButtons struct {
+		Enabled bool    `yaml:"enabled"`
 		Trigger Trigger `yaml:"trigger"`
 		Button  Button  `yaml:"button"`
 	}

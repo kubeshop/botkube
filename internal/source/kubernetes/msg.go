@@ -3,11 +3,11 @@ package kubernetes
 import (
 	"bytes"
 	"fmt"
-	sprig "github.com/go-task/slim-sprig"
-	"k8s.io/kubectl/pkg/util/slice"
 	"text/template"
 
+	sprig "github.com/go-task/slim-sprig"
 	"github.com/sirupsen/logrus"
+	"k8s.io/kubectl/pkg/util/slice"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
@@ -38,7 +38,7 @@ func NewMessageBuilder(isInteractivitySupported bool, log logrus.FieldLogger, co
 	}
 }
 
-func (m *MessageBuilder) FromEvent(event event.Event, actions []config.Action) (api.Message, error) {
+func (m *MessageBuilder) FromEvent(event event.Event, actions []config.ExtraButtons) (api.Message, error) {
 	msg := api.Message{
 		Timestamp: event.TimeStamp,
 		Sections: []api.Section{
@@ -70,9 +70,12 @@ func (m *MessageBuilder) FromEvent(event event.Event, actions []config.Action) (
 	return msg, nil
 }
 
-func (m *MessageBuilder) getExternalActions(actions []config.Action, e event.Event) (api.Buttons, error) {
+func (m *MessageBuilder) getExternalActions(actions []config.ExtraButtons, e event.Event) (api.Buttons, error) {
 	var actBtns api.Buttons
 	for _, act := range actions {
+		if !act.Enabled {
+			continue
+		}
 		if !slice.ContainsString(act.Trigger.Type, e.Type.String(), nil) {
 			continue
 		}
@@ -140,7 +143,7 @@ func (m *MessageBuilder) baseNotificationSection(event event.Event) api.Section 
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Name", event.Name)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Namespace", event.Namespace)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Type", event.Reason)
-	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Action", event.Action)
+	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "ExtraButtons", event.Action)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Cluster", event.Cluster)
 
 	// Messages, Recommendations and Warnings formatted as bullet point lists.
@@ -171,7 +174,7 @@ func (m *MessageBuilder) appendBulletListIfNotEmpty(bulletLists api.BulletLists,
 	})
 }
 
-func (m *MessageBuilder) renderActionButton(act config.Action, e event.Event) (api.Button, error) {
+func (m *MessageBuilder) renderActionButton(act config.ExtraButtons, e event.Event) (api.Button, error) {
 	tmpl, err := template.New("example").Funcs(sprig.FuncMap()).Parse(act.Button.CommandTpl)
 	if err != nil {
 		return api.Button{}, err

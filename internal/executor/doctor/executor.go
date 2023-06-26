@@ -3,14 +3,16 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"github.com/MakeNowJust/heredoc"
-	"github.com/PullRequestInc/go-gpt3"
-	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/MakeNowJust/heredoc"
+	"github.com/PullRequestInc/go-gpt3"
+
+	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
@@ -81,7 +83,6 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		})
 	if err != nil {
 		return executor.ExecuteOutput{}, err
-
 	}
 	response := sb.String()
 	response = strings.TrimLeft(response, "\n")
@@ -89,7 +90,6 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{
 			Message: api.NewPlaintextMessage(response, true),
 		}, nil
-
 	}
 	btnBuilder := api.NewMessageButtonBuilder()
 	var btns []api.Button
