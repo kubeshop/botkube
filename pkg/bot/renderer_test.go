@@ -29,7 +29,7 @@ func FixNonInteractiveSingleSection() api.Message {
 						Value: "webapp-server-68c5c57f6f",
 					},
 					{
-						Key:   "Reason",
+						Key:   "Type",
 						Value: "BackOff",
 					},
 				},

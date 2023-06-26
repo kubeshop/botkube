@@ -1,7 +1,11 @@
 package kubernetes
 
 import (
+	"bytes"
 	"fmt"
+	sprig "github.com/go-task/slim-sprig"
+	"k8s.io/kubectl/pkg/util/slice"
+	"text/template"
 
 	"github.com/sirupsen/logrus"
 
@@ -9,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )
 
 var emojiForLevel = map[config.Level]string{
@@ -35,7 +38,7 @@ func NewMessageBuilder(isInteractivitySupported bool, log logrus.FieldLogger, co
 	}
 }
 
-func (m *MessageBuilder) FromEvent(event event.Event) (api.Message, error) {
+func (m *MessageBuilder) FromEvent(event event.Event, actions []config.Action) (api.Message, error) {
 	msg := api.Message{
 		Timestamp: event.TimeStamp,
 		Sections: []api.Section{
@@ -48,18 +51,50 @@ func (m *MessageBuilder) FromEvent(event event.Event) (api.Message, error) {
 		return msg, nil
 	}
 
-	cmdSection, err := m.getInteractiveEventSectionIfShould(event)
+	cmdSection, err := m.getCommandSelectIfShould(event)
 	if err != nil {
 		return api.Message{}, err
 	}
-	if cmdSection != nil {
-		msg.Sections = append(msg.Sections, *cmdSection)
+
+	btns, err := m.getExternalActions(actions, event)
+	if err != nil {
+		return api.Message{}, err
+	}
+	if cmdSection != nil || len(btns) > 0 {
+		msg.Sections = append(msg.Sections, api.Section{
+			Buttons: btns,
+			Selects: ptrSection(cmdSection),
+		})
 	}
 
 	return msg, nil
 }
 
-func (m *MessageBuilder) getInteractiveEventSectionIfShould(event event.Event) (*api.Section, error) {
+func (m *MessageBuilder) getExternalActions(actions []config.Action, e event.Event) (api.Buttons, error) {
+	var actBtns api.Buttons
+	for _, act := range actions {
+		if !slice.ContainsString(act.Trigger.Type, e.Type.String(), nil) {
+			continue
+		}
+
+		btn, err := m.renderActionButton(act, e)
+		if err != nil {
+			return nil, err
+		}
+		actBtns = append(actBtns, btn)
+	}
+
+	return actBtns, nil
+}
+
+func ptrSection(s *api.Selects) api.Selects {
+	if s == nil {
+		return api.Selects{}
+	}
+	return *s
+}
+
+func (m *MessageBuilder) getCommandSelectIfShould(event event.Event) (*api.Selects, error) {
 	commands, err := m.commandsGetter.GetCommandsForEvent(event)
 	if err != nil {
 		return nil, fmt.Errorf("while getting commands for event: %w", err)
@@ -77,8 +112,21 @@ func (m *MessageBuilder) getInteractiveEventSectionIfShould(event event.Event) (
 			Value: cmd.Cmd,
 		})
 	}
-	section := interactive.EventCommandsSection(cmdPrefix, optionItems)
-	return &section, nil
+	return &api.Selects{
+		ID: "",
+		Items: []api.Select{
+			{
+				Name:    "Run command...",
+				Command: cmdPrefix,
+				OptionGroups: []api.OptionGroup{
+					{
+						Name:    "Supported commands",
+						Options: optionItems,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (m *MessageBuilder) baseNotificationSection(event event.Event) api.Section {
@@ -91,7 +139,7 @@ func (m *MessageBuilder) baseNotificationSection(event event.Event) api.Section 
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Kind", event.Kind)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Name", event.Name)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Namespace", event.Namespace)
-	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Reason", event.Reason)
+	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Type", event.Reason)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Action", event.Action)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Cluster", event.Cluster)
 
@@ -121,4 +169,20 @@ func (m *MessageBuilder) appendBulletListIfNotEmpty(bulletLists api.BulletLists,
 		Title: title,
 		Items: items,
 	})
+}
+
+func (m *MessageBuilder) renderActionButton(act config.Action, e event.Event) (api.Button, error) {
+	tmpl, err := template.New("example").Funcs(sprig.FuncMap()).Parse(act.Button.CommandTpl)
+	if err != nil {
+		return api.Button{}, err
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, e)
+	if err != nil {
+		return api.Button{}, err
+	}
+
+	btns := api.NewMessageButtonBuilder()
+	return btns.ForCommandWithoutDesc(act.Button.DisplayName, buf.String(), api.ButtonStylePrimary), nil
 }
