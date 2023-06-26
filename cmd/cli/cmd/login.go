@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/cmd/cli/cmd/config"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/heredoc"
+	"github.com/kubeshop/botkube/cmd/cli/cmd/config"
+	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
 
 const (

@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeshop/botkube/internal/ptr"
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
-
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 )
 
 // Converter converts OS config into GraphQL create input.

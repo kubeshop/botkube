@@ -10,7 +10,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hasura/go-graphql-client"
-	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/muesli/reflow/indent"
 	"golang.org/x/oauth2"
 	batchv1 "k8s.io/api/batch/v1"
@@ -19,10 +18,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	cliconfig "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/cmd/cli/cmd/config"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/cli/printer"
-	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
+	cliconfig "github.com/kubeshop/botkube/cmd/cli/cmd/config"
+	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/ptr"
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	bkconfig "github.com/kubeshop/botkube/pkg/config"
 )
 
 const (
