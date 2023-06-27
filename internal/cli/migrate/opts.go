@@ -8,4 +8,5 @@ type Options struct {
 	CloudAPIURL       string
 	Namespace         string
 	Label             string
+	SkipConnect       bool
 }

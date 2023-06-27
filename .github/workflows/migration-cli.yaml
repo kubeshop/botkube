@@ -1,0 +1,47 @@
+name: Migration Tool E2E
+
+on:
+  pull_request:
+    paths:
+      - 'cmd/cli/**'
+      - 'cmd/migration/**'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+
+      - name: Run GoReleaser
+        run: make release-botkube-cli
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Setup Kubernetes
+        uses: medyagh/setup-minikube@latest
+
+      - name: Run e2e tests for botkube client
+        env:
+          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          GQL_ENDPOINT: ${{ secrets.GQL_ENDPOINT }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          make test-migration-tool

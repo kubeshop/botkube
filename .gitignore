@@ -40,10 +40,12 @@ tags
 ./botkube
 ./botkube-agent
 ./botkube-test
+./main
 
 # Release
 dist/
 plugin-dist/
+cli-dist/
 plugins-dev-index.yaml
 plugins-index.yaml
 CHANGELOG.md

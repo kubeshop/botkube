@@ -25,9 +25,9 @@ const (
 )
 
 type Config struct {
-	APIToken            string
-	GqlExternalEndpoint string
-	Discord             discordx.DiscordConfig
+	APIToken    string
+	GQLEndpoint string
+	Discord     discordx.DiscordConfig
 }
 
 func TestBotkubeMigration(t *testing.T) {
@@ -62,9 +62,13 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
-		cmd := exec.Command("botkube", "migrate", fmt.Sprintf("--token=%s", appCfg.APIToken), "--instance-name=test-migration")
-		_, err := cmd.CombinedOutput()
-		require.NoError(t, err)
+		cmd := exec.Command("botkube", "migrate",
+			fmt.Sprintf("--token=%s", appCfg.APIToken),
+			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
+			"--instance-name=test-migration",
+			"-q")
+		o, err := cmd.CombinedOutput()
+		require.NoError(t, err, string(o))
 	})
 
 }

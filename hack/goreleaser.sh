@@ -92,6 +92,16 @@ build() {
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }
 
+build_botkube_cli() {
+  prepare
+  docker run --rm --privileged \
+    -v $PWD:/go/src/github.com/kubeshop/botkube \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -w /go/src/github.com/kubeshop/botkube \
+    -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
+    goreleaser/goreleaser release -f .goreleaser.cli.yaml --rm-dist --snapshot --skip-publish
+}
+
 build_plugins() {
   goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot
 }
@@ -136,6 +146,9 @@ case "${1}" in
     ;;
   build_single)
     build_single
+    ;;
+  build_botkube_cli)
+    build_botkube_cli
     ;;
   release_snapshot)
     release_snapshot

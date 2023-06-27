@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/kubeshop/botkube/cmd/migration/internal/config"
+	cfginternal "github.com/kubeshop/botkube/internal/config"
+	"github.com/kubeshop/botkube/pkg/config"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,11 +15,11 @@ import (
 )
 
 func main() {
-	files, _, err := config.NewEnvProvider().Configs(context.Background())
+	files, _, err := cfginternal.NewEnvProvider().Configs(context.Background())
 	if err != nil {
 		panic(err)
 	}
-	conf, err := config.LoadWithDefaults(files)
+	conf, _, err := config.LoadWithDefaults(files)
 	if err != nil {
 		panic(err)
 	}

@@ -107,6 +107,7 @@ func NewMigrate() *cobra.Command {
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
 	flags.StringVarP(&opts.Label, "label", "l", "app=botkube", "Label of Botkube pod")
 	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of Botkube pod")
+	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
 
 	return login
 }

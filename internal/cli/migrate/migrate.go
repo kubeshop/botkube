@@ -12,6 +12,7 @@ import (
 	"github.com/hasura/go-graphql-client"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/muesli/reflow/indent"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,7 +61,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	plugins, err := converter.ConvertPlugins(botkubeClusterConfig.Executors, botkubeClusterConfig.Sources)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while converting plugins")
 	}
 	status.Step("Converted %d plugins", len(plugins))
 
@@ -77,7 +78,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	instanceName, err := getInstanceName(opts)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while parsing instance name")
 	}
 	status.Step("Creating %q Cloud Instance", instanceName)
 	var mutation struct {
@@ -95,25 +96,30 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while creating deployment")
 	}
 
 	aliases := converter.ConvertAliases(botkubeClusterConfig.Aliases, mutation.CreateDeployment.ID)
 	status.Step("Converted %d aliases", len(aliases))
 
-	var aliasMutation struct {
-		Alias struct {
-			ID string `json:"id"`
-		} `graphql:"createAlias(input: $input)"`
-	}
 	for _, alias := range aliases {
 		status.Step("Migrating Alias %q", alias.Name)
+		var aliasMutation struct {
+			CreateAlias struct {
+				ID string `json:"id"`
+			} `graphql:"createAlias(input: $input)"`
+		}
 		err = client.Mutate(ctx, &aliasMutation, map[string]interface{}{
-			"input": alias,
+			"input": *alias,
 		})
 		if err != nil {
-			return "", err
+			return "", errors.Wrap(err, "while creating alias")
 		}
+	}
+
+	if opts.SkipConnect {
+		status.End(true)
+		return mutation.CreateDeployment.ID, nil
 	}
 
 	helmCmd := ptr.ToValue(mutation.CreateDeployment.HelmCommand)
@@ -137,7 +143,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 
 	err = survey.AskOne(prompt, &run)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "while asking for confirmation")
 	}
 	if !run {
 		status.Infof("Skipping command execution. Remember to run it manually to finish the migration process.")
