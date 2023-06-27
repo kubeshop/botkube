@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -62,11 +63,13 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
-		cmd := exec.Command("/bin/sh -c", "botkube", "migrate",
+
+		cmd := exec.Command("botkube", "migrate",
 			fmt.Sprintf("--token=%s", appCfg.APIToken),
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
 			"--instance-name=test-migration",
 			"-q")
+		cmd.Env = append(cmd.Env, fmt.Sprintf("BOTKUBE_BIN=%s", os.Getenv("BOTKUBE_BIN")))
 		o, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(o))
 	})
