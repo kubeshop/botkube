@@ -61,7 +61,7 @@ func (e *ActionExecutor) FeatureName() FeatureName {
 	return actionFeatureName
 }
 
-// List returns a tabular representation of ExtraButtons
+// List returns a tabular representation of Actions
 func (e *ActionExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.Debug("List actions")
 	return respond(e.ActionsTabularOutput(), cmdCtx), nil

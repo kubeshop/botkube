@@ -705,7 +705,7 @@ func jsonSchema() api.JSONSchema {
 						"type": "array",
 						"items": {
 						  "type": "string",
-						  "title": "Type"
+						  "title": "Reason"
 						},
 						"description": "List of allowed resource names. It can also contain a regex expressions."
 					  },
@@ -714,7 +714,7 @@ func jsonSchema() api.JSONSchema {
 						"type": "array",
 						"items": {
 						  "type": "string",
-						  "title": "Type"
+						  "title": "Reason"
 						},
 						"description": "List of excluded resource names. It can also contain a regex expressions."
 					  }
@@ -759,7 +759,7 @@ func jsonSchema() api.JSONSchema {
 						"uniqueItems": true
 					  },
 					  "reason": {
-						"title": "Type",
+						"title": "Reason",
 						"description": "Optional patterns to filter events by event reason.",
 						"type": "object",
 						"additionalProperties": false,
@@ -769,7 +769,7 @@ func jsonSchema() api.JSONSchema {
 							"type": "array",
 							"items": {
 							  "type": "string",
-							  "title": "Type"
+							  "title": "Reason"
 							},
 							"description": "List of allowed event reasons. It can also contain a regex expressions."
 						  },
@@ -778,7 +778,7 @@ func jsonSchema() api.JSONSchema {
 							"type": "array",
 							"items": {
 							  "type": "string",
-							  "title": "Type"
+							  "title": "Reason"
 							},
 							"description": "List of excluded event reasons. It can also contain a regex expressions."
 						  }
@@ -1100,7 +1100,7 @@ func jsonSchema() api.JSONSchema {
 				  "uniqueItems": true
 				},
 				"reason": {
-				  "title": "Type",
+				  "title": "Reason",
 				  "description": "Optional patterns to filter events by event reason.",
 				  "type": "object",
 				  "additionalProperties": false,
@@ -1110,7 +1110,7 @@ func jsonSchema() api.JSONSchema {
 					  "type": "array",
 					  "items": {
 						"type": "string",
-						"title": "Type"
+						"title": "Reason"
 					  },
 					  "description": "List of allowed event reasons. It can also contain a regex expressions."
 					},
@@ -1119,7 +1119,7 @@ func jsonSchema() api.JSONSchema {
 					  "type": "array",
 					  "items": {
 						"type": "string",
-						"title": "Type"
+						"title": "Reason"
 					  },
 					  "description": "List of excluded event reasons. It can also contain a regex expressions."
 					}

@@ -142,7 +142,7 @@ func (m *MessageBuilder) baseNotificationSection(event event.Event) api.Section 
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Kind", event.Kind)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Name", event.Name)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Namespace", event.Namespace)
-	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Type", event.Reason)
+	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Reason", event.Reason)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "ExtraButtons", event.Action)
 	section.TextFields = m.appendTextFieldIfNotEmpty(section.TextFields, "Cluster", event.Cluster)
 

@@ -54,7 +54,7 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 							Value: "webapp-server-68c5c57f6f",
 						},
 						{
-							Key:   "Type",
+							Key:   "Reason",
 							Value: "BackOff",
 						},
 					},
