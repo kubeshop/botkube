@@ -31,7 +31,6 @@ jobs:
 
       - name: Add botkube alias
         run: |
-          chmod +x $PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube
           alias botkube="$PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube"
 
       - name: Setup Helm
