@@ -60,7 +60,7 @@ release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
 # Build botkube cli
-build-botkube-cli:
+release-botkube-cli:
 	@./hack/goreleaser.sh build_botkube_cli
 
 # Build project and save images with IMAGE_TAG tag
