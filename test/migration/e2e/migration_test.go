@@ -63,6 +63,7 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
+		fmt.Println("Using tk for cloud: ", appCfg.APIToken, appCfg.GQLEndpoint)
 		cmd := exec.Command(os.Getenv("BOTKUBE_BIN"), "migrate",
 			fmt.Sprintf("--token=%s", appCfg.APIToken),
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
@@ -70,10 +71,6 @@ func TestBotkubeMigration(t *testing.T) {
 			"-q")
 		cmd.Env = os.Environ()
 
-		fmt.Println("Kubeconfig: ", os.Getenv("KUBECONFIG"))
-		for _, e := range cmd.Env {
-			fmt.Println(e)
-		}
 		o, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(o))
 	})
