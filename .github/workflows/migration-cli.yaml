@@ -34,7 +34,8 @@ jobs:
           export BOTKUBE_BIN="$PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube"
           echo BOTKUBE_BIN="$PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
           echo KUBECONFIG="$KUBECONFIG" >> $GITHUB_ENV
-          alias botkube="$PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube"
+          file $HOME/.kube/config
+          file $PWD/.kube/config
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
