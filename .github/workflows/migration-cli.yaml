@@ -43,6 +43,13 @@ jobs:
       - name: Setup Kubernetes
         uses: medyagh/setup-minikube@latest
 
+      - name: Add botkube alias
+        run: |
+          minikube update-context
+          echo KUBECONFIG="$KUBECONFIG" >> $GITHUB_ENV
+          file $HOME/.kube/config
+          file $PWD/.kube/config
+
       - name: Run e2e tests for botkube client
         env:
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
