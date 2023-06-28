@@ -95,7 +95,7 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 	if exitCode != 0 {
 		return "", fmt.Errorf("got non-zero exit code, stdout [%q], stderr [%q]", stdout.String(), stderr.String())
 	}
-	return stdout.String(), nil
+	return stdout.String() + "\n" + stderr.String(), nil
 }
 
 func runErr(sout, serr string, err error) error {
