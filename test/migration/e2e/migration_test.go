@@ -68,6 +68,7 @@ func TestBotkubeMigration(t *testing.T) {
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
 			"--instance-name=test-migration",
 			"-q")
+		cmd.Env = os.Environ()
 		o, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(o))
 	})
