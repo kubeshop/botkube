@@ -96,6 +96,9 @@ func NewMigrate() *cobra.Command {
 			okCheck := color.New(color.FgGreen).FprintlnFunc()
 			okCheck(cmd.OutOrStdout(), "\nMigration Succeeded 🎉")
 
+			if opts.SkipConnect {
+				return nil
+			}
 			return browser.OpenURL(fmt.Sprintf("%s/instances/%s", opts.CloudDashboardURL, instanceID))
 		},
 	}
