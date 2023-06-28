@@ -63,7 +63,8 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
-		fmt.Println("Using tk for cloud: ", appCfg.APIToken, appCfg.GQLEndpoint)
+		fmt.Println("Endpoint", appCfg.GQLEndpoint)
+		fmt.Println("Using tk for cloud: ", appCfg.APIToken)
 		cmd := exec.Command(os.Getenv("BOTKUBE_BIN"), "migrate",
 			fmt.Sprintf("--token=%s", appCfg.APIToken),
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
