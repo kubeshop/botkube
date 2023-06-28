@@ -458,7 +458,6 @@ func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.CoreMessa
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 			BlockID:         uuid.New().String(),
-			CommandOrigin:   command.AutomationOrigin,
 		}
 		err := b.send(ctx, msgMetadata, msg)
 		if err != nil {

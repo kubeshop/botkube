@@ -53,6 +53,14 @@ func NewScheduler(log logrus.FieldLogger, cfg *config.Config, dispatcher pluginD
 // Start starts all sources and dispatch received events.
 func (d *Scheduler) Start(ctx context.Context) error {
 	for _, commGroupCfg := range d.cfg.Communications {
+		if commGroupCfg.CloudSlack.Enabled {
+			for _, channel := range commGroupCfg.CloudSlack.Channels {
+				if err := d.schedule(ctx, config.CloudSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+					return err
+				}
+			}
+		}
+
 		if commGroupCfg.Slack.Enabled {
 			for _, channel := range commGroupCfg.Slack.Channels {
 				if err := d.schedule(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
