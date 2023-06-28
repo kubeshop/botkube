@@ -317,7 +317,6 @@ func (b *CloudSlack) SendMessage(ctx context.Context, msg interactive.CoreMessag
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 			BlockID:         uuid.New().String(),
-			CommandOrigin:   command.AutomationOrigin,
 		}
 		err := b.send(ctx, msgMetadata, msg)
 		if err != nil {
