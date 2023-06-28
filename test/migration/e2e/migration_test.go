@@ -69,6 +69,11 @@ func TestBotkubeMigration(t *testing.T) {
 			"--instance-name=test-migration",
 			"-q")
 		cmd.Env = os.Environ()
+
+		fmt.Println("Kubeconfig: ", os.Getenv("KUBECONFIG"))
+		for _, e := range cmd.Env {
+			fmt.Println(e)
+		}
 		o, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(o))
 	})
