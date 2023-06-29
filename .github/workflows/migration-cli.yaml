@@ -52,7 +52,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
-          GQL_ENDPOINT: ${{ secrets.GQL_ENDPOINT }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
+          BOTKUBE_CLOUD_DEV_GQL_ENDPOINT: ${{ secrets.BOTKUBE_CLOUD_DEV_GQL_ENDPOINT }}
+          BOTKUBE_CLOUD_DEV_REFRESH_TOKEN: ${{ secrets.BOTKUBE_CLOUD_DEV_REFRESH_TOKEN }}
+          BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID: ${{ secrets.BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID }}
         run: |
           make test-migration-tool
