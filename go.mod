@@ -1,6 +1,7 @@
 module github.com/kubeshop/botkube
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/DanielTitkov/go-adaptive-cards v0.2.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alexflint/go-arg v1.4.3
@@ -73,7 +74,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.1 // indirect
 	cloud.google.com/go/iam v0.8.0 // indirect
 	cloud.google.com/go/storage v1.28.1 // indirect
-	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

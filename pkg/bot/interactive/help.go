@@ -33,7 +33,7 @@ func NewHelpMessage(platform config.CommPlatformIntegration, clusterName string,
 // Build returns help message with interactive sections.
 func (h *HelpMessage) Build() CoreMessage {
 	msg := CoreMessage{
-		Description: fmt.Sprintf("Botkube is now active for %q cluster :rocket:", h.clusterName),
+		Header: fmt.Sprintf(":rocket: Botkube instance %q is now active.", h.clusterName),
 	}
 
 	type getter func() []api.Section
@@ -42,10 +42,8 @@ func (h *HelpMessage) Build() CoreMessage {
 		h.ping,
 		h.notificationSections,
 		h.actionSections,
-		h.configSections,
 		h.executorSections,
 		h.pluginHelpSections,
-		h.feedback,
 		h.footer,
 	}
 	for _, add := range sections {
@@ -57,15 +55,33 @@ func (h *HelpMessage) Build() CoreMessage {
 
 func (h *HelpMessage) cluster() []api.Section {
 	switch h.platform {
-	case config.CloudSlackCommPlatformIntegration, config.SlackCommPlatformIntegration, config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
+	case config.SlackCommPlatformIntegration, config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
 		return []api.Section{
 			{
 				Base: api.Base{
-					Header:      "Using multiple instances",
-					Description: fmt.Sprintf("If you are running multiple Botkube instances in the same channel to interact with %s, make sure to specify the cluster name when typing commands.", h.clusterName),
+					Header:      "Multi-cluster mode",
+					Description: "If you have multiple clusters configured for this channel, specify the cluster name when typing commands.",
 					Body: api.Body{
 						CodeBlock: fmt.Sprintf("--cluster-name=%s\n", h.clusterName),
 					},
+				},
+			},
+		}
+	case config.CloudSlackCommPlatformIntegration:
+		return []api.Section{
+			{
+				BulletLists: []api.BulletList{
+					{
+						Title: "Multi-Cluster",
+						Items: []string{
+							fmt.Sprintf("Specify `--cluster-name=%s` flag to run a command on this cluster.", h.clusterName),
+							"Use `--all-clusters` flag to run commands on all clusters.",
+							"Use Cloud commands to manage connected instances and set per-channel defaults.",
+						},
+					},
+				},
+				Buttons: []api.Button{
+					h.btnBuilder.ForCommandWithDescCmd("List Cloud commands", "cloud help"),
 				},
 			},
 		}
@@ -78,24 +94,10 @@ func (h *HelpMessage) ping() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
-				Header:      "Ping your cluster",
-				Description: "Check the status of connected Kubernetes cluster(s).",
+				Header: "Ping your cluster to check its status",
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd("Check status", "ping"),
-			},
-		},
-	}
-}
-
-func (h *HelpMessage) feedback() []api.Section {
-	return []api.Section{
-		{
-			Base: api.Base{
-				Header: "Angry? Amazed?",
-			},
-			Buttons: []api.Button{
-				h.btnBuilder.DescriptionURL("Give feedback", "feedback", "https://feedback.botkube.io", api.ButtonStylePrimary),
+				h.btnBuilder.ForCommandWithDescCmd("Ping cluster", "ping"),
 			},
 		},
 	}
@@ -105,6 +107,7 @@ func (h *HelpMessage) footer() []api.Section {
 	return []api.Section{
 		{
 			Buttons: []api.Button{
+				h.btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", api.ButtonStylePrimary),
 				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
 				h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
 				h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
@@ -119,22 +122,21 @@ func (h *HelpMessage) notificationSections() []api.Section {
 			Base: api.Base{
 				Header: "Manage incoming notifications",
 				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s [enable|disable|status] notifications\n", api.MessageBotNamePlaceholder),
+					CodeBlock: fmt.Sprintf("%s [enable|disable|status] notifications", api.MessageBotNamePlaceholder),
 				},
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("Enable notifications", "enable notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Disable notifications", "disable notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
+				h.btnBuilder.ForCommand("Enable", "enable notifications"),
+				h.btnBuilder.ForCommand("Disable", "disable notifications"),
+				h.btnBuilder.ForCommand("Get status", "status notifications"),
 			},
 		},
 		{
 			Base: api.Base{
-				Header:      "Notification settings for this channel",
-				Description: "By default, Botkube will notify only about cluster errors and recommendations.",
+				Header: "Fine-tune your notifications for this channel",
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd("Adjust notifications", "edit SourceBindings", api.ButtonStylePrimary),
+				h.btnBuilder.ForCommandWithDescCmd("Adjust notifications", "edit SourceBindings"),
 			},
 		},
 	}
@@ -143,30 +145,8 @@ func (h *HelpMessage) notificationSections() []api.Section {
 func (h *HelpMessage) actionSections() []api.Section {
 	return []api.Section{
 		{
-			Base: api.Base{
-				Header: "Manage automated actions",
-				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s [list|enable|disable] action [action name]\n", api.MessageBotNamePlaceholder),
-				},
-			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("List available actions", "list actions"),
-			},
-		},
-	}
-}
-
-func (h *HelpMessage) configSections() []api.Section {
-	return []api.Section{
-		{
-			Base: api.Base{
-				Header: "View current Botkube configuration",
-				Body: api.Body{
-					CodeBlock: fmt.Sprintf("%s show config\n", api.MessageBotNamePlaceholder),
-				},
-			},
-			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("Display configuration", "show config"),
+				h.btnBuilder.ForURLWithBoldDesc("Automation help", "Automatically execute commands upon receiving events", "https://docs.botkube.io/usage/automated-actions"),
 			},
 		},
 	}
@@ -176,11 +156,12 @@ func (h *HelpMessage) executorSections() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
-				Header: "List executors and aliases",
+				Header: "Manage executors and aliases",
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd("List executors", "list executors"),
-				h.btnBuilder.ForCommandWithDescCmd("List executor aliases", "list aliases"),
+				h.btnBuilder.ForCommand("List executors", "list executors"),
+				h.btnBuilder.ForCommand("List aliases", "list aliases"),
+				h.btnBuilder.ForURL("Executors and aliases help", "https://docs.botkube.io/usage/executor"),
 			},
 		},
 	}

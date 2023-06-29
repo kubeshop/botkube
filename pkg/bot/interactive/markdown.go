@@ -133,6 +133,10 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		}
 
 		for _, btn := range section.Buttons {
+			if btn.DescriptionStyle == api.ButtonDescriptionStyleBold && btn.Description != "" {
+				addLine(mdFormatter.headerFormatter(btn.Description))
+			}
+
 			if btn.URL != "" {
 				addLine(fmt.Sprintf("%s: %s", btn.Name, btn.URL))
 				continue

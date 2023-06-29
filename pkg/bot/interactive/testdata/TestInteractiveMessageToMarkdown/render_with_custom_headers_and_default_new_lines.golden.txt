@@ -1,7 +1,6 @@
-Botkube is now active for "testing" cluster :rocket:
+*:rocket: Botkube instance "testing" is now active.*
 
-*Ping your cluster*
-Check the status of connected Kubernetes cluster(s).
+*Ping your cluster to check its status*
   • `@Botkube ping`
 
 *Manage incoming notifications*
@@ -12,35 +11,21 @@ Check the status of connected Kubernetes cluster(s).
   • `@Botkube disable notifications`
   • `@Botkube status notifications`
 
-*Notification settings for this channel*
-By default, Botkube will notify only about cluster errors and recommendations.
+*Fine-tune your notifications for this channel*
   • `@Botkube edit SourceBindings`
 
-*Manage automated actions*
-```
-@Botkube [list|enable|disable] action [action name]
-```
-  • `@Botkube list actions`
+*Automatically execute commands upon receiving events*
+Automation help: https://docs.botkube.io/usage/automated-actions
 
-*View current Botkube configuration*
-```
-@Botkube show config
-```
-  • `@Botkube show config`
-
-*List executors and aliases*
+*Manage executors and aliases*
   • `@Botkube list executors`
   • `@Botkube list aliases`
+Executors and aliases help: https://docs.botkube.io/usage/executor
 
 *Run kubectl commands (if enabled)*
-You can run kubectl commands directly from Platform!
-  • `@Botkube kubectl get services`
-  • `@Botkube kubectl get pods`
-  • `@Botkube kubectl get deployments`
+  • `@Botkube kubectl help`
 
-*Angry? Amazed?*
 Give feedback: https://feedback.botkube.io
-
 Read our docs: https://docs.botkube.io
 Join our Slack: https://join.botkube.io
 Follow us on Twitter: https://twitter.com/botkube_io
