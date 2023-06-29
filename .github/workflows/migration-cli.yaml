@@ -5,6 +5,8 @@ on:
     paths:
       - 'cmd/cli/**'
       - 'cmd/migration/**'
+env:
+  K3D_VERSION: v5.4.6
 
 jobs:
   e2e:
@@ -36,13 +38,11 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v3
 
-      - name: Setup Kubernetes
-        uses: medyagh/setup-minikube@latest
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
 
-      - name: Set KUBECONFIG
-        run: |
-          minikube update-context
-          echo KUBECONFIG="$HOME/.kube/config" >> $GITHUB_ENV
+      - name: Create k3d cluster
+        run: "k3d cluster create migration-test-cluster --wait --timeout=5m"
 
       - name: Run e2e tests for botkube client
         env:
@@ -54,4 +54,5 @@ jobs:
           BOTKUBE_CLOUD_DEV_REFRESH_TOKEN: ${{ secrets.BOTKUBE_CLOUD_DEV_REFRESH_TOKEN }}
           BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID: ${{ secrets.BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID }}
         run: |
-          make test-migration-tool
+          KUBECONFIG=$(k3d kubeconfig write migration-test-cluster) \
+            make test-migration-tool
