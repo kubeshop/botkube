@@ -1,11 +1,17 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
 
@@ -23,12 +29,14 @@ const (
 	--set executors.k8s-default-tools.botkube/kubectl.enabled=true \
 	--set analytics.disable=true \
 	botkube/botkube`
+	oauthURL = "https://botkube-dev.eu.auth0.com/oauth/token"
 )
 
 type Config struct {
-	APIToken    string
-	GQLEndpoint string
-	Discord     discordx.DiscordConfig
+	BotkubeCloudDevGQLEndpoint   string
+	BotkubeCloudDevRefreshToken  string
+	BotkubeCloudDevAuth0ClientID string
+	Discord                      discordx.DiscordConfig
 }
 
 func TestBotkubeMigration(t *testing.T) {
@@ -63,11 +71,11 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
-		fmt.Println("Endpoint", appCfg.GQLEndpoint)
-		fmt.Println("Using tk for cloud: ", appCfg.APIToken)
+		token, err := refreshAccessToken(appCfg)
+		require.NoError(t, err)
 		cmd := exec.Command(os.Getenv("BOTKUBE_BIN"), "migrate",
-			fmt.Sprintf("--token=%s", appCfg.APIToken),
-			fmt.Sprintf("--cloud-api-url=%s", appCfg.GQLEndpoint),
+			fmt.Sprintf("--token=%s", token),
+			fmt.Sprintf("--cloud-api-url=%s", appCfg.BotkubeCloudDevGQLEndpoint),
 			"--instance-name=test-migration",
 			"-q")
 		cmd.Env = os.Environ()
@@ -76,4 +84,40 @@ func TestBotkubeMigration(t *testing.T) {
 		require.NoError(t, err, string(o))
 	})
 
+}
+
+func refreshAccessToken(cfg Config) (string, error) {
+	type TokenMsg struct {
+		Token string `json:"access_token"`
+	}
+
+	payloadRequest := fmt.Sprintf("grant_type=refresh_token&client_id=%s&refresh_token=%s", cfg.BotkubeCloudDevAuth0ClientID, cfg.BotkubeCloudDevRefreshToken)
+	payload := strings.NewReader(payloadRequest)
+	req, err := http.NewRequest("POST", oauthURL, payload)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create request")
+	}
+
+	req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
+	var client = &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get response")
+	}
+
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read response body")
+	}
+
+	var tokenMsg TokenMsg
+	if err := json.Unmarshal(body, &tokenMsg); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal response body")
+	}
+	return tokenMsg.Token, nil
 }
