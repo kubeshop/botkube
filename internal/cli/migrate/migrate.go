@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
 
 	cliconfig "github.com/kubeshop/botkube/cmd/cli/cmd/config"
 	"github.com/kubeshop/botkube/internal/cli/printer"
@@ -28,7 +29,11 @@ import (
 
 const (
 	migrationName = "botkube-migration"
-	jobImage      = "docker.io/jkarasek/botkube-migration:v1.0.0"
+	jobImage      = "ghcr.io/kubeshop/botkube-migration"
+)
+
+var (
+	Tag = "latest"
 )
 
 // Run runs the migration process.
@@ -251,7 +256,8 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 			Name:      migrationName,
 			Namespace: botkubePod.Namespace,
 			Labels: map[string]string{
-				"app": migrationName,
+				"app":                  migrationName,
+				"botkube.io/migration": "true",
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -260,7 +266,7 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 					Containers: []corev1.Container{
 						{
 							Name:            migrationName,
-							Image:           jobImage,
+							Image:           fmt.Sprintf("%s:%s", jobImage, Tag),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env:             container.Env,
 							VolumeMounts:    container.VolumeMounts,
@@ -280,8 +286,10 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 }
 
 func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
+	var job *batchv1.Job
+	var err error
 	for i := 0; i < 30; i++ {
-		job, err := k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
+		job, err = k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -290,7 +298,13 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 		}
 		time.Sleep(2 * time.Second)
 	}
-	return fmt.Errorf("migration job failed")
+
+	dat, err := yaml.Marshal(job.Status)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("migration job failed: %s", string(dat))
 }
 
 func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) ([]byte, error) {

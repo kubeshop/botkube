@@ -1,6 +1,9 @@
+//go:build e2e
+
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,9 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
+	"golang.org/x/oauth2"
 
 	"github.com/kubeshop/botkube/test/discordx"
 	"github.com/kubeshop/botkube/test/helmx"
@@ -45,6 +50,13 @@ func TestBotkubeMigration(t *testing.T) {
 	err := envconfig.Init(&appCfg)
 	require.NoError(t, err)
 
+	token, err := refreshAccessToken(t, appCfg)
+	require.NoError(t, err)
+
+	t.Log("Pruning old instances...")
+	err = pruneInstances(t, appCfg.BotkubeCloudDevGQLEndpoint, token)
+	require.NoError(t, err)
+
 	t.Log("Initializing Discord...")
 	tester, err := discordx.New(appCfg.Discord)
 	require.NoError(t, err)
@@ -71,8 +83,6 @@ func TestBotkubeMigration(t *testing.T) {
 	t.Cleanup(func() { helmInstallCallback(t) })
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
-		token, err := refreshAccessToken(appCfg)
-		require.NoError(t, err)
 		cmd := exec.Command(os.Getenv("BOTKUBE_BIN"), "migrate",
 			fmt.Sprintf("--token=%s", token),
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.BotkubeCloudDevGQLEndpoint),
@@ -86,7 +96,40 @@ func TestBotkubeMigration(t *testing.T) {
 
 }
 
-func refreshAccessToken(cfg Config) (string, error) {
+func pruneInstances(t *testing.T, url, token string) error {
+	t.Helper()
+
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+	client := graphql.NewClient(url, httpClient)
+
+	var query struct {
+		Deployments struct {
+			Data []struct {
+				ID string `graphql:"id"`
+			}
+		} `graphql:"deployments()"`
+	}
+	err := client.Query(context.Background(), &query, map[string]interface{}{})
+	require.NoError(t, err)
+
+	for _, deployment := range query.Deployments.Data {
+		var mutation struct {
+			Success bool `graphql:"deleteDeployment(id: $id)"`
+		}
+		err := client.Mutate(context.Background(), &mutation, map[string]interface{}{
+			"id": graphql.ID(deployment.ID),
+		})
+		require.NoError(t, err)
+	}
+	return nil
+}
+
+func refreshAccessToken(t *testing.T, cfg Config) (string, error) {
+	t.Helper()
+
 	type TokenMsg struct {
 		Token string `json:"access_token"`
 	}

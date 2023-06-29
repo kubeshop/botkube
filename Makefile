@@ -24,7 +24,7 @@ test-integration-discord: system-check
 	@go test -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
 
 test-migration-tool: system-check
-	@go test -v -race -count=1 ./test/migration/e2e/...
+	@go test -v -tags=e2e -race -count=1 ./test/migration/e2e/...
 
 # Build the binary
 build: pre-build
@@ -59,9 +59,8 @@ container-image-single: pre-build
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
-# Build botkube cli
-release-botkube-cli:
-	@./hack/goreleaser.sh build_botkube_cli
+release-snapshot-cli:
+	@./hack/goreleaser.sh release_snapshot_cli
 
 # Build project and save images with IMAGE_TAG tag
 save-images:
