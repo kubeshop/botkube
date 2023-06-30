@@ -28,7 +28,11 @@ import (
 
 const (
 	migrationName = "botkube-migration"
-	jobImage      = "docker.io/jkarasek/botkube-migration:v1.0.0"
+	jobImage      = "ghcr.io/kubeshop/botkube-migration"
+)
+
+var (
+	Tag = "latest"
 )
 
 // Run runs the migration process.
@@ -260,7 +264,7 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 					Containers: []corev1.Container{
 						{
 							Name:            migrationName,
-							Image:           jobImage,
+							Image:           fmt.Sprintf("%s:%s-amd64", jobImage, Tag),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env:             container.Env,
 							VolumeMounts:    container.VolumeMounts,

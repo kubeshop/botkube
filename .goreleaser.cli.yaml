@@ -3,6 +3,7 @@ project_name: botkube-cli
 env:
   - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
   - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY"  }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
+  - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
 
 before:
   hooks:
@@ -12,6 +13,9 @@ builds:
   - id: botkube-cli
     binary: botkube
     main: cmd/cli/main.go
+    ldflags:
+      - -s -w
+        -X github.com/kubeshop/botkube/internal/cli/migrate.Tag={{ .Env.IMAGE_TAG }}
     env:
       - CGO_ENABLED=0
     goos:
@@ -24,7 +28,7 @@ builds:
       - "7"
   - id: botkube-cloud-migration
     binary: botkube-cloud-migration
-    main: cmd/migration/main.go
+    main: cmd/config-exporter/main.go
     env:
       - CGO_ENABLED=0
     goos:
@@ -37,7 +41,7 @@ builds:
       - "7"
 dockers:
   - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:latest-amd64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
     use: buildx
     dockerfile: "build/Dockerfile.migration"
     build_flag_templates:
