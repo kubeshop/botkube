@@ -99,6 +99,7 @@ build_botkube_cli() {
     -v /var/run/docker.sock:/var/run/docker.sock \
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
+    -e IMAGE_TAG=${IMAGE_TAG} \
     goreleaser/goreleaser release -f .goreleaser.cli.yaml --rm-dist --snapshot --skip-publish
 }
 

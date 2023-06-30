@@ -1,9 +1,9 @@
 project_name: botkube-cli
 
 env:
-  - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
+  - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY" }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
   - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY" }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
-  - IMAGE_TAG={{ if index .Env "IMAGE_TAG" }}{{ .Env.IMAGE_TAG }}{{ else }}latest{{ end }}
+  - IMAGE_TAG={{ if index .Env "IMAGE_TAG" }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
 
 before:
   hooks:
@@ -41,7 +41,7 @@ builds:
       - "7"
 dockers:
   - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{.Env.IMAGE_TAG}}"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     use: buildx
     dockerfile: "build/Dockerfile.migration"
     build_flag_templates:
