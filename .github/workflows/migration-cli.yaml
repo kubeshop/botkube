@@ -39,6 +39,10 @@ jobs:
 
       - name: Push Config Exporter Image
         run: docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}
+        env:
+          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          IMAGE_REPOSITORY: ${{ env.IMAGE_REPOSITORY }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
 
       - name: Add botkube alias
         run: |
