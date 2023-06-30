@@ -9,7 +9,7 @@ env:
   K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube-migration"
-  IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
+  IMAGE_TAG: ${{ github.event.pull_request.head.sha }}
 
 jobs:
   e2e:
@@ -37,8 +37,8 @@ jobs:
       - name: Run GoReleaser
         run: make release-botkube-cli
 
-      - name: Push Migration Tool Image
-        run: docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}-amd64
+      - name: Push Config Exporter Image
+        run: docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}
 
       - name: Add botkube alias
         run: |
