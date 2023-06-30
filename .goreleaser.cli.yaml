@@ -41,7 +41,7 @@ builds:
       - "7"
 dockers:
   - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     use: buildx
     dockerfile: "build/Dockerfile.migration"
     build_flag_templates:
