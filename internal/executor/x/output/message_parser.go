@@ -51,10 +51,7 @@ func (p *CommandParser) RenderMessage(cmd, output string, state *state.Container
 	var sections []api.Section
 
 	// dropdowns
-	dropdowns, selectedIdx, err := p.renderDropdowns(msg.Selects, out.Table, cmd, state)
-	if err != nil {
-		return api.Message{}, err
-	}
+	dropdowns, selectedIdx := p.renderDropdowns(msg.Selects, out.Table, cmd, state)
 	sections = append(sections, dropdowns)
 	// preview
 	preview, err := p.renderPreview(msg, out, selectedIdx)
@@ -160,8 +157,7 @@ func (*CommandParser) getPreviewLine(lines []string, idx int) string {
 	return lines[1] // otherwise default first line
 }
 
-func (p *CommandParser) renderDropdowns(selects []template.Select, commandData parser.Table, cmd string, state *state.Container) (api.Section, int, error) {
-
+func (p *CommandParser) renderDropdowns(selects []template.Select, commandData parser.Table, cmd string, state *state.Container) (api.Section, int) {
 	var (
 		dropdowns       []api.Select
 		lastSelectedIdx int
@@ -184,7 +180,7 @@ func (p *CommandParser) renderDropdowns(selects []template.Select, commandData p
 			ID:    state.GetSelectsBlockID(),
 			Items: dropdowns,
 		},
-	}, lastSelectedIdx, nil
+	}, lastSelectedIdx
 }
 
 func (p *CommandParser) selectDropdown(name, cmd, keyTpl string, table parser.Table, state *state.Container) (*api.Select, int) {

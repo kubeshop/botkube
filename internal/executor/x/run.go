@@ -2,7 +2,6 @@ package x
 
 import (
 	"context"
-	"os"
 
 	"github.com/gookit/color"
 	"github.com/sirupsen/logrus"
@@ -28,7 +27,7 @@ func NewRunner(log logrus.FieldLogger, renderer *Renderer) *Runner {
 	}
 }
 
-func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, tool string) (executor.ExecuteOutput, error) {
+func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, tool string, kubeconfigPath string) (executor.ExecuteOutput, error) {
 	cmd := Parse(tool)
 
 	templates, err := getter.Load[template.Template](ctx, cfg.TmpDir.GetDirectory(), cfg.Templates)
@@ -43,15 +42,12 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 		}).Info("Command template")
 	}
 
-	cmdTemplate, found := template.FindWithPrefix(templates, cmd.ToExecute)
-
-	var out string
-	if !found || cmdTemplate.Type != "tutorial" {
-		out, err = runCmd(ctx, cfg.TmpDir, cmd.ToExecute)
-		if err != nil {
-			i.log.WithError(err).WithField("command", cmd.ToExecute).Error("failed to run command")
-			return executor.ExecuteOutput{}, err
-		}
+	out, err := runCmd(ctx, cfg.TmpDir, cmd.ToExecute, map[string]string{
+		"KUBECONFIG": kubeconfigPath,
+	})
+	if err != nil {
+		i.log.WithError(err).WithField("command", cmd.ToExecute).Error("failed to run command")
+		return executor.ExecuteOutput{}, err
 	}
 
 	if cmd.IsRawRequired {
@@ -61,6 +57,7 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 		}, nil
 	}
 
+	cmdTemplate, found := template.FindWithPrefix(templates, cmd.ToExecute)
 	if !found {
 		i.log.Info("Templates config not found for command")
 		return executor.ExecuteOutput{
@@ -68,7 +65,7 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 		}, nil
 	}
 
-	render, err := i.renderer.Get(cmdTemplate.Type) // Message.Type
+	render, err := i.renderer.Get(cmdTemplate.Type)
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
@@ -82,15 +79,15 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 	}, nil
 }
 
-func runCmd(ctx context.Context, tmp plugin.TmpDir, in string) (string, error) {
+func runCmd(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
 	path, custom := tmp.Get()
 	if custom {
-		// FIXME: get rid of it
-		defer os.Setenv("PLUGIN_DEPENDENCY_DIR", os.Getenv("PLUGIN_DEPENDENCY_DIR"))
-		os.Setenv("PLUGIN_DEPENDENCY_DIR", path)
+		// we installed all assets in different directory, e.g. because we run it locally,
+		// so we override the default deps path
+		envs[plugin.DependencyDirEnvName] = path
 	}
 
-	out, err := pluginx.ExecuteCommand(ctx, in)
+	out, err := pluginx.ExecuteCommandWithEnvs(ctx, in, envs)
 	if err != nil {
 		return "", err
 	}

@@ -26,6 +26,7 @@ type TableSpace struct{}
 func (*TableSpace) TableSeparated(in string) TableOutput {
 	var out TableOutput
 	in = replaceTabsWithSpaces(in)
+	in = strings.TrimSpace(in)
 	scanner := bufio.NewScanner(strings.NewReader(in))
 
 	// Parse the headers

@@ -70,8 +70,13 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 	}
 
 	bin, binArgs := args[0], args[1:]
-	depDir, found := os.LookupEnv(plugin.DependencyDirEnvName)
-	if found {
+	if depDir, found := os.LookupEnv(plugin.DependencyDirEnvName); found {
+		// Use exactly the binary from the $PLUGIN_DEPENDENCY_DIR directory
+		bin = fmt.Sprintf("%s/%s", depDir, bin)
+	}
+
+	// allow to override it if needed
+	if depDir, found := envs[plugin.DependencyDirEnvName]; found {
 		// Use exactly the binary from the $PLUGIN_DEPENDENCY_DIR directory
 		bin = fmt.Sprintf("%s/%s", depDir, bin)
 	}

@@ -32,7 +32,7 @@ func Load[T any](ctx context.Context, tmpDir string, templateSources []Source) (
 			return nil
 		}
 
-		file, err := os.ReadFile(path)
+		file, err := os.ReadFile(filepath.Clean(path))
 		if err != nil {
 			return err
 		}

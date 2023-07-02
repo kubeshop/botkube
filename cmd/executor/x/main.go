@@ -119,7 +119,14 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		log.WithField("tool", tool).Info("Running command...")
 
 		state := state.ExtractSlackState(in.Context.SlackState)
-		return x.NewRunner(log, renderer).Run(ctx, cfg, state, tool)
+
+		kubeConfigPath, deleteFn, err := i.getKubeconfig(ctx, log, in)
+		defer deleteFn()
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
+
+		return x.NewRunner(log, renderer).Run(ctx, cfg, state, tool, kubeConfigPath)
 	case cmd.Install != nil:
 		var (
 			tool          = Normalize(strings.Join(cmd.Install.Tool, " "))
@@ -148,6 +155,23 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 	}, nil
 }
 
+func (i *XExecutor) getKubeconfig(ctx context.Context, log logrus.FieldLogger, in executor.ExecuteInput) (string, func(), error) {
+	if len(in.Context.KubeConfig) == 0 {
+		return "", func() {}, nil
+	}
+	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	if err != nil {
+		return "", func() {}, fmt.Errorf("while writing kubeconfig file: %w", err)
+	}
+
+	return kubeConfigPath, func() {
+		err := deleteFn(ctx)
+		if err != nil {
+			log.WithError(err).WithField("kubeconfigPath", kubeConfigPath).Error("Failed to delete kubeconfig file")
+		}
+	}, nil
+}
+
 func main() {
 	executor.Serve(map[string]plugin.Plugin{
 		pluginName: &executor.Plugin{
@@ -160,28 +184,32 @@ func main() {
 func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "x",
-			  "description": "Install and run CLIs directly from chat window without hassle. All magic included.",
-			  "type": "object",
-			  "properties": {
-    "templates": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "ref": {
-            "type": "string",
-            "default": "github.com/mszostok/botkube-plugins//x-templates?ref=hackathon"
-          }
-        },
-        "required": ["ref"],
-        "additionalProperties": false
-      }
-    }
-  },
-  "required": ["templates"]
-			}`),
+		  "$schema": "http://json-schema.org/draft-07/schema#",
+		  "title": "x",
+		  "description": "Install and run CLIs directly from chat window without hassle. All magic included.",
+		  "type": "object",
+		  "properties": {
+			"templates": {
+			  "type": "array",
+			  "items": {
+				"type": "object",
+				"properties": {
+				  "ref": {
+					"type": "string",
+					"default": "github.com/mszostok/botkube-plugins//x-templates?ref=hackathon"
+				  }
+				},
+				"required": [
+				  "ref"
+				],
+				"additionalProperties": false
+			  }
+			}
+		  },
+		  "required": [
+			"templates"
+		  ]
+		}`),
 	}
 }
 

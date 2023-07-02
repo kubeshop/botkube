@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.18
 ARG botkube_version="dev"
 LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.title="Botkube" \
@@ -8,6 +8,11 @@ LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.licenses="MIT"
 
 COPY botkube /usr/local/bin/botkube
+
+RUN apk add --no-cache 'git=>2.38' 'openssh=~9.3' && \
+    mkdir /root/.ssh && \
+    chmod 700 /root/.ssh && \
+    ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
 # Create Non Privileged user
 RUN addgroup --gid 1001 botkube && \

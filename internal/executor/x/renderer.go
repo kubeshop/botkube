@@ -63,7 +63,6 @@ func (r *Renderer) Get(output string) (Render, error) {
 	printer, found := r.renderer[output]
 	if found {
 		return printer, nil
-
 	}
 	keys := maps.Keys(r.renderer)
 	for _, key := range keys {
