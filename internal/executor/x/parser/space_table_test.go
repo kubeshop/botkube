@@ -32,6 +32,7 @@ func TestTableSpaceSeparated(t *testing.T) {
 	}
 
 	parserTable := &TableSpace{}
+
 	// when
 	actual := parserTable.TableSeparated(input)
 

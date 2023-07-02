@@ -8,16 +8,19 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/mathx"
 )
 
+// Table holds table data.
 type Table struct {
 	Headers []string
 	Rows    [][]string
 }
 
+// TableOutput returns table output.
 type TableOutput struct {
 	Table Table
 	Lines []string
 }
 
+// TableSpace destructs table sparated by spaces.
 type TableSpace struct{}
 
 // TableSeparated takes a string input and returns a slice of slices containing the separated values in each row

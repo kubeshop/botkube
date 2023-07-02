@@ -4,44 +4,36 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/kubeshop/botkube/pkg/api"
 )
 
 type (
+	// Template represents a template for message parsing.
 	Template struct {
 		Type         string       `yaml:"type"`
 		Trigger      Trigger      `yaml:"trigger"`
 		ParseMessage ParseMessage `yaml:"-"`
 	}
 
+	// Trigger represents the trigger configuration for a template.
 	Trigger struct {
 		Command string `yaml:"command"`
 	}
 
+	// ParseMessage holds template for message that will be parsed by defined parser.
 	ParseMessage struct {
 		Selects []Select          `yaml:"selects"`
 		Actions map[string]string `yaml:"actions"`
 		Preview string            `yaml:"preview"`
 	}
-	WrapMessage struct {
-		Buttons api.Buttons `yaml:"buttons"`
-	}
-	TutorialMessage struct {
-		Buttons  api.Buttons `yaml:"buttons"`
-		Header   string      `yaml:"header"`
-		Paginate Paginate    `yaml:"paginate"`
-	}
-	Paginate struct {
-		Page        int `yaml:"page"`
-		CurrentPage int `yaml:"-"`
-	}
+	// Select holds template select primitive definition.
 	Select struct {
 		Name   string `yaml:"name"`
 		KeyTpl string `yaml:"keyTpl"`
 	}
 )
 
+// UnmarshalYAML is a custom unmarshaler for Template allowing to unmarshal into a proper struct
+// base on defined template type.
 func (su *Template) UnmarshalYAML(node *yaml.Node) error {
 	var data struct {
 		Type    string  `yaml:"type"`
@@ -69,6 +61,7 @@ func (su *Template) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// FindWithPrefix finds a template with a matching command prefix.
 func FindWithPrefix(tpls []Template, cmd string) (Template, bool) {
 	for idx := range tpls {
 		item := tpls[idx]

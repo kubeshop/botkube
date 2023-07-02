@@ -9,10 +9,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Source holds information about source location.
 type Source struct {
 	Ref string `yaml:"ref"`
 }
 
+// Load downloads defined sources and read them from the FS.
 func Load[T any](ctx context.Context, tmpDir string, templateSources []Source) ([]T, error) {
 	err := EnsureDownloaded(ctx, templateSources, tmpDir)
 	if err != nil {

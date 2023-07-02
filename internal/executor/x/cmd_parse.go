@@ -16,12 +16,14 @@ const (
 	PageIndexIndicator   = "@page:"
 )
 
+// Command holds command details.
 type Command struct {
 	ToExecute     string
 	IsRawRequired bool
 	PageIndex     int
 }
 
+// Parse returns parsed command string.
 func Parse(cmd string) Command {
 	out := Command{
 		ToExecute: cmd,

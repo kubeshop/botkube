@@ -7,14 +7,14 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-type (
-	Config struct {
-		Templates []getter.Source `yaml:"templates"`
-		TmpDir    plugin.TmpDir   `yaml:"tmpDir"`
-		Logger    config.Logger
-	}
-)
+// Config holds x plugin configuration.
+type Config struct {
+	Templates []getter.Source `yaml:"templates"`
+	TmpDir    plugin.TmpDir   `yaml:"tmpDir"`
+	Logger    config.Logger
+}
 
+// GetPluginDependencies returns x plugin dependencies.
 func GetPluginDependencies() map[string]api.Dependency {
 	return map[string]api.Dependency{
 		"eget": {

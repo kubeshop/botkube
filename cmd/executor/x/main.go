@@ -140,9 +140,9 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			"downloadCmd": downloadCmd,
 		}).Info("Installing binary...")
 
-		if _, err := pluginx.ExecuteCommandWithEnvs(ctx, downloadCmd, map[string]string{
+		if _, err := pluginx.ExecuteCommand(ctx, downloadCmd, pluginx.ExecuteCommandEnvs(map[string]string{
 			"EGET_BIN": dir,
-		}); err != nil {
+		})); err != nil {
 			return executor.ExecuteOutput{}, err
 		}
 

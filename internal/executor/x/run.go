@@ -2,6 +2,7 @@ package x
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gookit/color"
 	"github.com/sirupsen/logrus"
@@ -15,11 +16,13 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
+// Runner runs command and parse its output if needed.
 type Runner struct {
 	renderer *Renderer
 	log      logrus.FieldLogger
 }
 
+// NewRunner returns a new Runner instance.
 func NewRunner(log logrus.FieldLogger, renderer *Renderer) *Runner {
 	return &Runner{
 		log:      log,
@@ -27,6 +30,7 @@ func NewRunner(log logrus.FieldLogger, renderer *Renderer) *Runner {
 	}
 }
 
+// Run runs a given command and parse its output if needed.
 func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, tool string, kubeconfigPath string) (executor.ExecuteOutput, error) {
 	cmd := Parse(tool)
 
@@ -80,16 +84,27 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 }
 
 func runCmd(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
+	opts := []pluginx.ExecuteCommandMutation{
+		pluginx.ExecuteCommandEnvs(envs),
+	}
+
 	path, custom := tmp.Get()
 	if custom {
 		// we installed all assets in different directory, e.g. because we run it locally,
 		// so we override the default deps path
-		envs[plugin.DependencyDirEnvName] = path
+		opts = append(opts, pluginx.ExecuteCommandDependencyDir(path))
 	}
 
-	out, err := pluginx.ExecuteCommandWithEnvs(ctx, in, envs)
+	out, err := pluginx.ExecuteCommand(ctx, in, opts...)
 	if err != nil {
 		return "", err
 	}
-	return color.ClearCode(out), nil
+
+	var str strings.Builder
+	str.WriteString(color.ClearCode(out.Stdout))
+	if out.Stderr != "" {
+		str.WriteString("\n")
+		str.WriteString(color.ClearCode(out.Stderr))
+	}
+	return strings.TrimSpace(str.String()), nil
 }

@@ -16,17 +16,20 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 )
 
+// Parser defines
 type Parser interface {
 	TableSeparated(in string) parser.TableOutput
 }
 
-type CommandParser struct {
+// TableCommandParser allows to render table command output into interactive message based on registered templates.
+type TableCommandParser struct {
 	parsers map[string]Parser
 	log     logrus.FieldLogger
 }
 
-func NewTableCommandParser(log logrus.FieldLogger) *CommandParser {
-	return &CommandParser{
+// NewTableCommandParser returns a new TableCommandParser instance.
+func NewTableCommandParser(log logrus.FieldLogger) *TableCommandParser {
+	return &TableCommandParser{
 		log: log,
 		parsers: map[string]Parser{
 			"space": &parser.TableSpace{},
@@ -34,7 +37,8 @@ func NewTableCommandParser(log logrus.FieldLogger) *CommandParser {
 	}
 }
 
-func (p *CommandParser) RenderMessage(cmd, output string, state *state.Container, msgCtx *template.Template) (api.Message, error) {
+// RenderMessage renders the output string based on a given template.
+func (p *TableCommandParser) RenderMessage(cmd, output string, state *state.Container, msgCtx *template.Template) (api.Message, error) {
 	msg := msgCtx.ParseMessage
 	parserType := strings.TrimPrefix(msgCtx.Type, "parser:table:")
 	parser, found := p.parsers[parserType]
@@ -74,7 +78,7 @@ func (p *CommandParser) RenderMessage(cmd, output string, state *state.Container
 	}, nil
 }
 
-func (p *CommandParser) renderActions(msgCtx template.ParseMessage, table parser.Table, cmd string, idx int) (api.Section, error) {
+func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table parser.Table, cmd string, idx int) (api.Section, error) {
 	if idx >= len(table.Rows) {
 		idx = len(table.Rows) - 1
 	}
@@ -116,7 +120,7 @@ func (p *CommandParser) renderActions(msgCtx template.ParseMessage, table parser
 	}, nil
 }
 
-func (p *CommandParser) renderPreview(msgCtx template.ParseMessage, out parser.TableOutput, requestedRow int) (api.Section, error) {
+func (p *TableCommandParser) renderPreview(msgCtx template.ParseMessage, out parser.TableOutput, requestedRow int) (api.Section, error) {
 	headerLine := out.Lines[0]
 
 	if requestedRow >= len(out.Table.Rows) {
@@ -144,7 +148,7 @@ func (p *CommandParser) renderPreview(msgCtx template.ParseMessage, out parser.T
 	}, nil
 }
 
-func (*CommandParser) getPreviewLine(lines []string, idx int) string {
+func (*TableCommandParser) getPreviewLine(lines []string, idx int) string {
 	if len(lines) < 2 { // exclude the first line for the header
 		return ""
 	}
@@ -157,7 +161,7 @@ func (*CommandParser) getPreviewLine(lines []string, idx int) string {
 	return lines[1] // otherwise default first line
 }
 
-func (p *CommandParser) renderDropdowns(selects []template.Select, commandData parser.Table, cmd string, state *state.Container) (api.Section, int) {
+func (p *TableCommandParser) renderDropdowns(selects []template.Select, commandData parser.Table, cmd string, state *state.Container) (api.Section, int) {
 	var (
 		dropdowns       []api.Select
 		lastSelectedIdx int
@@ -183,7 +187,7 @@ func (p *CommandParser) renderDropdowns(selects []template.Select, commandData p
 	}, lastSelectedIdx
 }
 
-func (p *CommandParser) selectDropdown(name, cmd, keyTpl string, table parser.Table, state *state.Container) (*api.Select, int) {
+func (p *TableCommandParser) selectDropdown(name, cmd, keyTpl string, table parser.Table, state *state.Container) (*api.Select, int) {
 	log := p.log.WithField("selectName", name)
 	var options []api.OptionItem
 	for idx, row := range table.Rows {
@@ -229,7 +233,7 @@ func (p *CommandParser) selectDropdown(name, cmd, keyTpl string, table parser.Ta
 	}, idx
 }
 
-func (*CommandParser) resolveSelectIdx(state *state.Container, selectID string) int {
+func (*TableCommandParser) resolveSelectIdx(state *state.Container, selectID string) int {
 	item := state.GetField(selectID)
 	if item == "" {
 		return 0
@@ -240,7 +244,7 @@ func (*CommandParser) resolveSelectIdx(state *state.Container, selectID string) 
 	return val
 }
 
-func (*CommandParser) renderGoTemplate(tpl string, cols, rows []string) (string, error) {
+func (*TableCommandParser) renderGoTemplate(tpl string, cols, rows []string) (string, error) {
 	data := map[string]string{}
 	for idx, col := range cols {
 		col = xstrings.ToCamelCase(strings.ToLower(col))

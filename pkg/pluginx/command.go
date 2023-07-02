@@ -46,15 +46,22 @@ func ParseCommand(pluginName, command string, destination any) error {
 	return nil
 }
 
-// ExecuteCommand is a simple wrapper around exec.CommandContext to simplify running a given
-// command.
-func ExecuteCommand(ctx context.Context, rawCmd string) (string, error) {
-	return ExecuteCommandWithEnvs(ctx, rawCmd, nil)
+// ExecuteCommandOutput holds ExecuteCommand output.
+type ExecuteCommandOutput struct {
+	Stdout   string
+	Stderr   string
+	ExitCode int
 }
 
-// ExecuteCommandWithEnvs is a simple wrapper around exec.CommandContext to simplify running a given
-// command.
-func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]string) (string, error) {
+// ExecuteCommand is a simple wrapper around exec.CommandContext to simplify running a given command.
+func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteCommandMutation) (ExecuteCommandOutput, error) {
+	opts := ExecuteCommandOptions{
+		DependencyDir: os.Getenv(plugin.DependencyDirEnvName),
+	}
+	for _, mutate := range mutators {
+		mutate(&opts)
+	}
+
 	var stdout, stderr bytes.Buffer
 
 	parser := shellwords.NewParser()
@@ -62,23 +69,17 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 	parser.ParseBacktick = false
 	args, err := parser.Parse(rawCmd)
 	if err != nil {
-		return "", err
+		return ExecuteCommandOutput{}, err
 	}
 
 	if len(args) < 1 {
-		return "", fmt.Errorf("invalid raw command: %q", rawCmd)
+		return ExecuteCommandOutput{}, fmt.Errorf("invalid raw command: %q", rawCmd)
 	}
 
 	bin, binArgs := args[0], args[1:]
-	if depDir, found := os.LookupEnv(plugin.DependencyDirEnvName); found {
-		// Use exactly the binary from the $PLUGIN_DEPENDENCY_DIR directory
-		bin = fmt.Sprintf("%s/%s", depDir, bin)
-	}
-
-	// allow to override it if needed
-	if depDir, found := envs[plugin.DependencyDirEnvName]; found {
-		// Use exactly the binary from the $PLUGIN_DEPENDENCY_DIR directory
-		bin = fmt.Sprintf("%s/%s", depDir, bin)
+	if opts.DependencyDir != "" {
+		// Use exactly the binary from the dependency  directory
+		bin = fmt.Sprintf("%s/%s", opts.DependencyDir, bin)
 	}
 
 	//nolint:gosec // G204: Subprocess launched with a potential tainted input or cmd arguments
@@ -88,19 +89,23 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 
 	cmd.Env = append(cmd.Env, os.Environ()...)
 
-	for key, value := range envs {
+	for key, value := range opts.Envs {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	if err = cmd.Run(); err != nil {
-		return "", runErr(stdout.String(), stderr.String(), err)
+	err = cmd.Run()
+	out := ExecuteCommandOutput{
+		Stdout:   stdout.String(),
+		Stderr:   stderr.String(),
+		ExitCode: cmd.ProcessState.ExitCode(),
 	}
-
-	exitCode := cmd.ProcessState.ExitCode()
-	if exitCode != 0 {
-		return "", fmt.Errorf("got non-zero exit code, stdout [%q], stderr [%q]", stdout.String(), stderr.String())
+	if err != nil {
+		return out, runErr(stdout.String(), stderr.String(), err)
 	}
-	return stdout.String() + "\n" + stderr.String(), nil
+	if out.ExitCode != 0 {
+		return out, fmt.Errorf("got non-zero exit code, stdout [%q], stderr [%q]", stdout.String(), stderr.String())
+	}
+	return out, nil
 }
 
 func runErr(sout, serr string, err error) error {
