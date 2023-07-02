@@ -31,8 +31,13 @@ func NewRunner(log logrus.FieldLogger, renderer *Renderer) *Runner {
 }
 
 // Run runs a given command and parse its output if needed.
-func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, tool string, kubeconfigPath string) (executor.ExecuteOutput, error) {
-	cmd := Parse(tool)
+func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cmd Command, out string) (executor.ExecuteOutput, error) {
+	if cmd.IsRawRequired {
+		i.log.Info("Raw output was explicitly requested")
+		return executor.ExecuteOutput{
+			Message: api.NewCodeBlockMessage(out, true),
+		}, nil
+	}
 
 	templates, err := getter.Load[template.Template](ctx, cfg.TmpDir.GetDirectory(), cfg.Templates)
 	if err != nil {
@@ -43,22 +48,7 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 		i.log.WithFields(logrus.Fields{
 			"trigger": tpl.Trigger.Command,
 			"type":    tpl.Type,
-		}).Info("Command template")
-	}
-
-	out, err := runCmd(ctx, cfg.TmpDir, cmd.ToExecute, map[string]string{
-		"KUBECONFIG": kubeconfigPath,
-	})
-	if err != nil {
-		i.log.WithError(err).WithField("command", cmd.ToExecute).Error("failed to run command")
-		return executor.ExecuteOutput{}, err
-	}
-
-	if cmd.IsRawRequired {
-		i.log.Info("Raw output was explicitly requested")
-		return executor.ExecuteOutput{
-			Message: api.NewCodeBlockMessage(out, true),
-		}, nil
+		}).Debug("Command template")
 	}
 
 	cmdTemplate, found := template.FindWithPrefix(templates, cmd.ToExecute)
@@ -83,7 +73,8 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, to
 	}, nil
 }
 
-func runCmd(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
+// RunInstalledCommand runs a given user command for already installed CLIs.
+func RunInstalledCommand(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
 	opts := []pluginx.ExecuteCommandMutation{
 		pluginx.ExecuteCommandEnvs(envs),
 	}

@@ -113,17 +113,20 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 	renderer := x.NewRenderer()
 	err = renderer.RegisterAll(map[string]x.Render{
 		"parser:table:.*": output.NewTableCommandParser(log),
+		"wrapper":         output.NewCommandWrapper(),
 	})
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
+	runner := x.NewRunner(log, renderer)
+
+	state := state.ExtractSlackState(in.Context.SlackState)
+
 	switch {
 	case cmd.Run != nil:
 		tool := Normalize(strings.Join(cmd.Run.Tool, " "))
 		log.WithField("tool", tool).Info("Running command...")
-
-		state := state.ExtractSlackState(in.Context.SlackState)
 
 		kubeConfigPath, deleteFn, err := i.getKubeconfig(ctx, log, in)
 		defer deleteFn()
@@ -131,10 +134,20 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			return executor.ExecuteOutput{}, err
 		}
 
-		return x.NewRunner(log, renderer).Run(ctx, cfg, state, tool, kubeConfigPath)
+		command := x.Parse(tool)
+		out, err := x.RunInstalledCommand(ctx, cfg.TmpDir, command.ToExecute, map[string]string{
+			"KUBECONFIG": kubeConfigPath,
+		})
+		if err != nil {
+			log.WithError(err).WithField("command", command.ToExecute).Error("failed to run command")
+			return executor.ExecuteOutput{}, err
+		}
+
+		return runner.Run(ctx, cfg, state, command, out)
 	case cmd.Install != nil:
 		var (
 			tool          = Normalize(strings.Join(cmd.Install.Tool, " "))
+			command       = x.Parse(fmt.Sprintf("x install %s", tool))
 			dir, isCustom = cfg.TmpDir.Get()
 			downloadCmd   = fmt.Sprintf("eget %s", tool)
 		)
@@ -142,7 +155,8 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		log.WithFields(logrus.Fields{
 			"dir":         dir,
 			"isCustom":    isCustom,
-			"downloadCmd": downloadCmd,
+			"userCommand": command.ToExecute,
+			"runCommand":  downloadCmd,
 		}).Info("Installing binary...")
 
 		if _, err := pluginx.ExecuteCommand(ctx, downloadCmd, pluginx.ExecuteCommandEnvs(map[string]string{
@@ -151,9 +165,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			return executor.ExecuteOutput{}, err
 		}
 
-		return executor.ExecuteOutput{
-			Message: api.NewPlaintextMessage("Binary was installed successfully", false),
-		}, nil
+		return runner.Run(ctx, cfg, state, command, "Binary was installed successfully 🎉")
 	}
 	return executor.ExecuteOutput{
 		Message: api.NewPlaintextMessage("Command not supported", false),

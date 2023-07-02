@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubeshop/botkube/pkg/api"
 )
 
 type (
@@ -12,6 +14,7 @@ type (
 		Type         string       `yaml:"type"`
 		Trigger      Trigger      `yaml:"trigger"`
 		ParseMessage ParseMessage `yaml:"-"`
+		WrapMessage  WrapMessage  `yaml:"-"`
 	}
 
 	// Trigger represents the trigger configuration for a template.
@@ -25,6 +28,12 @@ type (
 		Actions map[string]string `yaml:"actions"`
 		Preview string            `yaml:"preview"`
 	}
+
+	// WrapMessage holds template for wrapping command output with additional context.
+	WrapMessage struct {
+		Buttons api.Buttons `yaml:"buttons"`
+	}
+
 	// Select holds template select primitive definition.
 	Select struct {
 		Name   string `yaml:"name"`
@@ -54,6 +63,15 @@ func (su *Template) UnmarshalYAML(node *yaml.Node) error {
 			return err
 		}
 		su.ParseMessage = data.Message
+	case data.Type == "wrapper":
+		var data struct {
+			Message WrapMessage `yaml:"message"`
+		}
+		err = node.Decode(&data)
+		if err != nil {
+			return err
+		}
+		su.WrapMessage = data.Message
 	}
 
 	su.Type = data.Type

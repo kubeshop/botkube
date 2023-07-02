@@ -83,7 +83,7 @@ gen-grpc-resources:
 # Generate plugins YAML index files for both all plugins and end-user ones.
 gen-plugins-index: build-plugins
 	go run ./hack/gen-plugin-index.go -output-path ./plugins-dev-index.yaml
-	go run ./hack/gen-plugin-index.go -output-path ./plugins-index.yaml -plugin-name-filter 'kubectl|helm|kubernetes|prometheus'
+	go run ./hack/gen-plugin-index.go -output-path ./plugins-index.yaml -plugin-name-filter 'kubectl|helm|kubernetes|prometheus|x'
 
 # Pre-build checks
 pre-build: system-check

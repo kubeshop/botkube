@@ -1,6 +1,6 @@
 templates:
   - trigger:
-      command: "flux get sources"
+      command: "flux get sources git"
     type: "parser:table:space"
     message:
       selects:
@@ -14,3 +14,14 @@ templates:
         Suspended:   {{ .Suspended }}
         Ready:       {{ .Ready }}
         Message:     {{ .Message}}
+
+  - trigger:
+      command: "x install github.com/fluxcd/flux2"
+    type: "wrapper"
+    message:
+      buttons:
+        - name: "Get Help"
+          command: "{{BotName}} x run flux --help"
+        - name: "Initialize"
+          command: "{{BotName}} x run flux install"
+          style: "primary"
