@@ -45,18 +45,18 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Description: "Doctor helps in finding the root cause of a k8s problem.",
 		JSONSchema: api.JSONSchema{
 			Value: heredoc.Doc(`{
-       "$schema": "http://json-schema.org/draft-04/schema#",
-       "title": "doctor",
-       "description": "Doctor helps in finding the root cause of a k8s problem.",
-       "type": "object",
-       "properties": {
-         "apiKey": {
-           "description": "Open API Key",
-           "type": "string"
-         }
-       },
-       "additionalProperties": false
-     }`),
+				  "$schema": "http://json-schema.org/draft-04/schema#",
+				  "title": "doctor",
+				  "description": "Doctor helps in finding the root cause of a k8s problem.",
+				  "type": "object",
+				  "properties": {
+					"apiKey": {
+					  "description": "Open API Key",
+					  "type": "string"
+					}
+				  },
+				  "additionalProperties": false
+				}`),
 		},
 	}, nil
 }
