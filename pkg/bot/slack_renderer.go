@@ -206,10 +206,6 @@ func (b *SlackRenderer) renderSection(in api.Section) []slack.Block {
 		out = append(out, sec)
 	}
 
-	//if in.Selects.AreOptionsDefined() {
-	//	out = append(out, b.renderSelects(in.Selects))
-	//}
-
 	if len(in.Context) > 0 {
 		out = append(out, b.renderContext(in.Context)...)
 	}
