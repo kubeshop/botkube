@@ -1,12 +1,10 @@
 name: Branch build
 
 on:
-  pull_request_target:
-    branches:
-      - "main"
   push:
     branches:
       - main
+      - botkube-cli
 
 env:
   HELM_VERSION: v3.9.0
