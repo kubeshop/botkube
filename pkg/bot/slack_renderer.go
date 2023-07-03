@@ -103,7 +103,7 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.CoreMessage) []slack
 	return blocks
 }
 
-func (b *SlackRenderer) renderSelects(s api.Selects) slack.Block {
+func (b *SlackRenderer) renderSelects(s api.Selects) *slack.ActionBlock {
 	var elems []slack.BlockElement
 	for _, s := range s.Items {
 		placeholder := slack.NewTextBlockObject(slack.PlainTextType, s.Name, false, false)
@@ -191,15 +191,24 @@ func (b *SlackRenderer) renderSection(in api.Section) []slack.Block {
 		out = append(out, b.renderBulletLists(in.BulletLists))
 	}
 
-	out = append(out, b.renderButtons(in.Buttons)...)
+	var selects *slack.ActionBlock
+	if in.Selects.AreOptionsDefined() {
+		selects = b.renderSelects(in.Selects)
+	}
+	btns, used := b.renderButtons(in.Buttons, selects)
+	out = append(out, btns...)
+	if !used && selects != nil {
+		out = append(out, selects)
+	}
+
 	if in.MultiSelect.AreOptionsDefined() {
 		sec := b.renderMultiselectWithDescription(in.MultiSelect)
 		out = append(out, sec)
 	}
 
-	if in.Selects.AreOptionsDefined() {
-		out = append(out, b.renderSelects(in.Selects))
-	}
+	//if in.Selects.AreOptionsDefined() {
+	//	out = append(out, b.renderSelects(in.Selects))
+	//}
 
 	if len(in.Context) > 0 {
 		out = append(out, b.renderContext(in.Context)...)
@@ -253,15 +262,15 @@ func (b *SlackRenderer) renderContext(in []api.ContextItem) []slack.Block {
 //
 //  2. Without description: all in the same row. For example:
 //     [Button "Get Pods"] [Button "Get Deployments"]
-func (b *SlackRenderer) renderButtons(in api.Buttons) []slack.Block {
+func (b *SlackRenderer) renderButtons(in api.Buttons, selects *slack.ActionBlock) ([]slack.Block, bool) {
 	if len(in) == 0 {
-		return nil
+		return nil, false
 	}
 
 	if in.AtLeastOneButtonHasDescription() {
 		// We use section layout as we also want to add text description
 		// https://api.slack.com/reference/block-kit/blocks#section
-		return b.renderButtonsWithDescription(in)
+		return b.renderButtonsWithDescription(in), false
 	}
 
 	var btns []slack.BlockElement
@@ -269,14 +278,16 @@ func (b *SlackRenderer) renderButtons(in api.Buttons) []slack.Block {
 		btns = append(btns, b.renderButton(btn))
 	}
 
+	out := selects.Elements.ElementSet
+	out = append(out, btns...)
 	return []slack.Block{
 		// We use actions layout as we have only buttons that we want to display in a single line.
 		// https://api.slack.com/reference/block-kit/blocks#actions
 		slack.NewActionBlock(
-			"",
-			btns...,
+			selects.BlockID,
+			out...,
 		),
-	}
+	}, true
 }
 
 func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Block {

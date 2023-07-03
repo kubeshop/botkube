@@ -53,6 +53,7 @@ type CommandContext struct {
 	ExecutorFilter      executorFilter
 	NotifierHandler     NotifierHandler
 	Mapping             *CommandMapping
+	CmdHeader           string
 }
 
 // ProvidedClusterNameEqualOrEmpty returns true when provided cluster name is empty

@@ -18,6 +18,8 @@ const (
 	paramFlagParseErrorMsg = `incorrect use of %s flag: could not parse flag in %s
 error: %s
 Use %s="value" or %s value`
+	multipleFilters       = "incorrect use of --filter flag: found more than one filter flag"
+	missingCmdFilterValue = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
 )
 
 // Flags contains cmd line arguments for executors.
@@ -26,6 +28,7 @@ type Flags struct {
 	Filter       string
 	ClusterName  string
 	TokenizedCmd []string
+	CmdHeader    string
 }
 
 // ParseFlags parses raw cmd and removes optional params with flags.
@@ -46,6 +49,11 @@ func ParseFlags(cmd string) (Flags, error) {
 		return Flags{}, fmt.Errorf("while extracting all-cluster flag: %w", err)
 	}
 
+	cmd, cmdHeaderName, err := extractHeaderParam(cmd)
+	if err != nil {
+		return Flags{}, err
+	}
+
 	tokenized, err := shellwords.Parse(cmd)
 	if err != nil {
 		return Flags{}, errors.New(cantParseCmd)
@@ -55,6 +63,7 @@ func ParseFlags(cmd string) (Flags, error) {
 		Filter:       filter,
 		ClusterName:  clusterName,
 		TokenizedCmd: tokenized,
+		CmdHeader:    cmdHeaderName,
 	}, nil
 }
 
@@ -139,4 +148,47 @@ func regexFlag(flag, escapedParamVal string) (*regexp.Regexp, error) {
 		escapedParamVal,
 		escapedParamVal,
 		escapedParamVal))
+}
+
+func extractHeaderParam(cmd string) (string, string, error) {
+	var withHeader string
+	var header []string
+	args, _ := shellwords.Parse(cmd)
+	f := pflag.NewFlagSet("extract-header", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
+	f.ParseErrorsWhitelist.UnknownFlags = true
+	f.StringArrayVar(&header, "bk-cmd-header", []string{}, "Botkube cmd header")
+	if err := f.Parse(args); err != nil {
+		return "", "", fmt.Errorf("incorrect use of --bk-cmd-header flag: %s", err)
+	}
+
+	if len(header) > 1 {
+		return "", "", errors.New(multipleFilters)
+	}
+
+	if len(header) == 1 {
+		withHeader = header[0]
+		if strings.HasPrefix(header[0], "-") {
+			return "", "", errors.New(missingCmdFilterValue)
+		}
+	}
+
+	for _, filterVal := range header {
+		escapedFilterVal := regexp.QuoteMeta(filterVal)
+		filterFlagRegex, err := regexp.Compile(fmt.Sprintf(`--bk-cmd-header[=|(' ')]*('%s'|"%s"|%s)("|')*`,
+			escapedFilterVal,
+			escapedFilterVal,
+			escapedFilterVal))
+		if err != nil {
+			return "", "", errors.New("could not extract provided header")
+		}
+
+		matches := filterFlagRegex.FindStringSubmatch(cmd)
+		if len(matches) == 0 {
+			return "", "", fmt.Errorf("incorrect use of --bk-cmd-header flag: %s", "it contains unsupported characters.")
+		}
+		cmd = strings.Replace(cmd, fmt.Sprintf(" %s", matches[0]), "", -1)
+	}
+	return cmd, withHeader, nil
 }
