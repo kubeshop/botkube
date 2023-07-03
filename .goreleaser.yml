@@ -3,6 +3,7 @@ env:
   - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
   - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube{{ end }}
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
+  - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY" }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
 before:
   hooks:
@@ -25,6 +26,33 @@ builds:
       - amd64
       - arm
       - arm64
+    goarm:
+      - "7"
+  - id: botkube-cli
+    binary: botkube
+    main: cmd/cli/main.go
+    ldflags:
+      - -s -w
+        -X github.com/kubeshop/botkube/internal/cli/migrate.Tag={{ .Env.IMAGE_TAG }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "7"
+  - id: botkube-cloud-migration
+    binary: botkube-cloud-migration
+    main: cmd/config-exporter/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
     goarm:
       - "7"
 
@@ -74,6 +102,12 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm"
       - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+  - image_templates:
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+    use: buildx
+    dockerfile: "build/Dockerfile.migration"
+    build_flag_templates:
+      - "--platform=linux/amd64"
 docker_manifests:
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:

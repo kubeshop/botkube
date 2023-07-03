@@ -1,6 +1,9 @@
 name: Branch build
 
 on:
+  pull_request_target:
+    branches:
+      - "main"
   push:
     branches:
       - main
@@ -10,6 +13,7 @@ env:
   K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
+  MIGRATOR_IMAGE_REPOSITORY: "kubeshop/botkube-migration"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
@@ -49,6 +53,35 @@ jobs:
       uses: azure/setup-helm@v1
       with:
         version: ${{ env.HELM_VERSION }}
+
+  migration-e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add botkube alias
+        run: |
+          echo BOTKUBE_BIN="$PWD/cli-dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
+
+      # - name: Setup Helm
+      #   uses: azure/setup-helm@v3
+
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+
+      - name: Create k3d cluster
+        run: "k3d cluster create migration-test-cluster --wait --timeout=5m"
+
+      - name: Run e2e tests for botkube client
+        env:
+          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          BOTKUBE_CLOUD_DEV_GQL_ENDPOINT: ${{ secrets.BOTKUBE_CLOUD_DEV_GQL_ENDPOINT }}
+          BOTKUBE_CLOUD_DEV_REFRESH_TOKEN: ${{ secrets.BOTKUBE_CLOUD_DEV_REFRESH_TOKEN }}
+          BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID: ${{ secrets.BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID }}
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write migration-test-cluster) \
+            make test-migration-tool
 
   integration-tests:
     name: Integration tests
