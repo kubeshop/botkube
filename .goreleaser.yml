@@ -110,6 +110,7 @@ dockers:
     dockerfile: "build/Dockerfile.migration"
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--build-arg=botkube_cloud_migration_version={{ .Env.IMAGE_TAG }}"
 docker_manifests:
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:

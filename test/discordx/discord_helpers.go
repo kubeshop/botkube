@@ -23,20 +23,27 @@ const (
 	recentMessagesLimit = 2
 )
 
+// DiscordChannel represents Discord channel
 type DiscordChannel struct {
 	*discordgo.Channel
 }
 
+// ID returns channel ID
 func (s *DiscordChannel) ID() string {
 	return s.Channel.ID
 }
+
+// Name returns channel name
 func (s *DiscordChannel) Name() string {
 	return s.Channel.Name
 }
+
+// Identifier returns channel identifier
 func (s *DiscordChannel) Identifier() string {
 	return s.Channel.ID
 }
 
+// DiscordConfig represents Discord configuration
 type DiscordConfig struct {
 	BotName                  string `envconfig:"optional"`
 	BotID                    string `envconfig:"default=983294404108378154"`
@@ -49,25 +56,26 @@ type DiscordConfig struct {
 	MessageWaitTimeout       time.Duration `envconfig:"default=1m"`
 }
 
+// DiscordTester represents Discord tester
 type DiscordTester struct {
-	cli           *discordgo.Session
-	cfg           DiscordConfig
-	botUserID     string
-	testerUserID  string
-	channel       Channel
-	secondChannel Channel
-	thirdChannel  Channel
-	mdFormatter   interactive.MDFormatter
+	cli          *discordgo.Session
+	cfg          DiscordConfig
+	botUserID    string
+	testerUserID string
+	mdFormatter  interactive.MDFormatter
 }
 
+// Channel describes channel behavior
 type Channel interface {
 	ID() string
 	Name() string
 	Identifier() string
 }
 
+// MessageAssertion represents message assertion function
 type MessageAssertion func(content string) bool
 
+// New creates new Discord tester
 func New(discordCfg DiscordConfig) (*DiscordTester, error) {
 	discordCli, err := discordgo.New("Bot " + discordCfg.TesterAppToken)
 	if err != nil {
@@ -75,6 +83,8 @@ func New(discordCfg DiscordConfig) (*DiscordTester, error) {
 	}
 	return &DiscordTester{cli: discordCli, cfg: discordCfg, mdFormatter: interactive.DefaultMDFormatter()}, nil
 }
+
+// InitUsers initializes Discord users
 func (d *DiscordTester) InitUsers(t *testing.T) {
 	t.Helper()
 
@@ -93,6 +103,7 @@ func (d *DiscordTester) InitUsers(t *testing.T) {
 	}
 }
 
+// CreateChannel creates Discord channel
 func (d *DiscordTester) CreateChannel(t *testing.T, prefix string) (*discordgo.Channel, func(t *testing.T)) {
 	t.Helper()
 	randomID := uuid.New()
@@ -115,12 +126,14 @@ func (d *DiscordTester) CreateChannel(t *testing.T, prefix string) (*discordgo.C
 	return channel, cleanupFn
 }
 
+// PostMessageToBot posts message to bot
 func (d *DiscordTester) PostMessageToBot(t *testing.T, channel, command string) {
 	message := fmt.Sprintf("<@%s> %s", d.botUserID, command)
 	_, err := d.cli.ChannelMessageSend(channel, message)
 	require.NoError(t, err)
 }
 
+// WaitForMessagePosted waits for message posted
 func (d *DiscordTester) WaitForMessagePosted(userID, channelID string, assertFn MessageAssertion) error {
 	var fetchedMessages []*discordgo.Message
 	var lastErr error

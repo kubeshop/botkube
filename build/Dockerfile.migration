@@ -1,6 +1,6 @@
 FROM gcr.io/distroless/static:latest
 
-ARG botkube_version="dev"
+ARG botkube_cloud_migration_version="dev"
 
 LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
       org.opencontainers.image.title="Botkube Cloud Migration" \

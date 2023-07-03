@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// InstallChartParams are parameters for InstallChart
 type InstallChartParams struct {
 	RepoName  string
 	RepoURL   string
@@ -16,12 +17,14 @@ type InstallChartParams struct {
 	Command   string
 }
 
+// ToOptions converts Command to helm install options
 func (p *InstallChartParams) ToOptions() []string {
 	cmd := strings.Replace(p.Command, "\n", "", -1)
 	cmd = strings.Replace(cmd, "\\", " ", -1)
 	return strings.Fields(cmd)[1:]
 }
 
+// InstallChart installs helm chart
 func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	t.Helper()
 

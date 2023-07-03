@@ -209,7 +209,7 @@ func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Po
 		return nil, nil, err
 	}
 
-	if err = createMigrationJob(ctx, k8sCli, botkubePod, opts); err != nil {
+	if err = createMigrationJob(ctx, k8sCli, botkubePod); err != nil {
 		return nil, nil, err
 	}
 
@@ -242,7 +242,7 @@ func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Optio
 	return &pods.Items[0], nil
 }
 
-func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod, opts Options) error {
+func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod) error {
 	var container corev1.Container
 	for _, c := range botkubePod.Spec.Containers {
 		if c.Name == "botkube" {

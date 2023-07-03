@@ -79,32 +79,19 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      # - name: Docker Login
-      #   uses: docker/login-action@v1
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run GoReleaser
         run: make release-snapshot-cli
-
       - name: Add botkube alias
         run: |
           echo BOTKUBE_BIN="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
-
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
           version: ${{ env.HELM_VERSION }}
-
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
-
       - name: Create k3d cluster
         run: "k3d cluster create migration-test-cluster --wait --timeout=5m"
-
       - name: Run e2e tests for botkube client
         env:
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
