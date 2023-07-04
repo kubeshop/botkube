@@ -113,7 +113,7 @@ func waitForDeploymentReady(deployNsCli appsv1cli.DeploymentInterface, deploymen
 		return condition.Status == v1.ConditionTrue, nil
 	})
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return lastErr
 		}
 		return err

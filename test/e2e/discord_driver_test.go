@@ -215,7 +215,7 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
 		}
 		return err
@@ -270,7 +270,7 @@ func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID str
 		lastErr = errors.New("message assertion function returned false")
 	}
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
 		}
 		return err
@@ -346,7 +346,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 		return false, nil
 	})
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
 		}
 		return err

@@ -210,7 +210,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
 	}
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
 		}
 		return err
@@ -260,7 +260,7 @@ func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 		lastErr = errors.New("message assertion function returned false")
 	}
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
 		}
 		return err

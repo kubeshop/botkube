@@ -21,7 +21,7 @@ func WaitForWatcherSync(ctx context.Context, log logrus.FieldLogger, cfg CfgWatc
 	}
 
 	log.Infof("Waiting for synchronized files in directory %q with timeout %s...", cfg.TmpDir, cfg.InitialSyncTimeout)
-	err := wait.PollWithContext(ctx, watcherPollInterval, cfg.InitialSyncTimeout, func(ctx context.Context) (done bool, err error) {
+	err := wait.PollUntilContextTimeout(ctx, watcherPollInterval, cfg.InitialSyncTimeout, false, func(ctx context.Context) (done bool, err error) {
 		files, err := os.ReadDir(cfg.TmpDir)
 		if err != nil {
 			return false, err
