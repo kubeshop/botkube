@@ -1,6 +1,7 @@
 package discordx
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -138,7 +139,7 @@ func (d *DiscordTester) WaitForMessagePosted(userID, channelID string, assertFn 
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
 
-	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, d.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, recentMessagesLimit, "", "", "")
 		if err != nil {
 			lastErr = err

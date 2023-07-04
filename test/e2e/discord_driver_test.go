@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -183,7 +184,7 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 	}
 	var diffMessage string
 
-	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, d.cfg.MessageWaitTimeout, false, func(context.Context) (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, limitMessages, "", "", "")
 		if err != nil {
 			lastErr = err
@@ -237,7 +238,7 @@ func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID str
 	var fetchedMessages []*discordgo.Message
 	var lastErr error
 
-	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, d.cfg.MessageWaitTimeout, false, func(context.Context) (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, 1, "", "", "")
 		if err != nil {
 			lastErr = err
@@ -298,7 +299,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 		assertFn.Message.Timestamp = time.Time{}
 	}
 
-	err := wait.Poll(pollInterval, d.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, d.cfg.MessageWaitTimeout, false, func(context.Context) (done bool, err error) {
 		messages, err := d.cli.ChannelMessages(channelID, limitMessages, "", "", "")
 		if err != nil {
 			lastErr = err
