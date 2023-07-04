@@ -282,8 +282,16 @@ func (b *SlackRenderer) renderButtons(in api.Buttons) []slack.Block {
 func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Block {
 	var out []slack.Block
 	for _, btn := range in {
+		desc := btn.Description
+		switch btn.DescriptionStyle {
+		case api.ButtonDescriptionStyleCode:
+			desc = formatx.AdaptiveCodeBlock(desc)
+		case api.ButtonDescriptionStyleBold:
+			desc = fmt.Sprintf("*%s*", desc)
+		}
+
 		out = append(out, slack.NewSectionBlock(
-			slack.NewTextBlockObject(slack.MarkdownType, formatx.AdaptiveCodeBlock(btn.Description), false, false),
+			slack.NewTextBlockObject(slack.MarkdownType, desc, false, false),
 			nil,
 			slack.NewAccessory(b.renderButton(btn)),
 		))

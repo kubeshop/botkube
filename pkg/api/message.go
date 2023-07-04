@@ -255,13 +255,26 @@ func (s *Buttons) AtLeastOneButtonHasDescription() bool {
 	return false
 }
 
+// ButtonDescriptionStyle defines the style of the button description.
+type ButtonDescriptionStyle string
+
+const (
+	// ButtonDescriptionStyleBold defines the bold style for the button description.
+	ButtonDescriptionStyleBold ButtonDescriptionStyle = "bold"
+
+	// ButtonDescriptionStyleCode defines the code style for the button description.
+	ButtonDescriptionStyleCode ButtonDescriptionStyle = "code"
+)
+
 // Button holds definition of action button.
 type Button struct {
-	Description string
-	Name        string
-	Command     string
-	URL         string
-	Style       ButtonStyle
+	Description      string
+	DescriptionStyle ButtonDescriptionStyle
+
+	Name    string
+	Command string
+	URL     string
+	Style   ButtonStyle
 }
 
 // ButtonBuilder provides a simplified way to construct a Button model.
@@ -277,7 +290,16 @@ func (b *ButtonBuilder) ForCommandWithDescCmd(name, cmd string, style ...ButtonS
 	if len(style) > 0 {
 		bt = style[0]
 	}
-	return b.commandWithDesc(name, cmd, cmd, bt)
+	return b.commandWithCmdDesc(name, cmd, cmd, bt)
+}
+
+// ForCommandWithBoldDesc returns button command where description and command are different.
+func (b *ButtonBuilder) ForCommandWithBoldDesc(name, desc, cmd string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	return b.commandWithDesc(name, cmd, desc, bt, ButtonDescriptionStyleBold)
 }
 
 // DescriptionURL returns link button with description.
@@ -295,8 +317,8 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 	}
 }
 
-// ForCommandWithoutDesc returns button command without description.
-func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonStyle) Button {
+// ForCommand returns button command without description.
+func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -309,20 +331,13 @@ func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonS
 	}
 }
 
-// ForCommand returns button command.
-func (b *ButtonBuilder) ForCommand(name, cmd, desc string, style ...ButtonStyle) Button {
-	bt := ButtonStyleDefault
-	if len(style) > 0 {
-		bt = style[0]
-	}
-	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
-	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
-	return Button{
-		Name:        name,
-		Command:     cmd,
-		Description: desc,
-		Style:       bt,
-	}
+// ForURLWithBoldDesc returns link button with description.
+func (b *ButtonBuilder) ForURLWithBoldDesc(name, desc, url string, style ...ButtonStyle) Button {
+	urlBtn := b.ForURL(name, url, style...)
+	urlBtn.Description = desc
+	urlBtn.DescriptionStyle = ButtonDescriptionStyleBold
+
+	return urlBtn
 }
 
 // ForURL returns link button.
@@ -338,14 +353,18 @@ func (b *ButtonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
 		Style: bt,
 	}
 }
-
-func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle) Button {
+func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle, descStyle ButtonDescriptionStyle) Button {
 	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
-	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
 	return Button{
-		Name:        name,
-		Command:     cmd,
-		Description: desc,
-		Style:       style,
+		Name:             name,
+		Command:          cmd,
+		Description:      desc,
+		DescriptionStyle: descStyle,
+		Style:            style,
 	}
+}
+
+func (b *ButtonBuilder) commandWithCmdDesc(name, cmd, desc string, style ButtonStyle) Button {
+	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
+	return b.commandWithDesc(name, cmd, desc, style, ButtonDescriptionStyleCode)
 }
