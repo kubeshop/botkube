@@ -28,7 +28,7 @@ test-migration-tool: system-check
 
 # Build the binary
 build: pre-build
-	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
+	@cd cmd/botkube-agent;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
 	@echo "Build completed successfully"
 
 # Build Botkube official plugins for all supported platforms.
