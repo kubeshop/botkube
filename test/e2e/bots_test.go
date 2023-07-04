@@ -989,7 +989,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot automation was executed and label created Service...")
-		err = wait.PollImmediate(pollInterval, appCfg.Slack.MessageWaitTimeout, func() (done bool, err error) {
+		err = wait.PollUntilContextTimeout(context.Background(), pollInterval, appCfg.Slack.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
 			svc, err := svcCli.Get(context.Background(), svc.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err

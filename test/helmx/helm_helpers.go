@@ -29,18 +29,21 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	t.Helper()
 
 	t.Logf("Adding helm repository %s with url %s...", params.Name, params.RepoURL)
+	//nolint:gosec // this is not production code
 	cmd := exec.Command("helm", "repo", "add", params.RepoName, params.RepoURL)
 	repoAddOutput, err := cmd.CombinedOutput()
 	t.Log(string(repoAddOutput))
 	require.NoError(t, err)
 
 	t.Log("Updating repo...")
+	//nolint:gosec // this is not production code
 	cmd = exec.Command("helm", "repo", "update", params.RepoName)
 	repoUpdateOutput, err := cmd.CombinedOutput()
 	t.Log(string(repoUpdateOutput))
 	require.NoError(t, err)
 
 	t.Logf("Installing chart %s with command %s", params.Name, params.ToOptions())
+	//nolint:gosec // this is not production code
 	cmd = exec.Command("helm", params.ToOptions()...)
 	installOutput, err := cmd.CombinedOutput()
 	t.Log(string(installOutput))
@@ -49,6 +52,7 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 
+		//nolint:gosec // this is not production code
 		cmd := exec.Command("helm", "del", params.Name, "-n", params.Namespace)
 		delOutput, err := cmd.CombinedOutput()
 		t.Log(string(delOutput))

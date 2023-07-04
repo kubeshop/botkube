@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -177,7 +178,7 @@ func (s *slackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 		highestCommonBlockCount = -1 // a single message is fetched, always print diff
 	}
 
-	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: limitMessages,
 		})
@@ -226,7 +227,7 @@ func (s *slackTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 func (s *slackTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
-	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: 1,
 		})
