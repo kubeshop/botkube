@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - botkube-cli
 
 env:
   HELM_VERSION: v3.9.0
