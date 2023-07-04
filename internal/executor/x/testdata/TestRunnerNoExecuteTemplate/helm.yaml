@@ -1,0 +1,34 @@
+templates:
+  - trigger:
+      command:
+        prefix: "helm list"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Release"
+          keyTpl: "{{ .Namespace }}/{{ .Name }}"
+      actions:
+        notes: "helm get notes  {{ .Name }} -n {{ .Namespace }}"
+        values: "helm get values {{ .Name }} -n {{ .Namespace }}"
+        delete: "helm delete     {{ .Name }} -n {{ .Namespace }}"
+      preview: |
+        Name:        {{ .Name }}
+        Namespace:   {{ .Namespace }}
+        Status:      {{ .Status }}
+        Chart:       {{ .Chart }}
+
+  - trigger:
+      command:
+        prefix: "quickstart helm"
+    type: "tutorial"
+    message:
+      paginate:
+        page: 5
+      header: "Helm Quick Start tutorial"
+      buttons:
+        - name: "Global Help"
+          description: "{{Botkube}} helm help"
+          command: "{{Botkube}} helm help"
+        - name: "Version"
+          description: "{{Botkube}} helm version -h"
+          command: "{{Botkube}} helm version -h"

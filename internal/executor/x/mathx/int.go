@@ -17,3 +17,11 @@ func DecreaseWithMin(in, min int) int {
 	}
 	return in
 }
+
+// Max returns the largest of a or b.
+func Max(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}

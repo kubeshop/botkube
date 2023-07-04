@@ -1,13 +1,14 @@
 templates:
   - trigger:
-      command: "helm list"
+      command:
+        regex: '^helm list(?:\s+(-A|-a))*\s?$'
     type: "parser:table:space"
     message:
       selects:
         - name: "Release"
           keyTpl: "{{ .Namespace }}/{{ .Name }}"
       actions:
-        notes:  "helm get notes  {{ .Name }} -n {{ .Namespace }}"
+        notes: "helm get notes  {{ .Name }} -n {{ .Namespace }}"
         values: "helm get values {{ .Name }} -n {{ .Namespace }}"
         delete: "helm delete     {{ .Name }} -n {{ .Namespace }}"
       preview: |
@@ -15,3 +16,53 @@ templates:
         Namespace:   {{ .Namespace }}
         Status:      {{ .Status }}
         Chart:       {{ .Chart }}
+
+  - trigger:
+      command:
+        prefix: "x install https://get.helm.sh/helm-v"
+    type: "wrapper"
+    message:
+      buttons:
+        - name: "Quickstart"
+          command: "{{BotName}} x run quickstart helm"
+          style: "primary"
+
+  - trigger:
+      command:
+        prefix: "quickstart helm"
+    type: "tutorial"
+    message:
+      paginate:
+        page: 5
+      header: "Helm Quick Start tutorial"
+      buttons:
+        - name: "Global Help"
+          description: "{{BotName}} helm help"
+          command: "{{BotName}} x run helm help"
+        - name: "Version"
+          description: "{{BotName}} helm version"
+          command: "{{BotName}} x run helm version"
+        - name: "Install help"
+          description: "{{BotName}} helm install -h"
+          command: "{{BotName}} x run helm install -h"
+        - name: "Install by absolute URL"
+          description: "{{BotName}} helm install\n--repo https://charts.bitnami.com/bitnami psql postgresql\n--set clusterDomain='testing.local'"
+          command: "{{BotName}} x run helm install\n--repo https://charts.bitnami.com/bitnami psql postgresql\n--set clusterDomain='testing.local'"
+        - name: "Install by chart reference:"
+          description: "{{BotName}} helm install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test --generate-name"
+          command: "{{BotName}} x run helm install https://charts.bitnami.com/bitnami/postgresql-12.1.0.tgz --create-namespace -n test --generate-name"
+        - name: "List"
+          description: "{{BotName}} helm list -A"
+          command: "{{BotName}} x run helm list -A"
+        - name: "List with filter"
+          description: "{{BotName}} helm list -f 'p' -A"
+          command: "{{BotName}} x run helm list -f 'p' -A"
+        - name: "Status"
+          description: "{{BotName}} helm status psql"
+          command: "{{BotName}} x run helm status psql"
+        - name: "Upgrade"
+          description: "{{BotName}} helm upgrade --repo https://charts.bitnami.com/bitnami psql postgresql --set clusterDomain='cluster.local'"
+          command: "{{BotName}} x run helm upgrade --repo https://charts.bitnami.com/bitnami psql postgresql --set clusterDomain='cluster.local'"
+        - name: "History"
+          description: "{{BotName}} helm history psql"
+          command: "{{BotName}} x run helm history psql"

@@ -2,6 +2,7 @@ package getter
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -16,6 +17,10 @@ type Source struct {
 
 // Load downloads defined sources and read them from the FS.
 func Load[T any](ctx context.Context, tmpDir string, templateSources []Source) ([]T, error) {
+	if len(templateSources) == 0 {
+		return nil, nil
+	}
+
 	err := EnsureDownloaded(ctx, templateSources, tmpDir)
 	if err != nil {
 		return nil, err
@@ -36,7 +41,7 @@ func Load[T any](ctx context.Context, tmpDir string, templateSources []Source) (
 
 		file, err := os.ReadFile(filepath.Clean(path))
 		if err != nil {
-			return err
+			return fmt.Errorf("while reading file %q: %v", path, err)
 		}
 
 		var cfg struct {
@@ -44,7 +49,7 @@ func Load[T any](ctx context.Context, tmpDir string, templateSources []Source) (
 		}
 		err = yaml.Unmarshal(file, &cfg)
 		if err != nil {
-			return err
+			return fmt.Errorf("while unmarshaling file %q: %v", path, err)
 		}
 		out = append(out, cfg.Templates...)
 		return nil
