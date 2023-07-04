@@ -53,6 +53,18 @@ type ExecuteCommandOutput struct {
 	ExitCode int
 }
 
+// ExecuteCommandWithEnvs is a simple wrapper around exec.CommandContext to simplify running a given
+// command.
+//
+// Deprecated: Use ExecuteCommand(ctx, rawCmd, ExecuteCommandEnvs(envs)) instead.
+func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]string) (string, error) {
+	out, err := ExecuteCommand(ctx, rawCmd, ExecuteCommandEnvs(envs))
+	if err != nil {
+		return "", err
+	}
+	return out.Stdout, nil
+}
+
 // ExecuteCommand is a simple wrapper around exec.CommandContext to simplify running a given command.
 func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteCommandMutation) (ExecuteCommandOutput, error) {
 	opts := ExecuteCommandOptions{

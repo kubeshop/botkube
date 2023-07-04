@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"os"
+	"path"
 )
 
 type TmpDir string
@@ -16,7 +17,7 @@ func (t TmpDir) Get() (string, bool) {
 		return depDir, false
 	}
 
-	return "/tmp/bin", true
+	return path.Join(os.TempDir(), "bin"), true
 }
 
 func (t TmpDir) GetDirectory() string {

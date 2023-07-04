@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -37,7 +36,6 @@ func runIfFileDoesNotExist(path string, fn func() error) error {
 	_, err := os.Stat(path)
 	switch {
 	case err == nil:
-		fmt.Println("already downloaded")
 	case os.IsNotExist(err):
 		return fn()
 	default:

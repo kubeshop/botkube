@@ -100,7 +100,7 @@ func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table p
 
 	return api.Section{
 		Buttons: []api.Button{
-			btnBuilder.ForCommandWithoutDesc("Raw output", fmt.Sprintf("x run %s %s", cmd, x.RawOutputIndicator)),
+			btnBuilder.ForCommand("Raw output", fmt.Sprintf("x run %s %s", cmd, x.RawOutputIndicator)),
 		},
 		Selects: api.Selects{
 			Items: []api.Select{
@@ -244,14 +244,17 @@ func (*TableCommandParser) resolveSelectIdx(state *state.Container, selectID str
 	return val
 }
 
-func (*TableCommandParser) renderGoTemplate(tpl string, cols, rows []string) (string, error) {
+func (p *TableCommandParser) renderGoTemplate(tpl string, cols, rows []string) (string, error) {
 	data := map[string]string{}
 	for idx, col := range cols {
 		col = xstrings.ToCamelCase(strings.ToLower(col))
 		data[col] = rows[idx]
 	}
 
-	fmt.Println(data)
+	p.log.WithFields(logrus.Fields{
+		"tpl":  tpl,
+		"data": data,
+	}).Debug("Rendering Go template")
 
 	tmpl, err := gotemplate.New("tpl").Parse(tpl)
 	if err != nil {

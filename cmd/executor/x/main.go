@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/executor/x"
+	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/executor/x/output"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -98,7 +99,11 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		return executor.ExecuteOutput{}, fmt.Errorf("while parsing input command: %w", err)
 	}
 
-	var cfg x.Config
+	cfg := x.Config{
+		Templates: []getter.Source{
+			{Ref: getDefaultTemplateSource()},
+		},
+	}
 	if err := pluginx.MergeExecutorConfigs(in.Configs, &cfg); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
@@ -186,17 +191,21 @@ func jsonSchema() api.JSONSchema {
 		Value: heredoc.Docf(`{
 		  "$schema": "http://json-schema.org/draft-07/schema#",
 		  "title": "x",
-		  "description": "Install and run CLIs directly from chat window without hassle. All magic included.",
+		  "description": "Install and run CLIs directly from the chat window without hassle. All magic included.",
 		  "type": "object",
 		  "properties": {
 			"templates": {
 			  "type": "array",
+			  "title": "List of templates",
+			  "description": "An array of templates that define how to convert the command output into an interactive message.",
 			  "items": {
 				"type": "object",
 				"properties": {
 				  "ref": {
+					"title": "Link to templates source",
+					"description": "It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives. For more details, see the documentation at https://github.com/hashicorp/go-getter.",
 					"type": "string",
-					"default": "github.com/mszostok/botkube-plugins//x-templates?ref=hackathon"
+					"default": ""
 				  }
 				},
 				"required": [
@@ -209,8 +218,16 @@ func jsonSchema() api.JSONSchema {
 		  "required": [
 			"templates"
 		  ]
-		}`),
+		}`, getDefaultTemplateSource()),
 	}
+}
+
+func getDefaultTemplateSource() string {
+	ver := version
+	if ver == "dev" {
+		ver = "main"
+	}
+	return fmt.Sprintf("github.com/kubeshop/botkube//cmd/executor/x/templates?ref=%s", ver)
 }
 
 func Normalize(in string) string {
