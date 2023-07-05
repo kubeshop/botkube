@@ -121,7 +121,7 @@ sources:
             updateSetting:
               includeDiff: false
               fields:
-                - spec.data
+                - data
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
     'botkube/kubernetes':
@@ -199,7 +199,7 @@ sources:
             updateSetting:
               includeDiff: false
               fields:
-                - spec.data
+                - data
 
   'other-plugins':
     displayName: "K8s ConfigMaps changes"

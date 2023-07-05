@@ -307,9 +307,12 @@ func (r registration) qualifyEventForUpdate(
 		}
 		r.log.Debugf("About to qualify event for route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.updateSetting)
 
-		if len(diff) > 0 && route.updateSetting.IncludeDiff {
-			result = true
+		if route.updateSetting.IncludeDiff {
 			diffs = append(diffs, diff)
+		}
+
+		if len(diff) > 0 {
+			result = true
 			r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.updateSetting)
 		}
 	}

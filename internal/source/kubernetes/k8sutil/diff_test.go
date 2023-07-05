@@ -84,7 +84,7 @@ func TestDiff(t *testing.T) {
 			update: config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expectedErrMessage: heredoc.Doc(`
 				while getting diff: 1 error occurred:
-					* while finding value in old obj from jsonpath "metadata.name": metadata is not found`),
+					* while finding value in new obj from jsonpath "metadata.name": metadata is not found`),
 		},
 		`Annotations changed`: {
 			old:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "1"}}},
@@ -106,26 +106,13 @@ func TestDiff(t *testing.T) {
 				Y:    "2",
 			},
 		},
-		`Get all diffs even if one of them return errors`: {
-			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
-			new:    Object{Status: Status{Replicas: 2}, Other: Other{Foo: "bar"}},
-			update: config.UpdateSetting{Fields: []string{"status.foo", "status.replicas"}, IncludeDiff: true},
-			expected: ExpectedDiff{
-				Path: "status.replicas",
-				X:    "1",
-				Y:    "2",
-			},
-			expectedErrMessage: heredoc.Doc(`
-				while getting diff: 1 error occurred:
-					* while finding value in old obj from jsonpath "status.foo": foo is not found`),
-		},
 		`Non Status Diff`: {
 			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
 			new:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
 			update: config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
 			expectedErrMessage: heredoc.Doc(`
 				while getting diff: 1 error occurred:
-					* while finding value in old obj from jsonpath "metadata.labels": metadata is not found`),
+					* while finding value in new obj from jsonpath "metadata.labels": metadata is not found`),
 		},
 		`Event Diff`: {
 			old:    Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
@@ -143,7 +130,7 @@ func TestDiff(t *testing.T) {
 			update: config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expectedErrMessage: heredoc.Doc(`
 				while getting diff: 1 error occurred:
-					* while finding value in old obj from jsonpath "metadata.name": metadata is not found`),
+					* while finding value in new obj from jsonpath "metadata.name": metadata is not found`),
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
@@ -161,7 +148,30 @@ func TestDiff(t *testing.T) {
 			update: config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
 			expectedErrMessage: heredoc.Doc(`
 				while getting diff: 1 error occurred:
-					* while finding value in old obj from jsonpath "metadata.name": metadata is not found`),
+					* while finding value in new obj from jsonpath "metadata.name": metadata is not found`),
+		},
+		`Get all diffs even if one of them return errors`: {
+			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
+			new:    Object{Status: Status{Replicas: 2}, Other: Other{Foo: "bar"}},
+			update: config.UpdateSetting{Fields: []string{"status.foo", "status.replicas"}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: "status.replicas",
+				X:    "1",
+				Y:    "2",
+			},
+			expectedErrMessage: heredoc.Doc(`
+				while getting diff: 1 error occurred:
+					* while finding value in new obj from jsonpath "status.foo": foo is not found`),
+		},
+		`Missing Property in old object`: {
+			old:    Object{Status: Status{Replicas: 1}, Other: Other{Annotations: nil}},
+			new:    Object{Status: Status{Replicas: 2}, Other: Other{Annotations: map[string]string{"foo:": "bar"}}},
+			update: config.UpdateSetting{Fields: []string{"other.annotations"}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: "other.annotations",
+				X:    "map[]",
+				Y:    "map[foo::bar]",
+			},
 		},
 	}
 	for name, test := range tests {
