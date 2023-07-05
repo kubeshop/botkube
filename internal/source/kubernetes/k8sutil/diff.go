@@ -8,20 +8,28 @@ import (
 	"k8s.io/kubectl/pkg/cmd/get"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 // Diff provides differences between two objects.
 func Diff(x, y interface{}, updateSetting config.UpdateSetting) (string, error) {
 	strBldr := new(strings.Builder)
+
+	errs := multierror.New()
 	for _, val := range updateSetting.Fields {
 		var d diffReporter
 		d.field = val
 		diff, err := d.exec(x, y)
 		if err != nil {
-			return "", err
+			errs = multierror.Append(errs, err)
+			continue
 		}
 
 		strBldr.WriteString(diff)
+	}
+
+	if errs.ErrorOrNil() != nil {
+		return strBldr.String(), fmt.Errorf("while getting diff: %w", errs.ErrorOrNil())
 	}
 
 	return strBldr.String(), nil
@@ -35,12 +43,12 @@ func (d diffReporter) exec(x, y interface{}) (string, error) {
 	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
 		// Happens when the fields were not set by the time event was issued, do not return in that case
-		return "", fmt.Errorf("while finding value from jsonpath: %q, object: %+v: %w", d.field, x, err)
+		return "", fmt.Errorf("while finding value in old obj from jsonpath %q: %w", d.field, err)
 	}
 
 	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
-		return "", fmt.Errorf("while finding value from jsonpath: %q, object: %+v: %w", d.field, y, err)
+		return "", fmt.Errorf("while finding value in new obj from jsonpath %q: %w", d.field, err)
 	}
 
 	// treat <none> and false as same fields

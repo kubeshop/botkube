@@ -300,6 +300,7 @@ func (r registration) qualifyEventForUpdate(
 			continue
 		}
 
+		r.log.WithFields(logrus.Fields{"old": oldUnstruct.Object, "new": newUnstruct.Object}).Debug("Getting diff for objects...")
 		diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.updateSetting)
 		if err != nil {
 			r.log.Errorf("while getting diff: %w", err)

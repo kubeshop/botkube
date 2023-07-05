@@ -100,7 +100,7 @@ func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table p
 
 	return api.Section{
 		Buttons: []api.Button{
-			btnBuilder.ForCommand("Raw output", fmt.Sprintf("x run %s %s", cmd, x.RawOutputIndicator)),
+			btnBuilder.ForCommandWithoutDesc("Raw output", fmt.Sprintf("x run %s %s", cmd, x.RawOutputIndicator)),
 		},
 		Selects: api.Selects{
 			Items: []api.Select{
