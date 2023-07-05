@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 func TestSetDefaultNamespace(t *testing.T) {
@@ -51,9 +52,11 @@ func TestSetDefaultNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var gotCmd string
-			mockFn := NewMockedBinaryRunner(func(_ context.Context, rawCmd string, _ map[string]string) (string, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
 				gotCmd = rawCmd
-				return "mocked", nil
+				return pluginx.ExecuteCommandOutput{
+					Stdout: "mocked",
+				}, nil
 			})
 
 			exec := NewExecutor("dev", mockFn)
@@ -100,9 +103,11 @@ func TestSetOptionsCommand(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var wasKubectlCalled bool
-			mockFn := NewMockedBinaryRunner(func(_ context.Context, rawCmd string, _ map[string]string) (string, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
 				wasKubectlCalled = true
-				return "mocked", nil
+				return pluginx.ExecuteCommandOutput{
+					Stdout: "mocked",
+				}, nil
 			})
 
 			exec := NewExecutor("dev", mockFn)
@@ -149,9 +154,11 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var wasKubectlCalled bool
-			mockFn := NewMockedBinaryRunner(func(_ context.Context, rawCmd string, _ map[string]string) (string, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
 				wasKubectlCalled = true
-				return "mocked", nil
+				return pluginx.ExecuteCommandOutput{
+					Stdout: "mocked",
+				}, nil
 			})
 
 			exec := NewExecutor("dev", mockFn)

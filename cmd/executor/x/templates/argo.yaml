@@ -1,0 +1,12 @@
+templates:
+  - command:
+      prefix: "argo list"
+      parser: "table"
+    message:
+      select:
+        name: "Workflows"
+        itemKey: "{{ .Namespace }}/{{ .Name }}"
+      actions:
+        logs:     "argo logs   {{ .Name }} -n {{ .Namespace }}"
+        describe: "argo get    {{ .Name }} -n {{ .Namespace }}"
+        delete:   "argo delete {{ .Name }} -n {{ .Namespace }}"

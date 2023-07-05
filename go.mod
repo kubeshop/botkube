@@ -26,6 +26,7 @@ require (
 	github.com/hashicorp/go-plugin v1.4.8
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hasura/go-graphql-client v0.8.1
+	github.com/huandu/xstrings v1.3.2
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/knadh/koanf v1.4.4
 	github.com/mattermost/mattermost-server/v5 v5.39.3

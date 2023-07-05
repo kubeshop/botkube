@@ -1,0 +1,16 @@
+templates:
+  - trigger:
+      command: "flux get sources"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Source"
+          keyTpl: "{{ .Name }}"
+      actions:
+        export: "flux export source git {{ .Name }}"
+      preview: |
+        Name:        {{ .Name }}
+        Revision:    {{ .Revision }}
+        Suspended:   {{ .Suspended }}
+        Ready:       {{ .Ready }}
+        Message:     {{ .Message}}

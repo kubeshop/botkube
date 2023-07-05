@@ -16,13 +16,13 @@ const binaryName = "kubectl"
 
 // BinaryRunner runs a kubectl binary.
 type BinaryRunner struct {
-	executeCommandWithEnvs func(ctx context.Context, rawCmd string, envs map[string]string) (string, error)
+	executeCommand func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error)
 }
 
 // NewBinaryRunner returns a new BinaryRunner instance.
 func NewBinaryRunner() *BinaryRunner {
 	return &BinaryRunner{
-		executeCommandWithEnvs: pluginx.ExecuteCommandWithEnvs,
+		executeCommand: pluginx.ExecuteCommand,
 	}
 }
 
@@ -55,12 +55,12 @@ func (e *BinaryRunner) RunKubectlCommand(ctx context.Context, kubeConfigPath, de
 	}
 
 	runCmd := fmt.Sprintf("%s %s", binaryName, cmd)
-	out, err := e.executeCommandWithEnvs(ctx, runCmd, envs)
+	out, err := e.executeCommand(ctx, runCmd, pluginx.ExecuteCommandEnvs(envs))
 	if err != nil {
-		return "", fmt.Errorf("%s\n%s", out, err.Error())
+		return "", err
 	}
 
-	return color.ClearCode(out), nil
+	return color.ClearCode(out.Stdout), nil
 }
 
 // getAllNamespaceFlag returns the namespace value extracted from a given args.
