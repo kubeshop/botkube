@@ -22,8 +22,8 @@ var pluginHelpProvider = map[string]pluginHelpProviderFn{
 					Header: "Run kubectl commands",
 				},
 				Buttons: []api.Button{
-					btnBuilder.ForCommand("Interactive kubectl", "kubectl", api.ButtonStylePrimary),
-					btnBuilder.ForCommand("kubectl help", "kubectl help"),
+					btnBuilder.ForCommandWithoutDesc("Interactive kubectl", "kubectl", api.ButtonStylePrimary),
+					btnBuilder.ForCommandWithoutDesc("kubectl help", "kubectl help"),
 				},
 			}
 		}
@@ -34,7 +34,7 @@ var pluginHelpProvider = map[string]pluginHelpProviderFn{
 				Header: "Run kubectl commands (if enabled)",
 			},
 			Buttons: []api.Button{
-				btnBuilder.ForCommand("kubectl help", "kubectl help"),
+				btnBuilder.ForCommandWithoutDesc("kubectl help", "kubectl help"),
 			},
 		}
 	},

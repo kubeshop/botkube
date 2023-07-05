@@ -268,7 +268,9 @@ const (
 
 // Button holds definition of action button.
 type Button struct {
-	Description      string
+	Description string
+
+	// DescriptionStyle defines the style of the button description. If not provided, the default style (ButtonDescriptionStyleCode) is used.
 	DescriptionStyle ButtonDescriptionStyle
 
 	Name    string
@@ -317,8 +319,8 @@ func (b *ButtonBuilder) DescriptionURL(name, cmd string, url string, style ...Bu
 	}
 }
 
-// ForCommand returns button command without description.
-func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Button {
+// ForCommandWithoutDesc returns button command without description.
+func (b *ButtonBuilder) ForCommandWithoutDesc(name, cmd string, style ...ButtonStyle) Button {
 	bt := ButtonStyleDefault
 	if len(style) > 0 {
 		bt = style[0]
@@ -329,6 +331,17 @@ func (b *ButtonBuilder) ForCommand(name, cmd string, style ...ButtonStyle) Butto
 		Command: cmd,
 		Style:   bt,
 	}
+}
+
+// ForCommand returns button command with description in adaptive code block.
+//
+// For displaying description in bold, use ForCommandWithBoldDesc.
+func (b *ButtonBuilder) ForCommand(name, cmd, desc string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	return b.commandWithCmdDesc(name, cmd, desc, bt)
 }
 
 // ForURLWithBoldDesc returns link button with description.
@@ -353,6 +366,12 @@ func (b *ButtonBuilder) ForURL(name, url string, style ...ButtonStyle) Button {
 		Style: bt,
 	}
 }
+
+func (b *ButtonBuilder) commandWithCmdDesc(name, cmd, desc string, style ButtonStyle) Button {
+	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
+	return b.commandWithDesc(name, cmd, desc, style, ButtonDescriptionStyleCode)
+}
+
 func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyle, descStyle ButtonDescriptionStyle) Button {
 	cmd = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, cmd)
 	return Button{
@@ -362,9 +381,4 @@ func (b *ButtonBuilder) commandWithDesc(name, cmd, desc string, style ButtonStyl
 		DescriptionStyle: descStyle,
 		Style:            style,
 	}
-}
-
-func (b *ButtonBuilder) commandWithCmdDesc(name, cmd, desc string, style ButtonStyle) Button {
-	desc = fmt.Sprintf("%s %s", MessageBotNamePlaceholder, desc)
-	return b.commandWithDesc(name, cmd, desc, style, ButtonDescriptionStyleCode)
 }
