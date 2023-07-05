@@ -118,6 +118,10 @@ sources:
             - update
         resources:
           - type: v1/configmaps
+            updateSetting:
+              includeDiff: false
+              fields:
+                - spec.data
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
     'botkube/kubernetes':

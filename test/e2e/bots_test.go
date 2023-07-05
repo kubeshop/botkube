@@ -674,7 +674,7 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+		expAttachmentIn := ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -693,7 +693,8 @@ func runBotTest(t *testing.T,
 					},
 				},
 			},
-		})
+		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 1, expAttachmentIn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -702,7 +703,7 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
 
-		t.Log("Updating ConfigMap for ignored field...")
+		t.Log("Updating ConfigMap for not watched field...")
 		cfgMap.Annotations = map[string]string{
 			"my": "annotation",
 		}
@@ -711,10 +712,10 @@ func runBotTest(t *testing.T,
 
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		for _, channelID := range channelIDs {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), channelID, expectedMessage)
-			require.NoError(t, err)
-		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 1, expAttachmentIn)
+		require.NoError(t, err)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap for observed field...")
 		cfgMap.Data = map[string]string{
