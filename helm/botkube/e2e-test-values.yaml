@@ -192,6 +192,10 @@ sources:
             event: # overrides top level `event` entry
               types:
                 - update
+            updateSetting:
+              includeDiff: false
+              fields:
+                - spec.data
 
   'other-plugins':
     displayName: "K8s ConfigMaps changes"

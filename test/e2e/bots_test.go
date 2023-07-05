@@ -702,7 +702,21 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		require.NoError(t, err)
 
-		t.Log("Updating ConfigMap...")
+		t.Log("Updating ConfigMap for ignored field...")
+		cfgMap.Annotations = map[string]string{
+			"my": "annotation",
+		}
+		cfgMap, err = cfgMapCli.Update(context.Background(), cfgMap, metav1.UpdateOptions{})
+		require.NoError(t, err)
+
+		t.Log("Ensuring bot didn't post anything new...")
+		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		for _, channelID := range channelIDs {
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), channelID, expectedMessage)
+			require.NoError(t, err)
+		}
+
+		t.Log("Updating ConfigMap for observed field...")
 		cfgMap.Data = map[string]string{
 			"operation": "update",
 		}
