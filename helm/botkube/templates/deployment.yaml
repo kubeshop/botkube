@@ -1,5 +1,3 @@
-{{- $uuid := include "botkube.uuid" . -}}
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -77,8 +75,8 @@ spec:
           volumeMounts:
             - name: cache-volume
               mountPath: /tmp
-            - name: {{ $uuid }}
-              mountPath: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount
+            - name: default-sa
+              mountPath: {{.Values.rbac.serviceAccountMountPath}}
               readOnly: true
           {{- if not (include "botkube.remoteConfigEnabled" $) }}
             - name: config-volume
@@ -132,7 +130,7 @@ spec:
               value: "{{ .Values.config.provider.apiKey }}"
             {{- end }}
             - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
-              value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
+              value: {{.Values.rbac.serviceAccountMountPath}}/default-sa
           {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -166,27 +164,27 @@ spec:
             - name: IGNORE_ALREADY_PROCESSED
               value: "true"
             - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
-              value: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount/{{ $uuid }}
+              value: {{.Values.rbac.serviceAccountMountPath}}/default-sa
           volumeMounts:
             - name: cfg-watcher-tmp
               mountPath: {{ .Values.configWatcher.tmpDir }}
-            - name: {{ $uuid }}
-              mountPath: /var/run/{{ $uuid }}/secrets/kubernetes.io/serviceaccount
+            - name: default-sa
+              mountPath: {{.Values.rbac.serviceAccountMountPath}}
               readOnly: true
         {{- end }}
       volumes:
         - name: cache-volume
           emptyDir: {}
-        - name: {{ $uuid }}
+        - name: default-sa
           projected:
             sources:
               - serviceAccountToken:
-                  path: {{ $uuid }}-token
+                  path: default-sa-token
                   expirationSeconds: 3600
               - configMap:
                   items:
                   - key: ca.crt
-                    path: {{ $uuid }}-ca.crt
+                    path: default-sa-ca.crt
                   name: kube-root-ca.crt
         {{- if not (include "botkube.remoteConfigEnabled" $) }}
         - name: cfg-watcher-tmp

@@ -41,6 +41,10 @@ containerSecurityContext:
 # -- Role Based Access for Botkube Pod.
 # [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
 rbac:
+  # -- It is used to specify a custom path for mounting a service account to the Botkube deployment.
+  # This is important because we run plugins within the same Pod, and we want to avoid potential bugs when plugins rely on
+  # the default in-cluster K8s client configuration. Instead, they should always use kubeconfig specified directly for a given plugin.
+  serviceAccountMountPath: /var/run/7e7fd2f5-b15d-4803-bc52-f54fba357e76/secrets/kubernetes.io/serviceaccount
   create: true
   rules:
     - apiGroups: ["*"]
