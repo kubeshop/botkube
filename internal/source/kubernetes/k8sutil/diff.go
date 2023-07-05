@@ -40,12 +40,12 @@ type diffReporter struct {
 }
 
 func (d diffReporter) exec(x, y interface{}) (string, error) {
-	vx, err := parseJsonpath(x, d.field, true)
+	vx, err := parseJsonpath(x, d.field)
 	if err != nil {
 		return "", fmt.Errorf("while finding value in old obj from jsonpath %q: %w", d.field, err)
 	}
 
-	vy, err := parseJsonpath(y, d.field, false)
+	vy, err := parseJsonpath(y, d.field)
 	if err != nil {
 		return "", fmt.Errorf("while finding value in new obj from jsonpath %q: %w", d.field, err)
 	}
@@ -57,7 +57,7 @@ func (d diffReporter) exec(x, y interface{}) (string, error) {
 	return fmt.Sprintf("%s:\n\t-: %+v\n\t+: %+v\n", d.field, vx, vy), nil
 }
 
-func parseJsonpath(obj interface{}, jsonpathStr string, allowMissingKeys bool) (string, error) {
+func parseJsonpath(obj interface{}, jsonpathStr string) (string, error) {
 	// Parse and print jsonpath
 	fields, err := get.RelaxedJSONPathExpression(jsonpathStr)
 	if err != nil {
@@ -65,7 +65,7 @@ func parseJsonpath(obj interface{}, jsonpathStr string, allowMissingKeys bool) (
 	}
 
 	j := jsonpath.New("jsonpath")
-	j.AllowMissingKeys(allowMissingKeys)
+	j.AllowMissingKeys(true)
 	if err := j.Parse(fields); err != nil {
 		return "", err
 	}
