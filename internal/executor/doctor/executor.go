@@ -75,7 +75,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 	doctorParams, err := normalizeCommand(in.Command)
 	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("while nomralizing command: %w", err)
+		return executor.ExecuteOutput{}, fmt.Errorf("while normalizing command: %w", err)
 	}
 	gpt, err := d.getGptClient(&cfg)
 	if err != nil {
