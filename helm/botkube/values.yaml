@@ -504,6 +504,21 @@ executors:
       #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
       context: *default-plugin-context
 
+  bins-management:
+    ## X executor configuration.
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/x:
+      enabled: false
+      context: *default-plugin-context
+      ## -- Custom x plugin configuration.
+      config:
+        ## -- An array of templates that define how to convert the command output into an interactive message.
+        templates:
+          ## -- Link to templates source
+          ## It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives.
+          ## For more details, see the documentation at https://github.com/hashicorp/go-getter.
+          - ref: github.com/kubeshop/botkube//cmd/executor/x/templates?ref=main
+
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
@@ -554,6 +569,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
+              - bins-management
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -591,6 +607,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
+              - bins-management
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -610,6 +627,7 @@ communications:
         # -- Executor bindings apply to all MS Teams channels where Botkube has access to.
         executors:
           - k8s-default-tools
+          - bins-management
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
@@ -642,6 +660,7 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
+              - bins-management
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events

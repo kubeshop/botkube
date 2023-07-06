@@ -6,6 +6,7 @@ env:
   HELM_DOCS_VERSION: 1.11.0
   CHART_REPOSITORY: https://charts.botkube.io/
   LATEST_PLUGIN_INDEX_URL: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+  LATEST_X_PLUGIN_TPLS_URL: github.com/kubeshop/botkube//cmd/executor/x/templates?ref=main
 
 on:
   workflow_call:
@@ -53,6 +54,7 @@ jobs:
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${{ inputs.next-version }}/g" {} +
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${{ inputs.next-version }}/g" {} +
           find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_PLUGIN_INDEX_URL}~https://github.com/kubeshop/botkube/releases/download/${{ inputs.next-version }}/plugins-index.yaml~g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_X_PLUGIN_TPLS_URL}~github.com/kubeshop/botkube//cmd/executor/x/templates?ref=${{ inputs.next-version }}~g" {} +
 
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.2.1
