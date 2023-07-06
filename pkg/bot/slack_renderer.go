@@ -274,13 +274,22 @@ func (b *SlackRenderer) renderButtons(in api.Buttons, selects *slack.ActionBlock
 		btns = append(btns, b.renderButton(btn))
 	}
 
-	out := selects.Elements.ElementSet
+	var out []slack.BlockElement
+	blockID := ""
+	if selects != nil {
+		blockID = selects.BlockID
+
+		if selects.Elements != nil {
+			out = selects.Elements.ElementSet
+		}
+	}
 	out = append(out, btns...)
+
 	return []slack.Block{
 		// We use actions layout as we have only buttons that we want to display in a single line.
 		// https://api.slack.com/reference/block-kit/blocks#actions
 		slack.NewActionBlock(
-			selects.BlockID,
+			blockID,
 			out...,
 		),
 	}, true
