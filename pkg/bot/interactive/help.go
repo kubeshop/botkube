@@ -126,9 +126,9 @@ func (h *HelpMessage) notificationSections() []api.Section {
 				},
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("Enable", "enable notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Disable", "disable notifications"),
-				h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
+				h.btnBuilder.ForCommand("Enable", "enable notifications"),
+				h.btnBuilder.ForCommand("Disable", "disable notifications"),
+				h.btnBuilder.ForCommand("Get status", "status notifications"),
 			},
 		},
 		{
@@ -159,8 +159,8 @@ func (h *HelpMessage) executorSections() []api.Section {
 				Header: "Manage executors and aliases",
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("List executors", "list executors"),
-				h.btnBuilder.ForCommandWithoutDesc("List aliases", "list aliases"),
+				h.btnBuilder.ForCommand("List executors", "list executors"),
+				h.btnBuilder.ForCommand("List aliases", "list aliases"),
 				h.btnBuilder.ForURL("Executors and aliases help", "https://docs.botkube.io/usage/executor"),
 			},
 		},

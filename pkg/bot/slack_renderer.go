@@ -284,13 +284,10 @@ func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Blo
 	for _, btn := range in {
 		desc := btn.Description
 		switch btn.DescriptionStyle {
+		case api.ButtonDescriptionStyleCode:
+			desc = formatx.AdaptiveCodeBlock(desc)
 		case api.ButtonDescriptionStyleBold:
 			desc = fmt.Sprintf("*%s*", desc)
-		case api.ButtonDescriptionStyleCode:
-			fallthrough
-		default:
-			// keep backward compatibility
-			desc = formatx.AdaptiveCodeBlock(desc)
 		}
 
 		out = append(out, slack.NewSectionBlock(
