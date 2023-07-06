@@ -11,15 +11,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/kubeshop/botkube/cmd/migration/internal/config"
+	cfginternal "github.com/kubeshop/botkube/internal/config"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func main() {
-	files, _, err := config.NewEnvProvider().Configs(context.Background())
+	files, _, err := cfginternal.NewEnvProvider().Configs(context.Background())
 	if err != nil {
 		panic(err)
 	}
-	conf, err := config.LoadWithDefaults(files)
+	conf, _, err := config.LoadWithDefaults(files)
 	if err != nil {
 		panic(err)
 	}

@@ -8,7 +8,7 @@ help:
 lint-fix: go-import-fmt
 	@go mod tidy
 	@go mod verify
-	@golangci-lint run --fix "./..."
+	@golangci-lint run --timeout=10m --fix "./..."
 
 go-import-fmt:
 	@./hack/fmt-imports.sh
@@ -23,9 +23,12 @@ test-integration-slack: system-check
 test-integration-discord: system-check
 	@go test -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
 
+test-migration-tool: system-check
+	@go test -v -tags=e2e -race -count=1 ./test/migration/e2e/...
+
 # Build the binary
 build: pre-build
-	@cd cmd/botkube;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
+	@cd cmd/botkube-agent;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
 	@echo "Build completed successfully"
 
 # Build Botkube official plugins for all supported platforms.
@@ -55,6 +58,9 @@ container-image-single: pre-build
 # Build project and push dev images with v9.99.9-dev tag
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
+
+release-snapshot-cli:
+	@./hack/goreleaser.sh release_snapshot_cli
 
 # Build project and save images with IMAGE_TAG tag
 save-images:

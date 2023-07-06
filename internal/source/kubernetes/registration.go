@@ -65,11 +65,11 @@ func (r registration) handleEvent(ctx context.Context, s Source, resource string
 		resourceEventHandlerFuncs.UpdateFunc = handleFunc
 	}
 
-	r.informer.AddEventHandler(resourceEventHandlerFuncs)
+	_, _ = r.informer.AddEventHandler(resourceEventHandlerFuncs)
 }
 
 func (r registration) handleMapped(ctx context.Context, s Source, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
-	r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
 			err := k8sutil.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)

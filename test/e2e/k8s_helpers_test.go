@@ -97,7 +97,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 
 func waitForDeploymentReady(deployNsCli appsv1cli.DeploymentInterface, deploymentName string, waitTimeout time.Duration) error {
 	var lastErr error
-	err := wait.Poll(pollInterval, waitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, waitTimeout, false, func(ctx context.Context) (done bool, err error) {
 		deployment, err := deployNsCli.Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			lastErr = err
@@ -113,7 +113,7 @@ func waitForDeploymentReady(deployNsCli appsv1cli.DeploymentInterface, deploymen
 		return condition.Status == v1.ConditionTrue, nil
 	})
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if wait.Interrupted(err) {
 			return lastErr
 		}
 		return err

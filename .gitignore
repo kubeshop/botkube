@@ -38,7 +38,9 @@ tags
 /bin
 
 ./botkube
+./botkube-agent
 ./botkube-test
+./main
 
 # Release
 dist/

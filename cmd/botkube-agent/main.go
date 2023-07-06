@@ -322,7 +322,7 @@ func run(ctx context.Context) error {
 			conf.ConfigWatcher,
 		)
 		if err != nil {
-			if err != wait.ErrWaitTimeout {
+			if wait.Interrupted(err) {
 				return reportFatalError("while waiting for Config Watcher sync", err)
 			}
 

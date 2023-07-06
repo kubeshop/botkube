@@ -34,9 +34,9 @@ func New() (*Config, error) {
 
 // Save saves Config to local FS
 func (c *Config) Save() error {
-	if _, err := os.Stat(filepath.Dir(configFilePath)); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Clean(filepath.Dir(configFilePath))); os.IsNotExist(err) {
 		// #nosec G301
-		err := os.MkdirAll(filepath.Dir(configFilePath), 0755)
+		err := os.MkdirAll(filepath.Clean(filepath.Dir(configFilePath)), 0755)
 		if err != nil {
 			return fmt.Errorf("failed to create config directory: %v", err)
 		}
@@ -48,7 +48,7 @@ func (c *Config) Save() error {
 	}
 
 	// #nosec G306
-	err = os.WriteFile(configFilePath, data, 0644)
+	err = os.WriteFile(filepath.Clean(configFilePath), data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write config: %v", err)
 	}

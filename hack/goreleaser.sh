@@ -22,6 +22,7 @@ release_snapshot() {
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  docker push ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 
   # Create manifest
   docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
@@ -29,6 +30,17 @@ release_snapshot() {
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
     --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
   docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+
+  # Create migrator manifest
+  docker manifest create ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+    --amend ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  docker manifest push ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+}
+
+release_snapshot_cli() {
+  prepare
+  export GORELEASER_CURRENT_TAG=v9.99.9-dev
+  goreleaser build --rm-dist --snapshot --id botkube-cli
 }
 
 save_images() {
@@ -122,14 +134,14 @@ build_single() {
     -w /go/src/github.com/kubeshop/botkube \
     -e IMAGE_TAG=${IMAGE_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
-    goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube -o "./botkube"
+    goreleaser/goreleaser build --single-target --rm-dist --snapshot --id botkube-agent -o "./botkube-agent"
   docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
-  rm "$PWD/botkube"
+  rm "$PWD/botkube-agent"
 }
 
 usage() {
   cat <<EOM
-Usage: ${0} [build|release|release_snapshot]
+Usage: ${0} [build|release|release_snapshot|release_snapshot_cli]
 Where,
   build: Builds project with goreleaser without pushing images.
   release_snapshot: Builds project without publishing release. It builds and pushes Botkube image with v9.99.9-dev image tag.
@@ -153,6 +165,9 @@ build_single)
   ;;
 release_snapshot)
   release_snapshot
+  ;;
+release_snapshot_cli)
+  release_snapshot_cli
   ;;
 save_images)
   save_images
