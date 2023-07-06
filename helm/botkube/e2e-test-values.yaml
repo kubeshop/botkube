@@ -118,6 +118,10 @@ sources:
             - update
         resources:
           - type: v1/configmaps
+            updateSetting:
+              includeDiff: false
+              fields:
+                - data
   'k8s-annotated-cm-delete':
     displayName: "K8s ConfigMap delete events"
     'botkube/kubernetes':
@@ -192,6 +196,10 @@ sources:
             event: # overrides top level `event` entry
               types:
                 - update
+            updateSetting:
+              includeDiff: false
+              fields:
+                - data
 
   'other-plugins':
     displayName: "K8s ConfigMaps changes"

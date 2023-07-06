@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -78,10 +79,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Spec Diff`: {
-			old:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
-			new:                Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
-			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[{Image:nginx:1.14}]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			old:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "bar"}},
+			new:      Object{Spec: Spec{Containers: []Container{{Image: "nginx:1.14"}}}, Other: Other{Foo: "boo"}},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expected: ExpectedDiff{},
 		},
 		`Annotations changed`: {
 			old:    Object{Other: Other{Annotations: map[string]string{"app.kubernetes.io/version": "1"}}},
@@ -104,10 +105,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Status Diff`: {
-			old:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
-			new:                Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
-			update:             config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.labels\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:1} Data:{Properties:} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			old:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
+			new:      Object{Status: Status{Replicas: 1}, Other: Other{Foo: "boo"}},
+			update:   config.UpdateSetting{Fields: []string{"metadata.labels"}, IncludeDiff: true},
+			expected: ExpectedDiff{},
 		},
 		`Event Diff`: {
 			old:    Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
@@ -120,10 +121,10 @@ func TestDiff(t *testing.T) {
 			},
 		},
 		`Non Event Diff`: {
-			old:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
-			new:                Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
-			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:color: blue} Rules:{Verbs:} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			old:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "bar"}},
+			new:      Object{Data: Data{Properties: "color: blue"}, Other: Other{Foo: "boo"}},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expected: ExpectedDiff{},
 		},
 		`Rules Diff`: {
 			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
@@ -135,11 +136,49 @@ func TestDiff(t *testing.T) {
 				Y:    "watch",
 			},
 		},
+		`JSONPath error`: {
+			old:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
+			new:    Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
+			update: config.UpdateSetting{Fields: []string{"><@>!$@435metadata.name"}, IncludeDiff: true},
+			expectedErrMessage: heredoc.Doc(`
+				while getting diff: 1 error occurred:
+					* while finding value in old obj from jsonpath "><@>!$@435metadata.name": unrecognized character in action: U+003E '>'`),
+		},
 		`Non Rules Diff`: {
-			old:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
-			new:                Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
-			update:             config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
-			expectedErrMessage: "while finding value from jsonpath: \"metadata.name\", object: {Spec:{Port:0 Containers:[]} Status:{Replicas:0} Data:{Properties:} Rules:{Verbs:list} Other:{Foo:bar Annotations:map[]}}: metadata is not found",
+			old:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "bar"}},
+			new:      Object{Rules: Rules{Verbs: "list"}, Other: Other{Foo: "boo"}},
+			update:   config.UpdateSetting{Fields: []string{"metadata.name"}, IncludeDiff: true},
+			expected: ExpectedDiff{},
+		},
+		`Get all diffs even if one of them return errors`: {
+			old:    Object{Status: Status{Replicas: 1}, Other: Other{Foo: "bar"}},
+			new:    Object{Status: Status{Replicas: 2}, Other: Other{Foo: "bar"}},
+			update: config.UpdateSetting{Fields: []string{"status.foo", "status.replicas"}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: "status.replicas",
+				X:    "1",
+				Y:    "2",
+			},
+		},
+		`Missing Property in old object`: {
+			old:    Object{Status: Status{Replicas: 1}, Other: Other{Annotations: nil}},
+			new:    Object{Status: Status{Replicas: 2}, Other: Other{Annotations: map[string]string{"foo": "bar"}}},
+			update: config.UpdateSetting{Fields: []string{"other.annotations.foo"}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: "other.annotations.foo",
+				X:    "<none>",
+				Y:    "bar",
+			},
+		},
+		`Missing Property in new object`: {
+			old:    Object{Status: Status{Replicas: 1}, Other: Other{Annotations: map[string]string{"foo": "bar"}}},
+			new:    Object{Status: Status{Replicas: 2}, Other: Other{Annotations: nil}},
+			update: config.UpdateSetting{Fields: []string{"other.annotations.foo"}, IncludeDiff: true},
+			expected: ExpectedDiff{
+				Path: "other.annotations.foo",
+				X:    "bar",
+				Y:    "<none>",
+			},
 		},
 	}
 	for name, test := range tests {
