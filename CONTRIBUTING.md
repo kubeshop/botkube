@@ -185,6 +185,9 @@ For faster development, you can also build and run Botkube outside K8s cluster.
    > **Note**
    > Each time you make a change to the [source](cmd/source) or [executors](cmd/executor) plugins re-run the above command.
 
+   > **Note**
+   > To build specific plugin binaries, use `PLUGIN_TARGETS`. For example `PLUGIN_TARGETS="x, kubectl" make build-plugins-single`.
+
 ## Making A Change
 
 - Before making any significant changes, please [open an issue](https://github.com/kubeshop/botkube/issues). Discussing your proposed changes ahead of time will make the contribution process smooth for everyone.

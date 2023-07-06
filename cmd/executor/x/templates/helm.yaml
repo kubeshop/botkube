@@ -1,0 +1,17 @@
+templates:
+  - trigger:
+      command: "helm list"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Release"
+          keyTpl: "{{ .Namespace }}/{{ .Name }}"
+      actions:
+        notes:  "helm get notes  {{ .Name }} -n {{ .Namespace }}"
+        values: "helm get values {{ .Name }} -n {{ .Namespace }}"
+        delete: "helm delete     {{ .Name }} -n {{ .Namespace }}"
+      preview: |
+        Name:        {{ .Name }}
+        Namespace:   {{ .Namespace }}
+        Status:      {{ .Status }}
+        Chart:       {{ .Chart }}

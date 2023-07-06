@@ -103,7 +103,7 @@ func PreviewSection(cmd string, input api.LabelInput) []api.Section {
 		},
 		{
 			Buttons: api.Buttons{
-				btn.ForCommand(interactive.RunCommandName, cmd, api.ButtonStylePrimary),
+				btn.ForCommandWithoutDesc(interactive.RunCommandName, cmd, api.ButtonStylePrimary),
 			},
 		},
 	}

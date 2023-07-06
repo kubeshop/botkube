@@ -162,7 +162,11 @@ func createGitHubIssue(cfg Config, title, mdBody string) (string, error) {
 		"GH_TOKEN": cfg.GitHub.Token,
 	}
 
-	return pluginx.ExecuteCommandWithEnvs(context.Background(), cmd, envs)
+	output, err := pluginx.ExecuteCommand(context.Background(), cmd, pluginx.ExecuteCommandEnvs(envs))
+	if err != nil {
+		return "", err
+	}
+	return output.Stdout, nil
 }
 
 // IssueDetails holds all available information about a given issue.
@@ -190,8 +194,8 @@ func getIssueDetails(ctx context.Context, namespace, name, kubeConfigPath string
 	return IssueDetails{
 		Type:      name,
 		Namespace: namespace,
-		Logs:      logs,
-		Version:   ver,
+		Logs:      logs.Stdout,
+		Version:   ver.Stdout,
 	}, nil
 }
 

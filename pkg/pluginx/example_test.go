@@ -48,21 +48,21 @@ func Example_executeCommand() {
 		panic(err)
 	}
 
-	fmt.Println(out)
+	fmt.Println(out.Stdout)
 
 	// output:
 	// hakuna matata
 }
 
 func Example_executeCommandWithEnv() {
-	out, err := ExecuteCommandWithEnvs(context.Background(), `sh -c "echo ${CUSTOM_ENV}"`, map[string]string{
+	out, err := ExecuteCommand(context.Background(), `sh -c "echo ${CUSTOM_ENV}"`, ExecuteCommandEnvs(map[string]string{
 		"CUSTOM_ENV": "magic-value",
-	})
+	}))
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(out)
+	fmt.Println(out.Stdout)
 
 	// output:
 	// magic-value

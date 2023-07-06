@@ -10,7 +10,9 @@ import (
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/golden"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const kc = "KUBECONFIG"
@@ -45,7 +47,9 @@ func TestExecutorHelmInstall(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			const execOutput = "mocked"
+			execOutput := pluginx.ExecuteCommandOutput{
+				Stdout: "mocked",
+			}
 
 			hExec := NewExecutor("testing")
 
@@ -53,9 +57,14 @@ func TestExecutorHelmInstall(t *testing.T) {
 				gotCmd  string
 				gotEnvs map[string]string
 			)
-			hExec.executeCommandWithEnvs = func(_ context.Context, rawCmd string, envs map[string]string) (string, error) {
+			hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
 				gotCmd = rawCmd
-				gotEnvs = envs
+				var opts pluginx.ExecuteCommandOptions
+				for _, mutate := range mutators {
+					mutate(&opts)
+				}
+
+				gotEnvs = opts.Envs
 				return execOutput, nil
 			}
 
@@ -70,7 +79,7 @@ func TestExecutorHelmInstall(t *testing.T) {
 			// then
 			require.NoError(t, err)
 
-			assert.Equal(t, execOutput, out.Data)
+			assert.Equal(t, api.NewPlaintextMessage(execOutput.Stdout, true), out.Message)
 
 			assert.Equal(t, tc.expCommand, gotCmd)
 
@@ -112,7 +121,7 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			hExec := NewExecutor("testing")
-			hExec.executeCommandWithEnvs = noopExecuteCommand
+			hExec.executeCommand = noopExecuteCommand
 
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
@@ -124,6 +133,7 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 
 			// then
 			require.EqualError(t, err, tc.expErrMsg)
+			assert.Empty(t, out.Message)
 			assert.Empty(t, out.Data)
 		})
 	}
@@ -152,7 +162,7 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			hExec := NewExecutor("testing")
-			hExec.executeCommandWithEnvs = noopExecuteCommand
+			hExec.executeCommand = noopExecuteCommand
 
 			// when
 			out, err := hExec.Execute(context.Background(), executor.ExecuteInput{
@@ -173,9 +183,14 @@ func TestExecutorConfigMerging(t *testing.T) {
 	// given
 	hExec := NewExecutor("testing")
 	var gotEnvs map[string]string
-	hExec.executeCommandWithEnvs = func(_ context.Context, _ string, envs map[string]string) (string, error) {
-		gotEnvs = envs
-		return "", nil
+	hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+		var opts pluginx.ExecuteCommandOptions
+		for _, mutate := range mutators {
+			mutate(&opts)
+		}
+
+		gotEnvs = opts.Envs
+		return pluginx.ExecuteCommandOutput{}, nil
 	}
 
 	configA := Config{
@@ -217,7 +232,7 @@ func TestExecutorConfigMerging(t *testing.T) {
 func TestExecutorConfigMergingErrors(t *testing.T) {
 	// given
 	hExec := NewExecutor("testing")
-	hExec.executeCommandWithEnvs = noopExecuteCommand
+	hExec.executeCommand = noopExecuteCommand
 
 	configA := Config{
 		HelmDriver: "unknown-value",
@@ -247,6 +262,6 @@ func mustYAMLMarshal(t *testing.T, in any) []byte {
 	return out
 }
 
-func noopExecuteCommand(_ context.Context, _ string, _ map[string]string) (string, error) {
-	return "", nil
+func noopExecuteCommand(context.Context, string, ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+	return pluginx.ExecuteCommandOutput{}, nil
 }

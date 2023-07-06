@@ -26,6 +26,7 @@ require (
 	github.com/hashicorp/go-plugin v1.4.8
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hasura/go-graphql-client v0.8.1
+	github.com/huandu/xstrings v1.3.2
 	github.com/infracloudio/msbotbuilder-go v0.2.5
 	github.com/knadh/koanf v1.4.4
 	github.com/mattermost/mattermost-server/v5 v5.39.3
@@ -54,7 +55,7 @@ require (
 	golang.org/x/oauth2 v0.5.0
 	golang.org/x/sync v0.2.0
 	golang.org/x/text v0.9.0
-	google.golang.org/grpc v1.51.0
+	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.3.0
@@ -69,9 +70,9 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.105.0 // indirect
-	cloud.google.com/go/compute v1.12.1 // indirect
-	cloud.google.com/go/compute/metadata v0.2.1 // indirect
+	cloud.google.com/go v0.107.0 // indirect
+	cloud.google.com/go/compute v1.15.1 // indirect
+	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.8.0 // indirect
 	cloud.google.com/go/storage v1.28.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
@@ -197,7 +198,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.103.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221201164419-0e50fba7f41c // indirect
+	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

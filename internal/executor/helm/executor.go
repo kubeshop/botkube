@@ -44,15 +44,15 @@ var _ executor.Executor = &Executor{}
 
 // Executor provides functionality for running Helm CLI.
 type Executor struct {
-	pluginVersion          string
-	executeCommandWithEnvs func(ctx context.Context, rawCmd string, envs map[string]string) (string, error)
+	pluginVersion  string
+	executeCommand func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error)
 }
 
 // NewExecutor returns a new Executor instance.
 func NewExecutor(ver string) *Executor {
 	return &Executor{
-		pluginVersion:          ver,
-		executeCommandWithEnvs: pluginx.ExecuteCommandWithEnvs,
+		pluginVersion:  ver,
+		executeCommand: pluginx.ExecuteCommand,
 	}
 }
 
@@ -187,13 +187,13 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 		"KUBECONFIG":       kubeConfig,
 	}
 
-	out, err := e.executeCommandWithEnvs(ctx, rawCmd, envs)
+	out, err := e.executeCommand(ctx, rawCmd, pluginx.ExecuteCommandEnvs(envs))
 	if err != nil {
-		return executor.ExecuteOutput{}, fmt.Errorf("%s\n%s", out, err.Error())
+		return executor.ExecuteOutput{}, err
 	}
 
 	return executor.ExecuteOutput{
-		Data: out,
+		Message: api.NewPlaintextMessage(out.Stdout, true),
 	}, nil
 }
 

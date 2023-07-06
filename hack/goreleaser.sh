@@ -33,7 +33,7 @@ release_snapshot() {
 
   # Create migrator manifest
   docker manifest create ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} 
+    --amend ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
   docker manifest push ${IMAGE_REGISTRY}/${MIGRATOR_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
@@ -46,8 +46,7 @@ release_snapshot_cli() {
 save_images() {
   prepare
 
-  if [ -z "${IMAGE_TAG}" ]
-  then
+  if [ -z "${IMAGE_TAG}" ]; then
     echo "Missing IMAGE_TAG."
     exit 1
   fi
@@ -59,15 +58,14 @@ save_images() {
 
   # Save images
   IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 > ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
+  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
 }
 
 load_and_push_images() {
   prepare
-  if [ -z "${IMAGE_TAG}" ]
-  then
+  if [ -z "${IMAGE_TAG}" ]; then
     echo "Missing IMAGE_TAG."
     exit 1
   fi
@@ -80,7 +78,7 @@ load_and_push_images() {
   docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
   docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
 
-	# Push images
+  # Push images
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
   docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
@@ -104,12 +102,28 @@ build() {
     goreleaser/goreleaser release --rm-dist --snapshot --skip-publish
 }
 
+build_plugins_command() {
+  local command="goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot"
+
+  local targets=()
+  if [ -n "$PLUGIN_TARGETS" ]; then
+    IFS=',' read -ra targets <<<"$PLUGIN_TARGETS"
+  fi
+
+  for target in "${targets[@]}"; do
+    command+=" --id $target"
+  done
+
+  echo "$command"
+}
+
 build_plugins() {
-  goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot
+  eval "$(build_plugins_command)"
 }
 
 build_plugins_single() {
-  goreleaser build -f .goreleaser.plugin.yaml --rm-dist --snapshot --single-target
+  command+="$(build_plugins_command) --single-target"
+  eval "$command"
 }
 
 build_single() {
@@ -126,42 +140,42 @@ build_single() {
 }
 
 usage() {
-    cat <<EOM
+  cat <<EOM
 Usage: ${0} [build|release|release_snapshot|release_snapshot_cli]
 Where,
   build: Builds project with goreleaser without pushing images.
   release_snapshot: Builds project without publishing release. It builds and pushes Botkube image with v9.99.9-dev image tag.
 EOM
-    exit 1
+  exit 1
 }
 
 [ ${#@} -gt 0 ] || usage
 case "${1}" in
-  build)
-    build
-    ;;
-  build_plugins)
-    build_plugins
-    ;;
-  build_plugins_single)
-    build_plugins_single
-    ;;
-  build_single)
-    build_single
-    ;;
-  release_snapshot)
-    release_snapshot
-    ;;
-  release_snapshot_cli)
-    release_snapshot_cli
-    ;;
-  save_images)
-    save_images
-    ;;
-  save_pr_image)
-    save_pr_image
-    ;;
-  load_and_push_images)
-    load_and_push_images
-    ;;
+build)
+  build
+  ;;
+build_plugins)
+  build_plugins
+  ;;
+build_plugins_single)
+  build_plugins_single
+  ;;
+build_single)
+  build_single
+  ;;
+release_snapshot)
+  release_snapshot
+  ;;
+release_snapshot_cli)
+  release_snapshot_cli
+  ;;
+save_images)
+  save_images
+  ;;
+save_pr_image)
+  save_pr_image
+  ;;
+load_and_push_images)
+  load_and_push_images
+  ;;
 esac
