@@ -5,6 +5,8 @@ env:
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
   - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY" }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
+  - HOMEBREW_REPO_OWNER={{ if index .Env "REPO_OWNER"  }}{{ .Env.REPO_OWNER }}{{ else }}kubeshop{{ end }}
+  - HOMEBREW_REPO_NAME={{ if index .Env "HOMEBREW_REPO_NAME"  }}{{ .Env.HOMEBREW_REPO_NAME }}{{ else }}botkube-tap{{ end }}
 before:
   hooks:
     - go mod download
@@ -120,3 +122,16 @@ docker_manifests:
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+
+brews:
+  - name: bctl
+    tap:
+      owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
+      name: "{{.Env.HOMEBREW_REPO_NAME}}"
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    download_strategy: CurlDownloadStrategy
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    folder: Formula
+    homepage: "https://botkube.io"
+    description: "BotKube CLI is a command line tool that helps you migrate your Botkube installation to Botkube Cloud."
+    license: "MIT"
