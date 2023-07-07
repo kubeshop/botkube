@@ -26,6 +26,7 @@ type Flags struct {
 	Filter       string
 	ClusterName  string
 	TokenizedCmd []string
+	CmdHeader    string
 }
 
 // ParseFlags parses raw cmd and removes optional params with flags.
@@ -46,6 +47,11 @@ func ParseFlags(cmd string) (Flags, error) {
 		return Flags{}, fmt.Errorf("while extracting all-cluster flag: %w", err)
 	}
 
+	cmd, cmdHeaderName, err := extractParam(cmd, "bk-cmd-header")
+	if err != nil {
+		return Flags{}, err
+	}
+
 	tokenized, err := shellwords.Parse(cmd)
 	if err != nil {
 		return Flags{}, errors.New(cantParseCmd)
@@ -55,6 +61,7 @@ func ParseFlags(cmd string) (Flags, error) {
 		Filter:       filter,
 		ClusterName:  clusterName,
 		TokenizedCmd: tokenized,
+		CmdHeader:    cmdHeaderName,
 	}, nil
 }
 
