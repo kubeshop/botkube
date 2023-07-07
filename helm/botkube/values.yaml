@@ -634,10 +634,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
@@ -672,10 +674,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
 
     ## Settings for MS Teams.
     teams:
@@ -692,10 +696,12 @@ communications:
         executors:
           - k8s-default-tools
           - bins-management
+          - ai
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
           - k8s-recommendation-events
+          - k8s-err-events-with-ai-support
       # -- The path in endpoint URL provided while registering Botkube to MS Teams.
       messagePath: "/bots/teams"
       # -- The Service port for bot endpoint on Botkube container.
@@ -725,10 +731,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
 
     ## Settings for Elasticsearch.
     elasticsearch:
