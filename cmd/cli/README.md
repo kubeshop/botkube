@@ -45,9 +45,9 @@ The server is stopped after the callback is received.
 
 ### Migration
 
-Once logged in, we create a pod in the same namespace as the Botkube instance that mounts the same
-secrets and config maps as the Botkube pod and generates and stores the entire configuration in a
-config map `botkube-migration`.
+Once user is logged in, Botkube CLI creates a Pod in the same namespace where Botkube resides. Then, it mounts the same
+Secrets and ConfigMaps as the Botkube Pod, and pulls entire configuration to a
+ConfigMap `botkube-config-exporter`.
 
 Once we have the configuration, we can turn it into a API call and create identical
 resources in Botkube Cloud.

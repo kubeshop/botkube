@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeshop/botkube/test/commplatform"
+
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -19,7 +21,11 @@ import (
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 )
 
-func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, driverType DriverType, channels map[string]Channel, pluginRepoURL string) func(t *testing.T) {
+const (
+	pollInterval = 1 * time.Second
+)
+
+func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.DeploymentInterface, driverType commplatform.DriverType, channels map[string]commplatform.Channel, pluginRepoURL string) func(t *testing.T) {
 	t.Helper()
 
 	deployment, err := deployNsCli.Get(context.Background(), appCfg.Deployment.Name, metav1.GetOptions{})
@@ -65,7 +71,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		},
 	}
 
-	if len(channels) > 0 && driverType == SlackBot {
+	if len(channels) > 0 && driverType == commplatform.SlackBot {
 		slackEnabledEnvName := appCfg.Deployment.Envs.SlackEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: slackEnabledEnvName, Value: enabled})
 
@@ -74,7 +80,7 @@ func setTestEnvsForDeploy(t *testing.T, appCfg Config, deployNsCli appsv1cli.Dep
 		}
 	}
 
-	if len(channels) > 0 && driverType == DiscordBot {
+	if len(channels) > 0 && driverType == commplatform.DiscordBot {
 		discordEnabledEnvName := appCfg.Deployment.Envs.DiscordEnabledName
 		newEnvs = append(newEnvs, v1.EnvVar{Name: discordEnabledEnvName, Value: enabled})
 

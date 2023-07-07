@@ -18,27 +18,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
 
 	cliconfig "github.com/kubeshop/botkube/cmd/cli/cmd/config"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
 const (
-	migrationName = "botkube-migration"
-	jobImage      = "ghcr.io/kubeshop/botkube-migration"
-)
+	migrationJobName = "botkube-migration"
+	configMapName    = "botkube-config-exporter"
 
-var (
-	Tag = "latest"
+	instanceDetailsURLFmt = "%s/instances/%s"
 )
 
 // Run runs the migration process.
 func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts Options) (string, error) {
-	var authToken string = opts.Token
+	authToken := opts.Token
 	if authToken == "" {
 		cfg, err := cliconfig.New()
 		if err != nil {
@@ -107,6 +105,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	aliases := converter.ConvertAliases(botkubeClusterConfig.Aliases, mutation.CreateDeployment.ID)
 	status.Step("Converted %d aliases", len(aliases))
 
+	errs := multierror.New()
 	for _, alias := range aliases {
 		status.Step("Migrating Alias %q", alias.Name)
 		var aliasMutation struct {
@@ -118,8 +117,13 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 			"input": *alias,
 		})
 		if err != nil {
-			return "", errors.Wrap(err, "while creating alias")
+			errs = multierror.Append(errs, fmt.Errorf("while creating Alias %q: %w", alias.Name, err))
+			continue
 		}
+	}
+
+	if errs.ErrorOrNil() != nil {
+		return "", fmt.Errorf("while migrating aliases: %w%s", errs.ErrorOrNil(), errStateMessage(opts.CloudDashboardURL, mutation.CreateDeployment.ID))
 	}
 
 	if opts.SkipConnect {
@@ -140,17 +144,11 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	}
 	status.InfoWithBody("Connect Botkube instance", bldr.String())
 
-	run := false
-	prompt := &survey.Confirm{
-		Message: "Would you like to continue?",
-		Default: true,
-	}
-
-	err = survey.AskOne(prompt, &run)
+	shouldUpgrade, err := shouldUpgradeInstallation(opts)
 	if err != nil {
-		return "", errors.Wrap(err, "while asking for confirmation")
+		return "", err
 	}
-	if !run {
+	if !shouldUpgrade {
 		status.Infof("Skipping command execution. Remember to run it manually to finish the migration process.")
 		return mutation.CreateDeployment.ID, nil
 	}
@@ -209,7 +207,7 @@ func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Po
 		return nil, nil, err
 	}
 
-	if err = createMigrationJob(ctx, k8sCli, botkubePod); err != nil {
+	if err = createMigrationJob(ctx, k8sCli, botkubePod, opts.ConfigExporter); err != nil {
 		return nil, nil, err
 	}
 
@@ -242,7 +240,7 @@ func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Optio
 	return &pods.Items[0], nil
 }
 
-func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod) error {
+func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botkubePod *corev1.Pod, cfg ConfigExporterOptions) error {
 	var container corev1.Container
 	for _, c := range botkubePod.Spec.Containers {
 		if c.Name == "botkube" {
@@ -253,10 +251,10 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      migrationName,
+			Name:      migrationJobName,
 			Namespace: botkubePod.Namespace,
 			Labels: map[string]string{
-				"app":                  migrationName,
+				"app":                  migrationJobName,
 				"botkube.io/migration": "true",
 			},
 		},
@@ -265,8 +263,8 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            migrationName,
-							Image:           fmt.Sprintf("%s:%s", jobImage, Tag),
+							Name:            migrationJobName,
+							Image:           fmt.Sprintf("%s/%s:%s", cfg.Registry, cfg.Repository, cfg.Tag),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env:             container.Env,
 							VolumeMounts:    container.VolumeMounts,
@@ -286,29 +284,42 @@ func createMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, botku
 }
 
 func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) error {
+	ctxWithTimeout, cancelFn := context.WithTimeout(ctx, opts.ConfigExporter.Timeout)
+	defer cancelFn()
+
+	ticker := time.NewTicker(opts.ConfigExporter.PollPeriod)
+	defer ticker.Stop()
+
 	var job *batchv1.Job
-	var err error
-	for i := 0; i < 30; i++ {
-		job, err = k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if job.Status.Succeeded > 0 {
-			return nil
-		}
-		time.Sleep(2 * time.Second)
-	}
+	for {
+		select {
+		case <-ctxWithTimeout.Done():
 
-	dat, err := yaml.Marshal(job.Status)
-	if err != nil {
-		return err
-	}
+			errMsg := fmt.Sprintf("migration job failed: %s", context.Canceled.Error())
 
-	return fmt.Errorf("migration job failed: %s", string(dat))
+			if opts.Debug && job != nil {
+				errMsg = fmt.Sprintf("%s\n\nDEBUG:\njob:\n\n%s", errMsg, job.String())
+			}
+
+			// TODO: Add ability to keep the job if it fails and improve the error
+			return errors.New(errMsg)
+		case <-ticker.C:
+			var err error
+			job, err = k8sCli.BatchV1().Jobs(opts.Namespace).Get(ctx, migrationJobName, metav1.GetOptions{})
+			if err != nil {
+				fmt.Println("Error getting migration job: ", err.Error())
+				continue
+			}
+
+			if job.Status.Succeeded > 0 {
+				return nil
+			}
+		}
+	}
 }
 
 func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) ([]byte, error) {
-	configMap, err := k8sCli.CoreV1().ConfigMaps(opts.Namespace).Get(ctx, migrationName, metav1.GetOptions{})
+	configMap, err := k8sCli.CoreV1().ConfigMaps(opts.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +328,30 @@ func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Op
 
 func cleanup(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) {
 	foreground := metav1.DeletePropagationForeground
-	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{PropagationPolicy: &foreground})
-	_ = k8sCli.CoreV1().ConfigMaps(opts.Namespace).Delete(ctx, migrationName, metav1.DeleteOptions{})
+	_ = k8sCli.BatchV1().Jobs(opts.Namespace).Delete(ctx, migrationJobName, metav1.DeleteOptions{PropagationPolicy: &foreground})
+	_ = k8sCli.CoreV1().ConfigMaps(opts.Namespace).Delete(ctx, configMapName, metav1.DeleteOptions{})
+}
+
+func errStateMessage(dashboardURL, instanceID string) string {
+	return fmt.Sprintf("\n\nMigration process failed. Navigate to %s to continue configuring newly created instance.\n"+
+		"Alternatively, delete the instance from the link above and try again.", fmt.Sprintf(instanceDetailsURLFmt, dashboardURL, instanceID))
+}
+
+func shouldUpgradeInstallation(opts Options) (bool, error) {
+	if opts.AutoUpgrade {
+		return true, nil
+	}
+
+	run := false
+	prompt := &survey.Confirm{
+		Message: "Would you like to continue?",
+		Default: true,
+	}
+
+	err := survey.AskOne(prompt, &run)
+	if err != nil {
+		return false, errors.Wrap(err, "while asking for confirmation")
+	}
+
+	return run, nil
 }

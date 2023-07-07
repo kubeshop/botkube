@@ -24,7 +24,7 @@ test-integration-discord: system-check
 	@go test -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
 
 test-migration-tool: system-check
-	@go test -v -tags=e2e -race -count=1 ./test/migration/e2e/...
+	@go test -v -tags=migration -race -count=1 ./test/e2e/...
 
 # Build the binary
 build: pre-build
@@ -93,7 +93,7 @@ gen-plugins-index: build-plugins
 
 gen-docs-cli:
 	rm -f ./cmd/cli/docs/*
-	go run cmd/cli/main.go gen-usage-docs
+	go run -ldflags="-X go.szostok.io/version.name=botkube" cmd/cli/main.go gen-usage-docs
 .PHONY: gen-docs-cli
 
 # Pre-build checks
