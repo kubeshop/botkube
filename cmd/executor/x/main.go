@@ -217,7 +217,7 @@ func jsonSchema() api.JSONSchema {
 					"title": "Link to templates source",
 					"description": "It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives. For more details, see the documentation at https://github.com/hashicorp/go-getter.",
 					"type": "string",
-					"default": ""
+					"default": "%s"
 				  }
 				},
 				"required": [
