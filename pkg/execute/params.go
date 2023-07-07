@@ -18,8 +18,6 @@ const (
 	paramFlagParseErrorMsg = `incorrect use of %s flag: could not parse flag in %s
 error: %s
 Use %s="value" or %s value`
-	multipleFilters       = "incorrect use of --filter flag: found more than one filter flag"
-	missingCmdFilterValue = `incorrect use of --filter flag: an argument is missing. use --filter="value" or --filter value`
 )
 
 // Flags contains cmd line arguments for executors.
