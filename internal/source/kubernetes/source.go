@@ -219,7 +219,7 @@ func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []str
 		return
 	}
 
-	msg, err := s.messageBuilder.FromEvent(e)
+	msg, err := s.messageBuilder.FromEvent(e, s.config.ExtraButtons)
 	if err != nil {
 		s.logger.Errorf("while rendering message from event: %w", err)
 		return
@@ -961,7 +961,55 @@ func jsonSchema() api.JSONSchema {
 				  "title": "Disable Colors"
 				}
 			  }
-			}
+			},
+            "extraButtons": {
+              "title": "Extra Buttons",
+              "description": "Extra buttons for actionable items.",
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "If enabled, renders extra button.",
+                  "title": "Enable extra button"
+                },
+                "trigger": {
+                  "title": "Trigger",
+                  "description": "Define log level for the plugin. Ensure that Botkube has plugin logging enabled for standard output.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                        "title": "Event types",
+                        "description": "Event types which will trigger this action",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "title": "Event type"
+                        }
+                    }
+                  }
+                },
+                "button": {
+                  "title": "Button",
+                  "description": "Button settings for showing after each matched events.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "commandTpl": {
+                        "title": "Command template",
+                        "description": "Command template that can be used to generate actual command.",
+                        "type": "string"
+                    },
+                    "displayName": {
+                        "title": "Display name",
+                        "description": "Display name of this command.",
+                        "type": "string"
+                    }
+                  }
+                }
+              }
+            }
 		  },
 		  "definitions": {
 			"Labels": {
