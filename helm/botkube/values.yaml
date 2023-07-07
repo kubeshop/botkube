@@ -519,6 +519,17 @@ executors:
           ## For more details, see the documentation at https://github.com/hashicorp/go-getter.
           - ref: github.com/kubeshop/botkube//cmd/executor/x/templates?ref=main
 
+  ai:
+    ## Doctor executor configuration.
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/doctor:
+      enabled: false
+      context: *default-plugin-context
+      ## -- Custom doctor plugin configuration.
+      config:
+        ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
+        apiKey: ""
+
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
@@ -532,6 +543,9 @@ aliases:
   k:
     command: kubectl
     displayName: "Kubectl alias"
+  chatgpt:
+    command: doctor
+    displayName: "Doctor alias"
 ## Multi-word alias example:
 #  kgp:
 #    command: kubectl get pods
