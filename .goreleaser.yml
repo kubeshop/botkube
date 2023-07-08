@@ -6,7 +6,7 @@ env:
   - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY" }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
   - HOMEBREW_REPO_OWNER={{ if index .Env "REPO_OWNER"  }}{{ .Env.REPO_OWNER }}{{ else }}kubeshop{{ end }}
-  - HOMEBREW_REPO_NAME={{ if index .Env "HOMEBREW_REPO_NAME"  }}{{ .Env.HOMEBREW_REPO_NAME }}{{ else }}botkube-tap{{ end }}
+  - HOMEBREW_REPO_NAME={{ if index .Env "HOMEBREW_REPO_NAME"  }}{{ .Env.HOMEBREW_REPO_NAME }}{{ else }}homebrew-tap{{ end }}
 before:
   hooks:
     - go mod download
