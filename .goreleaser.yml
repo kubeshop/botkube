@@ -31,7 +31,7 @@ builds:
 #    goarm:
 #      - "7"
   - id: botkube-cli
-    binary: botkube
+    binary: bctl
     main: cmd/cli/main.go
     ldflags:
       - -s -w
@@ -133,7 +133,7 @@ brews:
     ids:
       - bctl
     install:
-      bin.install "botkube"
+      bin.install "bctl"
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
