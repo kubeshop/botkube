@@ -131,6 +131,8 @@ brews:
   - name: bctl
     ids:
       - bctl
+    install:
+      bin.install "botkube-cli"
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
@@ -141,3 +143,4 @@ brews:
     homepage: "https://botkube.io"
     description: "BotKube CLI is a command line tool that helps you migrate your Botkube installation to Botkube Cloud."
     license: "MIT"
+
