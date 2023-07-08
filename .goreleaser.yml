@@ -11,25 +11,25 @@ before:
   hooks:
     - go mod download
 builds:
-  - id: botkube-agent
-    binary: botkube-agent
-    main: cmd/botkube-agent/main.go
-    ldflags: &ldflags
-      - -s -w
-        -X github.com/kubeshop/botkube/pkg/version.Version={{ .Env.IMAGE_TAG }}
-        -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
-        -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
-        -X github.com/kubeshop/botkube/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm
-      - arm64
-    goarm:
-      - "7"
+#  - id: botkube-agent
+#    binary: botkube-agent
+#    main: cmd/botkube-agent/main.go
+#    ldflags: &ldflags
+#      - -s -w
+#        -X github.com/kubeshop/botkube/pkg/version.Version={{ .Env.IMAGE_TAG }}
+#        -X github.com/kubeshop/botkube/pkg/version.GitCommitID={{ .Commit }}
+#        -X github.com/kubeshop/botkube/pkg/version.BuildDate={{ .Date }}
+#        -X github.com/kubeshop/botkube/internal/analytics.APIKey={{ .Env.ANALYTICS_API_KEY }}
+#    env:
+#      - CGO_ENABLED=0
+#    goos:
+#      - linux
+#    goarch:
+#      - amd64
+#      - arm
+#      - arm64
+#    goarm:
+#      - "7"
   - id: botkube-cli
     binary: botkube
     main: cmd/cli/main.go
@@ -46,19 +46,19 @@ builds:
       - arm64
     goarm:
       - "7"
-  - id: botkube-cloud-migration
-    binary: botkube-cloud-migration
-    main: cmd/config-exporter/main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm
-      - arm64
-    goarm:
-      - "7"
+#  - id: botkube-cloud-migration
+#    binary: botkube-cloud-migration
+#    main: cmd/config-exporter/main.go
+#    env:
+#      - CGO_ENABLED=0
+#    goos:
+#      - linux
+#    goarch:
+#      - amd64
+#      - arm
+#      - arm64
+#    goarm:
+#      - "7"
 
 snapshot:
   name_template: "{{ .Env.IMAGE_TAG }}"
@@ -82,46 +82,46 @@ changelog:
   skip: false
 
 dockers:
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-    use: buildx
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-    use: buildx
-    goarch: arm64
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-    use: buildx
-    goarch: arm
-    goarm: 7
-    dockerfile: "build/Dockerfile"
-    build_flag_templates:
-      - "--platform=linux/arm"
-      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
-  - image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
-    use: buildx
-    dockerfile: "build/Dockerfile.migration"
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=botkube_cloud_migration_version={{ .Env.IMAGE_TAG }}"
-docker_manifests:
-  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
-    image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
-    image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#    use: buildx
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/amd64"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#    use: buildx
+#    goarch: arm64
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm64"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#    use: buildx
+#    goarch: arm
+#    goarm: 7
+#    dockerfile: "build/Dockerfile"
+#    build_flag_templates:
+#      - "--platform=linux/arm"
+#      - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+#  - image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+#    use: buildx
+#    dockerfile: "build/Dockerfile.migration"
+#    build_flag_templates:
+#      - "--platform=linux/amd64"
+#      - "--build-arg=botkube_cloud_migration_version={{ .Env.IMAGE_TAG }}"
+#docker_manifests:
+#  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+#    image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+#  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+#    image_templates:
+#      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
 
 archives:
   - id: bctl
