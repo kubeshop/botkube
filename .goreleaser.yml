@@ -31,7 +31,7 @@ builds:
 #    goarm:
 #      - "7"
   - id: botkube-cli
-    binary: bctl
+    binary: botkube
     main: cmd/cli/main.go
     ldflags:
       - -s -w
@@ -125,15 +125,15 @@ dockers:
 #      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
 
 archives:
-  - id: bctl
+  - id: botkube-cli
     builds:
       - botkube-cli
 brews:
-  - name: bctl
+  - name: botkube
     ids:
-      - bctl
+      - botkube-cli
     install:
-      bin.install "bctl"
+      bin.install "botkube"
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
