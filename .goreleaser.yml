@@ -125,6 +125,8 @@ docker_manifests:
 
 brews:
   - name: bctl
+    ids:
+      - botkube-cli
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
