@@ -123,10 +123,14 @@ docker_manifests:
     image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
 
+archives:
+  - id: bctl
+    builds:
+      - botkube-cli
 brews:
   - name: bctl
     ids:
-      - botkube-cli
+      - bctl
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
