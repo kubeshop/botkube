@@ -17,18 +17,19 @@ const (
 func NewRoot() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   cli.Name,
-		Short: "Botkube Cloud CLI",
+		Short: "Botkube CLI",
 		Long: heredoc.WithCLIName(`
-        <cli> - Botkube Cloud CLI
+        <cli> - Botkube CLI
 
-        A utility that manages Botkube Cloud resources.
-
-        To begin working with Botkube Cloud using the <cli> CLI, start with:
-
-            $ <cli> login
+        A utility that simplifies working with Botkube.
 
         Quick Start:
 
+            $ <cli> install                              # Install Botkube
+
+        Botkube Cloud:
+
+            $ <cli> login                                # Login into Botkube Cloud
             $ <cli> migrate                              # Automatically migrates Open Source installation into Botkube Cloud
             `, cli.Name),
 		SilenceUsage: true,
@@ -37,10 +38,13 @@ func NewRoot() *cobra.Command {
 		},
 	}
 
+	cli.RegisterVerboseModeFlag(rootCmd.PersistentFlags())
+
 	rootCmd.AddCommand(
 		NewLogin(),
 		NewMigrate(),
 		NewDocs(),
+		NewInstall(),
 		extension.NewVersionCobraCmd(
 			extension.WithUpgradeNotice(orgName, repoName),
 		),
