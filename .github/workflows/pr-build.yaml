@@ -141,6 +141,7 @@ jobs:
             echo -e '❌ \033[0;31mGenerated gRPC resources are outdated. Run 'make gen-grpc-resources'.\033[0m'
             git diff --color
             exit 1
+          fi
 
       - name: Run generating CLI docs
         run: make gen-docs-cli
