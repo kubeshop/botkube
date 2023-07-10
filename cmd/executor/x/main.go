@@ -134,7 +134,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			kubeConfigPath, deleteFn, err := i.getKubeconfig(ctx, log, in)
 			defer deleteFn()
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("while creating kubeconfig: %v", err)
 			}
 
 			out, err := x.RunInstalledCommand(ctx, cfg.TmpDir, command.ToExecute, map[string]string{
@@ -142,7 +142,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			})
 			if err != nil {
 				log.WithError(err).WithField("command", command.ToExecute).Error("failed to run command")
-				return "", err
+				return "", fmt.Errorf("while running command: %v", err)
 			}
 			return out, nil
 		}
