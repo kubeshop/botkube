@@ -437,6 +437,56 @@ sources:
           - type: apps/v1/daemonsets
           - type: batch/v1/jobs
 
+  k8s-err-events-with-ai-support:
+    displayName: "Kubernetes Errors with AI support"
+
+    # -- Describes Kubernetes source configuration.
+    # @default -- See the `values.yaml` file for full object.
+    botkube/kubernetes:
+      context: *default-plugin-context
+      enabled: false
+      config:
+        # -- Define extra buttons to be displayed beside notification message.
+        extraButtons:
+          - enabled: true
+            trigger:
+              type: ["error"]
+            button:
+              displayName: "Get Help"
+              commandTpl: "doctor --resource={{ .Kind | lower }}/{{ .Name }} --namespace={{ .Namespace }} --error={{ .Reason }} --bk-cmd-header='AI assistance'"
+
+        # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
+        # These namespaces are applied to every resource specified in the resources list.
+        # However, every specified resource can override this by using its own namespaces object.
+        namespaces: *k8s-events-namespaces
+
+        # -- Describes event constraints for Kubernetes resources.
+        # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
+        event:
+          # -- Lists all event types to be watched.
+          types:
+            - error
+
+        # -- Describes the Kubernetes resources you want to watch.
+        # @default -- See the `values.yaml` file for full object.
+        resources:
+          - type: v1/pods
+          - type: v1/services
+          - type: networking.k8s.io/v1/ingresses
+          - type: v1/nodes
+          - type: v1/namespaces
+          - type: v1/persistentvolumes
+          - type: v1/persistentvolumeclaims
+          - type: v1/configmaps
+          - type: rbac.authorization.k8s.io/v1/roles
+          - type: rbac.authorization.k8s.io/v1/rolebindings
+          - type: rbac.authorization.k8s.io/v1/clusterrolebindings
+          - type: rbac.authorization.k8s.io/v1/clusterroles
+          - type: apps/v1/deployments
+          - type: apps/v1/statefulsets
+          - type: apps/v1/daemonsets
+          - type: batch/v1/jobs
+
   'prometheus':
     ## Prometheus source configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
@@ -519,6 +569,17 @@ executors:
           ## For more details, see the documentation at https://github.com/hashicorp/go-getter.
           - ref: github.com/kubeshop/botkube//cmd/executor/x/templates?ref=main
 
+  ai:
+    ## Doctor executor configuration.
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/doctor:
+      enabled: false
+      context: *default-plugin-context
+      ## -- Custom doctor plugin configuration.
+      config:
+        ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
+        apiKey: ""
+
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
@@ -532,6 +593,9 @@ aliases:
   k:
     command: kubectl
     displayName: "Kubectl alias"
+  chatgpt:
+    command: doctor
+    displayName: "Doctor alias"
 ## Multi-word alias example:
 #  kgp:
 #    command: kubectl get pods
@@ -570,10 +634,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
@@ -608,10 +674,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
 
     ## Settings for MS Teams.
     teams:
@@ -628,10 +696,12 @@ communications:
         executors:
           - k8s-default-tools
           - bins-management
+          - ai
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
           - k8s-recommendation-events
+          - k8s-err-events-with-ai-support
       # -- The path in endpoint URL provided while registering Botkube to MS Teams.
       messagePath: "/bots/teams"
       # -- The Service port for bot endpoint on Botkube container.
@@ -661,10 +731,12 @@ communications:
             executors:
               - k8s-default-tools
               - bins-management
+              - ai
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
+              - k8s-err-events-with-ai-support
 
     ## Settings for Elasticsearch.
     elasticsearch:
