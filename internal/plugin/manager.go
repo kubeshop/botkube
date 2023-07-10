@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/api/source"
@@ -60,7 +61,7 @@ type Manager struct {
 func NewManager(logger logrus.FieldLogger, cfg config.PluginManagement, executors, sources []string) *Manager {
 	return &Manager{
 		cfg:               cfg,
-		httpClient:        newHTTPClient(),
+		httpClient:        httpx.NewHTTPClient(),
 		executorsToEnable: executors,
 		executorsStore:    newStore[executor.Executor](),
 		sourcesToEnable:   sources,

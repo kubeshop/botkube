@@ -91,6 +91,11 @@ gen-plugins-index: build-plugins
 	go run ./hack/gen-plugin-index.go -output-path ./plugins-dev-index.yaml
 	go run ./hack/gen-plugin-index.go -output-path ./plugins-index.yaml -plugin-name-filter 'kubectl|helm|kubernetes|prometheus|x|doctor'
 
+gen-docs-cli:
+	rm -f ./cmd/cli/docs/*
+	go run cmd/cli/main.go gen-usage-docs
+.PHONY: gen-docs-cli
+
 # Pre-build checks
 pre-build: system-check
 

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestFactory_New(t *testing.T) {
@@ -18,11 +18,11 @@ func TestFactory_New(t *testing.T) {
 	cfg := config.Config{
 		Recommendations: &config.Recommendations{
 			Pod: config.PodRecommendations{
-				LabelsSet:        ptr.Bool(true),
-				NoLatestImageTag: ptr.Bool(false),
+				LabelsSet:        ptr.FromType(true),
+				NoLatestImageTag: ptr.FromType(false),
 			},
 			Ingress: config.IngressRecommendations{
-				BackendServiceValid: ptr.Bool(true),
+				BackendServiceValid: ptr.FromType(true),
 				// keep TLSSecretValid not specified
 			},
 		},
@@ -33,11 +33,11 @@ func TestFactory_New(t *testing.T) {
 	}
 	expectedRecCfg := config.Recommendations{
 		Pod: config.PodRecommendations{
-			NoLatestImageTag: ptr.Bool(false),
-			LabelsSet:        ptr.Bool(true),
+			NoLatestImageTag: ptr.FromType(false),
+			LabelsSet:        ptr.FromType(true),
 		},
 		Ingress: config.IngressRecommendations{
-			BackendServiceValid: ptr.Bool(true),
+			BackendServiceValid: ptr.FromType(true),
 			TLSSecretValid:      nil,
 		},
 	}

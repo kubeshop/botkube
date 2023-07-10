@@ -1,9 +1,9 @@
 package recommendation
 
 import (
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -18,11 +18,11 @@ func ResourceEventsForConfig(recCfg *config.Recommendations) map[string]config.E
 		return resTypes
 	}
 
-	if ptr.IsTrue(recCfg.Ingress.TLSSecretValid) || ptr.IsTrue(recCfg.Ingress.BackendServiceValid) {
+	if ptr.ToValue(recCfg.Ingress.TLSSecretValid) || ptr.ToValue(recCfg.Ingress.BackendServiceValid) {
 		resTypes[ingressResourceType] = config.CreateEvent
 	}
 
-	if ptr.IsTrue(recCfg.Pod.NoLatestImageTag) || ptr.IsTrue(recCfg.Pod.LabelsSet) {
+	if ptr.ToValue(recCfg.Pod.NoLatestImageTag) || ptr.ToValue(recCfg.Pod.LabelsSet) {
 		resTypes[podsResourceType] = config.CreateEvent
 	}
 

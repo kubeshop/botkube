@@ -6,9 +6,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Recommendation performs checks for a given event.
@@ -42,19 +42,19 @@ func (f *Factory) New(cfg config.Config) (AggregatedRunner, config.Recommendatio
 
 func (f *Factory) recommendationsForConfig(cfg config.Recommendations) []Recommendation {
 	var recommendations []Recommendation
-	if ptr.IsTrue(cfg.Pod.LabelsSet) {
+	if ptr.ToValue(cfg.Pod.LabelsSet) {
 		recommendations = append(recommendations, NewPodLabelsSet())
 	}
 
-	if ptr.IsTrue(cfg.Pod.NoLatestImageTag) {
+	if ptr.ToValue(cfg.Pod.NoLatestImageTag) {
 		recommendations = append(recommendations, NewPodNoLatestImageTag())
 	}
 
-	if ptr.IsTrue(cfg.Ingress.BackendServiceValid) {
+	if ptr.ToValue(cfg.Ingress.BackendServiceValid) {
 		recommendations = append(recommendations, NewIngressBackendServiceValid(f.dynamicCli))
 	}
 
-	if ptr.IsTrue(cfg.Ingress.TLSSecretValid) {
+	if ptr.ToValue(cfg.Ingress.TLSSecretValid) {
 		recommendations = append(recommendations, NewIngressTLSSecretValid(f.dynamicCli))
 	}
 

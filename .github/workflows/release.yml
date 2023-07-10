@@ -55,6 +55,8 @@ jobs:
         with:
           install-only: true
           version: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Build plugins and generate plugins index.yaml
         env:

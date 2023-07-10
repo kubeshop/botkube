@@ -5,6 +5,8 @@ env:
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
   - MIGRATOR_IMAGE_REPOSITORY={{ if index .Env "MIGRATOR_IMAGE_REPOSITORY" }}{{ .Env.MIGRATOR_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-migration{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
+  - HOMEBREW_REPO_OWNER={{ if index .Env "HOMEBREW_REPO_OWNER"  }}{{ .Env.HOMEBREW_REPO_OWNER }}{{ else }}kubeshop{{ end }}
+  - HOMEBREW_REPO_NAME={{ if index .Env "HOMEBREW_REPO_NAME"  }}{{ .Env.HOMEBREW_REPO_NAME }}{{ else }}homebrew-botkube{{ end }}
 before:
   hooks:
     - go mod download
@@ -38,6 +40,7 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
       - arm
@@ -120,3 +123,25 @@ docker_manifests:
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.MIGRATOR_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
+
+archives:
+  - id: botkube-cli
+    builds:
+      - botkube-cli
+brews:
+  - name: botkube
+    ids:
+      - botkube-cli
+    install:
+      bin.install "botkube"
+    tap:
+      owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
+      name: "{{.Env.HOMEBREW_REPO_NAME}}"
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    download_strategy: CurlDownloadStrategy
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    folder: Formula
+    homepage: "https://botkube.io"
+    description: "Botkube CLI is a command line tool for managing Botkube instances"
+    license: "MIT"
+

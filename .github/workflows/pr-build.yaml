@@ -71,7 +71,7 @@ jobs:
   push-image:
     name: Push Botkube image
     runs-on: ubuntu-latest
-    needs: [save-image]
+    needs: [ save-image ]
 
     permissions:
       contents: read
@@ -122,6 +122,9 @@ jobs:
 
   check-generated-resources:
     runs-on: ubuntu-latest
+    # We want to check all generated resources and notify about all possible problems.
+    continue-on-error: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -136,6 +139,17 @@ jobs:
         run: |
           if [[ $(git diff --stat) != '' ]]; then
             echo -e '❌ \033[0;31mGenerated gRPC resources are outdated. Run 'make gen-grpc-resources'.\033[0m'
+            git diff --color
+            exit 1
+          fi
+
+      - name: Run generating CLI docs
+        run: make gen-docs-cli
+
+      - name: Detect git changes
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo -e '❌ \033[0;31mGenerated CLI docs are outdated. Run 'make gen-docs-cli'.\033[0m'
             git diff --color
             exit 1
           else
@@ -190,14 +204,14 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
         run: |
-            helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
-            -f ./helm/botkube/e2e-test-values.yaml \
-            --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
-            --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
-            --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
-            --set image.registry="${IMAGE_REGISTRY}" \
-            --set image.repository="${IMAGE_REPOSITORY}" \
-            --set image.tag="${IMAGE_TAG}" \
+          helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
+          -f ./helm/botkube/e2e-test-values.yaml \
+          --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
+          --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
+          --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
+          --set image.registry="${IMAGE_REGISTRY}" \
+          --set image.repository="${IMAGE_REPOSITORY}" \
+          --set image.tag="${IMAGE_TAG}" \
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v2
