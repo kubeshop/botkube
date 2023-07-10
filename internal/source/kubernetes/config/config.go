@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config Kubernetes configuration
@@ -218,12 +218,12 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		InformerResyncPeriod: 30 * time.Minute,
 		Recommendations: &Recommendations{
 			Pod: PodRecommendations{
-				NoLatestImageTag: ptr.Bool(false),
-				LabelsSet:        ptr.Bool(false),
+				NoLatestImageTag: ptr.FromType(false),
+				LabelsSet:        ptr.FromType(false),
 			},
 			Ingress: IngressRecommendations{
-				BackendServiceValid: ptr.Bool(false),
-				TLSSecretValid:      ptr.Bool(false),
+				BackendServiceValid: ptr.FromType(false),
+				TLSSecretValid:      ptr.FromType(false),
 			},
 		},
 		Commands: Commands{

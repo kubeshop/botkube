@@ -5,10 +5,10 @@ import (
 
 	promApi "github.com/prometheus/client_golang/api/prometheus/v1"
 
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config prometheus configuration
@@ -23,7 +23,7 @@ type Config struct {
 func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{
 		AlertStates:     []promApi.AlertState{promApi.AlertStateFiring, promApi.AlertStatePending, promApi.AlertStateInactive},
-		IgnoreOldAlerts: ptr.Bool(true),
+		IgnoreOldAlerts: ptr.FromType(true),
 	}
 
 	var out Config

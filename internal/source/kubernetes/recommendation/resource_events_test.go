@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
-	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestResourceEventsForConfig(t *testing.T) {
@@ -22,7 +22,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 			Name: "Pod Labels Set",
 			RecCfg: config.Recommendations{
 				Pod: config.PodRecommendations{
-					LabelsSet: ptr.Bool(true),
+					LabelsSet: ptr.FromType(true),
 				},
 			},
 			Expected: map[string]config.EventType{
@@ -33,7 +33,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 			Name: "Pod No Latest Image Tag",
 			RecCfg: config.Recommendations{
 				Pod: config.PodRecommendations{
-					NoLatestImageTag: ptr.Bool(true),
+					NoLatestImageTag: ptr.FromType(true),
 				},
 			},
 			Expected: map[string]config.EventType{
@@ -44,7 +44,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 			Name: "Ingress Backend Service Valid",
 			RecCfg: config.Recommendations{
 				Ingress: config.IngressRecommendations{
-					BackendServiceValid: ptr.Bool(true),
+					BackendServiceValid: ptr.FromType(true),
 				},
 			},
 			Expected: map[string]config.EventType{
@@ -55,7 +55,7 @@ func TestResourceEventsForConfig(t *testing.T) {
 			Name: "Ingress TLS Secret Valid",
 			RecCfg: config.Recommendations{
 				Ingress: config.IngressRecommendations{
-					TLSSecretValid: ptr.Bool(true),
+					TLSSecretValid: ptr.FromType(true),
 				},
 			},
 			Expected: map[string]config.EventType{
@@ -66,10 +66,10 @@ func TestResourceEventsForConfig(t *testing.T) {
 			Name: "All",
 			RecCfg: config.Recommendations{
 				Pod: config.PodRecommendations{
-					LabelsSet: ptr.Bool(true),
+					LabelsSet: ptr.FromType(true),
 				},
 				Ingress: config.IngressRecommendations{
-					TLSSecretValid: ptr.Bool(true),
+					TLSSecretValid: ptr.FromType(true),
 				},
 			},
 			Expected: map[string]config.EventType{
@@ -191,12 +191,12 @@ func TestShouldIgnoreEvent(t *testing.T) {
 func fixFullRecommendationConfig() config.Recommendations {
 	return config.Recommendations{
 		Pod: config.PodRecommendations{
-			NoLatestImageTag: ptr.Bool(true),
-			LabelsSet:        ptr.Bool(true),
+			NoLatestImageTag: ptr.FromType(true),
+			LabelsSet:        ptr.FromType(true),
 		},
 		Ingress: config.IngressRecommendations{
-			BackendServiceValid: ptr.Bool(true),
-			TLSSecretValid:      ptr.Bool(true),
+			BackendServiceValid: ptr.FromType(true),
+			TLSSecretValid:      ptr.FromType(true),
 		},
 	}
 }
