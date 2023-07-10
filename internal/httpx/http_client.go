@@ -1,4 +1,4 @@
-package plugin
+package httpx
 
 import (
 	"net/http"
@@ -7,8 +7,8 @@ import (
 
 const defaultTimeout = 30 * time.Second
 
-// newHTTPClient creates a new http client with timeout.
-func newHTTPClient() *http.Client {
+// NewHTTPClient creates a new http client with timeout.
+func NewHTTPClient() *http.Client {
 	client := &http.Client{
 		Timeout: defaultTimeout,
 	}

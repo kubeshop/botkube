@@ -34,6 +34,7 @@ func NewRoot() *cobra.Command {
 	rootCmd.AddCommand(
 		NewLogin(),
 		NewMigrate(),
+		NewDocs(),
 	)
 
 	return rootCmd
