@@ -18,11 +18,11 @@ const (
 	// HelmRepoStable URL of the stable Botkube Helm charts repository.
 	HelmRepoStable = "https://charts.botkube.io/"
 	// LocalChartsPath path to Helm charts in botkube repository.
-	LocalChartsPath = "helm/botkube/"
+	LocalChartsPath = "./helm/botkube/"
 )
 
 // Config holds parameters for Botkube installation on cluster.
 type Config struct {
-	// Helm client opts
+	Kubeconfig string
 	HelmParams helm.Config
 }

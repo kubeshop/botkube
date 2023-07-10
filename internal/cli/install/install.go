@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
+	"github.com/muesli/reflow/indent"
+	"go.szostok.io/version/style"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,13 +14,13 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/install/helm"
 	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/kubex"
 )
 
 // Install installs Botkube Helm chart into cluster.
-func Install(ctx context.Context, w io.Writer, k8sCfg *rest.Config, opts Config) (err error) {
+func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opts Config) (err error) {
 	status := printer.NewStatus(w, "Installing Botkube on cluster...")
 	defer func() {
 		status.End(err == nil)
@@ -27,65 +28,108 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *rest.Config, opts Config)
 
 	switch opts.HelmParams.RepoLocation {
 	case StableVersionTag:
+		status.Debugf("Resolved %s tag into %s...", StableVersionTag, HelmRepoStable)
 		opts.HelmParams.RepoLocation = HelmRepoStable
-		if opts.HelmParams.Version == LatestVersionTag {
-			ver, err := helm.GetLatestVersion(opts.HelmParams.RepoLocation, opts.HelmParams.ChartName)
-			if err != nil {
-				return err
-			}
-			opts.HelmParams.Version = ver
-		}
 	case LocalVersionTag:
+		status.Debugf("Resolved %s tag into %s...", LocalVersionTag, LocalChartsPath)
 		opts.HelmParams.RepoLocation = LocalChartsPath
+		opts.HelmParams.Version = ""
 	}
 
-	if cli.VerboseMode.IsEnabled() {
-		status.InfoWithBody("Installation details:", installDetails(opts))
+	if opts.HelmParams.Version == LatestVersionTag {
+		ver, err := helm.GetLatestVersion(opts.HelmParams.RepoLocation, opts.HelmParams.ChartName)
+		if err != nil {
+			return err
+		}
+		status.Debugf("Resolved %s tag into %s...", LatestVersionTag, ver)
+		opts.HelmParams.Version = ver
 	}
 
-	helmInstaller, err := helm.NewHelm(k8sCfg, opts.HelmParams.Namespace)
+	if err = printInstallationDetails(k8sCfg, opts, status); err != nil {
+		return err
+	}
+
+	helmInstaller, err := helm.NewHelm(k8sCfg.K8s, opts.HelmParams.Namespace)
 	if err != nil {
 		return err
 	}
 
 	status.Step("Creating namespace %s", opts.HelmParams.Namespace)
-	err = ensureNamespaceCreated(ctx, k8sCfg, opts.HelmParams.Namespace)
-	if err != nil {
-		return err
-	}
-
-	//log.SetOutput(io.Discard)
-	status.Step("Installing %s Helm chart", opts.HelmParams.ChartName)
-	rel, err := helmInstaller.Install(ctx, opts.HelmParams)
+	err = ensureNamespaceCreated(ctx, k8sCfg.K8s, opts.HelmParams.Namespace)
 	status.End(err == nil)
 	if err != nil {
 		return err
 	}
 
-	if cli.VerboseMode.IsEnabled() {
-		desc := helm.GetStringStatusFromRelease(rel)
-		fmt.Fprintln(w, desc)
+	rel, err := helmInstaller.Install(ctx, status, opts.HelmParams)
+	status.End(err == nil)
+	if err != nil {
+		return err
 	}
 
-	welcomeMessage(w)
+	if err := helm.PrintReleaseStatus(status, rel); err != nil {
+		return err
+	}
+
+	return printSuccessInstallMessage(opts.HelmParams.Version, w)
+}
+
+var successInstallGoTpl = `
+
+  │ Botkube {{ .Version | Bold }} installed successfully!
+  │ To read more how to use CLI, check out the documentation on {{ .DocsURL  | Underline | Blue }}
+`
+
+func printSuccessInstallMessage(version string, w io.Writer) error {
+	renderer := style.NewGoTemplateRender(style.DefaultConfig(successInstallGoTpl))
+
+	props := map[string]string{
+		"DocsURL": "https://docs.botkube.io/cli/getting-started/#first-use",
+		"Version": version,
+	}
+
+	out, err := renderer.Render(props, cli.IsSmartTerminal(w))
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintln(w, out)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func welcomeMessage(w io.Writer) {
-	msg := heredoc.Docf(`
-		Botkube installed successfully!
-		
-		To read more how to use CLI, check out the documentation on https://docs.botkube.io/docs/cli/getting-started#first-use.`)
-	fmt.Fprintln(w, msg)
+var infoFieldsGoTpl = `{{ AdjustKeyWidth . }}
+  {{- range $item := (. | Extra) }}
+  {{ $item.Key | Key   }}    {{ $item.Value | Val }}
+  {{- end}}
+
+`
+
+type Custom struct {
+	// Fields are printed in the same order as defined in struct.
+	Version  string `pretty:"Version"`
+	HelmRepo string `pretty:"Helm repository"`
+	K8sCtx   string `pretty:"Kubernetes Context"`
 }
 
-func installDetails(opts Config) string {
-	out := &strings.Builder{}
-	fmt.Fprintf(out, "\tVersion: %s\n", opts.HelmParams.Version)
-	fmt.Fprintf(out, "\tHelm repository: %s\n", opts.HelmParams.RepoLocation)
+func printInstallationDetails(cfg *kubex.ConfigWithMeta, opts Config, status *printer.StatusPrinter) error {
+	renderer := style.NewGoTemplateRender(style.DefaultConfig(infoFieldsGoTpl))
 
-	return out.String()
+	out, err := renderer.Render(Custom{
+		Version:  opts.HelmParams.Version,
+		HelmRepo: opts.HelmParams.RepoLocation,
+		K8sCtx:   cfg.CurrentContext,
+	}, cli.IsSmartTerminal(status.Writer()))
+	if err != nil {
+		return err
+	}
+
+	status.InfoWithBody("Installation details:", indent.String(out, 4))
+
+	return nil
 }
 
 // ensureNamespaceCreated creates a k8s namespaces. If it already exists it does nothing.

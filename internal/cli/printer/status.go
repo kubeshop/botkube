@@ -103,6 +103,19 @@ func (s *StatusPrinter) Infof(format string, a ...interface{}) {
 	fmt.Fprintf(s.w, " • %s\n", fmt.Sprintf(format, a...))
 }
 
+// Debugf prints a given debug message without spinner animation.
+// It prints it only if verbose flag was specified.
+func (s *StatusPrinter) Debugf(format string, a ...interface{}) {
+	if !cli.VerboseMode.IsEnabled() {
+		return
+	}
+
+	// Ensure that previously started step is finished. Without that we will mess up our output.
+	s.End(true)
+
+	fmt.Fprintf(s.w, " • %s\n", fmt.Sprintf(format, a...))
+}
+
 // InfoWithBody prints a given info with a given body and without spinner animation.
 func (s *StatusPrinter) InfoWithBody(header, body string) {
 	// Ensure that previously started step is finished. Without that we will mess up our output.

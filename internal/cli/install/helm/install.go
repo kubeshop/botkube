@@ -20,13 +20,20 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubeshop/botkube/internal/cli/install/iox"
+	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
 )
 
+// Run provides single function signature both for install and upgrade.
+type Run func(ctx context.Context, relName string, chart *chart.Chart, vals map[string]any) (*release.Release, error)
+
+// Helm provides option to or update install Helm charts.
 type Helm struct {
 	helmCfg *action.Configuration
 }
 
+// NewHelm returns a new Helm instance.
 func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
 	configuration, err := getConfiguration(k8sCfg, forNamespace)
 	if err != nil {
@@ -35,9 +42,8 @@ func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
 	return &Helm{helmCfg: configuration}, nil
 }
 
-type Run func(ctx context.Context, relName string, chart *chart.Chart, vals map[string]any) (*release.Release, error)
-
-func (c *Helm) Install(ctx context.Context, opts Config) (*release.Release, error) {
+// Install installs a given Helm chart.
+func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts Config) (*release.Release, error) {
 	histClient := action.NewHistory(c.helmCfg)
 	histClient.Max = 1
 	_, err := histClient.Run(opts.ReleaseName)
@@ -50,7 +56,9 @@ func (c *Helm) Install(ctx context.Context, opts Config) (*release.Release, erro
 		}
 
 		var upgrade bool
-		err = survey.AskOne(prompt, &upgrade)
+
+		questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
+		err = survey.AskOne(prompt, &upgrade, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
 		if err != nil {
 			return nil, fmt.Errorf("while confiriming upgrade: %v", err)
 		}
@@ -66,7 +74,8 @@ func (c *Helm) Install(ctx context.Context, opts Config) (*release.Release, erro
 		return nil, fmt.Errorf("while getting Helm release history: %v", err)
 	}
 
-	loadedChart, err := c.GetChart(opts.RepoLocation, opts.ChartName, opts.Version)
+	status.Step("Loading %s Helm chart", opts.ChartName)
+	loadedChart, err := c.getChart(opts.RepoLocation, opts.ChartName, opts.Version)
 	if err != nil {
 		return nil, fmt.Errorf("while loading Helm chart: %v", err)
 	}
@@ -77,6 +86,7 @@ func (c *Helm) Install(ctx context.Context, opts Config) (*release.Release, erro
 		return nil, err
 	}
 
+	status.Step("Installing %s Helm chart", opts.ChartName)
 	//  We may run into in issue temporary network issues.
 	var rel *release.Release
 	err = retry.Do(func() error {
@@ -88,6 +98,33 @@ func (c *Helm) Install(ctx context.Context, opts Config) (*release.Release, erro
 	}
 
 	return rel, nil
+}
+
+func (c *Helm) getChart(repoLocation string, chartName string, version string) (*chart.Chart, error) {
+	location := chartName
+	chartOptions := action.ChartPathOptions{
+		RepoURL: repoLocation,
+		Version: version,
+	}
+
+	if isLocalDir(repoLocation) {
+		location = path.Join(repoLocation, chartName)
+		chartOptions.RepoURL = ""
+	}
+
+	chartPath, err := chartOptions.LocateChart(location, &helmcli.EnvSettings{
+		RepositoryCache: repositoryCache,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	chartData, err := loader.Load(chartPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return chartData, nil
 }
 
 func (c *Helm) installAction(opts Config) Run {
@@ -138,39 +175,6 @@ func (c *Helm) upgradeAction(opts Config) Run {
 	}
 }
 
-func (c *Helm) GetChart(repoLocation string, chartName string, version string) (*chart.Chart, error) {
-	location := chartName
-	chartOptions := action.ChartPathOptions{
-		RepoURL: repoLocation,
-		Version: version,
-	}
-
-	if isLocalDir(repoLocation) {
-		location = path.Join(repoLocation, chartName)
-		chartOptions.RepoURL = ""
-	}
-
-	chartPath, err := chartOptions.LocateChart(location, &helmcli.EnvSettings{
-		RepositoryCache: RepositoryCache,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	chartData, err := loader.Load(chartPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return chartData, nil
-}
-
-func isLocalDir(in string) bool {
-	f, err := os.Stat(in)
-	return err == nil && f.IsDir()
-}
-
-// getConfiguration returns Helm action.Configuration.
 func getConfiguration(k8sCfg *rest.Config, forNamespace string) (*action.Configuration, error) {
 	actionConfig := new(action.Configuration)
 	helmCfg := &genericclioptions.ConfigFlags{
@@ -191,4 +195,9 @@ func getConfiguration(k8sCfg *rest.Config, forNamespace string) (*action.Configu
 	}
 
 	return actionConfig, nil
+}
+
+func isLocalDir(in string) bool {
+	f, err := os.Stat(in)
+	return err == nil && f.IsDir()
 }

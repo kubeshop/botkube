@@ -53,10 +53,3 @@ func GetLatestVersion(repoURL string, chart string) (string, error) {
 
 	return entry[0].Version, nil
 }
-
-// ValuesFromString converts yaml string into map[string]interface{}
-func ValuesFromString(values string) (map[string]interface{}, error) {
-	v := map[string]interface{}{}
-	err := yaml.Unmarshal([]byte(values), &v)
-	return v, err
-}
