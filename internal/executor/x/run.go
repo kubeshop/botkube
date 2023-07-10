@@ -31,17 +31,59 @@ func NewRunner(log logrus.FieldLogger, renderer *Renderer) *Runner {
 }
 
 // Run runs a given command and parse its output if needed.
-func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cmd Command, out string) (executor.ExecuteOutput, error) {
-	if cmd.IsRawRequired {
-		i.log.Info("Raw output was explicitly requested")
+func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cmd Command, runFn func() (string, error)) (executor.ExecuteOutput, error) {
+	templates, err := i.getTemplates(ctx, cfg)
+	if err != nil {
+		return executor.ExecuteOutput{}, err
+	}
+	cmdTemplate, tplFound := template.FindTemplate(templates, cmd.ToExecute)
+
+	log := i.log.WithFields(logrus.Fields{
+		"isRawRequired": cmd.IsRawRequired,
+		"skipExecution": cmdTemplate.SkipCommandExecution,
+		"foundTemplate": tplFound,
+	})
+
+	var cmdOutput string
+	if !cmdTemplate.SkipCommandExecution {
+		log.WithField("command", cmd.ToExecute).Error("Running command")
+		cmdOutput, err = runFn()
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
+	}
+
+	if !cmd.IsRawRequired && tplFound {
+		log.Info("Rendering message based on template")
+		render, err := i.renderer.Get(cmdTemplate.Type)
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
+
+		cmdTemplate.TutorialMessage.Paginate.CurrentPage = cmd.PageIndex
+		message, err := render.RenderMessage(cmd.ToExecute, cmdOutput, state, &cmdTemplate)
+		if err != nil {
+			return executor.ExecuteOutput{}, err
+		}
 		return executor.ExecuteOutput{
-			Message: api.NewCodeBlockMessage(out, true),
+			Message: message,
 		}, nil
 	}
 
+	log.Infof("Return directly got command output")
+	if cmdOutput == "" {
+		return executor.ExecuteOutput{}, nil // return empty message, so Botkube can convert it into "cricket sound" message
+	}
+
+	return executor.ExecuteOutput{
+		Message: api.NewCodeBlockMessage(color.ClearCode(cmdOutput), true),
+	}, nil
+}
+
+func (i *Runner) getTemplates(ctx context.Context, cfg Config) ([]template.Template, error) {
 	templates, err := getter.Load[template.Template](ctx, cfg.TmpDir.GetDirectory(), cfg.Templates)
 	if err != nil {
-		return executor.ExecuteOutput{}, err
+		return nil, err
 	}
 
 	for _, tpl := range templates {
@@ -50,27 +92,7 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cm
 			"type":    tpl.Type,
 		}).Debug("Command template")
 	}
-
-	cmdTemplate, found := template.FindWithPrefix(templates, cmd.ToExecute)
-	if !found {
-		i.log.Info("Templates config not found for command")
-		return executor.ExecuteOutput{
-			Message: api.NewCodeBlockMessage(color.ClearCode(out), true),
-		}, nil
-	}
-
-	render, err := i.renderer.Get(cmdTemplate.Type)
-	if err != nil {
-		return executor.ExecuteOutput{}, err
-	}
-
-	message, err := render.RenderMessage(cmd.ToExecute, out, state, &cmdTemplate)
-	if err != nil {
-		return executor.ExecuteOutput{}, err
-	}
-	return executor.ExecuteOutput{
-		Message: message,
-	}, nil
+	return templates, nil
 }
 
 // RunInstalledCommand runs a given user command for already installed CLIs.

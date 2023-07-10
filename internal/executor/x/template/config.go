@@ -1,6 +1,7 @@
 package template
 
 import (
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -11,15 +12,23 @@ import (
 type (
 	// Template represents a template for message parsing.
 	Template struct {
-		Type         string       `yaml:"type"`
-		Trigger      Trigger      `yaml:"trigger"`
-		ParseMessage ParseMessage `yaml:"-"`
-		WrapMessage  WrapMessage  `yaml:"-"`
+		Type                 string          `yaml:"type"`
+		Trigger              Trigger         `yaml:"trigger"`
+		SkipCommandExecution bool            `yaml:"-"`
+		ParseMessage         ParseMessage    `yaml:"-"`
+		WrapMessage          WrapMessage     `yaml:"-"`
+		TutorialMessage      TutorialMessage `yaml:"-"`
 	}
 
 	// Trigger represents the trigger configuration for a template.
 	Trigger struct {
-		Command string `yaml:"command"`
+		Command CommandMatchers `yaml:"command"`
+	}
+
+	// CommandMatchers represents different command matching strategies.
+	CommandMatchers struct {
+		Prefix string `yaml:"prefix"`
+		Regexp string `yaml:"regex"`
 	}
 
 	// ParseMessage holds template for message that will be parsed by defined parser.
@@ -38,6 +47,19 @@ type (
 	Select struct {
 		Name   string `yaml:"name"`
 		KeyTpl string `yaml:"keyTpl"`
+	}
+
+	// TutorialMessage holds template interactive tutorial message.
+	TutorialMessage struct {
+		Buttons  api.Buttons `yaml:"buttons"`
+		Header   string      `yaml:"header"`
+		Paginate Paginate    `yaml:"paginate"`
+	}
+
+	// Paginate holds data required to do the pagination.
+	Paginate struct {
+		Page        int `yaml:"page"`
+		CurrentPage int `yaml:"-"`
 	}
 )
 
@@ -72,6 +94,17 @@ func (su *Template) UnmarshalYAML(node *yaml.Node) error {
 			return err
 		}
 		su.WrapMessage = data.Message
+	case data.Type == "tutorial":
+		var data struct {
+			Message TutorialMessage `yaml:"message"`
+		}
+		err = node.Decode(&data)
+		if err != nil {
+			return err
+		}
+
+		su.SkipCommandExecution = true
+		su.TutorialMessage = data.Message
 	}
 
 	su.Type = data.Type
@@ -79,15 +112,19 @@ func (su *Template) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// FindWithPrefix finds a template with a matching command prefix.
-func FindWithPrefix(tpls []Template, cmd string) (Template, bool) {
-	for idx := range tpls {
-		item := tpls[idx]
-		if item.Trigger.Command == "" {
-			continue
-		}
-		if strings.HasPrefix(cmd, item.Trigger.Command) {
-			return item, true
+// FindTemplate finds a template with a matching command prefix.
+func FindTemplate(tpls []Template, cmd string) (Template, bool) {
+	for _, item := range tpls {
+		switch {
+		case item.Trigger.Command.Prefix != "":
+			if strings.HasPrefix(cmd, item.Trigger.Command.Prefix) {
+				return item, true
+			}
+		case item.Trigger.Command.Regexp != "":
+			matched, _ := regexp.MatchString(item.Trigger.Command.Regexp, cmd)
+			if matched {
+				return item, true
+			}
 		}
 	}
 

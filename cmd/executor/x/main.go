@@ -105,7 +105,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		},
 	}
 	if err := pluginx.MergeExecutorConfigs(in.Configs, &cfg); err != nil {
-		return executor.ExecuteOutput{}, err
+		return executor.ExecuteOutput{}, fmt.Errorf("while merging configs: %v", err)
 	}
 
 	log := loggerx.New(cfg.Logger)
@@ -114,9 +114,10 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 	err = renderer.RegisterAll(map[string]x.Render{
 		"parser:table:.*": output.NewTableCommandParser(log),
 		"wrapper":         output.NewCommandWrapper(),
+		"tutorial":        output.NewTutorialWrapper(),
 	})
 	if err != nil {
-		return executor.ExecuteOutput{}, err
+		return executor.ExecuteOutput{}, fmt.Errorf("while registering message renderers: %v", err)
 	}
 
 	runner := x.NewRunner(log, renderer)
@@ -128,22 +129,25 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		tool := Normalize(strings.Join(cmd.Run.Tool, " "))
 		log.WithField("tool", tool).Info("Running command...")
 
-		kubeConfigPath, deleteFn, err := i.getKubeconfig(ctx, log, in)
-		defer deleteFn()
-		if err != nil {
-			return executor.ExecuteOutput{}, err
-		}
-
 		command := x.Parse(tool)
-		out, err := x.RunInstalledCommand(ctx, cfg.TmpDir, command.ToExecute, map[string]string{
-			"KUBECONFIG": kubeConfigPath,
-		})
-		if err != nil {
-			log.WithError(err).WithField("command", command.ToExecute).Error("failed to run command")
-			return executor.ExecuteOutput{}, err
+		run := func() (string, error) {
+			kubeConfigPath, deleteFn, err := i.getKubeconfig(ctx, log, in)
+			defer deleteFn()
+			if err != nil {
+				return "", fmt.Errorf("while creating kubeconfig: %v", err)
+			}
+
+			out, err := x.RunInstalledCommand(ctx, cfg.TmpDir, command.ToExecute, map[string]string{
+				"KUBECONFIG": kubeConfigPath,
+			})
+			if err != nil {
+				log.WithError(err).WithField("command", command.ToExecute).Error("failed to run command")
+				return "", fmt.Errorf("while running command: %v", err)
+			}
+			return out, nil
 		}
 
-		return runner.Run(ctx, cfg, state, command, out)
+		return runner.Run(ctx, cfg, state, command, run)
 	case cmd.Install != nil:
 		var (
 			tool          = Normalize(strings.Join(cmd.Install.Tool, " "))
@@ -152,20 +156,24 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			downloadCmd   = fmt.Sprintf("eget %s", tool)
 		)
 
-		log.WithFields(logrus.Fields{
-			"dir":         dir,
-			"isCustom":    isCustom,
-			"userCommand": command.ToExecute,
-			"runCommand":  downloadCmd,
-		}).Info("Installing binary...")
+		run := func() (string, error) {
+			log.WithFields(logrus.Fields{
+				"dir":         dir,
+				"isCustom":    isCustom,
+				"userCommand": command.ToExecute,
+				"runCommand":  downloadCmd,
+			}).Info("Installing binary...")
 
-		if _, err := pluginx.ExecuteCommand(ctx, downloadCmd, pluginx.ExecuteCommandEnvs(map[string]string{
-			"EGET_BIN": dir,
-		})); err != nil {
-			return executor.ExecuteOutput{}, err
+			if _, err := pluginx.ExecuteCommand(ctx, downloadCmd, pluginx.ExecuteCommandEnvs(map[string]string{
+				"EGET_BIN": dir,
+			})); err != nil {
+				return "", err
+			}
+
+			return "Binary was installed successfully 🎉", nil
 		}
 
-		return runner.Run(ctx, cfg, state, command, "Binary was installed successfully 🎉")
+		return runner.Run(ctx, cfg, state, command, run)
 	}
 	return executor.ExecuteOutput{
 		Message: api.NewPlaintextMessage("Command not supported", false),
