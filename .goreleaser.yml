@@ -142,6 +142,6 @@ brews:
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     folder: Formula
     homepage: "https://botkube.io"
-    description: "BotKube CLI is a command line tool that helps you migrate your Botkube installation to Botkube Cloud."
+    description: "Botkube CLI is a command line tool for managing Botkube instances"
     license: "MIT"
 
