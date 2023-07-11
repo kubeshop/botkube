@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-      - notify-slack # TODO: To remove
+  repository_dispatch:
+    types: [trigger-e2e-tests]
 
 env:
   HELM_VERSION: v3.9.0
@@ -56,6 +57,9 @@ jobs:
     name: Migration e2e test
     runs-on: ubuntu-latest
     needs: [ build ]
+    concurrency:
+      group: e2e-migration
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: read
@@ -91,7 +95,7 @@ jobs:
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
       - name: Create k3d cluster
-        run: "k3d-invalid cluster create migration-test-cluster --wait --timeout=5m"
+        run: "k3d cluster create migration-test-cluster --wait --timeout=5m"
       - name: Run e2e tests for botkube client
         env:
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
@@ -109,7 +113,7 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     needs: [ build ]
-
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     permissions:
       contents: read
       packages: read
@@ -189,7 +193,7 @@ jobs:
   slackNotification:
     name: Slack Notification
     runs-on: ubuntu-latest
-    needs: [ migration-e2e-test, integration-tests ]
+    needs: [ migration-e2e-test ]
     if: failure()
     steps:
       - name: Slack Notification
