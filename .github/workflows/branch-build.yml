@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - migration-improvements
 
 env:
   HELM_VERSION: v3.9.0
