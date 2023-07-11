@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  repository_dispatch:
+    types: [ trigger-e2e-tests ]
 
 env:
   HELM_VERSION: v3.9.0
@@ -22,39 +24,42 @@ jobs:
       GOBIN: /home/runner/work/botkube/bin
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version-file: 'go.mod'
-        cache: true
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-    - name: Docker Login
-      uses: docker/login-action@v1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v2
-      with:
-        install-only: true
-        version: latest
-    - name: Run GoReleaser
-      run: make release-snapshot
-      env:
-        ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
-    - name: Install Helm
-      uses: azure/setup-helm@v1
-      with:
-        version: ${{ env.HELM_VERSION }}
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+      - name: Run GoReleaser
+        run: make release-snapshot
+        env:
+          ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: ${{ env.HELM_VERSION }}
 
   migration-e2e-test:
     name: Migration e2e test
     runs-on: ubuntu-latest
     needs: [ build ]
+    concurrency:
+      group: e2e-migration
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: read
@@ -108,7 +113,7 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     needs: [ build ]
-
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     permissions:
       contents: read
       packages: read
@@ -184,3 +189,21 @@ jobs:
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
+
+  slackNotification:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    needs: [ migration-e2e-test ]
+    if: failure()
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'CLI Migration E2E tests failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
