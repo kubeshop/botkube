@@ -35,4 +35,5 @@ botkube [flags]
 
 * [botkube login](botkube_login.md)	 - Login to a Botkube Cloud
 * [botkube migrate](botkube_migrate.md)	 - Automatically migrates Botkube installation into Botkube Cloud
+* [botkube version](botkube_version.md)	 - Print the CLI version
 

@@ -3,12 +3,14 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/fatih/color"
+	semver "github.com/hashicorp/go-version"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/maps"
+	"go.szostok.io/version"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -17,14 +19,13 @@ import (
 	"github.com/kubeshop/botkube/internal/cli/printer"
 )
 
-var (
-	compatibleBotkubeVersions = map[string]bool{
-		"v1.0.0": true,
-		"v1.0.1": true,
-		"v1.1.0": true,
-		"v1.2.0": true,
-	}
+const (
+	botkubeVersionConstraints = ">= 1.0, < 1.3"
+
+	containerName = "botkube"
 )
+
+var DefaultImageTag = "v9.99.9-dev"
 
 // NewMigrate returns a cobra.Command for migrate the OS into Cloud.
 func NewMigrate() *cobra.Command {
@@ -34,7 +35,8 @@ func NewMigrate() *cobra.Command {
 		Use:   "migrate [OPTIONS]",
 		Short: "Automatically migrates Botkube installation into Botkube Cloud",
 		Long: heredoc.WithCLIName(`
-		Automatically migrates Botkube installation into Botkube Cloud
+		Automatically migrates Botkube installation to Botkube Cloud.
+		This command will create a new Botkube Cloud instance based on your existing Botkube configuration, and upgrade your Botkube installation to use the remote configuration.
 		
 		Supported Botkube bot platforms for migration:
 		- Socket Slack
@@ -53,7 +55,7 @@ func NewMigrate() *cobra.Command {
 
 			`, cli.Name),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			status := printer.NewStatus(cmd.OutOrStdout(), "Migrating Botkube open source installation...")
+			status := printer.NewStatus(cmd.OutOrStdout(), "Migrating Botkube installation to Cloud")
 			defer func() {
 				status.End(err == nil)
 			}()
@@ -64,16 +66,34 @@ func NewMigrate() *cobra.Command {
 				return err
 			}
 
-			version, err := getBotkubeVersion(pod)
+			botkubeVersionStr, err := getBotkubeVersion(pod)
 			if err != nil {
 				return err
 			}
-			status.Infof("Checking Botkube version %q compatibility", version)
-			if !compatibleBotkubeVersions[version] {
+			status.Infof("Checking if Botkube version %q can be migrated safely", botkubeVersionStr)
+
+			constraint, err := semver.NewConstraint(botkubeVersionConstraints)
+			if err != nil {
+				return fmt.Errorf("unable to parse Botkube semver version constraints: %w", err)
+			}
+
+			botkubeVersion, err := semver.NewVersion(botkubeVersionStr)
+			if err != nil {
+				return fmt.Errorf("unable to parse botkube version %s as semver: %w", botkubeVersion, err)
+			}
+
+			isCompatible := constraint.Check(botkubeVersion)
+			if !isCompatible {
 				run := false
-				suportedVersions := strings.Join(maps.Keys(compatibleBotkubeVersions), ", ")
+
 				prompt := &survey.Confirm{
-					Message: fmt.Sprintf("Your Botkube version %q is not supported, migration might fail. Do you wish to continue?\nSupported versions: %s", version, suportedVersions),
+					Message: heredoc.Docf(`
+						
+						The migration process for the Botkube CLI you're using (version: %q) wasn't tested with your Botkube version on your cluster (%q).
+						Botkube version constraints for the currently installed CLI: %s
+						We recommend upgrading your CLI to the latest version. In order to do so, navigate to https://docs.botkube.io/.
+						
+						Do you wish to continue?`, version.Get().Version, botkubeVersion, botkubeVersionConstraints),
 					Default: false,
 				}
 
@@ -96,28 +116,47 @@ func NewMigrate() *cobra.Command {
 			okCheck := color.New(color.FgGreen).FprintlnFunc()
 			okCheck(cmd.OutOrStdout(), "\nMigration Succeeded 🎉")
 
-			if opts.SkipConnect {
+			instanceURL := fmt.Sprintf("%s/instances/%s", opts.CloudDashboardURL, instanceID)
+
+			if opts.SkipOpenBrowser {
+				fmt.Println(heredoc.Docf(`
+				 Visit the URL to see your instance details:
+				 %s
+		`, instanceURL))
 				return nil
 			}
-			return browser.OpenURL(fmt.Sprintf("%s/instances/%s", opts.CloudDashboardURL, instanceID))
+
+			fmt.Println(heredoc.Docf(`
+			If your browser didn't open automatically, visit the URL to see your instance details:
+				 %s
+		`, instanceURL))
+			return browser.OpenURL(instanceURL)
 		},
 	}
 
 	flags := login.Flags()
 	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
-	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io", "Botkube Cloud API URL")
+	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io/graphql", "Botkube Cloud API URL")
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
 	flags.StringVarP(&opts.Label, "label", "l", "app=botkube", "Label of Botkube pod")
 	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of Botkube pod")
 	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
+	flags.BoolVar(&opts.SkipOpenBrowser, "skip-open-browser", false, "Skips opening web browser after migration")
+	flags.BoolVar(&opts.AutoUpgrade, "auto-upgrade", false, "Automatically upgrades Botkube instance without additional prompt")
+	flags.StringVar(&opts.ConfigExporter.Registry, "cfg-exporter-image-registry", "ghcr.io", "Config Exporter job image registry")
+	flags.StringVar(&opts.ConfigExporter.Repository, "cfg-exporter-image-repo", "kubeshop/botkube-config-exporter", "Config Exporter job image repository")
+	flags.StringVar(&opts.ConfigExporter.Tag, "cfg-exporter-image-tag", DefaultImageTag, "Config Exporter job image tag")
+	flags.DurationVar(&opts.ConfigExporter.PollPeriod, "cfg-exporter-poll-period", 1*time.Second, "Config Exporter job poll period")
+	flags.DurationVar(&opts.ConfigExporter.Timeout, "cfg-exporter-timeout", 1*time.Minute, "Config Exporter job timeout")
+	flags.BoolVarP(&opts.Debug, "debug", "d", false, "Turn on debug logging")
 
 	return login
 }
 
 func getBotkubeVersion(p *corev1.Pod) (string, error) {
 	for _, c := range p.Spec.Containers {
-		if c.Name == "botkube" {
+		if c.Name == containerName {
 			fqin := strings.Split(c.Image, ":")
 			if len(fqin) > 1 {
 				return fqin[len(fqin)-1], nil

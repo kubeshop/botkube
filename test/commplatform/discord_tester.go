@@ -1,6 +1,4 @@
-//go:build integration
-
-package e2e
+package commplatform
 
 import (
 	"context"
@@ -9,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kubeshop/botkube/test/diff"
 
 	"github.com/araddon/dateparse"
 	"github.com/bwmarrin/discordgo"
@@ -35,7 +35,19 @@ func (s *DiscordChannel) Identifier() string {
 	return s.Channel.ID
 }
 
-type discordTester struct {
+type DiscordConfig struct {
+	BotName                  string `envconfig:"optional"`
+	BotID                    string `envconfig:"default=983294404108378154"`
+	TesterName               string `envconfig:"optional"`
+	TesterID                 string `envconfig:"default=1020384322114572381"`
+	AdditionalContextMessage string `envconfig:"optional"`
+	GuildID                  string
+	TesterAppToken           string
+	RecentMessagesLimit      int           `envconfig:"default=6"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
+}
+
+type DiscordTester struct {
 	cli           *discordgo.Session
 	cfg           DiscordConfig
 	botUserID     string
@@ -46,43 +58,43 @@ type discordTester struct {
 	mdFormatter   interactive.MDFormatter
 }
 
-func newDiscordDriver(discordCfg DiscordConfig) (BotDriver, error) {
+func NewDiscordTester(discordCfg DiscordConfig) (BotDriver, error) {
 	discordCli, err := discordgo.New("Bot " + discordCfg.TesterAppToken)
 	if err != nil {
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
 	}
-	return &discordTester{cli: discordCli, cfg: discordCfg, mdFormatter: interactive.DefaultMDFormatter()}, nil
+	return &DiscordTester{cli: discordCli, cfg: discordCfg, mdFormatter: interactive.DefaultMDFormatter()}, nil
 }
 
-func (d *discordTester) Type() DriverType {
+func (d *DiscordTester) Type() DriverType {
 	return DiscordBot
 }
 
-func (d *discordTester) BotName() string {
+func (d *DiscordTester) BotName() string {
 	return "@Botkube"
 }
 
-func (d *discordTester) BotUserID() string {
+func (d *DiscordTester) BotUserID() string {
 	return d.botUserID
 }
 
-func (d *discordTester) TesterUserID() string {
+func (d *DiscordTester) TesterUserID() string {
 	return d.testerUserID
 }
 
-func (d *discordTester) Channel() Channel {
+func (d *DiscordTester) Channel() Channel {
 	return d.channel
 }
 
-func (d *discordTester) SecondChannel() Channel {
+func (d *DiscordTester) SecondChannel() Channel {
 	return d.secondChannel
 }
 
-func (d *discordTester) ThirdChannel() Channel {
+func (d *DiscordTester) ThirdChannel() Channel {
 	return d.thirdChannel
 }
 
-func (d *discordTester) InitUsers(t *testing.T) {
+func (d *DiscordTester) InitUsers(t *testing.T) {
 	t.Helper()
 
 	d.botUserID = d.cfg.BotID
@@ -100,15 +112,15 @@ func (d *discordTester) InitUsers(t *testing.T) {
 	}
 }
 
-func (d *discordTester) InitChannels(t *testing.T) []func() {
-	channel, cleanupChannelFn := d.createChannel(t, "first")
-	d.channel = &DiscordChannel{Channel: channel}
+func (d *DiscordTester) InitChannels(t *testing.T) []func() {
+	channel, cleanupChannelFn := d.CreateChannel(t, "first")
+	d.channel = channel
 
-	secondChannel, cleanupSecondChannelFn := d.createChannel(t, "second")
-	d.secondChannel = &DiscordChannel{Channel: secondChannel}
+	secondChannel, cleanupSecondChannelFn := d.CreateChannel(t, "second")
+	d.secondChannel = secondChannel
 
-	thirdChannel, cleanupThirdChannelFn := d.createChannel(t, "rbac")
-	d.thirdChannel = &DiscordChannel{Channel: thirdChannel}
+	thirdChannel, cleanupThirdChannelFn := d.CreateChannel(t, "rbac")
+	d.thirdChannel = thirdChannel
 
 	return []func(){
 		func() { cleanupChannelFn(t) },
@@ -117,7 +129,30 @@ func (d *discordTester) InitChannels(t *testing.T) []func() {
 	}
 }
 
-func (d *discordTester) PostInitialMessage(t *testing.T, channelID string) {
+// CreateChannel creates Discord channel.
+func (d *DiscordTester) CreateChannel(t *testing.T, prefix string) (Channel, func(t *testing.T)) {
+	t.Helper()
+	randomID := uuid.New()
+	channelName := fmt.Sprintf("%s-%s-%s", channelNamePrefix, prefix, randomID.String())
+
+	t.Logf("Creating channel %q...", channelName)
+	channel, err := d.cli.GuildChannelCreate(d.cfg.GuildID, channelName, discordgo.ChannelTypeGuildText)
+	require.NoError(t, err)
+
+	t.Logf("Channel %q (ID: %q) created", channelName, channel.ID)
+
+	cleanupFn := func(t *testing.T) {
+		t.Helper()
+		t.Logf("Deleting channel %q...", channel.Name)
+		// We cannot archive a channel: https://support.discord.com/hc/en-us/community/posts/360042842012-Archive-old-chat-channels
+		_, err := d.cli.ChannelDelete(channel.ID)
+		assert.NoError(t, err)
+	}
+
+	return &DiscordChannel{channel}, cleanupFn
+}
+
+func (d *DiscordTester) PostInitialMessage(t *testing.T, channelID string) {
 	t.Helper()
 	t.Logf("Posting welcome message for channel: %s...", channelID)
 
@@ -130,47 +165,47 @@ func (d *discordTester) PostInitialMessage(t *testing.T, channelID string) {
 	require.NoError(t, err)
 }
 
-func (d *discordTester) PostMessageToBot(t *testing.T, channel, command string) {
+func (d *DiscordTester) PostMessageToBot(t *testing.T, channel, command string) {
 	message := fmt.Sprintf("<@%s> %s", d.botUserID, command)
 	_, err := d.cli.ChannelMessageSend(channel, message)
 	require.NoError(t, err)
 }
 
-func (d *discordTester) InviteBotToChannel(_ *testing.T, _ string) {
+func (d *DiscordTester) InviteBotToChannel(_ *testing.T, _ string) {
 	// This is not required in Discord.
 	// Bots can't "join" text channels because when you join a server you're already in every text channel.
 	// See: https://stackoverflow.com/questions/60990748/making-discord-bot-join-leave-a-channel
 }
 
-func (d *discordTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
+func (d *DiscordTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
+	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
 		if !strings.EqualFold(expectedMsg, msg) {
-			count := countMatchBlock(expectedMsg, msg)
-			msgDiff := diff(expectedMsg, msg)
+			count := diff.CountMatchBlock(expectedMsg, msg)
+			msgDiff := diff.Diff(expectedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
 	})
 }
 
-func (d *discordTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
+func (d *DiscordTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		return strings.Contains(msg, expectedMsgSubstring), 0, ""
 	})
 }
 
-func (d *discordTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
+func (d *DiscordTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		if msg != expectedMsg {
-			count := countMatchBlock(expectedMsg, msg)
-			msgDiff := diff(expectedMsg, msg)
+			count := diff.CountMatchBlock(expectedMsg, msg)
+			msgDiff := diff.Diff(expectedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
 	})
 }
 
-func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+func (d *DiscordTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
 	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
@@ -225,11 +260,11 @@ func (d *discordTester) WaitForMessagePosted(userID, channelID string, limitMess
 	return nil
 }
 
-func (d *discordTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+func (d *DiscordTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	return d.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
-func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
+func (d *DiscordTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
 	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
@@ -280,7 +315,7 @@ func (d *discordTester) WaitForMessagePostedWithFileUpload(userID, channelID str
 	return nil
 }
 
-func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn ExpAttachmentInput) error {
+func (d *DiscordTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn ExpAttachmentInput) error {
 	// To always receive message content:
 	// ensure you enable the MESSAGE CONTENT INTENT for the tester bot on the developer portal.
 	// Applications ↦ Settings ↦ Bot ↦ Privileged Gateway Intents
@@ -332,7 +367,7 @@ func (d *discordTester) WaitForMessagePostedWithAttachment(userID, channelID str
 					return false, err
 				}
 
-				if err = timeWithinDuration(expTime, gotEventTime, time.Minute); err != nil {
+				if err = diff.TimeWithinDuration(expTime, gotEventTime, time.Minute); err != nil {
 					return false, err
 				}
 				gotEmbed.Timestamp = "" // reset so it doesn't impact static content assertion
@@ -369,31 +404,31 @@ func (f fakeT) Errorf(format string, args ...interface{}) {
 	fmt.Printf("%s: %s", f.Context, msg)
 }
 
-func (d *discordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
+func (d *DiscordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
-	return d.WaitForMessagePosted(userID, channelID, recentMessagesLimit, func(msg string) (bool, int, string) {
+	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
 		if !strings.EqualFold(markdown, msg) {
-			count := countMatchBlock(markdown, msg)
-			msgDiff := diff(markdown, msg)
+			count := diff.CountMatchBlock(markdown, msg)
+			msgDiff := diff.Diff(markdown, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
 	})
 }
 
-func (d *discordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
+func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		if !strings.EqualFold(markdown, msg) {
-			count := countMatchBlock(markdown, msg)
-			msgDiff := diff(markdown, msg)
+			count := diff.CountMatchBlock(markdown, msg)
+			msgDiff := diff.Diff(markdown, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
 	})
 }
 
-func (d *discordTester) findUserID(t *testing.T, name string) string {
+func (d *DiscordTester) findUserID(t *testing.T, name string) string {
 	t.Logf("Getting user %q...", name)
 	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 50)
 	require.NoError(t, err)
@@ -407,26 +442,4 @@ func (d *discordTester) findUserID(t *testing.T, name string) string {
 	}
 
 	return ""
-}
-
-func (d *discordTester) createChannel(t *testing.T, prefix string) (*discordgo.Channel, func(t *testing.T)) {
-	t.Helper()
-	randomID := uuid.New()
-	channelName := fmt.Sprintf("%s-%s-%s", channelNamePrefix, prefix, randomID.String())
-
-	t.Logf("Creating channel %q...", channelName)
-	channel, err := d.cli.GuildChannelCreate(d.cfg.GuildID, channelName, discordgo.ChannelTypeGuildText)
-	require.NoError(t, err)
-
-	t.Logf("Channel %q (ID: %q) created", channelName, channel.ID)
-
-	cleanupFn := func(t *testing.T) {
-		t.Helper()
-		t.Logf("Deleting channel %q...", channel.Name)
-		// We cannot archive a channel: https://support.discord.com/hc/en-us/community/posts/360042842012-Archive-old-chat-channels
-		_, err := d.cli.ChannelDelete(channel.ID)
-		assert.NoError(t, err)
-	}
-
-	return channel, cleanupFn
 }

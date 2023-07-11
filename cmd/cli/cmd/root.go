@@ -2,9 +2,15 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"go.szostok.io/version/extension"
 
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
+)
+
+const (
+	orgName  = "kubeshop"
+	repoName = "botkube"
 )
 
 // NewRoot returns a root cobra.Command for the whole Botkube Cloud CLI.
@@ -35,6 +41,9 @@ func NewRoot() *cobra.Command {
 		NewLogin(),
 		NewMigrate(),
 		NewDocs(),
+		extension.NewVersionCobraCmd(
+			extension.WithUpgradeNotice(orgName, repoName),
+		),
 	)
 
 	return rootCmd

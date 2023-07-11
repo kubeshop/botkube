@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeshop/botkube/test/commplatform"
+	"github.com/kubeshop/botkube/test/diff"
+
 	netapiv1 "k8s.io/api/networking/v1"
 	rbacapiv1 "k8s.io/api/rbac/v1"
 	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
@@ -59,33 +62,11 @@ type Config struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
 	ClusterName string `envconfig:"default=sample"`
-	Slack       SlackConfig
-	Discord     DiscordConfig
-}
-
-type SlackConfig struct {
-	BotName                  string `envconfig:"default=botkube"`
-	TesterName               string `envconfig:"default=tester"`
-	AdditionalContextMessage string `envconfig:"optional"`
-	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
-}
-
-type DiscordConfig struct {
-	BotName                  string `envconfig:"optional"`
-	BotID                    string `envconfig:"default=983294404108378154"`
-	TesterName               string `envconfig:"optional"`
-	TesterID                 string `envconfig:"default=1020384322114572381"`
-	AdditionalContextMessage string `envconfig:"optional"`
-	GuildID                  string
-	TesterAppToken           string
-	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
+	Slack       commplatform.SlackConfig
+	Discord     commplatform.DiscordConfig
 }
 
 const (
-	channelNamePrefix   = "test"
-	welcomeText         = "Let the tests begin 🤞"
-	pollInterval        = time.Second
 	globalConfigMapName = "botkube-global-config"
 )
 
@@ -112,7 +93,7 @@ func TestSlack(t *testing.T) {
 
 	runBotTest(t,
 		appCfg,
-		SlackBot,
+		commplatform.SlackBot,
 		slackInvalidCmd,
 		appCfg.Deployment.Envs.DefaultSlackChannelIDName,
 		appCfg.Deployment.Envs.SecondarySlackChannelIDName,
@@ -128,7 +109,7 @@ func TestDiscord(t *testing.T) {
 
 	runBotTest(t,
 		appCfg,
-		DiscordBot,
+		commplatform.DiscordBot,
 		discordInvalidCmd,
 		appCfg.Deployment.Envs.DefaultDiscordChannelIDName,
 		appCfg.Deployment.Envs.SecondaryDiscordChannelIDName,
@@ -136,19 +117,19 @@ func TestDiscord(t *testing.T) {
 	)
 }
 
-func newBotDriver(cfg Config, driverType DriverType) (BotDriver, error) {
+func newBotDriver(cfg Config, driverType commplatform.DriverType) (commplatform.BotDriver, error) {
 	switch driverType {
-	case SlackBot:
-		return newSlackDriver(cfg.Slack)
-	case DiscordBot:
-		return newDiscordDriver(cfg.Discord)
+	case commplatform.SlackBot:
+		return commplatform.NewSlackTester(cfg.Slack)
+	case commplatform.DiscordBot:
+		return commplatform.NewDiscordTester(cfg.Discord)
 	}
 	return nil, nil
 }
 
 func runBotTest(t *testing.T,
 	appCfg Config,
-	driverType DriverType,
+	driverType commplatform.DriverType,
 	invalidCmdTemplate,
 	deployEnvChannelIDName,
 	deployEnvSecondaryChannelIDName,
@@ -178,7 +159,7 @@ func runBotTest(t *testing.T,
 		t.Cleanup(fn)
 	}
 
-	channels := map[string]Channel{
+	channels := map[string]commplatform.Channel{
 		deployEnvChannelIDName:          botDriver.Channel(),
 		deployEnvSecondaryChannelIDName: botDriver.SecondChannel(),
 		deployEnvRbacChannelIDName:      botDriver.ThirdChannel(),
@@ -279,7 +260,7 @@ func runBotTest(t *testing.T,
 		t.Run("Echo Executor help", func(t *testing.T) {
 			command := "echo help"
 			expectedBody := ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
-			if botDriver.Type() == DiscordBot {
+			if botDriver.Type() == commplatform.DiscordBot {
 				expectedBody = ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
 			}
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
@@ -566,10 +547,10 @@ func runBotTest(t *testing.T,
 
 				assertionFn := func(msg string) (bool, int, string) {
 					msg = podName.ReplaceAllString(msg, `"botkube-pod" is`)
-					msg = trimTrailingLine(msg)
+					msg = commplatform.TrimSlackMsgTrailingLine(msg)
 					if !strings.EqualFold(expectedMessage, msg) {
-						count := countMatchBlock(expectedMessage, msg)
-						msgDiff := diff(expectedMessage, msg)
+						count := diff.CountMatchBlock(expectedMessage, msg)
+						msgDiff := diff.Diff(expectedMessage, msg)
 						return false, count, msgDiff
 					}
 					return true, 0, ""
@@ -633,7 +614,7 @@ func runBotTest(t *testing.T,
 		}
 	})
 
-	var firstCMUpdate ExpAttachmentInput
+	var firstCMUpdate commplatform.ExpAttachmentInput
 	t.Run("Multi-channel notifications", func(t *testing.T) {
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
@@ -674,7 +655,7 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
 
 		t.Log("Expecting bot message in first channel...")
-		expAttachmentIn := ExpAttachmentInput{
+		expAttachmentIn := commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -727,7 +708,7 @@ func runBotTest(t *testing.T,
 
 		t.Log("Expecting bot message in all channels...")
 		for _, channelID := range channelIDs {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, ExpAttachmentInput{
+			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
 					Type:      api.NonInteractiveSingleSection,
@@ -791,7 +772,7 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		require.NoError(t, err)
 
-		secondCMUpdate := ExpAttachmentInput{
+		secondCMUpdate := commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -849,7 +830,7 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 		cfgMapAlreadyDeleted = true
 
-		firstCMUpdate = ExpAttachmentInput{
+		firstCMUpdate = commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -928,7 +909,7 @@ func runBotTest(t *testing.T,
 		// - message with recommendations from 'k8s-events'
 		// - massage with pod create event from 'k8s-pod-create-events'
 		// - message with kc execution via 'get-created-resource' automation
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 3, ExpAttachmentInput{
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 3, commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -1066,7 +1047,7 @@ func runBotTest(t *testing.T,
 		command := "list sources"
 		expectedBody := codeBlock(heredoc.Doc(`
 		SOURCE ENABLED`))
-		if botDriver.Type() == DiscordBot {
+		if botDriver.Type() == commplatform.DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE             ENABLED
 			botkube/cm-watcher true
@@ -1140,7 +1121,7 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			t.Log("Expecting bot event message...")
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, ExpAttachmentInput{
+			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
 					Type:      api.NonInteractiveSingleSection,

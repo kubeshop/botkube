@@ -15,6 +15,11 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const (
+	configMapName      = "botkube-config-exporter"
+	configMapNamespace = "botkube"
+)
+
 func main() {
 	files, _, err := cfginternal.NewEnvProvider().Configs(context.Background())
 	if err != nil {
@@ -61,10 +66,10 @@ func newK8sClient() (client.Client, error) {
 func newCM() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "botkube-migration",
-			Namespace: "botkube",
+			Name:      configMapName,
+			Namespace: configMapNamespace,
 			Labels: map[string]string{
-				"app": "botkube-migration",
+				"app": configMapName,
 			},
 		},
 	}

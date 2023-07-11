@@ -10,7 +10,7 @@ env:
   K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
-  MIGRATOR_IMAGE_REPOSITORY: "kubeshop/botkube-migration"
+  CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/botkube-config-exporter"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
@@ -82,7 +82,7 @@ jobs:
         run: make release-snapshot-cli
       - name: Add botkube alias
         run: |
-          echo BOTKUBE_BIN="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
+          echo BOTKUBE_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -94,7 +94,7 @@ jobs:
       - name: Run e2e tests for botkube client
         env:
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           BOTKUBE_CLOUD_DEV_GQL_ENDPOINT: ${{ secrets.BOTKUBE_CLOUD_DEV_GQL_ENDPOINT }}

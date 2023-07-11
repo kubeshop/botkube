@@ -1,0 +1,14 @@
+FROM gcr.io/distroless/static:latest
+
+ARG botkube_config_exporter_version="dev"
+
+LABEL org.opencontainers.image.source="git@github.com:kubeshop/botkube.git" \
+      org.opencontainers.image.title="Botkube Config Exporter" \
+      org.opencontainers.image.version="${botkube_config_exporter_version}" \
+      org.opencontainers.image.description="Botkube Config Exporter fetches the Botkube configuration and stores it in a ConfigMap." \
+      org.opencontainers.image.documentation="https://docs.botkube.io" \
+      org.opencontainers.image.licenses="MIT"
+
+COPY botkube-config-exporter /usr/local/bin/botkube-config-exporter
+
+CMD ["botkube-config-exporter"]

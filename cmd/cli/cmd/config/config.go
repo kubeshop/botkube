@@ -32,11 +32,17 @@ func New() (*Config, error) {
 	return c, nil
 }
 
+const (
+	dirPerms  = 0755
+	filePerms = 0644
+)
+
 // Save saves Config to local FS
 func (c *Config) Save() error {
-	if _, err := os.Stat(filepath.Clean(filepath.Dir(configFilePath))); os.IsNotExist(err) {
-		// #nosec G301
-		err := os.MkdirAll(filepath.Clean(filepath.Dir(configFilePath)), 0755)
+	cfgFileDir := filepath.Clean(filepath.Dir(configFilePath))
+	cfgFilePath := filepath.Clean(configFilePath)
+	if _, err := os.Stat(cfgFileDir); os.IsNotExist(err) {
+		err = os.MkdirAll(cfgFileDir, dirPerms)
 		if err != nil {
 			return fmt.Errorf("failed to create config directory: %v", err)
 		}
@@ -48,7 +54,7 @@ func (c *Config) Save() error {
 	}
 
 	// #nosec G306
-	err = os.WriteFile(filepath.Clean(configFilePath), data, 0644)
+	err = os.WriteFile(cfgFilePath, data, filePerms)
 	if err != nil {
 		return fmt.Errorf("failed to write config: %v", err)
 	}
