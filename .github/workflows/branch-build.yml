@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - notify-slack # TODO: To remove
 
 env:
   HELM_VERSION: v3.9.0
@@ -90,7 +91,7 @@ jobs:
       - name: Download k3d
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
       - name: Create k3d cluster
-        run: "k3d cluster create migration-test-cluster --wait --timeout=5m"
+        run: "k3d-invalid cluster create migration-test-cluster --wait --timeout=5m"
       - name: Run e2e tests for botkube client
         env:
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
