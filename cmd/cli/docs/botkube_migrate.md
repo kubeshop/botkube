@@ -43,7 +43,6 @@ botkube migrate [OPTIONS] [flags]
       --cfg-exporter-timeout duration        Config Exporter job timeout (default 1m0s)
       --cloud-api-url string                 Botkube Cloud API URL (default "https://api.botkube.io/graphql")
       --cloud-dashboard-url string           Botkube Cloud URL (default "https://app.botkube.io")
-  -d, --debug                                Turn on debug logging
   -h, --help                                 help for migrate
       --instance-name string                 Botkube Cloud Instance name that will be created
   -l, --label string                         Label of Botkube pod (default "app=botkube")

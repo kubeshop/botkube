@@ -149,7 +149,6 @@ func NewMigrate() *cobra.Command {
 	flags.StringVar(&opts.ConfigExporter.Tag, "cfg-exporter-image-tag", DefaultImageTag, "Config Exporter job image tag")
 	flags.DurationVar(&opts.ConfigExporter.PollPeriod, "cfg-exporter-poll-period", 1*time.Second, "Config Exporter job poll period")
 	flags.DurationVar(&opts.ConfigExporter.Timeout, "cfg-exporter-timeout", 1*time.Minute, "Config Exporter job timeout")
-	flags.BoolVarP(&opts.Debug, "debug", "d", false, "Turn on debug logging")
 
 	return login
 }

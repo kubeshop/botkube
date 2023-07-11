@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	cliconfig "github.com/kubeshop/botkube/cmd/cli/cmd/config"
+	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
@@ -297,7 +298,7 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 
 			errMsg := fmt.Sprintf("migration job failed: %s", context.Canceled.Error())
 
-			if opts.Debug && job != nil {
+			if cli.VerboseMode.IsEnabled() && job != nil {
 				errMsg = fmt.Sprintf("%s\n\nDEBUG:\njob:\n\n%s", errMsg, job.String())
 			}
 
