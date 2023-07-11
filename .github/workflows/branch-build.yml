@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - main
+      - notify-slack # TODO: To remove
   repository_dispatch:
-    types: [trigger-e2e-tests]
+    types: [ trigger-e2e-tests ]
 
 env:
   HELM_VERSION: v3.9.0
@@ -24,34 +25,34 @@ jobs:
       GOBIN: /home/runner/work/botkube/bin
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version-file: 'go.mod'
-        cache: true
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-    - name: Docker Login
-      uses: docker/login-action@v1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v2
-      with:
-        install-only: true
-        version: latest
-    - name: Run GoReleaser
-      run: make release-snapshot
-      env:
-        ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
-    - name: Install Helm
-      uses: azure/setup-helm@v1
-      with:
-        version: ${{ env.HELM_VERSION }}
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
+          version: latest
+      - name: Run GoReleaser
+        run: make release-snapshot
+        env:
+          ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: ${{ env.HELM_VERSION }}
 
   migration-e2e-test:
     name: Migration e2e test
