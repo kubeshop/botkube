@@ -1,12 +1,13 @@
 templates:
-  - command:
-      prefix: "argo list"
-      parser: "table"
+  - trigger:
+      command:
+        prefix: "argo list"
+    type: "parser:table:space"
     message:
-      select:
-        name: "Workflows"
-        itemKey: "{{ .Namespace }}/{{ .Name }}"
+      selects:
+        - name: "Workflows"
+          keyTpl: "{{ .Namespace }}/{{ .Name }}"
       actions:
-        logs:     "argo logs   {{ .Name }} -n {{ .Namespace }}"
-        describe: "argo get    {{ .Name }} -n {{ .Namespace }}"
-        delete:   "argo delete {{ .Name }} -n {{ .Namespace }}"
+        logs: "argo logs {{ .Name }} -n {{ .Namespace }}"
+        describe: "argo get {{ .Name }} -n {{ .Namespace }}"
+        delete: "argo delete {{ .Name }} -n {{ .Namespace }}"
