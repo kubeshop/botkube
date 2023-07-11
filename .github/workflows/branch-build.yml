@@ -184,3 +184,21 @@ jobs:
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
+
+  slackNotification:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    needs: [ migration-e2e-test, integration-tests ]
+    if: failure()
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'CLI Migration E2E tests failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
