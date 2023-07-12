@@ -43,7 +43,6 @@ botkube migrate [OPTIONS] [flags]
       --cfg-exporter-timeout duration        Config Exporter job timeout (default 1m0s)
       --cloud-api-url string                 Botkube Cloud API URL (default "https://api.botkube.io/graphql")
       --cloud-dashboard-url string           Botkube Cloud URL (default "https://app.botkube.io")
-  -d, --debug                                Turn on debug logging
   -h, --help                                 help for migrate
       --instance-name string                 Botkube Cloud Instance name that will be created
   -l, --label string                         Label of Botkube pod (default "app=botkube")
@@ -53,7 +52,13 @@ botkube migrate [OPTIONS] [flags]
       --token string                         Botkube Cloud authentication token
 ```
 
+### Options inherited from parent commands
+
+```
+  -v, --verbose int/string[=simple]   Prints more verbose output. Allowed values: 0 - disable, 1 - simple, 2 - trace (default 0 - disable)
+```
+
 ### SEE ALSO
 
-* [botkube](botkube.md)	 - Botkube Cloud CLI
+* [botkube](botkube.md)	 - Botkube CLI
 

@@ -4,7 +4,6 @@ import "time"
 
 // Options holds migrate possible configuration options.
 type Options struct {
-	Debug             bool
 	Token             string
 	InstanceName      string `survey:"instanceName"`
 	CloudDashboardURL string
