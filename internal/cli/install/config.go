@@ -23,6 +23,8 @@ const (
 
 // Config holds parameters for Botkube installation on cluster.
 type Config struct {
-	Kubeconfig string
-	HelmParams helm.Config
+	Kubeconfig          string
+	HelmParams          helm.Config
+	LogsReportTimestamp bool
+	LogsScrollingHeight int
 }

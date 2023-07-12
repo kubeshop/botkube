@@ -47,6 +47,8 @@ func NewInstall() *cobra.Command {
 	flags := installCmd.Flags()
 
 	kubex.RegisterKubeconfigFlag(flags)
+	flags.BoolVar(&opts.LogsReportTimestamp, "logs-report-timestamp", false, "Print timestamp prefix to the Botkube logs entries")
+	flags.IntVar(&opts.LogsScrollingHeight, "logs-scrolling-height", 10, "")
 
 	// common params for install and upgrade operation
 	flags.StringVar(&opts.HelmParams.Version, "version", install.LatestVersionTag, "Botkube version. Possible values @latest, 1.2.0, ...")

@@ -4,17 +4,20 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/muesli/reflow/indent"
 	"go.szostok.io/version/style"
+	"golang.org/x/sync/errgroup"
+	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/install/helm"
+	"github.com/kubeshop/botkube/internal/cli/install/logs"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/kubex"
 )
@@ -55,14 +58,61 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	}
 
 	status.Step("Creating namespace %s", opts.HelmParams.Namespace)
-	err = ensureNamespaceCreated(ctx, k8sCfg.K8s, opts.HelmParams.Namespace)
+	clientset, err := kubernetes.NewForConfig(k8sCfg.K8s)
+	if err != nil {
+		return err
+	}
+
+	err = ensureNamespaceCreated(ctx, clientset, opts.HelmParams.Namespace)
 	status.End(err == nil)
 	if err != nil {
 		return err
 	}
 
-	rel, err := helmInstaller.Install(ctx, status, opts.HelmParams)
+	logsPrinter := logs.NewFixedHeightPrinter(
+		opts.LogsScrollingHeight,
+		logs.NewKVParser(opts.LogsReportTimestamp),
+	)
+
+	installCompleted := make(chan struct{})
+	parallel, ctx := errgroup.WithContext(ctx)
+	var rel *release.Release
+	parallel.Go(func() error {
+		defer close(installCompleted)
+
+		rel, err = helmInstaller.Install(ctx, status, opts.HelmParams)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	messages := make(chan []byte, opts.LogsScrollingHeight)
+	parallel.Go(func() error {
+		time.Sleep(2 * time.Second)
+		defer close(messages)
+		return logs.DefaultConsumeRequest(ctx, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, messages, installCompleted)
+	})
+	parallel.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
+				return nil
+			//case <-installCompleted:
+			//	return nil
+			case entry, ok := <-messages:
+				if !ok {
+					return nil
+				}
+				logsPrinter.Print(string(entry))
+			}
+		}
+	})
+
+	err = parallel.Wait()
 	status.End(err == nil)
+
 	if err != nil {
 		return err
 	}
@@ -133,19 +183,14 @@ func printInstallationDetails(cfg *kubex.ConfigWithMeta, opts Config, status *pr
 }
 
 // ensureNamespaceCreated creates a k8s namespaces. If it already exists it does nothing.
-func ensureNamespaceCreated(ctx context.Context, config *rest.Config, namespace string) error {
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
+func ensureNamespaceCreated(ctx context.Context, clientset *kubernetes.Clientset, namespace string) error {
 	nsName := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
 
-	_, err = clientset.CoreV1().Namespaces().Create(ctx, nsName, metav1.CreateOptions{})
+	_, err := clientset.CoreV1().Namespaces().Create(ctx, nsName, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		return nil
 	}

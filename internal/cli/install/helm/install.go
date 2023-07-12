@@ -86,11 +86,12 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 		return nil, err
 	}
 
-	status.Step("Installing %s Helm chart", opts.ChartName)
+	status.Step("Scheduling %s Helm chart", opts.ChartName)
+	status.End(true)
 	//  We may run into in issue temporary network issues.
 	var rel *release.Release
 	err = retry.Do(func() error {
-		rel, err = runFn(ctx, opts.ReleaseName, loadedChart, vals) // fixme values
+		rel, err = runFn(ctx, opts.ReleaseName, loadedChart, vals)
 		return err
 	}, retry.Attempts(3), retry.Delay(time.Second))
 	if err != nil {

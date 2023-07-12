@@ -21,7 +21,8 @@ func New(cfg config.Logger) logrus.FieldLogger {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: cfg.DisableColors}
+	//logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: cfg.DisableColors}
+	logger.Formatter = &logrus.JSONFormatter{}
 
 	return logger
 }
