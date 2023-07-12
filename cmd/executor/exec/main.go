@@ -24,7 +24,7 @@ import (
 // version is set via ldflags by GoReleaser.
 var version = "dev"
 
-const pluginName = "x"
+const pluginName = "exec"
 
 // XExecutor implements Botkube executor plugin.
 type XExecutor struct{}
@@ -32,17 +32,17 @@ type XExecutor struct{}
 func (i *XExecutor) Help(_ context.Context) (api.Message, error) {
 	help := heredoc.Doc(`
 		Usage:
-		  x run [COMMAND] [FLAGS]    Run a specified command with optional flags
-		  x install [SOURCE]         Install a binary using the https://github.com/zyedidia/eget syntax.
+		  exec run [COMMAND] [FLAGS]    Run a specified command with optional flags
+		  exec install [SOURCE]         Install a binary using the https://github.com/zyedidia/eget syntax.
 		
 		Usage Examples:
 		  # Install the Helm CLI
 
-		  x install https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz --file helm    
+		  exec install https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz --file helm    
 		  
 		  # Run the 'helm list -A' command.
 
-		  x run helm list -A    
+		  exec run helm list -A    
 		
 		Options:
 		  -h, --help                 Show this help message`)
@@ -151,7 +151,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 	case cmd.Install != nil:
 		var (
 			tool          = Normalize(strings.Join(cmd.Install.Tool, " "))
-			command       = x.Parse(fmt.Sprintf("x install %s", tool))
+			command       = x.Parse(fmt.Sprintf("exec install %s", tool))
 			dir, isCustom = cfg.TmpDir.Get()
 			downloadCmd   = fmt.Sprintf("eget %s", tool)
 		)
@@ -210,7 +210,7 @@ func jsonSchema() api.JSONSchema {
 	return api.JSONSchema{
 		Value: heredoc.Docf(`{
 		  "$schema": "http://json-schema.org/draft-07/schema#",
-		  "title": "x",
+		  "title": "exec",
 		  "description": "Install and run CLIs directly from the chat window without hassle. All magic included.",
 		  "type": "object",
 		  "properties": {
@@ -247,7 +247,7 @@ func getDefaultTemplateSource() string {
 	if ver == "dev" {
 		ver = "main"
 	}
-	return fmt.Sprintf("github.com/kubeshop/botkube//cmd/executor/x/templates?ref=%s", ver)
+	return fmt.Sprintf("github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=%s", ver)
 }
 
 func Normalize(in string) string {

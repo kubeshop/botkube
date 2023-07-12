@@ -18,12 +18,12 @@ templates:
 
   - trigger:
       command:
-        prefix: "x install github.com/fluxcd/flux2"
+        prefix: "exec install github.com/fluxcd/flux2"
     type: "wrapper"
     message:
       buttons:
         - name: "Quickstart"
-          command: "{{BotName}} x run quickstart flux"
+          command: "{{BotName}} exec run quickstart flux"
           style: "primary"
 
   - trigger:
@@ -36,14 +36,14 @@ templates:
       header: "Flux Quick Start tutorial"
       buttons:
         - name: "Check prerequisites"
-          command: "{{BotName}} x run flux check --pre"
+          command: "{{BotName}} exec run flux check --pre"
           description: "{{BotName}} flux check --pre"
         - name: "Install Flux"
-          command: "{{BotName}} x run flux install"
+          command: "{{BotName}} exec run flux install"
           description: "{{BotName}} flux install"
         - name: "Create Git source"
           command: |
-            {{BotName}} x run flux create source git webapp-latest
+            {{BotName}} exec run flux create source git webapp-latest
                --url=https://github.com/stefanprodan/podinfo 
                --branch=master 
                --interval=3m
@@ -53,17 +53,17 @@ templates:
                --branch=master 
                --interval=3m
         - name: "List Git sources"
-          command: "{{BotName}} x run flux get sources git"
+          command: "{{BotName}} exec run flux get sources git"
           description: "{{BotName}} flux get sources git"
         - name: "Reconcile Git source"
-          command: "{{BotName}} x run flux reconcile source git flux-system"
+          command: "{{BotName}} exec run flux reconcile source git flux-system"
           description: "{{BotName}} flux reconcile source git flux-system"
         - name: "Export Git sources"
-          command: "{{BotName}} x run flux export source git --all"
+          command: "{{BotName}} exec run flux export source git --all"
           description: "{{BotName}} flux export source git --all"
         - name: "Create Kustomization"
           command: |
-            {{BotName}} x run flux create kustomization webapp-dev
+            {{BotName}} exec run flux create kustomization webapp-dev
                --source=webapp-latest 
                --path='./deploy/webapp/'
                --prune=true 
@@ -72,7 +72,7 @@ templates:
                --health-check='Deployment/frontend.webapp'
                --health-check-timeout=2m
           description: |
-            {{BotName}} x run flux create kustomization webapp-dev
+            {{BotName}} exec run flux create kustomization webapp-dev
                --source=webapp-latest 
                --path='./deploy/webapp/'
                --prune=true
@@ -81,29 +81,29 @@ templates:
                --health-check='Deployment/frontend.webapp'
                --health-check-timeout=2m
         - name: "Reconcile Kustomization"
-          command: "{{BotName}} x run flux reconcile kustomization webapp-dev --with-source"
+          command: "{{BotName}} exec run flux reconcile kustomization webapp-dev --with-source"
           description: "{{BotName}} flux reconcile kustomization webapp-dev --with-source"
         - name: "Suspend Kustomization"
-          command: "{{BotName}} x run flux suspend kustomization webapp-dev"
+          command: "{{BotName}} exec run flux suspend kustomization webapp-dev"
           description: "{{BotName}} flux suspend kustomization webapp-dev"
         - name: "Export Kustomizations"
-          command: "{{BotName}} x run flux export kustomization --all"
+          command: "{{BotName}} exec run flux export kustomization --all"
           description: "{{BotName}} flux export kustomization --all"
         - name: "Resume Kustomization"
-          command: "{{BotName}} x run flux resume kustomization webapp-dev"
+          command: "{{BotName}} exec run flux resume kustomization webapp-dev"
           description: "{{BotName}} flux resume kustomization webapp-dev"
         - name: "Delete Kustomization"
-          command: "{{BotName}} x run flux delete kustomization webapp-dev"
+          command: "{{BotName}} exec run flux delete kustomization webapp-dev"
           description: "{{BotName}} flux delete kustomization webapp-dev"
         - name: "Delete Git source"
-          command: "{{BotName}} x run flux delete source git webapp-latest"
+          command: "{{BotName}} exec run flux delete source git webapp-latest"
           description: "{{BotName}} flux delete source"
         - name: "Delete Kustomization"
-          command: "{{BotName}} x run flux delete kustomization webapp-dev"
+          command: "{{BotName}} exec run flux delete kustomization webapp-dev"
           description: "{{BotName}} flux delete kustomization webapp-dev"
         - name: "Delete Git source"
-          command: "{{BotName}} x run flux delete source git webapp-latest --silent"
+          command: "{{BotName}} exec run flux delete source git webapp-latest --silent"
           description: "{{BotName}} flux delete source git webapp-latest --silent"
         - name: "Uninstall Flux"
-          command: "{{BotName}} x run flux uninstall"
+          command: "{{BotName}} exec run flux uninstall"
           description: "{{BotName}} flux uninstall"

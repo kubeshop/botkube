@@ -53,12 +53,12 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [sources.k8s-all-events.botkube/kubernetes.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [sources.k8s-err-events.botkube/kubernetes.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [sources.k8s-create-events.botkube/kubernetes.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
-| [executors.bins-management.botkube/x.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
+| [executors.bins-management.botkube/exec.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [executors.k8s-default-tools.botkube/helm.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [executors.ai.botkube/doctor.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [executors.k8s-default-tools.botkube/kubectl.context.rbac](./values.yaml#L126) | object | `{"group":{"prefix":"","static":{"values":["botkube-plugins-default"]},"type":"Static"}}` | RBAC configuration for this plugin. |
 | [sources.k8s-create-events.botkube/kubernetes.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
-| [executors.bins-management.botkube/x.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
+| [executors.bins-management.botkube/exec.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
 | [sources.k8s-err-events.botkube/kubernetes.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
 | [sources.k8s-all-events.botkube/kubernetes.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
 | [sources.k8s-err-events-with-ai-support.botkube/kubernetes.context.rbac.group.type](./values.yaml#L129) | string | `"Static"` | Static impersonation for a given username and groups. |
@@ -74,11 +74,11 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [executors.ai.botkube/doctor.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [sources.k8s-err-events-with-ai-support.botkube/kubernetes.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [sources.k8s-all-events.botkube/kubernetes.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
-| [executors.bins-management.botkube/x.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
+| [executors.bins-management.botkube/exec.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [sources.k8s-create-events.botkube/kubernetes.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [executors.k8s-default-tools.botkube/kubectl.context.rbac.group.prefix](./values.yaml#L131) | string | `""` | Prefix that will be applied to .static.value[*]. |
 | [sources.k8s-create-events.botkube/kubernetes.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
-| [executors.bins-management.botkube/x.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
+| [executors.bins-management.botkube/exec.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
 | [sources.k8s-err-events-with-ai-support.botkube/kubernetes.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
 | [executors.ai.botkube/doctor.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |
 | [sources.k8s-recommendation-events.botkube/kubernetes.context.rbac.group.static.values](./values.yaml#L134) | list | `["botkube-plugins-default"]` | Name of group.rbac.authorization.k8s.io the plugin will be bound to. |

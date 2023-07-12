@@ -12,30 +12,30 @@ func TestParse(t *testing.T) {
 		expected Command
 	}{
 		{
-			input: "x run helm list -A",
+			input: "exec run helm list -A",
 			expected: Command{
-				ToExecute:     "x run helm list -A",
+				ToExecute:     "exec run helm list -A",
 				IsRawRequired: false,
 			},
 		},
 		{
-			input: "x run helm list -A @raw",
+			input: "exec run helm list -A @raw",
 			expected: Command{
-				ToExecute:     "x run helm list -A",
+				ToExecute:     "exec run helm list -A",
 				IsRawRequired: true,
 			},
 		},
 		{
-			input: "x run kubectl get pods @idx:123",
+			input: "exec run kubectl get pods @idx:123",
 			expected: Command{
-				ToExecute:     "x run kubectl get pods",
+				ToExecute:     "exec run kubectl get pods",
 				IsRawRequired: false,
 			},
 		},
 		{
-			input: "x run kubectl get pods @idx:abc",
+			input: "exec run kubectl get pods @idx:abc",
 			expected: Command{
-				ToExecute:     "x run kubectl get pods @idx:abc",
+				ToExecute:     "exec run kubectl get pods @idx:abc",
 				IsRawRequired: false,
 				PageIndex:     1,
 			},

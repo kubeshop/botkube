@@ -33,9 +33,9 @@ builds:
     goarch: *goarch
     goarm: *goarm
 
-  - id: x
-    main: cmd/executor/x/main.go
-    binary: executor_x_{{ .Os }}_{{ .Arch }}
+  - id: exec
+    main: cmd/executor/exec/main.go
+    binary: executor_exec_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
     env: *env
