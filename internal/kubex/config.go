@@ -59,8 +59,6 @@ func LoadRestConfigWithMetaInformation() (*ConfigWithMeta, error) {
 	// NOTE: For default config file locations, upstream only checks
 	// $HOME for the user's home directory, but we can also try
 	// os/user.HomeDir when $HOME is unset.
-	//
-	// TODO(jlanford): could this be done upstream?
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if _, ok := os.LookupEnv("HOME"); !ok {
 		u, err := user.Current()
@@ -76,11 +74,11 @@ func LoadRestConfigWithMetaInformation() (*ConfigWithMeta, error) {
 func transform(c clientcmd.ClientConfig) (*ConfigWithMeta, error) {
 	rawConfig, err := c.RawConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while getting raw config: %v", err)
 	}
 	clientConfig, err := c.ClientConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while getting client config: %v", err)
 	}
 	return &ConfigWithMeta{
 		K8s:            clientConfig,

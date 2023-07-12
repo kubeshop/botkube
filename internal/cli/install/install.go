@@ -90,12 +90,12 @@ func printSuccessInstallMessage(version string, w io.Writer) error {
 
 	out, err := renderer.Render(props, cli.IsSmartTerminal(w))
 	if err != nil {
-		return err
+		return fmt.Errorf("while rendering message: %v", err)
 	}
 
 	_, err = fmt.Fprintln(w, out)
 	if err != nil {
-		return err
+		return fmt.Errorf("while printing message: %v", err)
 	}
 
 	return nil
