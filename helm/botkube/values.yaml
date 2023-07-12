@@ -596,6 +596,10 @@ aliases:
   chatgpt:
     command: doctor
     displayName: "Doctor alias"
+  x:
+    command: exec
+    displayName: "Exec alias"
+
 ## Multi-word alias example:
 #  kgp:
 #    command: kubectl get pods

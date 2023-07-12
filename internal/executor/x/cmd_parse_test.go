@@ -33,11 +33,11 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			input: "exec run kubectl get pods @idx:abc",
+			input: "exec run kubectl get pods @idx:abc @page:12",
 			expected: Command{
 				ToExecute:     "exec run kubectl get pods @idx:abc",
 				IsRawRequired: false,
-				PageIndex:     1,
+				PageIndex:     12,
 			},
 		},
 	}
@@ -49,6 +49,7 @@ func TestParse(t *testing.T) {
 
 			assert.Equal(t, tc.expected.ToExecute, gotCmd.ToExecute)
 			assert.Equal(t, tc.expected.IsRawRequired, gotCmd.IsRawRequired)
+			assert.Equal(t, tc.expected.PageIndex, gotCmd.PageIndex)
 		})
 	}
 }
