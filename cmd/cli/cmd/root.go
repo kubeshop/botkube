@@ -26,6 +26,7 @@ func NewRoot() *cobra.Command {
         Quick Start:
 
             $ <cli> install                              # Install Botkube
+            $ <cli> uninstall                            # Uninstall Botkube
 
         Botkube Cloud:
 
@@ -45,6 +46,7 @@ func NewRoot() *cobra.Command {
 		NewMigrate(),
 		NewDocs(),
 		NewInstall(),
+		NewUninstall(),
 		extension.NewVersionCobraCmd(
 			extension.WithUpgradeNotice(orgName, repoName),
 		),
