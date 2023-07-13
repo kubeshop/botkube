@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	conversationx "github.com/kubeshop/botkube/pkg/conversation"
 )
 
 const slackBotMentionPrefixFmt = "^<@%s>"
@@ -14,7 +15,7 @@ const slackBotMentionPrefixFmt = "^<@%s>"
 func slackChannelsConfigFrom(log logrus.FieldLogger, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) map[string]channelConfigByName {
 	channels := make(map[string]channelConfigByName)
 	for channAlias, channCfg := range channelsCfg {
-		normalizedChannelName, changed := normalizeChannelName(channCfg.Name)
+		normalizedChannelName, changed := conversationx.NormalizeChannelIdentifier(channCfg.Name)
 		if changed {
 			log.Warnf("Channel name %q has been normalized to %q", channCfg.Name, normalizedChannelName)
 		}

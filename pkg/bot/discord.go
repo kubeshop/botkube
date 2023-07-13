@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	conversationx "github.com/kubeshop/botkube/pkg/conversation"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -346,7 +347,7 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 func discordChannelsConfigFrom(log logrus.FieldLogger, api *discordgo.Session, channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
-		normalizedChannelID, changed := normalizeChannelName(channCfg.ID)
+		normalizedChannelID, changed := conversationx.NormalizeChannelIdentifier(channCfg.ID)
 		if changed {
 			log.Warnf("Channel ID %q has been normalized to %q", channCfg.ID, normalizedChannelID)
 		}

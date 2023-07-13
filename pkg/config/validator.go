@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/go-playground/locales/en"
@@ -11,6 +12,7 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/kubeshop/botkube/pkg/conversation"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
@@ -30,11 +32,22 @@ const (
 	botTokenPrefix              = "xoxb-"
 )
 
-var warnsOnlyTags = map[string]struct{}{
-	regexConstraintsIncludeTag: {},
-	invalidChannelNameTag:      {},
-	invalidChannelIDTag:        {},
-}
+var (
+	warnsOnlyTags = map[string]struct{}{
+		regexConstraintsIncludeTag: {},
+		invalidChannelNameTag:      {},
+		invalidChannelIDTag:        {},
+	}
+
+	slackChannelNameRegex = regexp.MustCompile(`^[a-z0-9-_]{1,79}$`)
+
+	discordChannelIDRegex      = regexp.MustCompile(`^[0-9]*$`)
+	mattermostChannelNameRegex = regexp.MustCompile(`^[\s\S]{1,64}$`)
+
+	slackDocsURL      = "https://api.slack.com/methods/conversations.rename#naming"
+	discordDocsURL    = "https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-"
+	mattermostDocsURL = "https://docs.mattermost.com/channels/channel-naming-conventions.html"
+)
 
 // ValidateResult holds the validation results.
 type ValidateResult struct {
@@ -71,11 +84,13 @@ func ValidateStruct(in any) (ValidateResult, error) {
 	}
 
 	validate.RegisterStructValidation(slackStructTokenValidator, Slack{})
-	validate.RegisterStructValidation(socketSlackStructTokenValidator, SocketSlack{})
+	validate.RegisterStructValidation(socketSlackValidator, SocketSlack{})
+	validate.RegisterStructValidation(discordValidator, Discord{})
+	validate.RegisterStructValidation(cloudSlackValidator, CloudSlack{})
+	validate.RegisterStructValidation(mattermostValidator, Mattermost{})
+
 	validate.RegisterStructValidation(sourceStructValidator, Sources{})
 	validate.RegisterStructValidation(executorStructValidator, Executors{})
-
-	validate.RegisterStructValidation(discordChannelsValidator, Discord{})
 
 	err := validate.Struct(in)
 	if err == nil {
@@ -107,6 +122,7 @@ func ValidateStruct(in any) (ValidateResult, error) {
 func registerCustomTranslations(validate *validator.Validate, trans ut.Translator) error {
 	return registerTranslation(validate, trans, map[string]string{
 		"invalid_slack_token": "{0} {1}",
+		invalidChannelNameTag: "The channel name '{0}' seems to be invalid. See the documentation to learn more: {1}.",
 	})
 }
 
@@ -161,7 +177,7 @@ func slackStructTokenValidator(sl validator.StructLevel) {
 	}
 }
 
-func socketSlackStructTokenValidator(sl validator.StructLevel) {
+func socketSlackValidator(sl validator.StructLevel) {
 	slack, ok := sl.Current().Interface().(SocketSlack)
 
 	if !ok || !slack.Enabled {
@@ -185,22 +201,61 @@ func socketSlackStructTokenValidator(sl validator.StructLevel) {
 		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token", appTokenPrefix)
 		sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
 	}
+
+	validateChannels(sl, slackChannelNameRegex, true, slack.Channels, "Name", slackDocsURL)
 }
 
-func discordChannelsValidator(sl validator.StructLevel) {
+func cloudSlackValidator(sl validator.StructLevel) {
+	slack, ok := sl.Current().Interface().(CloudSlack)
+
+	if !ok || !slack.Enabled {
+		return
+	}
+
+	validateChannels(sl, slackChannelNameRegex, true, slack.Channels, "Name", slackDocsURL)
+}
+
+func discordValidator(sl validator.StructLevel) {
 	discord, ok := sl.Current().Interface().(Discord)
 
 	if !ok || !discord.Enabled {
 		return
 	}
 
-	for _, channel := range discord.Channels {
-		if channel == "" {
-			sl.ReportError(channel, "Channels", "Channels", "required", "")
-		}
+	validateChannels(sl, discordChannelIDRegex, true, discord.Channels, "ID", discordDocsURL)
+}
+
+func mattermostValidator(sl validator.StructLevel) {
+	mattermost, ok := sl.Current().Interface().(Mattermost)
+
+	if !ok || !mattermost.Enabled {
+		return
 	}
 
-	sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
+	validateChannels(sl, mattermostChannelNameRegex, false, mattermost.Channels, "Name", mattermostDocsURL)
+}
+
+func validateChannels[T Identifiable](sl validator.StructLevel, regex *regexp.Regexp, shouldNormalize bool, channels IdentifiableMap[T], fieldName, docsURL string) {
+	if len(channels) == 0 {
+		sl.ReportError(channels, "Channels", "Channels", "required", "")
+	}
+
+	for channelAlias, channel := range channels {
+		if channel.Identifier() == "" {
+			sl.ReportError(channel.Identifier(), fieldName, fieldName, "required", "")
+			return
+		}
+
+		channelIdentifier := channel.Identifier()
+		if shouldNormalize {
+			channelIdentifier, _ = conversation.NormalizeChannelIdentifier(channel.Identifier())
+		}
+		valid := regex.MatchString(channelIdentifier)
+		if !valid {
+			fieldNameWithAliasProp := fmt.Sprintf("%s.%s", channelAlias, fieldName)
+			sl.ReportError(fieldName, channel.Identifier(), fieldNameWithAliasProp, invalidChannelNameTag, docsURL)
+		}
+	}
 }
 
 func regexConstraintsStructValidator(sl validator.StructLevel) {

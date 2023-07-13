@@ -1,0 +1,85 @@
+communications: # req 1 elm.
+  'default-workspace':
+    cloudSlack:
+      enabled: true
+      channels:
+        'alias':
+          name: '#correct'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+        'alias2':
+          name: 'INCORRECT'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+
+      token: 'TOKEN'
+
+    socketSlack:
+      enabled: true
+      channels:
+        'alias':
+          name: '#correct'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+        'alias2':
+          name: 'INCORRECT'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+
+      appToken: 'xapp-SLACK_APP_TOKEN'
+      botToken: 'xoxb-SLACK_BOT_TOKEN'
+
+    discord:
+      enabled: true
+      token: 'DISCORD_TOKEN'
+      botID: 'DISCORD_BOT_ID'
+      channels:
+        'alias':
+          id: '976789916447019068' # correct
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+        'alias2':
+          id: 'incorrect'
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+
+    mattermost:
+      enabled: true
+      url: 'MATTERMOST_SERVER_URL'
+      token: 'MATTERMOST_TOKEN'
+      team: 'MATTERMOST_TEAM'
+      channels:
+        'alias':
+          name: "too-long name really really really really really really really really really really really really long"
+          notification:
+            disabled: true
+          bindings:
+            executors:
+              - kubectl-read-only
+            sources:
+              - k8s-events
+      notification:
+        type: short
+
+executors:
+  kubectl-read-only: {}
+sources:
+  k8s-events: {}

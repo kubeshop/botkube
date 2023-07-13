@@ -104,6 +104,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 		name      string
 		expErrMsg string
 		configs   [][]byte
+		isWarning bool
 	}{
 		{
 			name: "no config files",
@@ -218,6 +219,19 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 				readTestdataFile(t, "sources-rbac.yaml"),
 			},
 		},
+		{
+			name: "Invalid channel names",
+			expErrMsg: heredoc.Doc(`
+				4 errors occurred:
+					* Key: 'Config.Communications[default-workspace].SocketSlack.alias2.Name' The channel name 'INCORRECT' seems to be invalid. See the documentation to learn more: https://api.slack.com/methods/conversations.rename#naming.
+					* Key: 'Config.Communications[default-workspace].CloudSlack.alias2.Name' The channel name 'INCORRECT' seems to be invalid. See the documentation to learn more: https://api.slack.com/methods/conversations.rename#naming.
+					* Key: 'Config.Communications[default-workspace].Mattermost.alias.Name' The channel name 'too-long name really really really really really really really really really really really really long' seems to be invalid. See the documentation to learn more: https://docs.mattermost.com/channels/channel-naming-conventions.html.
+					* Key: 'Config.Communications[default-workspace].Discord.alias2.ID' The channel name 'incorrect' seems to be invalid. See the documentation to learn more: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-.`),
+			configs: [][]byte{
+				readTestdataFile(t, "invalid-channels.yaml"),
+			},
+			isWarning: true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -225,6 +239,14 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			cfg, details, err := config.LoadWithDefaults(tc.configs)
 
 			// then
+			if tc.isWarning {
+				assert.NoError(t, err)
+				assert.NotNil(t, cfg)
+				assert.Error(t, details.ValidateWarnings)
+				assert.EqualError(t, details.ValidateWarnings, tc.expErrMsg)
+				return
+			}
+
 			assert.Nil(t, cfg)
 			assert.NoError(t, details.ValidateWarnings)
 			assert.EqualError(t, err, tc.expErrMsg)

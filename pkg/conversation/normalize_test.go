@@ -1,4 +1,4 @@
-package bot
+package conversation
 
 import (
 	"testing"
@@ -58,7 +58,7 @@ func TestNormalizeChannelName(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			got, changed := normalizeChannelName(tc.input)
+			got, changed := NormalizeChannelIdentifier(tc.input)
 
 			// then
 			assert.Equal(t, tc.expected, got)

@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"strings"
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -58,14 +57,4 @@ func AsNotifiers(bots map[string]Bot) []notifier.Bot {
 		notifiers = append(notifiers, bot)
 	}
 	return notifiers
-}
-
-// normalizeChannelName removes leading and trailing spaces and # from the channel name.
-// this is platform-agnostic, as different platforms use different rules:
-// Slack - channel name: https://api.slack.com/methods/conversations.rename#naming
-// Mattermost - channel name: https://docs.mattermost.com/channels/channel-naming-conventions.html
-// Discord - channel ID: https://docs.statbot.net/docs/faq/general/how-find-id/
-func normalizeChannelName(in string) (string, bool) {
-	out := strings.TrimLeft(strings.TrimSpace(in), "#")
-	return out, out != in
 }
