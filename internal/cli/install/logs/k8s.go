@@ -42,9 +42,6 @@ func StartsLogsStreaming(ctx context.Context, clientset *kubernetes.Clientset, n
 			bytes, readErr := r.ReadBytes('\n')
 			// write first, as there might be some chars already loaded
 			out <- bytes
-			//if strings.Contains(string(bytes), "Botkube connected to") {
-			//	return nil
-			//}
 			switch readErr {
 			case nil:
 			case io.EOF:

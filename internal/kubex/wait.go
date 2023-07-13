@@ -38,7 +38,7 @@ var (
 )
 
 // PodReady returns true if the Pod is read.
-func PodReady(podScheduledIndicator, phase chan string, since time.Time) func(event watch.Event) (bool, error) {
+func PodReady(podScheduledIndicator chan string, since time.Time) func(event watch.Event) (bool, error) {
 	informed := false
 	sinceK8sTime := metav1.NewTime(since)
 	return func(event watch.Event) (bool, error) {
@@ -53,7 +53,6 @@ func PodReady(podScheduledIndicator, phase chan string, since time.Time) func(ev
 					return false, nil
 				}
 
-				phase <- string(pod.Status.Phase)
 				if pod.Status.Phase == corev1.PodRunning && !informed {
 					informed = true
 					podScheduledIndicator <- pod.Name
@@ -61,7 +60,7 @@ func PodReady(podScheduledIndicator, phase chan string, since time.Time) func(ev
 				}
 
 				for _, cond := range pod.Status.ContainerStatuses {
-					if cond.Ready == false && cond.RestartCount > 0 {
+					if !cond.Ready && cond.RestartCount > 0 {
 						// pod was already restarted because of the problem, we restart botkube on permanent errors mostly, so let's stop watching
 						return true, errPodRestartedWithError
 					}

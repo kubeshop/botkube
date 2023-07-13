@@ -22,6 +22,8 @@ import (
 	"github.com/kubeshop/botkube/internal/kubex"
 )
 
+const messageInitialBufferSize = 100
+
 // Install installs Botkube Helm chart into cluster.
 func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opts Config) (err error) {
 	ctxWithTimeout, cancel := context.WithCancel(ctx)
@@ -77,12 +79,12 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	}
 
 	parallel, _ := errgroup.WithContext(ctxWithTimeout)
+
 	podScheduledIndicator := make(chan string)
-	podWaitErrors := make(chan error, 1)
-	podWaitPhase := make(chan string, 10)
+	podWaitResult := make(chan error, 1)
 	parallel.Go(func() error {
-		err := kubex.WaitForPod(ctxWithTimeout, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, kubex.PodReady(podScheduledIndicator, podWaitPhase, time.Now()))
-		podWaitErrors <- err
+		err := kubex.WaitForPod(ctxWithTimeout, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, kubex.PodReady(podScheduledIndicator, time.Now()))
+		podWaitResult <- err
 		return nil
 	})
 
@@ -109,7 +111,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return fmt.Errorf("Timed out waiting for Pod")
 	}
 
-	messages := make(chan []byte, opts.LogsScrollingHeight)
+	messages := make(chan []byte, messageInitialBufferSize)
 	streamLogCtx, cancelStreamLogs := context.WithCancel(context.Background())
 	defer cancelStreamLogs()
 	parallel.Go(func() error {
@@ -117,13 +119,12 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return logs.StartsLogsStreaming(streamLogCtx, clientset, opts.HelmParams.Namespace, podName, messages)
 	})
 
-	logsPrinter := logs.NewFixedHeightPrinter(
-		opts.LogsScrollingHeight,
+	logsPrinter := logs.NewPrinter(
 		podName,
 	)
 
 	parallel.Go(func() error {
-		logsPrinter.Start(ctxWithTimeout)
+		logsPrinter.Start(ctxWithTimeout, status)
 		return nil
 	})
 	parallel.Go(func() error {
@@ -131,7 +132,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 			select {
 			case <-ctxWithTimeout.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
 				return ctxWithTimeout.Err()
-			case err := <-podWaitErrors:
+			case err := <-podWaitResult:
 				time.Sleep(time.Second)
 				cancelStreamLogs()
 				return err
@@ -144,8 +145,6 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 			select {
 			case <-ctxWithTimeout.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
 				return ctxWithTimeout.Err()
-			case ph := <-podWaitPhase:
-				logsPrinter.UpdatePodPhase(ph)
 			case entry, ok := <-messages:
 				if !ok {
 					logsPrinter.Stop()
@@ -158,7 +157,10 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 
 	err = parallel.Wait()
 	if err != nil {
-		printFailedInstallMessage(opts.HelmParams.Version, opts.HelmParams.Namespace, podName, w)
+		printErr := printFailedInstallMessage(opts.HelmParams.Version, opts.HelmParams.Namespace, podName, w)
+		if printErr != nil {
+			return fmt.Errorf("%s: %v", printErr, err)
+		}
 		return err
 	}
 

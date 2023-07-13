@@ -45,13 +45,16 @@ func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
 // Install installs a given Helm chart.
 func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts Config) (*release.Release, error) {
 	histClient := action.NewHistory(c.helmCfg)
-	//histClient.Max = 1
 	rels, err := histClient.Run(opts.ReleaseName)
 	var runFn Run
 	switch {
 	case err == nil:
-		if err := PrintReleaseStatus("Detected existing Botkube installation:", status, rels[len(rels)-1]); err != nil {
-			return nil, err
+		if len(rels) > 0 { // it shouldn't happen, because there is not found error in such cases, however it better to be on the safe side.
+			if err := PrintReleaseStatus("Detected existing Botkube installation:", status, rels[len(rels)-1]); err != nil {
+				return nil, err
+			}
+		} else {
+			status.Infof("Detected existing Botkube installation")
 		}
 
 		prompt := &survey.Confirm{

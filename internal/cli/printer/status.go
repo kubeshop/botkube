@@ -50,13 +50,13 @@ func NewStatus(w io.Writer, header string) *StatusPrinter {
 	st := &StatusPrinter{
 		w: w,
 	}
-	//if cli.IsSmartTerminal(w) {
-	st.durationSprintf = color.New(color.Faint, color.Italic).Sprintf
-	st.spinner = NewDynamicSpinner(w)
-	//} else {
-	//	st.durationSprintf = fmt.Sprintf
-	//	st.spinner = NewStaticSpinner(w)
-	//}
+	if cli.IsSmartTerminal(w) {
+		st.durationSprintf = color.New(color.Faint, color.Italic).Sprintf
+		st.spinner = NewDynamicSpinner(w)
+	} else {
+		st.durationSprintf = fmt.Sprintf
+		st.spinner = NewStaticSpinner(w)
+	}
 
 	return st
 }

@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.122
 	github.com/briandowns/spinner v1.23.0
 	github.com/bwmarrin/discordgo v0.25.0
+	github.com/charmbracelet/log v0.2.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/locales v0.14.0
@@ -34,6 +35,7 @@ require (
 	github.com/mattermost/mattermost-server/v6 v6.7.2
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/morikuni/aec v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
@@ -95,7 +97,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/charmbracelet/lipgloss v0.7.1 // indirect
-	github.com/charmbracelet/log v0.2.2 // indirect
 	github.com/containerd/containerd v1.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -194,7 +195,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/run v1.1.0 // indirect

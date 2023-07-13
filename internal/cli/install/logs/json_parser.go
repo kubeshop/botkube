@@ -12,33 +12,19 @@ import (
 	"github.com/kubeshop/botkube/internal/cli"
 )
 
+// JSONParser knows how to parse JSON formatted logs.
 type JSONParser struct{}
 
-func (p *JSONParser) ParseLine(line string) map[string]any {
-	var out map[string]any
-	err := json.Unmarshal([]byte(line), &out)
-	if err != nil {
-		return nil
-	}
-	return out
-}
-
 // ParseLineIntoCharm returns parsed log line with charm logger support.
-func (k *JSONParser) ParseLineIntoCharm(line string) ([]any, charmlog.Level) {
-	result := k.ParseLine(line)
+func (j *JSONParser) ParseLineIntoCharm(line string) ([]any, charmlog.Level) {
+	result := j.parseLine(line)
 	if result == nil {
 		return nil, 0
 	}
 
 	var fields []any
 
-	//if k.ReportTimestamp {
-	//	parseAny, _ := dateparse.ParseAny(result["time"])
-	//	fields = append(fields, charmlog.TimestampKey, parseAny)
-	//}
-
 	lvl := charmlog.ParseLevel(fmt.Sprint(result["level"]))
-	// todo, check and ignore debug
 	fields = append(fields, charmlog.LevelKey, lvl)
 	fields = append(fields, charmlog.MessageKey, result["msg"])
 
@@ -57,4 +43,13 @@ func (k *JSONParser) ParseLineIntoCharm(line string) ([]any, charmlog.Level) {
 	}
 
 	return fields, lvl
+}
+
+func (*JSONParser) parseLine(line string) map[string]any {
+	var out map[string]any
+	err := json.Unmarshal([]byte(line), &out)
+	if err != nil {
+		return nil
+	}
+	return out
 }

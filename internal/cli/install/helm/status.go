@@ -30,14 +30,20 @@ func PrintReleaseStatus(header string, status *printer.StatusPrinter, r *release
 
 	properties := make(map[string]string)
 	properties["Name"] = r.Name
-	if !r.Info.LastDeployed.IsZero() {
-		properties["LastDeployed"] = r.Info.LastDeployed.Format(time.ANSIC)
-	}
 	properties["Namespace"] = r.Namespace
-	properties["Status"] = r.Info.Status.String()
-	properties["Version"] = r.Chart.AppVersion()
 	properties["Revision"] = fmt.Sprintf("%d", r.Version)
-	properties["Description"] = r.Info.Description
+
+	if r.Info != nil {
+		if !r.Info.LastDeployed.IsZero() {
+			properties["LastDeployed"] = r.Info.LastDeployed.Format(time.ANSIC)
+		}
+		properties["Status"] = r.Info.Status.String()
+		properties["Description"] = r.Info.Description
+	}
+
+	if r.Chart != nil {
+		properties["Version"] = r.Chart.AppVersion()
+	}
 
 	desc, err := renderer.Render(properties, true)
 	if err != nil {

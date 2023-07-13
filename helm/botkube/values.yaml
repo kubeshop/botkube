@@ -828,8 +828,10 @@ settings:
   log:
     # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
     level: info
-    # -- If true, disable ANSI colors in logging.
+    # -- If true, disable ANSI colors in logging. Ignored when `json` formatter is used.
     disableColors: false
+    # -- Configures log format. Allowed values: `text`, `json`.
+    formatter: json
 
   # -- Botkube's system ConfigMap where internal data is stored.
   systemConfigMap:
