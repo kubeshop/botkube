@@ -828,8 +828,10 @@ settings:
   log:
     # -- Sets one of the log levels. Allowed values: `info`, `warn`, `debug`, `error`, `fatal`, `panic`.
     level: info
-    # -- If true, disable ANSI colors in logging.
+    # -- If true, disable ANSI colors in logging. Ignored when `json` formatter is used.
     disableColors: false
+    # -- Configures log format. Allowed values: `text`, `json`.
+    formatter: json
 
   # -- Botkube's system ConfigMap where internal data is stored.
   systemConfigMap:
@@ -898,11 +900,11 @@ deployment:
     # -- The liveness probe initial delay seconds.
     initialDelaySeconds: 1
     # -- The liveness probe period seconds.
-    periodSeconds: 15
+    periodSeconds: 2
     # -- The liveness probe timeout seconds.
     timeoutSeconds: 1
     # -- The liveness probe failure threshold.
-    failureThreshold: 5
+    failureThreshold: 35
     # -- The liveness probe success threshold.
     successThreshold: 1
 
@@ -911,11 +913,11 @@ deployment:
     # -- The readiness probe initial delay seconds.
     initialDelaySeconds: 1
     # -- The readiness probe period seconds.
-    periodSeconds: 15
+    periodSeconds: 2
     # -- The readiness probe timeout seconds.
     timeoutSeconds: 1
     # -- The readiness probe failure threshold.
-    failureThreshold: 5
+    failureThreshold: 35
     # -- The readiness probe success threshold.
     successThreshold: 1
 

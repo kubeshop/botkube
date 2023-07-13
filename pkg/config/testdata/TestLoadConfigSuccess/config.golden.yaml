@@ -156,6 +156,7 @@ settings:
     log:
         level: error
         disableColors: false
+        formatter: ""
     informersResyncPeriod: 30m0s
     kubeconfig: kubeconfig-from-env
     saCredentialsPathPrefix: ""

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -20,6 +20,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
@@ -45,13 +46,20 @@ func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
 // Install installs a given Helm chart.
 func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts Config) (*release.Release, error) {
 	histClient := action.NewHistory(c.helmCfg)
-	histClient.Max = 1
-	_, err := histClient.Run(opts.ReleaseName)
+	rels, err := histClient.Run(opts.ReleaseName)
 	var runFn Run
 	switch {
 	case err == nil:
+		if len(rels) > 0 { // it shouldn't happen, because there is not found error in such cases, however it better to be on the safe side.
+			if err := PrintReleaseStatus("Detected existing Botkube installation:", status, rels[len(rels)-1]); err != nil {
+				return nil, err
+			}
+		} else {
+			status.Infof("Detected existing Botkube installation")
+		}
+
 		prompt := &survey.Confirm{
-			Message: "Detected existing Botkube installation. Do you want to upgrade it?",
+			Message: "Do you want to upgrade existing installation?",
 			Default: true,
 		}
 
@@ -86,11 +94,12 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 		return nil, err
 	}
 
-	status.Step("Installing %s Helm chart", opts.ChartName)
+	status.Step("Scheduling %s Helm chart", opts.ChartName)
+	status.End(true)
 	//  We may run into in issue temporary network issues.
 	var rel *release.Release
 	err = retry.Do(func() error {
-		rel, err = runFn(ctx, opts.ReleaseName, loadedChart, vals) // fixme values
+		rel, err = runFn(ctx, opts.ReleaseName, loadedChart, vals)
 		return err
 	}, retry.Attempts(3), retry.Delay(time.Second))
 	if err != nil {
@@ -108,7 +117,8 @@ func (c *Helm) getChart(repoLocation string, chartName string, version string) (
 	}
 
 	if isLocalDir(repoLocation) {
-		location = path.Join(repoLocation, chartName)
+		repoLocation = strings.TrimSuffix(repoLocation, "/")
+		location = fmt.Sprintf("%s/%s", repoLocation, chartName)
 		chartOptions.RepoURL = ""
 	}
 
@@ -132,9 +142,8 @@ func (c *Helm) installAction(opts Config) Run {
 
 	installCli.Namespace = opts.Namespace
 	installCli.SkipCRDs = opts.SkipCRDs
-	installCli.Timeout = opts.Timeout
-	installCli.Wait = opts.Wait
-	installCli.WaitForJobs = opts.WaitForJobs
+	installCli.Wait = false // botkube CLI has a custom logic to do that
+	installCli.WaitForJobs = false
 	installCli.DisableHooks = opts.DisableHooks
 	installCli.DryRun = opts.DryRun
 	installCli.Force = opts.Force
@@ -156,9 +165,8 @@ func (c *Helm) upgradeAction(opts Config) Run {
 
 	upgradeAction.Namespace = opts.Namespace
 	upgradeAction.SkipCRDs = opts.SkipCRDs
-	upgradeAction.Timeout = opts.Timeout
-	upgradeAction.Wait = opts.Wait
-	upgradeAction.WaitForJobs = opts.WaitForJobs
+	upgradeAction.Wait = false // botkube CLI has a custom logic to do that
+	upgradeAction.WaitForJobs = false
 	upgradeAction.DisableHooks = opts.DisableHooks
 	upgradeAction.DryRun = opts.DryRun
 	upgradeAction.Force = opts.Force
@@ -186,7 +194,11 @@ func getConfiguration(k8sCfg *rest.Config, forNamespace string) (*action.Configu
 	}
 
 	debugLog := func(format string, v ...interface{}) {
-		// noop
+		if cli.VerboseMode.IsTracing() {
+			fmt.Print("    Helm log: ") // if enabled, we need to nest that under Helm step which was already printed with 2 spaces.
+			fmt.Printf(format, v...)
+			fmt.Println()
+		}
 	}
 
 	err := actionConfig.Init(helmCfg, forNamespace, helmDriver, debugLog)
