@@ -122,7 +122,7 @@ func TestBotkubeMigration(t *testing.T) {
 		cmd := exec.Command(appCfg.BotkubeBinaryPath, "migrate",
 			"--auto-upgrade",
 			"--skip-open-browser",
-			"--debug",
+			"--verbose",
 			fmt.Sprintf("--token=%s", token),
 			fmt.Sprintf("--cloud-api-url=%s", appCfg.BotkubeCloudDevGQLEndpoint),
 			fmt.Sprintf("--instance-name=%s", appCfg.DeploymentName))
