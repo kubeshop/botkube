@@ -57,7 +57,12 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		opts.HelmParams.Version = ver
 	}
 
-	if err = printInstallationDetails(k8sCfg, opts, status); err != nil {
+	err = status.InfoStructFields("Installation details:", installDetails{
+		Version:  opts.HelmParams.Version,
+		HelmRepo: opts.HelmParams.RepoLocation,
+		K8sCtx:   k8sCfg.CurrentContext,
+	})
+	if err != nil {
 		return err
 	}
 
@@ -91,6 +96,10 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	rel, err := helmInstaller.Install(ctxWithTimeout, status, opts.HelmParams)
 	if err != nil {
 		return err
+	}
+
+	if opts.HelmParams.DryRun {
+		return printSuccessInstallMessage(opts.HelmParams.Version, w)
 	}
 
 	if !opts.Watch {
@@ -231,35 +240,11 @@ func printFailedInstallMessage(version string, namespace string, name string, w 
 	return nil
 }
 
-var infoFieldsGoTpl = `{{ AdjustKeyWidth . }}
-  {{- range $item := (. | Extra) }}
-  {{ $item.Key | Key   }}    {{ $item.Value | Val }}
-  {{- end}}
-
-`
-
-type Custom struct {
+type installDetails struct {
 	// Fields are printed in the same order as defined in struct.
 	Version  string `pretty:"Version"`
 	HelmRepo string `pretty:"Helm repository"`
 	K8sCtx   string `pretty:"Kubernetes Context"`
-}
-
-func printInstallationDetails(cfg *kubex.ConfigWithMeta, opts Config, status *printer.StatusPrinter) error {
-	renderer := style.NewGoTemplateRender(style.DefaultConfig(infoFieldsGoTpl))
-
-	out, err := renderer.Render(Custom{
-		Version:  opts.HelmParams.Version,
-		HelmRepo: opts.HelmParams.RepoLocation,
-		K8sCtx:   cfg.CurrentContext,
-	}, cli.IsSmartTerminal(status.Writer()))
-	if err != nil {
-		return err
-	}
-
-	status.InfoWithBody("Installation details:", indent.String(out, 4))
-
-	return nil
 }
 
 // ensureNamespaceCreated creates a k8s namespaces. If it already exists it does nothing.

@@ -19,9 +19,10 @@ func NewInstall() *cobra.Command {
 	var opts install.Config
 
 	installCmd := &cobra.Command{
-		Use:   "install [OPTIONS]",
-		Short: "install Botkube into cluster",
-		Long:  "Use this command to install the Botkube agent.",
+		Use:     "install [OPTIONS]",
+		Short:   "install Botkube into cluster",
+		Long:    "Use this command to install the Botkube agent.",
+		Aliases: []string{"instl", "deploy"},
 		Example: heredoc.WithCLIName(`
 			# Install latest stable Botkube version
 			<cli> install

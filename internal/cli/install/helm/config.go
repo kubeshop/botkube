@@ -4,10 +4,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli/values"
 )
 
-const (
-	repositoryCache = "/tmp/helm"
-	helmDriver      = "secrets"
-)
+const repositoryCache = "/tmp/helm"
 
 // Config holds Helm configuration parameters.
 type Config struct {

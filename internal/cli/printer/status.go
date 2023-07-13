@@ -8,6 +8,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/morikuni/aec"
+	"github.com/muesli/reflow/indent"
+	"go.szostok.io/version/style"
 	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -131,4 +133,25 @@ func (s *StatusPrinter) InfoWithBody(header, body string) {
 
 	fmt.Fprint(s.w, aec.Column(0))
 	fmt.Fprintf(s.w, " • %s\n%s", header, body)
+}
+
+var allFieldsGoTpl = `{{ AdjustKeyWidth . }}
+  {{- range $item := (. | Extra) }}
+  {{ $item.Key | Key   }}    {{ $item.Value | Val }}
+  {{- end}}
+
+`
+
+// InfoStructFields prints a given struct with key-value layout.
+func (s *StatusPrinter) InfoStructFields(header string, data any) error {
+	renderer := style.NewGoTemplateRender(style.DefaultConfig(allFieldsGoTpl))
+
+	out, err := renderer.Render(data, cli.IsSmartTerminal(s.Writer()))
+	if err != nil {
+		return err
+	}
+
+	s.InfoWithBody(header, indent.String(out, 4))
+
+	return nil
 }

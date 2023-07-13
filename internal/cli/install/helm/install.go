@@ -17,13 +17,11 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
-	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/helmx"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
-	"github.com/kubeshop/botkube/internal/ptr"
 )
 
 // Run provides single function signature both for install and upgrade.
@@ -36,7 +34,7 @@ type Helm struct {
 
 // NewHelm returns a new Helm instance.
 func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
-	configuration, err := getConfiguration(k8sCfg, forNamespace)
+	configuration, err := helmx.GetActionConfiguration(k8sCfg, forNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -181,32 +179,6 @@ func (c *Helm) upgradeAction(opts Config) Run {
 	return func(ctx context.Context, relName string, chart *chart.Chart, vals map[string]any) (*release.Release, error) {
 		return upgradeAction.RunWithContext(ctx, relName, chart, vals)
 	}
-}
-
-func getConfiguration(k8sCfg *rest.Config, forNamespace string) (*action.Configuration, error) {
-	actionConfig := new(action.Configuration)
-	helmCfg := &genericclioptions.ConfigFlags{
-		APIServer:   &k8sCfg.Host,
-		Insecure:    &k8sCfg.Insecure,
-		CAFile:      &k8sCfg.CAFile,
-		BearerToken: &k8sCfg.BearerToken,
-		Namespace:   ptr.FromType(forNamespace),
-	}
-
-	debugLog := func(format string, v ...interface{}) {
-		if cli.VerboseMode.IsTracing() {
-			fmt.Print("    Helm log: ") // if enabled, we need to nest that under Helm step which was already printed with 2 spaces.
-			fmt.Printf(format, v...)
-			fmt.Println()
-		}
-	}
-
-	err := actionConfig.Init(helmCfg, forNamespace, helmDriver, debugLog)
-	if err != nil {
-		return nil, fmt.Errorf("while initializing Helm configuration: %v", err)
-	}
-
-	return actionConfig, nil
 }
 
 func isLocalDir(in string) bool {
