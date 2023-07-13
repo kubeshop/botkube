@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/morikuni/aec"
 	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -105,6 +106,7 @@ func (s *StatusPrinter) Infof(format string, a ...interface{}) {
 	// Ensure that previously started step is finished. Without that we will mess up our output.
 	s.End(true)
 
+	fmt.Fprint(s.w, aec.Column(0))
 	fmt.Fprintf(s.w, " • %s\n", fmt.Sprintf(format, a...))
 }
 
@@ -118,6 +120,7 @@ func (s *StatusPrinter) Debugf(format string, a ...interface{}) {
 	// Ensure that previously started step is finished. Without that we will mess up our output.
 	s.End(true)
 
+	fmt.Fprint(s.w, aec.Column(0))
 	fmt.Fprintf(s.w, " • %s\n", fmt.Sprintf(format, a...))
 }
 
@@ -126,5 +129,6 @@ func (s *StatusPrinter) InfoWithBody(header, body string) {
 	// Ensure that previously started step is finished. Without that we will mess up our output.
 	s.End(true)
 
+	fmt.Fprint(s.w, aec.Column(0))
 	fmt.Fprintf(s.w, " • %s\n%s", header, body)
 }

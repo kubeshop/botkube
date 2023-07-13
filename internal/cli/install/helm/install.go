@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -20,6 +20,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
@@ -116,7 +117,8 @@ func (c *Helm) getChart(repoLocation string, chartName string, version string) (
 	}
 
 	if isLocalDir(repoLocation) {
-		location = path.Join(repoLocation, chartName)
+		repoLocation = strings.TrimSuffix(repoLocation, "/")
+		location = fmt.Sprintf("%s/%s", repoLocation, chartName)
 		chartOptions.RepoURL = ""
 	}
 
@@ -192,7 +194,11 @@ func getConfiguration(k8sCfg *rest.Config, forNamespace string) (*action.Configu
 	}
 
 	debugLog := func(format string, v ...interface{}) {
-		// noop
+		if cli.VerboseMode.IsTracing() {
+			fmt.Print("    Helm log: ") // if enabled, we need to nest that under Helm step which was already printed with 2 spaces.
+			fmt.Printf(format, v...)
+			fmt.Println()
+		}
 	}
 
 	err := actionConfig.Init(helmCfg, forNamespace, helmDriver, debugLog)

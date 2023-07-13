@@ -54,7 +54,7 @@ func NewInstall() *cobra.Command {
 	flags.StringVar(&opts.HelmParams.Version, "version", install.LatestVersionTag, "Botkube version. Possible values @latest, 1.2.0, ...")
 	flags.StringVar(&opts.HelmParams.Namespace, "namespace", install.Namespace, "Botkube installation namespace.")
 	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", install.ReleaseName, "Botkube Helm chart release name.")
-	flags.StringVar(&opts.HelmParams.ChartName, "chart-name", "botkube", "Botkube Helm chart name.")
+	flags.StringVar(&opts.HelmParams.ChartName, "chart-name", install.HelmChartName, "Botkube Helm chart name.")
 	flags.StringVar(&opts.HelmParams.RepoLocation, "repo", install.HelmRepoStable, fmt.Sprintf("Botkube Helm chart repository location. It can be relative path to current working directory or URL. Use %s tag to select repository which holds the stable Helm chart versions.", install.StableVersionTag))
 	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "Simulate an install")
 	flags.BoolVar(&opts.HelmParams.Force, "force", false, "Force resource updates through a replacement strategy")

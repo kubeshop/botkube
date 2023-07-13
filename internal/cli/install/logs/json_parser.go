@@ -32,7 +32,7 @@ func (j *JSONParser) ParseLineIntoCharm(line string) ([]any, charmlog.Level) {
 	sort.Strings(keys)
 	for _, k := range keys {
 		switch k {
-		case "level", "msg", "time": // already process
+		case "level", "msg", "time": // already processed
 			continue
 		case "component", "url":
 			if !cli.VerboseMode.IsEnabled() {

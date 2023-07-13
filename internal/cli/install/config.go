@@ -19,8 +19,10 @@ const (
 	ReleaseName = "botkube"
 	// HelmRepoStable URL of the stable Botkube Helm charts repository.
 	HelmRepoStable = "https://charts.botkube.io/"
+	// HelmChartName represents Botkube Helm chart name in a given Helm repository.
+	HelmChartName = "botkube"
 	// LocalChartsPath path to Helm charts in botkube repository.
-	LocalChartsPath = "./helm/botkube/"
+	LocalChartsPath = "./helm/"
 )
 
 // Config holds parameters for Botkube installation on cluster.

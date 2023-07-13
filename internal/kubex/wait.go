@@ -37,7 +37,7 @@ var (
 	errPodRestartedWithError = errors.New("pod restarted with non zero exit code")
 )
 
-// PodReady returns true if the Pod is read.
+// PodReady returns true if the Pod is ready.
 func PodReady(podScheduledIndicator chan string, since time.Time) func(event watch.Event) (bool, error) {
 	informed := false
 	sinceK8sTime := metav1.NewTime(since)

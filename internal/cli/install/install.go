@@ -78,16 +78,16 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return err
 	}
 
+	timeBeforeInstall := time.Now()
 	parallel, _ := errgroup.WithContext(ctxWithTimeout)
 
 	podScheduledIndicator := make(chan string)
 	podWaitResult := make(chan error, 1)
 	parallel.Go(func() error {
-		err := kubex.WaitForPod(ctxWithTimeout, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, kubex.PodReady(podScheduledIndicator, time.Now()))
+		err := kubex.WaitForPod(ctxWithTimeout, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, kubex.PodReady(podScheduledIndicator, timeBeforeInstall))
 		podWaitResult <- err
 		return nil
 	})
-
 	rel, err := helmInstaller.Install(ctxWithTimeout, status, opts.HelmParams)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	select {
 	case podName = <-podScheduledIndicator:
 		status.End(true)
-	case <-time.After(opts.Timeout):
+	case <-ctxWithTimeout.Done():
 		return fmt.Errorf("Timed out waiting for Pod")
 	}
 
@@ -124,10 +124,6 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	)
 
 	parallel.Go(func() error {
-		logsPrinter.Start(ctxWithTimeout, status)
-		return nil
-	})
-	parallel.Go(func() error {
 		for {
 			select {
 			case <-ctxWithTimeout.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
@@ -140,6 +136,8 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		}
 	})
 
+	status.InfoWithBody("Streaming logs...", indent.String(fmt.Sprintf("Pod: %s\n", podName), 4))
+
 	parallel.Go(func() error {
 		for {
 			select {
@@ -147,10 +145,10 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 				return ctxWithTimeout.Err()
 			case entry, ok := <-messages:
 				if !ok {
-					logsPrinter.Stop()
+					status.Infof("Finished logs streaming")
 					return nil
 				}
-				logsPrinter.AppendLogEntry(string(entry))
+				logsPrinter.PrintLine(string(entry))
 			}
 		}
 	})
@@ -204,8 +202,9 @@ var failedInstallGoTpl = `
   │
   │   kubectl logs -n {{ .Namespace }} pod/{{ .PodName }}
 
-  │ To receive assistance, please join our Slack community at {{ .SlackURL  | Underline | Blue }}. 
-  │ We'll be glad to help you get Botkube up and running!
+  │ To resolve the issue, see Botkube documentation on {{ .DocsURL | Underline | Blue }}.
+  | If that doesn't help, join our Slack community at {{ .SlackURL  | Underline | Blue }}. 
+  │ We'll be glad to get your Botkube up and running!
 `
 
 func printFailedInstallMessage(version string, namespace string, name string, w io.Writer) error {
@@ -213,6 +212,7 @@ func printFailedInstallMessage(version string, namespace string, name string, w 
 
 	props := map[string]string{
 		"SlackURL":  "https://join.botkube.io",
+		"DocsURL":   "https://docs.botkube.io",
 		"Version":   version,
 		"Namespace": namespace,
 		"PodName":   name,
