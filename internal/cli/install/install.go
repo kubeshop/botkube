@@ -6,10 +6,10 @@ import (
 	"io"
 	"time"
 
+	"github.com/morikuni/aec"
 	"github.com/muesli/reflow/indent"
 	"go.szostok.io/version/style"
 	"golang.org/x/sync/errgroup"
-	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +27,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	status := printer.NewStatus(w, "Installing Botkube on cluster...")
 	defer func() {
 		status.End(err == nil)
+		fmt.Println(aec.Show)
 	}()
 
 	switch opts.HelmParams.RepoLocation {
@@ -69,50 +70,79 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return err
 	}
 
-	logsPrinter := logs.NewFixedHeightPrinter(
-		opts.LogsScrollingHeight,
-		logs.NewKVParser(opts.LogsReportTimestamp),
-	)
-
-	installCompleted := make(chan struct{})
-	parallel, ctx := errgroup.WithContext(ctx)
-	var rel *release.Release
+	parallel, _ := errgroup.WithContext(ctx)
+	podScheduledIndicator := make(chan string)
+	podWaitErrors := make(chan error, 1)
+	podWaitPhase := make(chan string, 10)
 	parallel.Go(func() error {
-		defer close(installCompleted)
-
-		rel, err = helmInstaller.Install(ctx, status, opts.HelmParams)
-		if err != nil {
-			return err
-		}
-
+		err := helm.WaitForBotkubePod(ctx, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, helm.PodReady(podScheduledIndicator, podWaitPhase, time.Now()), opts.HelmParams.Timeout)
+		podWaitErrors <- err
 		return nil
 	})
 
+	rel, err := helmInstaller.Install(ctx, status, opts.HelmParams)
+	if err != nil {
+		return err
+	}
+
+	status.Step("Waiting until Botkube Pod is running")
+	var podName string
+	select {
+	case podName = <-podScheduledIndicator:
+		status.End(true)
+	case <-time.After(opts.HelmParams.Timeout):
+		return fmt.Errorf("Timed out waiting for Pod")
+	}
+
 	messages := make(chan []byte, opts.LogsScrollingHeight)
+	streamLogCtx, cancelStreamLogs := context.WithCancel(context.Background())
+	defer cancelStreamLogs()
 	parallel.Go(func() error {
-		time.Sleep(2 * time.Second)
 		defer close(messages)
-		return logs.DefaultConsumeRequest(ctx, clientset, opts.HelmParams.Namespace, opts.HelmParams.ReleaseName, messages, installCompleted)
+		return logs.DefaultConsumeRequest(streamLogCtx, clientset, opts.HelmParams.Namespace, podName, messages)
+	})
+
+	logsPrinter := logs.NewFixedHeightPrinter(
+		opts.LogsScrollingHeight,
+		logs.NewKVParser(opts.LogsReportTimestamp),
+		podName,
+	)
+
+	parallel.Go(func() error {
+		logsPrinter.Start(ctx)
+		return nil
 	})
 	parallel.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
-				return nil
-			//case <-installCompleted:
-			//	return nil
+				return ctx.Err()
+			case err := <-podWaitErrors:
+				time.Sleep(time.Second)
+				cancelStreamLogs()
+				return err
+			}
+		}
+	})
+
+	parallel.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done(): // it's canceled on OS signals or if function passed to 'Go' method returns a non-nil error
+				return ctx.Err()
+			case ph := <-podWaitPhase:
+				logsPrinter.UpdatePodPhase(ph)
 			case entry, ok := <-messages:
 				if !ok {
+					logsPrinter.Stop()
 					return nil
 				}
-				logsPrinter.Print(string(entry))
+				logsPrinter.AppendLogEntry(string(entry))
 			}
 		}
 	})
 
 	err = parallel.Wait()
-	status.End(err == nil)
-
 	if err != nil {
 		return err
 	}
@@ -126,7 +156,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 
 var successInstallGoTpl = `
 
-  │ Botkube {{ .Version | Bold }} installed successfully!
+  │ Botkube {{ .Version | Bold }} installed successfully! 🚀
   │ To read more how to use CLI, check out the documentation on {{ .DocsURL  | Underline | Blue }}
 `
 

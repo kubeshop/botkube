@@ -134,7 +134,7 @@ func (c *Helm) installAction(opts Config) Run {
 	installCli.Namespace = opts.Namespace
 	installCli.SkipCRDs = opts.SkipCRDs
 	installCli.Timeout = opts.Timeout
-	installCli.Wait = opts.Wait
+	//installCli.Wait = opts.Wait
 	installCli.WaitForJobs = opts.WaitForJobs
 	installCli.DisableHooks = opts.DisableHooks
 	installCli.DryRun = opts.DryRun
@@ -158,7 +158,7 @@ func (c *Helm) upgradeAction(opts Config) Run {
 	upgradeAction.Namespace = opts.Namespace
 	upgradeAction.SkipCRDs = opts.SkipCRDs
 	upgradeAction.Timeout = opts.Timeout
-	upgradeAction.Wait = opts.Wait
+	//upgradeAction.Wait = opts.Wait
 	upgradeAction.WaitForJobs = opts.WaitForJobs
 	upgradeAction.DisableHooks = opts.DisableHooks
 	upgradeAction.DryRun = opts.DryRun

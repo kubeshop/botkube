@@ -43,6 +43,6 @@ func PrintReleaseStatus(status *printer.StatusPrinter, r *release.Release) error
 		return err
 	}
 
-	status.InfoWithBody("Release details:", indent.String(desc, 4))
+	status.InfoWithBody("Release details:", indent.String(desc, 2))
 	return nil
 }

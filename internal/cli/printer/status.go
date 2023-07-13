@@ -3,6 +3,7 @@ package printer
 import (
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -36,6 +37,8 @@ type StatusPrinter struct {
 
 	timeStarted time.Time
 	stage       string
+
+	sync.Mutex
 }
 
 // NewStatus returns a new Status instance.
@@ -47,13 +50,13 @@ func NewStatus(w io.Writer, header string) *StatusPrinter {
 	st := &StatusPrinter{
 		w: w,
 	}
-	if cli.IsSmartTerminal(w) {
-		st.durationSprintf = color.New(color.Faint, color.Italic).Sprintf
-		st.spinner = NewDynamicSpinner(w)
-	} else {
-		st.durationSprintf = fmt.Sprintf
-		st.spinner = NewStaticSpinner(w)
-	}
+	//if cli.IsSmartTerminal(w) {
+	st.durationSprintf = color.New(color.Faint, color.Italic).Sprintf
+	st.spinner = NewDynamicSpinner(w)
+	//} else {
+	//	st.durationSprintf = fmt.Sprintf
+	//	st.spinner = NewStaticSpinner(w)
+	//}
 
 	return st
 }
@@ -73,6 +76,8 @@ func (s *StatusPrinter) Step(stageFmt string, args ...interface{}) {
 
 // End marks started step as completed.
 func (s *StatusPrinter) End(success bool) {
+	s.Lock()
+	defer s.Unlock()
 	if !s.spinner.Active() {
 		return
 	}

@@ -62,7 +62,7 @@ func NewInstall() *cobra.Command {
 	flags.BoolVar(&opts.HelmParams.DisableOpenAPIValidation, "disable-openapi-validation", false, "If set, it will not validate rendered templates against the Kubernetes OpenAPI Schema")
 	flags.BoolVar(&opts.HelmParams.SkipCRDs, "skip-crds", false, "If set, no CRDs will be installed.")
 	flags.DurationVar(&opts.HelmParams.Timeout, "timeout", 5*time.Minute, "time to wait for any individual Kubernetes operation (like Jobs for hooks)")
-	flags.BoolVar(&opts.HelmParams.Wait, "wait", true, "If set, will wait until all Pods, PVCs, Services, and minimum number of Pods of a Deployment, StatefulSet, or ReplicaSet are in a ready state before marking the release as successful. It will wait for as long as --timeout")
+	flags.BoolVar(&opts.HelmParams.Wait, "wait", false, "If set, will wait until all Pods, PVCs, Services, and minimum number of Pods of a Deployment, StatefulSet, or ReplicaSet are in a ready state before marking the release as successful. It will wait for as long as --timeout")
 	flags.BoolVar(&opts.HelmParams.WaitForJobs, "wait-for-jobs", true, "If set and --wait enabled, will wait until all Jobs have been completed before marking the release as successful. It will wait for as long as --timeout")
 	flags.BoolVar(&opts.HelmParams.Atomic, "atomic", false, "If set, process rolls back changes made in case of failed install/upgrade. The --wait flag will be set automatically if --atomic is used")
 	flags.BoolVar(&opts.HelmParams.SubNotes, "render-subchart-notes", false, "If set, render subchart notes along with the parent")
