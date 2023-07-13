@@ -1,8 +1,6 @@
 package helm
 
 import (
-	"time"
-
 	"helm.sh/helm/v3/pkg/cli/values"
 )
 
@@ -20,9 +18,6 @@ type Config struct {
 
 	Namespace                string
 	SkipCRDs                 bool
-	Timeout                  time.Duration
-	Wait                     bool
-	WaitForJobs              bool
 	DisableHooks             bool
 	DryRun                   bool
 	Force                    bool

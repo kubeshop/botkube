@@ -16,15 +16,15 @@ const (
 	containerName = "botkube"
 )
 
-// DefaultConsumeRequest reads the data from request and writes into
-// the out writer. It buffers data from requests until the newline or io.EOF
+// StartsLogsStreaming reads the data from request and writes into
+// the out channel. It buffers data from requests until the newline or io.EOF
 // occurs in the data, so it doesn't interleave logs sub-line
 // when running concurrently.
 //
 // A successful read returns err == nil, not err == io.EOF.
 // Because the function is defined to read from request until io.EOF, it does
 // not treat an io.EOF as an error to be reported.
-func DefaultConsumeRequest(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string, out chan<- []byte) error {
+func StartsLogsStreaming(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string, out chan<- []byte) error {
 	return retry.Do(func() error {
 		req := clientset.CoreV1().Pods(namespace).GetLogs(name, &v1.PodLogOptions{
 			Container:  containerName,

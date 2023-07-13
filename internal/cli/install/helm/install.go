@@ -45,13 +45,17 @@ func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
 // Install installs a given Helm chart.
 func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts Config) (*release.Release, error) {
 	histClient := action.NewHistory(c.helmCfg)
-	histClient.Max = 1
-	_, err := histClient.Run(opts.ReleaseName)
+	//histClient.Max = 1
+	rels, err := histClient.Run(opts.ReleaseName)
 	var runFn Run
 	switch {
 	case err == nil:
+		if err := PrintReleaseStatus("Detected existing Botkube installation:", status, rels[len(rels)-1]); err != nil {
+			return nil, err
+		}
+
 		prompt := &survey.Confirm{
-			Message: "Detected existing Botkube installation. Do you want to upgrade it?",
+			Message: "Do you want to upgrade existing installation?",
 			Default: true,
 		}
 
@@ -133,9 +137,8 @@ func (c *Helm) installAction(opts Config) Run {
 
 	installCli.Namespace = opts.Namespace
 	installCli.SkipCRDs = opts.SkipCRDs
-	installCli.Timeout = opts.Timeout
-	//installCli.Wait = opts.Wait
-	installCli.WaitForJobs = opts.WaitForJobs
+	installCli.Wait = false // botkube CLI has a custom logic to do that
+	installCli.WaitForJobs = false
 	installCli.DisableHooks = opts.DisableHooks
 	installCli.DryRun = opts.DryRun
 	installCli.Force = opts.Force
@@ -157,9 +160,8 @@ func (c *Helm) upgradeAction(opts Config) Run {
 
 	upgradeAction.Namespace = opts.Namespace
 	upgradeAction.SkipCRDs = opts.SkipCRDs
-	upgradeAction.Timeout = opts.Timeout
-	//upgradeAction.Wait = opts.Wait
-	upgradeAction.WaitForJobs = opts.WaitForJobs
+	upgradeAction.Wait = false // botkube CLI has a custom logic to do that
+	upgradeAction.WaitForJobs = false
 	upgradeAction.DisableHooks = opts.DisableHooks
 	upgradeAction.DryRun = opts.DryRun
 	upgradeAction.Force = opts.Force

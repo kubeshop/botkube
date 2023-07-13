@@ -14,14 +14,14 @@ import (
 var releaseGoTpl = `
   {{ Key "Name"           }}    {{ .Name                        | Val }}
   {{ Key "Namespace"      }}    {{ .Namespace                   | Val }}
+  {{ Key "Version"        }}    {{ .Version                     | Val }}
   {{ Key "Last Deployed"  }}    {{ .LastDeployed  | FmtDate     | Val }}
   {{ Key "Revision"       }}    {{ .Revision                    | Val }}
-  {{ Key "Description"    }}    {{ .Description                 | Val }}
 `
 
 // PrintReleaseStatus returns release description similar to what Helm does,
 // based on https://github.com/helm/helm/blob/f31d4fb3aacabf6102b3ec9214b3433a3dbf1812/cmd/helm/status.go#L126C1-L138C3
-func PrintReleaseStatus(status *printer.StatusPrinter, r *release.Release) error {
+func PrintReleaseStatus(header string, status *printer.StatusPrinter, r *release.Release) error {
 	if r == nil {
 		return nil
 	}
@@ -35,6 +35,7 @@ func PrintReleaseStatus(status *printer.StatusPrinter, r *release.Release) error
 	}
 	properties["Namespace"] = r.Namespace
 	properties["Status"] = r.Info.Status.String()
+	properties["Version"] = r.Chart.AppVersion()
 	properties["Revision"] = fmt.Sprintf("%d", r.Version)
 	properties["Description"] = r.Info.Description
 
@@ -43,6 +44,6 @@ func PrintReleaseStatus(status *printer.StatusPrinter, r *release.Release) error
 		return err
 	}
 
-	status.InfoWithBody("Release details:", indent.String(desc, 2))
+	status.InfoWithBody(header, indent.String(desc, 2))
 	return nil
 }

@@ -1,6 +1,8 @@
 package install
 
 import (
+	"time"
+
 	"github.com/kubeshop/botkube/internal/cli/install/helm"
 )
 
@@ -27,4 +29,6 @@ type Config struct {
 	HelmParams          helm.Config
 	LogsReportTimestamp bool
 	LogsScrollingHeight int
+	Watch               bool
+	Timeout             time.Duration
 }
