@@ -31,6 +31,7 @@ botkube install --repo @local
 
 ```
       --atomic                       If set, process rolls back changes made in case of failed install/upgrade. The --wait flag will be set automatically if --atomic is used
+  -y, --auto-approve                 Skips interactive approval when upgrade is required.
       --chart-name string            Botkube Helm chart name. (default "botkube")
       --dependency-update            Update dependencies if they are missing before installing the chart
       --description string           add a custom description

@@ -32,21 +32,26 @@ func Uninstall(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, o
 		return err
 	}
 
-	var confirm bool
-	prompt := &survey.Confirm{
-		Message: "Do you want to delete existing installation?",
-		Default: false,
-	}
+	switch opts.AutoApprove {
+	case true:
+		status.Infof("Uninstall process will proceed as auto-approval has been explicitly specified")
+	case false:
+		var confirm bool
+		prompt := &survey.Confirm{
+			Message: "Do you want to delete existing installation?",
+			Default: false,
+		}
 
-	questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
-	err = survey.AskOne(prompt, &confirm, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
-	if err != nil {
-		return fmt.Errorf("while confiriming confirm: %v", err)
-	}
+		questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
+		err = survey.AskOne(prompt, &confirm, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
+		if err != nil {
+			return fmt.Errorf("while confiriming confirm: %v", err)
+		}
 
-	if !confirm {
-		status.Infof("Botkube installation not deleted")
-		return nil
+		if !confirm {
+			status.Infof("Botkube installation not deleted")
+			return nil
+		}
 	}
 
 	uninstaller, err := helm.NewHelm(k8sCfg.K8s, opts.HelmParams.ReleaseNamespace)

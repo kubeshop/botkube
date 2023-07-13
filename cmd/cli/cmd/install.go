@@ -76,6 +76,7 @@ func NewInstall() *cobra.Command {
 	flags.StringArrayVar(&opts.HelmParams.Values.LiteralValues, "set-literal", []string{}, "Set a literal STRING value on the command line")
 
 	// upgrade only
+	flags.BoolVarP(&opts.HelmParams.AutoApprove, "auto-approve", "y", false, "Skips interactive approval when upgrade is required.")
 	flags.BoolVar(&opts.HelmParams.ReuseValues, "reuse-values", false, "When upgrading, reuse the last release's values and merge in any overrides from the command line via --set and -f. If '--reset-values' is specified, this is ignored")
 	flags.BoolVar(&opts.HelmParams.ResetValues, "reset-values", false, "When upgrading, reset the values to the ones built into the chart")
 

@@ -27,6 +27,7 @@ botkube uninstall --release-name botkube-dev
 ### Options
 
 ```
+  -y, --auto-approve          Skips interactive approval for deletion.
       --cascade string        Must be "background", "orphan", or "foreground". Selects the deletion cascading strategy for the dependents. Defaults to background. (default "background")
       --description string    add a custom description
       --dry-run               simulate a uninstall

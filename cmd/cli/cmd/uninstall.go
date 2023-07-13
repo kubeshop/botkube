@@ -48,6 +48,7 @@ func NewUninstall() *cobra.Command {
 
 	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", install.ReleaseName, "Botkube Helm release name.")
 	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", install.Namespace, "Botkube namespace.")
+	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for deletion.")
 
 	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "simulate a uninstall")
 	flags.BoolVar(&opts.HelmParams.DisableHooks, "no-hooks", false, "prevent hooks from running during uninstallation")

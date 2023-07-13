@@ -4,14 +4,13 @@ import (
 	"helm.sh/helm/v3/pkg/cli/values"
 )
 
-const repositoryCache = "/tmp/helm"
-
 // Config holds Helm configuration parameters.
 type Config struct {
 	ReleaseName  string
 	ChartName    string
 	Version      string
 	RepoLocation string
+	AutoApprove  bool
 
 	Namespace                string
 	SkipCRDs                 bool

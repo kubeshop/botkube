@@ -56,23 +56,27 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 			status.Infof("Detected existing Botkube installation")
 		}
 
-		prompt := &survey.Confirm{
-			Message: "Do you want to upgrade existing installation?",
-			Default: true,
+		switch opts.AutoApprove {
+		case true:
+			status.Infof("Upgrade process will proceed as auto-approval has been explicitly specified")
+		case false:
+			prompt := &survey.Confirm{
+				Message: "Do you want to upgrade existing installation?",
+				Default: true,
+			}
+
+			var upgrade bool
+
+			questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
+			err = survey.AskOne(prompt, &upgrade, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
+			if err != nil {
+				return nil, fmt.Errorf("while confiriming upgrade: %v", err)
+			}
+
+			if !upgrade {
+				return nil, errors.New("upgrade aborted")
+			}
 		}
-
-		var upgrade bool
-
-		questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
-		err = survey.AskOne(prompt, &upgrade, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
-		if err != nil {
-			return nil, fmt.Errorf("while confiriming upgrade: %v", err)
-		}
-
-		if !upgrade {
-			return nil, errors.New("upgrade aborted")
-		}
-
 		runFn = c.upgradeAction(opts)
 	case err == driver.ErrReleaseNotFound:
 		runFn = c.installAction(opts)
@@ -81,10 +85,11 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 	}
 
 	status.Step("Loading %s Helm chart", opts.ChartName)
-	loadedChart, err := c.getChart(opts.RepoLocation, opts.ChartName, opts.Version)
+	loadedChart, cleanup, err := c.getChart(opts.RepoLocation, opts.ChartName, opts.Version)
 	if err != nil {
 		return nil, fmt.Errorf("while loading Helm chart: %v", err)
 	}
+	defer cleanup()
 
 	p := getter.All(helmcli.New())
 	vals, err := opts.Values.MergeValues(p)
@@ -107,7 +112,7 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 	return rel, nil
 }
 
-func (c *Helm) getChart(repoLocation string, chartName string, version string) (*chart.Chart, error) {
+func (c *Helm) getChart(repoLocation string, chartName string, version string) (*chart.Chart, func(), error) {
 	location := chartName
 	chartOptions := action.ChartPathOptions{
 		RepoURL: repoLocation,
@@ -120,19 +125,26 @@ func (c *Helm) getChart(repoLocation string, chartName string, version string) (
 		chartOptions.RepoURL = ""
 	}
 
+	temp, err := os.MkdirTemp("", "botkube-helm-repo")
+	if err != nil {
+		return nil, nil, err
+	}
+
 	chartPath, err := chartOptions.LocateChart(location, &helmcli.EnvSettings{
-		RepositoryCache: repositoryCache,
+		RepositoryCache: temp,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	chartData, err := loader.Load(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return chartData, nil
+	return chartData, func() {
+		_ = os.RemoveAll(temp) // it will be anyway garbage collected by OS after some time.
+	}, nil
 }
 
 func (c *Helm) installAction(opts Config) Run {
