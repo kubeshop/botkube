@@ -67,7 +67,7 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		return nil, fmt.Errorf("while creating Discord session: %w", err)
 	}
 
-	channelsCfg, err := discordChannelsConfigFrom(api, cfg.Channels)
+	channelsCfg, err := discordChannelsConfigFrom(log, api, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while creating Discord channels config: %w", err)
 	}
@@ -343,9 +343,15 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 	}, nil
 }
 
-func discordChannelsConfigFrom(api *discordgo.Session, channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) (map[string]channelConfigByID, error) {
+func discordChannelsConfigFrom(log logrus.FieldLogger, api *discordgo.Session, channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
+		normalizedChannelID, changed := normalizeChannelName(channCfg.ID)
+		if changed {
+			log.Warnf("Channel ID %q has been normalized to %q", channCfg.ID, normalizedChannelID)
+		}
+		channCfg.ID = normalizedChannelID
+
 		channelData, err := api.Channel(channCfg.Identifier())
 		if err != nil {
 			return nil, fmt.Errorf("while getting channel name for ID %q: %w", channCfg.Identifier(), err)

@@ -18,6 +18,8 @@ import (
 const (
 	regexConstraintsIncludeTag  = "rs-include-regex"
 	invalidBindingTag           = "invalid_binding"
+	invalidChannelNameTag       = "invalid_channel_name"
+	invalidChannelIDTag         = "invalid_channel_id"
 	conflictingPluginRepoTag    = "conflicting_plugin_repo"
 	conflictingPluginVersionTag = "conflicting_plugin_version"
 	invalidPluginDefinitionTag  = "invalid_plugin_definition"
@@ -30,6 +32,8 @@ const (
 
 var warnsOnlyTags = map[string]struct{}{
 	regexConstraintsIncludeTag: {},
+	invalidChannelNameTag:      {},
+	invalidChannelIDTag:        {},
 }
 
 // ValidateResult holds the validation results.
@@ -70,6 +74,8 @@ func ValidateStruct(in any) (ValidateResult, error) {
 	validate.RegisterStructValidation(socketSlackStructTokenValidator, SocketSlack{})
 	validate.RegisterStructValidation(sourceStructValidator, Sources{})
 	validate.RegisterStructValidation(executorStructValidator, Executors{})
+
+	validate.RegisterStructValidation(discordChannelsValidator, Discord{})
 
 	err := validate.Struct(in)
 	if err == nil {
@@ -179,6 +185,22 @@ func socketSlackStructTokenValidator(sl validator.StructLevel) {
 		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/socketslack/#generate-and-obtain-app-level-token", appTokenPrefix)
 		sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
 	}
+}
+
+func discordChannelsValidator(sl validator.StructLevel) {
+	discord, ok := sl.Current().Interface().(Discord)
+
+	if !ok || !discord.Enabled {
+		return
+	}
+
+	for _, channel := range discord.Channels {
+		if channel == "" {
+			sl.ReportError(channel, "Channels", "Channels", "required", "")
+		}
+	}
+
+	sl.ReportError(slack.AppToken, "AppToken", "AppToken", "invalid_slack_token", msg)
 }
 
 func regexConstraintsStructValidator(sl validator.StructLevel) {

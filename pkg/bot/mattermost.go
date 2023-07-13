@@ -105,7 +105,7 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 	// In Mattermost v7.0+, what we see in MM Console is `display_name` of team.
 	// We need `name` of team to make rest of the business logic work.
 	cfg.Team = botTeam.Name
-	channelsByIDCfg, err := mattermostChannelsCfgFrom(client, botTeam.Id, cfg.Channels)
+	channelsByIDCfg, err := mattermostChannelsCfgFrom(log, client, botTeam.Id, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
@@ -488,9 +488,15 @@ func getBotUserID(client *model.Client4, teamID, botName string) (string, error)
 	return users.Users[0].Id, nil
 }
 
-func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
+func mattermostChannelsCfgFrom(log logrus.FieldLogger, client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
+		normalizedChannelName, changed := normalizeChannelName(channCfg.Name)
+		if changed {
+			log.Warnf("Channel name %q has been normalized to %q", channCfg.Name, normalizedChannelName)
+		}
+		channCfg.Name = normalizedChannelName
+
 		fetchedChannel, _, err := client.GetChannelByName(channCfg.Identifier(), teamID, "")
 		if err != nil {
 			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, err)

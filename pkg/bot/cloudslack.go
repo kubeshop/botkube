@@ -85,13 +85,13 @@ func NewCloudSlack(log logrus.FieldLogger,
 		return nil, err
 	}
 
-	channels := slackChannelsConfigFrom(cfg.Channels)
+	channels := slackChannelsConfigFrom(log, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
 	return &CloudSlack{
-		log:             log.WithField("integration", config.CloudSlackCommPlatformIntegration),
+		log:             log,
 		cfg:             cfg,
 		executorFactory: executorFactory,
 		reporter:        reporter,
