@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"golang.org/x/exp/maps"
-
 	charmlog "github.com/charmbracelet/log"
+	"golang.org/x/exp/maps"
 
 	"github.com/kubeshop/botkube/internal/cli"
 )
