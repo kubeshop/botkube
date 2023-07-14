@@ -47,6 +47,7 @@ var pluginMap = map[string]plugin.Plugin{
 type Manager struct {
 	isStarted  atomic.Bool
 	log        logrus.FieldLogger
+	logConfig  config.Logger
 	cfg        config.PluginManagement
 	httpClient *http.Client
 
@@ -58,7 +59,7 @@ type Manager struct {
 }
 
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, cfg config.PluginManagement, executors, sources []string) *Manager {
+func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string) *Manager {
 	return &Manager{
 		cfg:               cfg,
 		httpClient:        httpx.NewHTTPClient(),
@@ -67,6 +68,7 @@ func NewManager(logger logrus.FieldLogger, cfg config.PluginManagement, executor
 		sourcesToEnable:   sources,
 		sourcesStore:      newStore[source.Source](),
 		log:               logger.WithField("component", "Plugin Manager"),
+		logConfig:         logCfg, // used when we create on-demand loggers for plugins
 	}
 }
 
@@ -106,7 +108,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return err
 	}
 
-	executorClients, err := createGRPCClients[executor.Executor](m.log, executorPlugins, TypeExecutor)
+	executorClients, err := createGRPCClients[executor.Executor](m.log, m.logConfig, executorPlugins, TypeExecutor)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
@@ -116,7 +118,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	sourcesClients, err := createGRPCClients[source.Source](m.log, sourcesPlugins, TypeSource)
+	sourcesClients, err := createGRPCClients[source.Source](m.log, m.logConfig, sourcesPlugins, TypeSource)
 	if err != nil {
 		return fmt.Errorf("while creating source plugins: %w", err)
 	}
@@ -324,11 +326,11 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 	return nil
 }
 
-func createGRPCClients[C any](logger logrus.FieldLogger, bins map[string]string, pluginType Type) (map[string]enabledPlugins[C], error) {
+func createGRPCClients[C any](logger logrus.FieldLogger, logConfig config.Logger, bins map[string]string, pluginType Type) (map[string]enabledPlugins[C], error) {
 	out := map[string]enabledPlugins[C]{}
 
 	for key, path := range bins {
-		pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, key, pluginType)
+		pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, key, pluginType)
 
 		cli := plugin.NewClient(&plugin.ClientConfig{
 			Plugins: pluginMap,
