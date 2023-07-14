@@ -19,10 +19,13 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/helmx"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 )
+
+const restartAnnotationFmt = "extraAnnotations.cli\\.botkube\\.io\\/restart\\-timestamp=\"%d\""
 
 // Run provides single function signature both for install and upgrade.
 type Run func(ctx context.Context, relName string, chart *chart.Chart, vals map[string]any) (*release.Release, error)
@@ -77,6 +80,15 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 				return nil, errors.New("upgrade aborted")
 			}
 		}
+		restartAnnotation := fmt.Sprintf(restartAnnotationFmt, time.Now().Unix())
+		if cli.VerboseMode.IsEnabled() {
+			status.Step("Appending %q Pod annotation to enforce Pod restart", restartAnnotation)
+		} else {
+			status.Step("Appending Pod annotation to enforce Pod restart")
+		}
+		opts.Values.Values = append(opts.Values.Values, restartAnnotation)
+		status.End(true)
+
 		runFn = c.upgradeAction(opts)
 	case err == driver.ErrReleaseNotFound:
 		runFn = c.installAction(opts)
