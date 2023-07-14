@@ -164,8 +164,8 @@ brews:
       token: "{{ .Env.GITHUB_TOKEN }}"
     download_strategy: CurlDownloadStrategy
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    folder: Formula
     homepage: "https://botkube.io"
-    description: "Botkube CLI is a command line tool for managing Botkube instances"
+    description: "Botkube CLI is a command line tool for managing Botkube resources"
     license: "MIT"
-
+    test: |
+      system "#{bin}/botkube version -o=short"
