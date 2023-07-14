@@ -44,6 +44,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm
@@ -150,6 +151,8 @@ docker_manifests:
 
 archives:
   - id: botkube-cli
+    format: binary
+    name_template: "{{ .Binary }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
     builds:
       - botkube-cli
 brews:
