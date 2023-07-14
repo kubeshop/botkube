@@ -491,6 +491,8 @@ func getBotUserID(client *model.Client4, teamID, botName string) (string, error)
 func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
+		// do not normalize channel as Mattermost allows virtually all characters in channel names
+		// See https://docs.mattermost.com/channels/channel-naming-conventions.html
 		fetchedChannel, _, err := client.GetChannelByName(channCfg.Identifier(), teamID, "")
 		if err != nil {
 			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, err)

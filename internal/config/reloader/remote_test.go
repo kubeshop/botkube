@@ -126,6 +126,7 @@ func fixConfig(actionEnabled bool) config.Config {
 					BotToken: "xoxb-123",
 					Channels: map[string]config.ChannelBindingsByName{
 						"foo": {
+							Name: "foo",
 							Notification: config.ChannelNotification{
 								Disabled: false,
 							},
@@ -174,6 +175,7 @@ func fixConfigStr(actionEnabled bool) string {
 		      botToken: xoxb-123
 		      channels:
 		        foo:
+		          name: foo
 		          notification:
 		            disabled: false
 		actions:

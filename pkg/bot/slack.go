@@ -73,7 +73,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		return nil, err
 	}
 
-	channels := slackChannelsConfigFrom(cfg.Channels)
+	channels := slackChannelsConfigFrom(log, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
