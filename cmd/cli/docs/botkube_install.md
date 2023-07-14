@@ -31,6 +31,7 @@ botkube install --repo @local
 
 ```
       --atomic                       If set, process rolls back changes made in case of failed install/upgrade. The --wait flag will be set automatically if --atomic is used
+  -y, --auto-approve                 Skips interactive approval when upgrade is required.
       --chart-name string            Botkube Helm chart name. (default "botkube")
       --dependency-update            Update dependencies if they are missing before installing the chart
       --description string           add a custom description
@@ -52,11 +53,10 @@ botkube install --repo @local
       --set-literal stringArray      Set a literal STRING value on the command line
       --set-string stringArray       Set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)
       --skip-crds                    If set, no CRDs will be installed.
-      --timeout duration             time to wait for any individual Kubernetes operation (like Jobs for hooks) (default 5m0s)
+      --timeout duration             Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". (default 10m0s)
   -f, --values strings               Specify values in a YAML file or a URL (can specify multiple)
       --version string               Botkube version. Possible values @latest, 1.2.0, ... (default "@latest")
-      --wait                         If set, will wait until all Pods, PVCs, Services, and minimum number of Pods of a Deployment, StatefulSet, or ReplicaSet are in a ready state before marking the release as successful. It will wait for as long as --timeout (default true)
-      --wait-for-jobs                If set and --wait enabled, will wait until all Jobs have been completed before marking the release as successful. It will wait for as long as --timeout (default true)
+  -w, --watch --timeout              Watches the status of the Botkube installation until it finish or the defined --timeout occurs. (default true)
 ```
 
 ### Options inherited from parent commands

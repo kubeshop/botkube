@@ -15,6 +15,7 @@ A utility that simplifies working with Botkube.
 Quick Start:
 
     $ botkube install                              # Install Botkube
+    $ botkube uninstall                            # Uninstall Botkube
 
 Botkube Cloud:
 
@@ -38,5 +39,6 @@ botkube [flags]
 * [botkube install](botkube_install.md)	 - install Botkube into cluster
 * [botkube login](botkube_login.md)	 - Login to a Botkube Cloud
 * [botkube migrate](botkube_migrate.md)	 - Automatically migrates Botkube installation into Botkube Cloud
+* [botkube uninstall](botkube_uninstall.md)	 - uninstall Botkube from cluster
 * [botkube version](botkube_version.md)	 - Print the CLI version
 

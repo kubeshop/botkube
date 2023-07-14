@@ -520,10 +520,22 @@ type Settings struct {
 	SACredentialsPathPrefix string           `yaml:"saCredentialsPathPrefix"`
 }
 
+// Formatter log formatter
+type Formatter string
+
+const (
+	// FormatterText text formatter for logging
+	FormatterText Formatter = "text"
+
+	// FormatterJson json formatter for logging
+	FormatterJson Formatter = "json"
+)
+
 // Logger holds logger configuration parameters.
 type Logger struct {
-	Level         string `yaml:"level"`
-	DisableColors bool   `yaml:"disableColors"`
+	Level         string    `yaml:"level"`
+	DisableColors bool      `yaml:"disableColors"`
+	Formatter     Formatter `yaml:"formatter"`
 }
 
 // LifecycleServer contains configuration for the server with app lifecycle methods.
