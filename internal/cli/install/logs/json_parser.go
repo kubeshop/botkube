@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	charmlog "github.com/charmbracelet/log"
 	"golang.org/x/exp/maps"
@@ -23,7 +24,7 @@ func (j *JSONParser) ParseLineIntoCharm(line string) ([]any, charmlog.Level) {
 
 	var fields []any
 
-	lvl := charmlog.ParseLevel(fmt.Sprint(result["level"]))
+	lvl := parseLevel(fmt.Sprint(result["level"]))
 	fields = append(fields, charmlog.LevelKey, lvl)
 	fields = append(fields, charmlog.MessageKey, result["msg"])
 
@@ -51,4 +52,22 @@ func (*JSONParser) parseLine(line string) map[string]any {
 		return nil
 	}
 	return out
+}
+
+// parseLevel takes a string level and returns the charm log level constant.
+func parseLevel(lvl string) charmlog.Level {
+	switch strings.ToLower(lvl) {
+	case "panic", "fatal":
+		return charmlog.FatalLevel
+	case "error", "err":
+		return charmlog.ErrorLevel
+	case "warn", "warning":
+		return charmlog.WarnLevel
+	case "info":
+		return charmlog.InfoLevel
+	case "debug", "trace":
+		return charmlog.DebugLevel
+	default:
+		return charmlog.InfoLevel
+	}
 }
