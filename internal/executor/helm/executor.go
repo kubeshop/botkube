@@ -152,12 +152,12 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 			return e.handleHelmCommand(ctx, helmCmd.Get.Values, cfg, wasHelpRequested, in.Command, kubeConfigPath)
 		default:
 			return executor.ExecuteOutput{
-				Data: helmCmd.Get.Help(),
+				Message: api.NewCodeBlockMessage(helmCmd.Get.Help(), true),
 			}, nil
 		}
 	default:
 		return executor.ExecuteOutput{
-			Data: "Helm command not supported",
+			Message: api.NewCodeBlockMessage("Helm command not supported", true),
 		}, nil
 	}
 }
@@ -171,7 +171,7 @@ func (*Executor) Help(context.Context) (api.Message, error) {
 func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Config, wasHelpRequested bool, rawCmd, kubeConfig string) (executor.ExecuteOutput, error) {
 	if wasHelpRequested {
 		return executor.ExecuteOutput{
-			Data: cmd.Help(),
+			Message: api.NewCodeBlockMessage(cmd.Help(), true),
 		}, nil
 	}
 
@@ -193,7 +193,7 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	}
 
 	return executor.ExecuteOutput{
-		Message: api.NewPlaintextMessage(out.Stdout, true),
+		Message: api.NewCodeBlockMessage(out.Stdout, true),
 	}, nil
 }
 

@@ -2,6 +2,7 @@ package helm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -79,7 +80,7 @@ func TestExecutorHelmInstall(t *testing.T) {
 			// then
 			require.NoError(t, err)
 
-			assert.Equal(t, api.NewPlaintextMessage(execOutput.Stdout, true), out.Message)
+			assert.Equal(t, api.NewCodeBlockMessage(execOutput.Stdout, true), out.Message)
 
 			assert.Equal(t, tc.expCommand, gotCmd)
 
@@ -174,7 +175,10 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 
 			// then
 			require.NoError(t, err)
-			golden.Assert(t, out.Data, goldenFilepath)
+			gotOut, err := json.MarshalIndent(out.Message, "", "  ")
+			require.NoError(t, err)
+
+			golden.AssertBytes(t, gotOut, goldenFilepath)
 		})
 	}
 }
