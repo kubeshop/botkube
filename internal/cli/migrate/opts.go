@@ -12,7 +12,7 @@ type Options struct {
 	Label             string
 	SkipConnect       bool
 	SkipOpenBrowser   bool
-	AutoUpgrade       bool
+	AutoApprove       bool
 	ConfigExporter    ConfigExporterOptions
 }
 

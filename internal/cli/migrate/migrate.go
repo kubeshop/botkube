@@ -339,7 +339,7 @@ func errStateMessage(dashboardURL, instanceID string) string {
 }
 
 func shouldUpgradeInstallation(opts Options) (bool, error) {
-	if opts.AutoUpgrade {
+	if opts.AutoApprove {
 		return true, nil
 	}
 

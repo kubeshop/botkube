@@ -143,7 +143,7 @@ func NewMigrate() *cobra.Command {
 	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of Botkube pod")
 	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
 	flags.BoolVar(&opts.SkipOpenBrowser, "skip-open-browser", false, "Skips opening web browser after migration")
-	flags.BoolVar(&opts.AutoUpgrade, "auto-upgrade", false, "Automatically upgrades Botkube instance without additional prompt")
+	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for upgrading Botkube installation.")
 	flags.StringVar(&opts.ConfigExporter.Registry, "cfg-exporter-image-registry", "ghcr.io", "Config Exporter job image registry")
 	flags.StringVar(&opts.ConfigExporter.Repository, "cfg-exporter-image-repo", "kubeshop/botkube-config-exporter", "Config Exporter job image repository")
 	flags.StringVar(&opts.ConfigExporter.Tag, "cfg-exporter-image-tag", DefaultImageTag, "Config Exporter job image tag")
