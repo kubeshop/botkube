@@ -120,7 +120,7 @@ func TestBotkubeMigration(t *testing.T) {
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
 		cmd := exec.Command(appCfg.BotkubeBinaryPath, "migrate",
-			"--auto-upgrade",
+			"--auto-approve",
 			"--skip-open-browser",
 			"--verbose",
 			fmt.Sprintf("--token=%s", token),

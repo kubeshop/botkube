@@ -35,7 +35,7 @@ botkube migrate [OPTIONS] [flags]
 ### Options
 
 ```
-      --auto-upgrade                         Automatically upgrades Botkube instance without additional prompt
+  -y, --auto-approve                         Skips interactive approval for upgrading Botkube installation.
       --cfg-exporter-image-registry string   Config Exporter job image registry (default "ghcr.io")
       --cfg-exporter-image-repo string       Config Exporter job image repository (default "kubeshop/botkube-config-exporter")
       --cfg-exporter-image-tag string        Config Exporter job image tag (default "v9.99.9-dev")

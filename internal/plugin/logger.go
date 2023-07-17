@@ -23,11 +23,13 @@ var specialCharsPattern = regexp.MustCompile(`(?i:[^A-Z0-9_])`)
 // - hashicorp client logger always has the configured log level
 // - binary standard output is logged only if debug level is set, otherwise it is discarded
 // - binary standard error is logged always on error level
-func NewPluginLoggers(bkLogger logrus.FieldLogger, pluginKey string, pluginType Type) (hclog.Logger, io.Writer, io.Writer) {
+func NewPluginLoggers(bkLogger logrus.FieldLogger, logConfig config.Logger, pluginKey string, pluginType Type) (hclog.Logger, io.Writer, io.Writer) {
 	pluginLogLevel := getPluginLogLevel(bkLogger, pluginKey, pluginType)
 
 	cfg := config.Logger{
-		Level: pluginLogLevel.String(),
+		Level:         pluginLogLevel.String(),
+		DisableColors: logConfig.DisableColors,
+		Formatter:     logConfig.Formatter,
 	}
 	log := loggerx.New(cfg).WithField("plugin", pluginKey)
 

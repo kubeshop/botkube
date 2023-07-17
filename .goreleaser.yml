@@ -38,12 +38,15 @@ builds:
         -X github.com/kubeshop/botkube/cmd/cli/cmd/migrate.DefaultImageTag={{ .Env.IMAGE_TAG }}
         -X go.szostok.io/version.version={{.Version}}
         -X go.szostok.io/version.buildDate={{.Date}}
+      - -X go.szostok.io/version.commit={{.FullCommit}}
+      - -X go.szostok.io/version.commitDate={{.CommitDate}}
         -X go.szostok.io/version.name=botkube
     env:
       - CGO_ENABLED=0
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm
@@ -150,6 +153,8 @@ docker_manifests:
 
 archives:
   - id: botkube-cli
+    format: binary
+    name_template: "{{ .Binary }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
     builds:
       - botkube-cli
 brews:
@@ -164,8 +169,8 @@ brews:
       token: "{{ .Env.GITHUB_TOKEN }}"
     download_strategy: CurlDownloadStrategy
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    folder: Formula
     homepage: "https://botkube.io"
-    description: "Botkube CLI is a command line tool for managing Botkube instances"
+    description: "Botkube CLI is a command line tool for managing Botkube resources"
     license: "MIT"
-
+    test: |
+      system "#{bin}/botkube version -o=short"
