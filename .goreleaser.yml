@@ -161,8 +161,6 @@ brews:
   - name: botkube
     ids:
       - botkube-cli
-    install:
-      bin.install "botkube"
     tap:
       owner: "{{.Env.HOMEBREW_REPO_OWNER}}"
       name: "{{.Env.HOMEBREW_REPO_NAME}}"
