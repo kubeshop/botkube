@@ -61,11 +61,16 @@ const (
 	reportHeartbeatMaxRetries = 30
 )
 
-var humanizedErrorMessages = map[string]string{
+var humanFriendlyErrorMessages = map[string]string{
 	"not_in_channel":        "BotKube is not invited to channel",
 	"invalid_auth":          "Invalid Slack credentials",
+	"channel_not_found":     "Slack channel not found",
 	"HTTP 401 Unauthorized": "Invalid Discord credentials",
 	"HTTP 404 Not Found":    "Discord channel not found",
+	"Invalid or expired session, please login again": "Invalid Mattermost token",
+	"while getting bot user ID: user with name":      "Mattermost bot user not found",
+	"while creating Mattermost bot: team:":           "Mattermost team not found",
+	"while creating Mattermost bot: while producing channels configuration map by ID: while getting channel by name": "Mattermost channel not found",
 }
 
 func main() {
@@ -523,7 +528,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, st
 			logger.Errorf("while reporting fatal error: %s", err.Error())
 		}
 
-		if err := status.ReportDeploymentFailure(ctxTimeout, humanFriendlyError(err)); err != nil {
+		if err := status.ReportDeploymentFailure(ctxTimeout, humanFriendlyError(wrappedErr, err)); err != nil {
 			logger.Errorf("while reporting deployment failure: %s", err.Error())
 		}
 
@@ -570,12 +575,9 @@ func findVersions(cli *kubernetes.Clientset) (string, error) {
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), nil
 }
 
-func humanFriendlyError(err error) string {
-	if err == nil {
-		return ""
-	}
-	for k, v := range humanizedErrorMessages {
-		if strings.Contains(err.Error(), k) {
+func humanFriendlyError(wrappedErr, err error) string {
+	for k, v := range humanFriendlyErrorMessages {
+		if strings.Contains(wrappedErr.Error(), k) {
 			return v
 		}
 	}
