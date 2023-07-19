@@ -26,7 +26,6 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//    - handle and send methods from `slackLegacyMessage` should be defined on Bot level,
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
