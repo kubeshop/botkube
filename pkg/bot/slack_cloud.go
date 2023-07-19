@@ -45,20 +45,21 @@ var _ Bot = &CloudSlack{}
 
 // CloudSlack listens for user's message, execute commands and sends back the response.
 type CloudSlack struct {
-	log             logrus.FieldLogger
-	cfg             config.CloudSlack
-	client          *slack.Client
-	executorFactory ExecutorFactory
-	reporter        cloudSlackAnalyticsReporter
-	commGroupName   string
-	realNamesForID  map[string]string
-	botMentionRegex *regexp.Regexp
-	botID           string
-	channelsMutex   sync.RWMutex
-	renderer        *SlackRenderer
-	channels        map[string]channelConfigByName
-	notifyMutex     sync.Mutex
-	clusterName     string
+	log              logrus.FieldLogger
+	cfg              config.CloudSlack
+	client           *slack.Client
+	executorFactory  ExecutorFactory
+	reporter         cloudSlackAnalyticsReporter
+	commGroupName    string
+	realNamesForID   map[string]string
+	botMentionRegex  *regexp.Regexp
+	botID            string
+	channelsMutex    sync.RWMutex
+	renderer         *SlackRenderer
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	clusterName      string
+	msgStatusTracker *SlackMessageStatusTracker
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -91,18 +92,19 @@ func NewCloudSlack(log logrus.FieldLogger,
 	}
 
 	return &CloudSlack{
-		log:             log,
-		cfg:             cfg,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		commGroupName:   commGroupName,
-		botMentionRegex: botMentionRegex,
-		renderer:        NewSlackRenderer(),
-		channels:        channels,
-		client:          client,
-		botID:           cfg.BotID,
-		clusterName:     clusterName,
-		realNamesForID:  map[string]string{},
+		log:              log,
+		cfg:              cfg,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		commGroupName:    commGroupName,
+		botMentionRegex:  botMentionRegex,
+		renderer:         NewSlackRenderer(),
+		channels:         channels,
+		client:           client,
+		botID:            cfg.BotID,
+		clusterName:      clusterName,
+		realNamesForID:   map[string]string{},
+		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
 	}, nil
 }
 
@@ -206,7 +208,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 			case *slackevents.AppMentionEvent:
 				b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
 				userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
-				msg := socketSlackMessage{
+				msg := slackMessage{
 					Text:            ev.Text,
 					Channel:         ev.Channel,
 					ThreadTimeStamp: ev.ThreadTimeStamp,
@@ -265,7 +267,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 				state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
 
 				userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-				msg := socketSlackMessage{
+				msg := slackMessage{
 					Text:            cmd,
 					Channel:         channelID,
 					ThreadTimeStamp: threadTs,
@@ -289,7 +291,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 						cmd, cmdOrigin := resolveBlockActionCommand(act)
 						userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-						msg := socketSlackMessage{
+						msg := slackMessage{
 							Text:          cmd,
 							Channel:       callback.View.PrivateMetadata,
 							UserID:        callback.User.ID,
@@ -313,7 +315,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 func (b *CloudSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
-		msgMetadata := socketSlackMessage{
+		msgMetadata := slackMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 			BlockID:         uuid.New().String(),
@@ -332,7 +334,7 @@ func (b *CloudSlack) SendMessageToAll(ctx context.Context, msg interactive.CoreM
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		msgMetadata := socketSlackMessage{
+		msgMetadata := slackMessage{
 			Channel: channelName,
 			BlockID: uuid.New().String(),
 		}
@@ -374,7 +376,7 @@ func (b *CloudSlack) getRealNameWithFallbackToUserID(ctx context.Context, userID
 	return user.RealName
 }
 
-func (b *CloudSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
+func (b *CloudSlack) handleMessage(ctx context.Context, event slackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
@@ -418,16 +420,22 @@ func (b *CloudSlack) handleMessage(ctx context.Context, event socketSlackMessage
 			DisplayName: event.UserName,
 		},
 	})
+
+	msgRef := b.msgStatusTracker.GetMsgRef(event)
+	b.msgStatusTracker.MarkAsReceived(msgRef)
+
 	response := e.Execute(ctx)
 	err = b.send(ctx, event, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
 
+	b.msgStatusTracker.MarkAsProcessed(msgRef)
+
 	return nil
 }
 
-func (b *CloudSlack) send(ctx context.Context, event socketSlackMessage, resp interactive.CoreMessage) error {
+func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName(), api.BotNameWithClusterName(b.clusterName))
@@ -509,7 +517,7 @@ func (b *CloudSlack) BotName() string {
 	return fmt.Sprintf("<@%s>", b.botID)
 }
 
-func (b *CloudSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {
+func (b *CloudSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
 	//if the message is from thread then add an option to return the response to the thread
 	if event.ThreadTimeStamp != "" {
 		return slack.MsgOptionTS(event.ThreadTimeStamp)
