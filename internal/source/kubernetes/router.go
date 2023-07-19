@@ -29,7 +29,7 @@ type route struct {
 }
 
 func (r route) hasActionableUpdateSetting() bool {
-	return len(r.updateSetting.Fields) > 0
+	return r.updateSetting != nil && len(r.updateSetting.Fields) > 0
 }
 
 type entry struct {
