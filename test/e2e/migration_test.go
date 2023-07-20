@@ -248,19 +248,19 @@ func assertAliases(t *testing.T, actual []*gqlModel.Alias) {
 			Deployments: nil,
 		},
 		{
-			ID: "",
-			Name: "x",
+			ID:          "",
+			Name:        "x",
 			DisplayName: "Exec alias",
-			Command: "exec",
+			Command:     "exec",
 			Deployments: nil,
 		},
 		{
-			ID: "",
-			Name: "chatgpt",
+			ID:          "",
+			Name:        "chatgpt",
 			DisplayName: "Doctor alias",
-			Command: "doctor",
+			Command:     "doctor",
 			Deployments: nil,
-		}
+		},
 	}
 
 	assert.Len(t, actual, 2)
