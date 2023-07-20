@@ -264,7 +264,7 @@ func assertAliases(t *testing.T, actual []*gqlModel.Alias) {
 		},
 	}
 
-	assert.Len(t, actual, 2)
+	assert.Len(t, actual, 4)
 
 	// trim ID and deployments
 	for i := range actual {

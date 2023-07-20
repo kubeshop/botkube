@@ -141,7 +141,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 	errs := multierror.New()
 	for _, rt := range routes {
 		// event reason
-		if rt.event.Reason.AreConstraintsDefined() {
+		if rt.event != nil && rt.event.Reason.AreConstraintsDefined() {
 			match, err := rt.event.Reason.IsAllowed(event.Reason)
 			if err != nil {
 				return false, err
@@ -153,7 +153,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		}
 
 		// event message
-		if rt.event.Message.AreConstraintsDefined() {
+		if rt.event != nil && rt.event.Message.AreConstraintsDefined() {
 			var anyMsgMatches bool
 
 			eventMsgs := event.Messages
@@ -191,7 +191,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		}
 
 		// namespace
-		if rt.namespaces.AreConstraintsDefined() {
+		if rt.namespaces != nil && rt.namespaces.AreConstraintsDefined() {
 			match, err := rt.namespaces.IsAllowed(event.Namespace)
 			if err != nil {
 				return false, err
@@ -291,12 +291,27 @@ func (r registration) qualifyEventForUpdate(
 		r.log.Error("Failed to typecast new object to Unstructured.")
 	}
 
+	if oldUnstruct == nil {
+		r.log.Debugf("oldUnstruct is nil, creating an empty one")
+		oldUnstruct = &unstructured.Unstructured{}
+	}
+	if newUnstruct == nil {
+		r.log.Debugf("newUnstruct is nil, creating an empty one")
+		newUnstruct = &unstructured.Unstructured{}
+	}
+
 	var result bool
 
 	for _, route := range routes {
 		if !route.hasActionableUpdateSetting() {
 			r.log.Debugf("Qualified for update: route: %v, with no updateSettings set", route)
 			result = true
+			continue
+		}
+
+		if route.updateSetting == nil {
+			// in theory this should never happen, as we check if it is not nil in `route.hasActionableUpdateSetting()`, but just in case
+			r.log.Debugf("Nil updateSetting but hasActionableUpdateSetting returned true for route: %v. This looks like a bug...", route)
 			continue
 		}
 
