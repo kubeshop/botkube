@@ -504,6 +504,23 @@ sources:
         log:
           # -- Log level
           level: info
+  'keptn':
+    ## Keptn source configuration
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/keptn:
+      # -- If true, enables `keptn` source.
+      enabled: false
+      config:
+        # -- Keptn project.
+        project: ""
+        # -- Keptn API Gateway url.
+        url: "http://api-gateway-nginx.keptn.svc.cluster.local"
+        # -- Keptn API Token to access events through API Gateway.
+        token: ""
+        # -- Logging configuration
+        log:
+          # -- Log level
+          level: info
 
 # -- Map of executors. Executor contains configuration for running `kubectl` commands.
 # The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
