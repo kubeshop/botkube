@@ -9,7 +9,7 @@ set -E         # needs to be set if we want the ERR trap
 
 CURRENT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT_DIR=$(cd "${CURRENT_DIR}/.." && pwd)
-GOIMPORTS_REVISER_VERSION=3.3.0
+GOIMPORTS_REVISER_VERSION=3.3.1
 
 host::os() {
   local host_os
@@ -86,9 +86,14 @@ imports::format() {
   echo "Executing goimports-reviser..."
   pushd "$REPO_ROOT_DIR" > /dev/null
 
-  goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./pkg
+  echo "- Revising cmd..."
   goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./cmd
+  echo "- Revising internal..."
   goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./internal
+  echo "- Revising pkg..."
+  goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./pkg
+  echo "- Revising test..."
+  goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./test
 
   popd > /dev/null
 }
