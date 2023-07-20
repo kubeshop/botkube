@@ -20,7 +20,7 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//    - handle and send methods from `slackMessage` should be defined on Bot level,
+//    - handle and send methods from `slackLegacyMessage` should be defined on Bot level,
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
@@ -50,8 +50,8 @@ type Slack struct {
 	renderer        *SlackRenderer
 }
 
-// slackMessage contains message details to execute command and send back the result
-type slackMessage struct {
+// slackLegacyMessage contains message details to execute command and send back the result
+type slackLegacyMessage struct {
 	Text            string
 	Channel         string
 	ThreadTimeStamp string
@@ -126,7 +126,7 @@ func (b *Slack) Start(ctx context.Context) error {
 				if ev.User == b.botID {
 					continue
 				}
-				sm := slackMessage{
+				sm := slackLegacyMessage{
 					Text:            ev.Text,
 					Channel:         ev.Channel,
 					ThreadTimeStamp: ev.ThreadTimestamp,
@@ -202,7 +202,7 @@ func (b *Slack) SetNotificationsEnabled(channelName string, enabled bool) error 
 	return nil
 }
 
-func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
+func (b *Slack) handleMessage(ctx context.Context, msg slackLegacyMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(msg.Text)
 	if !found {
@@ -253,7 +253,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackMessage) error {
 	return nil
 }
 
-func (b *Slack) send(ctx context.Context, msg slackMessage, resp interactive.CoreMessage, onlyVisibleToUser bool) error {
+func (b *Slack) send(ctx context.Context, msg slackLegacyMessage, resp interactive.CoreMessage, onlyVisibleToUser bool) error {
 	b.log.Debugf("Sending message to channel %q: %+v", msg.Channel, msg)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
@@ -314,7 +314,7 @@ func (b *Slack) getChannelsToNotify(sourceBindings []string) []string {
 func (b *Slack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
-		msgMetadata := slackMessage{
+		msgMetadata := slackLegacyMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 		}
@@ -333,7 +333,7 @@ func (b *Slack) SendMessageToAll(ctx context.Context, msg interactive.CoreMessag
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		msgMetadata := slackMessage{
+		msgMetadata := slackLegacyMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 		}

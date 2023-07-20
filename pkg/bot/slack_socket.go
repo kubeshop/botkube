@@ -26,7 +26,6 @@ import (
 )
 
 // TODO: Refactor this file as a part of https://github.com/kubeshop/botkube/issues/667
-//    - handle and send methods from `slackMessage` should be defined on Bot level,
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
@@ -34,31 +33,19 @@ var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        socketSlackAnalyticsReporter
-	botID           string
-	client          *slack.Client
-	channelsMutex   sync.RWMutex
-	channels        map[string]channelConfigByName
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	commGroupName   string
-	renderer        *SlackRenderer
-	realNamesForID  map[string]string
-}
-
-type socketSlackMessage struct {
-	Text            string
-	Channel         string
-	ThreadTimeStamp string
-	UserID          string
-	UserName        string
-	TriggerID       string
-	CommandOrigin   command.Origin
-	State           *slack.BlockActionStates
-	ResponseURL     string
-	BlockID         string
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
+	reporter         socketSlackAnalyticsReporter
+	botID            string
+	client           *slack.Client
+	channelsMutex    sync.RWMutex
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	botMentionRegex  *regexp.Regexp
+	commGroupName    string
+	renderer         *SlackRenderer
+	realNamesForID   map[string]string
+	msgStatusTracker *SlackMessageStatusTracker
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -88,16 +75,17 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 	}
 
 	return &SocketSlack{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		botID:           botID,
-		client:          client,
-		channels:        channels,
-		commGroupName:   commGroupName,
-		renderer:        NewSlackRenderer(),
-		botMentionRegex: botMentionRegex,
-		realNamesForID:  map[string]string{},
+		log:              log,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		botID:            botID,
+		client:           client,
+		channels:         channels,
+		commGroupName:    commGroupName,
+		renderer:         NewSlackRenderer(),
+		botMentionRegex:  botMentionRegex,
+		realNamesForID:   map[string]string{},
+		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
 	}, nil
 }
 
@@ -146,10 +134,11 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					case *slackevents.AppMentionEvent:
 						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
 						userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
-						msg := socketSlackMessage{
+						msg := slackMessage{
 							Text:            ev.Text,
 							Channel:         ev.Channel,
 							ThreadTimeStamp: ev.ThreadTimeStamp,
+							EventTimeStamp:  ev.EventTimeStamp,
 							UserID:          ev.User,
 							UserName:        userName,
 							CommandOrigin:   command.TypedOrigin,
@@ -171,7 +160,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 				switch callback.Type {
 				case slack.InteractionTypeBlockActions:
-					b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback.ActionCallback.BlockActions))
+					b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback))
 
 					if len(callback.ActionCallback.BlockActions) != 1 {
 						b.log.Debug("Ignoring callback as the number of actions is different from 1")
@@ -207,7 +196,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
 
 					userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-					msg := socketSlackMessage{
+					msg := slackMessage{
 						Text:            cmd,
 						Channel:         channelID,
 						ThreadTimeStamp: threadTs,
@@ -216,6 +205,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						UserName:        userName,
 						CommandOrigin:   cmdOrigin,
 						State:           state,
+						EventTimeStamp:  callback.Message.Timestamp,
 						ResponseURL:     callback.ResponseURL,
 						BlockID:         act.BlockID,
 					}
@@ -231,12 +221,13 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 							cmd, cmdOrigin := resolveBlockActionCommand(act)
 							userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-							msg := socketSlackMessage{
-								Text:          cmd,
-								Channel:       callback.View.PrivateMetadata,
-								UserID:        callback.User.ID,
-								UserName:      userName,
-								CommandOrigin: cmdOrigin,
+							msg := slackMessage{
+								Text:           cmd,
+								Channel:        callback.View.PrivateMetadata,
+								UserID:         callback.User.ID,
+								UserName:       userName,
+								EventTimeStamp: "", // there is no timestamp for interactive modals
+								CommandOrigin:  cmdOrigin,
 							}
 
 							if err := b.handleMessage(ctx, msg); err != nil {
@@ -318,7 +309,7 @@ func (b *SocketSlack) SetNotificationsEnabled(channelName string, enabled bool) 
 	return nil
 }
 
-func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessage) error {
+func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) error {
 	// Handle message only if starts with mention
 	request, found := b.findAndTrimBotMention(event.Text)
 	if !found {
@@ -362,16 +353,22 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event socketSlackMessag
 			DisplayName: event.UserName,
 		},
 	})
+
+	msgRef := b.msgStatusTracker.GetMsgRef(event)
+	b.msgStatusTracker.MarkAsReceived(msgRef)
+
 	response := e.Execute(ctx)
 	err = b.send(ctx, event, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
 
+	b.msgStatusTracker.MarkAsProcessed(msgRef)
+
 	return nil
 }
 
-func (b *SocketSlack) send(ctx context.Context, event socketSlackMessage, resp interactive.CoreMessage) error {
+func (b *SocketSlack) send(ctx context.Context, event slackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
@@ -454,7 +451,7 @@ func (b *SocketSlack) getChannelsToNotify(sourceBindings []string) []string {
 func (b *SocketSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
-		msgMetadata := socketSlackMessage{
+		msgMetadata := slackMessage{
 			Channel:         channelName,
 			ThreadTimeStamp: "",
 			BlockID:         uuid.New().String(),
@@ -474,7 +471,7 @@ func (b *SocketSlack) SendMessageToAll(ctx context.Context, msg interactive.Core
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelName := channel.Name
-		msgMetadata := socketSlackMessage{
+		msgMetadata := slackMessage{
 			Channel: channelName,
 			BlockID: uuid.New().String(),
 		}
@@ -542,7 +539,7 @@ func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
 	return cmd, cmdOrigin
 }
 
-func (b *SocketSlack) getThreadOptionIfNeeded(event socketSlackMessage, file *slack.File) slack.MsgOption {
+func (b *SocketSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
 	//if the message is from thread then add an option to return the response to the thread
 	if event.ThreadTimeStamp != "" {
 		return slack.MsgOptionTS(event.ThreadTimeStamp)
