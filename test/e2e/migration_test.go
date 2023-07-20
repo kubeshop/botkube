@@ -6,10 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
-	"github.com/kubeshop/botkube/test/commplatform"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"os"
@@ -20,10 +16,14 @@ import (
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
 	"golang.org/x/oauth2"
 
+	"github.com/kubeshop/botkube/internal/ptr"
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	"github.com/kubeshop/botkube/test/commplatform"
 	"github.com/kubeshop/botkube/test/helmx"
 )
 
@@ -38,6 +38,8 @@ const (
 	--set executors.k8s-default-tools.botkube/kubectl.enabled=true \
 	--set analytics.disable=true \
 	botkube/botkube`
+
+	//nolint:gosec // false positive
 	oauth2TokenURL = "https://botkube-dev.eu.auth0.com/oauth/token"
 )
 
@@ -70,8 +72,7 @@ func TestBotkubeMigration(t *testing.T) {
 	gqlCli := graphql.NewClient(appCfg.BotkubeCloudDevGQLEndpoint, httpClient)
 
 	t.Log("Pruning old instances...")
-	err = pruneInstances(t, gqlCli)
-	require.NoError(t, err)
+	pruneInstances(t, gqlCli)
 
 	t.Log("Initializing Discord...")
 	tester, err := commplatform.NewDiscordTester(appCfg.Discord)
@@ -111,7 +112,7 @@ func TestBotkubeMigration(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Log("Testing ping...")
-		command := fmt.Sprintf("ping")
+		command := "ping"
 		expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", command, clusterName)
 		tester.PostMessageToBot(t, channel.ID(), command)
 		err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
@@ -119,6 +120,7 @@ func TestBotkubeMigration(t *testing.T) {
 	})
 
 	t.Run("Migrate Discord Botkube to Botkube Cloud", func(t *testing.T) {
+		//nolint:gosec // this is not production code
 		cmd := exec.Command(appCfg.BotkubeBinaryPath, "migrate",
 			"--auto-approve",
 			"--skip-open-browser",
@@ -156,7 +158,7 @@ func TestBotkubeMigration(t *testing.T) {
 		assert.NoError(t, err)
 
 		t.Log("Testing ping...")
-		command := fmt.Sprintf("ping")
+		command := "ping"
 		expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", command, clusterName)
 		tester.PostMessageToBot(t, channel.ID(), command)
 		err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
@@ -175,7 +177,7 @@ func queryInstances(t *testing.T, client *graphql.Client) gqlModel.DeploymentPag
 	return query.Deployments
 }
 
-func pruneInstances(t *testing.T, client *graphql.Client) error {
+func pruneInstances(t *testing.T, client *graphql.Client) {
 	t.Helper()
 
 	deployPage := queryInstances(t, client)
@@ -188,7 +190,6 @@ func pruneInstances(t *testing.T, client *graphql.Client) error {
 		})
 		require.NoError(t, err)
 	}
-	return nil
 }
 
 func refreshAccessToken(t *testing.T, cfg MigrationConfig) (string, error) {

@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeshop/botkube/test/diff"
-
 	"github.com/araddon/dateparse"
 	"github.com/google/uuid"
 	"github.com/slack-go/slack"
@@ -20,6 +18,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/test/diff"
 )
 
 type SlackConfig struct {
