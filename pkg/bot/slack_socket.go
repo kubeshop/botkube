@@ -205,7 +205,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 						UserName:        userName,
 						CommandOrigin:   cmdOrigin,
 						State:           state,
-						EventTimeStamp:  callback.Message.Timestamp, // FIXME
+						EventTimeStamp:  callback.Message.Timestamp,
 						ResponseURL:     callback.ResponseURL,
 						BlockID:         act.BlockID,
 					}
@@ -226,7 +226,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 								Channel:        callback.View.PrivateMetadata,
 								UserID:         callback.User.ID,
 								UserName:       userName,
-								EventTimeStamp: "none",
+								EventTimeStamp: "", // there is no timestamp for interactive modals
 								CommandOrigin:  cmdOrigin,
 							}
 

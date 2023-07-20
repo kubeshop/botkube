@@ -9,7 +9,7 @@ import (
 
 const (
 	msgReceivedEmoji  = "eyes"
-	msgProcessedEmoji = "heavy_check_mark"
+	msgProcessedEmoji = "white_check_mark"
 )
 
 // SlackReactionClient defines the interface for managing reactions on Slack messages.

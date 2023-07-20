@@ -213,6 +213,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 					Channel:         ev.Channel,
 					ThreadTimeStamp: ev.ThreadTimeStamp,
 					UserID:          ev.User,
+					EventTimeStamp:  ev.EventTimeStamp,
 					UserName:        userName,
 					CommandOrigin:   command.TypedOrigin,
 				}
@@ -276,6 +277,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 					UserName:        userName,
 					CommandOrigin:   cmdOrigin,
 					State:           state,
+					EventTimeStamp:  callback.Message.Timestamp,
 					ResponseURL:     callback.ResponseURL,
 					BlockID:         act.BlockID,
 				}
@@ -292,11 +294,12 @@ func (b *CloudSlack) start(ctx context.Context) error {
 						cmd, cmdOrigin := resolveBlockActionCommand(act)
 						userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
 						msg := slackMessage{
-							Text:          cmd,
-							Channel:       callback.View.PrivateMetadata,
-							UserID:        callback.User.ID,
-							UserName:      userName,
-							CommandOrigin: cmdOrigin,
+							Text:           cmd,
+							Channel:        callback.View.PrivateMetadata,
+							UserID:         callback.User.ID,
+							UserName:       userName,
+							EventTimeStamp: "", // there is no timestamp for interactive callbacks
+							CommandOrigin:  cmdOrigin,
 						}
 
 						if err := b.handleMessage(ctx, msg); err != nil {
