@@ -10,29 +10,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeshop/botkube/test/commplatform"
-	"github.com/kubeshop/botkube/test/diff"
-
-	netapiv1 "k8s.io/api/networking/v1"
-	rbacapiv1 "k8s.io/api/rbac/v1"
-	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
-	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
-
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
 	v1 "k8s.io/api/core/v1"
+	netapiv1 "k8s.io/api/networking/v1"
+	rbacapiv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
+	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/test/commplatform"
+	"github.com/kubeshop/botkube/test/diff"
 	"github.com/kubeshop/botkube/test/fake"
 )
 

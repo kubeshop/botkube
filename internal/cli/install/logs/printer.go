@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/charmbracelet/log"
-	charmlog "github.com/charmbracelet/log"
 	"github.com/morikuni/aec"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -39,7 +38,7 @@ func (f *Printer) PrintLine(line string) {
 		f.printLogLine(line)
 		return
 	}
-	if lvl == charmlog.DebugLevel && !cli.VerboseMode.IsEnabled() {
+	if lvl == log.DebugLevel && !cli.VerboseMode.IsEnabled() {
 		return
 	}
 

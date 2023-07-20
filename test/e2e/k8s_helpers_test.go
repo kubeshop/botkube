@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeshop/botkube/test/commplatform"
-
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -19,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsv1cli "k8s.io/client-go/kubernetes/typed/apps/v1"
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
+
+	"github.com/kubeshop/botkube/test/commplatform"
 )
 
 const (

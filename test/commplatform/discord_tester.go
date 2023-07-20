@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeshop/botkube/test/diff"
-
 	"github.com/araddon/dateparse"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
@@ -19,6 +17,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/test/diff"
 )
 
 type DiscordChannel struct {

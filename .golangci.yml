@@ -11,6 +11,7 @@ run:
   tests: true
   build-tags:
     - integration
+    - migration
   skip-files:
     - ".*\\.generated\\.go$"
 linters:
