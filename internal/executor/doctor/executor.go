@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/PullRequestInc/go-gpt3"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -50,7 +50,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Description: "Doctor helps in finding the root cause of a k8s problem.",
 		JSONSchema: api.JSONSchema{
 			Value: heredoc.Doc(`{
-				  "$schema": "http://json-schema.org/draft-04/schema#",
+				  "$schema": "http://json-schema.org/draft-07/schema#",
 				  "title": "doctor",
 				  "description": "Doctor helps in finding the root cause of a k8s problem.",
 				  "type": "object",
