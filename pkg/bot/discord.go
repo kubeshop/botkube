@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -269,7 +270,7 @@ func (b *Discord) send(channelID string, resp interactive.CoreMessage) error {
 		return fmt.Errorf("while formatting message: %w", err)
 	}
 	if _, err := b.api.ChannelMessageSendComplex(channelID, discordMsg); err != nil {
-		return fmt.Errorf("while sending message: %w", err)
+		return fmt.Errorf("while sending message: %w", discordError(err, channelID))
 	}
 
 	b.log.Debugf("Message successfully sent to channel %q", channelID)
@@ -355,7 +356,7 @@ func discordChannelsConfigFrom(log logrus.FieldLogger, api *discordgo.Session, c
 
 		channelData, err := api.Channel(channCfg.Identifier())
 		if err != nil {
-			return nil, fmt.Errorf("while getting channel name for ID %q: %w", channCfg.Identifier(), err)
+			return nil, fmt.Errorf("while getting channel name for ID %q: %w", channCfg.Identifier(), discordError(err, channCfg.Identifier()))
 		}
 
 		res[channCfg.Identifier()] = channelConfigByID{
@@ -376,4 +377,18 @@ func discordBotMentionRegex(botID string) (*regexp.Regexp, error) {
 	}
 
 	return botMentionRegex, nil
+}
+
+func discordError(err error, channel string) error {
+	switch err.(type) {
+	case *discordgo.RESTError:
+		restErr := err.(*discordgo.RESTError)
+		switch restErr.Response.StatusCode {
+		case http.StatusUnauthorized:
+			err = errors.New("invalid discord credentials")
+		case http.StatusNotFound:
+			err = fmt.Errorf("channel %q not found", channel)
+		}
+	}
+	return err
 }

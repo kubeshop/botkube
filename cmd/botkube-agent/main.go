@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/go-github/v44/github"
@@ -20,7 +19,7 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	k8sStrings "k8s.io/utils/strings"
+	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -60,18 +59,6 @@ const (
 	reportHeartbeatInterval   = 10
 	reportHeartbeatMaxRetries = 30
 )
-
-var humanFriendlyErrorMessages = map[string]string{
-	"not_in_channel":        "BotKube is not invited to channel",
-	"invalid_auth":          "Invalid Slack credentials",
-	"channel_not_found":     "Slack channel not found",
-	"HTTP 401 Unauthorized": "Invalid Discord credentials",
-	"HTTP 404 Not Found":    "Discord channel not found",
-	"Invalid or expired session, please login again": "Invalid Mattermost token",
-	"while getting bot user ID: user with name":      "Mattermost bot user not found",
-	"while creating Mattermost bot: team:":           "Mattermost team not found",
-	"while creating Mattermost bot: while producing channels configuration map by ID: while getting channel by name": "Mattermost channel not found",
-}
 
 func main() {
 	// Set up context
@@ -482,7 +469,7 @@ func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (ana
 	}
 
 	wrappedLogger := logger.WithField(componentLogFieldKey, "Analytics reporter")
-	wrappedLogger.Infof("Using API Key starting with %q...", k8sStrings.ShortenString(analytics.APIKey, printAPIKeyCharCount))
+	wrappedLogger.Infof("Using API Key starting with %q...", strings.ShortenString(analytics.APIKey, printAPIKeyCharCount))
 	segmentCli, err := segment.NewWithConfig(analytics.APIKey, segment.Config{
 		Logger:  analytics.NewSegmentLoggerAdapter(wrappedLogger),
 		Verbose: false,
@@ -528,7 +515,7 @@ func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, st
 			logger.Errorf("while reporting fatal error: %s", err.Error())
 		}
 
-		if err := status.ReportDeploymentFailure(ctxTimeout, humanFriendlyError(wrappedErr, err)); err != nil {
+		if err := status.ReportDeploymentFailure(ctxTimeout, err.Error()); err != nil {
 			logger.Errorf("while reporting deployment failure: %s", err.Error())
 		}
 
@@ -573,14 +560,4 @@ func findVersions(cli *kubernetes.Clientset) (string, error) {
 	}
 
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), nil
-}
-
-func humanFriendlyError(wrappedErr, err error) string {
-	for k, v := range humanFriendlyErrorMessages {
-		if strings.Contains(wrappedErr.Error(), k) {
-			return v
-		}
-	}
-
-	return err.Error()
 }

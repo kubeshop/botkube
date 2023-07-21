@@ -60,7 +60,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 
 	authResp, err := client.AuthTest()
 	if err != nil {
-		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", err)
+		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", slackError(err, ""))
 	}
 	botID := authResp.UserID
 
@@ -422,7 +422,7 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, resp interac
 		}
 	} else {
 		if _, _, err := b.client.PostMessageContext(ctx, event.Channel, options...); err != nil {
-			return fmt.Errorf("while posting Slack message: %w", err)
+			return fmt.Errorf("while posting Slack message: %w", slackError(err, event.Channel))
 		}
 	}
 
