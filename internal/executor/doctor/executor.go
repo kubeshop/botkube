@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/PullRequestInc/go-gpt3"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
