@@ -44,6 +44,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/httpsrv"
+	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -66,11 +67,16 @@ func main() {
 	ctx, cancelCtxFn := context.WithCancel(ctx)
 	defer cancelCtxFn()
 
-	loggerx.ExitOnError(run(ctx), "while running application")
+	err := run(ctx)
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+
+	loggerx.ExitOnError(err, "while running application")
 }
 
 // run wraps the main logic of the app to be able to properly clean up resources via deferred calls.
-func run(ctx context.Context) error {
+func run(ctx context.Context) (err error) {
 	// Load configuration
 	intconfig.RegisterFlags(pflag.CommandLine)
 
@@ -119,13 +125,30 @@ func run(ctx context.Context) error {
 	defer analytics.ReportPanicIfOccurs(logger, reporter)
 
 	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
+	ctx, cancel := context.WithCancel(ctx)
 	errGroup, ctx := errgroup.WithContext(ctx)
 	defer func() {
-		err := errGroup.Wait()
-		wrappedErr := reportFatalError("while waiting for goroutines to finish gracefully", err)
-		if wrappedErr != nil {
-			logger.Error(wrappedErr.Error())
+		// This is because, without cancellation, ctx is still alive and lots of other goroutines will not be
+		// deferred and this wait will be stuck infinitely
+		cancel()
+
+		multiErr := multierror.New()
+
+		errGroupErr := errGroup.Wait()
+
+		if err != nil && !errors.Is(err, context.Canceled) {
+			multiErr = multierror.Append(multiErr, err)
 		}
+
+		if errGroupErr != nil && !errors.Is(errGroupErr, context.Canceled) {
+			multiErr = multierror.Append(multiErr, errGroupErr)
+		}
+
+		if multiErr.ErrorOrNil() == nil {
+			return
+		}
+
+		err = reportFatalError("while waiting for goroutines to finish gracefully", multiErr.ErrorOrNil())
 	}()
 
 	collector := plugin.NewCollector(logger)
