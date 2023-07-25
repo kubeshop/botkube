@@ -41,6 +41,20 @@ const (
 	successIntervalDuration = 3 * time.Minute
 )
 
+var streamingDisabledMsg = interactive.CoreMessage{
+	Message: api.Message{
+		Sections: []api.Section{
+			{
+				Base: api.Base{
+					Body: api.Body{
+						Plaintext: "Slack integration is disabled in your organization. Please contact your administrator.",
+					},
+				},
+			},
+		},
+	},
+}
+
 var _ Bot = &CloudSlack{}
 
 // CloudSlack listens for user's message, execute commands and sends back the response.
@@ -111,7 +125,9 @@ func NewCloudSlack(log logrus.FieldLogger,
 func (b *CloudSlack) Start(ctx context.Context) error {
 	if b.cfg.ExecutionEventStreamingDisabled {
 		b.log.Warn("Execution event streaming is disabled")
-		// b.client.PostMessage()
+		if postErr := b.SendMessageToAll(ctx, streamingDisabledMsg); postErr != nil {
+			return fmt.Errorf("while sending message to all: %w", postErr)
+		}
 		return nil
 	}
 	return withRetries(ctx, b.log, maxRetries, func() error {
@@ -202,7 +218,9 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		}
 		if err := b.checkStreamingError(data.Error); err != nil {
 			b.log.Warn("Received error from grpc server: %s", err.Error())
-			// b.client.PostMessage()
+			if postErr := b.SendMessageToAll(ctx, streamingDisabledMsg); postErr != nil {
+				return fmt.Errorf("while sending message to all: %w", postErr)
+			}
 			return err
 		}
 
