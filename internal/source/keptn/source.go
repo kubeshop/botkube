@@ -71,7 +71,7 @@ func (p *Source) consumeEvents(ctx context.Context, cfg Config, ch chan<- source
 			}
 			res, err := keptn.Events(ctx, &req)
 			if err != nil {
-				log.Errorf("failed to get events. %v", err)
+				log.Errorf("while getting events: %v", err)
 			}
 			for _, event := range res {
 				textFields := []api.TextField{
