@@ -83,7 +83,7 @@ func (c *Client) Events(ctx context.Context, request *GetEventsRequest) ([]Event
 		data := Data{}
 		err := ev.DataAs(&data)
 		if err != nil {
-			return nil, fmt.Errorf("while mapping Keptn event to internal event %w", err)
+			return nil, fmt.Errorf("while mapping Keptn event to internal event: %w", err)
 		}
 		events = append(events, Event{
 			ID:     ev.ID,
