@@ -39,6 +39,7 @@ const (
 	retryDelay              = time.Second
 	maxRetries              = 30
 	successIntervalDuration = 3 * time.Minute
+	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
 )
 
 var _ Bot = &CloudSlack{}
@@ -110,7 +111,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 
 func (b *CloudSlack) Start(ctx context.Context) error {
 	if b.cfg.ExecutionEventStreamingDisabled {
-		b.log.Warn("Execution event streaming is disabled")
+		b.log.Warn(quotaExceededMsg)
 		return nil
 	}
 	return withRetries(ctx, b.log, maxRetries, func() error {
@@ -172,6 +173,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 	req := &pb.ConnectRequest{
 		InstanceId: remoteConfig.Identifier,
+		BotId:      b.botID,
 	}
 	c, err := pb.NewCloudSlackClient(conn).Connect(ctx)
 	if err != nil {
@@ -192,6 +194,10 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	for {
 		data, err := c.Recv()
 		if err != nil {
+			if err := b.checkStreamingError(data.Event); pb.IsBadRequestErr(err) {
+				b.log.Warn(quotaExceededMsg)
+				return nil
+			}
 			errStatus, ok := status.FromError(err)
 			if ok && errStatus.Code() == codes.Canceled && errStatus.Message() == context.Canceled.Error() {
 				b.log.Debugf("Context was cancelled. Skipping returning error...")
@@ -631,4 +637,15 @@ func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
 		ctx = metadata.NewOutgoingContext(ctx, md)
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
+}
+
+func (b *CloudSlack) checkStreamingError(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	cloudSlackErr := &pb.CloudSlackError{}
+	if err := json.Unmarshal(data, cloudSlackErr); err != nil {
+		return fmt.Errorf("while unmarshaling error: %w", err)
+	}
+	return cloudSlackErr
 }
