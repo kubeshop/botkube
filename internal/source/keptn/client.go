@@ -2,6 +2,7 @@ package keptn
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	api "github.com/keptn/go-utils/pkg/api/utils/v2"
@@ -13,11 +14,14 @@ type Client struct {
 	API *api.APISet
 }
 
+// GetEventsRequest represents a request to get events from Keptn.
 type GetEventsRequest struct {
 	Project  string
+	Service  string
 	FromTime time.Time
 }
 
+// Event represents a Keptn event returned from Keptn API.
 type Event struct {
 	ID     string
 	Source string
@@ -25,6 +29,7 @@ type Event struct {
 	Data   Data
 }
 
+// Data represents a Keptn event data which is used by plugin internally.
 type Data struct {
 	Message string
 	Project string
@@ -34,6 +39,7 @@ type Data struct {
 	Result  string
 }
 
+// ToAnonymizedEventDetails returns a map of event details which is used for telemetry purposes.
 func (e *Event) ToAnonymizedEventDetails() map[string]interface{} {
 	return map[string]interface{}{
 		"ID":     e.ID,
@@ -59,10 +65,16 @@ func NewClient(url, token string) (*Client, error) {
 func (c *Client) Events(ctx context.Context, request *GetEventsRequest) ([]Event, error) {
 	fromTime := request.FromTime.UTC().Format(time.RFC3339)
 	var events []Event
-	res, err := c.API.Events().GetEvents(ctx, &api.EventFilter{
-		Project:  request.Project,
+	filter := api.EventFilter{
 		FromTime: fromTime,
-	}, api.EventsGetEventsOptions{})
+	}
+	if request.Project != "" {
+		filter.Project = request.Project
+	}
+	if request.Service != "" {
+		filter.Service = request.Service
+	}
+	res, err := c.API.Events().GetEvents(ctx, &filter, api.EventsGetEventsOptions{})
 	if err != nil {
 		return nil, err.ToError()
 	}
@@ -71,7 +83,7 @@ func (c *Client) Events(ctx context.Context, request *GetEventsRequest) ([]Event
 		data := Data{}
 		err := ev.DataAs(&data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while mapping Keptn event to internal event %w", err)
 		}
 		events = append(events, Event{
 			ID:     ev.ID,

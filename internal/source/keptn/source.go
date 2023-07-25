@@ -60,52 +60,58 @@ func (p *Source) consumeEvents(ctx context.Context, cfg Config, ch chan<- source
 	log := loggerx.New(cfg.Log)
 	exitOnError(err, log)
 
+	ticker := time.NewTicker(time.Second * pollPeriodInSeconds)
 	for {
-		req := GetEventsRequest{
-			Project:  cfg.Project,
-			FromTime: time.Now().Add(-time.Second * pollPeriodInSeconds),
-		}
-		res, err := keptn.Events(ctx, &req)
-		if err != nil {
-			log.Errorf("failed to get events. %v", err)
-		}
-		for _, event := range res {
-			textFields := []api.TextField{
-				{Key: "Source", Value: PluginName},
-				{Key: "Type", Value: event.Type},
+		select {
+		case <-ticker.C:
+			req := GetEventsRequest{
+				Project:  cfg.Project,
+				Service:  cfg.Service,
+				FromTime: time.Now().Add(-time.Second * pollPeriodInSeconds),
 			}
-			if event.Data.Status != "" {
-				textFields = append(textFields, api.TextField{Key: "State", Value: event.Data.Status})
+			res, err := keptn.Events(ctx, &req)
+			if err != nil {
+				log.Errorf("failed to get events. %v", err)
 			}
+			for _, event := range res {
+				textFields := []api.TextField{
+					{Key: "Source", Value: PluginName},
+					{Key: "Type", Value: event.Type},
+				}
+				if event.Data.Status != "" {
+					textFields = append(textFields, api.TextField{Key: "State", Value: event.Data.Status})
+				}
 
-			var bulletLists []api.BulletList
-			if event.Data.Message != "" {
-				bulletLists = []api.BulletList{
-					{
-						Title: "Description",
-						Items: []string{
-							event.Data.Message,
+				var bulletLists []api.BulletList
+				if event.Data.Message != "" {
+					bulletLists = []api.BulletList{
+						{
+							Title: "Description",
+							Items: []string{
+								event.Data.Message,
+							},
+						},
+					}
+				}
+				msg := api.Message{
+					Type:      api.NonInteractiveSingleSection,
+					Timestamp: time.Now(),
+					Sections: []api.Section{
+						{
+							TextFields:  textFields,
+							BulletLists: bulletLists,
 						},
 					},
 				}
+				ch <- source.Event{
+					Message:   msg,
+					RawObject: event,
+				}
 			}
-			msg := api.Message{
-				Type:      api.NonInteractiveSingleSection,
-				Timestamp: time.Now(),
-				Sections: []api.Section{
-					{
-						TextFields:  textFields,
-						BulletLists: bulletLists,
-					},
-				},
-			}
-			ch <- source.Event{
-				Message:   msg,
-				RawObject: event,
-			}
+		case <-ctx.Done():
+			log.Info("Stopping Keptn event consuming...")
+			return
 		}
-		// Fetch events periodically with given frequency
-		time.Sleep(time.Second * pollPeriodInSeconds)
 	}
 }
 
@@ -135,7 +141,9 @@ func jsonSchema() api.JSONSchema {
 				"type": "string"
 			  }
 			},
-			"required": []
+            "required": [
+              "token"
+            ]
 		  }`, description),
 	}
 }
