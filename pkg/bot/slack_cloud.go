@@ -109,6 +109,11 @@ func NewCloudSlack(log logrus.FieldLogger,
 }
 
 func (b *CloudSlack) Start(ctx context.Context) error {
+	if b.cfg.ExecutionEventStreamingDisabled {
+		b.log.Warn("Execution event streaming is disabled")
+		// b.client.PostMessage()
+		return nil
+	}
 	return withRetries(ctx, b.log, maxRetries, func() error {
 		return b.start(ctx)
 	})
@@ -193,9 +198,14 @@ func (b *CloudSlack) start(ctx context.Context) error {
 				b.log.Debugf("Context was cancelled. Skipping returning error...")
 				return nil
 			}
-
 			return fmt.Errorf("while receiving cloud slack events: %w", err)
 		}
+		if err := b.checkStreamingError(data.Error); err != nil {
+			b.log.Warn("Received error from grpc server: %s", err.Error())
+			// b.client.PostMessage()
+			return err
+		}
+
 		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
 		if err != nil {
 			return fmt.Errorf("while parsing event: %w", err)
@@ -628,4 +638,15 @@ func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
 		ctx = metadata.NewOutgoingContext(ctx, md)
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
+}
+
+func (b *CloudSlack) checkStreamingError(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	cloudSlackErr := &pb.CloudSlackError{}
+	if err := json.Unmarshal(data, cloudSlackErr); err != nil {
+		return fmt.Errorf("while unmarshaling error: %w", err)
+	}
+	return cloudSlackErr
 }
