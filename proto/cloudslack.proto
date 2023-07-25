@@ -11,8 +11,6 @@ message ConnectRequest {
 message ConnectResponse {
   // event is the event received from slack slackevents.EventsAPIEvent
   bytes event = 1;
-  // error is the error received from server
-  bytes error = 2;
 }
 
 service CloudSlack {
