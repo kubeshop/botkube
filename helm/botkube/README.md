@@ -144,7 +144,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [sources.prometheus.botkube/prometheus.config.log.level](./values.yaml#L506) | string | `"info"` | Log level |
 | [sources.keptn.botkube/keptn.enabled](./values.yaml#L512) | bool | `false` | If true, enables `keptn` source. |
 | [sources.keptn.botkube/keptn.config.project](./values.yaml#L515) | string | `""` | Keptn project. |
-| [sources.keptn.botkube/keptn.config.url](./values.yaml#L517) | string | `"http://api-gateway-nginx.keptn.svc.cluster.local"` | Keptn API Gateway url. |
+| [sources.keptn.botkube/keptn.config.url](./values.yaml#L517) | string | `"http://api-gateway-nginx.keptn.svc.cluster.local/api"` | Keptn API Gateway url. |
 | [sources.keptn.botkube/keptn.config.token](./values.yaml#L519) | string | `""` | Keptn API Token to access events through API Gateway. |
 | [sources.keptn.botkube/keptn.config.log](./values.yaml#L521) | object | `{"level":"info"}` | Logging configuration |
 | [sources.keptn.botkube/keptn.config.log.level](./values.yaml#L523) | string | `"info"` | Log level |
