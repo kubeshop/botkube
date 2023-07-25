@@ -514,7 +514,7 @@ sources:
         # -- Keptn project.
         project: ""
         # -- Keptn API Gateway url.
-        url: "http://api-gateway-nginx.keptn.svc.cluster.local"
+        url: "http://api-gateway-nginx.keptn.svc.cluster.local/api"
         # -- Keptn API Token to access events through API Gateway.
         token: ""
         # -- Logging configuration
