@@ -42,6 +42,18 @@ func slackBotMentionRegex(botID string) (*regexp.Regexp, error) {
 	return botMentionRegex, nil
 }
 
+func slackError(err error, channel string) error {
+	switch err.Error() {
+	case "channel_not_found":
+		err = fmt.Errorf("channel %q not found", channel)
+	case "not_in_channel":
+		err = fmt.Errorf("botkube is not in channel %q", channel)
+	case "invalid_auth":
+		err = fmt.Errorf("invalid slack credentials")
+	}
+	return err
+}
+
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
 	Text            string
