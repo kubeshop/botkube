@@ -380,14 +380,13 @@ func discordBotMentionRegex(botID string) (*regexp.Regexp, error) {
 }
 
 func discordError(err error, channel string) error {
-	switch err.(type) {
+	switch err := err.(type) {
 	case *discordgo.RESTError:
-		restErr := err.(*discordgo.RESTError)
-		switch restErr.Response.StatusCode {
+		switch err.Response.StatusCode {
 		case http.StatusUnauthorized:
-			err = errors.New("invalid discord credentials")
+			return errors.New("invalid discord credentials")
 		case http.StatusNotFound:
-			err = fmt.Errorf("channel %q not found", channel)
+			return fmt.Errorf("channel %q not found", channel)
 		}
 	}
 	return err
