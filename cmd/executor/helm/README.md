@@ -45,7 +45,7 @@ Only Slack integration is described, but described steps are the same for all co
      cacheDir: "/tmp/plugins"
      repositories:
        botkube:
-         url: http://host.k3d.internal:3000/botkube.yaml
+         url: http://host.k3d.internal:3010/botkube.yaml
 
    rbac:
      create: true
@@ -71,7 +71,7 @@ Only Slack integration is described, but described steps are the same for all co
 1. Start plugin server:
 
    ```bash
-   env PLUGIN_SERVER_HOST=http://host.k3d.internal go run test/helpers/plugin_server.go
+   env PLUGIN_SERVER_HOST=http://host.k3d.internal env PLUGIN_SERVER_PORT=3010 go run test/helpers/plugin_server.go
    ```
 
 1. Install Botkube
