@@ -1,3 +1,5 @@
+# The code has been automatically generated and should not be modified directly. To update, run 'make gen-plugins-goreleaser' from the root directory of this repository.
+
 # GoReleaser already creates Botkube artifacts in the ./dist folder.
 # To not override them during release, we use a different folder
 dist: plugin-dist
@@ -7,112 +9,167 @@ before:
     - go mod download
 
 builds:
-  - id: echo
-    main: cmd/executor/echo/main.go
-    binary: executor_echo_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: &env
-      - CGO_ENABLED=0
-    goos: &goos
-      - linux
-      - darwin
-    goarch: &goarch
-      - amd64
-      - arm64
-    goarm: &goarm
-      - 7
-
-  - id: helm
-    main: cmd/executor/helm/main.go
-    binary: executor_helm_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
-  - id: exec
-    main: cmd/executor/exec/main.go
-    binary: executor_exec_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
-  - id: gh
-    main: cmd/executor/gh/main.go
-    binary: executor_gh_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
-
-  - id: kubectl
-    main: cmd/executor/kubectl/main.go
-    binary: executor_kubectl_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
+  
   - id: doctor
     main: cmd/executor/doctor/main.go
     binary: executor_doctor_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: echo
+    main: cmd/executor/echo/main.go
+    binary: executor_echo_{{ .Os }}_{{ .Arch }}
 
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: exec
+    main: cmd/executor/exec/main.go
+    binary: executor_exec_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: gh
+    main: cmd/executor/gh/main.go
+    binary: executor_gh_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: helm
+    main: cmd/executor/helm/main.go
+    binary: executor_helm_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: kubectl
+    main: cmd/executor/kubectl/main.go
+    binary: executor_kubectl_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
   - id: cm-watcher
     main: cmd/source/cm-watcher/main.go
     binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
-  - id: prometheus
-    main: cmd/source/prometheus/main.go
-    binary: source_prometheus_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
-  - id: kubernetes
-    main: cmd/source/kubernetes/main.go
-    binary: source_kubernetes_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
-
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
   - id: keptn
     main: cmd/source/keptn/main.go
     binary: source_keptn_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
-    env: *env
-    goos: *goos
-    goarch: *goarch
-    goarm: *goarm
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: kubernetes
+    main: cmd/source/kubernetes/main.go
+    binary: source_kubernetes_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
+  - id: prometheus
+    main: cmd/source/prometheus/main.go
+    binary: source_prometheus_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
 
 snapshot:
   name_template: 'v{{ .Version }}'

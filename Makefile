@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single
+.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single gen-docs-cli gen-plugins-goreleaser
 
 # Show this help.
 help:
@@ -32,13 +32,13 @@ build: pre-build
 	@echo "Build completed successfully"
 
 # Build Botkube official plugins for all supported platforms.
-build-plugins: pre-build
+build-plugins: pre-build gen-plugins-goreleaser
 	@echo "Building plugins binaries"
 	@./hack/goreleaser.sh build_plugins
 	@echo "Build completed successfully"
 
 # Build Botkube official plugins only for current GOOS and GOARCH.
-build-plugins-single: pre-build
+build-plugins-single: pre-build gen-plugins-goreleaser
 	@echo "Building single target plugins binaries"
 	@./hack/goreleaser.sh build_plugins_single
 	@echo "Build completed successfully"
@@ -94,7 +94,9 @@ gen-plugins-index: build-plugins
 gen-docs-cli:
 	rm -f ./cmd/cli/docs/*
 	go run -ldflags="-X go.szostok.io/version.name=botkube" cmd/cli/main.go gen-usage-docs
-.PHONY: gen-docs-cli
+
+gen-plugins-goreleaser:
+	go run ./hack/target/gen-goreleaser/main.go
 
 # Pre-build checks
 pre-build: system-check
