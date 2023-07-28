@@ -1,0 +1,29 @@
+# GoReleaser already creates Botkube artifacts in the ./dist folder.
+# To not override them during release, we use a different folder
+dist: plugin-dist
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  <range .>
+  - id: <.Name>
+    main: cmd/<.Type>/<.Name>/main.go
+    binary: <.Type>_<.Name>_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  <end>
+
+snapshot:
+  name_template: 'v{{ .Version }}'

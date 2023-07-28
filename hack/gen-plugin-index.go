@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 )
 
@@ -28,7 +28,7 @@ func main() {
 	idxBuilder := plugin.NewIndexBuilder(logger)
 
 	absBinsDir, err := filepath.Abs(*binsDir)
-	exitOnError("while resolving an absolute path of binaries folder", err)
+	loggerx.ExitOnError(err, "while resolving an absolute path of binaries folder")
 
 	log := logger.WithFields(logrus.Fields{
 		"binDir":           absBinsDir,
@@ -38,18 +38,12 @@ func main() {
 
 	log.Info("Building index..")
 	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *pluginNameFilter, false)
-	exitOnError("while building plugin index", err)
+	loggerx.ExitOnError(err, "while building plugin index")
 
 	raw, err := yaml.Marshal(idx)
-	exitOnError("while marshaling index into YAML format", err)
+	loggerx.ExitOnError(err, "while marshaling index into YAML format")
 
 	logger.WithField("output", *output).Info("Saving index file...")
 	err = os.WriteFile(*output, raw, filePerm)
-	exitOnError("while saving index file", err)
-}
-
-func exitOnError(context string, err error) {
-	if err != nil {
-		log.Fatalf("%s: %s", context, err)
-	}
+	loggerx.ExitOnError(err, "while saving index file")
 }

@@ -157,6 +157,19 @@ jobs:
             echo '✔ No issues detected. Have a nice day :-)'
           fi
 
+      - name: Run generating Plugin GoReleaser file
+        run: make gen-plugins-goreleaser
+
+      - name: Detect git changes
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo -e '❌ \033[0;31mGenerated GoReleaser file is outdated. Run 'make gen-plugins-goreleaser'.\033[0m'
+            git diff --color
+            exit 1
+          else
+            echo '✔ No issues detected. Have a nice day :-)'
+          fi
+
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
