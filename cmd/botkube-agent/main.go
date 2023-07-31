@@ -267,7 +267,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			mb, err := bot.NewMattermost(commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
+			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}

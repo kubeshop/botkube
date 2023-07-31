@@ -71,7 +71,7 @@ type mattermostMessage struct {
 }
 
 // NewMattermost creates a new Mattermost instance.
-func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
+func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName string, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
 	botMentionRegex, err := mattermostBotMentionRegex(cfg.BotName)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,6 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 
 	client := model.NewAPIv4Client(cfg.URL)
 	client.SetOAuthToken(cfg.Token)
-	ctx := context.Background()
 	botTeams, _, err := client.SearchTeams(ctx, &model.TeamSearch{
 		Term: cfg.Team,
 	})
