@@ -77,9 +77,11 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		return nil, err
 	}
 
-	checkURL, err := url.Parse(cfg.URL)
+	mmURL := strings.TrimSuffix(cfg.URL, "/")
+
+	checkURL, err := url.Parse(mmURL)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", cfg.URL, err)
+		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", mmURL, err)
 	}
 
 	// Create WebSocketClient and handle messages
@@ -88,7 +90,7 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		webSocketURL = WebSocketSecureProtocol + checkURL.Host + checkURL.Path
 	}
 
-	client := model.NewAPIv4Client(cfg.URL)
+	client := model.NewAPIv4Client(mmURL)
 	client.SetOAuthToken(cfg.Token)
 	botTeams, _, err := client.SearchTeams(ctx, &model.TeamSearch{
 		Term: cfg.Team,
