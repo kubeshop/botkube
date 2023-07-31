@@ -3,7 +3,7 @@ package cloudslack
 type CloudSlackErrorType string
 
 const (
-	CloudSlackErrorBadRequest CloudSlackErrorType = "BadRequest"
+	CloudSlackErrorQuotaExceeded CloudSlackErrorType = "QuotaExceeded"
 )
 
 type CloudSlackError struct {
@@ -11,10 +11,10 @@ type CloudSlackError struct {
 	ErrType CloudSlackErrorType `json:"type"`
 }
 
-func NewBadRequestError(msg string) *CloudSlackError {
+func NewQuotaExceededError(msg string) *CloudSlackError {
 	return &CloudSlackError{
 		Msg:     msg,
-		ErrType: CloudSlackErrorBadRequest,
+		ErrType: CloudSlackErrorQuotaExceeded,
 	}
 }
 
@@ -22,14 +22,14 @@ func (e *CloudSlackError) Error() string {
 	return e.Msg
 }
 
-func (e *CloudSlackError) IsBadRequest() bool {
-	return e.ErrType == CloudSlackErrorBadRequest
+func (e *CloudSlackError) IsQuotaExceeded() bool {
+	return e.ErrType == CloudSlackErrorQuotaExceeded
 }
 
-func IsBadRequestErr(err error) bool {
+func IsQuotaExceededErr(err error) bool {
 	if err == nil {
 		return false
 	}
 	e, ok := err.(*CloudSlackError)
-	return ok && e.IsBadRequest()
+	return ok && e.IsQuotaExceeded()
 }

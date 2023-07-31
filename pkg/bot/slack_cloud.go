@@ -206,7 +206,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 			}
 			return fmt.Errorf("while receiving cloud slack events: %w", err)
 		}
-		if streamingError := b.checkStreamingError(data.Event); pb.IsBadRequestErr(streamingError) {
+		if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
 			b.log.Warn(quotaExceededMsg)
 			return nil
 		}
