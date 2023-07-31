@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -71,7 +71,7 @@ type mattermostMessage struct {
 }
 
 // NewMattermost creates a new Mattermost instance.
-func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
+func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName string, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
 	botMentionRegex, err := mattermostBotMentionRegex(cfg.BotName)
 	if err != nil {
 		return nil, err
@@ -90,8 +90,7 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 
 	client := model.NewAPIv4Client(cfg.URL)
 	client.SetOAuthToken(cfg.Token)
-
-	botTeams, _, err := client.SearchTeams(&model.TeamSearch{
+	botTeams, _, err := client.SearchTeams(ctx, &model.TeamSearch{
 		Term: cfg.Team,
 	})
 	if err != nil {
@@ -105,12 +104,12 @@ func NewMattermost(log logrus.FieldLogger, commGroupName string, cfg config.Matt
 	// In Mattermost v7.0+, what we see in MM Console is `display_name` of team.
 	// We need `name` of team to make rest of the business logic work.
 	cfg.Team = botTeam.Name
-	channelsByIDCfg, err := mattermostChannelsCfgFrom(client, botTeam.Id, cfg.Channels)
+	channelsByIDCfg, err := mattermostChannelsCfgFrom(ctx, client, botTeam.Id, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	botUserID, err := getBotUserID(client, botTeam.Id, cfg.BotName)
+	botUserID, err := getBotUserID(ctx, client, botTeam.Id, cfg.BotName)
 	if err != nil {
 		return nil, fmt.Errorf("while getting bot user ID: %w", err)
 	}
@@ -138,7 +137,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
 	// Check connection to Mattermost server
-	err := b.checkServerConnection()
+	err := b.checkServerConnection(ctx)
 	if err != nil {
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
@@ -238,7 +237,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 		}
 	}
 
-	userName, err := b.getUserName(post.UserId)
+	userName, err := b.getUserName(ctx, post.UserId)
 	if err != nil {
 		b.log.Errorf("while getting user name: %s", err.Error())
 	}
@@ -266,7 +265,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 		Message: req,
 	})
 	response := e.Execute(ctx)
-	err = b.send(channelID, response)
+	err = b.send(ctx, channelID, response)
 	if err != nil {
 		return fmt.Errorf("while sending message: %w", err)
 	}
@@ -275,16 +274,16 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) e
 }
 
 // Send messages to Mattermost
-func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error {
+func (b *Mattermost) send(ctx context.Context, channelID string, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", channelID, resp)
 
 	resp.ReplaceBotNamePlaceholder(b.BotName())
-	post, err := b.formatMessage(resp, channelID)
+	post, err := b.formatMessage(ctx, resp, channelID)
 	if err != nil {
 		return fmt.Errorf("while formatting message: %w", err)
 	}
 
-	if _, _, err := b.apiClient.CreatePost(post); err != nil {
+	if _, _, err := b.apiClient.CreatePost(ctx, post); err != nil {
 		b.log.Error("Failed to send message. Error: ", err)
 	}
 
@@ -292,7 +291,7 @@ func (b *Mattermost) send(channelID string, resp interactive.CoreMessage) error 
 	return nil
 }
 
-func (b *Mattermost) formatMessage(msg interactive.CoreMessage, channelID string) (*model.Post, error) {
+func (b *Mattermost) formatMessage(ctx context.Context, msg interactive.CoreMessage, channelID string) (*model.Post, error) {
 	// 1. Check the size and upload message as a file if it's too long
 	plaintext := interactive.MessageToPlaintext(msg, interactive.NewlineFormatter)
 	if len(plaintext) == 0 {
@@ -300,6 +299,7 @@ func (b *Mattermost) formatMessage(msg interactive.CoreMessage, channelID string
 	}
 	if len(plaintext) >= mattermostMaxMessageSize {
 		uploadResponse, _, err := b.apiClient.UploadFileAsRequestBody(
+			ctx,
 			[]byte(plaintext),
 			channelID,
 			responseFileName,
@@ -339,14 +339,14 @@ func (b *Mattermost) formatMessage(msg interactive.CoreMessage, channelID string
 }
 
 // Check if Mattermost server is reachable
-func (b *Mattermost) checkServerConnection() error {
+func (b *Mattermost) checkServerConnection(ctx context.Context) error {
 	// Check api connection
-	if _, _, err := b.apiClient.GetOldClientConfig(""); err != nil {
+	if _, _, err := b.apiClient.GetOldClientConfig(ctx, ""); err != nil {
 		return err
 	}
 
 	// Get channel list
-	_, _, err := b.apiClient.GetTeamByName(b.teamName, "")
+	_, _, err := b.apiClient.GetTeamByName(ctx, b.teamName, "")
 	if err != nil {
 		return err
 	}
@@ -409,10 +409,10 @@ func (b *Mattermost) getChannelsToNotify(eventSources []string) []string {
 }
 
 // SendMessage sends message to selected Mattermost channels.
-func (b *Mattermost) SendMessage(_ context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
+func (b *Mattermost) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {
 	errs := multierror.New()
 	for _, channelID := range b.getChannelsToNotify(sourceBindings) {
-		err := b.send(channelID, msg)
+		err := b.send(ctx, channelID, msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Mattermost message to channel %q: %w", channelID, err))
 			continue
@@ -423,11 +423,11 @@ func (b *Mattermost) SendMessage(_ context.Context, msg interactive.CoreMessage,
 }
 
 // SendMessageToAll sends message to all Mattermost channels.
-func (b *Mattermost) SendMessageToAll(_ context.Context, msg interactive.CoreMessage) error {
+func (b *Mattermost) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
 	errs := multierror.New()
 	for _, channel := range b.getChannels() {
 		channelID := channel.ID
-		err := b.send(channelID, msg)
+		err := b.send(ctx, channelID, msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while sending Mattermost message to channel %q: %w", channelID, err))
 			continue
@@ -461,13 +461,13 @@ func (b *Mattermost) setChannels(channels map[string]channelConfigByID) {
 	b.channels = channels
 }
 
-func (b *Mattermost) getUserName(userID string) (string, error) {
+func (b *Mattermost) getUserName(ctx context.Context, userID string) (string, error) {
 	userName, exists := b.userNamesForID[userID]
 	if exists {
 		return userName, nil
 	}
 
-	user, _, err := b.apiClient.GetUser(userID, "")
+	user, _, err := b.apiClient.GetUser(ctx, userID, "")
 	if err != nil {
 		return "", fmt.Errorf("while getting user with ID %q: %w", userID, err)
 	}
@@ -476,8 +476,8 @@ func (b *Mattermost) getUserName(userID string) (string, error) {
 	return user.Username, nil
 }
 
-func getBotUserID(client *model.Client4, teamID, botName string) (string, error) {
-	users, _, err := client.AutocompleteUsersInTeam(teamID, botName, 1, "")
+func getBotUserID(ctx context.Context, client *model.Client4, teamID, botName string) (string, error) {
+	users, _, err := client.AutocompleteUsersInTeam(ctx, teamID, botName, 1, "")
 	if err != nil {
 		return "", fmt.Errorf("while getting user with name %q: %w", botName, err)
 	}
@@ -488,12 +488,12 @@ func getBotUserID(client *model.Client4, teamID, botName string) (string, error)
 	return users.Users[0].Id, nil
 }
 
-func mattermostChannelsCfgFrom(client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
+func mattermostChannelsCfgFrom(ctx context.Context, client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
 	res := make(map[string]channelConfigByID)
 	for channAlias, channCfg := range channelsCfg {
 		// do not normalize channel as Mattermost allows virtually all characters in channel names
 		// See https://docs.mattermost.com/channels/channel-naming-conventions.html
-		fetchedChannel, _, err := client.GetChannelByName(channCfg.Identifier(), teamID, "")
+		fetchedChannel, _, err := client.GetChannelByName(ctx, channCfg.Identifier(), teamID, "")
 		if err != nil {
 			return nil, fmt.Errorf("while getting channel by name %q: %w", channCfg.Name, err)
 		}
