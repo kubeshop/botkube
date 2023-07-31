@@ -77,9 +77,10 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		return nil, err
 	}
 
-	checkURL, err := url.Parse(cfg.URL)
+	mmURL := strings.TrimRight(cfg.URL, "/") // This is already done in `model.NewWebSocketClient4`, but we also need it for WebSocket connection
+	checkURL, err := url.Parse(mmURL)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", cfg.URL, err)
+		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", mmURL, err)
 	}
 
 	// Create WebSocketClient and handle messages
@@ -88,7 +89,12 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		webSocketURL = WebSocketSecureProtocol + checkURL.Host + checkURL.Path
 	}
 
-	client := model.NewAPIv4Client(cfg.URL)
+	log.WithFields(logrus.Fields{
+		"webSocketURL": webSocketURL,
+		"apiURL":       mmURL,
+	}).Debugf("Setting up Mattermost bot...")
+
+	client := model.NewAPIv4Client(mmURL)
 	client.SetOAuthToken(cfg.Token)
 	botTeams, _, err := client.SearchTeams(ctx, &model.TeamSearch{
 		Term: cfg.Team,
@@ -98,7 +104,7 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 	}
 
 	if len(botTeams) == 0 {
-		return nil, fmt.Errorf("team: %s not found", cfg.Team)
+		return nil, fmt.Errorf("team %q not found", cfg.Team)
 	}
 	botTeam := botTeams[0]
 	// In Mattermost v7.0+, what we see in MM Console is `display_name` of team.
