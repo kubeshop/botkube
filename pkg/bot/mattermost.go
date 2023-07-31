@@ -77,7 +77,7 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		return nil, err
 	}
 
-	mmURL := strings.TrimSuffix(cfg.URL, "/") // This is needed for WS connection as `model.NewWebSocketClient4` already removes it
+	mmURL := strings.TrimRight(cfg.URL, "/") // This is already done in `model.NewWebSocketClient4`, but we also need it for WebSocket connection
 	checkURL, err := url.Parse(mmURL)
 	if err != nil {
 		return nil, fmt.Errorf("while parsing Mattermost URL %q: %w", mmURL, err)
