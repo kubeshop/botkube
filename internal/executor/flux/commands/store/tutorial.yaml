@@ -1,0 +1,116 @@
+templates:
+  - trigger:
+      command:
+        regex: '^flux get\s?$'
+    type: "tutorial"
+    message:
+      paginate:
+        page: 5
+      header: "Available commands"
+      buttons:
+        - name: "Get Provider statuses"
+          command: "{{BotName}} flux get alert-providers"
+          description: "{{BotName}} flux get alert-providers"
+        - name: "Get Alert statuses"
+          command: "{{BotName}} flux get alerts"
+          description: "{{BotName}} flux get alerts"
+        - name: "Get all resources and statuses"
+          command: "{{BotName}} flux get all"
+          description: "{{BotName}} flux get all"
+        - name: "Get HelmRelease statuses"
+          command: "{{BotName}} flux get helmreleases"
+          description: "{{BotName}} flux get helmreleases"
+        - name: "Get image automation object status"
+          command: "{{BotName}} flux get images"
+          description: "{{BotName}} flux get images"
+        - name: "Get Kustomization statuses"
+          command: "{{BotName}} flux get kustomizations"
+          description: "{{BotName}} flux get kustomizations"
+        - name: "Get Receiver statuses"
+          command: "{{BotName}} flux get receivers"
+          description: "{{BotName}} flux get receivers"
+        - name: "Get source statuses"
+          command: "{{BotName}} flux get sources"
+          description: "{{BotName}} flux get sources"
+
+  - trigger:
+      command:
+        prefix: "flux tutorial"
+    type: "tutorial"
+    message:
+      paginate:
+        page: 5
+      header: "Flux Quick Start tutorial"
+      buttons:
+        - name: "Check prerequisites"
+          command: "{{BotName}} flux check --pre"
+          description: "{{BotName}} flux check --pre"
+        - name: "Install Flux"
+          command: "{{BotName}} flux install"
+          description: "{{BotName}} flux install"
+        - name: "Create Git source"
+          command: |
+            {{BotName}} flux create source git webapp-latest
+               --url=https://github.com/stefanprodan/podinfo 
+               --branch=master 
+               --interval=3m
+          description: |
+            {{BotName}} flux create source git webapp-latest
+               --url=https://github.com/stefanprodan/podinfo 
+               --branch=master 
+               --interval=3m
+        - name: "List Git sources"
+          command: "{{BotName}} flux get sources git"
+          description: "{{BotName}} flux get sources git"
+        - name: "Reconcile Git source"
+          command: "{{BotName}} flux reconcile source git flux-system"
+          description: "{{BotName}} flux reconcile source git flux-system"
+        - name: "Export Git sources"
+          command: "{{BotName}} flux export source git --all"
+          description: "{{BotName}} flux export source git --all"
+        - name: "Create Kustomization"
+          command: |
+            {{BotName}} flux create kustomization webapp-dev
+               --source=webapp-latest 
+               --path='./deploy/webapp/'
+               --prune=true 
+               --interval=5m 
+               --health-check='Deployment/backend.webapp' 
+               --health-check='Deployment/frontend.webapp'
+               --health-check-timeout=2m
+          description: |
+            {{BotName}} flux create kustomization webapp-dev
+               --source=webapp-latest 
+               --path='./deploy/webapp/'
+               --prune=true
+               --interval=5m 
+               --health-check='Deployment/backend.webapp' 
+               --health-check='Deployment/frontend.webapp'
+               --health-check-timeout=2m
+        - name: "Reconcile Kustomization"
+          command: "{{BotName}} flux reconcile kustomization webapp-dev --with-source"
+          description: "{{BotName}} flux reconcile kustomization webapp-dev --with-source"
+        - name: "Suspend Kustomization"
+          command: "{{BotName}} flux suspend kustomization webapp-dev"
+          description: "{{BotName}} flux suspend kustomization webapp-dev"
+        - name: "Export Kustomizations"
+          command: "{{BotName}} flux export kustomization --all"
+          description: "{{BotName}} flux export kustomization --all"
+        - name: "Resume Kustomization"
+          command: "{{BotName}} flux resume kustomization webapp-dev"
+          description: "{{BotName}} flux resume kustomization webapp-dev"
+        - name: "Delete Kustomization"
+          command: "{{BotName}} flux delete kustomization webapp-dev"
+          description: "{{BotName}} flux delete kustomization webapp-dev"
+        - name: "Delete Git source"
+          command: "{{BotName}} flux delete source git webapp-latest"
+          description: "{{BotName}} flux delete source"
+        - name: "Delete Kustomization"
+          command: "{{BotName}} flux delete kustomization webapp-dev"
+          description: "{{BotName}} flux delete kustomization webapp-dev"
+        - name: "Delete Git source"
+          command: "{{BotName}} flux delete source git webapp-latest --silent"
+          description: "{{BotName}} flux delete source git webapp-latest --silent"
+        - name: "Uninstall Flux"
+          command: "{{BotName}} flux uninstall"
+          description: "{{BotName}} flux uninstall"

@@ -53,6 +53,17 @@ type ExecuteCommandOutput struct {
 	ExitCode int
 }
 
+// CombinedOutput return combined stdout and stderr.
+func (out ExecuteCommandOutput) CombinedOutput() string {
+	var str strings.Builder
+	str.WriteString(out.Stdout)
+	if out.Stderr != "" {
+		str.WriteString("\n")
+		str.WriteString(out.Stderr)
+	}
+	return strings.TrimSpace(str.String())
+}
+
 // ExecuteCommandWithEnvs is a simple wrapper around exec.CommandContext to simplify running a given
 // command.
 //
@@ -71,6 +82,9 @@ func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteComma
 		DependencyDir: os.Getenv(plugin.DependencyDirEnvName),
 	}
 	for _, mutate := range mutators {
+		if mutate == nil {
+			continue
+		}
 		mutate(&opts)
 	}
 
@@ -98,6 +112,8 @@ func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteComma
 	cmd := exec.CommandContext(ctx, bin, binArgs...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.Dir = opts.WorkDir
+	cmd.Stdin = opts.Stdin
 
 	cmd.Env = append(cmd.Env, os.Environ()...)
 

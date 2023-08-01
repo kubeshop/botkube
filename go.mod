@@ -6,19 +6,23 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/PullRequestInc/go-gpt3 v1.1.15
 	github.com/alexflint/go-arg v1.4.3
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/avast/retry-go/v4 v4.3.3
 	github.com/aws/aws-sdk-go v1.44.122
+	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/briandowns/spinner v1.23.0
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/charmbracelet/log v0.2.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.15.0
+	github.com/fluxcd/kustomize-controller/api v1.0.1
+	github.com/fluxcd/source-controller/api v1.0.1
 	github.com/go-playground/locales v0.14.0
 	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
-	github.com/google/go-github/v44 v44.1.0
+	github.com/google/go-github/v53 v53.2.0
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.2
 	github.com/gorilla/mux v1.8.0
@@ -64,14 +68,14 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.4.0
 	helm.sh/helm/v3 v3.12.1
-	k8s.io/api v0.27.2
-	k8s.io/apimachinery v0.27.2
+	k8s.io/api v0.27.3
+	k8s.io/apimachinery v0.27.3
 	k8s.io/cli-runtime v0.27.2
-	k8s.io/client-go v0.27.2
+	k8s.io/client-go v0.27.3
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/kubectl v0.27.2
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
-	sigs.k8s.io/controller-runtime v0.14.1
+	sigs.k8s.io/controller-runtime v0.15.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -88,6 +92,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/alexflint/go-scalar v1.1.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -99,6 +104,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/charmbracelet/lipgloss v0.7.1 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/containerd/containerd v1.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -118,6 +124,8 @@ require (
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/fluxcd/pkg/apis/kustomize v1.1.1 // indirect
+	github.com/fluxcd/pkg/apis/meta v1.1.1 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/fvbommel/sortorder v1.0.1 // indirect
@@ -245,9 +253,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiextensions-apiserver v0.27.2 // indirect
-	k8s.io/apiserver v0.27.2 // indirect
-	k8s.io/component-base v0.27.2 // indirect
+	k8s.io/apiextensions-apiserver v0.27.3 // indirect
+	k8s.io/apiserver v0.27.3 // indirect
+	k8s.io/component-base v0.27.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 	oras.land/oras-go v1.2.2 // indirect

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	segment "github.com/segmentio/analytics-go"
@@ -29,6 +29,7 @@ import (
 	"github.com/kubeshop/botkube/internal/config/reloader"
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/heartbeat"
+	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/kubex"
 	"github.com/kubeshop/botkube/internal/lifecycle"
@@ -43,7 +44,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
-	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -390,7 +390,7 @@ func run(ctx context.Context) (err error) {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
+	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
 	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
 	err = scheduler.Start(ctx)
 	if err != nil {
@@ -444,18 +444,18 @@ func run(ctx context.Context) (err error) {
 	return nil
 }
 
-func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpsrv.Server {
+func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpx.Server {
 	addr := fmt.Sprintf(":%s", metricsPort)
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
-	return httpsrv.New(log, addr, router)
+	return httpx.NewServer(log, addr, router)
 }
 
-func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpsrv.Server {
+func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpx.Server {
 	addr := fmt.Sprintf(":%s", port)
 	router := mux.NewRouter()
 	router.Handle(healthEndpointName, healthChecker)
-	return httpsrv.New(log, addr, router)
+	return httpx.NewServer(log, addr, router)
 }
 
 type healthChecker struct {

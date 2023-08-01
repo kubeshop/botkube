@@ -16,6 +16,9 @@ const (
 	PageIndexIndicator   = "@page:"
 )
 
+// BuiltinCmdPrefix defines a plugin prefix. It's useful to change it if x lib is used as SDK in different executor plugins.
+var BuiltinCmdPrefix = "exec run"
+
 // Command holds command details.
 type Command struct {
 	ToExecute     string

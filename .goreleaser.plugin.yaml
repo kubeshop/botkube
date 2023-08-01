@@ -58,6 +58,22 @@ builds:
     goarm:
       - 7
   
+  - id: flux
+    main: cmd/executor/flux/main.go
+    binary: executor_flux_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+  
   - id: gh
     main: cmd/executor/gh/main.go
     binary: executor_gh_{{ .Os }}_{{ .Arch }}

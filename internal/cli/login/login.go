@@ -11,7 +11,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 
-	"github.com/kubeshop/botkube/cmd/cli/cmd/config"
+	"github.com/kubeshop/botkube/internal/cli/config"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
 

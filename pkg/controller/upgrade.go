@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/bot"
