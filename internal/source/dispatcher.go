@@ -33,6 +33,7 @@ type Dispatcher struct {
 	interactiveNotifiers []notifier.Bot
 	sinkNotifiers        []notifier.Sink
 	restCfg              *rest.Config
+	clusterName          string
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.
@@ -57,7 +58,7 @@ type AnalyticsReporter interface {
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, restCfg *rest.Config) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, clusterName string, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, restCfg *rest.Config) *Dispatcher {
 	var (
 		interactiveNotifiers []notifier.Bot
 		markdownNotifiers    []notifier.Bot
@@ -81,6 +82,7 @@ func NewDispatcher(log logrus.FieldLogger, notifiers map[string]bot.Bot, sinkNot
 		markdownNotifiers:    markdownNotifiers,
 		sinkNotifiers:        sinkNotifiers,
 		restCfg:              restCfg,
+		clusterName:          clusterName,
 	}
 }
 
@@ -100,7 +102,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
 	}
 
-	kubeconfig, err := plugin.GenerateKubeConfig(d.restCfg, dispatch.pluginContext, plugin.KubeConfigInput{})
+	kubeconfig, err := plugin.GenerateKubeConfig(d.restCfg, d.clusterName, dispatch.pluginContext, plugin.KubeConfigInput{})
 	if err != nil {
 		return fmt.Errorf("while generating kube config for %s: %w", dispatch.pluginName, err)
 	}

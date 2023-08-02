@@ -17,7 +17,11 @@ type KubeConfigInput struct {
 	Channel string
 }
 
-func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
+func GenerateKubeConfig(restCfg *rest.Config, clusterName string, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
+	if clusterName == "" {
+		clusterName = kubeconfigDefaultValue
+	}
+
 	rbac := pluginCtx.RBAC
 	if rbac == nil {
 		return nil, nil
@@ -27,7 +31,7 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 		APIVersion: "v1",
 		Clusters: []clientcmdapi.NamedCluster{
 			{
-				Name: kubeconfigDefaultValue,
+				Name: clusterName,
 				Cluster: clientcmdapi.Cluster{
 					Server:                   restCfg.Host,
 					CertificateAuthority:     restCfg.CAFile,
@@ -37,18 +41,18 @@ func GenerateKubeConfig(restCfg *rest.Config, pluginCtx config.PluginContext, in
 		},
 		Contexts: []clientcmdapi.NamedContext{
 			{
-				Name: kubeconfigDefaultValue,
+				Name: clusterName,
 				Context: clientcmdapi.Context{
-					Cluster:   kubeconfigDefaultValue,
+					Cluster:   clusterName,
 					Namespace: kubeconfigDefaultNamespace,
-					AuthInfo:  kubeconfigDefaultValue,
+					AuthInfo:  clusterName,
 				},
 			},
 		},
-		CurrentContext: kubeconfigDefaultValue,
+		CurrentContext: clusterName,
 		AuthInfos: []clientcmdapi.NamedAuthInfo{
 			{
-				Name: kubeconfigDefaultValue,
+				Name: clusterName,
 				AuthInfo: clientcmdapi.AuthInfo{
 					Token:                 restCfg.BearerToken,
 					TokenFile:             restCfg.BearerTokenFile,

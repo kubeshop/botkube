@@ -1,4 +1,4 @@
-package httpsrv
+package httpx
 
 import (
 	"context"
@@ -17,8 +17,8 @@ type Server struct {
 	log logrus.FieldLogger
 }
 
-// New creates a new HTTP server.
-func New(log logrus.FieldLogger, addr string, handler http.Handler) *Server {
+// NewServer creates a new HTTP server.
+func NewServer(log logrus.FieldLogger, addr string, handler http.Handler) *Server {
 	return &Server{
 		srv: &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: readHeaderTimeout},
 		log: log,

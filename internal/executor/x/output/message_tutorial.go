@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 
+	"github.com/kubeshop/botkube/internal/executor/x"
 	"github.com/kubeshop/botkube/internal/executor/x/mathx"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
@@ -54,11 +55,11 @@ func (p *TutorialWrapper) getPaginationButtons(msg template.TutorialMessage, pag
 
 	var out []api.Button
 	if pageIndex > 0 {
-		out = append(out, btnsBuilder.ForCommandWithoutDesc("Prev", fmt.Sprintf("exec run %s @page:%d", cmd, mathx.DecreaseWithMin(pageIndex, 0))))
+		out = append(out, btnsBuilder.ForCommandWithoutDesc("Prev", fmt.Sprintf("%s %s @page:%d", x.BuiltinCmdPrefix, cmd, mathx.DecreaseWithMin(pageIndex, 0))))
 	}
 
 	if pageIndex*msg.Paginate.Page < allItems-1 {
-		out = append(out, btnsBuilder.ForCommandWithoutDesc("Next", fmt.Sprintf("exec run %s @page:%d", cmd, mathx.IncreaseWithMax(pageIndex, allItems-1)), api.ButtonStylePrimary))
+		out = append(out, btnsBuilder.ForCommandWithoutDesc("Next", fmt.Sprintf("%s %s @page:%d", x.BuiltinCmdPrefix, cmd, mathx.IncreaseWithMax(pageIndex, allItems-1)), api.ButtonStylePrimary))
 	}
 	return out
 }
