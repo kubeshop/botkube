@@ -128,7 +128,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 
 	templates, err := commands.LoadTemplates()
 	if err != nil {
-		return executor.ExecuteOutput{}, err
+		return executor.ExecuteOutput{}, fmt.Errorf("while loading templates: %w", err)
 	}
 
 	return x.NewRunner(log, renderer).RunWithTemplates(templates, state.ExtractSlackState(in.Context.SlackState), command, func() (string, error) {

@@ -16,7 +16,7 @@ var f embed.FS
 func LoadTemplates() ([]template.Template, error) {
 	dirs, err := f.ReadDir("store")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("while reading store directory: %w", err)
 	}
 
 	var templates []template.Template
@@ -27,7 +27,7 @@ func LoadTemplates() ([]template.Template, error) {
 		}
 		file, err := f.ReadFile(filepath.Join("store", d.Name()))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while reading %q file: %w", d.Name(), err)
 		}
 
 		var cfg struct {
@@ -35,7 +35,7 @@ func LoadTemplates() ([]template.Template, error) {
 		}
 		err = yaml.Unmarshal(file, &cfg)
 		if err != nil {
-			return nil, fmt.Errorf("while unmarshaling file %q: %v", d.Name(), err)
+			return nil, fmt.Errorf("while unmarshaling %q file: %v", d.Name(), err)
 		}
 
 		templates = append(templates, cfg.Templates...)

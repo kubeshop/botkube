@@ -66,7 +66,6 @@ func (out ExecuteCommandOutput) CombinedOutput() string {
 
 // ExecuteCommandWithEnvs is a simple wrapper around exec.CommandContext to simplify running a given
 // command.
-//
 // Deprecated: Use ExecuteCommand(ctx, rawCmd, ExecuteCommandEnvs(envs)) instead.
 func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]string) (string, error) {
 	out, err := ExecuteCommand(ctx, rawCmd, ExecuteCommandEnvs(envs))

@@ -27,14 +27,14 @@ func ExecuteCommandDependencyDir(dir string) ExecuteCommandMutation {
 	}
 }
 
-// ExecuteCommandWorkingDir is a functions that sets the working directory of the command.
+// ExecuteCommandWorkingDir is a function that sets the working directory of the command.
 func ExecuteCommandWorkingDir(dir string) ExecuteCommandMutation {
 	return func(options *ExecuteCommandOptions) {
 		options.WorkDir = dir
 	}
 }
 
-// ExecuteCommandStdin is a functions that sets the stdin of the command.
+// ExecuteCommandStdin is a function that sets the stdin of the command.
 func ExecuteCommandStdin(in io.Reader) ExecuteCommandMutation {
 	return func(options *ExecuteCommandOptions) {
 		options.Stdin = in

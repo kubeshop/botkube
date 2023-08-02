@@ -177,7 +177,7 @@ func (k *KustomizeDiffCmdService) runKustomizeDiff(ctx context.Context, diffCmd 
 		pluginx.ExecuteCommandWorkingDir(workdir),
 	)
 	if err != nil {
-		k.log.WithError(err).WithField("command", kustomizeDiff.ToCmdString()).Error("failed to run command")
+		k.log.WithError(err).WithField("command", kustomizeDiff.ToCmdString()).Error("Failed to run command.")
 		return executor.ExecuteOutput{}, fmt.Errorf("while running command: %v", err)
 	}
 
@@ -302,11 +302,11 @@ func (*KustomizeDiffCmdService) runDiffCmd(ctx context.Context, in string, opts 
 func resolveGitHubRepoURL(ctx context.Context, logger logrus.FieldLogger, kubeConfigBytes []byte, ns string, name string) (string, error) {
 	scheme := runtime.NewScheme()
 	if err := kustomizev1.AddToScheme(scheme); err != nil {
-		return "", fmt.Errorf("failed to add Kustomize scheme: %w", err)
+		return "", fmt.Errorf("while adding Kustomize scheme: %w", err)
 	}
 
 	if err := sourcev1.AddToScheme(scheme); err != nil {
-		return "", fmt.Errorf("failed to add Source scheme: %w", err)
+		return "", fmt.Errorf("while adding Source scheme: %w", err)
 	}
 
 	kubeConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigBytes)
@@ -320,7 +320,7 @@ func resolveGitHubRepoURL(ctx context.Context, logger logrus.FieldLogger, kubeCo
 		Scheme: scheme,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create client: %w", err)
+		return "", fmt.Errorf("while creating client: %w", err)
 	}
 
 	// Resolve Kustomize
@@ -331,7 +331,7 @@ func resolveGitHubRepoURL(ctx context.Context, logger logrus.FieldLogger, kubeCo
 	}, &ks)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to get Kustomization: %w", err)
+		return "", fmt.Errorf("while getting Kustomization: %w", err)
 	}
 
 	if ks.Spec.SourceRef.Kind != "GitRepository" {
@@ -351,7 +351,7 @@ func resolveGitHubRepoURL(ctx context.Context, logger logrus.FieldLogger, kubeCo
 	}, &git)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to get GitRepository: %w", err)
+		return "", fmt.Errorf("while getting GitRepository: %w", err)
 	}
 
 	return git.Spec.URL, nil
@@ -392,7 +392,7 @@ func (k *KustomizeDiffCmdService) cloneResources(ctx context.Context, diff *Kust
 	// because we clone with --depth 1 we have issues as described here: https://github.com/cli/cli/issues/4287
 	_, err = pluginx.ExecuteCommand(ctx, `git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"`, gitSetupOpts...)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("while setting up git repo: %w", err)
 	}
 
 	checkoutCmd := fmt.Sprintf("gh pr checkout %s", diff.GitHubRef)
