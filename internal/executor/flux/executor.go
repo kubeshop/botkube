@@ -63,8 +63,8 @@ func getPluginDependencies() map[string]api.Dependency {
 			URLs: map[string]string{
 				"windows/amd64": "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_windows_amd64.zip//gh_2.32.1_windows_amd64/bin",
 				"windows/arm64": "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_windows_arm64.zip//gh_2.32.1_windows_arm64/bin",
-				"darwin/amd64":  "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_macOS_amd64.tar.gz//gh_2.32.1_macOS_amd64/bin",
-				"darwin/arm64":  "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_macOS_arm64.tar.gz//gh_2.32.1_macOS_arm64/bin",
+				"darwin/amd64":  "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_macOS_amd64.zip//gh_2.32.1_macOS_amd64/bin",
+				"darwin/arm64":  "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_macOS_arm64.zip//gh_2.32.1_macOS_arm64/bin",
 				"linux/amd64":   "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_amd64.tar.gz//gh_2.32.1_linux_amd64/bin",
 				"linux/arm64":   "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_arm64.tar.gz//gh_2.32.1_linux_arm64/bin",
 			},
