@@ -412,11 +412,12 @@ type SocketSlack struct {
 
 // CloudSlack configuration for multi-slack support
 type CloudSlack struct {
-	Enabled  bool                                   `yaml:"enabled"`
-	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Token    string                                 `yaml:"token"`
-	BotID    string                                 `yaml:"botID,omitempty"`
-	Server   GRPCServer                             `yaml:"server"`
+	Enabled                         bool                                   `yaml:"enabled"`
+	Channels                        IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	Token                           string                                 `yaml:"token"`
+	BotID                           string                                 `yaml:"botID,omitempty"`
+	Server                          GRPCServer                             `yaml:"server"`
+	ExecutionEventStreamingDisabled bool                                   `yaml:"executionEventStreamingDisabled"`
 }
 
 // GRPCServer config for gRPC server

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -39,6 +40,7 @@ const (
 	retryDelay              = time.Second
 	maxRetries              = 30
 	successIntervalDuration = 3 * time.Minute
+	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
 )
 
 var _ Bot = &CloudSlack{}
@@ -109,6 +111,10 @@ func NewCloudSlack(log logrus.FieldLogger,
 }
 
 func (b *CloudSlack) Start(ctx context.Context) error {
+	if b.cfg.ExecutionEventStreamingDisabled {
+		b.log.Warn(quotaExceededMsg)
+		return nil
+	}
 	return withRetries(ctx, b.log, maxRetries, func() error {
 		return b.start(ctx)
 	})
@@ -168,6 +174,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 	req := &pb.ConnectRequest{
 		InstanceId: remoteConfig.Identifier,
+		BotId:      b.botID,
 	}
 	c, err := pb.NewCloudSlackClient(conn).Connect(ctx)
 	if err != nil {
@@ -188,13 +195,23 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	for {
 		data, err := c.Recv()
 		if err != nil {
+			if err == io.EOF {
+				b.log.Warn("gRPC connection was closed by server")
+				return nil
+			}
 			errStatus, ok := status.FromError(err)
 			if ok && errStatus.Code() == codes.Canceled && errStatus.Message() == context.Canceled.Error() {
 				b.log.Debugf("Context was cancelled. Skipping returning error...")
 				return nil
 			}
-
 			return fmt.Errorf("while receiving cloud slack events: %w", err)
+		}
+		if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
+			b.log.Warn(quotaExceededMsg)
+			return nil
+		}
+		if len(data.Event) == 0 {
+			continue
 		}
 		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
 		if err != nil {
@@ -220,6 +237,19 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 				if err := b.handleMessage(ctx, msg); err != nil {
 					b.log.Errorf("while handling message: %s", err.Error())
+				}
+			case *slackevents.MessageEvent:
+				b.log.Debugf("Got generic message event %s", formatx.StructDumper().Sdump(innerEvent))
+				msg := slackMessage{
+					Text:           ev.Text,
+					Channel:        ev.Channel,
+					UserID:         ev.User,
+					EventTimeStamp: ev.EventTimeStamp,
+				}
+				response := quotaExceeded()
+
+				if err := b.send(ctx, msg, response); err != nil {
+					return fmt.Errorf("while sending message: %w", err)
 				}
 			}
 		case string(slack.InteractionTypeBlockActions), string(slack.InteractionTypeViewSubmission):
@@ -627,5 +657,31 @@ func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
 
 		ctx = metadata.NewOutgoingContext(ctx, md)
 		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+func (b *CloudSlack) checkStreamingError(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	cloudSlackErr := &pb.CloudSlackError{}
+	if err := json.Unmarshal(data, cloudSlackErr); err != nil {
+		return fmt.Errorf("while unmarshaling error: %w", err)
+	}
+	return cloudSlackErr
+}
+
+func quotaExceeded() interactive.CoreMessage {
+	return interactive.CoreMessage{
+		Header: "Quota exceeded",
+		Message: api.Message{
+			Sections: []api.Section{
+				{
+					Base: api.Base{
+						Description: "You cannot use the Botkube Cloud Slack application within your plan. The command executions are blocked.",
+					},
+				},
+			},
+		},
 	}
 }
