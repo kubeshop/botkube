@@ -14,15 +14,6 @@ func ToSlice[T any](in []*T) []T {
 	return out
 }
 
-// FromSlice returns slice of pointers for a given type.
-func FromSlice[T any](in []T) []*T {
-	out := make([]*T, 0, len(in))
-	for idx := range in {
-		out = append(out, &in[idx])
-	}
-	return out
-}
-
 // FromType returns pointer for a given input type.
 func FromType[T any](in T) *T {
 	return &in
