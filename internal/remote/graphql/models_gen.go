@@ -63,6 +63,15 @@ type AddMemberForOrganizationInput struct {
 	UserEmail *string `json:"userEmail"`
 }
 
+type AddPlatformToOrganizationInput struct {
+	OrganizationID string                       `json:"organizationId"`
+	Slack          *AddSlackToOrganizationInput `json:"slack"`
+}
+
+type AddSlackToOrganizationInput struct {
+	Token string `json:"token"`
+}
+
 type Alias struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -193,6 +202,27 @@ type ChannelBindingsByNameUpdateInput struct {
 	Bindings *BotBindingsUpdateInput `json:"bindings"`
 }
 
+type CloudSlack struct {
+	ID       string                   `json:"id"`
+	Name     string                   `json:"name"`
+	TeamID   string                   `json:"teamId"`
+	BotToken string                   `json:"botToken"`
+	Channels []*ChannelBindingsByName `json:"channels"`
+}
+
+type CloudSlackCreateInput struct {
+	Name     string                              `json:"name"`
+	TeamID   string                              `json:"teamId"`
+	Channels []*ChannelBindingsByNameCreateInput `json:"channels"`
+}
+
+type CloudSlackUpdateInput struct {
+	ID       *string                             `json:"id"`
+	Name     string                              `json:"name"`
+	TeamID   string                              `json:"teamId"`
+	Channels []*ChannelBindingsByNameUpdateInput `json:"channels"`
+}
+
 type CommandExecutedEvent struct {
 	ID           string          `json:"id"`
 	Type         *AuditEventType `json:"type"`
@@ -214,19 +244,38 @@ func (this CommandExecutedEvent) GetCreatedAt() string       { return this.Creat
 func (this CommandExecutedEvent) GetPluginName() string      { return this.PluginName }
 func (this CommandExecutedEvent) GetDeployment() *Deployment { return this.Deployment }
 
+type ConnectedPlatforms struct {
+	Slack *SlackWorkspace `json:"slack"`
+}
+
+type DeleteByIDInput struct {
+	ID string `json:"ID"`
+}
+
+type DeletePlatformInput struct {
+	SocketSlack   *DeleteByIDInput `json:"socketSlack"`
+	CloudSlack    *DeleteByIDInput `json:"cloudSlack"`
+	Discord       *DeleteByIDInput `json:"discord"`
+	Mattermost    *DeleteByIDInput `json:"mattermost"`
+	Webhook       *DeleteByIDInput `json:"webhook"`
+	MsTeams       *DeleteByIDInput `json:"msTeams"`
+	Elasticsearch *DeleteByIDInput `json:"elasticsearch"`
+}
+
 type Deployment struct {
-	ID              string            `json:"id"`
-	Name            string            `json:"name"`
-	Actions         []*Action         `json:"actions"`
-	Plugins         []*Plugin         `json:"plugins"`
-	Platforms       *Platforms        `json:"platforms"`
-	Status          *DeploymentStatus `json:"status"`
-	APIKey          *APIKey           `json:"apiKey"`
-	YamlConfig      *string           `json:"yamlConfig"`
-	Aliases         []*Alias          `json:"aliases"`
-	HelmCommand     *string           `json:"helmCommand"`
-	ResourceVersion int               `json:"resourceVersion"`
-	Heartbeat       *Heartbeat        `json:"heartbeat"`
+	ID                         string                                   `json:"id"`
+	Name                       string                                   `json:"name"`
+	Actions                    []*Action                                `json:"actions"`
+	Plugins                    []*Plugin                                `json:"plugins"`
+	Platforms                  *Platforms                               `json:"platforms"`
+	Status                     *DeploymentStatus                        `json:"status"`
+	APIKey                     *APIKey                                  `json:"apiKey"`
+	YamlConfig                 *string                                  `json:"yamlConfig"`
+	Aliases                    []*Alias                                 `json:"aliases"`
+	HelmCommand                *string                                  `json:"helmCommand"`
+	ResourceVersion            int                                      `json:"resourceVersion"`
+	Heartbeat                  *Heartbeat                               `json:"heartbeat"`
+	InstallUpgradeInstructions []*InstallUpgradeInstructionsForPlatform `json:"installUpgradeInstructions"`
 }
 
 type DeploymentConfig struct {
@@ -235,10 +284,12 @@ type DeploymentConfig struct {
 }
 
 type DeploymentCreateInput struct {
-	Name      string                     `json:"name"`
-	Plugins   []*PluginsCreateInput      `json:"plugins"`
-	Platforms *PlatformsCreateInput      `json:"platforms"`
-	Actions   []*ActionCreateUpdateInput `json:"actions"`
+	Name                 string                     `json:"name"`
+	Plugins              []*PluginsCreateInput      `json:"plugins"`
+	Platforms            *PlatformsCreateInput      `json:"platforms"`
+	Actions              []*ActionCreateUpdateInput `json:"actions"`
+	AttachDefaultAliases *bool                      `json:"attachDefaultAliases"`
+	AttachDefaultActions *bool                      `json:"attachDefaultActions"`
 }
 
 type DeploymentFailureInput struct {
@@ -374,8 +425,49 @@ type ElasticsearchUpdateInput struct {
 	Indices           []*ElasticsearchIndexUpdateInput `json:"indices"`
 }
 
+type GroupPolicySubject struct {
+	Type   PolicySubjectType   `json:"type"`
+	Static *GroupStaticSubject `json:"static"`
+	Prefix *string             `json:"prefix"`
+}
+
+type GroupPolicySubjectInput struct {
+	Type   PolicySubjectType        `json:"type"`
+	Static *GroupStaticSubjectInput `json:"static"`
+	Prefix *string                  `json:"prefix"`
+}
+
+type GroupStaticSubject struct {
+	Values []string `json:"values"`
+}
+
+type GroupStaticSubjectInput struct {
+	Values []string `json:"values"`
+}
+
 type Heartbeat struct {
 	NodeCount *int `json:"nodeCount"`
+}
+
+type HubSpotIdentificationToken struct {
+	Token string `json:"token"`
+}
+
+type HubspotIdentificationTokenInput struct {
+	Email     string  `json:"email"`
+	FirstName *string `json:"firstName"`
+	LastName  *string `json:"lastName"`
+}
+
+type InstallUpgradeInstructionsForPlatform struct {
+	PlatformName          string                        `json:"platformName"`
+	Prerequisites         []*InstallUpgradePrerequisite `json:"prerequisites"`
+	InstallUpgradeCommand string                        `json:"installUpgradeCommand"`
+}
+
+type InstallUpgradePrerequisite struct {
+	Description *string `json:"description"`
+	Command     *string `json:"command"`
 }
 
 type Invoice struct {
@@ -465,16 +557,17 @@ type NotificationPatchDeploymentConfigInput struct {
 }
 
 type Organization struct {
-	ID                      string                        `json:"id"`
-	DisplayName             string                        `json:"displayName"`
-	Subscription            *OrganizationSubscription     `json:"subscription"`
-	OwnerID                 string                        `json:"ownerId"`
-	Owner                   *User                         `json:"owner"`
-	Members                 []*User                       `json:"members"`
-	Quota                   *Quota                        `json:"quota"`
-	BillingHistoryAvailable bool                          `json:"billingHistoryAvailable"`
-	UpdateOperations        *OrganizationUpdateOperations `json:"updateOperations"`
-	Usage                   *Usage                        `json:"usage"`
+	ID                      string                          `json:"id"`
+	DisplayName             string                          `json:"displayName"`
+	Subscription            *OrganizationSubscription       `json:"subscription"`
+	ConnectedPlatforms      *OrganizationConnectedPlatforms `json:"connectedPlatforms"`
+	OwnerID                 string                          `json:"ownerId"`
+	Owner                   *User                           `json:"owner"`
+	Members                 []*User                         `json:"members"`
+	Quota                   *Quota                          `json:"quota"`
+	BillingHistoryAvailable bool                            `json:"billingHistoryAvailable"`
+	UpdateOperations        *OrganizationUpdateOperations   `json:"updateOperations"`
+	Usage                   *Usage                          `json:"usage"`
 }
 
 type OrganizationCreateInput struct {
@@ -516,6 +609,7 @@ type PatchDeploymentConfigInput struct {
 type PlatformsCreateInput struct {
 	Discords        []*DiscordCreateInput       `json:"discords"`
 	SocketSlacks    []*SocketSlackCreateInput   `json:"socketSlacks"`
+	CloudSlacks     []*CloudSlackCreateInput    `json:"cloudSlacks"`
 	Mattermosts     []*MattermostCreateInput    `json:"mattermosts"`
 	Webhooks        []*WebhookCreateInput       `json:"webhooks"`
 	MsTeams         []*MsTeamsCreateInput       `json:"msTeams"`
@@ -524,6 +618,7 @@ type PlatformsCreateInput struct {
 
 type PlatformsUpdateInput struct {
 	SocketSlacks    []*SocketSlackUpdateInput   `json:"socketSlacks"`
+	CloudSlacks     []*CloudSlackUpdateInput    `json:"cloudSlacks"`
 	Discords        []*DiscordUpdateInput       `json:"discords"`
 	Mattermosts     []*MattermostUpdateInput    `json:"mattermosts"`
 	Webhooks        []*WebhookUpdateInput       `json:"webhooks"`
@@ -538,6 +633,7 @@ type Plugin struct {
 	Type              PluginType `json:"type"`
 	ConfigurationName string     `json:"configurationName"`
 	Configuration     string     `json:"configuration"`
+	Rbac              *Rbac      `json:"rbac"`
 }
 
 type PluginConfigurationGroupInput struct {
@@ -548,16 +644,24 @@ type PluginConfigurationGroupInput struct {
 }
 
 type PluginConfigurationGroupUpdateInput struct {
-	ID             *string                     `json:"id"`
-	Name           string                      `json:"name"`
-	DisplayName    string                      `json:"displayName"`
-	Type           PluginType                  `json:"type"`
-	Configurations []*PluginConfigurationInput `json:"configurations"`
+	ID             *string                           `json:"id"`
+	Name           string                            `json:"name"`
+	DisplayName    string                            `json:"displayName"`
+	Type           PluginType                        `json:"type"`
+	Configurations []*PluginConfigurationUpdateInput `json:"configurations"`
 }
 
 type PluginConfigurationInput struct {
-	Name          string `json:"name"`
-	Configuration string `json:"configuration"`
+	Name          string     `json:"name"`
+	Configuration string     `json:"configuration"`
+	Rbac          *RBACInput `json:"rbac"`
+}
+
+type PluginConfigurationUpdateInput struct {
+	ID            *string          `json:"id"`
+	Name          string           `json:"name"`
+	Configuration string           `json:"configuration"`
+	Rbac          *RBACUpdateInput `json:"rbac"`
 }
 
 type PluginPage struct {
@@ -595,11 +699,38 @@ type Quota struct {
 	AuditRetentionPeriod *int `json:"auditRetentionPeriod"`
 	MemberCount          *int `json:"memberCount"`
 	NodeCount            *int `json:"nodeCount"`
+	CloudSlackUseCount   *int `json:"cloudSlackUseCount"`
+}
+
+type Rbac struct {
+	ID    string              `json:"id"`
+	User  *UserPolicySubject  `json:"user"`
+	Group *GroupPolicySubject `json:"group"`
+}
+
+type RBACInput struct {
+	User  *UserPolicySubjectInput  `json:"user"`
+	Group *GroupPolicySubjectInput `json:"group"`
+}
+
+type RBACUpdateInput struct {
+	ID    string                   `json:"id"`
+	User  *UserPolicySubjectInput  `json:"user"`
+	Group *GroupPolicySubjectInput `json:"group"`
 }
 
 type RemoveMemberFromOrganizationInput struct {
 	OrgID  string `json:"orgId"`
 	UserID string `json:"userId"`
+}
+
+type RemovePlatformFromOrganizationInput struct {
+	OrganizationID string                            `json:"organizationId"`
+	Slack          *RemoveSlackFromOrganizationInput `json:"slack"`
+}
+
+type RemoveSlackFromOrganizationInput struct {
+	ID string `json:"ID"`
 }
 
 type SinkBindings struct {
@@ -612,6 +743,29 @@ type SinkBindingsCreateInput struct {
 
 type SinkBindingsUpdateInput struct {
 	Sources []*string `json:"sources"`
+}
+
+type SlackWorkspace struct {
+	ID                     string                                  `json:"id"`
+	Name                   string                                  `json:"name"`
+	TeamID                 string                                  `json:"teamId"`
+	URL                    string                                  `json:"url"`
+	Channels               []*SlackWorkspaceChannel                `json:"channels"`
+	IsReinstallRequired    bool                                    `json:"isReinstallRequired"`
+	ConnectedOrganizations []*SlackWorkspaceConnectedOrganizations `json:"connectedOrganizations"`
+}
+
+type SlackWorkspaceChannel struct {
+	Name      string  `json:"name"`
+	IsPrivate bool    `json:"isPrivate"`
+	IsMember  bool    `json:"isMember"`
+	Topic     *string `json:"topic"`
+	Purpose   *string `json:"purpose"`
+}
+
+type SlackWorkspaceConnectedOrganizations struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type SocketSlack struct {
@@ -679,6 +833,26 @@ type SubscriptionPlan struct {
 type User struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
+}
+
+type UserPolicySubject struct {
+	Type   PolicySubjectType  `json:"type"`
+	Static *UserStaticSubject `json:"static"`
+	Prefix *string            `json:"prefix"`
+}
+
+type UserPolicySubjectInput struct {
+	Type   PolicySubjectType       `json:"type"`
+	Static *UserStaticSubjectInput `json:"static"`
+	Prefix *string                 `json:"prefix"`
+}
+
+type UserStaticSubject struct {
+	Value string `json:"value"`
+}
+
+type UserStaticSubjectInput struct {
+	Value string `json:"value"`
 }
 
 type Webhook struct {
@@ -749,6 +923,7 @@ const (
 	BotPlatformDiscord    BotPlatform = "DISCORD"
 	BotPlatformMattermost BotPlatform = "MATTERMOST"
 	BotPlatformMsTeams    BotPlatform = "MS_TEAMS"
+	BotPlatformUnknown    BotPlatform = "UNKNOWN"
 )
 
 var AllBotPlatform = []BotPlatform{
@@ -756,11 +931,12 @@ var AllBotPlatform = []BotPlatform{
 	BotPlatformDiscord,
 	BotPlatformMattermost,
 	BotPlatformMsTeams,
+	BotPlatformUnknown,
 }
 
 func (e BotPlatform) IsValid() bool {
 	switch e {
-	case BotPlatformSLACk, BotPlatformDiscord, BotPlatformMattermost, BotPlatformMsTeams:
+	case BotPlatformSLACk, BotPlatformDiscord, BotPlatformMattermost, BotPlatformMsTeams, BotPlatformUnknown:
 		return true
 	}
 	return false
@@ -874,5 +1050,48 @@ func (e *PluginType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e PluginType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type PolicySubjectType string
+
+const (
+	PolicySubjectTypeStatic      PolicySubjectType = "Static"
+	PolicySubjectTypeChannelName PolicySubjectType = "ChannelName"
+	PolicySubjectTypeEmpty       PolicySubjectType = "Empty"
+)
+
+var AllPolicySubjectType = []PolicySubjectType{
+	PolicySubjectTypeStatic,
+	PolicySubjectTypeChannelName,
+	PolicySubjectTypeEmpty,
+}
+
+func (e PolicySubjectType) IsValid() bool {
+	switch e {
+	case PolicySubjectTypeStatic, PolicySubjectTypeChannelName, PolicySubjectTypeEmpty:
+		return true
+	}
+	return false
+}
+
+func (e PolicySubjectType) String() string {
+	return string(e)
+}
+
+func (e *PolicySubjectType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PolicySubjectType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PolicySubjectType", str)
+	}
+	return nil
+}
+
+func (e PolicySubjectType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

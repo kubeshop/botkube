@@ -91,6 +91,7 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 					{
 						Name:          cfgName,
 						Configuration: string(rawCfg),
+						Rbac:          c.convertRbac(p.Context),
 					},
 				},
 			})
@@ -121,6 +122,7 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 					{
 						Name:          cfgName,
 						Configuration: string(rawCfg),
+						Rbac:          c.convertRbac(p.Context),
 					},
 				},
 			})
@@ -128,6 +130,21 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 	}
 
 	return out, errs.ErrorOrNil()
+}
+
+func (c *Converter) convertRbac(ctx bkconfig.PluginContext) *gqlModel.RBACInput {
+	return &gqlModel.RBACInput{
+		User: &gqlModel.UserPolicySubjectInput{
+			Type:   graphqlPolicySubjectType(ctx.RBAC.User.Type),
+			Static: &gqlModel.UserStaticSubjectInput{Value: ctx.RBAC.User.Static.Value},
+			Prefix: &ctx.RBAC.User.Prefix,
+		},
+		Group: &gqlModel.GroupPolicySubjectInput{
+			Type:   graphqlPolicySubjectType(ctx.RBAC.Group.Type),
+			Static: &gqlModel.GroupStaticSubjectInput{Values: ctx.RBAC.Group.Static.Values},
+			Prefix: &ctx.RBAC.Group.Prefix,
+		},
+	}
 }
 
 // ConvertPlatforms converts cloud supported platforms.
@@ -221,4 +238,15 @@ func toSlicePointers[T any](in []T) []*T {
 		out = append(out, &in[idx])
 	}
 	return out
+}
+
+func graphqlPolicySubjectType(sub bkconfig.PolicySubjectType) gqlModel.PolicySubjectType {
+	switch sub {
+	case bkconfig.StaticPolicySubjectType:
+		return gqlModel.PolicySubjectTypeStatic
+	case bkconfig.ChannelNamePolicySubjectType:
+		return gqlModel.PolicySubjectTypeChannelName
+	default:
+		return gqlModel.PolicySubjectTypeEmpty
+	}
 }
