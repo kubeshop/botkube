@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/httpsrv"
 )
 
 type Restarter interface {
@@ -20,12 +20,12 @@ type Restarter interface {
 type SendMessageFn func(msg string) error
 
 // NewServer creates a new httpsrv.Server that exposes lifecycle methods as HTTP endpoints.
-func NewServer(log logrus.FieldLogger, cfg config.LifecycleServer, restarter Restarter) *httpsrv.Server {
+func NewServer(log logrus.FieldLogger, cfg config.LifecycleServer, restarter Restarter) *httpx.Server {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	router := mux.NewRouter()
 	reloadHandler := newReloadHandler(log, restarter)
 	router.HandleFunc("/reload", reloadHandler)
-	return httpsrv.New(log, addr, router)
+	return httpx.NewServer(log, addr, router)
 }
 
 func newReloadHandler(log logrus.FieldLogger, restarter Restarter) http.HandlerFunc {

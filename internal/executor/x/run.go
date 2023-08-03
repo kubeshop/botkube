@@ -36,6 +36,12 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cm
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}
+
+	return i.RunWithTemplates(templates, state, cmd, runFn)
+}
+
+// RunWithTemplates runs a given command and parse its output if needed. It uses specified templates instead of downloading them.
+func (i *Runner) RunWithTemplates(templates []template.Template, state *state.Container, cmd Command, runFn func() (string, error)) (executor.ExecuteOutput, error) {
 	cmdTemplate, tplFound := template.FindTemplate(templates, cmd.ToExecute)
 
 	log := i.log.WithFields(logrus.Fields{
@@ -45,8 +51,10 @@ func (i *Runner) Run(ctx context.Context, cfg Config, state *state.Container, cm
 	})
 
 	var cmdOutput string
+	var err error
+
 	if !cmdTemplate.SkipCommandExecution {
-		log.WithField("command", cmd.ToExecute).Error("Running command")
+		log.WithField("command", cmd.ToExecute).Info("Running command")
 		cmdOutput, err = runFn()
 		if err != nil {
 			return executor.ExecuteOutput{}, err

@@ -1,0 +1,35 @@
+templates:
+  - trigger:
+      command:
+        prefix: "flux get sources git"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Source"
+          keyTpl: "{{ .Name }}"
+      actions:
+        export: "flux export source git {{ .Name }}"
+      preview: |
+        Name:        {{ .Name }}
+        Revision:    {{ .Revision }}
+        Suspended:   {{ .Suspended }}
+        Ready:       {{ .Ready }}
+        Message:     {{ .Message}}
+
+  - trigger:
+      command:
+        regex: "flux get sources (bucket|chart|helm|oci)"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Item"
+          keyTpl: "{{ .Name }}"
+
+  - trigger:
+      command:
+        regex: "flux get (receivers|helmreleases|kustomizations|ks)"
+    type: "parser:table:space"
+    message:
+      selects:
+        - name: "Item"
+          keyTpl: "{{ .Name }}"

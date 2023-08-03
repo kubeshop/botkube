@@ -16,12 +16,12 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
-	"github.com/kubeshop/botkube/pkg/httpsrv"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -144,7 +144,7 @@ func (b *Teams) Start(ctx context.Context) error {
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
-	srv := httpsrv.New(b.log, addr, router)
+	srv := httpx.NewServer(b.log, addr, router)
 	err = srv.Serve(ctx)
 	if err != nil {
 		return fmt.Errorf("while running MS Teams server: %w", err)

@@ -19,8 +19,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	cliconfig "github.com/kubeshop/botkube/cmd/cli/cmd/config"
 	"github.com/kubeshop/botkube/internal/cli"
+	cliconfig "github.com/kubeshop/botkube/internal/cli/config"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"

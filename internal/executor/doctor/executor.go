@@ -46,7 +46,7 @@ func NewExecutor(ver string) *Executor {
 // Metadata returns details about the Doctor plugin.
 func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     "1.0.0",
+		Version:     d.pluginVersion,
 		Description: "Doctor helps in finding the root cause of a k8s problem.",
 		JSONSchema: api.JSONSchema{
 			Value: heredoc.Doc(`{

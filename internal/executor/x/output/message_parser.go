@@ -100,14 +100,14 @@ func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table p
 
 	return api.Section{
 		Buttons: []api.Button{
-			btnBuilder.ForCommandWithoutDesc("Raw output", fmt.Sprintf("exec run %s %s", cmd, x.RawOutputIndicator)),
+			btnBuilder.ForCommandWithoutDesc("Raw output", fmt.Sprintf("%s %s %s", x.BuiltinCmdPrefix, cmd, x.RawOutputIndicator)),
 		},
 		Selects: api.Selects{
 			Items: []api.Select{
 				{
 					Type:    api.StaticSelect,
 					Name:    "Actions",
-					Command: fmt.Sprintf("%s exec run", api.MessageBotNamePlaceholder),
+					Command: fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, x.BuiltinCmdPrefix),
 					OptionGroups: []api.OptionGroup{
 						{
 							Name:    "Actions",
@@ -209,7 +209,8 @@ func (p *TableCommandParser) selectDropdown(name, cmd, keyTpl string, table pars
 		return nil, 0
 	}
 
-	dropdownID := fmt.Sprintf("exec run %s", cmd)
+	dropdownID := fmt.Sprintf("%s %s", x.BuiltinCmdPrefix, cmd)
+	dropdownID = strings.TrimSpace(dropdownID)
 	idx := p.resolveSelectIdx(state, dropdownID)
 	if idx >= len(options) {
 		idx = len(options) - 1
