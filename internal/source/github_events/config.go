@@ -32,20 +32,27 @@ type (
 		//
 		// Rate limiting: https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
 		//
-		// Defaults: 2s
+		// Defaults: 5s
 		RefreshTime time.Duration `yaml:"refreshTime"`
 
 		// List of repository configurations.
 		Repositories []RepositoryConfig `yaml:"repositories"`
 	}
 
-	// JSONPathMatcher represents the JSONPath matcher configuration.
-	JSONPathMatcher struct {
+	// EventsAPIMatcher defines matchers for /events API.
+	EventsAPIMatcher struct {
+		// Type defines event type.
+		// Required.
+		Type string `yaml:"type"`
+
 		// The JSONPath expression to filter events
 		JSONPath string `yaml:"jsonPath"`
 
 		// The value to match in the JSONPath result
 		Value string `yaml:"value"`
+
+		// NotificationTemplate defines custom notification template.
+		NotificationTemplate NotificationTemplate `yaml:"notificationTemplate,omitempty"`
 	}
 
 	// FilePatterns represents the file patterns configuration.
@@ -86,8 +93,8 @@ type (
 	// On defines allowed GitHub matcher criteria.
 	On struct {
 		PullRequests []PullRequest `yaml:"pullRequests,omitempty"`
-		// JSON path matcher configuration.
-		//JSONPathMatcher []JSONPathMatcher `yaml:"jsonPathMatcher"`
+		// EventsAPI watches for /events API
+		EventsAPI []EventsAPIMatcher `yaml:"events"`
 	}
 	PullRequest struct {
 		// Types patterns defines if we should watch only for pull requests with given state criteria.

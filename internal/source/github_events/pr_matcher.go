@@ -87,7 +87,9 @@ func (w *PullRequestMatcher) isChangingRequiredFiles(ctx context.Context, paths 
 	repo := pullRequest.GetBase().GetRepo()
 	name, owner := repo.GetName(), repo.GetOwner().GetLogin()
 
-	files, _, err := w.cli.PullRequests.ListFiles(ctx, owner, name, pullRequest.GetNumber(), &github.ListOptions{})
+	files, _, err := w.cli.PullRequests.ListFiles(ctx, owner, name, pullRequest.GetNumber(), &github.ListOptions{
+		PerPage: perPageItems,
+	})
 	if err != nil {
 		w.log.WithError(err).WithFields(logrus.Fields{
 			"owner":    owner,

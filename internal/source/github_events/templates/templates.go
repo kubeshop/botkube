@@ -87,7 +87,7 @@ func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorO
 				},
 				TextFields: fields,
 				Buttons: []api.Button{
-					btnBuilder.ForURL("Open on GitHub", pr.GetHTMLURL(), api.ButtonStylePrimary),
+					btnBuilder.ForURL("View", pr.GetHTMLURL(), api.ButtonStylePrimary),
 				},
 				Context: []api.ContextItem{
 					{
@@ -140,7 +140,7 @@ func watchEventMessage(ghEvent *github.Event, event any, opts ...MessageMutatorO
 		Sections: []api.Section{
 			{
 				Base: api.Base{
-					Header: "Starred a repository",
+					Header: "⭐ Starred a repository",
 				},
 				TextFields: fields,
 				Buttons: []api.Button{

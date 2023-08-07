@@ -35,7 +35,6 @@ func WithExtraButtons(btns []ExtraButton) templates.MessageMutatorOption {
 		}
 
 		return message
-
 	}
 }
 

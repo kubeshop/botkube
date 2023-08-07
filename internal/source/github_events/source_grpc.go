@@ -2,6 +2,7 @@ package github_events
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -9,6 +10,9 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
+
+//go:embed jsonschema.json
+var jsonschema string
 
 const (
 	// PluginName is the name of the Kubernetes Botkube plugin.
@@ -40,7 +44,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		Event: make(chan source.Event),
 	}
 
-	ghCli, err := gh.NewClient(&cfg.GitHub)
+	ghCli, err := gh.NewClient(&cfg.GitHub, cfg.Log)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while creating GitHub client: %w", err)
 	}
@@ -62,7 +66,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		Version:     s.pluginVersion,
 		Description: description,
 		JSONSchema: api.JSONSchema{
-			Value: "",
+			Value: jsonschema,
 		},
 	}, nil
 }

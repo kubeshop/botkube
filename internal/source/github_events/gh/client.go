@@ -2,15 +2,17 @@ package gh
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v53/github"
 	"github.com/gregjones/httpcache"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/kubeshop/botkube/internal/httpx"
+	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/config"
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -69,10 +71,10 @@ func (c *ClientConfig) Validate() error {
 		}
 	}
 
-	return nil
+	return issues.ErrorOrNil()
 }
 
-func NewClient(cfg *ClientConfig) (*github.Client, error) {
+func NewClient(cfg *ClientConfig, log config.Logger) (*github.Client, error) {
 	err := cfg.Validate()
 	if err != nil {
 		return nil, err
@@ -104,7 +106,12 @@ func NewClient(cfg *ClientConfig) (*github.Client, error) {
 
 	baseURL, uploadURL := cfg.BaseURL, cfg.UploadURL
 
-	httpClient.Transport = &LogRateLimitHeaders{RoundTripper: httpClient.Transport}
+	if log.Level == "debug" {
+		httpClient.Transport = &LogRateLimitHeaders{
+			underlying: httpClient.Transport,
+			log:        loggerx.New(log),
+		}
+	}
 	if baseURL == "" {
 		return github.NewClient(httpClient), nil
 	}
@@ -125,17 +132,19 @@ var headers = map[string]struct{}{
 }
 
 type LogRateLimitHeaders struct {
-	http.RoundTripper
+	underlying http.RoundTripper
+	log        logrus.FieldLogger
 }
 
 func (l LogRateLimitHeaders) RoundTrip(request *http.Request) (*http.Response, error) {
-	resp, err := l.RoundTripper.RoundTrip(request)
+	resp, err := l.underlying.RoundTrip(request)
 	if resp != nil {
 		values := map[string]string{}
 		for name := range headers {
 			values[name] = resp.Header.Get(name)
 		}
-		fmt.Printf("All headers: %v\n", values)
+
+		l.log.WithField("url", request.URL.String()).Debugf("Request headers: %v", values)
 	}
 	return resp, err
 }
