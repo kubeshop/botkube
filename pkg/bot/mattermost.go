@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sourcegraph/conc/pool"
 	"net/url"
 	"regexp"
 	"strings"
@@ -46,23 +47,26 @@ const (
 
 // Mattermost listens for user's message, execute commands and sends back the response.
 type Mattermost struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        AnalyticsReporter
-	serverURL       string
-	botName         string
-	botUserID       string
-	teamName        string
-	webSocketURL    string
-	wsClient        *model.WebSocketClient
-	apiClient       *model.Client4
-	channelsMutex   sync.RWMutex
-	commGroupName   string
-	channels        map[string]channelConfigByID
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	renderer        *MattermostRenderer
-	userNamesForID  map[string]string
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
+	reporter         AnalyticsReporter
+	serverURL        string
+	botName          string
+	botUserID        string
+	teamName         string
+	webSocketURL     string
+	wsClient         *model.WebSocketClient
+	apiClient        *model.Client4
+	channelsMutex    sync.RWMutex
+	commGroupName    string
+	channels         map[string]channelConfigByID
+	notifyMutex      sync.Mutex
+	botMentionRegex  *regexp.Regexp
+	renderer         *MattermostRenderer
+	userNamesForID   map[string]string
+	messages         chan mattermostMessage
+	mmMessageWorkers *pool.Pool
+	shutdownOnce     sync.Once
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -121,24 +125,39 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 	}
 
 	return &Mattermost{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		serverURL:       cfg.URL,
-		botName:         cfg.BotName,
-		botUserID:       botUserID,
-		teamName:        cfg.Team,
-		apiClient:       client,
-		webSocketURL:    webSocketURL,
-		commGroupName:   commGroupName,
-		channels:        channelsByIDCfg,
-		botMentionRegex: botMentionRegex,
-		renderer:        NewMattermostRenderer(),
-		userNamesForID:  map[string]string{},
+		log:              log,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		serverURL:        cfg.URL,
+		botName:          cfg.BotName,
+		botUserID:        botUserID,
+		teamName:         cfg.Team,
+		apiClient:        client,
+		webSocketURL:     webSocketURL,
+		commGroupName:    commGroupName,
+		channels:         channelsByIDCfg,
+		botMentionRegex:  botMentionRegex,
+		renderer:         NewMattermostRenderer(),
+		userNamesForID:   map[string]string{},
+		messages:         make(chan mattermostMessage, 100),
+		mmMessageWorkers: pool.New().WithMaxGoroutines(10),
 	}, nil
 }
 
-// Start establishes mattermost connection and listens for messages
+func (b *Mattermost) startMessageProcessor(ctx context.Context) {
+	b.log.Info("Starting mattermost message processor...")
+	defer b.log.Info("Stopped mattermost message processor...")
+
+	for msg := range b.messages {
+		b.mmMessageWorkers.Go(func() {
+			err := b.handleMessage(ctx, msg)
+			if err != nil {
+				wrappedErr := fmt.Errorf("while handling message: %w", err)
+				b.log.Errorf(wrappedErr.Error())
+			}
+		})
+	}
+} // Start establishes mattermost connection and listens for messages
 func (b *Mattermost) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
@@ -161,6 +180,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
+			b.shutdown()
 			return nil
 		default:
 			var appErr error
@@ -213,7 +233,7 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 }
 
 // Check incoming message and take action
-func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) error {
+func (b *Mattermost) handleMessage(ctx context.Context, mm mattermostMessage) error {
 	post, err := postFromEvent(mm.Event)
 	if err != nil {
 		return fmt.Errorf("while getting post from event: %w", err)
@@ -387,14 +407,10 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			mm := &mattermostMessage{
+			mm := mattermostMessage{
 				Event: event,
 			}
-			err := b.handleMessage(ctx, mm)
-			if err != nil {
-				wrappedErr := fmt.Errorf("while handling message: %w", err)
-				b.log.Errorf(wrappedErr.Error())
-			}
+			b.messages <- mm
 		}
 	}
 }
@@ -480,6 +496,14 @@ func (b *Mattermost) getUserName(ctx context.Context, userID string) (string, er
 	b.userNamesForID[userID] = user.Username
 
 	return user.Username, nil
+}
+
+func (b *Mattermost) shutdown() {
+	b.shutdownOnce.Do(func() {
+		b.log.Info("Shutting down mattermost message processor...")
+		close(b.messages)
+		b.mmMessageWorkers.Wait()
+	})
 }
 
 func getBotUserID(ctx context.Context, client *model.Client4, teamID, botName string) (string, error) {
