@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sourcegraph/conc/pool"
 	"net/url"
 	"regexp"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/sirupsen/logrus"
+	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -176,6 +176,9 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
 	b.log.Info("Botkube connected to Mattermost!")
+
+	go b.startMessageProcessor(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():

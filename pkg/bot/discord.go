@@ -11,6 +11,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
+	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -39,17 +40,20 @@ const (
 
 // Discord listens for user's message, execute commands and sends back the response.
 type Discord struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        AnalyticsReporter
-	api             *discordgo.Session
-	botID           string
-	channelsMutex   sync.RWMutex
-	channels        map[string]channelConfigByID
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	commGroupName   string
-	renderer        *DiscordRenderer
+	log                   logrus.FieldLogger
+	executorFactory       ExecutorFactory
+	reporter              AnalyticsReporter
+	api                   *discordgo.Session
+	botID                 string
+	channelsMutex         sync.RWMutex
+	channels              map[string]channelConfigByID
+	notifyMutex           sync.Mutex
+	botMentionRegex       *regexp.Regexp
+	commGroupName         string
+	renderer              *DiscordRenderer
+	messages              chan discordMessage
+	discordMessageWorkers *pool.Pool
+	shutdownOnce          sync.Once
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -75,19 +79,33 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 	}
 
 	return &Discord{
-		log:             log,
-		reporter:        reporter,
-		executorFactory: executorFactory,
-		api:             api,
-		botID:           cfg.BotID,
-		commGroupName:   commGroupName,
-		channels:        channelsCfg,
-		botMentionRegex: botMentionRegex,
-		renderer:        NewDiscordRenderer(),
+		log:                   log,
+		reporter:              reporter,
+		executorFactory:       executorFactory,
+		api:                   api,
+		botID:                 cfg.BotID,
+		commGroupName:         commGroupName,
+		channels:              channelsCfg,
+		botMentionRegex:       botMentionRegex,
+		renderer:              NewDiscordRenderer(),
+		messages:              make(chan discordMessage, 100),
+		discordMessageWorkers: pool.New().WithMaxGoroutines(10),
 	}, nil
 }
 
-// Start starts the Discord websocket connection and listens for messages.
+func (b *Discord) startMessageProcessor(ctx context.Context) {
+	b.log.Info("Starting discord message processor...")
+	defer b.log.Info("Stopped discord message processor...")
+
+	for msg := range b.messages {
+		b.discordMessageWorkers.Go(func() {
+			err := b.handleMessage(ctx, msg)
+			if err != nil {
+				b.log.Errorf("while handling message: %s", err.Error())
+			}
+		})
+	}
+} // Start starts the Discord websocket connection and listens for messages.
 func (b *Discord) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
@@ -113,14 +131,10 @@ func (b *Discord) Start(ctx context.Context) error {
 	}
 
 	b.log.Info("Botkube connected to Discord!")
-
+	go b.startMessageProcessor(ctx)
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
-	err = b.api.Close()
-	if err != nil {
-		return fmt.Errorf("while closing connection: %w", err)
-	}
-
+	b.shutdown()
 	return nil
 }
 
@@ -343,6 +357,19 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 			&messageEmbed,
 		},
 	}, nil
+}
+
+func (b *Discord) shutdown() {
+	b.shutdownOnce.Do(func() {
+		b.log.Info("Shutting down discord message processor...")
+		close(b.messages)
+		b.discordMessageWorkers.Wait()
+
+		err := b.api.Close()
+		if err != nil {
+			b.log.Errorf("While closing connection: %v", err)
+		}
+	})
 }
 
 func discordChannelsConfigFrom(log logrus.FieldLogger, api *discordgo.Session, channelsCfg config.IdentifiableMap[config.ChannelBindingsByID]) (map[string]channelConfigByID, error) {
