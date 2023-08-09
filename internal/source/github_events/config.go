@@ -21,19 +21,17 @@ type (
 		// GitHub configuration.
 		GitHub gh.ClientConfig `yaml:"github"`
 
-		// RefreshTime defines how often we should call GitHub REST API to check repository events.
+		// RefreshDuration defines how often we should call GitHub REST API to check repository events.
 		// It's the same for all configured repositories. For example, if you configure 5s refresh time, and you have 3 repositories registered,
-		// we will execute maximum 2160 calls which easily fits into PAT rate limits. You need to consider when you configure this plugin.
-		// You can create multiple plugins configuration with dedicated tokens to split have the rate limits increased.
+		// we will execute maximum 2160 calls which easily fits into PAT rate limits.
+		// You can create multiple plugins configuration with dedicated tokens to have the rate limits increased.
 		//
 		// NOTE:
 		// - we use conditional requests (https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#conditional-requests), so if there are no events the call doesn't count against your rate limits.
 		// - if you configure file pattern matcher for merged pull request events we execute one more additional call to check which files were changed in the context of a given pull request
 		//
 		// Rate limiting: https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
-		//
-		// Defaults: 5s
-		RefreshTime time.Duration `yaml:"refreshTime"`
+		RefreshDuration time.Duration `yaml:"refreshDuration"`
 
 		// List of repository configurations.
 		Repositories []RepositoryConfig `yaml:"repositories"`
@@ -66,18 +64,24 @@ type (
 
 	// ExtraButton represents the extra button configuration in notification templates.
 	ExtraButton struct {
-		// Display name for the extra button.
+		// DisplayName for the extra button.
 		DisplayName string `yaml:"displayName"`
 
-		// Command template for the extra button.
+		// CommandTpl template for the extra button.
 		CommandTpl string `yaml:"commandTpl"`
-		Style      string `yaml:"style"`
+
+		// URL to open. If specified CommandTpl is ignored.
+		URL string `yaml:"url"`
+
+		// Style for button.
+		Style string `yaml:"style"`
 	}
 
 	// NotificationTemplate represents the notification template configuration.
 	NotificationTemplate struct {
 		// Extra buttons in the notification template.
 		ExtraButtons []ExtraButton `yaml:"extraButtons"`
+		PreviewTpl   string        `yaml:"previewTpl"`
 	}
 
 	// RepositoryConfig represents the configuration for repositories.
@@ -117,6 +121,9 @@ type (
 
 func (t NotificationTemplate) ToOptions() []templates.MessageMutatorOption {
 	var out []templates.MessageMutatorOption
+	if t.PreviewTpl != "" {
+		out = append(out, WithCustomPreview(t.PreviewTpl))
+	}
 	if len(t.ExtraButtons) > 0 {
 		out = append(out, WithExtraButtons(t.ExtraButtons))
 	}
@@ -186,7 +193,7 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		Log: config.Logger{
 			Level: "info",
 		},
-		RefreshTime: 5 * time.Second,
+		RefreshDuration: 5 * time.Second,
 		GitHub: gh.ClientConfig{
 			BaseURL:   "https://api.github.com/",
 			UploadURL: "https://uploads.github.com/",

@@ -42,7 +42,7 @@ var templates = map[string]RenderFn{
 	"WatchEvent": watchEventMessage,
 }
 
-type RenderFn func(ghEvent *github.Event, event any, opts ...MessageMutatorOption) api.Message
+type RenderFn func(ghEvent *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error)
 
 func Get(eventType string) RenderFn {
 	fn, found := templates[eventType]
@@ -53,18 +53,19 @@ func Get(eventType string) RenderFn {
 }
 
 type (
-	MessageMutatorOption func(message api.Message, payload any) api.Message
+	MessageMutatorOption func(message api.Message, payload any) (api.Message, error)
 )
 
-func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorOption) api.Message {
+func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error) {
 	pr, ok := event.(*github.PullRequest)
 	if !ok {
-		return api.Message{}
+		return api.Message{}, fmt.Errorf("got unknown event type %T", event)
 	}
 
 	var fields api.TextFields
 
 	fields = append(fields, api.TextField{Key: "Author", Value: pr.GetUser().GetLogin()})
+	fields = append(fields, api.TextField{Key: "State", Value: pr.GetState()})
 	fields = append(fields, api.TextField{Key: "Merged", Value: strconv.FormatBool(!pr.GetMergedAt().IsZero())})
 
 	var labels []string
@@ -82,7 +83,7 @@ func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorO
 		Sections: []api.Section{
 			{
 				Base: api.Base{
-					Header:      fmt.Sprintf("Pull request %s", pr.GetState()),
+					Header:      "Pull request event",
 					Description: fmt.Sprintf("#%d %s", pr.GetNumber(), pr.GetTitle()),
 				},
 				TextFields: fields,
@@ -98,25 +99,34 @@ func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorO
 		},
 	}
 
+	var err error
 	for _, mutator := range opts {
-		baseMessage = mutator(baseMessage, pr)
+		baseMessage, err = mutator(baseMessage, pr)
+		if err != nil {
+			return api.Message{}, err
+		}
 	}
-	return baseMessage
+	return baseMessage, nil
 }
 
-func genericJSONEventMessage(_ *github.Event, event any, opts ...MessageMutatorOption) api.Message {
+func genericJSONEventMessage(ghEvent *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error) {
 	raw, err := json.MarshalIndent(event, "", "  ")
 	if err != nil {
-		return api.Message{}
+		return api.Message{}, err
 	}
 
 	baseMessage := api.Message{
 		Sections: []api.Section{
 			{
 				Base: api.Base{
-					Header: "GitHub Event",
+					Header: fmt.Sprintf("%s GitHub Event", ghEvent.GetType()),
 					Body: api.Body{
 						CodeBlock: string(raw),
+					},
+				},
+				Context: []api.ContextItem{
+					{
+						Text: fmt.Sprintf("Created at %s", ghEvent.GetCreatedAt().Format(time.RFC822)),
 					},
 				},
 			},
@@ -124,12 +134,15 @@ func genericJSONEventMessage(_ *github.Event, event any, opts ...MessageMutatorO
 	}
 
 	for _, mutator := range opts {
-		baseMessage = mutator(baseMessage, event)
+		baseMessage, err = mutator(baseMessage, event)
+		if err != nil {
+			return api.Message{}, err
+		}
 	}
-	return baseMessage
+	return baseMessage, nil
 }
 
-func watchEventMessage(ghEvent *github.Event, event any, opts ...MessageMutatorOption) api.Message {
+func watchEventMessage(ghEvent *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error) {
 	var fields api.TextFields
 	fields = append(fields, api.TextField{Key: "Repository", Value: ghEvent.GetRepo().GetName()})
 	fields = append(fields, api.TextField{Key: "User", Value: formatx.AdaptiveCodeBlock(ghEvent.GetActor().GetLogin())})
@@ -150,8 +163,12 @@ func watchEventMessage(ghEvent *github.Event, event any, opts ...MessageMutatorO
 		},
 	}
 
+	var err error
 	for _, mutator := range opts {
-		baseMessage = mutator(baseMessage, event)
+		baseMessage, err = mutator(baseMessage, event)
+		if err != nil {
+			return api.Message{}, err
+		}
 	}
-	return baseMessage
+	return baseMessage, nil
 }

@@ -26,7 +26,7 @@ type (
 		// Default: https://api.github.com/
 		BaseURL string `yaml:"baseUrl"`
 
-		// The GitHub upload URL for uploading files. It is taken into account only when the GITHUB_BASE_URL is also set. If only the GITHUB_BASE_URL is provided then this parameter defaults to the GITHUB_BASE_URL value.
+		// The GitHub upload URL for uploading files. It is taken into account only when the BaseURL is also set. If only the BaseURL is provided then this parameter defaults to the BaseURL value.
 		// Default: https://uploads.github.com/
 		UploadURL string `yaml:"uploadUrl"`
 	}
@@ -38,19 +38,19 @@ type (
 		AccessToken string `yaml:"accessToken"`
 
 		// AppConfig represents the GitHub App configuration.
+		// This replaces the AccessToken
 		App AppConfig `yaml:"app"`
 	}
 
 	// AppConfig represents the GitHub App configuration.
 	AppConfig struct {
-		// GitHub App ID for authentication. This replaces the GITHUB_ACCESS_TOKEN.
-		// Instruction for creating a GitHub App can be found here: https://github.com/mszostok/codeowners-validator/blob/main/docs/gh-token.md
+		// GitHub App ID for authentication.
 		ID int64 `yaml:"id"`
 
-		// GitHub App Installation ID. Required when GITHUB_APP_ID is set.
+		// GitHub App Installation ID.
 		InstallationID int64 `yaml:"installationId"`
 
-		// GitHub App private key in PEM format. Required when GITHUB_APP_ID is set.
+		// GitHub App private key in PEM format.
 		PrivateKey string `yaml:"privateKey"`
 	}
 )

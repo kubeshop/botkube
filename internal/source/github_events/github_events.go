@@ -27,7 +27,7 @@ type Watcher struct {
 	cli             *github.Client
 	log             logrus.FieldLogger
 	cfg             []RepositoryConfig
-	refreshTime     time.Duration
+	refreshDuration time.Duration
 	lastProcessTime map[string]time.Time
 	repos           map[string]matchCriteria
 	prMatcher       *PullRequestMatcher
@@ -35,14 +35,14 @@ type Watcher struct {
 }
 
 // NewWatcher returns a new Watcher instance.
-func NewWatcher(refreshTime time.Duration, repositories []RepositoryConfig, cli *github.Client, log logrus.FieldLogger) (*Watcher, error) {
+func NewWatcher(refreshDuration time.Duration, repositories []RepositoryConfig, cli *github.Client, log logrus.FieldLogger) (*Watcher, error) {
 	repos, lastProcessTime, err := normalizeRepos(repositories)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Watcher{
-		refreshTime:     refreshTime,
+		refreshDuration: refreshDuration,
 		cfg:             repositories,
 		repos:           repos,
 		cli:             cli,
@@ -83,7 +83,7 @@ func normalizeRepos(in []RepositoryConfig) (map[string]matchCriteria, map[string
 			RepoName:  split[1],
 			Matchers:  on,
 		}
-		lastProcessTime[repo.Name] = time.Now().Add(-24 * time.Hour)
+		lastProcessTime[repo.Name] = time.Now()
 	}
 
 	return repos, lastProcessTime, nil
@@ -91,7 +91,7 @@ func normalizeRepos(in []RepositoryConfig) (map[string]matchCriteria, map[string
 
 func (w *Watcher) AsyncConsumeEvents(ctx context.Context, stream *source.StreamOutput) {
 	go func() {
-		timer := time.NewTimer(w.refreshTime)
+		timer := time.NewTimer(w.refreshDuration)
 		defer timer.Stop()
 
 		defer close(stream.Event)
@@ -114,10 +114,10 @@ func (w *Watcher) AsyncConsumeEvents(ctx context.Context, stream *source.StreamO
 					return nil
 				})
 				if err != nil {
-					w.log.WithError(err).Errorf("while processing events, next retry in %d", w.refreshTime)
+					w.log.WithError(err).Errorf("while processing events, next retry in %d", w.refreshDuration)
 				}
 
-				timer.Reset(w.refreshTime)
+				timer.Reset(w.refreshDuration)
 			}
 		}
 	}()
@@ -154,8 +154,13 @@ func (w *Watcher) emitMatchingEvent(ctx context.Context, stream *source.StreamOu
 					continue
 				}
 
+				msg, err := messageRenderer(ev.GetEvent(), payload, criteria.NotificationTemplate.ToOptions()...)
+				if err != nil {
+					log.WithError(err).Errorf("while rendering event %q from %s/%s", ev.Type(), repo.RepoOwner, repo.RepoName)
+					continue // let's check other events
+				}
 				stream.Event <- source.Event{
-					Message: messageRenderer(ev.GetEvent(), payload, criteria.NotificationTemplate.ToOptions()...),
+					Message: msg,
 				}
 			}
 		default:
@@ -179,8 +184,13 @@ func (w *Watcher) emitMatchingEvent(ctx context.Context, stream *source.StreamOu
 					continue
 				}
 
+				msg, err := messageRenderer(ev.GetEvent(), payload, criteria.NotificationTemplate.ToOptions()...)
+				if err != nil {
+					log.WithError(err).Errorf("while rendering event %q from %s/%s", ev.Type(), repo.RepoOwner, repo.RepoName)
+					continue // let's check other events
+				}
 				stream.Event <- source.Event{
-					Message: messageRenderer(ev.GetEvent(), payload, criteria.NotificationTemplate.ToOptions()...),
+					Message: msg,
 				}
 			}
 
@@ -303,28 +313,45 @@ func addOptions(s string, opts interface{}) (string, error) {
 // source: https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-repository-events
 func (w *Watcher) listRepositoryEvents(ctx context.Context, repo matchCriteria) ([]CommonEvent, error) {
 	w.log.Debugf("Listing all %d last emitted github events", perPageItems)
-	events, r, err := w.cli.Activity.ListRepositoryEvents(ctx, repo.RepoOwner, repo.RepoName, &github.ListOptions{
+
+	var events []*github.Event
+	opts := github.ListOptions{
 		PerPage: perPageItems,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("while listing repository events: %w", err)
 	}
-	if r.StatusCode >= 400 {
-		return nil, fmt.Errorf("got unexpected status code: %d", r.StatusCode)
+	for {
+		resultPage, r, err := w.cli.Activity.ListRepositoryEvents(ctx, repo.RepoOwner, repo.RepoName, &opts)
+		if err != nil {
+			return nil, fmt.Errorf("while listing repository events: %w", err)
+		}
+		if r.StatusCode >= 400 {
+			return nil, fmt.Errorf("got unexpected status code: %d", r.StatusCode)
+		}
+
+		events = append(events, resultPage...)
+		if r.NextPage == 0 {
+			break
+		}
+		opts.Page = r.NextPage
 	}
 
 	var eventsToProcess []CommonEvent
 	for _, e := range events {
-		if e == nil || e.CreatedAt.Before(w.lastProcessTime[repoKey(repo)]) {
+		fmt.Println(e.GetType())
+		if e == nil || e.GetCreatedAt().Before(w.lastProcessTime[repoKey(repo)]) {
 			w.log.WithField("eventType", e.GetType()).Debug("Ignoring old events")
 			continue
 		}
 		if e.GetType() == prEventName {
-			w.log.Debug("Ignore PullRequestEvent as we list them on our own")
+			w.log.Debugf("Ignore %s as we list them on our own", prEventName)
 			continue
 		}
+		w.log.WithFields(logrus.Fields{
+			"eventType":      e.GetType(),
+			"eventCreatedAt": e.GetCreatedAt().String(),
+		}).Debug()
 		eventsToProcess = append(eventsToProcess, &GitHubEvent{e})
 	}
+
 	return eventsToProcess, nil
 }
 

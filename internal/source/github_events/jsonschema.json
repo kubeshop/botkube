@@ -1,8 +1,40 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "GitHub Events",
+  "title": "GitHub Events Experimental Source Plugin",
   "description": "GitHub Events configuration parameters",
   "type": "object",
+  "uiSchema": {
+    "repositories": {
+      "on": {
+        "pullRequests": {
+          "paths": {
+            "include": {
+              "ui:classNames": "non-orderable",
+              "ui:options": {
+                "orderable": false
+              },
+              "items": {
+                "ui:options": {
+                  "label": false
+                }
+              }
+            },
+            "exclude": {
+              "ui:classNames": "non-orderable",
+              "ui:options": {
+                "orderable": false
+              },
+              "items": {
+                "ui:options": {
+                  "label": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "properties": {
     "github": {
       "title": "GitHub Configuration",
@@ -11,21 +43,21 @@
       "properties": {
         "auth": {
           "title": "Authentication",
-          "description": "Authentication settings for accessing the GitHub API.",
+          "description": "Authentication settings for accessing the GitHub API. If none provided, watch functionality could not work properly, e.g. you can reach the API calls quota or if you are connecting to GitHub Enterprise, an unauthorized error can occur.",
           "type": "object",
           "properties": {
             "accessToken": {
               "title": "Access Token",
-              "description": "The GitHub access token. Required for certain functionality.",
               "type": "string"
             }
           }
         }
       }
     },
-    "refreshTime": {
-      "title": "Refresh Time",
-      "description": "Time interval for refreshing GitHub repository events.",
+    "refreshDuration": {
+      "title": "Refresh Duration",
+      "description": "Time interval for refreshing GitHub repository events. Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\"",
+      "default": "5s",
       "type": "string"
     },
     "repositories": {
@@ -59,14 +91,10 @@
                     "types": {
                       "title": "Pull Request Types",
                       "description": "List of allowed pull request types.",
-                      "ui:classNames": "non-orderable",
-                      "ui:options": {
-                        "orderable": false
-                      },
+                      "type": "array",
                       "items": {
-                        "ui:options": {
-                          "label": false
-                        }
+                        "type": "string",
+                        "title": "Pull Request Type"
                       }
                     },
                     "paths": {
@@ -75,25 +103,19 @@
                       "type": "object",
                       "properties": {
                         "include": {
-                          "ui:classNames": "non-orderable",
-                          "ui:options": {
-                            "orderable": false
-                          },
+                          "title": "Include",
+                          "type": "array",
                           "items": {
-                            "ui:options": {
-                              "label": false
-                            }
+                            "type": "string",
+                            "title": "File path"
                           }
                         },
                         "exclude": {
-                          "ui:classNames": "non-orderable",
-                          "ui:options": {
-                            "orderable": false
-                          },
+                          "title": "Exclude",
+                          "type": "array",
                           "items": {
-                            "ui:options": {
-                              "label": false
-                            }
+                            "type": "string",
+                            "title": "File path"
                           }
                         }
                       }
@@ -104,30 +126,24 @@
                       "type": "object",
                       "properties": {
                         "include": {
-                          "ui:classNames": "non-orderable",
-                          "ui:options": {
-                            "orderable": false
-                          },
+                          "title": "Include",
+                          "type": "array",
                           "items": {
-                            "ui:options": {
-                              "label": false
-                            }
+                            "type": "string",
+                            "title": "File path"
                           }
                         },
                         "exclude": {
-                          "ui:classNames": "non-orderable",
-                          "ui:options": {
-                            "orderable": false
-                          },
+                          "title": "Exclude",
+                          "type": "array",
                           "items": {
-                            "ui:options": {
-                              "label": false
-                            }
+                            "type": "string",
+                            "title": "File path"
                           }
                         }
                       },
                       "notificationTemplate": {
-                        "$ref": "#/definitions//notificationTemplate"
+                        "$ref": "#/definitions/notificationTemplate"
                       }
                     }
                   }
@@ -154,7 +170,7 @@
                       "type": "string"
                     },
                     "notificationTemplate": {
-                      "$ref": "#/definitions//notificationTemplate"
+                      "$ref": "#/definitions/notificationTemplate"
                     }
                   }
                 }

@@ -50,7 +50,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 	}
 
 	log := loggerx.New(cfg.Log)
-	watcher, err := NewWatcher(cfg.RefreshTime, cfg.Repositories, ghCli, log)
+	watcher, err := NewWatcher(cfg.RefreshDuration, cfg.Repositories, ghCli, log)
 	if err != nil {
 		return source.StreamOutput{}, err
 	}
