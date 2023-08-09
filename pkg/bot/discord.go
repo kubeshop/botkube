@@ -36,6 +36,10 @@ const (
 
 	// discordMaxMessageSize max size before a message should be uploaded as a file.
 	discordMaxMessageSize = 2000
+
+	discordMessageWorkersCount = 10
+
+	discordMessageChannelSize = 100
 )
 
 // Discord listens for user's message, execute commands and sends back the response.
@@ -88,8 +92,8 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		channels:              channelsCfg,
 		botMentionRegex:       botMentionRegex,
 		renderer:              NewDiscordRenderer(),
-		messages:              make(chan discordMessage, 100),
-		discordMessageWorkers: pool.New().WithMaxGoroutines(10),
+		messages:              make(chan discordMessage, discordMessageChannelSize),
+		discordMessageWorkers: pool.New().WithMaxGoroutines(discordMessageWorkersCount),
 	}, nil
 }
 

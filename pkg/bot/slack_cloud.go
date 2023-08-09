@@ -36,36 +36,38 @@ import (
 )
 
 const (
-	APIKeyContextKey        = "X-Api-Key"       // #nosec
-	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
-	retryDelay              = time.Second
-	maxRetries              = 30
-	successIntervalDuration = 3 * time.Minute
-	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
+	APIKeyContextKey              = "X-Api-Key"       // #nosec
+	DeploymentIDContextKey        = "X-Deployment-Id" // #nosec
+	retryDelay                    = time.Second
+	maxRetries                    = 30
+	successIntervalDuration       = 3 * time.Minute
+	quotaExceededMsg              = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
+	cloudSlackMessageWorkersCount = 10
+	cloudSlackMessageChannelSize  = 100
 )
 
 var _ Bot = &CloudSlack{}
 
 // CloudSlack listens for user's message, execute commands and sends back the response.
 type CloudSlack struct {
-	log                 logrus.FieldLogger
-	cfg                 config.CloudSlack
-	client              *slack.Client
-	executorFactory     ExecutorFactory
-	reporter            cloudSlackAnalyticsReporter
-	commGroupName       string
-	realNamesForID      map[string]string
-	botMentionRegex     *regexp.Regexp
-	botID               string
-	channelsMutex       sync.RWMutex
-	renderer            *SlackRenderer
-	channels            map[string]channelConfigByName
-	notifyMutex         sync.Mutex
-	clusterName         string
-	msgStatusTracker    *SlackMessageStatusTracker
-	messages            chan *pb.ConnectResponse
-	slackMessageWorkers *pool.Pool
-	shutdownOnce        sync.Once
+	log              logrus.FieldLogger
+	cfg              config.CloudSlack
+	client           *slack.Client
+	executorFactory  ExecutorFactory
+	reporter         cloudSlackAnalyticsReporter
+	commGroupName    string
+	realNamesForID   map[string]string
+	botMentionRegex  *regexp.Regexp
+	botID            string
+	channelsMutex    sync.RWMutex
+	renderer         *SlackRenderer
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	clusterName      string
+	msgStatusTracker *SlackMessageStatusTracker
+	messages         chan *pb.ConnectResponse
+	messageWorkers   *pool.Pool
+	shutdownOnce     sync.Once
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -111,6 +113,8 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
+		messages:         make(chan *pb.ConnectResponse, cloudSlackMessageChannelSize),
+		messageWorkers:   pool.New().WithMaxGoroutines(cloudSlackMessageWorkersCount),
 	}, nil
 }
 
@@ -223,7 +227,7 @@ func (b *CloudSlack) startMessageProcessor(ctx context.Context) {
 	defer b.log.Info("Stopped cloud slack message processor...")
 
 	for msg := range b.messages {
-		b.slackMessageWorkers.Go(func() {
+		b.messageWorkers.Go(func() {
 			err, _ := b.handleStreamMessage(ctx, msg)
 			if err != nil {
 				b.log.Errorf("while handling message: %s", err.Error())
@@ -236,7 +240,7 @@ func (b *CloudSlack) shutdown() {
 	b.shutdownOnce.Do(func() {
 		b.log.Info("Shutting down cloud slack message processor...")
 		close(b.messages)
-		b.slackMessageWorkers.Wait()
+		b.messageWorkers.Wait()
 	})
 }
 

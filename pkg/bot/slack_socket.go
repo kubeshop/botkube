@@ -31,26 +31,31 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
+const (
+	socketSlackMessageWorkersCount = 10
+	socketSlackMessageChannelSize  = 100
+)
+
 var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log                 logrus.FieldLogger
-	executorFactory     ExecutorFactory
-	reporter            socketSlackAnalyticsReporter
-	botID               string
-	client              *slack.Client
-	channelsMutex       sync.RWMutex
-	channels            map[string]channelConfigByName
-	notifyMutex         sync.Mutex
-	botMentionRegex     *regexp.Regexp
-	commGroupName       string
-	renderer            *SlackRenderer
-	realNamesForID      map[string]string
-	msgStatusTracker    *SlackMessageStatusTracker
-	messages            chan slackMessage
-	slackMessageWorkers *pool.Pool
-	shutdownOnce        sync.Once
+	log              logrus.FieldLogger
+	executorFactory  ExecutorFactory
+	reporter         socketSlackAnalyticsReporter
+	botID            string
+	client           *slack.Client
+	channelsMutex    sync.RWMutex
+	channels         map[string]channelConfigByName
+	notifyMutex      sync.Mutex
+	botMentionRegex  *regexp.Regexp
+	commGroupName    string
+	renderer         *SlackRenderer
+	realNamesForID   map[string]string
+	msgStatusTracker *SlackMessageStatusTracker
+	messages         chan slackMessage
+	messageWorkers   *pool.Pool
+	shutdownOnce     sync.Once
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -80,19 +85,19 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 	}
 
 	return &SocketSlack{
-		log:                 log,
-		executorFactory:     executorFactory,
-		reporter:            reporter,
-		botID:               botID,
-		client:              client,
-		channels:            channels,
-		commGroupName:       commGroupName,
-		renderer:            NewSlackRenderer(),
-		botMentionRegex:     botMentionRegex,
-		realNamesForID:      map[string]string{},
-		msgStatusTracker:    NewSlackMessageStatusTracker(log, client),
-		messages:            make(chan slackMessage, 100),
-		slackMessageWorkers: pool.New().WithMaxGoroutines(10),
+		log:              log,
+		executorFactory:  executorFactory,
+		reporter:         reporter,
+		botID:            botID,
+		client:           client,
+		channels:         channels,
+		commGroupName:    commGroupName,
+		renderer:         NewSlackRenderer(),
+		botMentionRegex:  botMentionRegex,
+		realNamesForID:   map[string]string{},
+		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
+		messages:         make(chan slackMessage, socketSlackMessageChannelSize),
+		messageWorkers:   pool.New().WithMaxGoroutines(socketSlackMessageWorkersCount),
 	}, nil
 }
 
@@ -318,7 +323,7 @@ func (b *SocketSlack) startMessageProcessor(ctx context.Context) {
 	defer b.log.Info("Stopped socket slack message processor...")
 
 	for msg := range b.messages {
-		b.slackMessageWorkers.Go(func() {
+		b.messageWorkers.Go(func() {
 			err := b.handleMessage(ctx, msg)
 			if err != nil {
 				b.log.Errorf("while handling message: %s", err.Error())
@@ -331,7 +336,7 @@ func (b *SocketSlack) shutdown() {
 	b.shutdownOnce.Do(func() {
 		b.log.Info("Shutting down socket slack message processor...")
 		close(b.messages)
-		b.slackMessageWorkers.Wait()
+		b.messageWorkers.Wait()
 	})
 }
 

@@ -47,26 +47,26 @@ const (
 
 // Mattermost listens for user's message, execute commands and sends back the response.
 type Mattermost struct {
-	log              logrus.FieldLogger
-	executorFactory  ExecutorFactory
-	reporter         AnalyticsReporter
-	serverURL        string
-	botName          string
-	botUserID        string
-	teamName         string
-	webSocketURL     string
-	wsClient         *model.WebSocketClient
-	apiClient        *model.Client4
-	channelsMutex    sync.RWMutex
-	commGroupName    string
-	channels         map[string]channelConfigByID
-	notifyMutex      sync.Mutex
-	botMentionRegex  *regexp.Regexp
-	renderer         *MattermostRenderer
-	userNamesForID   map[string]string
-	messages         chan mattermostMessage
-	mmMessageWorkers *pool.Pool
-	shutdownOnce     sync.Once
+	log             logrus.FieldLogger
+	executorFactory ExecutorFactory
+	reporter        AnalyticsReporter
+	serverURL       string
+	botName         string
+	botUserID       string
+	teamName        string
+	webSocketURL    string
+	wsClient        *model.WebSocketClient
+	apiClient       *model.Client4
+	channelsMutex   sync.RWMutex
+	commGroupName   string
+	channels        map[string]channelConfigByID
+	notifyMutex     sync.Mutex
+	botMentionRegex *regexp.Regexp
+	renderer        *MattermostRenderer
+	userNamesForID  map[string]string
+	messages        chan mattermostMessage
+	messageWorkers  *pool.Pool
+	shutdownOnce    sync.Once
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -125,22 +125,22 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 	}
 
 	return &Mattermost{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		serverURL:        cfg.URL,
-		botName:          cfg.BotName,
-		botUserID:        botUserID,
-		teamName:         cfg.Team,
-		apiClient:        client,
-		webSocketURL:     webSocketURL,
-		commGroupName:    commGroupName,
-		channels:         channelsByIDCfg,
-		botMentionRegex:  botMentionRegex,
-		renderer:         NewMattermostRenderer(),
-		userNamesForID:   map[string]string{},
-		messages:         make(chan mattermostMessage, 100),
-		mmMessageWorkers: pool.New().WithMaxGoroutines(10),
+		log:             log,
+		executorFactory: executorFactory,
+		reporter:        reporter,
+		serverURL:       cfg.URL,
+		botName:         cfg.BotName,
+		botUserID:       botUserID,
+		teamName:        cfg.Team,
+		apiClient:       client,
+		webSocketURL:    webSocketURL,
+		commGroupName:   commGroupName,
+		channels:        channelsByIDCfg,
+		botMentionRegex: botMentionRegex,
+		renderer:        NewMattermostRenderer(),
+		userNamesForID:  map[string]string{},
+		messages:        make(chan mattermostMessage, 100),
+		messageWorkers:  pool.New().WithMaxGoroutines(10),
 	}, nil
 }
 
@@ -149,7 +149,7 @@ func (b *Mattermost) startMessageProcessor(ctx context.Context) {
 	defer b.log.Info("Stopped mattermost message processor...")
 
 	for msg := range b.messages {
-		b.mmMessageWorkers.Go(func() {
+		b.messageWorkers.Go(func() {
 			err := b.handleMessage(ctx, msg)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while handling message: %w", err)
@@ -505,7 +505,7 @@ func (b *Mattermost) shutdown() {
 	b.shutdownOnce.Do(func() {
 		b.log.Info("Shutting down mattermost message processor...")
 		close(b.messages)
-		b.mmMessageWorkers.Wait()
+		b.messageWorkers.Wait()
 	})
 }
 
