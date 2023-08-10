@@ -1,0 +1,215 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GitHub Events Experimental Source Plugin",
+  "description": "GitHub Events configuration parameters",
+  "type": "object",
+  "uiSchema": {
+    "repositories": {
+      "on": {
+        "pullRequests": {
+          "paths": {
+            "include": {
+              "ui:classNames": "non-orderable",
+              "ui:options": {
+                "orderable": false
+              },
+              "items": {
+                "ui:options": {
+                  "label": false
+                }
+              }
+            },
+            "exclude": {
+              "ui:classNames": "non-orderable",
+              "ui:options": {
+                "orderable": false
+              },
+              "items": {
+                "ui:options": {
+                  "label": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "github": {
+      "title": "GitHub Configuration",
+      "description": "Configuration for GitHub integration.",
+      "type": "object",
+      "properties": {
+        "auth": {
+          "title": "Authentication",
+          "description": "Authentication settings for accessing the GitHub API. If none provided, watch functionality could not work properly, e.g. you can reach the API calls quota or if you are connecting to GitHub Enterprise, an unauthorized error can occur.",
+          "type": "object",
+          "properties": {
+            "accessToken": {
+              "title": "Access Token",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "refreshDuration": {
+      "title": "Refresh Duration",
+      "description": "Time interval for refreshing GitHub repository events. Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\"",
+      "default": "5s",
+      "type": "string"
+    },
+    "repositories": {
+      "title": "Repository Configurations",
+      "description": "List of configurations for monitored repositories.",
+      "type": "array",
+      "items": {
+        "title": "Repository Configuration",
+        "description": "Configuration settings for a specific repository.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "Repository Name",
+            "description": "The name of the GitHub repository in the form 'owner/repository'.",
+            "type": "string"
+          },
+          "on": {
+            "title": "Event Matchers",
+            "description": "Criteria for matching events in the repository.",
+            "type": "object",
+            "properties": {
+              "pullRequests": {
+                "title": "Pull Request Matchers",
+                "description": "Criteria for matching pull requests.",
+                "type": "array",
+                "items": {
+                  "title": "Pull Request Matcher",
+                  "description": "Matcher settings for pull requests.",
+                  "type": "object",
+                  "properties": {
+                    "types": {
+                      "title": "Pull Request Types",
+                      "description": "List of allowed pull request types.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "title": "Pull Request Type"
+                      }
+                    },
+                    "paths": {
+                      "title": "File Patterns",
+                      "description": "File patterns to match for pull requests.",
+                      "type": "object",
+                      "properties": {
+                        "include": {
+                          "title": "Include",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "title": "File path"
+                          }
+                        },
+                        "exclude": {
+                          "title": "Exclude",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "title": "File path"
+                          }
+                        }
+                      }
+                    },
+                    "labels": {
+                      "title": "Label Patterns",
+                      "description": "Label patterns to match for pull requests.",
+                      "type": "object",
+                      "properties": {
+                        "include": {
+                          "title": "Include",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "title": "File path"
+                          }
+                        },
+                        "exclude": {
+                          "title": "Exclude",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "title": "File path"
+                          }
+                        }
+                      },
+                      "notificationTemplate": {
+                        "$ref": "#/definitions/notificationTemplate"
+                      }
+                    }
+                  }
+                }
+              },
+              "eventsAPI": {
+                "title": "Events API Matchers",
+                "description": "Criteria for matching events from the /events API.",
+                "type": "array",
+                "items": {
+                  "title": "Events API Matcher",
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "title": "Event Type",
+                      "type": "string"
+                    },
+                    "jsonPath": {
+                      "title": "JSONPath Expression",
+                      "type": "string"
+                    },
+                    "value": {
+                      "title": "Value",
+                      "type": "string"
+                    },
+                    "notificationTemplate": {
+                      "$ref": "#/definitions/notificationTemplate"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "notificationTemplate": {
+      "title": "Notification Template",
+      "type": "object",
+      "properties": {
+        "extraButtons": {
+          "title": "Extra Buttons",
+          "description": "Extra buttons in the notification template.",
+          "type": "array",
+          "items": {
+            "title": "Extra Button",
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "title": "Display Name",
+                "type": "string"
+              },
+              "commandTpl": {
+                "title": "Command Template",
+                "type": "string"
+              },
+              "style": {
+                "title": "Style",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
