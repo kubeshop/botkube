@@ -47,19 +47,21 @@ func NewExecutor(ver string) *Executor {
 func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     d.pluginVersion,
-		Description: "Doctor helps in finding the root cause of a k8s problem.",
+		Description: "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 		JSONSchema: api.JSONSchema{
 			Value: heredoc.Doc(`{
 				  "$schema": "http://json-schema.org/draft-07/schema#",
 				  "title": "doctor",
-				  "description": "Doctor helps in finding the root cause of a k8s problem.",
+				  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 				  "type": "object",
 				  "properties": {
 					"apiKey": {
-					  "description": "Open API Key",
+					  "description": "API Key",
 					  "type": "string"
+					  "title": "OpenAI API Key"
 					}
 				  },
+				  "required": ["apiKey"],
 				  "additionalProperties": false
 				}`),
 		},
