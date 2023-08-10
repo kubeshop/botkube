@@ -597,6 +597,17 @@ executors:
         ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
         apiKey: ""
 
+  flux:
+    botkube/flux:
+      enabled: false
+      context: *default-plugin-context
+      config:
+        log:
+          level: "info"
+        github:
+          auth:
+            accessToken: ""
+
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
