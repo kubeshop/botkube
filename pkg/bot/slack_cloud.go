@@ -36,14 +36,12 @@ import (
 )
 
 const (
-	APIKeyContextKey              = "X-Api-Key"       // #nosec
-	DeploymentIDContextKey        = "X-Deployment-Id" // #nosec
-	retryDelay                    = time.Second
-	maxRetries                    = 30
-	successIntervalDuration       = 3 * time.Minute
-	quotaExceededMsg              = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
-	cloudSlackMessageWorkersCount = 10
-	cloudSlackMessageChannelSize  = 100
+	APIKeyContextKey        = "X-Api-Key"       // #nosec
+	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
+	retryDelay              = time.Second
+	maxRetries              = 30
+	successIntervalDuration = 3 * time.Minute
+	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
 )
 
 var _ Bot = &CloudSlack{}
@@ -113,8 +111,8 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		messages:         make(chan *pb.ConnectResponse, cloudSlackMessageChannelSize),
-		messageWorkers:   pool.New().WithMaxGoroutines(cloudSlackMessageWorkersCount),
+		messages:         make(chan *pb.ConnectResponse, platformMessageChannelSize),
+		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -230,7 +228,7 @@ func (b *CloudSlack) startMessageProcessor(ctx context.Context) {
 		b.messageWorkers.Go(func() {
 			err, _ := b.handleStreamMessage(ctx, msg)
 			if err != nil {
-				b.log.Errorf("while handling message: %s", err.Error())
+				b.log.WithError(err).Error("Failed to handle Cloud Slack message")
 			}
 		})
 	}

@@ -36,10 +36,6 @@ const (
 
 	// discordMaxMessageSize max size before a message should be uploaded as a file.
 	discordMaxMessageSize = 2000
-
-	discordMessageWorkersCount = 10
-
-	discordMessageChannelSize = 100
 )
 
 // Discord listens for user's message, execute commands and sends back the response.
@@ -92,8 +88,8 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		channels:              channelsCfg,
 		botMentionRegex:       botMentionRegex,
 		renderer:              NewDiscordRenderer(),
-		messages:              make(chan discordMessage, discordMessageChannelSize),
-		discordMessageWorkers: pool.New().WithMaxGoroutines(discordMessageWorkersCount),
+		messages:              make(chan discordMessage, platformMessageChannelSize),
+		discordMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -105,7 +101,7 @@ func (b *Discord) startMessageProcessor(ctx context.Context) {
 		b.discordMessageWorkers.Go(func() {
 			err := b.handleMessage(ctx, msg)
 			if err != nil {
-				b.log.Errorf("while handling message: %s", err.Error())
+				b.log.WithError(err).Error("Failed to handle Discord message")
 			}
 		})
 	}
@@ -115,11 +111,8 @@ func (b *Discord) Start(ctx context.Context) error {
 
 	// Register the messageCreate func as a callback for MessageCreate events.
 	b.api.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		msg := discordMessage{
+		b.messages <- discordMessage{
 			Event: m,
-		}
-		if err := b.handleMessage(ctx, msg); err != nil {
-			b.log.Errorf("Message handling error: %s", err.Error())
 		}
 	})
 
@@ -366,13 +359,13 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 func (b *Discord) shutdown() {
 	b.shutdownOnce.Do(func() {
 		b.log.Info("Shutting down discord message processor...")
-		close(b.messages)
-		b.discordMessageWorkers.Wait()
-
 		err := b.api.Close()
 		if err != nil {
-			b.log.Errorf("While closing connection: %v", err)
+			b.log.WithError(err).Error("Failed to close discord connection")
 		}
+
+		close(b.messages)
+		b.discordMessageWorkers.Wait()
 	})
 }
 

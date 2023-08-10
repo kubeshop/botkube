@@ -31,11 +31,6 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
-const (
-	socketSlackMessageWorkersCount = 10
-	socketSlackMessageChannelSize  = 100
-)
-
 var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
@@ -96,8 +91,8 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		botMentionRegex:  botMentionRegex,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		messages:         make(chan slackMessage, socketSlackMessageChannelSize),
-		messageWorkers:   pool.New().WithMaxGoroutines(socketSlackMessageWorkersCount),
+		messages:         make(chan slackMessage, platformMessageChannelSize),
+		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -326,7 +321,7 @@ func (b *SocketSlack) startMessageProcessor(ctx context.Context) {
 		b.messageWorkers.Go(func() {
 			err := b.handleMessage(ctx, msg)
 			if err != nil {
-				b.log.Errorf("while handling message: %s", err.Error())
+				b.log.WithError(err).Error("Failed to handle Socket Slack message")
 			}
 		})
 	}

@@ -32,7 +32,9 @@ import (
 //	Maximum length for the text in this field is 3000 characters.  (..)"
 //
 // source: https://api.slack.com/reference/block-kit/blocks#section
-const slackMaxMessageSize = 3001
+const (
+	slackMaxMessageSize = 3001
+)
 
 var _ Bot = &Slack{}
 
@@ -92,8 +94,8 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		commGroupName:       commGroupName,
 		botMentionRegex:     botMentionRegex,
 		renderer:            NewSlackRenderer(),
-		messages:            make(chan slackLegacyMessage, 100),
-		slackMessageWorkers: pool.New().WithMaxGoroutines(10),
+		messages:            make(chan slackLegacyMessage, platformMessageChannelSize),
+		slackMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 

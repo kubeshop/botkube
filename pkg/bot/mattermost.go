@@ -37,8 +37,10 @@ const (
 	// mattermostMaxMessageSize max size before a message should be uploaded as a file.
 	mattermostMaxMessageSize = 3990
 
-	httpsScheme                  = "https"
-	mattermostBotMentionRegexFmt = "^@(?i)%s"
+	httpsScheme                   = "https"
+	mattermostBotMentionRegexFmt  = "^@(?i)%s"
+	mattermostMessageChannelSize  = 100
+	mattermostMessageWorkersCount = 10
 )
 
 // TODO:
@@ -139,8 +141,8 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		botMentionRegex: botMentionRegex,
 		renderer:        NewMattermostRenderer(),
 		userNamesForID:  map[string]string{},
-		messages:        make(chan mattermostMessage, 100),
-		messageWorkers:  pool.New().WithMaxGoroutines(10),
+		messages:        make(chan mattermostMessage, platformMessageChannelSize),
+		messageWorkers:  pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -152,8 +154,7 @@ func (b *Mattermost) startMessageProcessor(ctx context.Context) {
 		b.messageWorkers.Go(func() {
 			err := b.handleMessage(ctx, msg)
 			if err != nil {
-				wrappedErr := fmt.Errorf("while handling message: %w", err)
-				b.log.Errorf(wrappedErr.Error())
+				b.log.WithError(err).Error("Failed to handle Mattermost message")
 			}
 		})
 	}
