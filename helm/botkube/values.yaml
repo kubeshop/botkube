@@ -598,14 +598,22 @@ executors:
         apiKey: ""
 
   flux:
+    # Flux executor configuration.
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/flux:
       enabled: false
       context: *default-plugin-context
+      ## -- Flux executor plugin configuration.
       config:
+        # -- Logging configuration
         log:
-          level: "info"
+          # -- Log level
+          level: info
         github:
           auth:
+            # GitHub access token.
+            # Instructions for token creation: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token.
+            # Lack of token may limit functionality, e.g., adding comments to pull requests or approving them.
             accessToken: ""
 
 # -- Custom aliases for given commands.
