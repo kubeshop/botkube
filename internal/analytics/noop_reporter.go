@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"context"
-	"fmt"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -26,8 +25,7 @@ func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.In
 }
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
-func (n NoopReporter) ReportCommand(p config.CommPlatformIntegration, a string, b command.Origin, c bool) error {
-	fmt.Println("report command", p, a, b, c)
+func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin, _ bool) error {
 	return nil
 }
 

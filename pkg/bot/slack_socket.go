@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -344,7 +343,6 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	}
 
 	b.log.Debugf("Slack incoming Request: %s", request)
-	time.Sleep(time.Second * 15)
 
 	// Unfortunately we need to do a call for channel name based on ID every time a message arrives.
 	// I wanted to query for channel IDs based on names and prepare a map in the `slackChannelsConfigFrom`,
