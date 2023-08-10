@@ -178,24 +178,6 @@ func jsonSchema() api.JSONSchema {
   "description": "%s",
   "type": "object",
   "properties": {
-    "logger": {
-      "title": "Logger",
-      "type": "object",
-      "properties": {
-        "level": {
-          "title": "Level",
-          "type": "string"
-        },
-        "disableColors": {
-          "title": "Disable Colors",
-          "type": "boolean"
-        },
-        "formatter": {
-          "title": "Formatter",
-          "type": "string"
-        }
-      }
-    },
     "github": {
       "title": "GitHub",
       "type": "object",
@@ -209,8 +191,7 @@ func jsonSchema() api.JSONSchema {
               "description": "The GitHub access token. When not provided, some functionality may not work. For example, adding a comment under a pull request.",
               "type": "string"
             }
-          },
-          "required": []
+          }
         }
       }
     }

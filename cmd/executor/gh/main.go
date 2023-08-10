@@ -28,9 +28,9 @@ var version = "dev"
 // Config holds the GitHub executor configuration.
 type Config struct {
 	GitHub struct {
-		Token         string
-		Repository    string
-		IssueTemplate string
+		Token         string `yaml:"token"`
+		Repository    string `yaml:"repository"`
+		IssueTemplate string `yaml:"issueTemplate"`
 	}
 	Log config.Logger `yaml:"log"`
 }

@@ -9,7 +9,6 @@ before:
     - go mod download
 
 builds:
-  
   - id: doctor
     main: cmd/executor/doctor/main.go
     binary: executor_doctor_{{ .Os }}_{{ .Arch }}
@@ -25,7 +24,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: echo
     main: cmd/executor/echo/main.go
     binary: executor_echo_{{ .Os }}_{{ .Arch }}
@@ -41,7 +39,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: exec
     main: cmd/executor/exec/main.go
     binary: executor_exec_{{ .Os }}_{{ .Arch }}
@@ -57,7 +54,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: flux
     main: cmd/executor/flux/main.go
     binary: executor_flux_{{ .Os }}_{{ .Arch }}
@@ -73,7 +69,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: gh
     main: cmd/executor/gh/main.go
     binary: executor_gh_{{ .Os }}_{{ .Arch }}
@@ -89,7 +84,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: helm
     main: cmd/executor/helm/main.go
     binary: executor_helm_{{ .Os }}_{{ .Arch }}
@@ -105,7 +99,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: kubectl
     main: cmd/executor/kubectl/main.go
     binary: executor_kubectl_{{ .Os }}_{{ .Arch }}
@@ -121,7 +114,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: cm-watcher
     main: cmd/source/cm-watcher/main.go
     binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
@@ -137,7 +129,21 @@ builds:
       - arm64
     goarm:
       - 7
-  
+  - id: github-events
+    main: cmd/source/github-events/main.go
+    binary: source_github-events_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
   - id: keptn
     main: cmd/source/keptn/main.go
     binary: source_keptn_{{ .Os }}_{{ .Arch }}
@@ -153,7 +159,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: kubernetes
     main: cmd/source/kubernetes/main.go
     binary: source_kubernetes_{{ .Os }}_{{ .Arch }}
@@ -169,7 +174,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
   - id: prometheus
     main: cmd/source/prometheus/main.go
     binary: source_prometheus_{{ .Os }}_{{ .Arch }}
@@ -185,7 +189,6 @@ builds:
       - arm64
     goarm:
       - 7
-  
 
 snapshot:
   name_template: 'v{{ .Version }}'

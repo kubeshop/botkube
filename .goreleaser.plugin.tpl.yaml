@@ -7,7 +7,7 @@ before:
     - go mod download
 
 builds:
-  <range .>
+  <- range .>
   - id: <.Name>
     main: cmd/<.Type>/<.Name>/main.go
     binary: <.Type>_<.Name>_{{ .Os }}_{{ .Arch }}
@@ -23,7 +23,7 @@ builds:
       - arm64
     goarm:
       - 7
-  <end>
+  <- end >
 
 snapshot:
   name_template: 'v{{ .Version }}'
