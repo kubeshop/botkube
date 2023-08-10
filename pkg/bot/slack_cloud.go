@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -62,6 +63,9 @@ type CloudSlack struct {
 	notifyMutex      sync.Mutex
 	clusterName      string
 	msgStatusTracker *SlackMessageStatusTracker
+	messages         chan *pb.ConnectResponse
+	messageWorkers   *pool.Pool
+	shutdownOnce     sync.Once
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -107,6 +111,8 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
+		messages:         make(chan *pb.ConnectResponse, platformMessageChannelSize),
+		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -192,157 +198,188 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		return fmt.Errorf("while sending gRPC connection request. %w", err)
 	}
 
+	defer b.shutdown()
+
+	go b.startMessageProcessor(ctx)
+
 	for {
 		data, err := c.Recv()
 		if err != nil {
 			if err == io.EOF {
 				b.log.Warn("gRPC connection was closed by server")
-				return nil
+				return errors.New("gRPC connection closed")
 			}
 			errStatus, ok := status.FromError(err)
 			if ok && errStatus.Code() == codes.Canceled && errStatus.Message() == context.Canceled.Error() {
 				b.log.Debugf("Context was cancelled. Skipping returning error...")
-				return nil
+				return fmt.Errorf("while resolving error from gRPC response %s", errStatus.Err())
 			}
 			return fmt.Errorf("while receiving cloud slack events: %w", err)
 		}
-		if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
-			b.log.Warn(quotaExceededMsg)
-			return nil
-		}
-		if len(data.Event) == 0 {
-			continue
-		}
-		event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
-		if err != nil {
-			return fmt.Errorf("while parsing event: %w", err)
-		}
-		switch event.Type {
-		case slackevents.CallbackEvent:
-			b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(event))
-			innerEvent := event.InnerEvent
-			switch ev := innerEvent.Data.(type) {
-			case *slackevents.AppMentionEvent:
-				b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
-				userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
-				msg := slackMessage{
-					Text:            ev.Text,
-					Channel:         ev.Channel,
-					ThreadTimeStamp: ev.ThreadTimeStamp,
-					UserID:          ev.User,
-					EventTimeStamp:  ev.EventTimeStamp,
-					UserName:        userName,
-					CommandOrigin:   command.TypedOrigin,
-				}
-
-				if err := b.handleMessage(ctx, msg); err != nil {
-					b.log.Errorf("while handling message: %s", err.Error())
-				}
-			case *slackevents.MessageEvent:
-				b.log.Debugf("Got generic message event %s", formatx.StructDumper().Sdump(innerEvent))
-				msg := slackMessage{
-					Text:           ev.Text,
-					Channel:        ev.Channel,
-					UserID:         ev.User,
-					EventTimeStamp: ev.EventTimeStamp,
-				}
-				response := quotaExceeded()
-
-				if err := b.send(ctx, msg, response); err != nil {
-					return fmt.Errorf("while sending message: %w", err)
-				}
-			}
-		case string(slack.InteractionTypeBlockActions), string(slack.InteractionTypeViewSubmission):
-			var callback slack.InteractionCallback
-			err = json.Unmarshal(data.Event, &callback)
-			if err != nil {
-				b.log.Errorf("Invalid event %+v\n", data.Event)
-				continue
-			}
-
-			switch callback.Type {
-			case slack.InteractionTypeBlockActions:
-				b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback))
-
-				if len(callback.ActionCallback.BlockActions) != 1 {
-					b.log.Debug("Ignoring callback as the number of actions is different from 1")
-					continue
-				}
-
-				act := callback.ActionCallback.BlockActions[0]
-				if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-					reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
-					if reportErr != nil {
-						b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
-					}
-					continue // skip the url actions
-				}
-
-				channelID := callback.Channel.ID
-				if channelID == "" && callback.View.ID != "" {
-					// TODO: add support when we will need to handle button clicks from active modal.
-					//
-					// The request is coming from active modal, currently we don't support that.
-					// We process that only when the modal is submitted (see slack.InteractionTypeViewSubmission action type).
-					b.log.Debug("Ignoring callback as its source is an active modal")
-					continue
-				}
-
-				cmd, cmdOrigin := resolveBlockActionCommand(*act)
-				// Use thread's TS if interactive call triggered within thread.
-				threadTs := callback.MessageTs
-				if callback.Message.Msg.ThreadTimestamp != "" {
-					threadTs = callback.Message.Msg.ThreadTimestamp
-				}
-
-				state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
-
-				userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-				msg := slackMessage{
-					Text:            cmd,
-					Channel:         channelID,
-					ThreadTimeStamp: threadTs,
-					TriggerID:       callback.TriggerID,
-					UserID:          callback.User.ID,
-					UserName:        userName,
-					CommandOrigin:   cmdOrigin,
-					State:           state,
-					EventTimeStamp:  callback.Message.Timestamp,
-					ResponseURL:     callback.ResponseURL,
-					BlockID:         act.BlockID,
-				}
-				if err := b.handleMessage(ctx, msg); err != nil {
-					b.log.Errorf("Message handling error: %s", err.Error())
-				}
-			case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
-
-				// the map key is the ID of the input block, for us, it's autogenerated
-				for _, item := range callback.View.State.Values {
-					for actID, act := range item {
-						act.ActionID = actID // normalize event
-
-						cmd, cmdOrigin := resolveBlockActionCommand(act)
-						userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
-						msg := slackMessage{
-							Text:           cmd,
-							Channel:        callback.View.PrivateMetadata,
-							UserID:         callback.User.ID,
-							UserName:       userName,
-							EventTimeStamp: "", // there is no timestamp for interactive callbacks
-							CommandOrigin:  cmdOrigin,
-						}
-
-						if err := b.handleMessage(ctx, msg); err != nil {
-							b.log.Errorf("Message handling error: %s", err.Error())
-						}
-					}
-				}
-			default:
-				b.log.Debugf("get unhandled event %s", callback.Type)
-			}
-		}
-		b.log.Debugf("received: %q\n", event)
+		b.messages <- data
 	}
+}
+
+func (b *CloudSlack) startMessageProcessor(ctx context.Context) {
+	b.log.Info("Starting cloud slack message processor...")
+	defer b.log.Info("Stopped cloud slack message processor...")
+
+	for msg := range b.messages {
+		b.messageWorkers.Go(func() {
+			err, _ := b.handleStreamMessage(ctx, msg)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to handle Cloud Slack message")
+			}
+		})
+	}
+}
+
+func (b *CloudSlack) shutdown() {
+	b.shutdownOnce.Do(func() {
+		b.log.Info("Shutting down cloud slack message processor...")
+		close(b.messages)
+		b.messageWorkers.Wait()
+	})
+}
+
+func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectResponse) (error, bool) {
+	if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
+		b.log.Warn(quotaExceededMsg)
+		return nil, true
+	}
+	if len(data.Event) == 0 {
+		return nil, false
+	}
+	event, err := slackevents.ParseEvent(data.Event, slackevents.OptionNoVerifyToken())
+	if err != nil {
+		return fmt.Errorf("while parsing event: %w", err), true
+	}
+	switch event.Type {
+	case slackevents.CallbackEvent:
+		b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(event))
+		innerEvent := event.InnerEvent
+		switch ev := innerEvent.Data.(type) {
+		case *slackevents.AppMentionEvent:
+			b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
+			userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
+			msg := slackMessage{
+				Text:            ev.Text,
+				Channel:         ev.Channel,
+				ThreadTimeStamp: ev.ThreadTimeStamp,
+				UserID:          ev.User,
+				EventTimeStamp:  ev.EventTimeStamp,
+				UserName:        userName,
+				CommandOrigin:   command.TypedOrigin,
+			}
+
+			if err := b.handleMessage(ctx, msg); err != nil {
+				b.log.Errorf("while handling message: %s", err.Error())
+			}
+		case *slackevents.MessageEvent:
+			b.log.Debugf("Got generic message event %s", formatx.StructDumper().Sdump(innerEvent))
+			msg := slackMessage{
+				Text:           ev.Text,
+				Channel:        ev.Channel,
+				UserID:         ev.User,
+				EventTimeStamp: ev.EventTimeStamp,
+			}
+			response := quotaExceeded()
+
+			if err := b.send(ctx, msg, response); err != nil {
+				return fmt.Errorf("while sending message: %w", err), true
+			}
+		}
+	case string(slack.InteractionTypeBlockActions), string(slack.InteractionTypeViewSubmission):
+		var callback slack.InteractionCallback
+		err = json.Unmarshal(data.Event, &callback)
+		if err != nil {
+			b.log.Errorf("Invalid event %+v\n", data.Event)
+			return fmt.Errorf("Invalid event %+v\n", data.Event), false
+		}
+
+		switch callback.Type {
+		case slack.InteractionTypeBlockActions:
+			b.log.Debugf("Got block action %s", formatx.StructDumper().Sdump(callback))
+
+			if len(callback.ActionCallback.BlockActions) != 1 {
+				b.log.Debug("Ignoring callback as the number of actions is different from 1")
+				return nil, false
+			}
+
+			act := callback.ActionCallback.BlockActions[0]
+			if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
+				reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
+				if reportErr != nil {
+					b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
+				}
+				return nil, false // skip the url actions
+			}
+
+			channelID := callback.Channel.ID
+			if channelID == "" && callback.View.ID != "" {
+				// TODO: add support when we will need to handle button clicks from active modal.
+				//
+				// The request is coming from active modal, currently we don't support that.
+				// We process that only when the modal is submitted (see slack.InteractionTypeViewSubmission action type).
+				b.log.Debug("Ignoring callback as its source is an active modal")
+				return nil, false
+			}
+
+			cmd, cmdOrigin := resolveBlockActionCommand(*act)
+			// Use thread's TS if interactive call triggered within thread.
+			threadTs := callback.MessageTs
+			if callback.Message.Msg.ThreadTimestamp != "" {
+				threadTs = callback.Message.Msg.ThreadTimestamp
+			}
+
+			state := removeBotNameFromIDs(b.BotName(), callback.BlockActionState)
+
+			userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
+			msg := slackMessage{
+				Text:            cmd,
+				Channel:         channelID,
+				ThreadTimeStamp: threadTs,
+				TriggerID:       callback.TriggerID,
+				UserID:          callback.User.ID,
+				UserName:        userName,
+				CommandOrigin:   cmdOrigin,
+				State:           state,
+				EventTimeStamp:  callback.Message.Timestamp,
+				ResponseURL:     callback.ResponseURL,
+				BlockID:         act.BlockID,
+			}
+			if err := b.handleMessage(ctx, msg); err != nil {
+				b.log.Errorf("Message handling error: %s", err.Error())
+			}
+		case slack.InteractionTypeViewSubmission: // this event is received when modal is submitted
+
+			// the map key is the ID of the input block, for us, it's autogenerated
+			for _, item := range callback.View.State.Values {
+				for actID, act := range item {
+					act.ActionID = actID // normalize event
+
+					cmd, cmdOrigin := resolveBlockActionCommand(act)
+					userName := b.getRealNameWithFallbackToUserID(ctx, callback.User.ID)
+					msg := slackMessage{
+						Text:           cmd,
+						Channel:        callback.View.PrivateMetadata,
+						UserID:         callback.User.ID,
+						UserName:       userName,
+						EventTimeStamp: "", // there is no timestamp for interactive callbacks
+						CommandOrigin:  cmdOrigin,
+					}
+
+					if err := b.handleMessage(ctx, msg); err != nil {
+						b.log.Errorf("Message handling error: %s", err.Error())
+					}
+				}
+			}
+		default:
+			b.log.Debugf("get unhandled event %s", callback.Type)
+		}
+	}
+	b.log.Debugf("received: %q\n", event)
+	return nil, false
 }
 
 func (b *CloudSlack) SendMessage(ctx context.Context, msg interactive.CoreMessage, sourceBindings []string) error {

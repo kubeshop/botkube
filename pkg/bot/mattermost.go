@@ -12,6 +12,7 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/sirupsen/logrus"
+	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -36,8 +37,10 @@ const (
 	// mattermostMaxMessageSize max size before a message should be uploaded as a file.
 	mattermostMaxMessageSize = 3990
 
-	httpsScheme                  = "https"
-	mattermostBotMentionRegexFmt = "^@(?i)%s"
+	httpsScheme                   = "https"
+	mattermostBotMentionRegexFmt  = "^@(?i)%s"
+	mattermostMessageChannelSize  = 100
+	mattermostMessageWorkersCount = 10
 )
 
 // TODO:
@@ -63,6 +66,9 @@ type Mattermost struct {
 	botMentionRegex *regexp.Regexp
 	renderer        *MattermostRenderer
 	userNamesForID  map[string]string
+	messages        chan mattermostMessage
+	messageWorkers  *pool.Pool
+	shutdownOnce    sync.Once
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -135,10 +141,24 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		botMentionRegex: botMentionRegex,
 		renderer:        NewMattermostRenderer(),
 		userNamesForID:  map[string]string{},
+		messages:        make(chan mattermostMessage, platformMessageChannelSize),
+		messageWorkers:  pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
-// Start establishes mattermost connection and listens for messages
+func (b *Mattermost) startMessageProcessor(ctx context.Context) {
+	b.log.Info("Starting mattermost message processor...")
+	defer b.log.Info("Stopped mattermost message processor...")
+
+	for msg := range b.messages {
+		b.messageWorkers.Go(func() {
+			err := b.handleMessage(ctx, msg)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to handle Mattermost message")
+			}
+		})
+	}
+} // Start establishes mattermost connection and listens for messages
 func (b *Mattermost) Start(ctx context.Context) error {
 	b.log.Info("Starting bot")
 
@@ -157,10 +177,14 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
 	b.log.Info("Botkube connected to Mattermost!")
+
+	go b.startMessageProcessor(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
+			b.shutdown()
 			return nil
 		default:
 			var appErr error
@@ -213,7 +237,7 @@ func (b *Mattermost) SetNotificationsEnabled(channelID string, enabled bool) err
 }
 
 // Check incoming message and take action
-func (b *Mattermost) handleMessage(ctx context.Context, mm *mattermostMessage) error {
+func (b *Mattermost) handleMessage(ctx context.Context, mm mattermostMessage) error {
 	post, err := postFromEvent(mm.Event)
 	if err != nil {
 		return fmt.Errorf("while getting post from event: %w", err)
@@ -387,14 +411,10 @@ func (b *Mattermost) listen(ctx context.Context) {
 				continue
 			}
 
-			mm := &mattermostMessage{
+			mm := mattermostMessage{
 				Event: event,
 			}
-			err := b.handleMessage(ctx, mm)
-			if err != nil {
-				wrappedErr := fmt.Errorf("while handling message: %w", err)
-				b.log.Errorf(wrappedErr.Error())
-			}
+			b.messages <- mm
 		}
 	}
 }
@@ -480,6 +500,14 @@ func (b *Mattermost) getUserName(ctx context.Context, userID string) (string, er
 	b.userNamesForID[userID] = user.Username
 
 	return user.Username, nil
+}
+
+func (b *Mattermost) shutdown() {
+	b.shutdownOnce.Do(func() {
+		b.log.Info("Shutting down mattermost message processor...")
+		close(b.messages)
+		b.messageWorkers.Wait()
+	})
 }
 
 func getBotUserID(ctx context.Context, client *model.Client4, teamID, botName string) (string, error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
+	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -31,23 +32,28 @@ import (
 //	Maximum length for the text in this field is 3000 characters.  (..)"
 //
 // source: https://api.slack.com/reference/block-kit/blocks#section
-const slackMaxMessageSize = 3001
+const (
+	slackMaxMessageSize = 3001
+)
 
 var _ Bot = &Slack{}
 
 // Slack listens for user's message, execute commands and sends back the response.
 type Slack struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        FatalErrorAnalyticsReporter
-	botID           string
-	client          *slack.Client
-	channelsMutex   sync.RWMutex
-	channels        map[string]channelConfigByName
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	commGroupName   string
-	renderer        *SlackRenderer
+	log                 logrus.FieldLogger
+	executorFactory     ExecutorFactory
+	reporter            FatalErrorAnalyticsReporter
+	botID               string
+	client              *slack.Client
+	channelsMutex       sync.RWMutex
+	channels            map[string]channelConfigByName
+	notifyMutex         sync.Mutex
+	botMentionRegex     *regexp.Regexp
+	commGroupName       string
+	renderer            *SlackRenderer
+	messages            chan slackLegacyMessage
+	slackMessageWorkers *pool.Pool
+	shutdownOnce        sync.Once
 }
 
 // slackLegacyMessage contains message details to execute command and send back the result
@@ -79,16 +85,32 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 	}
 
 	return &Slack{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		botID:           botID,
-		client:          client,
-		channels:        channels,
-		commGroupName:   commGroupName,
-		botMentionRegex: botMentionRegex,
-		renderer:        NewSlackRenderer(),
+		log:                 log,
+		executorFactory:     executorFactory,
+		reporter:            reporter,
+		botID:               botID,
+		client:              client,
+		channels:            channels,
+		commGroupName:       commGroupName,
+		botMentionRegex:     botMentionRegex,
+		renderer:            NewSlackRenderer(),
+		messages:            make(chan slackLegacyMessage, platformMessageChannelSize),
+		slackMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
+}
+
+func (b *Slack) startMessageProcessor(ctx context.Context) {
+	b.log.Info("Starting slack message processor...")
+	defer b.log.Info("Stopped slack message processor...")
+
+	for msg := range b.messages {
+		b.slackMessageWorkers.Go(func() {
+			err := b.handleMessage(ctx, msg)
+			if err != nil {
+				b.log.Errorf("while handling message: %s", err.Error())
+			}
+		})
+	}
 }
 
 // Start starts the Slack RTM connection and listens for messages
@@ -101,11 +123,14 @@ func (b *Slack) Start(ctx context.Context) error {
 		rtm.ManageConnection()
 	}()
 
+	go b.startMessageProcessor(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Shutdown requested. Finishing...")
-			return rtm.Disconnect()
+			b.shutdown(rtm)
+			return nil
 		case msg, ok := <-rtm.IncomingEvents:
 			if !ok {
 				b.log.Info("Incoming events channel closed. Finishing...")
@@ -370,6 +395,19 @@ func (b *Slack) findAndTrimBotMention(msg string) (string, bool) {
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true
+}
+
+func (b *Slack) shutdown(rtm *slack.RTM) {
+	b.shutdownOnce.Do(func() {
+		b.log.Info("Shutting down slack message processor...")
+		close(b.messages)
+		b.slackMessageWorkers.Wait()
+
+		err := rtm.Disconnect()
+		if err != nil {
+			b.log.Errorf("Error while disconnecting from Slack: %v", err)
+		}
+	})
 }
 
 func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
