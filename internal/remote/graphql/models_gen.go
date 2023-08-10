@@ -248,6 +248,14 @@ type ConnectedPlatforms struct {
 	Slack *SlackWorkspace `json:"slack"`
 }
 
+type Coupon struct {
+	Name             string               `json:"name"`
+	AmountOff        *int                 `json:"amountOff"`
+	PercentOff       *float64             `json:"percentOff"`
+	Duration         StripeCouponDuration `json:"duration"`
+	DurationInMonths *int                 `json:"durationInMonths"`
+}
+
 type DeleteByIDInput struct {
 	ID string `json:"ID"`
 }
@@ -477,6 +485,7 @@ type Invoice struct {
 	EndOfBillingCycleDate *string        `json:"endOfBillingCycleDate"`
 	EndOfTrialDate        *string        `json:"endOfTrialDate"`
 	Items                 []*InvoiceItem `json:"items"`
+	Coupon                *Coupon        `json:"coupon"`
 }
 
 type InvoiceItem struct {
@@ -1056,9 +1065,9 @@ func (e PluginType) MarshalGQL(w io.Writer) {
 type PolicySubjectType string
 
 const (
-	PolicySubjectTypeStatic      PolicySubjectType = "Static"
-	PolicySubjectTypeChannelName PolicySubjectType = "ChannelName"
-	PolicySubjectTypeEmpty       PolicySubjectType = "Empty"
+	PolicySubjectTypeStatic      PolicySubjectType = "STATIC"
+	PolicySubjectTypeChannelName PolicySubjectType = "CHANNEL_NAME"
+	PolicySubjectTypeEmpty       PolicySubjectType = "EMPTY"
 )
 
 var AllPolicySubjectType = []PolicySubjectType{
@@ -1093,5 +1102,50 @@ func (e *PolicySubjectType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e PolicySubjectType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type StripeCouponDuration string
+
+const (
+	StripeCouponDurationForever   StripeCouponDuration = "FOREVER"
+	StripeCouponDurationOnce      StripeCouponDuration = "ONCE"
+	StripeCouponDurationRepeating StripeCouponDuration = "REPEATING"
+	StripeCouponDurationUnknown   StripeCouponDuration = "UNKNOWN"
+)
+
+var AllStripeCouponDuration = []StripeCouponDuration{
+	StripeCouponDurationForever,
+	StripeCouponDurationOnce,
+	StripeCouponDurationRepeating,
+	StripeCouponDurationUnknown,
+}
+
+func (e StripeCouponDuration) IsValid() bool {
+	switch e {
+	case StripeCouponDurationForever, StripeCouponDurationOnce, StripeCouponDurationRepeating, StripeCouponDurationUnknown:
+		return true
+	}
+	return false
+}
+
+func (e StripeCouponDuration) String() string {
+	return string(e)
+}
+
+func (e *StripeCouponDuration) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = StripeCouponDuration(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid StripeCouponDuration", str)
+	}
+	return nil
+}
+
+func (e StripeCouponDuration) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

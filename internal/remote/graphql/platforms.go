@@ -5,6 +5,7 @@ package graphql
 type Platforms struct {
 	DeploymentID    string           `graphql:"-"`
 	SocketSlacks    []*SocketSlack   `json:"socketSlacks"`
+	CloudSlacks     []*CloudSlack    `json:"cloudSlacks"`
 	Discords        []*Discord       `json:"discords"`
 	Mattermosts     []*Mattermost    `json:"mattermosts"`
 	Webhooks        []*Webhook       `json:"webhooks"`

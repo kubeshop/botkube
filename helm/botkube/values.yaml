@@ -597,6 +597,25 @@ executors:
         ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
         apiKey: ""
 
+  flux:
+    # Flux executor configuration.
+    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
+    botkube/flux:
+      enabled: false
+      context: *default-plugin-context
+      ## -- Flux executor plugin configuration.
+      config:
+        # -- Logging configuration
+        log:
+          # -- Log level
+          level: info
+        github:
+          auth:
+            # GitHub access token.
+            # Instructions for token creation: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token.
+            # Lack of token may limit functionality, e.g., adding comments to pull requests or approving them.
+            accessToken: ""
+
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
