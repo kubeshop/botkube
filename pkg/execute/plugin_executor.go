@@ -48,16 +48,22 @@ func (e *PluginExecutor) CanHandle(bindings []string, args []string) bool {
 	return len(plugins) > 0
 }
 
-// GetCommandPrefix returns plugin name and the verb if present.
+const multiWordArgPlaceholder = "{multi-word arg}"
+
+// GetCommandPrefix returns plugin name and the verb if present. If the verb is multi-word, it returns a placeholder for it.
 func (e *PluginExecutor) GetCommandPrefix(args []string) string {
 	switch len(args) {
 	case 0:
 		return ""
 	case 1:
 		return args[0]
-	default:
-		return fmt.Sprintf("%s %s", args[0], args[1])
 	}
+
+	if strings.Contains(args[1], " ") {
+		return fmt.Sprintf("%s %s", args[0], multiWordArgPlaceholder)
+	}
+
+	return fmt.Sprintf("%s %s", args[0], args[1])
 }
 
 // Execute executes plugin executor based on a given command.

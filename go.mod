@@ -3,8 +3,8 @@ module github.com/kubeshop/botkube
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/DanielTitkov/go-adaptive-cards v0.2.2
-	github.com/Delta456/box-cli-maker/v2 v2.3.0
 	github.com/MakeNowJust/heredoc v1.0.0
+	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/PullRequestInc/go-gpt3 v1.1.15
 	github.com/alexflint/go-arg v1.4.3
 	github.com/allegro/bigcache/v3 v3.1.0
@@ -15,7 +15,6 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.6.0
 	github.com/briandowns/spinner v1.23.0
 	github.com/bwmarrin/discordgo v0.25.0
-	github.com/charmbracelet/glamour v0.6.0
 	github.com/charmbracelet/log v0.2.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.15.0
@@ -26,6 +25,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
 	github.com/google/go-github/v53 v53.2.0
+	github.com/google/go-querystring v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.2
 	github.com/gorilla/mux v1.8.0
@@ -95,14 +95,11 @@ require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
-	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/alexflint/go-scalar v1.1.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
@@ -117,7 +114,6 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
-	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker v20.10.24+incompatible // indirect
@@ -156,13 +152,11 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.11.0 // indirect
-	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230110080634-edea822f558a // indirect
@@ -199,7 +193,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
-	github.com/microcosm-cc/bluemonday v1.0.21 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
@@ -215,7 +208,6 @@ require (
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
@@ -243,8 +235,6 @@ require (
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	github.com/yuin/goldmark v1.5.2 // indirect
-	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
