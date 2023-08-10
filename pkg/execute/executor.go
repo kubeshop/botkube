@@ -127,6 +127,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	isPluginCmd := e.pluginExecutor.CanHandle(e.conversation.ExecutorBindings, cmdCtx.Args)
 	if isPluginCmd {
+		fmt.Println("args", cmdCtx.Args)
 		_, fullPluginName := e.pluginExecutor.getEnabledPlugins(e.conversation.ExecutorBindings, cmdCtx.Args[0])
 		e.reportCommand(ctx, fullPluginName, e.pluginExecutor.GetCommandPrefix(cmdCtx.Args), cmdCtx.ExecutorFilter.IsActive(), cmdCtx)
 

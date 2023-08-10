@@ -50,20 +50,22 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Description: "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 		JSONSchema: api.JSONSchema{
 			Value: heredoc.Doc(`{
-				  "$schema": "http://json-schema.org/draft-07/schema#",
-				  "title": "doctor",
-				  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
-				  "type": "object",
-				  "properties": {
-					"apiKey": {
-					  "description": "API Key",
-					  "type": "string"
-					  "title": "OpenAI API Key"
-					}
-				  },
-				  "required": ["apiKey"],
-				  "additionalProperties": false
-				}`),
+			  "$schema": "http://json-schema.org/draft-07/schema#",
+			  "title": "doctor",
+			  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
+			  "type": "object",
+			  "properties": {
+				"apiKey": {
+				  "description": "OpenAI Secret API Key",
+				  "type": "string",
+				  "title": "API Key"
+				}
+			  },
+			  "required": [
+				"apiKey"
+			  ],
+			  "additionalProperties": false
+			}`),
 		},
 	}, nil
 }
