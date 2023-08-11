@@ -124,21 +124,25 @@ func jsonSchema() api.JSONSchema {
 			"type": "object",
 			"properties": {
 			  "url": {
-				"description": "Keptn API endpoint",
+				"description": "Keptn API Gateway URL",
 				"type": "string",
-				"default": "http://localhost:8080/api"
+				"default": "http://api-gateway-nginx.keptn.svc.cluster.local/api",
+				"title": "Endpoint URL"
 			  },
 			  "token": {
-				"description": "Keptn API Token",
-				"type": "string"
+				"description": "Keptn API Token to access events through API Gateway",
+				"type": "string",
+				"title": "Keptn API Token"
 			  },
 			  "project": {
 				"description": "Keptn Project",
-				"type": "string"
+				"type": "string",
+				"title": "Project"
 			  },
 			  "service": {
-				"description": "Keptn Service",
-				"type": "string"
+				"description": "Keptn Service name under the project",
+				"type": "string",
+				"title": "Service"
 			  }
 			},
             "required": [

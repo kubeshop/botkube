@@ -69,7 +69,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	}
 
 	pluginsCount := 0
-	if len(plugins) != 0 || len(plugins[0].Groups) != 0 {
+	if len(plugins) != 0 && len(plugins[0].Groups) != 0 {
 		pluginsCount = len(plugins[0].Groups)
 	}
 	status.Step("Converted %d plugins", pluginsCount)
