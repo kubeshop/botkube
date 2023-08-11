@@ -677,6 +677,7 @@ communications:
               - k8s-default-tools
               - bins-management
               - ai
+              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -717,6 +718,7 @@ communications:
               - k8s-default-tools
               - bins-management
               - ai
+              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
@@ -739,6 +741,7 @@ communications:
           - k8s-default-tools
           - bins-management
           - ai
+          - flux
         # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
         sources:
           - k8s-err-events
@@ -774,6 +777,7 @@ communications:
               - k8s-default-tools
               - bins-management
               - ai
+              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
