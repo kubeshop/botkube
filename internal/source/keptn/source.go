@@ -130,9 +130,9 @@ func jsonSchema() api.JSONSchema {
 				"title": "Endpoint URL"
 			  },
 			  "token": {
-				"description": "Keptn API Token",
+				"description": "Keptn API Token to access events through API Gateway",
 				"type": "string",
-				"title": "Token"
+				"title": "Keptn API Token"
 			  },
 			  "project": {
 				"description": "Keptn Project",

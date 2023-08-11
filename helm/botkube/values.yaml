@@ -511,12 +511,14 @@ sources:
       # -- If true, enables `keptn` source.
       enabled: false
       config:
-        # -- Keptn project.
-        project: ""
-        # -- Keptn API Gateway url.
+        # -- Keptn API Gateway URL.
         url: "http://api-gateway-nginx.keptn.svc.cluster.local/api"
         # -- Keptn API Token to access events through API Gateway.
         token: ""
+        # -- Optional Keptn project.
+        project: ""
+        # -- Optional Keptn Service name under the project.
+        service: ""
         # -- Logging configuration
         log:
           # -- Log level
