@@ -258,7 +258,7 @@ func (w *Watcher) listAllPullRequests(ctx context.Context, repo matchCriteria) (
 			PullRequest: e,
 		})
 	}
-	w.log.Debug("Selected %d PRs to process", len(eventsToProcess))
+	w.log.Debugf("Selected %d PRs to process", len(eventsToProcess))
 	return eventsToProcess, nil
 }
 
@@ -352,7 +352,7 @@ func (w *Watcher) listRepositoryEvents(ctx context.Context, repo matchCriteria) 
 		eventsToProcess = append(eventsToProcess, &GitHubEvent{e})
 	}
 
-	w.log.Debug("Selected %d events to process", len(eventsToProcess))
+	w.log.Debugf("Selected %d events to process", len(eventsToProcess))
 	return eventsToProcess, nil
 }
 
