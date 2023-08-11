@@ -67,10 +67,15 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	if err != nil {
 		return "", errors.Wrap(err, "while converting plugins")
 	}
-	status.Step("Converted %d plugins", len(plugins))
+
+	pluginsCount := 0
+	if len(plugins) != 0 || len(plugins[0].Groups) != 0 {
+		pluginsCount = len(plugins[0].Groups)
+	}
+	status.Step("Converted %d plugins", pluginsCount)
 
 	actions := converter.ConvertActions(botkubeClusterConfig.Actions)
-	status.Step("Converted %d action", len(actions))
+	status.Step("Converted %d actions", len(actions))
 
 	platforms := converter.ConvertPlatforms(botkubeClusterConfig.Communications)
 	status.Step(`Converted platforms:
