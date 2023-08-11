@@ -94,8 +94,24 @@
                       "type": "array",
                       "items": {
                         "type": "string",
-                        "title": "Pull Request Type"
-                      }
+                        "title": "Pull Request Type",
+                        "oneOf": [
+                          {
+                            "const": "open",
+                            "title": "Open"
+                          },
+                          {
+                            "const": "closed",
+                            "title": "Closed"
+                          },
+                          {
+                            "const": "merged",
+                            "title": "Merged"
+                          }
+                        ]
+                      },
+                      "uniqueItems": true,
+                      "minItems": 0
                     },
                     "paths": {
                       "title": "File Patterns",
@@ -156,10 +172,32 @@
                 "items": {
                   "title": "Events API Matcher",
                   "type": "object",
+                  "required": [
+                    "type"
+                  ],
                   "properties": {
                     "type": {
                       "title": "Event Type",
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "CommitCommentEvent",
+                        "CreateEvent",
+                        "DeleteEvent",
+                        "ForkEvent",
+                        "GollumEvent",
+                        "IssueCommentEvent",
+                        "IssuesEvent",
+                        "MemberEvent",
+                        "PublicEvent",
+                        "PullRequestEvent",
+                        "PullRequestReviewEvent",
+                        "PullRequestReviewCommentEvent",
+                        "PullRequestReviewThreadEvent",
+                        "PushEvent",
+                        "ReleaseEvent",
+                        "SponsorshipEvent",
+                        "WatchEvent"
+                      ]
                     },
                     "jsonPath": {
                       "title": "JSONPath Expression",

@@ -56,7 +56,7 @@ type (
 	MessageMutatorOption func(message api.Message, payload any) (api.Message, error)
 )
 
-func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error) {
+func pullRequestEventMessage(gh *github.Event, event any, opts ...MessageMutatorOption) (api.Message, error) {
 	pr, ok := event.(*github.PullRequest)
 	if !ok {
 		return api.Message{}, fmt.Errorf("got unknown event type %T", event)
@@ -64,6 +64,7 @@ func pullRequestEventMessage(_ *github.Event, event any, opts ...MessageMutatorO
 
 	var fields api.TextFields
 
+	fields = append(fields, api.TextField{Key: "Repository", Value: gh.GetRepo().GetName()})
 	fields = append(fields, api.TextField{Key: "Author", Value: pr.GetUser().GetLogin()})
 	fields = append(fields, api.TextField{Key: "State", Value: pr.GetState()})
 	fields = append(fields, api.TextField{Key: "Merged", Value: strconv.FormatBool(!pr.GetMergedAt().IsZero())})

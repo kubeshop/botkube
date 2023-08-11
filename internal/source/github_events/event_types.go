@@ -29,6 +29,7 @@ func (g *GitHubEvent) GetEvent() *github.Event {
 }
 
 type GitHubPullRequest struct {
+	RepoName string
 	*github.PullRequest
 }
 
@@ -38,8 +39,11 @@ func (g *GitHubPullRequest) Type() string {
 
 func (g *GitHubPullRequest) GetEvent() *github.Event {
 	return &github.Event{
-		Type:      ptr.FromType(g.Type()),
-		Actor:     g.User,
+		Type:  ptr.FromType(g.Type()),
+		Actor: g.User,
+		Repo: &github.Repository{
+			Name: ptr.FromType(g.RepoName),
+		},
 		CreatedAt: g.CreatedAt,
 	}
 }
