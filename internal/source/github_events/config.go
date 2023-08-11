@@ -92,13 +92,18 @@ type (
 
 		// OnMatchers defines allowed GitHub matcher criteria.
 		OnMatchers On `yaml:"on"`
+
+		// BeforeDuration is the duration used to decrease the initial time after used for filtering old events.
+		// It is particularly useful during testing, allowing you to set it to 48h to retrieve events older than the plugin's start time.
+		// If not specified, the plugin's start time is used as the initial value.
+		BeforeDuration time.Duration `yaml:"beforeDuration"`
 	}
 
 	// On defines allowed GitHub matcher criteria.
 	On struct {
-		PullRequests []PullRequest `yaml:"pullRequests,omitempty"`
+		PullRequests []PullRequest `yaml:"pullRequests"`
 		// EventsAPI watches for /events API
-		EventsAPI []EventsAPIMatcher `yaml:"events"`
+		EventsAPI []EventsAPIMatcher `yaml:"events,omitempty"`
 	}
 	PullRequest struct {
 		// Types patterns defines if we should watch only for pull requests with given state criteria.

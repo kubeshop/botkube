@@ -64,26 +64,32 @@ func normalizeRepos(in []RepositoryConfig) (map[string]matchCriteria, map[string
 	lastProcessTime := map[string]time.Time{}
 
 	for _, repo := range in {
-		if len(repo.OnMatchers.PullRequests) == 0 && len(repo.OnMatchers.EventsAPI) == 0 {
-			continue
-		}
-
 		split := strings.Split(repo.Name, "/")
 		if len(split) != 2 {
 			return nil, nil, fmt.Errorf(`Wrong repository name. Expected pattern "owner/repository", got %q`, repo.Name)
 		}
 
-		var on On
 		existing := repos[repo.Name]
-		on.PullRequests = append(existing.Matchers.PullRequests, repo.OnMatchers.PullRequests...)
-		on.EventsAPI = append(existing.Matchers.EventsAPI, repo.OnMatchers.EventsAPI...)
+		if repo.OnMatchers.PullRequests != nil && len(repo.OnMatchers.PullRequests) == 0 {
+			// to make sure that we also emit events for:
+			//   repositories:
+			//    - name: owner/repo1
+			//      on:
+			//        pullRequests: []
+			existing.Matchers.PullRequests = append(existing.Matchers.PullRequests, PullRequest{})
+		}
+		existing.Matchers.PullRequests = append(existing.Matchers.PullRequests, repo.OnMatchers.PullRequests...)
+
+		if len(repo.OnMatchers.EventsAPI) > 0 {
+			existing.Matchers.EventsAPI = append(existing.Matchers.EventsAPI, repo.OnMatchers.EventsAPI...)
+		}
 
 		repos[repo.Name] = matchCriteria{
 			RepoOwner: split[0],
 			RepoName:  split[1],
-			Matchers:  on,
+			Matchers:  existing.Matchers,
 		}
-		lastProcessTime[repo.Name] = time.Now()
+		lastProcessTime[repo.Name] = time.Now().Add(-repo.BeforeDuration)
 	}
 
 	return repos, lastProcessTime, nil
@@ -101,7 +107,7 @@ func (w *Watcher) AsyncConsumeEvents(ctx context.Context, stream *source.StreamO
 				return
 			case <-timer.C:
 				w.log.Debug("Checking for new GitHub events in all registered repositories...")
-				err := w.visitAllRepositories(ctx, func(repo matchCriteria, events []CommonEvent) error {
+				w.visitAllRepositories(ctx, func(repo matchCriteria, events []CommonEvent) error {
 					log := w.log.WithFields(logrus.Fields{
 						"repoName":  repo.RepoName,
 						"repoOwner": repo.RepoOwner,
@@ -113,9 +119,6 @@ func (w *Watcher) AsyncConsumeEvents(ctx context.Context, stream *source.StreamO
 					w.lastProcessTime[repoKey(repo)] = time.Now()
 					return nil
 				})
-				if err != nil {
-					w.log.WithError(err).Errorf("while processing events, next retry in %d", w.refreshDuration)
-				}
 
 				timer.Reset(w.refreshDuration)
 			}
@@ -193,17 +196,14 @@ func (w *Watcher) emitMatchingEvent(ctx context.Context, stream *source.StreamOu
 					Message: msg,
 				}
 			}
-
-			// no need to stress CPU with additional JSON unmarshalling
-			continue
 		}
 	}
 }
 
 type repositoryEventsProcessor func(repo matchCriteria, events []CommonEvent) error
 
-func (w *Watcher) visitAllRepositories(ctx context.Context, process repositoryEventsProcessor) error {
-	for _, repo := range w.repos {
+func (w *Watcher) visitAllRepositories(ctx context.Context, process repositoryEventsProcessor) {
+	for name, repo := range w.repos {
 		var eventsToProcess []CommonEvent
 
 		repoEvents, err := w.listRepositoryEvents(ctx, repo)
@@ -220,16 +220,14 @@ func (w *Watcher) visitAllRepositories(ctx context.Context, process repositoryEv
 		eventsToProcess = append(eventsToProcess, prs...)
 
 		if len(eventsToProcess) == 0 {
-			return nil
+			continue
 		}
 
 		err = process(repo, eventsToProcess)
 		if err != nil {
-			return fmt.Errorf("while processing events: %w", err)
+			w.log.WithError(err).Errorf("Failed to process events for %s", name)
 		}
 	}
-
-	return nil
 }
 
 func (w *Watcher) listAllPullRequests(ctx context.Context, repo matchCriteria) ([]CommonEvent, error) {
@@ -255,9 +253,12 @@ func (w *Watcher) listAllPullRequests(ctx context.Context, repo matchCriteria) (
 			w.log.WithField("prNumber", e.GetNumber()).Debug("Ignoring old pull requests")
 			continue
 		}
-		eventsToProcess = append(eventsToProcess, &GitHubPullRequest{e})
+		eventsToProcess = append(eventsToProcess, &GitHubPullRequest{
+			RepoName:    fmt.Sprintf("%s/%s", repo.RepoOwner, repo.RepoName),
+			PullRequest: e,
+		})
 	}
-	w.log.Infof("PRs %d", len(eventsToProcess))
+	w.log.Debug("Selected %d PRs to process", len(eventsToProcess))
 	return eventsToProcess, nil
 }
 
@@ -312,7 +313,7 @@ func addOptions(s string, opts interface{}) (string, error) {
 // This API is not built to serve real-time use cases. Depending on the time of day, event latency can be anywhere from 30s to 6h.
 // source: https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-repository-events
 func (w *Watcher) listRepositoryEvents(ctx context.Context, repo matchCriteria) ([]CommonEvent, error) {
-	w.log.Debugf("Listing all %d last emitted github events", perPageItems)
+	w.log.Debug("Listing all emitted github events")
 
 	var events []*github.Event
 	opts := github.ListOptions{
@@ -336,7 +337,6 @@ func (w *Watcher) listRepositoryEvents(ctx context.Context, repo matchCriteria) 
 
 	var eventsToProcess []CommonEvent
 	for _, e := range events {
-		fmt.Println(e.GetType())
 		if e == nil || e.GetCreatedAt().Before(w.lastProcessTime[repoKey(repo)]) {
 			w.log.WithField("eventType", e.GetType()).Debug("Ignoring old events")
 			continue
@@ -352,6 +352,7 @@ func (w *Watcher) listRepositoryEvents(ctx context.Context, repo matchCriteria) 
 		eventsToProcess = append(eventsToProcess, &GitHubEvent{e})
 	}
 
+	w.log.Debug("Selected %d events to process", len(eventsToProcess))
 	return eventsToProcess, nil
 }
 
