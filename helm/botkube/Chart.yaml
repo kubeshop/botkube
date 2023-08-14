@@ -1,8 +1,8 @@
 apiVersion: v1
 name: botkube
 home: https://botkube.io
-version: v1.3.0-rc.2
-appVersion: v1.3.0-rc.2
+version: v1.3.0
+appVersion: v1.3.0
 icon: https://docs.botkube.io/images/botkube-black.svg
 description: Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster,
  debug deployments and run specific checks on resources in the cluster.
