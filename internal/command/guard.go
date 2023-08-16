@@ -233,21 +233,26 @@ func (g *CommandGuard) getAllSupportedVerbs(resourceType string, inVerbs v1.Verb
 	return verbs
 }
 
+// ignoredResourceListErrors contains errors which should be ignored when getting resource list from K8s API.
+var ignoredResourceListErrors = map[string]struct{}{
+	"Got empty response for":      {}, // See https://github.com/kubernetes/client-go/blob/release-1.25/discovery/cached/memory/memcache.go#L228 (and below)
+	"received empty response for": {}, // See https://github.com/kubernetes/client-go/blob/release-1.26/discovery/cached/memory/memcache.go#L71
+}
+
 // shouldIgnoreResourceListError returns true if the error should be ignored. This is a workaround for client-go behavior,
 // which reports error on empty resource lists. However, some components can register empty lists for their resources.
-// See
+// Unfortunately there isn't a nicer way to do this, as the error type from K8s Go API is not exported.
+//
 // See: https://github.com/kyverno/kyverno/issues/2267
 func shouldIgnoreResourceListError(err error) bool {
-	groupDiscoFailedErr, ok := err.(*discovery.ErrGroupDiscoveryFailed)
+	var groupDiscoFailedErr *discovery.ErrGroupDiscoveryFailed
+	ok := errors.As(err, &groupDiscoFailedErr)
 	if !ok {
 		return false
 	}
 
 	for _, currentErr := range groupDiscoFailedErr.Groups {
-		// Unfortunately there isn't a nicer way to do this.
-		// See https://github.com/kubernetes/client-go/blob/release-1.25/discovery/cached/memory/memcache.go#L228
-		if strings.Contains(currentErr.Error(), "Got empty response for") {
-			// ignore it as it isn't necessarily an error
+		if isErrorMsgOnIgnoredList(currentErr.Error(), ignoredResourceListErrors) {
 			continue
 		}
 
@@ -255,4 +260,14 @@ func shouldIgnoreResourceListError(err error) bool {
 	}
 
 	return true
+}
+
+func isErrorMsgOnIgnoredList[T any](in string, patterns map[string]T) bool {
+	for pattern := range patterns {
+		if strings.Contains(in, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
