@@ -13,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/action"
-	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -123,12 +122,6 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	go func() {
 		for {
 			select {
-			case event, ok := <-out.Output:
-				if !ok {
-					return
-				}
-				log.WithField("event", string(event)).Debug("Dispatching received event...")
-				d.dispatch(ctx, event, dispatch)
 			case msg, ok := <-out.Event:
 				if !ok {
 					return
@@ -230,20 +223,6 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 			}(n)
 		}
 	}
-}
-
-func (d *Dispatcher) dispatch(ctx context.Context, event []byte, dispatch PluginDispatch) {
-	if event == nil {
-		return
-	}
-
-	d.dispatchMsg(ctx, source.Event{
-		Message: api.Message{
-			BaseBody: api.Body{
-				Plaintext: string(event),
-			},
-		},
-	}, dispatch)
 }
 
 func (d *Dispatcher) reportAuditEvent(ctx context.Context, pluginName string, event any, sourceName, sourceDisplayName string) error {

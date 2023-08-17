@@ -103,7 +103,7 @@ func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan 
 			cm := event.Object.(*corev1.ConfigMap)
 			msg := fmt.Sprintf("Plugin %s detected `%s` event on `%s/%s`", pluginName, obj.Event, cm.Namespace, cm.Name)
 			sink <- source.Event{
-				Message: api.NewCodeBlockMessage(msg, true),
+				Message: api.NewPlaintextMessage(msg, true),
 			}
 		}
 

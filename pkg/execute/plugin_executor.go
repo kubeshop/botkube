@@ -115,10 +115,6 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, NewExecutionCommandError(s.Message())
 	}
 
-	if resp.Data != "" {
-		return respond(resp.Data, cmdCtx), nil
-	}
-
 	if resp.Message.IsEmpty() {
 		return emptyMsg(cmdCtx), nil
 	}
