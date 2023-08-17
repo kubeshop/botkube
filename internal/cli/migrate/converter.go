@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/xyproto/randomstring"
+
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
@@ -20,21 +22,40 @@ func NewConverter() *Converter {
 }
 
 // ConvertActions converts Actions.
-func (c *Converter) ConvertActions(actions bkconfig.Actions) []*gqlModel.ActionCreateUpdateInput {
+func (c *Converter) ConvertActions(actions bkconfig.Actions, sources map[string]bkconfig.Sources, executors map[string]bkconfig.Executors) []*gqlModel.ActionCreateUpdateInput {
 	var out []*gqlModel.ActionCreateUpdateInput
 	for name, act := range actions {
+		bindings, ok := checkActionBindingExists(act, sources, executors)
+		if !ok {
+			continue
+		}
 		out = append(out, &gqlModel.ActionCreateUpdateInput{
 			Name:        name,
 			DisplayName: act.DisplayName,
 			Enabled:     act.Enabled,
 			Command:     act.Command,
-			Bindings: &gqlModel.ActionCreateUpdateInputBindings{
-				Sources:   act.Bindings.Sources,
-				Executors: act.Bindings.Executors,
-			},
+			Bindings:    bindings,
 		})
 	}
 	return out
+}
+
+func checkActionBindingExists(act bkconfig.Action, sources map[string]bkconfig.Sources, executors map[string]bkconfig.Executors) (*gqlModel.ActionCreateUpdateInputBindings, bool) {
+	for _, source := range act.Bindings.Sources {
+		if _, ok := sources[source]; !ok {
+			return nil, false
+		}
+	}
+	for _, executor := range act.Bindings.Executors {
+		if _, ok := executors[executor]; !ok {
+			return nil, false
+		}
+	}
+
+	return &gqlModel.ActionCreateUpdateInputBindings{
+		Sources:   act.Bindings.Sources,
+		Executors: act.Bindings.Executors,
+	}, true
 }
 
 // ConvertAliases converts Aliases.
@@ -89,7 +110,7 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 				Type:        gqlModel.PluginTypeExecutor,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
-						Name:          cfgName,
+						Name:          fmt.Sprintf("%s_%s", cfgName, randomstring.String(5)),
 						Configuration: string(rawCfg),
 						Rbac:          c.convertRbac(p.Context),
 					},
@@ -120,7 +141,7 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 				Type:        gqlModel.PluginTypeSource,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
-						Name:          cfgName,
+						Name:          fmt.Sprintf("%s_%s", cfgName, randomstring.String(5)),
 						Configuration: string(rawCfg),
 						Rbac:          c.convertRbac(p.Context),
 					},

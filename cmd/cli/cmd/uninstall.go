@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
-	"github.com/kubeshop/botkube/internal/cli/install"
+	"github.com/kubeshop/botkube/internal/cli/install/helm"
 	"github.com/kubeshop/botkube/internal/cli/uninstall"
 	"github.com/kubeshop/botkube/internal/kubex"
 )
@@ -46,8 +46,8 @@ func NewUninstall() *cobra.Command {
 
 	kubex.RegisterKubeconfigFlag(flags)
 
-	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", install.ReleaseName, "Botkube Helm release name.")
-	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", install.Namespace, "Botkube namespace.")
+	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", helm.ReleaseName, "Botkube Helm release name.")
+	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", helm.Namespace, "Botkube namespace.")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for deletion.")
 
 	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "simulate a uninstall")

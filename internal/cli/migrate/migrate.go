@@ -4,25 +4,27 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hasura/go-graphql-client"
-	"github.com/muesli/reflow/indent"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
+	"helm.sh/helm/v3/pkg/cli/values"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
 	cliconfig "github.com/kubeshop/botkube/internal/cli/config"
+	"github.com/kubeshop/botkube/internal/cli/install"
+	"github.com/kubeshop/botkube/internal/cli/install/helm"
 	"github.com/kubeshop/botkube/internal/cli/printer"
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/internal/kubex"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
@@ -35,8 +37,13 @@ const (
 	instanceDetailsURLFmt = "%s/instances/%s"
 )
 
+var (
+	versionRegex = regexp.MustCompile(`--version=([^\s]+)`)
+	paramRegex   = regexp.MustCompile(`--set config\.provider`)
+)
+
 // Run runs the migration process.
-func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts Options) (string, error) {
+func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, k8sCfg *kubex.ConfigWithMeta, opts Options) (string, error) {
 	authToken := opts.Token
 	if authToken == "" {
 		cfg, err := cliconfig.New()
@@ -52,10 +59,10 @@ func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, opts
 		return "", err
 	}
 
-	return migrate(ctx, status, opts, botkubeClusterConfig, authToken)
+	return migrate(ctx, status, opts, botkubeClusterConfig, k8sCfg, authToken)
 }
 
-func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, botkubeClusterConfig *bkconfig.Config, token string) (string, error) {
+func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, botkubeClusterConfig *bkconfig.Config, k8sCfg *kubex.ConfigWithMeta, token string) (string, error) {
 	converter := NewConverter()
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
@@ -74,7 +81,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	}
 	status.Step("Converted %d plugins", pluginsCount)
 
-	actions := converter.ConvertActions(botkubeClusterConfig.Actions)
+	actions := converter.ConvertActions(botkubeClusterConfig.Actions, botkubeClusterConfig.Sources, botkubeClusterConfig.Executors)
 	status.Step("Converted %d actions", len(actions))
 
 	platforms := converter.ConvertPlatforms(botkubeClusterConfig.Communications)
@@ -92,8 +99,8 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	status.Step("Creating %q Cloud Instance", instanceName)
 	var mutation struct {
 		CreateDeployment struct {
-			ID          string  `json:"id"`
-			HelmCommand *string `json:"helmCommand"`
+			ID                         string                                            `json:"id"`
+			InstallUpgradeInstructions []*gqlModel.InstallUpgradeInstructionsForPlatform `json:"installUpgradeInstructions"`
 		} `graphql:"createDeployment(input: $input)"`
 	}
 	err = client.Mutate(ctx, &mutation, map[string]interface{}{
@@ -137,43 +144,14 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		return mutation.CreateDeployment.ID, nil
 	}
 
-	helmCmd := ptr.ToValue(mutation.CreateDeployment.HelmCommand)
-	cmds := []string{
-		"helm repo add botkube https://charts.botkube.io",
-		"helm repo update botkube",
-		helmCmd,
+	installConfig := install.Config{
+		HelmParams: parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions),
+		Watch:      opts.Watch,
+		Timeout:    opts.Timeout,
 	}
-	bldr := strings.Builder{}
-	for _, cmd := range cmds {
-		msg := fmt.Sprintf("$ %s\n\n", cmd)
-		bldr.WriteString(indent.String(msg, 4))
+	if err := install.Install(ctx, os.Stdout, k8sCfg, installConfig); err != nil {
+		return "", errors.Wrap(err, "while installing Botkube")
 	}
-	status.InfoWithBody("Connect Botkube instance", bldr.String())
-
-	shouldUpgrade, err := shouldUpgradeInstallation(opts)
-	if err != nil {
-		return "", err
-	}
-	if !shouldUpgrade {
-		status.Infof("Skipping command execution. Remember to run it manually to finish the migration process.")
-		return mutation.CreateDeployment.ID, nil
-	}
-
-	status.Infof("Running helm upgrade")
-	for _, cmd := range cmds {
-		//nolint:gosec //subprocess launched with variable
-		cmd := exec.Command("/bin/sh", "-c", cmd)
-		cmd.Stderr = NewIndentWriter(os.Stderr, 4)
-		cmd.Stdout = NewIndentWriter(os.Stdout, 4)
-
-		if err = cmd.Run(); err != nil {
-			return "", err
-		}
-		fmt.Println()
-		fmt.Println()
-	}
-
-	status.End(true)
 
 	return mutation.CreateDeployment.ID, nil
 }
@@ -201,8 +179,8 @@ func getInstanceName(opts Options) (string, error) {
 	return opts.InstanceName, nil
 }
 
-func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Pod, error) {
-	k8sCli, err := newK8sClient()
+func GetConfigFromCluster(ctx context.Context, k8sCfg *rest.Config, opts Options) ([]byte, *corev1.Pod, error) {
+	k8sCli, err := kubernetes.NewForConfig(k8sCfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,14 +203,6 @@ func GetConfigFromCluster(ctx context.Context, opts Options) ([]byte, *corev1.Po
 		return nil, nil, err
 	}
 	return config, botkubePod, nil
-}
-
-func newK8sClient() (*kubernetes.Clientset, error) {
-	k8sConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
-	if err != nil {
-		return nil, err
-	}
-	return kubernetes.NewForConfig(k8sConfig)
 }
 
 func getBotkubePod(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) (*corev1.Pod, error) {
@@ -324,6 +294,35 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 	}
 }
 
+func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform) helm.Config {
+	// platform := runtime.GOOS
+	var raw string
+	if len(instructions) > 1 {
+		raw = instructions[0].InstallUpgradeCommand
+	}
+	var version string
+	if matches := versionRegex.FindStringSubmatch(raw); len(matches) > 1 {
+		version = matches[1]
+	}
+	var vals []string
+	for _, line := range strings.Split(raw, "\\") {
+		if paramRegex.MatchString(line) {
+			vals = append(vals, strings.TrimSpace(line))
+		}
+	}
+	return helm.Config{
+		Version: version,
+		Values: values.Options{
+			Values: vals,
+		},
+
+		Namespace:    helm.Namespace,
+		ReleaseName:  helm.ReleaseName,
+		ChartName:    helm.HelmChartName,
+		RepoLocation: helm.HelmRepoStable,
+	}
+}
+
 func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) ([]byte, error) {
 	configMap, err := k8sCli.CoreV1().ConfigMaps(opts.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -341,23 +340,4 @@ func cleanup(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) {
 func errStateMessage(dashboardURL, instanceID string) string {
 	return fmt.Sprintf("\n\nMigration process failed. Navigate to %s to continue configuring newly created instance.\n"+
 		"Alternatively, delete the instance from the link above and try again.", fmt.Sprintf(instanceDetailsURLFmt, dashboardURL, instanceID))
-}
-
-func shouldUpgradeInstallation(opts Options) (bool, error) {
-	if opts.AutoApprove {
-		return true, nil
-	}
-
-	run := false
-	prompt := &survey.Confirm{
-		Message: "Would you like to continue?",
-		Default: true,
-	}
-
-	err := survey.AskOne(prompt, &run)
-	if err != nil {
-		return false, errors.Wrap(err, "while asking for confirmation")
-	}
-
-	return run, nil
 }

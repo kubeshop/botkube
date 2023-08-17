@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	semver "github.com/hashicorp/go-version"
 	"github.com/pkg/browser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.szostok.io/version"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,7 @@ import (
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/migrate"
 	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/kubex"
 )
 
 const (
@@ -54,13 +56,18 @@ func NewMigrate() *cobra.Command {
 
 			`, cli.Name),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			k8sConfig, err := kubex.LoadRestConfigWithMetaInformation()
+			if err != nil {
+				return errors.Wrap(err, "while creating k8s config")
+			}
+
 			status := printer.NewStatus(cmd.OutOrStdout(), "Migrating Botkube installation to Cloud")
 			defer func() {
 				status.End(err == nil)
 			}()
 
 			status.Step("Fetching Botkube configuration")
-			cfg, pod, err := migrate.GetConfigFromCluster(cmd.Context(), opts)
+			cfg, pod, err := migrate.GetConfigFromCluster(cmd.Context(), k8sConfig.K8s, opts)
 			if err != nil {
 				return err
 			}
@@ -107,7 +114,7 @@ func NewMigrate() *cobra.Command {
 			}
 
 			status.Step("Run Botkube migration")
-			instanceID, err := migrate.Run(cmd.Context(), status, cfg, opts)
+			instanceID, err := migrate.Run(cmd.Context(), status, cfg, k8sConfig, opts)
 			if err != nil {
 				return err
 			}
@@ -134,6 +141,8 @@ func NewMigrate() *cobra.Command {
 	}
 
 	flags := login.Flags()
+	kubex.RegisterKubeconfigFlag(flags)
+	flags.DurationVar(&opts.Timeout, "timeout", 10*time.Minute, `Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io/graphql", "Botkube Cloud API URL")

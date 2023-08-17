@@ -63,6 +63,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vrischmann/envconfig v1.3.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	github.com/xyproto/randomstring v1.0.5
 	go.szostok.io/version v1.2.0
 	golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 	golang.org/x/oauth2 v0.8.0
