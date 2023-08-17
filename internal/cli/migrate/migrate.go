@@ -134,6 +134,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 			continue
 		}
 	}
+	status.End(true)
 
 	if errs.ErrorOrNil() != nil {
 		return "", fmt.Errorf("while migrating aliases: %w%s", errs.ErrorOrNil(), errStateMessage(opts.CloudDashboardURL, mutation.CreateDeployment.ID))
@@ -145,7 +146,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 	}
 
 	installConfig := install.Config{
-		HelmParams: parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions),
+		HelmParams: parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions, opts.AutoApprove),
 		Watch:      opts.Watch,
 		Timeout:    opts.Timeout,
 	}
@@ -294,7 +295,7 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 	}
 }
 
-func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform) helm.Config {
+func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform, autoApprove bool) helm.Config {
 	// platform := runtime.GOOS
 	var raw string
 	if len(instructions) > 1 {
@@ -320,6 +321,7 @@ func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlat
 		ReleaseName:  helm.ReleaseName,
 		ChartName:    helm.HelmChartName,
 		RepoLocation: helm.HelmRepoStable,
+		AutoApprove:  autoApprove,
 	}
 }
 

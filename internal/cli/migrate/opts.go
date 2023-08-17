@@ -2,13 +2,12 @@ package migrate
 
 import (
 	"time"
-
-	"github.com/kubeshop/botkube/internal/cli/install/helm"
 )
 
 // Options holds migrate possible configuration options.
 type Options struct {
 	Timeout           time.Duration
+	Watch             bool
 	Token             string
 	InstanceName      string `survey:"instanceName"`
 	CloudDashboardURL string
@@ -19,8 +18,6 @@ type Options struct {
 	SkipOpenBrowser   bool
 	AutoApprove       bool
 	ConfigExporter    ConfigExporterOptions
-	HelmParams        helm.Config
-	Watch             bool
 }
 
 // ConfigExporterOptions holds config exporter image configuration options.
