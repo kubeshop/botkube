@@ -35,7 +35,7 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	cfg, err := MergeConfigs(input.Config)
+	cfg, err := MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}

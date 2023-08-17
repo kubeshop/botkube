@@ -63,7 +63,7 @@ func TestSetDefaultNamespace(t *testing.T) {
 			// when
 			_, err := exec.Execute(context.Background(), executor.ExecuteInput{
 				Command: tc.givenCommand,
-				Config: []*executor.Config{
+				Configs: []*executor.Config{
 					{
 						RawYAML: []byte(tc.givenConfig),
 					},

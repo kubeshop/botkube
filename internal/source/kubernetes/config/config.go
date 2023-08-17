@@ -210,7 +210,7 @@ type Filters struct {
 }
 
 // MergeConfigs merges all input configuration.
-func MergeConfigs(userCfg *source.Config) (Config, error) {
+func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{
 		Log: config.Logger{
 			Level: "info",
@@ -235,8 +235,8 @@ func MergeConfigs(userCfg *source.Config) (Config, error) {
 			NodeEventsChecker:       true,
 		},
 	}
-	err, out := pluginx.MergeSourceConfigWithDefaults[Config](defaults, userCfg)
-	if err != nil {
+	var out Config
+	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, err
 	}
 

@@ -24,8 +24,8 @@ type Source interface {
 type (
 	// StreamInput holds the input of the Stream function.
 	StreamInput struct {
-		// Config holds Source configurations specified by users.
-		Config *Config
+		// Configs is a list of Source configurations specified by users.
+		Configs []*Config
 		// Context holds streaming context.
 		Context StreamInputContext
 	}
@@ -101,7 +101,7 @@ type grpcClient struct {
 
 func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, error) {
 	request := &StreamRequest{
-		Config: in.Config,
+		Configs: in.Configs,
 		Context: &StreamContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
 			KubeConfig:               in.Context.KubeConfig,
@@ -192,7 +192,7 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 	// It's up to the 'Stream' method to close the returned channels as it sends the data to it.
 	// We can only use 'ctx' to cancel streaming and release associated resources.
 	stream, err := p.Source.Stream(ctx, StreamInput{
-		Config: req.Config,
+		Configs: req.Configs,
 		Context: StreamInputContext{
 			IsInteractivitySupported: req.Context.IsInteractivitySupported,
 			KubeConfig:               req.Context.KubeConfig,

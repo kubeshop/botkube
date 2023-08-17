@@ -207,7 +207,7 @@ func TestExecutorConfigMerging(t *testing.T) {
 	// when
 	_, err := hExec.Execute(context.Background(), executor.ExecuteInput{
 		Command: "helm install",
-		Config: []*executor.Config{
+		Configs: []*executor.Config{
 			{
 				RawYAML: mustYAMLMarshal(t, configA),
 			},
@@ -248,7 +248,7 @@ func TestExecutorConfigMergingErrors(t *testing.T) {
 		Context: executor.ExecuteInputContext{
 			KubeConfig: []byte("fake config"),
 		},
-		Config: []*executor.Config{
+		Configs: []*executor.Config{
 			{
 				RawYAML: mustYAMLMarshal(t, configA),
 			},

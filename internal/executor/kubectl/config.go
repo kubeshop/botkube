@@ -31,14 +31,14 @@ func (c Config) Validate() error {
 }
 
 // MergeConfigs merges the Kubectl configuration.
-func MergeConfigs(userCfg *executor.Config) (Config, error) {
+func MergeConfigs(configs []*executor.Config) (Config, error) {
 	defaults := Config{
 		DefaultNamespace:   defaultNamespace,
 		InteractiveBuilder: builder.DefaultConfig(),
 	}
 
-	err, out := pluginx.MergeExecutorConfigWithDefaults[Config](defaults, userCfg)
-	if err != nil {
+	var out Config
+	if err := pluginx.MergeExecutorConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, fmt.Errorf("while merging configuration: %w", err)
 	}
 

@@ -18,7 +18,7 @@ type pluginDispatcher interface {
 type PluginDispatch struct {
 	ctx                      context.Context
 	pluginName               string
-	pluginConfig             *source.Config
+	pluginConfigs            []*source.Config
 	sourceName               string
 	sourceDisplayName        string
 	isInteractivitySupported bool
@@ -138,11 +138,10 @@ func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool,
 }
 
 func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
-	// As not all of our platforms supports interactivity, we need to schedule the same source twice.
-	// Key syntax: {SourceGroupName}_interactive/{true/false}. For example:
-	//  - k8s-err-events_interactive/true
-	//  - k8s-err-events_interactive/false
-	// As a result, each Stream method will know if it can produce interactive messages or not.
+	// As not all of our platforms supports interactivity, we need to schedule the same source twice. For example:
+	//  - botkube/kubernetes@1.0.0_interactive/true
+	//  - botkube/kubernetes@1.0.0_interactive/false
+	// As a result each Stream method will know if it can produce interactive message or not.
 	key := fmt.Sprintf("%s_interactive/%v", sourceName, isInteractivitySupported)
 
 	_, found := d.startProcesses[key]
@@ -154,38 +153,43 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 	d.log.Infof("Starting a new stream for %q.", key)
 	d.startProcesses[key] = struct{}{}
 
+	sourcePluginConfigs := map[string][]*source.Config{}
 	srcConfig, exists := d.cfg.Sources[sourceName]
 	if !exists {
 		return fmt.Errorf("source %q not found", sourceName)
 	}
-	for pluginName, pluginCfg := range srcConfig.Plugins {
+	plugins := srcConfig.Plugins
+	var pluginContext config.PluginContext
+	for pluginName, pluginCfg := range plugins {
 		if !pluginCfg.Enabled {
 			continue
 		}
-
+		pluginContext = pluginCfg.Context
 		// Unfortunately we need marshal it to get the raw data:
 		// https://github.com/go-yaml/yaml/issues/13
 		rawYAML, err := yaml.Marshal(pluginCfg.Config)
 		if err != nil {
 			return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, sourceName, err)
 		}
+		sourcePluginConfigs[pluginName] = append(sourcePluginConfigs[pluginName], &source.Config{
+			RawYAML: rawYAML,
+		})
+	}
 
-		err = d.dispatcher.Dispatch(PluginDispatch{
-			ctx:        ctx,
-			pluginName: pluginName,
-			pluginConfig: &source.Config{
-				RawYAML: rawYAML,
-			},
+	for pluginName, configs := range sourcePluginConfigs {
+		err := d.dispatcher.Dispatch(PluginDispatch{
+			ctx:                      ctx,
+			pluginName:               pluginName,
+			pluginConfigs:            configs,
 			isInteractivitySupported: isInteractivitySupported,
 			sourceName:               sourceName,
 			sourceDisplayName:        srcConfig.DisplayName,
 			cfg:                      d.cfg,
-			pluginContext:            pluginCfg.Context,
+			pluginContext:            pluginContext,
 		})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 		}
 	}
-
 	return nil
 }

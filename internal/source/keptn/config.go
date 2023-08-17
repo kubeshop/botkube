@@ -23,11 +23,11 @@ type Log struct {
 }
 
 // MergeConfigs merges all input configuration.
-func MergeConfigs(userCfg *source.Config) (Config, error) {
+func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{}
 
-	err, out := pluginx.MergeSourceConfigWithDefaults[Config](defaults, userCfg)
-	if err != nil {
+	var out Config
+	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, fmt.Errorf("while merging configuration: %w", err)
 	}
 

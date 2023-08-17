@@ -27,14 +27,17 @@ type (
 )
 
 var (
-	fixInputConfig = []byte(
-		heredoc.Doc(`
-            helmDriver: "configmap"
-            helmCacheDir: "/mnt/test"
-            list: ["item1"]
-            nestedProp:
-              key: "cfg-key"
-			`))
+	fixInputConfig = [][]byte{
+		[]byte(`helmDriver: "configmap"`),
+		[]byte(`helmCacheDir: "/mnt/test"`),
+		[]byte(`list: ["item1"]`),
+		[]byte(
+			heredoc.Doc(`
+					nestedProp:
+					  key: "cfg-key"
+				`),
+		),
+	}
 
 	fixDefaultConfig = exampleConfig{
 		HelmDriver:    "secret",
@@ -47,36 +50,48 @@ var (
 	}
 )
 
-func TestMergeExecutorConfigWithDefaults(t *testing.T) {
+func TestMergeExecutorConfigsWithDefaults(t *testing.T) {
 	// given
-	cfg := &executor.Config{RawYAML: fixInputConfig}
+	var cfgs []*executor.Config
+	for _, data := range fixInputConfig {
+		cfgs = append(cfgs, &executor.Config{RawYAML: data})
+	}
 
 	// when
-	err, out := MergeExecutorConfigWithDefaults[exampleConfig](fixDefaultConfig, cfg)
+	var out exampleConfig
+	err := MergeExecutorConfigsWithDefaults(fixDefaultConfig, cfgs, &out)
 
 	// then
 	require.NoError(t, err)
 	assertExpExampleConfigWithDefaults(t, out)
 }
 
-func TestLoadExecutorConfig(t *testing.T) {
+func TestMergeExecutorConfigs(t *testing.T) {
 	// given
-	cfg := &executor.Config{RawYAML: fixInputConfig}
+	var cfgs []*executor.Config
+	for _, data := range fixInputConfig {
+		cfgs = append(cfgs, &executor.Config{RawYAML: data})
+	}
 
 	// when
-	err, out := LoadExecutorConfig[exampleConfig](cfg)
+	var out exampleConfig
+	err := MergeExecutorConfigs(cfgs, &out)
 
 	// then
 	require.NoError(t, err)
 	assertExpExampleConfig(t, out)
 }
 
-func TestMergeSourceConfigWithDefaults(t *testing.T) {
+func TestMergeSourceConfigsWithDefaults(t *testing.T) {
 	// given
-	var cfg = &source.Config{RawYAML: fixInputConfig}
+	var cfgs []*source.Config
+	for _, data := range fixInputConfig {
+		cfgs = append(cfgs, &source.Config{RawYAML: data})
+	}
 
 	// when
-	err, out := MergeSourceConfigWithDefaults[exampleConfig](fixDefaultConfig, cfg)
+	var out exampleConfig
+	err := MergeSourceConfigsWithDefaults(fixDefaultConfig, cfgs, &out)
 
 	// then
 	require.NoError(t, err)
@@ -85,10 +100,14 @@ func TestMergeSourceConfigWithDefaults(t *testing.T) {
 
 func TestMergeSourceConfigs(t *testing.T) {
 	// given
-	var cfg = &source.Config{RawYAML: fixInputConfig}
+	var cfgs []*source.Config
+	for _, data := range fixInputConfig {
+		cfgs = append(cfgs, &source.Config{RawYAML: data})
+	}
 
 	// when
-	err, out := LoadSourceConfig[exampleConfig](cfg)
+	var out exampleConfig
+	err := MergeSourceConfigs(cfgs, &out)
 
 	// then
 	require.NoError(t, err)

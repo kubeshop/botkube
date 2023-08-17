@@ -39,7 +39,7 @@ func NewSource(version string) *Source {
 // Stream streams prometheus alerts
 func (p *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	out := source.StreamOutput{Event: make(chan source.Event)}
-	config, err := MergeConfigs(input.Config)
+	config, err := MergeConfigs(input.Configs)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}

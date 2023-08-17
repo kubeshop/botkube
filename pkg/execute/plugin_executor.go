@@ -100,7 +100,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 
 	resp, err := cli.Execute(ctx, executor.ExecuteInput{
 		Command: cmdCtx.CleanCmd,
-		Config:  configs,
+		Configs: configs,
 		Context: executor.ExecuteInputContext{
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
 			SlackState:               slackState,
@@ -113,6 +113,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 			return interactive.CoreMessage{}, NewExecutionCommandError(err.Error())
 		}
 		return interactive.CoreMessage{}, NewExecutionCommandError(s.Message())
+	}
+
+	if resp.Data != "" {
+		return respond(resp.Data, cmdCtx), nil
 	}
 
 	if resp.Message.IsEmpty() {

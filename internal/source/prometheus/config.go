@@ -20,14 +20,14 @@ type Config struct {
 }
 
 // MergeConfigs merges all input configuration.
-func MergeConfigs(userCfg *source.Config) (Config, error) {
+func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{
 		AlertStates:     []promApi.AlertState{promApi.AlertStateFiring, promApi.AlertStatePending, promApi.AlertStateInactive},
 		IgnoreOldAlerts: ptr.FromType(true),
 	}
 
-	err, out := pluginx.MergeSourceConfigWithDefaults[Config](defaults, userCfg)
-	if err != nil {
+	var out Config
+	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, fmt.Errorf("while merging configuration: %w", err)
 	}
 

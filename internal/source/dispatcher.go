@@ -109,7 +109,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 
 	ctx := dispatch.ctx
 	out, err := sourceClient.Stream(ctx, source.StreamInput{
-		Config: dispatch.pluginConfig,
+		Configs: dispatch.pluginConfigs,
 		Context: source.StreamInputContext{
 			IsInteractivitySupported: dispatch.isInteractivitySupported,
 			ClusterName:              dispatch.cfg.Settings.ClusterName,
@@ -123,6 +123,12 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	go func() {
 		for {
 			select {
+			case event, ok := <-out.Output:
+				if !ok {
+					return
+				}
+				log.WithField("event", string(event)).Debug("Dispatching received event...")
+				d.dispatch(ctx, event, dispatch)
 			case msg, ok := <-out.Event:
 				if !ok {
 					return

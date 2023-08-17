@@ -99,13 +99,12 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 		return executor.ExecuteOutput{}, fmt.Errorf("while parsing input command: %w", err)
 	}
 
-	defaults := x.Config{
+	cfg := x.Config{
 		Templates: []getter.Source{
 			{Ref: getDefaultTemplateSource()},
 		},
 	}
-	err, cfg := pluginx.MergeExecutorConfigWithDefaults[x.Config](&defaults, in.Config)
-	if err != nil {
+	if err := pluginx.MergeExecutorConfigs(in.Configs, &cfg); err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging configs: %v", err)
 	}
 
