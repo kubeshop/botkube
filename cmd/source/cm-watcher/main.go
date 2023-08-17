@@ -65,8 +65,7 @@ func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 
 // Stream sends an event when a given ConfigMap is matched against the criteria defined in config.
 func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.StreamOutput, error) {
-	var cfg Config
-	err := pluginx.MergeSourceConfigsWithDefaults(defaultConfig, in.Configs, &cfg)
+	err, cfg := pluginx.MergeSourceConfigWithDefaults[Config](defaultConfig, in.Config)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}

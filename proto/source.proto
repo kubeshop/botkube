@@ -12,8 +12,8 @@ message Config {
 }
 
 message StreamRequest {
-	// Configs is a list of Source configurations specified by users.
-	repeated Config configs = 1;
+	// config holds Source configurations specified by users.
+	Config config = 1;
 	// context holds context stream.
 	StreamContext context = 3;
 }

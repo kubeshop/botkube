@@ -27,8 +27,8 @@ type (
 		Context ExecuteInputContext
 		// Command holds the command to be executed.
 		Command string
-		// Configs is a list of Executor configurations specified by users.
-		Configs []*Config
+		// Config holds Executor configurations specified by users.
+		Config *Config
 	}
 
 	// ExecuteInputContext holds execution context.
@@ -99,7 +99,7 @@ type grpcClient struct {
 func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutput, error) {
 	grpcInput := &ExecuteRequest{
 		Command: in.Command,
-		Configs: in.Configs,
+		Config:  in.Config,
 		Context: &ExecuteContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
 			KubeConfig:               in.Context.KubeConfig,
@@ -175,7 +175,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 
 	out, err := p.Impl.Execute(ctx, ExecuteInput{
 		Command: request.Command,
-		Configs: request.Configs,
+		Config:  request.Config,
 		Context: ExecuteInputContext{
 			SlackState:               &slackState,
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,

@@ -88,7 +88,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 
-	cfg, err := MergeConfigs(in.Configs)
+	cfg, err := MergeConfigs(in.Config)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}

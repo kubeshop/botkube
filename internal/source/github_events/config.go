@@ -193,7 +193,7 @@ func (r *IncludeExcludeRegex) IsDefined(value string) (bool, error) {
 }
 
 // MergeConfigs merges all input configuration.
-func MergeConfigs(configs []*source.Config) (Config, error) {
+func MergeConfigs(userCfg *source.Config) (Config, error) {
 	defaults := Config{
 		Log: config.Logger{
 			Level: "info",
@@ -204,8 +204,9 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 			UploadURL: "https://uploads.github.com/",
 		},
 	}
-	var out Config
-	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
+
+	err, out := pluginx.MergeSourceConfigWithDefaults[Config](defaults, userCfg)
+	if err != nil {
 		return Config{}, err
 	}
 

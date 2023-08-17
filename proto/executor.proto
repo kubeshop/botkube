@@ -14,8 +14,8 @@ message Config {
 message ExecuteRequest {
 	// command represents the exact command that was specified by the user.
 	string command = 1;
-	// configs is a list of Executor configurations specified by users.
-	repeated Config configs = 2;
+	// config holds Executor configurations specified by users.
+	Config config = 2;
 	// context holds context execution.
 	ExecuteContext context = 3;
 }

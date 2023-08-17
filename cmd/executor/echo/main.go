@@ -43,8 +43,7 @@ func (*EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 
 // Execute returns a given command as response.
 func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	var cfg Config
-	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	err, cfg := pluginx.LoadExecutorConfig[Config](in.Config)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}

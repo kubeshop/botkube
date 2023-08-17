@@ -69,7 +69,7 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 		return source.StreamOutput{}, err
 	}
 
-	cfg, err := config.MergeConfigs(input.Configs)
+	cfg, err := config.MergeConfigs(input.Config)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
