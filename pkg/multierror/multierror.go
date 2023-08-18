@@ -29,12 +29,32 @@ func listFormatFunc(es []error) string {
 		return fmt.Sprintf("1 error occurred:\n\t* %s", es[0])
 	}
 
-	points := make([]string, len(es))
-	for i, err := range es {
-		points[i] = fmt.Sprintf("* %s", err)
-	}
+	// points := make([]string, len(es))
+	// for i, err := range es {
+	// 	points[i] = fmt.Sprintf("* %s", err)
+	// }
 
-	return fmt.Sprintf(
-		"%d errors occurred:\n\t%s",
-		len(es), strings.Join(points, "\n\t"))
+	// return fmt.Sprintf(
+	// 	"%d errors occurred:\n\t%s",
+	// 	len(es), strings.Join(points, "\n\t"))
+
+	formatString := "* %s"
+
+	formatterResult := strings.Join(formatElements(formatString,es),"\n\t")
+
+	return formatterResult
+}
+
+//Added a way to format the strings in a better way 
+func formatElements(formatStr string, errs []error) []string {
+	errStrings := make([]string, len(errs))
+	for i, err := range errs {
+		errStrings[i] = err.Error()
+	}
+	var formattedSlice []string
+	for _, element := range errStrings {
+		formattedElement := fmt.Sprintf(formatStr, element)
+		formattedSlice = append(formattedSlice, formattedElement)
+	}
+	return formattedSlice
 }
