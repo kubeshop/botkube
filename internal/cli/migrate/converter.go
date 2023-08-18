@@ -24,7 +24,6 @@ func NewConverter() *Converter {
 // ConvertActions converts Actions.
 func (c *Converter) ConvertActions(actions bkconfig.Actions, sources map[string]bkconfig.Sources, executors map[string]bkconfig.Executors) []*gqlModel.ActionCreateUpdateInput {
 	var out []*gqlModel.ActionCreateUpdateInput
-
 	for name, act := range actions {
 		bindings, ok := checkActionBindingExists(act, sources, executors)
 		if !ok {

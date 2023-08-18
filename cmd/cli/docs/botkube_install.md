@@ -4,11 +4,11 @@ title: botkube install
 
 ## botkube install
 
-install Botkube into cluster
+install or upgrade Botkube in k8s cluster
 
 ### Synopsis
 
-Use this command to install the Botkube agent.
+Use this command to install or upgrade the Botkube agent.
 
 ```
 botkube install [OPTIONS] [flags]
