@@ -144,6 +144,7 @@ func NewMigrate() *cobra.Command {
 	kubex.RegisterKubeconfigFlag(flags)
 	flags.DurationVar(&opts.Timeout, "timeout", 10*time.Minute, `Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
+	flags.BoolVarP(&opts.Watch, "watch", "w", true, "Watches the status of the Botkube installation until it finish or the defined `--timeout` occurs.")
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io/graphql", "Botkube Cloud API URL")
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
