@@ -82,6 +82,29 @@ func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {
 			ExpectedErrMessage: "",
 		},
 		{
+			Name:                   "Discovery API resource list ignored error 2",
+			SelectedVerb:           "get",
+			AllConfiguredResources: []string{"pods"},
+			FakeDiscoClient: &fakeDisco{
+				list: []*v1.APIResourceList{
+					{
+						GroupVersion: "v1",
+						APIResources: []v1.APIResource{
+							{Name: "pods", Namespaced: true, Kind: "Pod", Verbs: []string{"create", "delete", "deletecollection", "get", "list", "patch", "update", "watch"}},
+						},
+					},
+				},
+				err: &discovery.ErrGroupDiscoveryFailed{
+					Groups: map[schema.GroupVersion]error{
+						{Group: "", Version: "external.metrics.k8s.io/v1beta1"}: errors.New("received empty response for: external.metrics.k8s.io/v1beta1"),
+					},
+				}},
+			ExpectedResult: []Resource{
+				{Name: "pods", Namespaced: true, SlashSeparatedInCommand: false},
+			},
+			ExpectedErrMessage: "",
+		},
+		{
 			Name:                   "Verb not supported",
 			SelectedVerb:           "create",
 			AllConfiguredResources: []string{"pods", "services", "nodes"},
