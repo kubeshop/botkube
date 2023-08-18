@@ -17,14 +17,12 @@ import (
 type Event struct {
 	APIVersion      string
 	Kind            string
-	Code            string
 	Title           string
 	Name            string
 	Namespace       string
 	Messages        []string
 	Type            config.EventType
 	Reason          string
-	Error           string
 	Level           config.Level
 	Cluster         string
 	TimeStamp       time.Time
@@ -34,7 +32,6 @@ type Event struct {
 	Resource        string
 	Recommendations []string
 	Warnings        []string
-	Actions         []Action
 
 	// The following fields are ignored when marshalling the event by purpose.
 	// We send the whole Event struct via sink.Elasticsearch integration.
