@@ -43,7 +43,7 @@ func SendPlaintextMessage(ctx context.Context, notifiers []Bot, msg string) erro
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("while sending message: %w", err)
+			return fmt.Errorf("error occurred while sending message: \n\t%w", err)
 		}
 	}
 
