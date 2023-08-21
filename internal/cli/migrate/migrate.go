@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hasura/go-graphql-client"
+	"github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
+	flag "github.com/spf13/pflag"
 	"golang.org/x/oauth2"
 	"helm.sh/helm/v3/pkg/cli/values"
 	batchv1 "k8s.io/api/batch/v1"
@@ -35,11 +35,7 @@ const (
 	configMapName    = "botkube-config-exporter"
 
 	instanceDetailsURLFmt = "%s/instances/%s"
-)
-
-var (
-	versionRegex = regexp.MustCompile(`--version=([^\s]+)`)
-	paramRegex   = regexp.MustCompile(`--set config\.provider`)
+	platformNameOther     = "Other"
 )
 
 // Run runs the migration process.
@@ -145,8 +141,12 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		return mutation.CreateDeployment.ID, nil
 	}
 
+	params, err := parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions, opts.AutoApprove)
+	if err != nil {
+		return "", errors.Wrap(err, "while parsing helm command")
+	}
 	installConfig := install.Config{
-		HelmParams: parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions, opts.AutoApprove),
+		HelmParams: params,
 		Watch:      opts.Watch,
 		Timeout:    opts.Timeout,
 	}
@@ -295,34 +295,38 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 	}
 }
 
-func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform, autoApprove bool) helm.Config {
-	// platform := runtime.GOOS
+func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform, autoApprove bool) (helm.Config, error) {
 	var raw string
-	if len(instructions) > 1 {
-		raw = instructions[0].InstallUpgradeCommand
-	}
-	var version string
-	if matches := versionRegex.FindStringSubmatch(raw); len(matches) > 1 {
-		version = matches[1]
-	}
-	var vals []string
-	for _, line := range strings.Split(raw, "\\") {
-		if paramRegex.MatchString(line) {
-			vals = append(vals, strings.TrimSpace(line))
+	for _, i := range instructions {
+		if i.PlatformName == platformNameOther {
+			raw = i.InstallUpgradeCommand
 		}
 	}
+	tokenized, err := shellwords.Parse(raw)
+	if err != nil {
+		return helm.Config{}, errors.Wrap(err, "could not tokenize helm command")
+	}
+
+	var version string
+	var vals []string
+	flagSet := flag.NewFlagSet("helm cmd", flag.ExitOnError)
+	flagSet.StringVar(&version, "version", "", "")
+	flagSet.StringArrayVar(&vals, "set", []string{}, "")
+	if err := flagSet.Parse(tokenized); err != nil {
+		return helm.Config{}, errors.Wrap(err, "could not register flags")
+	}
+
 	return helm.Config{
 		Version: version,
 		Values: values.Options{
 			Values: vals,
 		},
-
 		Namespace:    helm.Namespace,
 		ReleaseName:  helm.ReleaseName,
 		ChartName:    helm.HelmChartName,
 		RepoLocation: helm.HelmRepoStable,
 		AutoApprove:  autoApprove,
-	}
+	}, nil
 }
 
 func readConfigFromCM(ctx context.Context, k8sCli *kubernetes.Clientset, opts Options) ([]byte, error) {

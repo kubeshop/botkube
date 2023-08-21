@@ -2,6 +2,7 @@ package helm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -76,7 +77,7 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 			}
 
 			if !upgrade {
-				return nil, nil
+				return nil, errors.New("upgrade aborted")
 			}
 		}
 		restartAnnotation := fmt.Sprintf(restartAnnotationFmt, time.Now().Unix())
