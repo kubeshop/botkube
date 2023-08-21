@@ -27,8 +27,7 @@ message ExecuteContext {
 }
 
 message ExecuteResponse {
-	string data = 1;
-	bytes message = 2;
+	bytes message = 1;
 }
 
 message MetadataResponse {

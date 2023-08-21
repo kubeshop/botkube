@@ -72,15 +72,15 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 	}
 
 	out := source.StreamOutput{
-		Output: make(chan []byte),
+		Event: make(chan source.Event),
 	}
 
-	go listenEvents(ctx, in.Context.KubeConfig, cfg.ConfigMap, out.Output)
+	go listenEvents(ctx, in.Context.KubeConfig, cfg.ConfigMap, out.Event)
 
 	return out, nil
 }
 
-func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan<- []byte) {
+func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan source.Event) {
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	exitOnError(err)
 	clientset, err := kubernetes.NewForConfig(config)
@@ -102,7 +102,9 @@ func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan<
 		if event.Type == obj.Event {
 			cm := event.Object.(*corev1.ConfigMap)
 			msg := fmt.Sprintf("Plugin %s detected `%s` event on `%s/%s`", pluginName, obj.Event, cm.Namespace, cm.Name)
-			sink <- []byte(msg)
+			sink <- source.Event{
+				Message: api.NewPlaintextMessage(msg, true),
+			}
 		}
 
 		// always continue - context will cancel this watch for us :)

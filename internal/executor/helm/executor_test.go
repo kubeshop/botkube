@@ -135,7 +135,6 @@ func TestExecutorHelmInstallFlagsErrors(t *testing.T) {
 			// then
 			require.EqualError(t, err, tc.expErrMsg)
 			assert.Empty(t, out.Message)
-			assert.Empty(t, out.Data)
 		})
 	}
 }

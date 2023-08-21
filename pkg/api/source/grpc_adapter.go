@@ -32,44 +32,19 @@ type (
 
 	// StreamInputContext holds streaming context.
 	StreamInputContext struct {
-		// IsInteractivitySupported is set to true only if communication platform supports interactive Messages.
+		// IsInteractivitySupported is set to true only if a communication platform supports interactive Messages.
 		IsInteractivitySupported bool
 
 		// KubeConfig is the path to kubectl configuration file.
 		KubeConfig []byte
 
-		// ClusterName is the name of underlying Kubernetes cluster which is provided by end user.
+		// ClusterName is the name of the underlying Kubernetes cluster which is provided by end user.
 		ClusterName string
 	}
 
 	// StreamOutput holds the output of the Stream function.
 	StreamOutput struct {
-		// Output represents the streamed events. It is from start of plugin execution.
-		// Deprecated: Use the Message field instead.
-		//
-		// Migration path:
-		//
-		//	Old approach:
-		//	  out := source.StreamOutput{
-		//	  	Output: make(chan []byte),
-		//	  }
-		//	  go func() {
-		//	  	out.Output <- []byte("Ticker Event")
-		//	  }()
-		//	  return out, nil
-		//
-		//	New approach:
-		//	  out := source.StreamOutput{
-		//	  	Event: make(chan source.Event),
-		//	  }
-		//	  go func() {
-		//	  	out.Event <- source.Event{
-		//	  		Message: api.NewPlaintextMessage("Ticker Event", true),
-		//	  	}
-		//	  }()
-		//	  return out, nil
-		Output chan []byte
-		// Event represents the streamed events with message,raw object, and analytics data. It is from start of plugin consumption.
+		// Event represents the streamed events with message, raw object, and analytics data. It is from the start of plugin consumption.
 		// You can construct a complex message.data or just use one of our helper functions:
 		//   - api.NewCodeBlockMessage("body", true)
 		//   - api.NewPlaintextMessage("body", true)
@@ -90,7 +65,7 @@ type (
 //
 // NOTE: In the future we can consider using VersionedPlugins. These can be used to negotiate
 // a compatible version between client and server. If this is set, Handshake.ProtocolVersion is not required.
-const ProtocolVersion = 1
+const ProtocolVersion = 2
 
 var _ plugin.GRPCPlugin = &Plugin{}
 
@@ -99,7 +74,7 @@ type Plugin struct {
 	// The GRPC plugin must still implement the Plugin interface.
 	plugin.NetRPCUnsupportedPlugin
 
-	// Source represent a concrete implementation that handles the business logic.
+	// Source represents a concrete implementation that handles the business logic.
 	Source Source
 }
 
@@ -139,8 +114,7 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 	}
 
 	out := StreamOutput{
-		Output: make(chan []byte),
-		Event:  make(chan Event),
+		Event: make(chan Event),
 	}
 
 	go func() {
@@ -166,10 +140,8 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 					return
 				}
 			}
-			out.Output <- feature.Output
 			out.Event <- event
 		}
-		close(out.Output)
 		close(out.Event)
 	}()
 
@@ -235,17 +207,6 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 		select {
 		case <-ctx.Done(): // client canceled stream, we can release this connection.
 			return ctx.Err()
-		case out, ok := <-stream.Output:
-			if !ok {
-				return nil // output closed, no more messages
-			}
-
-			err := gstream.Send(&StreamResponse{
-				Output: out,
-			})
-			if err != nil {
-				return err
-			}
 		case msg, ok := <-stream.Event:
 			if !ok {
 				return nil // output closed, no more chunk logs
