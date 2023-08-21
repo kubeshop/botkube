@@ -81,7 +81,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 
 	if cmd.Create == nil || cmd.Create.Issue == nil {
 		return executor.ExecuteOutput{
-			Data: fmt.Sprintf("Usage: %s create issue KIND/NAME", pluginName),
+			Message: api.NewCodeBlockMessage(fmt.Sprintf("Usage: %s create issue KIND/NAME", pluginName), false),
 		}, nil
 	}
 
@@ -114,7 +114,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 	}
 
 	return executor.ExecuteOutput{
-		Data: fmt.Sprintf("New issue created successfully! 🎉\n\nIssue URL: %s", issueURL),
+		Message: api.NewCodeBlockMessage(fmt.Sprintf("New issue created successfully! 🎉\n\nIssue URL: %s", issueURL), false),
 	}, nil
 }
 

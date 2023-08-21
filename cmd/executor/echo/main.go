@@ -59,7 +59,7 @@ func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execu
 	}
 
 	return executor.ExecuteOutput{
-		Data: data,
+		Message: api.NewCodeBlockMessage(data, true),
 	}, nil
 }
 

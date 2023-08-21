@@ -49,22 +49,6 @@ type (
 
 	// ExecuteOutput holds the output of the Execute function.
 	ExecuteOutput struct {
-		// Data represents the output of processing a given input command.
-		// Deprecated: Use the Message field instead.
-		//
-		// Migration path:
-		//
-		//	Old approach:
-		//	  return executor.ExecuteOutput{
-		//	  	Data: data,
-		//	  }
-		//
-		//	New approach:
-		//	  return executor.ExecuteOutput{
-		//	  	Message: api.NewPlaintextMessage(data, true),
-		//	  }
-		Data string
-
 		// Message represents the output of processing a given input command.
 		// You can construct a complex message or just use one of our helper functions:
 		//   - api.NewCodeBlockMessage("body", true)
@@ -80,7 +64,7 @@ type (
 //
 // NOTE: In the future we can consider using VersionedPlugins. These can be used to negotiate
 // a compatible version between client and server. If this is set, Handshake.ProtocolVersion is not required.
-const ProtocolVersion = 1
+const ProtocolVersion = 2
 
 var _ plugin.GRPCPlugin = &Plugin{}
 
@@ -89,7 +73,7 @@ type Plugin struct {
 	// The GRPC plugin must still implement the Plugin interface.
 	plugin.NetRPCUnsupportedPlugin
 
-	// Executor represent a concrete implementation that handles the business logic.
+	// Executor represents a concrete implementation that handles the business logic.
 	Executor Executor
 }
 
@@ -144,7 +128,6 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 
 	return ExecuteOutput{
 		Message: msg,
-		Data:    res.Data,
 	}, nil
 }
 
@@ -209,7 +192,6 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 	}
 	return &ExecuteResponse{
 		Message: marshalled,
-		Data:    out.Data,
 	}, nil
 }
 
