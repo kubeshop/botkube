@@ -37,7 +37,7 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
 
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
-		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*", true, false)
+		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*", true, true)
 		if err != nil {
 			log.Printf("Cannot build index file: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

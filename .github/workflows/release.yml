@@ -61,6 +61,7 @@ jobs:
       - name: Build plugins and generate plugins index.yaml
         env:
           PLUGIN_DOWNLOAD_URL_BASE_PATH: "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+          OUTPUT_MODE: "archive"
         run: |
           make gen-plugins-index
 
