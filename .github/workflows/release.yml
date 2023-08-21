@@ -79,4 +79,4 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
         run: |
-          goreleaser release --rm-dist --release-notes=CHANGELOG.md
+          goreleaser release --clean --release-notes=CHANGELOG.md

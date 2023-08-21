@@ -25,5 +25,14 @@ builds:
       - 7
   <- end >
 
+archives:
+  <range .>    
+  - builds: [<.Name>]
+    id: <.Name>
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+  <end>
+
 snapshot:
   name_template: 'v{{ .Version }}'

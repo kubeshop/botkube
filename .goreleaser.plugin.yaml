@@ -190,5 +190,80 @@ builds:
     goarm:
       - 7
 
+archives:
+      
+  - builds: [doctor]
+    id: doctor
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [echo]
+    id: echo
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [exec]
+    id: exec
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [flux]
+    id: flux
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [gh]
+    id: gh
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [helm]
+    id: helm
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [kubectl]
+    id: kubectl
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [cm-watcher]
+    id: cm-watcher
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [github-events]
+    id: github-events
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [keptn]
+    id: keptn
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [kubernetes]
+    id: kubernetes
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [prometheus]
+    id: prometheus
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+  
+
 snapshot:
   name_template: 'v{{ .Version }}'

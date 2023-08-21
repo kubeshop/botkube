@@ -125,11 +125,11 @@ func (s storeRepository) key(repo, name string) string {
 }
 
 func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]string) {
-	out := make(map[string]URL)
+	pluginBins := make(map[string]URL)
 	var deps map[string]map[string]string
 	for _, item := range in {
 		key := item.Platform.OS + "/" + item.Platform.Arch
-		out[key] = URL{
+		pluginBins[key] = URL{
 			URL:      item.URL,
 			Checksum: item.Checksum,
 		}
@@ -147,7 +147,7 @@ func mapBinaryURLs(in []IndexURL) (map[string]URL, map[string]map[string]string)
 		}
 	}
 
-	return out, deps
+	return pluginBins, deps
 }
 
 // byIndexEntryVersion implements sort.Interface based on the version field.

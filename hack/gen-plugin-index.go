@@ -20,6 +20,7 @@ func main() {
 		binsDir          = flag.String("binaries-path", "./plugin-dist", "Defines the local path to plugins binaries folder")
 		output           = flag.String("output-path", "./plugins-index.yaml", "Defines the local path where index YAML should be saved")
 		pluginNameFilter = flag.String("plugin-name-filter", "", "Defines the plugin name regex for plugins which should be included in the index. Other plugins will be skipped.")
+		useArchive       = flag.Bool("use-archive", true, "If enabled, archives are used instead of binaries for constructing plugin download URLs.")
 	)
 
 	flag.Parse()
@@ -37,7 +38,7 @@ func main() {
 	})
 
 	log.Info("Building index..")
-	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *pluginNameFilter, false)
+	idx, err := idxBuilder.Build(absBinsDir, *urlBasePath, *pluginNameFilter, false, *useArchive)
 	loggerx.ExitOnError(err, "while building plugin index")
 
 	raw, err := yaml.Marshal(idx)
