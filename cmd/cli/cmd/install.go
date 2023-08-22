@@ -11,6 +11,7 @@ import (
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/install"
+	"github.com/kubeshop/botkube/internal/cli/install/helm"
 	"github.com/kubeshop/botkube/internal/kubex"
 )
 
@@ -20,8 +21,8 @@ func NewInstall() *cobra.Command {
 
 	installCmd := &cobra.Command{
 		Use:     "install [OPTIONS]",
-		Short:   "install Botkube into cluster",
-		Long:    "Use this command to install the Botkube agent.",
+		Short:   "install or upgrade Botkube in k8s cluster",
+		Long:    "Use this command to install or upgrade the Botkube agent.",
 		Aliases: []string{"instl", "deploy"},
 		Example: heredoc.WithCLIName(`
 			# Install latest stable Botkube version
@@ -34,9 +35,6 @@ func NewInstall() *cobra.Command {
 			<cli> install --repo @local`, cli.Name),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := kubex.LoadRestConfigWithMetaInformation()
-			if err != nil {
-				return err
-			}
 			if err != nil {
 				return errors.Wrap(err, "while creating k8s config")
 			}
@@ -52,11 +50,11 @@ func NewInstall() *cobra.Command {
 	flags.BoolVarP(&opts.Watch, "watch", "w", true, "Watches the status of the Botkube installation until it finish or the defined `--timeout` occurs.")
 
 	// common params for install and upgrade operation
-	flags.StringVar(&opts.HelmParams.Version, "version", install.LatestVersionTag, "Botkube version. Possible values @latest, 1.2.0, ...")
-	flags.StringVar(&opts.HelmParams.Namespace, "namespace", install.Namespace, "Botkube installation namespace.")
-	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", install.ReleaseName, "Botkube Helm chart release name.")
-	flags.StringVar(&opts.HelmParams.ChartName, "chart-name", install.HelmChartName, "Botkube Helm chart name.")
-	flags.StringVar(&opts.HelmParams.RepoLocation, "repo", install.HelmRepoStable, fmt.Sprintf("Botkube Helm chart repository location. It can be relative path to current working directory or URL. Use %s tag to select repository which holds the stable Helm chart versions.", install.StableVersionTag))
+	flags.StringVar(&opts.HelmParams.Version, "version", helm.LatestVersionTag, "Botkube version. Possible values @latest, 1.2.0, ...")
+	flags.StringVar(&opts.HelmParams.Namespace, "namespace", helm.Namespace, "Botkube installation namespace.")
+	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", helm.ReleaseName, "Botkube Helm chart release name.")
+	flags.StringVar(&opts.HelmParams.ChartName, "chart-name", helm.HelmChartName, "Botkube Helm chart name.")
+	flags.StringVar(&opts.HelmParams.RepoLocation, "repo", helm.HelmRepoStable, fmt.Sprintf("Botkube Helm chart repository location. It can be relative path to current working directory or URL. Use %s tag to select repository which holds the stable Helm chart versions.", helm.StableVersionTag))
 	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "Simulate an install")
 	flags.BoolVar(&opts.HelmParams.Force, "force", false, "Force resource updates through a replacement strategy")
 	flags.BoolVar(&opts.HelmParams.DisableHooks, "no-hooks", false, "Disable pre/post install/upgrade hooks")

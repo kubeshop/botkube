@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/xyproto/randomstring"
+
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
@@ -12,29 +14,58 @@ import (
 )
 
 // Converter converts OS config into GraphQL create input.
-type Converter struct{}
+type Converter struct {
+	pluginNames map[string]string
+}
 
 // NewConverter returns a new Converter instance.
 func NewConverter() *Converter {
-	return &Converter{}
+	return &Converter{
+		pluginNames: map[string]string{},
+	}
 }
 
 // ConvertActions converts Actions.
-func (c *Converter) ConvertActions(actions bkconfig.Actions) []*gqlModel.ActionCreateUpdateInput {
+func (c *Converter) ConvertActions(actions bkconfig.Actions, sources map[string]bkconfig.Sources, executors map[string]bkconfig.Executors) []*gqlModel.ActionCreateUpdateInput {
 	var out []*gqlModel.ActionCreateUpdateInput
 	for name, act := range actions {
+		bindings, ok := c.checkActionBindingExists(act, sources, executors)
+		if !ok {
+			continue
+		}
 		out = append(out, &gqlModel.ActionCreateUpdateInput{
 			Name:        name,
 			DisplayName: act.DisplayName,
 			Enabled:     act.Enabled,
 			Command:     act.Command,
-			Bindings: &gqlModel.ActionCreateUpdateInputBindings{
-				Sources:   act.Bindings.Sources,
-				Executors: act.Bindings.Executors,
-			},
+			Bindings:    bindings,
 		})
 	}
 	return out
+}
+
+func (c *Converter) checkActionBindingExists(act bkconfig.Action, sources map[string]bkconfig.Sources, executors map[string]bkconfig.Executors) (*gqlModel.ActionCreateUpdateInputBindings, bool) {
+	sourcesGenerated := make([]string, 0, len(act.Bindings.Sources))
+	for _, source := range act.Bindings.Sources {
+		if _, ok := sources[source]; !ok {
+			return nil, false
+		}
+		name := c.getOrGeneratePluginName(source)
+		sourcesGenerated = append(sourcesGenerated, name)
+	}
+	executorsGenerated := make([]string, 0, len(act.Bindings.Executors))
+	for _, executor := range act.Bindings.Executors {
+		if _, ok := executors[executor]; !ok {
+			return nil, false
+		}
+		name := c.getOrGeneratePluginName(executor)
+		executorsGenerated = append(executorsGenerated, name)
+	}
+
+	return &gqlModel.ActionCreateUpdateInputBindings{
+		Sources:   sourcesGenerated,
+		Executors: executorsGenerated,
+	}, true
 }
 
 // ConvertAliases converts Aliases.
@@ -89,7 +120,7 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 				Type:        gqlModel.PluginTypeExecutor,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
-						Name:          cfgName,
+						Name:          c.getOrGeneratePluginName(cfgName),
 						Configuration: string(rawCfg),
 						Rbac:          c.convertRbac(p.Context),
 					},
@@ -120,7 +151,7 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 				Type:        gqlModel.PluginTypeSource,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
-						Name:          cfgName,
+						Name:          c.getOrGeneratePluginName(cfgName),
 						Configuration: string(rawCfg),
 						Rbac:          c.convertRbac(p.Context),
 					},
@@ -173,8 +204,8 @@ func (c *Converter) convertSlackPlatform(name string, slack bkconfig.SocketSlack
 		channels = append(channels, &gqlModel.ChannelBindingsByNameCreateInput{
 			Name: ch.Name,
 			Bindings: &gqlModel.BotBindingsCreateInput{
-				Sources:   toSlicePointers(ch.Bindings.Sources),
-				Executors: toSlicePointers(ch.Bindings.Executors),
+				Sources:   c.toGeneratedNamesSlice(ch.Bindings.Sources),
+				Executors: c.toGeneratedNamesSlice(ch.Bindings.Executors),
 			},
 			NotificationsDisabled: ptr.FromType(ch.Notification.Disabled),
 		})
@@ -194,8 +225,8 @@ func (c *Converter) convertDiscordPlatform(name string, discord bkconfig.Discord
 		channels = append(channels, &gqlModel.ChannelBindingsByIDCreateInput{
 			ID: ch.ID,
 			Bindings: &gqlModel.BotBindingsCreateInput{
-				Sources:   toSlicePointers(ch.Bindings.Sources),
-				Executors: toSlicePointers(ch.Bindings.Executors),
+				Sources:   c.toGeneratedNamesSlice(ch.Bindings.Sources),
+				Executors: c.toGeneratedNamesSlice(ch.Bindings.Executors),
 			},
 			NotificationsDisabled: ptr.FromType(ch.Notification.Disabled),
 		})
@@ -215,8 +246,8 @@ func (c *Converter) convertMattermostPlatform(name string, matt bkconfig.Matterm
 		channels = append(channels, &gqlModel.ChannelBindingsByNameCreateInput{
 			Name: ch.Name,
 			Bindings: &gqlModel.BotBindingsCreateInput{
-				Sources:   toSlicePointers(ch.Bindings.Sources),
-				Executors: toSlicePointers(ch.Bindings.Executors),
+				Sources:   c.toGeneratedNamesSlice(ch.Bindings.Sources),
+				Executors: c.toGeneratedNamesSlice(ch.Bindings.Executors),
 			},
 			NotificationsDisabled: ptr.FromType(ch.Notification.Disabled),
 		})
@@ -232,10 +263,20 @@ func (c *Converter) convertMattermostPlatform(name string, matt bkconfig.Matterm
 	}
 }
 
-func toSlicePointers[T any](in []T) []*T {
-	var out []*T
-	for idx := range in {
-		out = append(out, &in[idx])
+func (c *Converter) getOrGeneratePluginName(plugin string) string {
+	if name, ok := c.pluginNames[plugin]; ok {
+		return name
+	}
+	name := fmt.Sprintf("%s_%s", plugin, randomstring.CookieFriendlyString(5))
+	c.pluginNames[plugin] = name
+	return name
+}
+
+func (c *Converter) toGeneratedNamesSlice(in []string) []*string {
+	out := make([]*string, 0, len(in))
+	for _, name := range in {
+		generated := c.getOrGeneratePluginName(name)
+		out = append(out, &generated)
 	}
 	return out
 }

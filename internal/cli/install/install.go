@@ -39,21 +39,21 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	}()
 
 	switch opts.HelmParams.RepoLocation {
-	case StableVersionTag:
-		status.Debugf("Resolved %s tag into %s...", StableVersionTag, HelmRepoStable)
-		opts.HelmParams.RepoLocation = HelmRepoStable
-	case LocalVersionTag:
-		status.Debugf("Resolved %s tag into %s...", LocalVersionTag, LocalChartsPath)
-		opts.HelmParams.RepoLocation = LocalChartsPath
+	case helm.StableVersionTag:
+		status.Debugf("Resolved %s tag into %s...", helm.StableVersionTag, helm.HelmRepoStable)
+		opts.HelmParams.RepoLocation = helm.HelmRepoStable
+	case helm.LocalVersionTag:
+		status.Debugf("Resolved %s tag into %s...", helm.LocalVersionTag, helm.LocalChartsPath)
+		opts.HelmParams.RepoLocation = helm.LocalChartsPath
 		opts.HelmParams.Version = ""
 	}
 
-	if opts.HelmParams.Version == LatestVersionTag {
+	if opts.HelmParams.Version == helm.LatestVersionTag {
 		ver, err := helm.GetLatestVersion(opts.HelmParams.RepoLocation, opts.HelmParams.ChartName)
 		if err != nil {
 			return err
 		}
-		status.Debugf("Resolved %s tag into %s...", LatestVersionTag, ver)
+		status.Debugf("Resolved %s tag into %s...", helm.LatestVersionTag, ver)
 		opts.HelmParams.Version = ver
 	}
 

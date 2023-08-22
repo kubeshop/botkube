@@ -1,9 +1,13 @@
 package migrate
 
-import "time"
+import (
+	"time"
+)
 
 // Options holds migrate possible configuration options.
 type Options struct {
+	Timeout           time.Duration
+	Watch             bool
 	Token             string
 	InstanceName      string `survey:"instanceName"`
 	CloudDashboardURL string
