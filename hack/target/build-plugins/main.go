@@ -42,8 +42,10 @@ func getEnv(key, defaultValue string) string {
 
 func buildPlugins(pluginTargets string, single bool) {
 	command := "goreleaser build -f .goreleaser.plugin.yaml --clean --snapshot"
-	targets := strings.Split(pluginTargets, ",")
-	for _, target := range targets {
+	for _, target := range strings.Split(pluginTargets, ",") {
+		if strings.TrimSpace(target) == "" {
+			continue
+		}
 		command += fmt.Sprintf(" --id %s", target)
 	}
 
@@ -55,6 +57,7 @@ func buildPlugins(pluginTargets string, single bool) {
 }
 
 func runCommand(command string) {
+	log.Printf("Running: %s", command)
 	args, err := shellwords.Parse(command)
 	loggerx.ExitOnError(err, "while parsing command")
 
