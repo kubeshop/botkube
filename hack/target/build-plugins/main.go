@@ -15,7 +15,7 @@ import (
 
 func main() {
 	pluginTargets := flag.String("plugin-targets", getEnv("PLUGIN_TARGETS", ""), "Comma separated list of specific targets to build. If empty, all targets are built.")
-	outputMode := flag.String("output-mode", getEnv("OUTPUT_MODE", "binary"), "Output format. Allowed values: binary or archive.")
+	outputMode := flag.String("output-mode", getEnv("OUTPUT_MODE", "archive"), "Output format. Allowed values: binary or archive.")
 	buildSingle := flag.Bool("single-platform", os.Getenv("SINGLE_PLATFORM") != "", "If specified, builds only for current GOOS and GOARCH.")
 
 	flag.Parse()
