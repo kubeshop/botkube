@@ -176,7 +176,7 @@ func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex)
 		bins := map[string]string{
 			item.Type.String(): filepath.Join(dir, item.BinaryPath),
 		}
-		clients, err := createGRPCClients[metadataGetter](i.log, config.Logger{}, bins, item.Type)
+		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type)
 		if err != nil {
 			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}

@@ -97,6 +97,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	log.Info("Start source streaming...")
 
 	sourceClient, err := d.manager.GetSource(dispatch.pluginName)
+	// is permanently failed?
 	if err != nil {
 		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
 	}
@@ -124,6 +125,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			select {
 			case msg, ok := <-out.Event:
 				if !ok {
+					// d.manager.GetSource(dispatch.pluginName)
 					return
 				}
 				log.WithField("message", msg).Debug("Dispatching received message...")

@@ -33,7 +33,7 @@ type (
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.
-	storePlugins[T any] map[string]enabledPlugins[T]
+	storePlugins[T any] map[string]enabledPlugins[T] // TODO: sync.Map/sync.RWMutex
 
 	enabledPlugins[T any] struct {
 		Client  T

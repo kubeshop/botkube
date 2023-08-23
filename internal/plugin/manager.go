@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
@@ -44,11 +45,13 @@ var pluginMap = map[string]plugin.Plugin{
 
 // Manager provides functionality for managing executor and source plugins.
 type Manager struct {
-	isStarted  atomic.Bool
-	log        logrus.FieldLogger
-	logConfig  config.Logger
-	cfg        config.PluginManagement
-	httpClient *http.Client
+	isStarted      atomic.Bool
+	log            logrus.FieldLogger
+	logConfig      config.Logger
+	cfg            config.PluginManagement
+	httpClient     *http.Client
+	supervisorChan chan pluginMetadata
+	schedulerChan  chan string
 
 	executorsToEnable []string
 	executorsStore    store[executor.Executor]
@@ -57,11 +60,20 @@ type Manager struct {
 	sourcesToEnable []string
 }
 
+type pluginMetadata struct {
+	name    string
+	repo    string
+	version string
+	binPath string
+}
+
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string) *Manager {
+func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string, schedulerChan chan string) *Manager {
 	return &Manager{
 		cfg:               cfg,
 		httpClient:        httpx.NewHTTPClient(),
+		supervisorChan:    make(chan pluginMetadata),
+		schedulerChan:     schedulerChan,
 		executorsToEnable: executors,
 		executorsStore:    newStore[executor.Executor](),
 		sourcesToEnable:   sources,
@@ -107,7 +119,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return err
 	}
 
-	executorClients, err := createGRPCClients[executor.Executor](m.log, m.logConfig, executorPlugins, TypeExecutor)
+	executorClients, err := createGRPCClients[executor.Executor](ctx, m.log, m.logConfig, executorPlugins, TypeExecutor, m.supervisorChan)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
@@ -117,13 +129,44 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	sourcesClients, err := createGRPCClients[source.Source](m.log, m.logConfig, sourcesPlugins, TypeSource)
+	sourcesClients, err := createGRPCClients[source.Source](ctx, m.log, m.logConfig, sourcesPlugins, TypeSource, m.supervisorChan)
 	if err != nil {
 		return fmt.Errorf("while creating source plugins: %w", err)
 	}
 	m.sourcesStore.EnabledPlugins = sourcesClients
 
+	if !forceUpdate {
+		go m.monitorHealth(ctx)
+	}
+
 	return nil
+}
+
+func (m *Manager) monitorHealth(ctx context.Context) {
+	m.log.Info("Starting plugin supervisor...")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case plugin := <-m.supervisorChan:
+			m.log.Infof("Restarting plugin %q...", plugin.name)
+			if source, ok := m.sourcesStore.EnabledPlugins[plugin.name]; ok && source.Cleanup != nil {
+				m.log.Infof("Releasing resources of source plugin %q...", plugin.name)
+				source.Cleanup()
+			}
+			delete(m.sourcesStore.EnabledPlugins, plugin.name)
+			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.supervisorChan)
+			if err != nil {
+				m.log.WithError(err).Errorf("Failed to restart plugin %q.", plugin.name)
+				continue
+			}
+			m.sourcesStore.EnabledPlugins[plugin.name] = p
+
+			// botkube/kubernetes@1.0.0
+			sourceName := fmt.Sprintf("%s/%s@%s", plugin.repo, plugin.name, plugin.version)
+			m.schedulerChan <- sourceName
+		}
+	}
 }
 
 // GetExecutor returns the executor client for a given plugin.
@@ -176,8 +219,8 @@ func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins storePlugins[T]) {
 	}
 }
 
-func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEnable []string, repo storeRepository) (map[string]string, error) {
-	loadedPlugins := map[string]string{}
+func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEnable []string, repo storeRepository) (map[string]pluginMetadata, error) {
+	loadedPlugins := map[string]pluginMetadata{}
 	for _, pluginKey := range pluginsToEnable {
 		repoName, pluginName, ver, err := config.DecomposePluginKey(pluginKey)
 		if err != nil {
@@ -209,7 +252,12 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEna
 			return nil, fmt.Errorf("while fetching plugin %q binary: %w", pluginKey, err)
 		}
 
-		loadedPlugins[pluginKey] = binPath
+		loadedPlugins[pluginKey] = pluginMetadata{
+			name:    pluginName,
+			repo:    repoName,
+			version: ver,
+			binPath: binPath,
+		}
 
 		log.Infof("%s plugin registered successfully.", formatx.ToTitle(pluginType))
 	}
@@ -325,50 +373,82 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 	return nil
 }
 
-func createGRPCClients[C any](logger logrus.FieldLogger, logConfig config.Logger, bins map[string]string, pluginType Type) (map[string]enabledPlugins[C], error) {
+func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (map[string]enabledPlugins[C], error) {
 	out := map[string]enabledPlugins[C]{}
-
-	for key, path := range bins {
-		pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, key, pluginType)
-
-		cli := plugin.NewClient(&plugin.ClientConfig{
-			Plugins: pluginMap,
-			//nolint:gosec // warns us about 'Subprocess launching with variable', but we are the one that created that variable.
-			Cmd:              newPluginOSRunCommand(path),
-			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-			HandshakeConfig: plugin.HandshakeConfig{
-				ProtocolVersion:  executor.ProtocolVersion,
-				MagicCookieKey:   api.HandshakeConfig.MagicCookieKey,
-				MagicCookieValue: api.HandshakeConfig.MagicCookieValue,
-			},
-			Logger:     pluginLogger,
-			SyncStdout: stdoutLogger,
-			SyncStderr: stderrLogger,
-		})
-
-		rpcClient, err := cli.Client()
+	for key, pm := range pluginMeta {
+		p, err := createGRPCClient[C](ctx, logger, logConfig, pm, pluginType, supervisorChan)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while creating GRPC client for %s plugin %q: %w", pluginType.String(), key, err)
 		}
+		out[key] = p
+	}
+	return out, nil
+}
 
-		raw, err := rpcClient.Dispense(pluginType.String())
-		if err != nil {
-			return nil, err
-		}
+func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pm pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (enabledPlugins[C], error) {
+	pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, pm.name, pluginType)
 
-		concreteCli, ok := raw.(C)
-		if !ok {
-			cli.Kill()
-			return nil, fmt.Errorf("registered client doesn't implement required %s interface", pluginType.String())
-		}
+	cli := plugin.NewClient(&plugin.ClientConfig{
+		Plugins: pluginMap,
+		//nolint:gosec // warns us about 'Subprocess launching with variable', but we are the one that created that variable.
+		Cmd:              newPluginOSRunCommand(pm.binPath),
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		HandshakeConfig: plugin.HandshakeConfig{
+			ProtocolVersion:  executor.ProtocolVersion,
+			MagicCookieKey:   api.HandshakeConfig.MagicCookieKey,
+			MagicCookieValue: api.HandshakeConfig.MagicCookieValue,
+		},
+		Logger:     pluginLogger,
+		SyncStdout: stdoutLogger,
+		SyncStderr: stderrLogger,
+	})
 
-		out[key] = enabledPlugins[C]{
-			Client:  concreteCli,
-			Cleanup: cli.Kill,
-		}
+	rpcClient, err := cli.Client()
+	if err != nil {
+		return enabledPlugins[C]{}, err
 	}
 
-	return out, nil
+	raw, err := rpcClient.Dispense(pluginType.String())
+	if err != nil {
+		return enabledPlugins[C]{}, err
+	}
+
+	concreteCli, ok := raw.(C)
+	if !ok {
+		cli.Kill()
+		return enabledPlugins[C]{}, fmt.Errorf("registered client doesn't implement required %s interface", pluginType.String())
+	}
+
+	startSourcePluginWatcher(ctx, logger, rpcClient, pm, supervisorChan)
+
+	return enabledPlugins[C]{
+		Client:  concreteCli,
+		Cleanup: cli.Kill,
+	}, nil
+}
+
+func startSourcePluginWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata) {
+	logger.Infof("Starting source plugin %q supervisor...", pm.name)
+	ticker := time.NewTicker(5 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if err := rpcClient.Ping(); err != nil {
+					logger.WithError(err).Errorf("Source plugin %q is not responding.", pm.name)
+					logger.Infof("Plugin manager restarting source plugin %q...", pm.name)
+					supervisorChan <- pm
+					return
+				} else {
+					logger.Infof("Source plugin %q is responding.", pm.name)
+				}
+			case <-ctx.Done():
+				logger.Infof("Exiting source plugin %q supervisor...", pm.name)
+				return
+			}
+		}
+	}()
+	return
 }
 
 func newPluginOSRunCommand(path string) *exec.Cmd {

@@ -151,9 +151,10 @@ func run(ctx context.Context) (err error) {
 		err = reportFatalError("while waiting for goroutines to finish gracefully", multiErr.ErrorOrNil())
 	}()
 
+	schedulerChan := make(chan string)
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
-	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources)
+	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources, schedulerChan)
 
 	err = pluginManager.Start(ctx)
 	if err != nil {
@@ -391,8 +392,8 @@ func run(ctx context.Context) (err error) {
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
 	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
-	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher)
-	err = scheduler.Start(ctx)
+	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher, schedulerChan)
+	err = scheduler.Start(ctx, "")
 	if err != nil {
 		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
 	}
