@@ -45,7 +45,7 @@ func NewIndexBuilder(log logrus.FieldLogger) *IndexBuilder {
 }
 
 // Build returns plugin index built based on plugins found in a given directory.
-func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChecksum, userArchive bool) (Index, error) {
+func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChecksum, useArchive bool) (Index, error) {
 	pluginNameRegex, err := regexp.Compile(pluginNameFilter)
 	if err != nil {
 		return Index{}, fmt.Errorf("while compiling filter regex: %w", err)
@@ -76,7 +76,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChec
 			return Index{}, fmt.Errorf("while getting plugin metadata: %w", err)
 		}
 
-		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies, skipChecksum, userArchive)
+		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies, skipChecksum, useArchive)
 		if err != nil {
 			return Index{}, err
 		}
@@ -104,7 +104,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChec
 	return out, nil
 }
 
-func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency, skipChecksum bool, userArchive bool) ([]IndexURL, error) {
+func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesIndex, urlBasePath string, deps map[string]api.Dependency, skipChecksum bool, useArchive bool) ([]IndexURL, error) {
 	var urls []IndexURL
 	var checksum string
 	var err error
@@ -116,7 +116,7 @@ func (i *IndexBuilder) mapToIndexURLs(parentDir string, bins []pluginBinariesInd
 			}
 		}
 		isArchive := hasArchiveExtension(bin.BinaryPath)
-		if (userArchive && !isArchive) || (!userArchive && isArchive) {
+		if (useArchive && !isArchive) || (!useArchive && isArchive) {
 			continue
 		}
 		urls = append(urls, IndexURL{

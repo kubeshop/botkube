@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/go-getter"
 )
+
+var allowedExt = map[string]struct{}{
+	".exe": {},
+	".sh":  {},
+}
 
 // downloadBinary downloads binary into specific destination.
 func downloadBinary(ctx context.Context, destPath string, url URL, autoDetectFilename bool) error {
@@ -96,6 +102,19 @@ func getFirstFileInDirectory(dir string) (string, error) {
 		if e.IsDir() {
 			continue
 		}
+
+		if strings.HasPrefix(e.Name(), ".") {
+			// ignore hidden files, e.g. ._DS_Store
+			continue
+		}
+
+		ext := filepath.Ext(e.Name())
+		_, allowedExtension := allowedExt[ext]
+		if ext != "" && !allowedExtension {
+			// ignore files with extensions e.g. .txt, .md, etc.
+			continue
+		}
+
 		return e.Name(), nil
 	}
 	return "", nil
