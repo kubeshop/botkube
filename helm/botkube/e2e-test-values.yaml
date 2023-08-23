@@ -293,7 +293,7 @@ executors:
               value: "kc-label-svc-all"
 
   'other-plugins':
-    botkube/echo@v1.0.1-devel:
+    botkube/echo@v0.0.0-latest:
       enabled: true
       config:
         changeResponseToUpperCase: true

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -15,26 +16,37 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/test/diff"
 )
 
+const (
+	slackInteractiveElementsMsgSuffix = ", with interactive elements"
+)
+
+var slackLinks = regexp.MustCompile(`<(?P<val>https://[^>]*)>`)
+
 type SlackConfig struct {
 	BotName                  string        `envconfig:"default=botkube"`
+	CloudBotName             string `envconfig:"default=botkubedev"`
+	CloudBasedTestEnabled    bool   `envconfig:"default=true"`
 	TesterName               string        `envconfig:"default=tester"`
 	AdditionalContextMessage string        `envconfig:"optional"`
 	TesterAppToken           string        `envconfig:"optional"`
 	TesterBotToken           string        `envconfig:"optional"`
 	CloudTesterAppToken      string        `envconfig:"optional"`
 	RecentMessagesLimit      int           `envconfig:"default=6"`
-	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=50s"`
 }
 
 type SlackChannel struct {
 	*slack.Channel
 }
+
+type SlackMessageAssertion func(content slack.Message) (bool, int, string)
 
 func (s *SlackChannel) ID() string {
 	return s.Channel.ID
@@ -47,26 +59,34 @@ func (s *SlackChannel) Identifier() string {
 }
 
 type SlackTester struct {
-	cli           *slack.Client
-	cfg           SlackConfig
-	botUserID     string
-	testerUserID  string
-	channel       Channel
-	secondChannel Channel
-	thirdChannel  Channel
-	mdFormatter   interactive.MDFormatter
+	cli                  *slack.Client
+	cfg                  SlackConfig
+	botUserID            string
+	testerUserID         string
+	channel              Channel
+	secondChannel        Channel
+	thirdChannel         Channel
+	mdFormatter          interactive.MDFormatter
+	configProviderApiKey string
 }
 
-func NewSlackTester(slackCfg SlackConfig) (BotDriver, error) {
+func (s *SlackTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string) {
+	msg.ReplaceBotNamePlaceholder(s.BotName(), api.BotNameWithClusterName(clusterName))
+}
+
+func NewSlackTester(slackCfg SlackConfig, apiKey string) (BotDriver, error) {
 	var token string
-	if slackCfg.TesterAppToken == "" && slackCfg.TesterBotToken == "" {
-		return nil, errors.New("slack tester token is not set")
+	if slackCfg.TesterAppToken == "" && slackCfg.TesterBotToken == "" && slackCfg.CloudTesterAppToken == "" {
+		return nil, errors.New("slack tester tokens are not set")
 	}
 	if slackCfg.TesterAppToken != "" {
 		token = slackCfg.TesterAppToken
 	}
 	if slackCfg.TesterBotToken != "" {
 		token = slackCfg.TesterBotToken
+	}
+	if slackCfg.CloudBasedTestEnabled {
+		token = slackCfg.CloudTesterAppToken
 	}
 
 	slackCli := slack.New(token)
@@ -77,13 +97,14 @@ func NewSlackTester(slackCfg SlackConfig) (BotDriver, error) {
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, func(msg string) string {
 		return fmt.Sprintf("*%s*", msg)
 	})
-	return &SlackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter}, nil
+	return &SlackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter, configProviderApiKey: apiKey}, nil
 }
 
 func (s *SlackTester) InitUsers(t *testing.T) {
 	t.Helper()
-	s.botUserID = s.findUserID(t, s.cfg.BotName)
-	assert.NotEmpty(t, s.botUserID, "could not find slack botUserID with name: %s", s.cfg.BotName)
+	botName := s.cfg.BotUsername()
+	s.botUserID = s.findUserID(t, botName)
+	assert.NotEmpty(t, s.botUserID, "could not find slack botUserID with name: %s", botName)
 
 	s.testerUserID = s.findUserID(t, s.cfg.TesterName)
 	assert.NotEmpty(t, s.testerUserID, "could not find slack testerUserID with name: %s", s.cfg.TesterName)
@@ -152,7 +173,7 @@ func (s *SlackTester) PostInitialMessage(t *testing.T, channelName string) {
 }
 
 func (s *SlackTester) PostMessageToBot(t *testing.T, channel, command string) {
-	message := fmt.Sprintf("<@%s> %s", s.cfg.BotName, command)
+	message := fmt.Sprintf("<@%s> %s", s.cfg.BotUsername(), command)
 	_, _, err := s.cli.PostMessage(channel, slack.MsgOptionText(message, false))
 	require.NoError(t, err)
 }
@@ -165,7 +186,6 @@ func (s *SlackTester) InviteBotToChannel(t *testing.T, channelID string) {
 
 func (s *SlackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		msg = TrimSlackMsgTrailingLine(msg)
 		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
@@ -177,14 +197,14 @@ func (s *SlackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expec
 
 func (s *SlackTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		return strings.Contains(TrimSlackMsgTrailingLine(msg), expectedMsgSubstring), 0, ""
+		return strings.Contains(msg, expectedMsgSubstring), 0, ""
 	})
 }
 
 func (s *SlackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		msg = TrimSlackMsgTrailingLine(msg)
-		msg = formatx.RemoveHyperlinks(msg) // normalize the message URLs
+		msg = formatx.RemoveHyperlinks(msg)                                  // normalize the message URLs
+		msg = strings.ReplaceAll(msg, slackInteractiveElementsMsgSuffix, "") // remove interactive elements suffix
 		if msg != expectedMsg {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
@@ -246,7 +266,51 @@ func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
-	return s.WaitForMessagePosted(userID, channelID, limitMessages, assertFn)
+	var fetchedMessages []slack.Message
+	var lastErr error
+	// SA1019 suggested `PollWithContextTimeout` does not exist
+	// nolint:staticcheck
+	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
+			ChannelID: channelID, Limit: limitMessages,
+		})
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+
+		fetchedMessages = historyRes.Messages
+		for _, msg := range historyRes.Messages {
+			if msg.User != userID {
+				continue
+			}
+
+			if len(msg.Blocks.BlockSet) == 0 {
+				continue
+			}
+
+			ok, _, _ := assertFn(sPrintBlocks(s.normalizeSlackBlockSet(msg.Blocks)))
+
+			if !ok {
+				continue
+			}
+
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if lastErr == nil {
+		lastErr = errors.New("message assertion function returned false")
+	}
+	if err != nil {
+		if wait.Interrupted(err) {
+			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *SlackTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
@@ -307,14 +371,12 @@ func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	// we don't support the attachment anymore, so content is available as normal message
 	return s.WaitForMessagePosted(userID, channelID, limitMessages, func(content string) (bool, int, string) {
 		// for now, we use old slack, so we send messages as a markdown
-		expMsg := renderer.MessageToMarkdown(interactive.CoreMessage{
+		expMsg := normalizeAttachmentContent(renderer.MessageToMarkdown(interactive.CoreMessage{
 			Message: assertFn.Message,
-		})
-
+		}))
 		if !expTime.IsZero() {
-			body, timestamp := s.cutLastLine(content)
-			content = body // update content, so timestamp doesn't impact static content assertion
-
+			body, timestamp := s.trimAttachmentTimestamp(content)
+			content = normalizeAttachmentContent(body)
 			gotEventTime, err := dateparse.ParseAny(timestamp)
 			if err != nil {
 				return false, 0, err.Error()
@@ -336,29 +398,56 @@ func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	})
 }
 
-// TODO: This contains an implementation for socket mode slack apps. Once needed, you can see the already implemented
-// functions here https://github.com/kubeshop/botkube/blob/abfeb95fa5f84ceb9b25a30159cdc3d17e130711/test/e2e/slack_driver_test.go#L289
 func (s *SlackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
-	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
-	return s.WaitForMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		// Slack encloses URLs with `<` and `>`, since we need to remove them before assertion
-		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
-		if !strings.EqualFold(renderedMsg, msg) {
-			count := diff.CountMatchBlock(renderedMsg, msg)
-			msgDiff := diff.Diff(renderedMsg, msg)
+	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
+	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(msg, printedBlocks) {
+			count := diff.CountMatchBlock(printedBlocks, msg)
+			msgDiff := diff.Diff(printedBlocks, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
 	})
 }
 
+func sPrintBlocks(blocks []slack.Block) string {
+	var builder strings.Builder
+
+	for _, block := range blocks {
+		switch block.BlockType() {
+		case slack.MBTSection:
+			section := block.(*slack.SectionBlock)
+			builder.WriteString("::::")
+			builder.WriteString(fmt.Sprintf("section: %s", section.Text.Text))
+		case slack.MBTDivider:
+			builder.WriteString("::::")
+			builder.WriteString("divider")
+		case slack.MBTAction:
+			action := block.(*slack.ActionBlock)
+			builder.WriteString("::::")
+			for _, element := range action.Elements.ElementSet {
+				switch element.ElementType() {
+				case slack.METButton:
+					button := element.(*slack.ButtonBlockElement)
+					builder.WriteString(fmt.Sprintf("action::button: %s <> %s <> %s",
+						button.Text.Text,
+						button.Value,
+						button.ActionID,
+					))
+				}
+			}
+		}
+	}
+	builder.WriteString("::::")
+	return builder.String()
+}
+
 func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
-	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
-		if !strings.EqualFold(renderedMsg, msg) {
-			count := diff.CountMatchBlock(renderedMsg, msg)
-			msgDiff := diff.Diff(renderedMsg, msg)
+	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
+	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(printedBlocks, msg) {
+			count := diff.CountMatchBlock(printedBlocks, msg)
+			msgDiff := diff.Diff(printedBlocks, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
@@ -375,6 +464,38 @@ func (s *SlackTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(u
 		}
 		return true, 0, ""
 	})
+}
+
+func (s *SlackTester) SetTimeout(timeout time.Duration) {
+	s.cfg.MessageWaitTimeout = timeout
+}
+
+func (s *SlackTester) Timeout() time.Duration {
+	return s.cfg.MessageWaitTimeout
+}
+
+func (s *SlackTester) normalizeSlackBlockSet(got slack.Blocks) []slack.Block {
+	for idx, item := range got.BlockSet {
+		switch item.BlockType() {
+		case slack.MBTSection:
+			item := item.(*slack.SectionBlock)
+			item.BlockID = "" // it's generated by SDK, so we don't compare it.
+			if item.Text != nil {
+				item.Text.Text = removeSlackLinksIndicators(item.Text.Text)
+			}
+
+			got.BlockSet[idx] = item
+		case slack.MBTDivider:
+			item := item.(*slack.DividerBlock)
+			item.BlockID = "" // it's generated by SDK, so we don't compare it.
+			got.BlockSet[idx] = item
+		case slack.MBTAction:
+			item := item.(*slack.ActionBlock)
+			item.BlockID = "" // it's generated by SDK, so we don't compare it.
+			got.BlockSet[idx] = item
+		}
+	}
+	return got.BlockSet
 }
 
 func (s *SlackTester) findUserID(t *testing.T, name string) string {
@@ -418,23 +539,37 @@ func (s *SlackTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 	return &SlackChannel{channel}, cleanupFn
 }
 
+func (s *SlackConfig) BotUsername() string {
+	if s.CloudBasedTestEnabled {
+		return s.CloudBotName
+	}
+	return s.BotName
+}
+
 func TrimSlackMsgTrailingLine(msg string) string {
 	// There is always a `\n` on Slack messages due to Markdown formatting.
 	// That should be replaced for RTM
 	return strings.TrimSuffix(msg, "\n")
 }
 
-func (s *SlackTester) cutLastLine(in string) (before string, after string) {
-	in = strings.TrimSpace(in)
-	if in == "" {
-		return "", ""
-	}
-	lastNewLine := strings.LastIndexAny(in, "\n")
-	if lastNewLine == -1 {
-		return in, ""
-	}
+func normalizeAttachmentContent(msg string) string {
+	msg = strings.ReplaceAll(msg, " • ", "")
+	msg = strings.ReplaceAll(msg, "• ", "")
+	msg = strings.ReplaceAll(msg, "\n", " ")
+	msg = strings.ReplaceAll(msg, "   *", " *")
+	msg = strings.ReplaceAll(msg, "*Fields* ", "")
+	msg = strings.ReplaceAll(msg, "*: ", ":* ")
+	msg = strings.TrimSuffix(msg, "  ")
+	return msg
+}
 
-	return in[:lastNewLine], in[lastNewLine+1:]
+func (s *SlackTester) trimAttachmentTimestamp(in string) (string, string) {
+	msgParts := strings.Split(in, " <!date^")
+	ts := ""
+	if len(msgParts) > 1 {
+		ts = strings.Split(msgParts[1], "^")[0]
+	}
+	return msgParts[0], ts
 }
 
 var emojiSlackMapping = map[string]string{
@@ -448,4 +583,14 @@ func replaceEmojiWithTags(content string) string {
 		content = strings.ReplaceAll(content, emoji, tag)
 	}
 	return content
+}
+
+func removeSlackLinksIndicators(content string) string {
+	tpl := "$val"
+
+	return slackLinks.ReplaceAllStringFunc(content, func(s string) string {
+		var result []byte
+		result = slackLinks.ExpandString(result, tpl, s, slackLinks.FindSubmatchIndex([]byte(s)))
+		return string(result)
+	})
 }

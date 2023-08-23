@@ -442,6 +442,14 @@ func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender
 	})
 }
 
+func (d *DiscordTester) SetTimeout(timeout time.Duration) {
+	d.cfg.MessageWaitTimeout = timeout
+}
+
+func (d *DiscordTester) Timeout() time.Duration {
+	return d.cfg.MessageWaitTimeout
+}
+
 func (d *DiscordTester) findUserID(t *testing.T, name string) string {
 	t.Logf("Getting user %q...", name)
 	res, err := d.cli.GuildMembersSearch(d.cfg.GuildID, name, 50)
@@ -456,4 +464,8 @@ func (d *DiscordTester) findUserID(t *testing.T, name string) string {
 	}
 
 	return ""
+}
+
+func (d *DiscordTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string) {
+	msg.ReplaceBotNamePlaceholder(d.BotName())
 }

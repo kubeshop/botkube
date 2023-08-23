@@ -47,6 +47,9 @@ type BotDriver interface {
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error
+	SetTimeout(timeout time.Duration)
+	Timeout() time.Duration
+	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
 }
 
 type MessageAssertion func(content string) (bool, int, string)
@@ -62,6 +65,6 @@ type ExpAttachmentInput struct {
 type DriverType string
 
 const (
-	SlackBot   DriverType = "slack"
+	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
 )
