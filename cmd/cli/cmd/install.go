@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -36,7 +35,7 @@ func NewInstall() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := kubex.LoadRestConfigWithMetaInformation()
 			if err != nil {
-				return errors.Wrap(err, "while creating k8s config")
+				return fmt.Errorf("while creating k8s config: %w", err)
 			}
 
 			return install.Install(cmd.Context(), os.Stdout, config, opts)

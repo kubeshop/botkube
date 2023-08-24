@@ -36,6 +36,7 @@ botkube [flags]
 
 ### SEE ALSO
 
+* [botkube config](botkube_config.md)	 - This command consists of multiple subcommands for working with Botkube configuration
 * [botkube install](botkube_install.md)	 - install or upgrade Botkube in k8s cluster
 * [botkube login](botkube_login.md)	 - Login to a Botkube Cloud
 * [botkube migrate](botkube_migrate.md)	 - Automatically migrates Botkube installation into Botkube Cloud

@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.szostok.io/version/extension"
 
+	"github.com/kubeshop/botkube/cmd/cli/cmd/config"
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
@@ -47,6 +48,7 @@ func NewRoot() *cobra.Command {
 		NewDocs(),
 		NewInstall(),
 		NewUninstall(),
+		config.NewCmd(),
 		extension.NewVersionCobraCmd(
 			extension.WithUpgradeNotice(orgName, repoName),
 		),

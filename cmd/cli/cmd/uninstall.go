@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/kubeshop/botkube/internal/cli"
@@ -35,7 +35,7 @@ func NewUninstall() *cobra.Command {
 				return err
 			}
 			if err != nil {
-				return errors.Wrap(err, "while creating k8s config")
+				return fmt.Errorf("while creating k8s config: %w", err)
 			}
 
 			return uninstall.Uninstall(cmd.Context(), os.Stdout, config, opts)

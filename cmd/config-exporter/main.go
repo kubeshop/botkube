@@ -46,8 +46,8 @@ func createOrUpdateCM(ctx context.Context, config []byte) error {
 	cm := newCM()
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		_, corErr := ctrlutil.CreateOrUpdate(ctx, k8sClient, cm, func() error {
-			cm.BinaryData = map[string][]byte{
-				"config.yaml": config,
+			cm.Data = map[string]string{
+				"config.yaml": string(config),
 			}
 			return nil
 		})

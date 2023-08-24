@@ -221,7 +221,7 @@ func printFailedInstallMessage(version string, namespace string, name string, w 
 
 	props := map[string]string{
 		"SlackURL":  "https://join.botkube.io",
-		"DocsURL":   "https://docs.botkube.io",
+		"DocsURL":   "https://docs.botkube.io/operation/common-problems",
 		"Version":   version,
 		"Namespace": namespace,
 		"PodName":   name,

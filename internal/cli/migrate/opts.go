@@ -2,6 +2,8 @@ package migrate
 
 import (
 	"time"
+
+	"github.com/kubeshop/botkube/internal/cli/config"
 )
 
 // Options holds migrate possible configuration options.
@@ -12,21 +14,9 @@ type Options struct {
 	InstanceName      string `survey:"instanceName"`
 	CloudDashboardURL string
 	CloudAPIURL       string
-	Namespace         string
 	ImageTag          string
-	Label             string
 	SkipConnect       bool
 	SkipOpenBrowser   bool
 	AutoApprove       bool
-	ConfigExporter    ConfigExporterOptions
-}
-
-// ConfigExporterOptions holds config exporter image configuration options.
-type ConfigExporterOptions struct {
-	Registry   string
-	Repository string
-	Tag        string
-
-	Timeout    time.Duration
-	PollPeriod time.Duration
+	ConfigExporter    config.ExporterOptions
 }

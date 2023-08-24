@@ -11,7 +11,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 
-	"github.com/kubeshop/botkube/internal/cli/config"
+	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
 
@@ -29,7 +29,7 @@ func Run(ctx context.Context, w io.Writer, opts Options) error {
 		return err
 	}
 
-	c := config.Config{Token: t.Token}
+	c := cli.Config{Token: t.Token}
 	if err := c.Save(); err != nil {
 		return err
 	}
