@@ -13,7 +13,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
@@ -416,7 +415,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"url": url,
 		}).Info("Downloading plugin...")
 
-		err = DownloadBinary(ctx, binPath, url)
+		err = downloadBinary(ctx, binPath, url, true)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency from URL %q: %w", url, err)
 		}
@@ -442,66 +441,9 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 			"dependencyUrl":  depURL,
 		}).Info("Downloading dependency...")
 
-		err := DownloadBinary(ctx, depPath, URL{URL: depURL})
+		err := downloadBinary(ctx, depPath, URL{URL: depURL}, false)
 		if err != nil {
 			return fmt.Errorf("while downloading dependency %q for %q: %w", depName, binPath, err)
-		}
-	}
-
-	return nil
-}
-
-// DownloadBinary downloads binary into specific destination.
-func DownloadBinary(ctx context.Context, destPath string, url URL) error {
-	dir, filename := filepath.Split(destPath)
-	err := os.MkdirAll(dir, dirPerms)
-	if err != nil {
-		return fmt.Errorf("while creating directory %q where the binary should be stored: %w", dir, err)
-	}
-
-	pwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("while getting working directory: %w", err)
-	}
-
-	tmpDestPath := destPath + ".downloading"
-	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
-		if err = os.RemoveAll(tmpDestPath); err != nil {
-			return fmt.Errorf("while deleting temporary directory %q: %w", tmpDestPath, err)
-		}
-	}
-
-	urlWithGoGetterMagicParams := fmt.Sprintf("%s?filename=%s", url.URL, filename)
-	if url.Checksum != "" {
-		urlWithGoGetterMagicParams = fmt.Sprintf("%s&checksum=%s", urlWithGoGetterMagicParams, url.Checksum)
-	}
-	getterCli := &getter.Client{
-		Ctx:  ctx,
-		Src:  urlWithGoGetterMagicParams,
-		Dst:  tmpDestPath,
-		Pwd:  pwd,
-		Dir:  false,
-		Mode: getter.ClientModeAny,
-	}
-
-	err = getterCli.Get()
-	if err != nil {
-		return fmt.Errorf("while downloading binary from URL %q: %w", url, err)
-	}
-
-	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
-		tempFileName := filepath.Join(tmpDestPath, filename)
-		if err = os.Rename(tempFileName, destPath); err != nil {
-			return fmt.Errorf("while renaming binary %q: %w", tempFileName, err)
-		}
-		if err = os.RemoveAll(tmpDestPath); err != nil {
-			return fmt.Errorf("while deleting temporary directory %q: %w", tmpDestPath, err)
-		}
-	}
-	if stat, err := os.Stat(destPath); err == nil && !stat.IsDir() {
-		err = os.Chmod(destPath, binPerms)
-		if err != nil {
-			return fmt.Errorf("while setting permissions for %q: %w", destPath, err)
 		}
 	}
 

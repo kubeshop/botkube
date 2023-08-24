@@ -34,13 +34,13 @@ build: pre-build
 # Build Botkube official plugins for all supported platforms.
 build-plugins: pre-build gen-plugins-goreleaser
 	@echo "Building plugins binaries"
-	@./hack/goreleaser.sh build_plugins
+	go run ./hack/target/build-plugins/main.go
 	@echo "Build completed successfully"
 
 # Build Botkube official plugins only for current GOOS and GOARCH.
 build-plugins-single: pre-build gen-plugins-goreleaser
 	@echo "Building single target plugins binaries"
-	@./hack/goreleaser.sh build_plugins_single
+	go run ./hack/target/build-plugins/main.go --single-platform
 	@echo "Build completed successfully"
 
 # Build the image

@@ -35,6 +35,7 @@ jobs:
       env:
         GORELEASER_CURRENT_TAG: "v0.0.0-latest"
         PLUGIN_DOWNLOAD_URL_BASE_PATH: "https://storage.googleapis.com/botkube-plugins-latest"
+        OUTPUT_MODE: "archive"
       run: |
         make gen-plugins-index
     - name: Upload plugins to GCS

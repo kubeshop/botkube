@@ -1,0 +1,22 @@
+name: Dump cluster state
+description: "Creates an artifacts with cluster dump"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: azure/setup-kubectl@v3
+
+    - name: Dump cluster state
+      shell: bash
+      run: |
+        LOGS_DIR=output/
+        mkdir -p "${LOGS_DIR}"
+        
+        echo "Dumping cluster info into ${LOGS_DIR}"
+        kubectl cluster-info dump --all-namespaces --output-directory="${LOGS_DIR}"
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: cluster_dump_${{github.sha}}
+        path: "output"
+        retention-days: 5 # Default 90 days

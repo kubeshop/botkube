@@ -153,7 +153,7 @@ For example, if you're only running Discord tests, you can omit env var prefixed
 We test also the Botkube plugins system. To compile Botkube plugins, run:
 
 ```bash
-make build-plugins
+OUTPUT_MODE="archive" make build-plugins
 ```
 
 By default, built plugins' binaries are available under `plugin-dist` directory. The e2e framework builds the plugins index file dynamically and starts the HTTP server that is later accessible from the k3d cluster.
