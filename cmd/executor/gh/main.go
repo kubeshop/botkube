@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
+	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
@@ -20,6 +21,7 @@ const (
 	logsTailLines    = 150
 	defaultNamespace = "default"
 	helpMsg          = "Usage: `gh create issue KIND/NAME [-n, --namespace]`"
+	description      = "GH creates an issue on GitHub for a related Kubernetes resource."
 )
 
 // version is set via ldflags by GoReleaser.
@@ -56,8 +58,9 @@ type GHExecutor struct{}
 func (*GHExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:      version,
-		Description:  "GH creates an issue on GitHub for a related Kubernetes resource.",
+		Description:  description,
 		Dependencies: depsDownloadLinks,
+		JSONSchema:   jsonSchema(),
 	}, nil
 }
 
@@ -235,4 +238,106 @@ func renderIssueBody(bodyTpl string, data IssueDetails) (string, error) {
 	}
 
 	return body.String(), nil
+}
+
+func jsonSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Docf(`{
+		  "$schema": "http://json-schema.org/draft-07/schema#",
+		  "title": "botkube/gh",
+		  "description": "%s",
+		  "type": "object",
+		  "additionalProperties": false,
+		  "uiSchema": {
+			"github": {
+			  "issueTemplate": {
+				"ui:widget": "textarea"
+			  }
+			}
+		  },
+		  "properties": {
+			"github": {
+			  "description": "GitHub-related configuration",
+			  "title": "GitHub configuration",
+			  "type": "object",
+			  "properties": {
+				"token": {
+				  "description": "GitHub Personal Access Token",
+				  "title": "GitHub Token",
+				  "type": "string",
+				  "minLength": 1
+				},
+				"issueTemplate": {
+				  "description": "Issue template to use. If not specified, the default one will be used.",
+				  "title": "Issue Template",
+				  "type": "string",
+				  "default": ""
+				},
+				"repository": {
+				  "type": "string",
+				  "title": "Repository",
+				  "description": "GitHub repository to create issues in. Must be in the format of 'owner/repo'.",
+				  "minLength": 1
+				}
+			  },
+			  "required": [
+				"token",
+				"repository"
+			  ]
+			},
+			"log": {
+			  "title": "Logging",
+			  "description": "Logging configuration for the plugin.",
+			  "type": "object",
+			  "properties": {
+				"level": {
+				  "title": "Log Level",
+				  "description": "Define log level for the plugin. Ensure that Botkube has plugin logging enabled for standard output.",
+				  "type": "string",
+				  "default": "info",
+				  "oneOf": [
+					{
+					  "const": "panic",
+					  "title": "Panic"
+					},
+					{
+					  "const": "fatal",
+					  "title": "Fatal"
+					},
+					{
+					  "const": "error",
+					  "title": "Error"
+					},
+					{
+					  "const": "warn",
+					  "title": "Warning"
+					},
+					{
+					  "const": "info",
+					  "title": "Info"
+					},
+					{
+					  "const": "debug",
+					  "title": "Debug"
+					},
+					{
+					  "const": "trace",
+					  "title": "Trace"
+					}
+				  ]
+				},
+				"disableColors": {
+				  "type": "boolean",
+				  "default": false,
+				  "description": "If enabled, disables color logging output.",
+				  "title": "Disable Colors"
+				}
+			  }
+			}
+		  },
+		  "required": [
+			"github"
+		  ]
+		}`, description),
+	}
 }
