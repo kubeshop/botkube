@@ -397,6 +397,20 @@ func run(ctx context.Context) (err error) {
 		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
 	}
 
+	if conf.Plugins.IncomingWebhook.Enabled {
+		incomingWebhookSrv := source.NewIncomingWebhookServer(
+			logger.WithField(componentLogFieldKey, "Incoming Webhook Server"),
+			conf,
+			sourcePluginDispatcher,
+			scheduler.StartedSourcePlugins(),
+		)
+
+		errGroup.Go(func() error {
+			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			return incomingWebhookSrv.Serve(ctx)
+		})
+	}
+
 	// Create and start controller
 	ctrl := controller.New(
 		logger.WithField(componentLogFieldKey, "Controller"),

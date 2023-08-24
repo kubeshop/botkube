@@ -13,6 +13,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
 
+var _ source.Source = (*Source)(nil)
+
 const (
 	// PluginName is the name of the Keptn Botkube plugin.
 	PluginName = "keptn"
@@ -25,6 +27,8 @@ const (
 // Source prometheus source plugin data structure
 type Source struct {
 	pluginVersion string
+
+	source.HandleExternalRequestUnimplemented
 }
 
 // NewSource returns a new instance of Source.

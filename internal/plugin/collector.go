@@ -21,18 +21,18 @@ func NewCollector(log logrus.FieldLogger) *Collector {
 // least one communicator or action (automation) that is enabled.
 func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, []string) {
 	var (
-		bindExecutors = map[string]struct{}{}
-		bindSources   = map[string]struct{}{}
+		boundExecutors = map[string]struct{}{}
+		boundSources   = map[string]struct{}{}
 	)
 
 	// Collect all used executors/sources by communication platforms
 	collect := func(channels config.IdentifiableMap[config.ChannelBindingsByName]) {
 		for _, bindings := range channels {
 			for _, name := range bindings.Bindings.Executors {
-				bindExecutors[name] = struct{}{}
+				boundExecutors[name] = struct{}{}
 			}
 			for _, name := range bindings.Bindings.Sources {
-				bindSources[name] = struct{}{}
+				boundSources[name] = struct{}{}
 			}
 		}
 	}
@@ -56,34 +56,34 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 
 		if commGroupCfg.Teams.Enabled {
 			for _, name := range commGroupCfg.Teams.Bindings.Executors {
-				bindExecutors[name] = struct{}{}
+				boundExecutors[name] = struct{}{}
 			}
 			for _, name := range commGroupCfg.Teams.Bindings.Sources {
-				bindSources[name] = struct{}{}
+				boundSources[name] = struct{}{}
 			}
 		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, bindings := range commGroupCfg.Discord.Channels {
 				for _, name := range bindings.Bindings.Executors {
-					bindExecutors[name] = struct{}{}
+					boundExecutors[name] = struct{}{}
 				}
 				for _, name := range bindings.Bindings.Sources {
-					bindSources[name] = struct{}{}
+					boundSources[name] = struct{}{}
 				}
 			}
 		}
 
 		if commGroupCfg.Webhook.Enabled {
 			for _, name := range commGroupCfg.Webhook.Bindings.Sources {
-				bindSources[name] = struct{}{}
+				boundSources[name] = struct{}{}
 			}
 		}
 
 		if commGroupCfg.Elasticsearch.Enabled {
 			for _, index := range commGroupCfg.Elasticsearch.Indices {
 				for _, name := range index.Bindings.Sources {
-					bindSources[name] = struct{}{}
+					boundSources[name] = struct{}{}
 				}
 			}
 		}
@@ -95,10 +95,10 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 			continue
 		}
 		for _, executorCfgName := range act.Bindings.Executors {
-			bindExecutors[executorCfgName] = struct{}{}
+			boundExecutors[executorCfgName] = struct{}{}
 		}
 		for _, sourceCfgName := range act.Bindings.Sources {
-			bindSources[sourceCfgName] = struct{}{}
+			boundSources[sourceCfgName] = struct{}{}
 		}
 	}
 
@@ -116,7 +116,7 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 				continue
 			}
 
-			_, found := bindExecutors[groupName]
+			_, found := boundExecutors[groupName]
 			if !found {
 				l.Debug("Executor plugin defined and enabled but not used by any platform or standalone action")
 				continue
@@ -141,7 +141,7 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 
 				continue
 			}
-			_, found := bindSources[groupName]
+			_, found := boundSources[groupName]
 			if !found {
 				l.Debug("Source plugin defined and enabled but not used by any platform or standalone action")
 				continue

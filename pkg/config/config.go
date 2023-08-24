@@ -133,13 +133,20 @@ type Config struct {
 
 // PluginManagement holds Botkube plugin management related configuration.
 type PluginManagement struct {
-	CacheDir     string                         `yaml:"cacheDir"`
-	Repositories map[string]PluginsRepositories `yaml:"repositories"`
+	CacheDir        string                         `yaml:"cacheDir"`
+	Repositories    map[string]PluginsRepositories `yaml:"repositories"`
+	IncomingWebhook IncomingWebhook                `yaml:"incomingWebhook"`
 }
 
 // PluginsRepositories holds the Plugin repository information.
 type PluginsRepositories struct {
 	URL string `yaml:"url"`
+}
+
+// IncomingWebhook contains configuration for incoming source webhook.
+type IncomingWebhook struct {
+	Enabled bool `yaml:"enabled"`
+	Port    int  `yaml:"port"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.

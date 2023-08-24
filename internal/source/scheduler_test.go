@@ -31,15 +31,12 @@ func TestStartingUniqueProcesses(t *testing.T) {
 		"botkube/keptn@v1.0.0; keptn-us-east-2":                     {},
 	}
 
-	assertStarter := func(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error {
+	assertStarter := func(ctx context.Context, pluginName string, pluginConfig *source.Config, sources []string) error {
 		// then configs are specified in a proper order
-		var expConfigs []*source.Config
-		for _, sourceName := range sources {
-			expConfigs = append(expConfigs, &source.Config{
-				RawYAML: mustYAMLMarshal(t, givenCfg.Sources[sourceName].Plugins[pluginName].Config),
-			})
+		var expConfig = &source.Config{
+			RawYAML: mustYAMLMarshal(t, givenCfg.Sources[sources[0]].Plugins[pluginName].Config),
 		}
-		assert.Equal(t, expConfigs, pluginConfigs)
+		assert.Equal(t, expConfig, pluginConfig)
 
 		// then only unique process are started
 		key := []string{pluginName}
@@ -76,9 +73,9 @@ func readTestdataFile(t *testing.T, name string) []byte {
 
 // The fakeDispatcherFunc type is an adapter to allow the use of
 // ordinary functions as Dispatcher handlers.
-type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfigs []*source.Config, sources []string) error
+type fakeDispatcherFunc func(ctx context.Context, pluginName string, pluginConfig *source.Config, sources []string) error
 
 // ServeHTTP calls f(w, r).
 func (f fakeDispatcherFunc) Dispatch(dispatch PluginDispatch) error {
-	return f(dispatch.ctx, dispatch.pluginName, dispatch.pluginConfigs, []string{dispatch.sourceName})
+	return f(dispatch.ctx, dispatch.pluginName, dispatch.pluginConfig, []string{dispatch.sourceName})
 }

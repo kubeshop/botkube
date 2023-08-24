@@ -20,7 +20,7 @@ message StreamRequest {
 
 message StreamContext {
 	bool isInteractivitySupported = 1;
-	// kubeConfig is is kubeConfig represented in bytes
+	// kubeConfig is is kubeConfig represented in bytes.
 	bytes kubeConfig = 2;
 	string clusterName = 3;
 }
@@ -29,15 +29,46 @@ message StreamResponse {
 	bytes event = 1;
 }
 
+message ExternalRequest {
+	// Payload is a payload of a external request.
+	bytes payload = 1;
+	// Config is Source configuration specified by users.
+	Config config = 2;
+	// context holds context for external request.
+	ExternalRequestContext context = 3;
+}
+
+message ExternalRequestContext {
+	bool isInteractivitySupported = 1;
+	string clusterName = 2;
+}
+
+message ExternalRequestResponse {
+	// event is a response of a external request.
+	bytes event = 1;
+}
+
 message MetadataResponse {
 	// version is a version of a given plugin. It should follow the SemVer syntax.
 	string version = 1;
 	// description is a description of a given plugin.
 	string description = 2;
-	// json_schema is a JSON schema of a given plugin.
+	// json_schema is a JSON schema of a given plugin configuration.
 	JSONSchema json_schema = 3;
 	// dependencies is a list of dependencies of a given plugin.
 	map<string, Dependency> dependencies = 4;
+	// external_request is a metadata of a given external request.
+	optional ExternalRequestMetadata external_request = 5;
+}
+
+message ExternalRequestMetadata {
+	// payload is a payload of a external request.
+	optional ExternalRequestPayloadMetadata payload = 1;
+}
+
+message ExternalRequestPayloadMetadata {
+	// json_schema is a JSON schema of a given incoming webhook request body.
+	JSONSchema json_schema = 1;
 }
 
 message JSONSchema {
@@ -54,5 +85,6 @@ message Dependency {
 
 service Source {
 	rpc Stream(StreamRequest) returns (stream StreamResponse) {}
+	rpc HandleExternalRequest(ExternalRequest) returns (ExternalRequestResponse) {}
 	rpc Metadata(google.protobuf.Empty) returns (MetadataResponse) {}
 }

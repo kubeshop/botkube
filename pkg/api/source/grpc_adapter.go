@@ -18,6 +18,7 @@ import (
 // Source defines the Botkube source plugin functionality.
 type Source interface {
 	Stream(context.Context, StreamInput) (StreamOutput, error)
+	HandleExternalRequest(context.Context, ExternalRequestInput) (ExternalRequestOutput, error)
 	Metadata(context.Context) (api.MetadataOutput, error)
 }
 
@@ -49,6 +50,36 @@ type (
 		//   - api.NewCodeBlockMessage("body", true)
 		//   - api.NewPlaintextMessage("body", true)
 		Event chan Event
+	}
+
+	// ExternalRequestInput holds the input of the HandleExternalRequest function.
+	ExternalRequestInput struct {
+		// Payload is the payload of the incoming webhook.
+		Payload []byte
+
+		// Config is Source configuration specified by users.
+		Config *Config
+
+		// Context holds single dispatch context.
+		Context SingleDispatchInputContext
+	}
+
+	// SingleDispatchInputContext holds single dispatch context.
+	SingleDispatchInputContext struct {
+		// IsInteractivitySupported is set to true only if a communication platform supports interactive Messages.
+		IsInteractivitySupported bool
+
+		// ClusterName is the name of the underlying Kubernetes cluster which is provided by end user.
+		ClusterName string
+	}
+
+	// ExternalRequestOutput holds the output of the Stream function.
+	ExternalRequestOutput struct {
+		// Event represents the streamed events with message, raw object, and analytics data. It is from the start of plugin consumption.
+		// You can construct a complex message.data or just use one of our helper functions:
+		//   - api.NewCodeBlockMessage("body", true)
+		//   - api.NewPlaintextMessage("body", true)
+		Event Event
 	}
 
 	Event struct {
@@ -148,10 +179,52 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 	return out, nil
 }
 
+func (p *grpcClient) HandleExternalRequest(ctx context.Context, in ExternalRequestInput) (ExternalRequestOutput, error) {
+	request := &ExternalRequest{
+		Payload: in.Payload,
+		Config:  in.Config,
+		Context: &ExternalRequestContext{
+			IsInteractivitySupported: in.Context.IsInteractivitySupported,
+			ClusterName:              in.Context.ClusterName,
+		},
+	}
+	out, err := p.client.HandleExternalRequest(ctx, request)
+	if err != nil {
+		return ExternalRequestOutput{}, err
+	}
+
+	if len(out.Event) == 0 && string(out.Event) == "" {
+		return ExternalRequestOutput{
+			Event: Event{},
+		}, nil
+	}
+
+	var event Event
+	if err := json.Unmarshal(out.Event, &event); err != nil {
+		return ExternalRequestOutput{}, fmt.Errorf("while unmarshalling JSON message for single dispatch: %w", err)
+	}
+
+	return ExternalRequestOutput{
+		Event: event,
+	}, nil
+}
+
 func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 	resp, err := p.client.Metadata(ctx, &emptypb.Empty{})
 	if err != nil {
 		return api.MetadataOutput{}, err
+	}
+
+	var externalRequest api.ExternalRequestMetadata
+	if resp.ExternalRequest != nil {
+		externalRequest = api.ExternalRequestMetadata{
+			Payload: api.ExternalRequestPayload{
+				JSONSchema: api.JSONSchema{
+					Value:  resp.ExternalRequest.Payload.GetJsonSchema().GetValue(),
+					RefURL: resp.ExternalRequest.Payload.GetJsonSchema().GetRefUrl(),
+				},
+			},
+		}
 	}
 
 	return api.MetadataOutput{
@@ -161,7 +234,8 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 			Value:  resp.GetJsonSchema().GetValue(),
 			RefURL: resp.GetJsonSchema().GetRefUrl(),
 		},
-		Dependencies: api.ConvertDependenciesToAPI(resp.Dependencies),
+		ExternalRequest: externalRequest,
+		Dependencies:    api.ConvertDependenciesToAPI(resp.Dependencies),
 	}, nil
 }
 
@@ -181,6 +255,14 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 		JsonSchema: &JSONSchema{
 			Value:  meta.JSONSchema.Value,
 			RefUrl: meta.JSONSchema.RefURL,
+		},
+		ExternalRequest: &ExternalRequestMetadata{
+			Payload: &ExternalRequestPayloadMetadata{
+				JsonSchema: &JSONSchema{
+					Value:  meta.ExternalRequest.Payload.JSONSchema.Value,
+					RefUrl: meta.ExternalRequest.Payload.JSONSchema.RefURL,
+				},
+			},
 		},
 		Dependencies: api.ConvertDependenciesFromAPI[*Dependency, Dependency](meta.Dependencies),
 	}, nil
@@ -225,6 +307,29 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 			}
 		}
 	}
+}
+
+func (p *grpcServer) HandleExternalRequest(ctx context.Context, req *ExternalRequest) (*ExternalRequestResponse, error) {
+	out, err := p.Source.HandleExternalRequest(ctx, ExternalRequestInput{
+		Payload: req.Payload,
+		Config:  req.Config,
+		Context: SingleDispatchInputContext{
+			IsInteractivitySupported: req.Context.IsInteractivitySupported,
+			ClusterName:              req.Context.ClusterName,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	marshalled, err := json.Marshal(out.Event)
+	if err != nil {
+		return nil, fmt.Errorf("while marshalling msg to byte: %w", err)
+	}
+
+	return &ExternalRequestResponse{
+		Event: marshalled,
+	}, nil
 }
 
 // Serve serves given plugins.

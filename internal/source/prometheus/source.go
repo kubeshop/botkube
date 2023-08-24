@@ -13,6 +13,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
 
+var _ source.Source = (*Source)(nil)
+
 const (
 	// PluginName is the name of the Prometheus Botkube plugin.
 	PluginName = "prometheus"
@@ -26,6 +28,8 @@ const (
 type Source struct {
 	pluginVersion string
 	startedAt     time.Time
+
+	source.HandleExternalRequestUnimplemented
 }
 
 // NewSource returns a new instance of Source.
