@@ -106,3 +106,36 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 	// then
 	assert.EqualError(t, err, expectedErrMsg)
 }
+
+func TestRemoveArchiveExtension(t *testing.T) {
+	tests := []struct {
+		name      string
+		givenName string
+		expName   string
+	}{
+		{
+			name:      "Trim single extension archive",
+			givenName: "test.gz",
+			expName:   "test",
+		},
+		{
+			name:      "Trim multi extension archive",
+			givenName: "test.tar.gz",
+			expName:   "test",
+		},
+		{
+			name:      "Does nothing if not archive",
+			givenName: "test.exe",
+			expName:   "test.exe",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// when
+			gotName := trimArchiveExtension(tc.givenName)
+
+			// then
+			assert.Equal(t, tc.expName, gotName)
+		})
+	}
+}
