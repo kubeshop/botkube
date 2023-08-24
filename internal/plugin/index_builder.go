@@ -210,9 +210,7 @@ func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex
 	}
 
 	pType, pName, os, arch := parts[0], parts[1], parts[2], parts[3]
-	for ext := range getter.Decompressors {
-		arch = strings.TrimSuffix(arch, "."+ext) // normalize in case archive was used
-	}
+	arch = trimArchiveExtension(arch) // normalize in case archive was used
 
 	if !pNameRegex.MatchString(pName) {
 		i.log.WithField("file", entryName).Debug("Ignoring file as it doesn't match filter")
@@ -288,10 +286,34 @@ func (i *IndexBuilder) getJSONSchemaLoaderForEntry(entry IndexEntry) gojsonschem
 }
 
 func hasArchiveExtension(path string) bool {
-	for ext := range getter.Decompressors {
+	for _, ext := range getAvailableDecompressors() {
 		if strings.HasSuffix(path, "."+ext) {
 			return true
 		}
 	}
 	return false
+}
+
+func trimArchiveExtension(in string) string {
+	for _, ext := range getAvailableDecompressors() {
+		in = strings.TrimSuffix(in, "."+ext)
+	}
+	return in
+}
+
+func getAvailableDecompressors() []string {
+	var (
+		multiExt  []string
+		singleExt []string
+	)
+
+	for ext := range getter.Decompressors {
+		if strings.Contains(ext, ".") {
+			multiExt = append(multiExt, ext)
+			continue
+		}
+		singleExt = append(singleExt, ext)
+	}
+
+	return append(multiExt, singleExt...)
 }
