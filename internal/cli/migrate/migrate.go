@@ -142,7 +142,7 @@ func migrate(ctx context.Context, status *printer.StatusPrinter, opts Options, b
 		return mutation.CreateDeployment.ID, nil
 	}
 
-	params, err := parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions, opts.AutoApprove)
+	params, err := parseHelmCommand(mutation.CreateDeployment.InstallUpgradeInstructions, opts)
 	if err != nil {
 		return "", errors.Wrap(err, "while parsing helm command")
 	}
@@ -300,7 +300,7 @@ func waitForMigrationJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts
 	}
 }
 
-func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform, autoApprove bool) (helm.Config, error) {
+func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlatform, opts Options) (helm.Config, error) {
 	var raw string
 	for _, i := range instructions {
 		if i.PlatformName == platformNameOther {
@@ -321,6 +321,10 @@ func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlat
 		return helm.Config{}, errors.Wrap(err, "could not register flags")
 	}
 
+	if opts.ImageTag != "" {
+		vals = append(vals, fmt.Sprintf("image.tag=%s", opts.ImageTag))
+	}
+
 	return helm.Config{
 		Version: version,
 		Values: values.Options{
@@ -330,7 +334,7 @@ func parseHelmCommand(instructions []*gqlModel.InstallUpgradeInstructionsForPlat
 		ReleaseName:  helm.ReleaseName,
 		ChartName:    helm.HelmChartName,
 		RepoLocation: helm.HelmRepoStable,
-		AutoApprove:  autoApprove,
+		AutoApprove:  opts.AutoApprove,
 	}, nil
 }
 
