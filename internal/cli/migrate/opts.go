@@ -13,6 +13,7 @@ type Options struct {
 	CloudDashboardURL string
 	CloudAPIURL       string
 	Namespace         string
+	ImageTag          string
 	Label             string
 	SkipConnect       bool
 	SkipOpenBrowser   bool
