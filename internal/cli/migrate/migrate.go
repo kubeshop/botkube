@@ -31,8 +31,9 @@ import (
 )
 
 const (
-	migrationJobName = "botkube-migration"
-	configMapName    = "botkube-config-exporter"
+	migrationJobName    = "botkube-migration"
+	configMapName       = "botkube-config-exporter"
+	defaultInstanceName = "Botkube"
 
 	instanceDetailsURLFmt = "%s/instances/%s"
 	platformNameOther     = "Other"
@@ -162,12 +163,16 @@ func getInstanceName(opts Options) (string, error) {
 		return opts.InstanceName, nil
 	}
 
+	if opts.AutoApprove {
+		return defaultInstanceName, nil
+	}
+
 	qs := []*survey.Question{
 		{
 			Name: "instanceName",
 			Prompt: &survey.Input{
 				Message: "Please type Botkube Instance name: ",
-				Default: "Botkube",
+				Default: defaultInstanceName,
 			},
 			Validate: survey.ComposeValidators(survey.Required),
 		},
