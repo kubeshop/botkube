@@ -213,6 +213,7 @@ jobs:
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
       - name: Install Botkube to test ${{ matrix.integration }}
+        if: ${{ matrix.integration }} == 'discord'
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -241,6 +242,12 @@ jobs:
         run: |
           make build-plugins
 
+      - name: Build CLI
+        run: make release-snapshot-cli
+      - name: Add Botkube CLI to env
+        run: |
+          echo BOTKUBE_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
+
       - name: Run ${{ matrix.integration }} tests
         env:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
@@ -254,6 +261,7 @@ jobs:
           SLACK_BOT_NAME: "botkubedev"
           CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID: ${{ secrets.CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
