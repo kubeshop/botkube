@@ -398,7 +398,6 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 
 		parts := strings.Split(actual[i].ConfigurationName, "_")
 		actual[i].ConfigurationName = parts[0]
-
 	}
 
 	assert.ElementsMatchf(t, expectedPlugins, actual, "Plugins are not equal")
