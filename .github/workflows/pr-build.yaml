@@ -250,6 +250,7 @@ jobs:
       - name: Run ${{ matrix.integration }} tests
         env:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
+          SLACK_CLOUD_TESTER_APP_TOKEN: ${{ secrets.SLACK_CLOUD_TESTER_APP_TOKEN }}
           SLACK_ADDITIONAL_CONTEXT_MESSAGE: "Pull request: ${{ github.event.pull_request.number }} - https://github.com/kubeshop/botkube/pull/${{ github.event.pull_request.number }}"
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
@@ -257,7 +258,6 @@ jobs:
           PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/plugin-dist
           CONFIG_PROVIDER_API_KEY: ${{ secrets.CONFIG_PROVIDER_API_KEY }}
           CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}
-          SLACK_BOT_NAME: "botkubedev"
           CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID: ${{ secrets.CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID }}
           CONFIG_PROVIDER_IMAGE_TAG: ${{ env.IMAGE_TAG }}
           CONFIG_PROVIDER_HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
