@@ -511,15 +511,21 @@ func (b *Mattermost) shutdown() {
 }
 
 func getBotUserID(ctx context.Context, client *model.Client4, teamID, botName string) (string, error) {
-	users, _, err := client.AutocompleteUsersInTeam(ctx, teamID, botName, 1, "")
+	users, _, err := client.GetUsersByUsernames(ctx, []string{botName})
 	if err != nil {
 		return "", fmt.Errorf("while getting user with name %q: %w", botName, err)
 	}
-	if users == nil || len(users.Users) == 0 || users.Users[0] == nil {
+
+	if len(users) == 0 {
 		return "", fmt.Errorf("user with name %q not found", botName)
 	}
 
-	return users.Users[0].Id, nil
+	teamMember, _, err := client.GetTeamMember(ctx, teamID, users[0].Id, "")
+	if err != nil {
+		return "", fmt.Errorf("while validating user with name %q is in team %q: %w", botName, teamID, err)
+	}
+
+	return teamMember.UserId, nil
 }
 
 func mattermostChannelsCfgFrom(ctx context.Context, client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
