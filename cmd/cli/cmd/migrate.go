@@ -89,7 +89,7 @@ func NewMigrate() *cobra.Command {
 			}
 
 			isCompatible := constraint.Check(botkubeVersion)
-			if !isCompatible {
+			if !isCompatible && !opts.AutoApprove {
 				run := false
 
 				prompt := &survey.Confirm{
@@ -150,6 +150,7 @@ func NewMigrate() *cobra.Command {
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
 	flags.StringVarP(&opts.Label, "label", "l", "app=botkube", "Label of Botkube pod")
 	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of Botkube pod")
+	flags.StringVarP(&opts.ImageTag, "image-tag", "", "", "Botkube image tag, possible values latest, v1.2.0, ...")
 	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
 	flags.BoolVar(&opts.SkipOpenBrowser, "skip-open-browser", false, "Skips opening web browser after migration")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for upgrading Botkube installation.")

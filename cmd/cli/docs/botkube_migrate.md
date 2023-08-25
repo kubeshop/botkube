@@ -43,6 +43,7 @@ botkube migrate [OPTIONS] [flags]
       --cloud-api-url string                 Botkube Cloud API URL (default "https://api.botkube.io/graphql")
       --cloud-dashboard-url string           Botkube Cloud URL (default "https://app.botkube.io")
   -h, --help                                 help for migrate
+      --image-tag string                     Botkube image tag, possible values latest, v1.2.0, ...
       --instance-name string                 Botkube Cloud Instance name that will be created
       --kubeconfig string                    Paths to a kubeconfig. Only required if out-of-cluster.
   -l, --label string                         Label of Botkube pod (default "app=botkube")
