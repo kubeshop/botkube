@@ -257,7 +257,6 @@ jobs:
           PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/plugin-dist
           CONFIG_PROVIDER_API_KEY: ${{ secrets.CONFIG_PROVIDER_API_KEY }}
           CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}
-          SLACK_BOT_NAME: "botkubedev"
           CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID: ${{ secrets.CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID }}
           CONFIG_PROVIDER_IMAGE_TAG: ${{ env.IMAGE_TAG }}
           CONFIG_PROVIDER_HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
