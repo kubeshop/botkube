@@ -246,7 +246,7 @@ jobs:
         run: make release-snapshot-cli
       - name: Add Botkube CLI to env
         run: |
-          echo BOTKUBE_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
+          echo CONFIG_PROVIDER_BOTKUBE_CLI_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
 
       - name: Run ${{ matrix.integration }} tests
         env:
@@ -260,8 +260,8 @@ jobs:
           CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}
           SLACK_BOT_NAME: "botkubedev"
           CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID: ${{ secrets.CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
+          CONFIG_PROVIDER_IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          CONFIG_PROVIDER_HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
