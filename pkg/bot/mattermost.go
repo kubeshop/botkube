@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -102,26 +103,20 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 
 	client := model.NewAPIv4Client(mmURL)
 	client.SetOAuthToken(cfg.Token)
-	botTeams, _, err := client.SearchTeams(ctx, &model.TeamSearch{
-		Term: cfg.Team,
-	})
+
+	// In Mattermost v7.0+, what we see in MM Console is `display_name` of a team.
+	// We need `name` of the team to make the rest of the business logic work.
+	team, err := getMattermostTeam(ctx, client, cfg.Team)
 	if err != nil {
-		return nil, fmt.Errorf("while getting team by name: %w", err)
+		return nil, fmt.Errorf("while getting team details: %w", err)
 	}
 
-	if len(botTeams) == 0 {
-		return nil, fmt.Errorf("team %q not found", cfg.Team)
-	}
-	botTeam := botTeams[0]
-	// In Mattermost v7.0+, what we see in MM Console is `display_name` of team.
-	// We need `name` of team to make rest of the business logic work.
-	cfg.Team = botTeam.Name
-	channelsByIDCfg, err := mattermostChannelsCfgFrom(ctx, client, botTeam.Id, cfg.Channels)
+	channelsByIDCfg, err := mattermostChannelsCfgFrom(ctx, client, team.Id, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
 
-	botUserID, err := getBotUserID(ctx, client, botTeam.Id, cfg.BotName)
+	botUserID, err := getBotUserID(ctx, client, team.Id, cfg.BotName)
 	if err != nil {
 		return nil, fmt.Errorf("while getting bot user ID: %w", err)
 	}
@@ -133,7 +128,7 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		serverURL:       cfg.URL,
 		botName:         cfg.BotName,
 		botUserID:       botUserID,
-		teamName:        cfg.Team,
+		teamName:        team.Name,
 		apiClient:       client,
 		webSocketURL:    webSocketURL,
 		commGroupName:   commGroupName,
@@ -526,6 +521,29 @@ func getBotUserID(ctx context.Context, client *model.Client4, teamID, botName st
 	}
 
 	return teamMember.UserId, nil
+}
+
+func getMattermostTeam(ctx context.Context, client *model.Client4, name string) (*model.Team, error) {
+	botTeams, r, err := client.SearchTeams(ctx, &model.TeamSearch{
+		Term: name, // the search term to match against the name or display name of teams
+	})
+	if err != nil {
+		return nil, fmt.Errorf("while searching team by term: %w", err)
+	}
+
+	if r.StatusCode == http.StatusNotImplemented || len(botTeams) == 0 {
+		// try to check if we can get a given team directly
+		botTeam, _, err := client.GetTeamByName(ctx, name, "")
+		if err != nil {
+			return nil, fmt.Errorf("while getting team by name: %w", err)
+		}
+		botTeams = append(botTeams, botTeam)
+	}
+	if len(botTeams) == 0 {
+		return nil, fmt.Errorf("team %q not found", name)
+	}
+
+	return botTeams[0], err
 }
 
 func mattermostChannelsCfgFrom(ctx context.Context, client *model.Client4, teamID string, channelsCfg config.IdentifiableMap[config.ChannelBindingsByName]) (map[string]channelConfigByID, error) {
