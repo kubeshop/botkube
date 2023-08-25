@@ -165,18 +165,22 @@ func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[str
 	return out
 }
 
-func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (*api.MetadataOutput, error) {
+func (i *IndexBuilder) getPluginMetadata(dir string, index []pluginBinariesIndex) (*api.MetadataOutput, error) {
 	os, arch := runtime.GOOS, runtime.GOARCH
 
-	for _, item := range bins {
+	for _, item := range index {
 		if item.Arch != arch || item.OS != os {
 			continue
 		}
 
-		bins := map[string]string{
-			item.Type.String(): filepath.Join(dir, item.BinaryPath),
+		bins := map[string]pluginMetadata{
+			item.Type.String(): {
+				binPath: filepath.Join(dir, item.BinaryPath),
+			},
 		}
-		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type)
+		emptyChan := make(chan pluginMetadata)
+		// close(emptyChan)
+		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, emptyChan)
 		if err != nil {
 			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}

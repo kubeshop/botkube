@@ -42,14 +42,16 @@ type Scheduler struct {
 }
 
 // NewScheduler create a new Scheduler instance.
-func NewScheduler(log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher, schedulerChan chan string) *Scheduler {
-	return &Scheduler{
+func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher, schedulerChan chan string) *Scheduler {
+	s := &Scheduler{
 		log:            log,
 		cfg:            cfg,
 		dispatcher:     dispatcher,
 		startProcesses: map[string]struct{}{},
 		schedulerChan:  schedulerChan,
 	}
+	go s.monitorHealth(ctx)
+	return s
 }
 
 // Start starts all sources and dispatch received events.
@@ -130,11 +132,13 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 }
 
 func (d *Scheduler) monitorHealth(ctx context.Context) error {
+	d.log.Info("Starting scheduler health monitor")
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case sourceName := <-d.schedulerChan:
+			d.log.Infof("Received scheduler health check for %q", sourceName)
 			d.Start(ctx, sourceName)
 		}
 	}
@@ -142,6 +146,9 @@ func (d *Scheduler) monitorHealth(ctx context.Context) error {
 
 func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool, bindSources []string, pluginFilter string) error {
 	for _, bindSource := range bindSources {
+		if pluginFilter != "" {
+			d.log.Infof("Filtering sources by %q = %q", pluginFilter, bindSource)
+		}
 		if pluginFilter != "" && pluginFilter != bindSource {
 			continue
 		}
@@ -191,8 +198,6 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 			RawYAML: rawYAML,
 		})
 	}
-
-	// only fetch config data
 
 	for pluginName, configs := range sourcePluginConfigs {
 		err := d.dispatcher.Dispatch(PluginDispatch{

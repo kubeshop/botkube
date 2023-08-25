@@ -392,7 +392,7 @@ func run(ctx context.Context) (err error) {
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
 	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
-	scheduler := source.NewScheduler(logger, conf, sourcePluginDispatcher, schedulerChan)
+	scheduler := source.NewScheduler(ctx, logger, conf, sourcePluginDispatcher, schedulerChan)
 	err = scheduler.Start(ctx, "")
 	if err != nil {
 		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)

@@ -125,7 +125,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			select {
 			case msg, ok := <-out.Event:
 				if !ok {
-					// d.manager.GetSource(dispatch.pluginName)
+					log.WithError(fmt.Errorf("stream for %s.%s source was closed", dispatch.sourceName, dispatch.pluginName)).Error("Stream closed")
 					return
 				}
 				log.WithField("message", msg).Debug("Dispatching received message...")
