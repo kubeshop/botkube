@@ -105,7 +105,10 @@ func (m *Manager) Start(ctx context.Context) error {
 		return err
 	}
 
+	go m.monitorHealth(ctx)
+
 	m.isStarted.Store(true)
+
 	return nil
 }
 
@@ -135,10 +138,6 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	}
 	m.sourcesStore.EnabledPlugins = sourcesClients
 
-	if !forceUpdate {
-		go m.monitorHealth(ctx)
-	}
-
 	return nil
 }
 
@@ -154,17 +153,19 @@ func (m *Manager) monitorHealth(ctx context.Context) {
 				m.log.Infof("Releasing resources of source plugin %q...", plugin.name)
 				source.Cleanup()
 			}
-			delete(m.sourcesStore.EnabledPlugins, plugin.name)
+
+			// botkube/kubernetes
+			reploPluginPair := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
+			delete(m.sourcesStore.EnabledPlugins, reploPluginPair)
+
 			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.supervisorChan)
 			if err != nil {
 				m.log.WithError(err).Errorf("Failed to restart plugin %q.", plugin.name)
 				continue
 			}
-			m.sourcesStore.EnabledPlugins[plugin.name] = p
 
-			// botkube/kubernetes
-			sourceName := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
-			m.schedulerChan <- sourceName
+			m.sourcesStore.EnabledPlugins[reploPluginPair] = p
+			m.schedulerChan <- reploPluginPair
 		}
 	}
 }
@@ -448,7 +449,6 @@ func startSourcePluginWatcher(ctx context.Context, logger logrus.FieldLogger, rp
 			}
 		}
 	}()
-	return
 }
 
 func newPluginOSRunCommand(path string) *exec.Cmd {

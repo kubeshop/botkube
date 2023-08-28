@@ -54,7 +54,7 @@ func TestStartingUniqueProcesses(t *testing.T) {
 	}
 
 	// when
-	scheduler := NewScheduler(loggerx.NewNoop(), givenCfg, fakeDispatcherFunc(assertStarter))
+	scheduler := NewScheduler(context.Background(), loggerx.NewNoop(), givenCfg, fakeDispatcherFunc(assertStarter), make(chan string))
 
 	err = scheduler.Start(context.Background())
 	require.NoError(t, err)
