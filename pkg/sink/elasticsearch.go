@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/olivere/elastic"
+	"github.com/olivere/elastic/v7"
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
 
@@ -154,13 +154,13 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 			},
 		}
 		_, err := e.client.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
-		if err != nil {
+		if err != nil && err.(*elastic.Error).Details.Type != "resource_already_exists_exception" {
 			return fmt.Errorf("while creating index: %w", err)
 		}
 	}
 
 	// Send event to els
-	_, err = e.client.Index().Index(indexName).Type(indexCfg.Type).BodyJson(event).Do(ctx)
+	_, err = e.client.Index().Index(indexName).BodyJson(event).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while posting data to ELS: %w", err)
 	}
