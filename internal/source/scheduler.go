@@ -28,38 +28,88 @@ type PluginDispatch struct {
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
 type Scheduler struct {
-	log           logrus.FieldLogger
-	cfg           *config.Config
-	dispatcher    pluginDispatcher
-	schedulerChan chan string
+	log            logrus.FieldLogger
+	cfg            *config.Config
+	dispatcher     pluginDispatcher
+	dispatchConfig map[string]map[string]PluginDispatch
+	schedulerChan  chan string
 
-	// startProcesses holds information about started unique plugin processes
+	// runningProcesses holds information about started unique plugin processes
 	// We start a new plugin process each time we see a new order of source bindings.
 	// We do that because we pass the array of configs to each `Stream` method and
 	// the merging strategy for configs can depend on the order.
 	// As a result our key is e.g. ['source-name1;source-name2']
-	startProcesses map[string]struct{}
+	runningProcesses map[string]struct{}
 }
 
 // NewScheduler create a new Scheduler instance.
 func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher, schedulerChan chan string) *Scheduler {
 	s := &Scheduler{
-		log:            log,
-		cfg:            cfg,
-		dispatcher:     dispatcher,
-		startProcesses: map[string]struct{}{},
-		schedulerChan:  schedulerChan,
+		log:              log,
+		cfg:              cfg,
+		dispatcher:       dispatcher,
+		runningProcesses: map[string]struct{}{},
+		dispatchConfig:   make(map[string]map[string]PluginDispatch),
+		schedulerChan:    schedulerChan,
 	}
 	go s.monitorHealth(ctx)
 	return s
 }
 
+func (d *Scheduler) monitorHealth(ctx context.Context) error {
+	d.log.Info("Starting scheduler plugin health monitor")
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case pluginName := <-d.schedulerChan:
+			d.log.Infof("Scheduling restarted plugin %q", pluginName)
+			delete(d.runningProcesses, pluginName)
+			if err := d.schedule(ctx, pluginName); err != nil {
+				d.log.Errorf("while scheduling %q: %s", pluginName, err)
+			}
+		}
+	}
+}
+
 // Start starts all sources and dispatch received events.
-func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
+func (d *Scheduler) Start(ctx context.Context) error {
+	if err := d.generateConfigs(ctx); err != nil {
+		return err
+	}
+	if err := d.schedule(ctx, ""); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Scheduler) schedule(ctx context.Context, pluginFilter string) error {
+	for _, sourceConfig := range d.dispatchConfig {
+		for pluginName, config := range sourceConfig {
+			if _, ok := d.runningProcesses[pluginName]; ok {
+				d.log.Infof("Not starting %q as it was already started.", pluginName)
+				continue
+			}
+			if pluginFilter != "" && pluginFilter != pluginName {
+				d.log.Infof("Not starting %q as it doesn't pass plugin filter.", pluginName)
+				continue
+			}
+
+			d.log.Infof("Starting a new stream for plugin %q", pluginName)
+			if err := d.dispatcher.Dispatch(config); err != nil {
+				return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
+			}
+			d.runningProcesses[pluginName] = struct{}{}
+		}
+	}
+	return nil
+}
+
+func (d *Scheduler) generateConfigs(ctx context.Context) error {
 	for _, commGroupCfg := range d.cfg.Communications {
 		if commGroupCfg.CloudSlack.Enabled {
 			for _, channel := range commGroupCfg.CloudSlack.Channels {
-				if err := d.schedule(ctx, config.CloudSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.CloudSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -67,7 +117,7 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 
 		if commGroupCfg.Slack.Enabled {
 			for _, channel := range commGroupCfg.Slack.Channels {
-				if err := d.schedule(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -75,7 +125,7 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 
 		if commGroupCfg.SocketSlack.Enabled {
 			for _, channel := range commGroupCfg.SocketSlack.Channels {
-				if err := d.schedule(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -83,35 +133,35 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 
 		if commGroupCfg.Mattermost.Enabled {
 			for _, channel := range commGroupCfg.Mattermost.Channels {
-				if err := d.schedule(ctx, config.MattermostCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.MattermostCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			if err := d.schedule(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources, pluginFilter); err != nil {
+			if err := d.generateSourceConfigs(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources); err != nil {
 				return err
 			}
 		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, channel := range commGroupCfg.Discord.Channels {
-				if err := d.schedule(ctx, config.DiscordCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.DiscordCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			if err := d.schedule(ctx, false, commGroupCfg.Webhook.Bindings.Sources, pluginFilter); err != nil {
+			if err := d.generateSourceConfigs(ctx, false, commGroupCfg.Webhook.Bindings.Sources); err != nil {
 				return err
 			}
 		}
 
 		if commGroupCfg.Elasticsearch.Enabled {
 			for _, index := range commGroupCfg.Elasticsearch.Indices {
-				if err := d.schedule(ctx, false, index.Bindings.Sources, pluginFilter); err != nil {
+				if err := d.generateSourceConfigs(ctx, false, index.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -123,7 +173,7 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 		if !act.Enabled {
 			continue
 		}
-		if err := d.schedule(ctx, false, act.Bindings.Sources, pluginFilter); err != nil {
+		if err := d.generateSourceConfigs(ctx, false, act.Bindings.Sources); err != nil {
 			return err
 		}
 	}
@@ -131,28 +181,9 @@ func (d *Scheduler) Start(ctx context.Context, pluginFilter string) error {
 	return nil
 }
 
-func (d *Scheduler) monitorHealth(ctx context.Context) error {
-	d.log.Info("Starting scheduler health monitor")
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case sourceName := <-d.schedulerChan:
-			d.log.Infof("Received scheduler health check for %q", sourceName)
-			d.Start(ctx, sourceName)
-		}
-	}
-}
-
-func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool, bindSources []string, pluginFilter string) error {
+func (d *Scheduler) generateSourceConfigs(ctx context.Context, isInteractivitySupported bool, bindSources []string) error {
 	for _, bindSource := range bindSources {
-		if pluginFilter != "" {
-			d.log.Infof("Filtering sources by %q = %q", pluginFilter, bindSource)
-		}
-		if pluginFilter != "" && pluginFilter != bindSource {
-			continue
-		}
-		err := d.schedulePlugin(ctx, isInteractivitySupported, bindSource)
+		err := d.generatePluginConfig(ctx, isInteractivitySupported, bindSource)
 		if err != nil {
 			return err
 		}
@@ -160,21 +191,12 @@ func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool,
 	return nil
 }
 
-func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
+func (d *Scheduler) generatePluginConfig(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
 	// As not all of our platforms supports interactivity, we need to schedule the same source twice. For example:
 	//  - botkube/kubernetes@1.0.0_interactive/true
 	//  - botkube/kubernetes@1.0.0_interactive/false
 	// As a result each Stream method will know if it can produce interactive message or not.
 	key := fmt.Sprintf("%s_interactive/%v", sourceName, isInteractivitySupported)
-
-	_, found := d.startProcesses[key]
-	if found {
-		d.log.Infof("Not starting %q as it was already started.", key)
-		return nil // such configuration was already started
-	}
-
-	d.log.Infof("Starting a new stream for %q.", key)
-	d.startProcesses[key] = struct{}{}
 
 	sourcePluginConfigs := map[string][]*source.Config{}
 	srcConfig, exists := d.cfg.Sources[sourceName]
@@ -200,7 +222,7 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 	}
 
 	for pluginName, configs := range sourcePluginConfigs {
-		err := d.dispatcher.Dispatch(PluginDispatch{
+		config := PluginDispatch{
 			ctx:                      ctx,
 			pluginName:               pluginName,
 			pluginConfigs:            configs,
@@ -209,10 +231,17 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 			sourceDisplayName:        srcConfig.DisplayName,
 			cfg:                      d.cfg,
 			pluginContext:            pluginContext,
-		})
-		if err != nil {
-			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 		}
+
+		if dispatch := d.dispatchConfig[key]; dispatch == nil {
+			d.dispatchConfig[key] = map[string]PluginDispatch{
+				pluginName: config,
+			}
+		} else {
+			dispatch[pluginName] = config
+			d.dispatchConfig[key] = dispatch
+		}
+
 	}
 	return nil
 }

@@ -162,8 +162,8 @@ func (m *Manager) monitorHealth(ctx context.Context) {
 			}
 			m.sourcesStore.EnabledPlugins[plugin.name] = p
 
-			// botkube/kubernetes@1.0.0
-			sourceName := fmt.Sprintf("%s/%s@%s", plugin.repo, plugin.name, plugin.version)
+			// botkube/kubernetes
+			sourceName := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
 			m.schedulerChan <- sourceName
 		}
 	}
