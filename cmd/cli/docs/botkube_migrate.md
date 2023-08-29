@@ -42,6 +42,9 @@ botkube migrate [OPTIONS] [flags]
       --cfg-exporter-timeout duration        Maximum execution time for the Config Exporter job (default 1m0s)
       --cloud-api-url string                 Botkube Cloud API URL (default "https://api.botkube.io/graphql")
       --cloud-dashboard-url string           Botkube Cloud URL (default "https://app.botkube.io")
+      --cloud-env-api-key string             API key environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_API_KEY")
+      --cloud-env-endpoint string            Endpoint environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_ENDPOINT")
+      --cloud-env-id string                  Identifier environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_IDENTIFIER")
   -h, --help                                 help for migrate
       --image-tag string                     Botkube image tag, possible values latest, v1.2.0, ...
       --instance-name string                 Botkube Cloud Instance name that will be created

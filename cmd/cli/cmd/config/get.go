@@ -60,12 +60,11 @@ func NewGet() *cobra.Command {
 				return err
 			}
 
-			status.Step("Fetching configuration")
-			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), k8sCfg.K8s, opts.Exporter)
+			status.Infof("Fetching configuration")
+			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), k8sCfg.K8s, opts.Exporter, false)
 			if err != nil {
 				return fmt.Errorf("while getting configuration: %w", err)
 			}
-			status.End(true)
 
 			var raw interface{}
 			err = yaml.Unmarshal(cfg, &raw)
