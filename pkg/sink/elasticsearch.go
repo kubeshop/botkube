@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -39,10 +40,11 @@ const (
 
 // Elasticsearch provides integration with the Elasticsearch solution.
 type Elasticsearch struct {
-	log      logrus.FieldLogger
-	reporter AnalyticsReporter
-	client   *elastic.Client
-	indices  map[string]config.ELSIndex
+	log            logrus.FieldLogger
+	reporter       AnalyticsReporter
+	client         *elastic.Client
+	indices        map[string]config.ELSIndex
+	clusterVersion string
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
@@ -107,11 +109,17 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 		}
 	}
 
+	pong, _, err := elsClient.Ping(c.Server).Do(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("while pinging cluster: %w", err)
+	}
+
 	esNotifier := &Elasticsearch{
-		log:      log,
-		reporter: reporter,
-		client:   elsClient,
-		indices:  c.Indices,
+		log:            log,
+		reporter:       reporter,
+		client:         elsClient,
+		indices:        c.Indices,
+		clusterVersion: pong.Version.Number,
 	}
 
 	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
@@ -160,7 +168,12 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 	}
 
 	// Send event to els
-	_, err = e.client.Index().Index(indexName).BodyJson(event).Do(ctx)
+	indexService := e.client.Index().Index(indexName)
+	if strings.HasPrefix(e.clusterVersion, "7.") {
+		// Only Elasticsearch <= 7.x supports Type parameter
+		indexService.Type(e.clusterVersion)
+	}
+	_, err = indexService.BodyJson(event).Do(ctx)
 	if err != nil {
 		return fmt.Errorf("while posting data to ELS: %w", err)
 	}
