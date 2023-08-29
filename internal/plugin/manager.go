@@ -45,19 +45,23 @@ var pluginMap = map[string]plugin.Plugin{
 
 // Manager provides functionality for managing executor and source plugins.
 type Manager struct {
-	isStarted      atomic.Bool
-	log            logrus.FieldLogger
-	logConfig      config.Logger
-	cfg            config.PluginManagement
-	httpClient     *http.Client
-	supervisorChan chan pluginMetadata
-	schedulerChan  chan string
+	isStarted  atomic.Bool
+	log        logrus.FieldLogger
+	logConfig  config.Logger
+	cfg        config.PluginManagement
+	httpClient *http.Client
+
+	sourceSupervisorChan   chan pluginMetadata
+	executorSupervisorChan chan pluginMetadata
+	schedulerChan          chan string
 
 	executorsToEnable []string
-	executorsStore    store[executor.Executor]
+	executorsStore    *store[executor.Executor]
 
-	sourcesStore    store[source.Source]
+	sourcesStore    *store[source.Source]
 	sourcesToEnable []string
+
+	monitor *HealthMonitor
 }
 
 type pluginMetadata struct {
@@ -69,17 +73,31 @@ type pluginMetadata struct {
 
 // NewManager returns a new Manager instance.
 func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string, schedulerChan chan string) *Manager {
+	sourceSupervisorChan := make(chan pluginMetadata)
+	executorSupervisorChan := make(chan pluginMetadata)
+	executorsStore := newStore[executor.Executor]()
+	sourcesStore := newStore[source.Source]()
+
 	return &Manager{
-		cfg:               cfg,
-		httpClient:        httpx.NewHTTPClient(),
-		supervisorChan:    make(chan pluginMetadata),
-		schedulerChan:     schedulerChan,
-		executorsToEnable: executors,
-		executorsStore:    newStore[executor.Executor](),
-		sourcesToEnable:   sources,
-		sourcesStore:      newStore[source.Source](),
-		log:               logger.WithField("component", "Plugin Manager"),
-		logConfig:         logCfg, // used when we create on-demand loggers for plugins
+		cfg:                    cfg,
+		httpClient:             httpx.NewHTTPClient(),
+		sourceSupervisorChan:   sourceSupervisorChan,
+		executorSupervisorChan: executorSupervisorChan,
+		schedulerChan:          schedulerChan,
+		executorsToEnable:      executors,
+		executorsStore:         &executorsStore,
+		sourcesToEnable:        sources,
+		sourcesStore:           &sourcesStore,
+		log:                    logger.WithField("component", "Plugin Manager"),
+		logConfig:              logCfg, // used when we create on-demand loggers for plugins
+		monitor: NewHealthMonitor(logger.WithField("component", "Plugin Health Monitor"),
+			logCfg,
+			schedulerChan,
+			sourceSupervisorChan,
+			executorSupervisorChan,
+			&executorsStore,
+			&sourcesStore,
+		),
 	}
 }
 
@@ -105,7 +123,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		return err
 	}
 
-	go m.monitorHealth(ctx)
+	m.monitor.Start(ctx)
 
 	m.isStarted.Store(true)
 
@@ -122,7 +140,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return err
 	}
 
-	executorClients, err := createGRPCClients[executor.Executor](ctx, m.log, m.logConfig, executorPlugins, TypeExecutor, m.supervisorChan)
+	executorClients, err := createGRPCClients[executor.Executor](ctx, m.log, m.logConfig, executorPlugins, TypeExecutor, m.executorSupervisorChan)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
@@ -132,7 +150,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	sourcesClients, err := createGRPCClients[source.Source](ctx, m.log, m.logConfig, sourcesPlugins, TypeSource, m.supervisorChan)
+	sourcesClients, err := createGRPCClients[source.Source](ctx, m.log, m.logConfig, sourcesPlugins, TypeSource, m.sourceSupervisorChan)
 	if err != nil {
 		return fmt.Errorf("while creating source plugins: %w", err)
 	}
@@ -141,42 +159,13 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	return nil
 }
 
-func (m *Manager) monitorHealth(ctx context.Context) {
-	m.log.Info("Starting plugin supervisor...")
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case plugin := <-m.supervisorChan:
-			m.log.Infof("Restarting plugin %q...", plugin.name)
-			if source, ok := m.sourcesStore.EnabledPlugins[plugin.name]; ok && source.Cleanup != nil {
-				m.log.Infof("Releasing resources of source plugin %q...", plugin.name)
-				source.Cleanup()
-			}
-
-			// botkube/kubernetes
-			reploPluginPair := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
-			delete(m.sourcesStore.EnabledPlugins, reploPluginPair)
-
-			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.supervisorChan)
-			if err != nil {
-				m.log.WithError(err).Errorf("Failed to restart plugin %q.", plugin.name)
-				continue
-			}
-
-			m.sourcesStore.EnabledPlugins[reploPluginPair] = p
-			m.schedulerChan <- reploPluginPair
-		}
-	}
-}
-
 // GetExecutor returns the executor client for a given plugin.
 func (m *Manager) GetExecutor(name string) (executor.Executor, error) {
 	if !m.isStarted.Load() {
 		return nil, ErrNotStartedPluginManager
 	}
 
-	client, found := m.executorsStore.EnabledPlugins[name]
+	client, found := m.executorsStore.EnabledPlugins.Get(name)
 	if !found || client.Client == nil {
 		return nil, fmt.Errorf("client for executor plugin %q not found", name)
 	}
@@ -190,7 +179,7 @@ func (m *Manager) GetSource(name string) (source.Source, error) {
 		return nil, ErrNotStartedPluginManager
 	}
 
-	client, found := m.sourcesStore.EnabledPlugins[name]
+	client, found := m.sourcesStore.EnabledPlugins.Get(name)
 	if !found || client.Client == nil {
 		return nil, fmt.Errorf("client for source plugin %q not found", name)
 	}
@@ -207,8 +196,8 @@ func (m *Manager) Shutdown() {
 	wg.Wait()
 }
 
-func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins storePlugins[T]) {
-	for _, p := range enabledPlugins {
+func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins *storePlugins[T]) {
+	for _, p := range enabledPlugins.data {
 		wg.Add(1)
 
 		go func(close func()) {
@@ -374,7 +363,7 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 	return nil
 }
 
-func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (map[string]enabledPlugins[C], error) {
+func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (*storePlugins[C], error) {
 	out := map[string]enabledPlugins[C]{}
 	for key, pm := range pluginMeta {
 		p, err := createGRPCClient[C](ctx, logger, logConfig, pm, pluginType, supervisorChan)
@@ -383,7 +372,8 @@ func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, lo
 		}
 		out[key] = p
 	}
-	return out, nil
+
+	return &storePlugins[C]{data: out}, nil
 }
 
 func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pm pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (enabledPlugins[C], error) {
@@ -420,7 +410,7 @@ func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, log
 		return enabledPlugins[C]{}, fmt.Errorf("registered client doesn't implement required %s interface", pluginType.String())
 	}
 
-	startSourcePluginWatcher(ctx, logger, rpcClient, pm, supervisorChan)
+	startPluginHealthWatcher(ctx, logger, rpcClient, pm, supervisorChan)
 
 	return enabledPlugins[C]{
 		Client:  concreteCli,
@@ -428,23 +418,23 @@ func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, log
 	}, nil
 }
 
-func startSourcePluginWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata) {
-	logger.Infof("Starting source plugin %q supervisor...", pm.name)
+func startPluginHealthWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata) {
+	logger.Infof("Starting plugin %q health watcher...", pm.name)
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				if err := rpcClient.Ping(); err != nil {
-					logger.WithError(err).Errorf("Source plugin %q is not responding.", pm.name)
-					logger.Infof("Plugin manager restarting source plugin %q...", pm.name)
+					logger.WithError(err).Errorf("Plugin %q is not responding.", pm.name)
+					logger.Debugf("Plugin manager restarting plugin %q...", pm.name)
 					supervisorChan <- pm
 					return
 				} else {
-					logger.Infof("Source plugin %q is responding.", pm.name)
+					logger.Debugf("Plugin %q is responding.", pm.name)
 				}
 			case <-ctx.Done():
-				logger.Infof("Exiting source plugin %q supervisor...", pm.name)
+				logger.Infof("Exiting plugin %q supervisor...", pm.name)
 				return
 			}
 		}

@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -39,7 +40,31 @@ type Scheduler struct {
 	// We do that because we pass the array of configs to each `Stream` method and
 	// the merging strategy for configs can depend on the order.
 	// As a result our key is e.g. ['source-name1;source-name2']
-	runningProcesses map[string]struct{}
+	runningProcesses *processes
+}
+
+type processes struct {
+	sync.RWMutex
+	data map[string]struct{}
+}
+
+func (p *processes) add(key string) {
+	p.Lock()
+	defer p.Unlock()
+	p.data[key] = struct{}{}
+}
+
+func (p *processes) delete(key string) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.data, key)
+}
+
+func (p *processes) exists(key string) bool {
+	p.RLock()
+	defer p.RUnlock()
+	_, ok := p.data[key]
+	return ok
 }
 
 // NewScheduler create a new Scheduler instance.
@@ -48,7 +73,7 @@ func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Confi
 		log:              log,
 		cfg:              cfg,
 		dispatcher:       dispatcher,
-		runningProcesses: map[string]struct{}{},
+		runningProcesses: &processes{data: map[string]struct{}{}},
 		dispatchConfig:   make(map[string]map[string]PluginDispatch),
 		schedulerChan:    schedulerChan,
 	}
@@ -64,7 +89,7 @@ func (d *Scheduler) monitorHealth(ctx context.Context) error {
 			return nil
 		case pluginName := <-d.schedulerChan:
 			d.log.Infof("Scheduling restarted plugin %q", pluginName)
-			delete(d.runningProcesses, pluginName)
+			d.runningProcesses.delete(pluginName)
 			if err := d.schedule(ctx, pluginName); err != nil {
 				d.log.Errorf("while scheduling %q: %s", pluginName, err)
 			}
@@ -86,7 +111,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 func (d *Scheduler) schedule(ctx context.Context, pluginFilter string) error {
 	for _, sourceConfig := range d.dispatchConfig {
 		for pluginName, config := range sourceConfig {
-			if _, ok := d.runningProcesses[pluginName]; ok {
+			if ok := d.runningProcesses.exists(pluginName); ok {
 				d.log.Infof("Not starting %q as it was already started.", pluginName)
 				continue
 			}
@@ -99,7 +124,7 @@ func (d *Scheduler) schedule(ctx context.Context, pluginFilter string) error {
 			if err := d.dispatcher.Dispatch(config); err != nil {
 				return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 			}
-			d.runningProcesses[pluginName] = struct{}{}
+			d.runningProcesses.add(pluginName)
 		}
 	}
 	return nil

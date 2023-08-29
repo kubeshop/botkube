@@ -178,14 +178,12 @@ func (i *IndexBuilder) getPluginMetadata(dir string, index []pluginBinariesIndex
 				binPath: filepath.Join(dir, item.BinaryPath),
 			},
 		}
-		emptyChan := make(chan pluginMetadata)
-		// close(emptyChan)
-		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, emptyChan)
+		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, make(chan pluginMetadata))
 		if err != nil {
 			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}
 
-		cli := clients[item.Type.String()]
+		cli := clients.data[item.Type.String()]
 		meta, err := cli.Client.Metadata(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("while calling metadata RPC: %w", err)
