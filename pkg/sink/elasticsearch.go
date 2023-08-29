@@ -171,6 +171,7 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 	indexService := e.client.Index().Index(indexName)
 	if strings.HasPrefix(e.clusterVersion, "7.") {
 		// Only Elasticsearch <= 7.x supports Type parameter
+		// nolint:staticcheck
 		indexService.Type(e.clusterVersion)
 	}
 	_, err = indexService.BodyJson(event).Do(ctx)
