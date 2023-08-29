@@ -18,17 +18,21 @@ type HealthMonitor struct {
 	schedulerChan          chan string
 	executorsStore         *store[executor.Executor]
 	sourcesStore           *store[source.Source]
+	policy                 config.PluginRestartPolicy
+	pluginRestartStats     map[string]int
 }
 
-func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source]) *HealthMonitor {
+func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy config.PluginRestartPolicy, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source]) *HealthMonitor {
 	return &HealthMonitor{
 		log:                    logger,
 		logConfig:              logCfg,
+		policy:                 policy,
 		schedulerChan:          schedulerChan,
 		sourceSupervisorChan:   sourceSupervisorChan,
 		executorSupervisorChan: executorSupervisorChan,
 		executorsStore:         executorsStore,
 		sourcesStore:           sourcesStore,
+		pluginRestartStats:     make(map[string]int),
 	}
 }
 
@@ -46,13 +50,18 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 		case plugin := <-m.sourceSupervisorChan:
 			m.log.Infof("Restarting source plugin %q...", plugin.name)
 			if source, ok := m.sourcesStore.EnabledPlugins.Get(plugin.name); ok && source.Cleanup != nil {
-				m.log.Infof("Releasing resources of source plugin %q...", plugin.name)
+				m.log.Debugf("Releasing resources of source plugin %q...", plugin.name)
 				source.Cleanup()
 			}
 
 			// botkube/kubernetes
 			repoPluginPair := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
 			m.sourcesStore.EnabledPlugins.Delete(repoPluginPair)
+
+			if ok := m.shouldRestartPlugin(repoPluginPair); !ok {
+				m.log.Warnf("Plugin %q has been restarted too many times. Deactivating...", plugin.name)
+				continue
+			}
 
 			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.sourceSupervisorChan)
 			if err != nil {
@@ -63,6 +72,24 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 			m.sourcesStore.EnabledPlugins.Insert(repoPluginPair, p)
 			m.schedulerChan <- repoPluginPair
 		}
+	}
+}
+
+func (m *HealthMonitor) shouldRestartPlugin(plugin string) bool {
+	restarts := m.pluginRestartStats[plugin]
+	m.pluginRestartStats[plugin]++
+
+	switch m.policy.Type {
+	case config.KeepAgentRunningWhenThresholdReached:
+		return restarts < m.policy.Threshold
+	case config.RestartAgentWhenThresholdReached:
+		if restarts >= m.policy.Threshold {
+			m.log.Fatalf("Plugin %q has been restarted %d times and selected agentRestartPolicy is %q. Exiting...", plugin, restarts, m.policy.Type)
+		}
+		return true
+	default:
+		m.log.Errorf("Unknown restart policy %q.", m.policy.Type)
+		return false
 	}
 }
 

@@ -133,9 +133,22 @@ type Config struct {
 
 // PluginManagement holds Botkube plugin management related configuration.
 type PluginManagement struct {
-	CacheDir     string                         `yaml:"cacheDir"`
-	Repositories map[string]PluginsRepositories `yaml:"repositories"`
+	CacheDir      string                         `yaml:"cacheDir"`
+	Repositories  map[string]PluginsRepositories `yaml:"repositories"`
+	RestartPolicy PluginRestartPolicy            `yaml:"agentRestartPolicy"`
 }
+
+type PluginRestartPolicy struct {
+	Type      PluginRestartPolicyType `yaml:"type"`
+	Threshold int                     `yaml:"threshold"`
+}
+
+type PluginRestartPolicyType string
+
+const (
+	KeepAgentRunningWhenThresholdReached PluginRestartPolicyType = "deactivatePlugin"
+	RestartAgentWhenThresholdReached     PluginRestartPolicyType = "restartAgent"
+)
 
 // PluginsRepositories holds the Plugin repository information.
 type PluginsRepositories struct {

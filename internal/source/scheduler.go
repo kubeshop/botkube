@@ -81,16 +81,16 @@ func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Confi
 	return s
 }
 
-func (d *Scheduler) monitorHealth(ctx context.Context) error {
+func (d *Scheduler) monitorHealth(ctx context.Context) {
 	d.log.Info("Starting scheduler plugin health monitor")
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case pluginName := <-d.schedulerChan:
 			d.log.Infof("Scheduling restarted plugin %q", pluginName)
 			d.runningProcesses.delete(pluginName)
-			if err := d.schedule(ctx, pluginName); err != nil {
+			if err := d.schedule(pluginName); err != nil {
 				d.log.Errorf("while scheduling %q: %s", pluginName, err)
 			}
 		}
@@ -102,13 +102,13 @@ func (d *Scheduler) Start(ctx context.Context) error {
 	if err := d.generateConfigs(ctx); err != nil {
 		return err
 	}
-	if err := d.schedule(ctx, ""); err != nil {
+	if err := d.schedule(""); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Scheduler) schedule(ctx context.Context, pluginFilter string) error {
+func (d *Scheduler) schedule(pluginFilter string) error {
 	for _, sourceConfig := range d.dispatchConfig {
 		for pluginName, config := range sourceConfig {
 			if ok := d.runningProcesses.exists(pluginName); ok {
@@ -266,7 +266,6 @@ func (d *Scheduler) generatePluginConfig(ctx context.Context, isInteractivitySup
 			dispatch[pluginName] = config
 			d.dispatchConfig[key] = dispatch
 		}
-
 	}
 	return nil
 }

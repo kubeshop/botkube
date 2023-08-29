@@ -90,8 +90,10 @@ func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.Plug
 		sourcesStore:           &sourcesStore,
 		log:                    logger.WithField("component", "Plugin Manager"),
 		logConfig:              logCfg, // used when we create on-demand loggers for plugins
-		monitor: NewHealthMonitor(logger.WithField("component", "Plugin Health Monitor"),
+		monitor: NewHealthMonitor(
+			logger.WithField("component", "Plugin Health Monitor"),
 			logCfg,
+			cfg.RestartPolicy,
 			schedulerChan,
 			sourceSupervisorChan,
 			executorSupervisorChan,

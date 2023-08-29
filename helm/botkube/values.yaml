@@ -1120,6 +1120,9 @@ plugins:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
       url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+    agentRestartPolicy:
+        type: "deactivatePlugin"
+        threshold: 5
 
 # -- Configuration for synchronizing Botkube configuration.
 config:
