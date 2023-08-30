@@ -257,6 +257,10 @@ sources:
           - type: v1/services
           - type: networking.k8s.io/v1/ingresses
           - type: v1/nodes
+            event:
+              message:
+                exclude:
+                  - ".*nf_conntrack_buckets.*" # Ignore node related noisy messages from GKE clusters
           - type: v1/namespaces
           - type: v1/persistentvolumes
           - type: v1/persistentvolumeclaims
@@ -359,6 +363,10 @@ sources:
           - type: v1/services
           - type: networking.k8s.io/v1/ingresses
           - type: v1/nodes
+            event:
+              message:
+                exclude:
+                  - ".*nf_conntrack_buckets.*" # Ignore node related noisy messages from GKE clusters
           - type: v1/namespaces
           - type: v1/persistentvolumes
           - type: v1/persistentvolumeclaims
@@ -474,6 +482,10 @@ sources:
           - type: v1/services
           - type: networking.k8s.io/v1/ingresses
           - type: v1/nodes
+            event:
+              message:
+                exclude:
+                  - ".*nf_conntrack_buckets.*" # Ignore node related noisy messages from GKE clusters
           - type: v1/namespaces
           - type: v1/persistentvolumes
           - type: v1/persistentvolumeclaims
