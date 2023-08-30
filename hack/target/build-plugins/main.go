@@ -50,7 +50,7 @@ func buildPlugins(pluginTargets string, single bool) {
 	}
 
 	if single {
-		command += "--single-target"
+		command += " --single-target"
 	}
 
 	runCommand(command)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -37,7 +38,8 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
 
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
-		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*", true, true)
+		isArchive := os.Getenv("OUTPUT_MODE") == "archive"
+		idx, err := builder.Build(cfg.BinariesDirectory, basePath+"/static", ".*", true, isArchive)
 		if err != nil {
 			log.Printf("Cannot build index file: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -54,7 +54,7 @@ func downloadBinary(ctx context.Context, destPath string, url URL, autoDetectFil
 	}
 
 	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
-		if autoDetectFilename {
+		if autoDetectFilename && hasArchiveExtension(url.URL) {
 			filename, err = getFirstFileInDirectory(tmpDestPath)
 			if err != nil {
 				return fmt.Errorf("while getting binary name")
