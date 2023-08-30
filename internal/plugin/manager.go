@@ -384,7 +384,7 @@ func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, lo
 }
 
 func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pm pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) (enabledPlugins[C], error) {
-	pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, pm.name, pluginType)
+	pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, fmt.Sprintf("%s/%s", pm.repo, pm.name), pluginType)
 
 	cli := plugin.NewClient(&plugin.ClientConfig{
 		Plugins: pluginMap,

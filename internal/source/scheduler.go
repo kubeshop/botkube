@@ -115,10 +115,10 @@ func (d *Scheduler) Start(ctx context.Context) error {
 func (d *Scheduler) schedule(pluginFilter string) error {
 	for _, sourceConfig := range d.dispatchConfig {
 		for pluginName, config := range sourceConfig {
-			if ok := d.runningProcesses.exists(pluginName); ok {
-				d.log.Infof("Not starting %q as it was already started.", pluginName)
-				continue
-			}
+			// if ok := d.runningProcesses.exists(pluginName); ok {
+			// 	d.log.Infof("Not starting %q as it was already started.", pluginName)
+			// 	continue
+			// }
 			if pluginFilter != "" && pluginFilter != pluginName {
 				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)
 				continue
