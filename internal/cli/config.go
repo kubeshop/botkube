@@ -1,4 +1,4 @@
-package config
+package cli
 
 import (
 	"encoding/json"
@@ -8,13 +8,12 @@ import (
 
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 )
 
 var (
 	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "cloud.json")
-	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, cli.Name)
+	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, Name)
 )
 
 // Config is botkube cli config
@@ -22,8 +21,8 @@ type Config struct {
 	Token string `json:"token"`
 }
 
-// New creates new Config from local data
-func New() (*Config, error) {
+// NewConfig creates new Config from local data
+func NewConfig() (*Config, error) {
 	c := &Config{}
 	err := c.Read()
 	if err != nil {

@@ -35,18 +35,21 @@ botkube migrate [OPTIONS] [flags]
 
 ```
   -y, --auto-approve                         Skips interactive approval for upgrading Botkube installation.
-      --cfg-exporter-image-registry string   Config Exporter job image registry (default "ghcr.io")
-      --cfg-exporter-image-repo string       Config Exporter job image repository (default "kubeshop/botkube-config-exporter")
-      --cfg-exporter-image-tag string        Config Exporter job image tag (default "v9.99.9-dev")
-      --cfg-exporter-poll-period duration    Config Exporter job poll period (default 1s)
-      --cfg-exporter-timeout duration        Config Exporter job timeout (default 1m0s)
+      --cfg-exporter-image-registry string   Registry for the Config Exporter job image (default "ghcr.io")
+      --cfg-exporter-image-repo string       Repository for the Config Exporter job image (default "kubeshop/botkube-config-exporter")
+      --cfg-exporter-image-tag string        Tag of the Config Exporter job image (default "v9.99.9-dev")
+      --cfg-exporter-poll-period duration    Interval used to check if Config Exporter job was finished (default 1s)
+      --cfg-exporter-timeout duration        Maximum execution time for the Config Exporter job (default 1m0s)
       --cloud-api-url string                 Botkube Cloud API URL (default "https://api.botkube.io/graphql")
       --cloud-dashboard-url string           Botkube Cloud URL (default "https://app.botkube.io")
+      --cloud-env-api-key string             API key environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_API_KEY")
+      --cloud-env-endpoint string            Endpoint environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_ENDPOINT")
+      --cloud-env-id string                  Identifier environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_IDENTIFIER")
   -h, --help                                 help for migrate
       --image-tag string                     Botkube image tag, possible values latest, v1.2.0, ...
       --instance-name string                 Botkube Cloud Instance name that will be created
       --kubeconfig string                    Paths to a kubeconfig. Only required if out-of-cluster.
-  -l, --label string                         Label of Botkube pod (default "app=botkube")
+  -l, --label string                         Label used for identifying the Botkube pod (default "app=botkube")
   -n, --namespace string                     Namespace of Botkube pod (default "botkube")
   -q, --skip-connect                         Skips connecting to Botkube Cloud after migration
       --skip-open-browser                    Skips opening web browser after migration

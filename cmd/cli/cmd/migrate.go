@@ -2,19 +2,17 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/fatih/color"
 	semver "github.com/hashicorp/go-version"
 	"github.com/pkg/browser"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.szostok.io/version"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/config"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/migrate"
 	"github.com/kubeshop/botkube/internal/cli/printer"
@@ -23,11 +21,7 @@ import (
 
 const (
 	botkubeVersionConstraints = ">= 1.0, < 1.3"
-
-	containerName = "botkube"
 )
-
-var DefaultImageTag = "v9.99.9-dev"
 
 // NewMigrate returns a cobra.Command for migrate the OS into Cloud.
 func NewMigrate() *cobra.Command {
@@ -58,7 +52,7 @@ func NewMigrate() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sConfig, err := kubex.LoadRestConfigWithMetaInformation()
 			if err != nil {
-				return errors.Wrap(err, "while creating k8s config")
+				return fmt.Errorf("while creating k8s config: %w", err)
 			}
 
 			status := printer.NewStatus(cmd.OutOrStdout(), "Migrating Botkube installation to Cloud")
@@ -66,16 +60,12 @@ func NewMigrate() *cobra.Command {
 				status.End(err == nil)
 			}()
 
-			status.Step("Fetching Botkube configuration")
-			cfg, pod, err := migrate.GetConfigFromCluster(cmd.Context(), k8sConfig.K8s, opts)
+			status.Infof("Fetching Botkube configuration")
+			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), k8sConfig.K8s, opts.ConfigExporter, opts.AutoApprove)
 			if err != nil {
 				return err
 			}
 
-			botkubeVersionStr, err := getBotkubeVersion(pod)
-			if err != nil {
-				return err
-			}
 			status.Infof("Checking if Botkube version %q can be migrated safely", botkubeVersionStr)
 
 			constraint, err := semver.NewConstraint(botkubeVersionConstraints)
@@ -141,37 +131,20 @@ func NewMigrate() *cobra.Command {
 	}
 
 	flags := login.Flags()
-	kubex.RegisterKubeconfigFlag(flags)
+
 	flags.DurationVar(&opts.Timeout, "timeout", 10*time.Minute, `Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
 	flags.BoolVarP(&opts.Watch, "watch", "w", true, "Watches the status of the Botkube installation until it finish or the defined `--timeout` occurs.")
 	flags.StringVar(&opts.InstanceName, "instance-name", "", "Botkube Cloud Instance name that will be created")
 	flags.StringVar(&opts.CloudAPIURL, "cloud-api-url", "https://api.botkube.io/graphql", "Botkube Cloud API URL")
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
-	flags.StringVarP(&opts.Label, "label", "l", "app=botkube", "Label of Botkube pod")
-	flags.StringVarP(&opts.Namespace, "namespace", "n", "botkube", "Namespace of Botkube pod")
-	flags.StringVarP(&opts.ImageTag, "image-tag", "", "", "Botkube image tag, possible values latest, v1.2.0, ...")
 	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
 	flags.BoolVar(&opts.SkipOpenBrowser, "skip-open-browser", false, "Skips opening web browser after migration")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for upgrading Botkube installation.")
-	flags.StringVar(&opts.ConfigExporter.Registry, "cfg-exporter-image-registry", "ghcr.io", "Config Exporter job image registry")
-	flags.StringVar(&opts.ConfigExporter.Repository, "cfg-exporter-image-repo", "kubeshop/botkube-config-exporter", "Config Exporter job image repository")
-	flags.StringVar(&opts.ConfigExporter.Tag, "cfg-exporter-image-tag", DefaultImageTag, "Config Exporter job image tag")
-	flags.DurationVar(&opts.ConfigExporter.PollPeriod, "cfg-exporter-poll-period", 1*time.Second, "Config Exporter job poll period")
-	flags.DurationVar(&opts.ConfigExporter.Timeout, "cfg-exporter-timeout", 1*time.Minute, "Config Exporter job timeout")
+	flags.StringVarP(&opts.ImageTag, "image-tag", "", "", "Botkube image tag, possible values latest, v1.2.0, ...")
+
+	opts.ConfigExporter.RegisterFlags(flags)
+	kubex.RegisterKubeconfigFlag(flags)
 
 	return login
-}
-
-func getBotkubeVersion(p *corev1.Pod) (string, error) {
-	for _, c := range p.Spec.Containers {
-		if c.Name == containerName {
-			fqin := strings.Split(c.Image, ":")
-			if len(fqin) > 1 {
-				return fqin[len(fqin)-1], nil
-			}
-			break
-		}
-	}
-	return "", fmt.Errorf("unable to get botkube version: pod %q does not have botkube container", p.Name)
 }

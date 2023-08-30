@@ -46,8 +46,9 @@ func createOrUpdateCM(ctx context.Context, config []byte) error {
 	cm := newCM()
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		_, corErr := ctrlutil.CreateOrUpdate(ctx, k8sClient, cm, func() error {
-			cm.BinaryData = map[string][]byte{
-				"config.yaml": config,
+			cm.BinaryData = nil // remove data from previous approach, otherwise we may get error: 'Invalid value: "config.yaml": duplicate of key present in binaryData'
+			cm.Data = map[string]string{
+				"config.yaml": string(config),
 			}
 			return nil
 		})
