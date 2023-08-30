@@ -61,7 +61,8 @@ type Manager struct {
 	sourcesStore    *store[source.Source]
 	sourcesToEnable []string
 
-	monitor *HealthMonitor
+	healthCheckInterval time.Duration
+	monitor             *HealthMonitor
 }
 
 type pluginMetadata struct {
@@ -90,6 +91,7 @@ func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.Plug
 		sourcesStore:           &sourcesStore,
 		log:                    logger.WithField("component", "Plugin Manager"),
 		logConfig:              logCfg, // used when we create on-demand loggers for plugins
+		healthCheckInterval:    cfg.HealthCheckInterval,
 		monitor: NewHealthMonitor(
 			logger.WithField("component", "Plugin Health Monitor"),
 			logCfg,
@@ -99,6 +101,7 @@ func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.Plug
 			executorSupervisorChan,
 			&executorsStore,
 			&sourcesStore,
+			cfg.HealthCheckInterval,
 		),
 	}
 }
@@ -142,7 +145,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 		return err
 	}
 
-	executorClients, err := createGRPCClients[executor.Executor](ctx, m.log, m.logConfig, executorPlugins, TypeExecutor, m.executorSupervisorChan)
+	executorClients, err := createGRPCClients[executor.Executor](ctx, m.log, m.logConfig, executorPlugins, TypeExecutor, m.executorSupervisorChan, m.healthCheckInterval)
 	if err != nil {
 		return fmt.Errorf("while creating executor plugins: %w", err)
 	}
@@ -152,7 +155,7 @@ func (m *Manager) start(ctx context.Context, forceUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	sourcesClients, err := createGRPCClients[source.Source](ctx, m.log, m.logConfig, sourcesPlugins, TypeSource, m.sourceSupervisorChan)
+	sourcesClients, err := createGRPCClients[source.Source](ctx, m.log, m.logConfig, sourcesPlugins, TypeSource, m.sourceSupervisorChan, m.healthCheckInterval)
 	if err != nil {
 		return fmt.Errorf("while creating source plugins: %w", err)
 	}
@@ -365,10 +368,10 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 	return nil
 }
 
-func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (*storePlugins[C], error) {
+func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) (*storePlugins[C], error) {
 	out := map[string]enabledPlugins[C]{}
 	for key, pm := range pluginMeta {
-		p, err := createGRPCClient[C](ctx, logger, logConfig, pm, pluginType, supervisorChan)
+		p, err := createGRPCClient[C](ctx, logger, logConfig, pm, pluginType, supervisorChan, healthCheckInterval)
 		if err != nil {
 			return nil, fmt.Errorf("while creating GRPC client for %s plugin %q: %w", pluginType.String(), key, err)
 		}
@@ -378,7 +381,7 @@ func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, lo
 	return &storePlugins[C]{data: out}, nil
 }
 
-func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pm pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata) (enabledPlugins[C], error) {
+func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pm pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) (enabledPlugins[C], error) {
 	pluginLogger, stdoutLogger, stderrLogger := NewPluginLoggers(logger, logConfig, pm.name, pluginType)
 
 	cli := plugin.NewClient(&plugin.ClientConfig{
@@ -412,7 +415,7 @@ func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, log
 		return enabledPlugins[C]{}, fmt.Errorf("registered client doesn't implement required %s interface", pluginType.String())
 	}
 
-	startPluginHealthWatcher(ctx, logger, rpcClient, pm, supervisorChan)
+	startPluginHealthWatcher(ctx, logger, rpcClient, pm, supervisorChan, healthCheckInterval)
 
 	return enabledPlugins[C]{
 		Client:  concreteCli,
@@ -420,9 +423,9 @@ func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, log
 	}, nil
 }
 
-func startPluginHealthWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata) {
+func startPluginHealthWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) {
 	logger.Infof("Starting plugin %q health watcher...", pm.name)
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(healthCheckInterval)
 	go func() {
 		for {
 			select {

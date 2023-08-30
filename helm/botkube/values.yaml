@@ -1121,11 +1121,12 @@ plugins:
     botkube:
       url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
     # -- Botkube Restart Policy on plugin failure.
-    agentRestartPolicy:
-      # -- Restart policy type. Allowed values: "restartAgent", "deactivatePlugin".
-      type: "deactivatePlugin"
-      # -- Number of restarts before policy takes into effect.
-      threshold: 5
+  restartPolicy:
+    # -- Restart policy type. Allowed values: "RestartAgent", "DeactivatePlugin".
+    type: "DeactivatePlugin"
+    # -- Number of restarts before policy takes into effect.
+    threshold: 5
+  healthCheckInterval: 10s
 
 # -- Configuration for synchronizing Botkube configuration.
 config:

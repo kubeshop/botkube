@@ -12,6 +12,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const (
+	emptyPluginFilter = ""
+)
+
 type pluginDispatcher interface {
 	Dispatch(dispatch PluginDispatch) error
 }
@@ -88,7 +92,7 @@ func (d *Scheduler) monitorHealth(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case pluginName := <-d.schedulerChan:
-			d.log.Infof("Scheduling restarted plugin %q", pluginName)
+			d.log.Debugf("Scheduling restarted plugin %q", pluginName)
 			d.runningProcesses.delete(pluginName)
 			if err := d.schedule(pluginName); err != nil {
 				d.log.Errorf("while scheduling %q: %s", pluginName, err)
@@ -102,7 +106,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 	if err := d.generateConfigs(ctx); err != nil {
 		return err
 	}
-	if err := d.schedule(""); err != nil {
+	if err := d.schedule(emptyPluginFilter); err != nil {
 		return err
 	}
 	return nil
@@ -116,7 +120,7 @@ func (d *Scheduler) schedule(pluginFilter string) error {
 				continue
 			}
 			if pluginFilter != "" && pluginFilter != pluginName {
-				d.log.Infof("Not starting %q as it doesn't pass plugin filter.", pluginName)
+				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)
 				continue
 			}
 

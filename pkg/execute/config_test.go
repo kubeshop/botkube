@@ -78,9 +78,10 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						plugins:
 						    cacheDir: ""
 						    repositories: {}
-						    agentRestartPolicy:
+						    restartPolicy:
 						        type: ""
 						        threshold: 0
+						    healthCheckInterval: 0s
 						`),
 		},
 	}

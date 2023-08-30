@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -21,9 +22,10 @@ type HealthMonitor struct {
 	sourcesStore           *store[source.Source]
 	policy                 config.PluginRestartPolicy
 	pluginRestartStats     map[string]int
+	healthCheckInterval    time.Duration
 }
 
-func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy config.PluginRestartPolicy, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source]) *HealthMonitor {
+func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy config.PluginRestartPolicy, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source], healthCheckInterval time.Duration) *HealthMonitor {
 	return &HealthMonitor{
 		log:                    logger,
 		logConfig:              logCfg,
@@ -34,6 +36,7 @@ func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy co
 		executorsStore:         executorsStore,
 		sourcesStore:           sourcesStore,
 		pluginRestartStats:     make(map[string]int),
+		healthCheckInterval:    healthCheckInterval,
 	}
 }
 
@@ -64,7 +67,7 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 				continue
 			}
 
-			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.sourceSupervisorChan)
+			p, err := createGRPCClient[source.Source](ctx, m.log, m.logConfig, plugin, TypeSource, m.sourceSupervisorChan, m.healthCheckInterval)
 			if err != nil {
 				m.log.WithError(err).Errorf("Failed to restart plugin %q.", plugin.name)
 				continue
@@ -73,24 +76,6 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 			m.sourcesStore.EnabledPlugins.Insert(repoPluginPair, p)
 			m.schedulerChan <- repoPluginPair
 		}
-	}
-}
-
-func (m *HealthMonitor) shouldRestartPlugin(plugin string) bool {
-	restarts := m.pluginRestartStats[plugin]
-	m.pluginRestartStats[plugin]++
-
-	switch m.policy.Type {
-	case config.KeepAgentRunningWhenThresholdReached:
-		return restarts < m.policy.Threshold
-	case config.RestartAgentWhenThresholdReached:
-		if restarts >= m.policy.Threshold {
-			m.log.Fatalf("Plugin %q has been restarted %d times and selected agentRestartPolicy is %q. Exiting...", plugin, restarts, m.policy.Type)
-		}
-		return true
-	default:
-		m.log.Errorf("Unknown restart policy %q.", m.policy.Type)
-		return false
 	}
 }
 
@@ -112,7 +97,12 @@ func (m *HealthMonitor) monitorExecutorPluginHealth(ctx context.Context) {
 			repoPluginPair := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
 			m.executorsStore.EnabledPlugins.Delete(repoPluginPair)
 
-			p, err := createGRPCClient[executor.Executor](ctx, m.log, m.logConfig, plugin, TypeExecutor, m.executorSupervisorChan)
+			if ok := m.shouldRestartPlugin(repoPluginPair); !ok {
+				m.log.Warnf("Plugin %q has been restarted too many times. Deactivating...", plugin.name)
+				continue
+			}
+
+			p, err := createGRPCClient[executor.Executor](ctx, m.log, m.logConfig, plugin, TypeExecutor, m.executorSupervisorChan, m.healthCheckInterval)
 			if err != nil {
 				m.log.WithError(err).Errorf("Failed to restart plugin %q.", plugin.name)
 				continue
@@ -120,5 +110,23 @@ func (m *HealthMonitor) monitorExecutorPluginHealth(ctx context.Context) {
 
 			m.executorsStore.EnabledPlugins.Insert(repoPluginPair, p)
 		}
+	}
+}
+
+func (m *HealthMonitor) shouldRestartPlugin(plugin string) bool {
+	restarts := m.pluginRestartStats[plugin]
+	m.pluginRestartStats[plugin]++
+
+	switch m.policy.Type {
+	case config.KeepAgentRunningWhenThresholdReached:
+		return restarts < m.policy.Threshold
+	case config.RestartAgentWhenThresholdReached:
+		if restarts >= m.policy.Threshold {
+			m.log.Fatalf("Plugin %q has been restarted %d times and selected agentRestartPolicy is %q. Exiting...", plugin, restarts, m.policy.Type)
+		}
+		return true
+	default:
+		m.log.Errorf("Unknown restart policy %q.", m.policy.Type)
+		return false
 	}
 }

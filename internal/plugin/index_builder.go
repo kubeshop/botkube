@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/sirupsen/logrus"
@@ -178,7 +179,7 @@ func (i *IndexBuilder) getPluginMetadata(dir string, index []pluginBinariesIndex
 				binPath: filepath.Join(dir, item.BinaryPath),
 			},
 		}
-		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, make(chan pluginMetadata))
+		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, make(chan pluginMetadata), 10*time.Second)
 		if err != nil {
 			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}

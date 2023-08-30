@@ -172,6 +172,7 @@ plugins:
     repositories:
         botkube:
             url: http://localhost:3000/botkube.yaml
-    agentRestartPolicy:
+    restartPolicy:
         type: ""
         threshold: 0
+    healthCheckInterval: 0s
