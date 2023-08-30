@@ -33,6 +33,8 @@ const (
 
 	// DependencyDirEnvName define environment variable where plugin dependency binaries are stored.
 	DependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
+
+	defaultHealthCheckInterval = 10 * time.Second
 )
 
 // pluginMap is the map of plugins we can dispense.
@@ -425,7 +427,11 @@ func createGRPCClient[C any](ctx context.Context, logger logrus.FieldLogger, log
 
 func startPluginHealthWatcher(ctx context.Context, logger logrus.FieldLogger, rpcClient plugin.ClientProtocol, pm pluginMetadata, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) {
 	logger.Infof("Starting plugin %q health watcher...", pm.name)
-	ticker := time.NewTicker(healthCheckInterval)
+	interval := healthCheckInterval
+	if interval.Seconds() < 1 {
+		interval = defaultHealthCheckInterval
+	}
+	ticker := time.NewTicker(interval)
 	go func() {
 		for {
 			select {

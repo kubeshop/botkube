@@ -322,6 +322,10 @@ plugins:
   repositories:
     botkube:
       url: http://host.k3d.internal:3000/botkube.yaml
+  restartPolicy:
+    type: "DeactivatePlugin"
+    threshold: 5
+  healthCheckInterval: 10s
 
 actions:
   'get-created-resource':
