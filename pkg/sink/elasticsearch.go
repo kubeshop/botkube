@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -171,7 +171,11 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 
 	// Send event to els
 	indexService := e.client.Index().Index(indexName)
-	if strings.HasPrefix(e.clusterVersion, "7.") {
+	majorVersion, err := strconv.Atoi(e.clusterVersion[0:1])
+	if err != nil {
+		return fmt.Errorf("while parsing cluster version: %w", err)
+	}
+	if majorVersion <= 7 {
 		// Only Elasticsearch <= 7.x supports Type parameter
 		// nolint:staticcheck
 		indexService.Type(e.clusterVersion)
