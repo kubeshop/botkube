@@ -36,6 +36,8 @@ const (
 	// The token file mount path in POD env variable while using IAM Role for service account
 	// #nosec G101
 	awsWebIDTokenFileEnvName = "AWS_WEB_IDENTITY_TOKEN_FILE"
+
+	elasticErrorReasonResourceAlreadyExists = "resource_already_exists_exception"
 )
 
 // Elasticsearch provides integration with the Elasticsearch solution.
@@ -162,7 +164,7 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 			},
 		}
 		_, err := e.client.CreateIndex(indexName).BodyJson(mapping).Do(ctx)
-		if err != nil && err.(*elastic.Error).Details.Type != "resource_already_exists_exception" {
+		if err != nil && elastic.ErrorReason(err) != elasticErrorReasonResourceAlreadyExists {
 			return fmt.Errorf("while creating index: %w", err)
 		}
 	}
