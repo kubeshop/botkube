@@ -175,3 +175,4 @@ plugins:
     incomingWebhook:
         enabled: false
         port: 0
+        inClusterBaseURL: ""

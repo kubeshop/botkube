@@ -25,6 +25,7 @@ type PluginDispatch struct {
 	isInteractivitySupported bool
 	cfg                      *config.Config
 	pluginContext            config.PluginContext
+	incomingWebhook          IncomingWebhookData
 }
 
 // ExternalRequestDispatch is a wrapper for PluginDispatch that holds the payload for external request.
@@ -198,6 +199,9 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 			sourceDisplayName:        srcConfig.DisplayName,
 			cfg:                      d.cfg,
 			pluginContext:            pluginCfg.Context,
+			incomingWebhook: IncomingWebhookData{
+				inClusterBaseURL: d.cfg.Plugins.IncomingWebhook.InClusterBaseURL,
+			},
 		})
 		if err != nil {
 			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)

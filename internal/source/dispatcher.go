@@ -112,9 +112,8 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	out, err := sourceClient.Stream(ctx, source.StreamInput{
 		Configs: []*source.Config{dispatch.pluginConfig},
 		Context: source.StreamInputContext{
-			IsInteractivitySupported: dispatch.isInteractivitySupported,
-			ClusterName:              dispatch.cfg.Settings.ClusterName,
-			KubeConfig:               kubeconfig,
+			CommonSourceContext: d.commonSourceCtxForDispatch(dispatch),
+			KubeConfig:          kubeconfig,
 		},
 	})
 	if err != nil {
@@ -156,9 +155,8 @@ func (d *Dispatcher) DispatchExternalRequest(dispatch ExternalRequestDispatch) e
 	out, err := sourceClient.HandleExternalRequest(ctx, source.ExternalRequestInput{
 		Config:  dispatch.pluginConfig,
 		Payload: dispatch.payload,
-		Context: source.SingleDispatchInputContext{
-			IsInteractivitySupported: dispatch.isInteractivitySupported,
-			ClusterName:              dispatch.cfg.Settings.ClusterName,
+		Context: source.ExternalRequestInputContext{
+			CommonSourceContext: d.commonSourceCtxForDispatch(dispatch.PluginDispatch),
 		},
 	})
 	if err != nil {
@@ -309,4 +307,16 @@ func (d *Dispatcher) reportError(err error, n genericNotifier, pluginName string
 	}
 
 	return errs.ErrorOrNil()
+}
+
+func (d *Dispatcher) commonSourceCtxForDispatch(in PluginDispatch) source.CommonSourceContext {
+	return source.CommonSourceContext{
+		IsInteractivitySupported: in.isInteractivitySupported,
+		ClusterName:              in.cfg.Settings.ClusterName,
+		SourceName:               in.sourceName,
+		IncomingWebhook: source.IncomingWebhookDetailsContext{
+			BaseURL:          in.incomingWebhook.inClusterBaseURL,
+			FullURLForSource: in.incomingWebhook.FullURLForSource(in.sourceName),
+		},
+	}
 }
