@@ -243,7 +243,7 @@ jobs:
           GORELEASER_CURRENT_TAG: "v0.0.0-latest"
           OUTPUT_MODE: "binary"
           SINGLE_PLATFORM: "true"
-          PLUGIN_TARGETS: "kubernetes,cm-watcher,kubectl,echo,helm"
+          PLUGIN_TARGETS: "kubernetes,kubectl,cm-watcher,echo,helm"
         run: |
           make build-plugins
 
