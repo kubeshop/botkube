@@ -4,7 +4,7 @@ on:
   pull_request_target:
     types: [ opened, synchronize, reopened ]
     branches:
-      - "main"
+      - "improve-e2e-perf"
     paths-ignore:
       - 'branding/**'
       - 'design/**'
