@@ -3,10 +3,12 @@ package sink
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -171,9 +173,9 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 
 	// Send event to els
 	indexService := e.client.Index().Index(indexName)
-	majorVersion, err := strconv.Atoi(e.clusterVersion[0:1])
+	majorVersion, err := esMajorClusterVersion(e.clusterVersion)
 	if err != nil {
-		return fmt.Errorf("while parsing cluster version: %w", err)
+		return fmt.Errorf("while getting cluster major version: %w", err)
 	}
 	if majorVersion <= 7 {
 		// Only Elasticsearch <= 7.x supports Type parameter
@@ -221,4 +223,16 @@ func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
 // Type describes the notifier type.
 func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
+}
+
+func esMajorClusterVersion(v string) (int, error) {
+	versionParts := strings.Split(v, ".")
+	if len(versionParts) == 1 {
+		return 0, errors.New("cluster version is not valid")
+	}
+	majorVersion, err := strconv.Atoi(versionParts[0])
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse cluster version: %s", versionParts[0])
+	}
+	return majorVersion, nil
 }
