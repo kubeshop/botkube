@@ -50,7 +50,7 @@ release_snapshot_cli() {
 }
 
 save_images() {
-  prepare
+  #prepare
 
   if [ -z "${IMAGE_TAG}" ]; then
     echo "Missing IMAGE_TAG."
@@ -58,7 +58,9 @@ save_images() {
   fi
 
   export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
-  goreleaser release --clean --snapshot --skip-publish
+
+  GORELEASER_FILE="$(prepare_goreleaser)"
+  goreleaser release --clean --snapshot --skip-publish --config="${GORELEASER_FILE}"
 
   mkdir -p "${IMAGE_SAVE_LOAD_DIR}"
 
@@ -150,6 +152,45 @@ build_plugins() {
 build_plugins_single() {
   command+="$(build_plugins_command) --single-target"
   eval "$command"
+}
+
+prepare_goreleaser() {
+  if [ -z "${BUILD_TARGETS}" ]; then
+    echo ".goreleaser.yml"
+    exit 0
+  fi
+
+  cp .goreleaser.yml .goreleaser_temp.yaml
+
+  # Filter the builds section
+  for build_id in $(yq e '.builds[].id' .goreleaser_temp.yaml); do
+      if [[ ! ",$BUILD_TARGETS," == *",$build_id,"* ]]; then
+          yq e "del(.builds[] | select(.id == \"$build_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the dockers section
+  for docker_id in $(yq e '.dockers[].image_templates[]' .goreleaser_temp.yaml); do
+      if [[ ! ",$BUILD_TARGETS," == *",$docker_id,"* ]]; then
+          yq e "del(.dockers[] | select(.image_templates[] == \"$docker_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the archives section
+  for archive_id in $(yq e '.archives[].id' .goreleaser_temp.yaml); do
+      if [[ ! ",$BUILD_TARGETS," == *",$archive_id,"* ]]; then
+          yq e "del(.archives[] | select(.id == \"$archive_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the brews section
+  DEFAULT_BREW_NAME="botkube"
+  BOTKUBE_CLI_ID="botkube-cli"
+  if [[ ! ",$BUILD_TARGETS," == *",$BOTKUBE_CLI_ID,"* ]]; then
+      yq e "del(.brews[] | select(.name == \"$DEFAULT_BREW_NAME\"))" -i .goreleaser_temp.yaml
+  fi
+
+  echo ".goreleaser_temp.yaml"
 }
 
 build_single() {

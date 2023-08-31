@@ -62,6 +62,8 @@ jobs:
           version: latest
 
       - name: Save
+        env:
+          BUILD_TARGETS: "botkube-agent"
         run: |
           make save-images
 
