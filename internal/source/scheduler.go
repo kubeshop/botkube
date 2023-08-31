@@ -38,33 +38,34 @@ type Scheduler struct {
 	dispatcher     pluginDispatcher
 	dispatchConfig map[string]map[string]PluginDispatch
 	schedulerChan  chan string
+	pluginMapping  map[string]map[string]struct{}
 
-	// runningProcesses holds information about started unique plugin processes
-	// We start a new plugin process each time we see a new order of source bindings.
+	// runningDispatchers holds information about started unique plugin dispatchers.
+	// We start a new plugin dispatcher each time we see a new order of source bindings.
 	// We do that because we pass the array of configs to each `Stream` method and
 	// the merging strategy for configs can depend on the order.
-	// As a result our key is e.g. ['source-name1;source-name2']
-	runningProcesses *processes
+	// As a result our key is e.g. ['source-name1/plugin-name;source-name2/plugin-name']
+	runningDispatchers *dispatch
 }
 
-type processes struct {
+type dispatch struct {
 	sync.RWMutex
 	data map[string]struct{}
 }
 
-func (p *processes) add(key string) {
+func (p *dispatch) add(key string) {
 	p.Lock()
 	defer p.Unlock()
 	p.data[key] = struct{}{}
 }
 
-func (p *processes) delete(key string) {
+func (p *dispatch) delete(key string) {
 	p.Lock()
 	defer p.Unlock()
 	delete(p.data, key)
 }
 
-func (p *processes) exists(key string) bool {
+func (p *dispatch) exists(key string) bool {
 	p.RLock()
 	defer p.RUnlock()
 	_, ok := p.data[key]
@@ -74,12 +75,13 @@ func (p *processes) exists(key string) bool {
 // NewScheduler create a new Scheduler instance.
 func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher, schedulerChan chan string) *Scheduler {
 	s := &Scheduler{
-		log:              log,
-		cfg:              cfg,
-		dispatcher:       dispatcher,
-		runningProcesses: &processes{data: map[string]struct{}{}},
-		dispatchConfig:   make(map[string]map[string]PluginDispatch),
-		schedulerChan:    schedulerChan,
+		log:                log,
+		cfg:                cfg,
+		dispatcher:         dispatcher,
+		runningDispatchers: &dispatch{data: map[string]struct{}{}},
+		dispatchConfig:     make(map[string]map[string]PluginDispatch),
+		pluginMapping:      make(map[string]map[string]struct{}),
+		schedulerChan:      schedulerChan,
 	}
 	go s.monitorHealth(ctx)
 	return s
@@ -93,7 +95,7 @@ func (d *Scheduler) monitorHealth(ctx context.Context) {
 			return
 		case pluginName := <-d.schedulerChan:
 			d.log.Debugf("Scheduling restarted plugin %q", pluginName)
-			d.runningProcesses.delete(pluginName)
+			d.cleanupDispatchers(pluginName)
 			if err := d.schedule(pluginName); err != nil {
 				d.log.Errorf("while scheduling %q: %s", pluginName, err)
 			}
@@ -116,11 +118,11 @@ func (d *Scheduler) schedule(pluginFilter string) error {
 	for _, sourceConfig := range d.dispatchConfig {
 		for pluginName, config := range sourceConfig {
 			key := fmt.Sprintf("%s/%s", config.sourceName, pluginName)
-			if ok := d.runningProcesses.exists(key); ok {
+			if ok := d.runningDispatchers.exists(key); ok {
 				d.log.Infof("Not starting %q as it was already started.", key)
 				continue
 			}
-			if pluginFilter != "" && pluginFilter != key {
+			if pluginFilter != "" && pluginFilter != pluginName {
 				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", key)
 				continue
 			}
@@ -129,10 +131,24 @@ func (d *Scheduler) schedule(pluginFilter string) error {
 			if err := d.dispatcher.Dispatch(config); err != nil {
 				return fmt.Errorf("while starting plugin source %s: %w", key, err)
 			}
-			d.runningProcesses.add(key)
+			d.runningDispatchers.add(key)
+
+			if mapping, ok := d.pluginMapping[pluginName]; !ok {
+				d.pluginMapping[pluginName] = map[string]struct{}{config.sourceName: {}}
+			} else {
+				mapping[config.sourceName] = struct{}{}
+			}
 		}
 	}
 	return nil
+}
+
+func (d *Scheduler) cleanupDispatchers(pluginName string) {
+	for group := range d.pluginMapping[pluginName] {
+		dispatcher := fmt.Sprintf("%s/%s", group, pluginName)
+		d.log.Debugf("Cleaning up dispatcher %q", dispatcher)
+		d.runningDispatchers.delete(dispatcher)
+	}
 }
 
 func (d *Scheduler) generateConfigs(ctx context.Context) error {

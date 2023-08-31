@@ -74,7 +74,7 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 			}
 
 			m.sourcesStore.EnabledPlugins.Insert(repoPluginPair, p)
-			m.schedulerChan <- fmt.Sprintf("%s/%s/%s", plugin.group, plugin.repo, plugin.name)
+			m.schedulerChan <- repoPluginPair
 		}
 	}
 }
