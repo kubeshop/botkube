@@ -1,10 +1,13 @@
 name: Pull request Build
 
 on:
+  push:
+    branches:
+      - "improve-e2e-perf"
   pull_request_target:
     types: [ opened, synchronize, reopened ]
     branches:
-      - "improve-e2e-perf"
+      - "main"
     paths-ignore:
       - 'branding/**'
       - 'design/**'
