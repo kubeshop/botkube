@@ -16,17 +16,17 @@ func TestCollectEnabledRepositories(t *testing.T) {
 	tests := []struct {
 		name string
 
-		enabledExecutors    []string
-		enabledSources      []string
+		enabledExecutors    []Plugin
+		enabledSources      []Plugin
 		definedRepositories map[string]config.PluginsRepositories
 
 		expErrMsg string
 	}{
 		{
 			name: "report not defined repositories for source plugins",
-			enabledSources: []string{
-				"botkube/cm-watcher",
-				"mszostok/hakuna-matata",
+			enabledSources: []Plugin{
+				{Name: "botkube/cm-watcher"},
+				{Name: "mszostok/hakuna-matata"},
 			},
 			expErrMsg: heredoc.Doc(`
 				2 errors occurred:
@@ -35,10 +35,10 @@ func TestCollectEnabledRepositories(t *testing.T) {
 		},
 		{
 			name: "report not defined repositories for executor plugins",
-			enabledExecutors: []string{
-				"botkube/helm",
-				"botkube/kubectl",
-				"mszostok/hakuna-matata",
+			enabledExecutors: []Plugin{
+				{Name: "botkube/helm"},
+				{Name: "botkube/kubectl"},
+				{Name: "mszostok/hakuna-matata"},
 			},
 			expErrMsg: heredoc.Doc(`
 				3 errors occurred:
@@ -48,14 +48,14 @@ func TestCollectEnabledRepositories(t *testing.T) {
 		},
 		{
 			name: "report not defined repositories for source and executor plugins",
-			enabledSources: []string{
-				"botkube/cm-watcher",
-				"mszostok/hakuna-matata",
+			enabledSources: []Plugin{
+				{Name: "botkube/cm-watcher"},
+				{Name: "mszostok/hakuna-matata"},
 			},
-			enabledExecutors: []string{
-				"botkube/helm",
-				"botkube/kubectl",
-				"mszostok/hakuna-matata",
+			enabledExecutors: []Plugin{
+				{Name: "botkube/helm"},
+				{Name: "botkube/kubectl"},
+				{Name: "mszostok/hakuna-matata"},
 			},
 			expErrMsg: heredoc.Doc(`
 				5 errors occurred:

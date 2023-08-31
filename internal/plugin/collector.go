@@ -2,10 +2,15 @@ package plugin
 
 import (
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 
 	"github.com/kubeshop/botkube/pkg/config"
 )
+
+// Plugin holds the name and group of a plugin.
+type Plugin struct {
+	Name  string
+	Group string
+}
 
 // Collector provides functionality to collect all enabled plugins based on the Botkube configuration.
 type Collector struct {
@@ -19,7 +24,7 @@ func NewCollector(log logrus.FieldLogger) *Collector {
 
 // GetAllEnabledAndUsedPlugins returns the list of all plugins that are both enabled and bind to at
 // least one communicator or action (automation) that is enabled.
-func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, []string) {
+func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]Plugin, []Plugin) {
 	var (
 		bindExecutors = map[string]struct{}{}
 		bindSources   = map[string]struct{}{}
@@ -102,8 +107,8 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 		}
 	}
 
-	// Collect all executors that are both enabled and bind to at least one communicator or action (automation) that is enabled..
-	usedExecutorPlugins := map[string]struct{}{}
+	// Collect all executors that are both enabled and bound to at least one communicator or action (automation) that is enabled..
+	var usedExecutorPlugins []Plugin
 	for groupName, groupItems := range cfg.Executors {
 		for name, executor := range groupItems.Plugins {
 			l := c.log.WithFields(logrus.Fields{
@@ -123,12 +128,12 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 			}
 
 			l.Debug("Marking executor plugin as enabled")
-			usedExecutorPlugins[name] = struct{}{}
+			usedExecutorPlugins = append(usedExecutorPlugins, Plugin{Name: name, Group: groupName})
 		}
 	}
 
 	// Collect all sources that are both enabled and bind to at least one communicator that is enabled.
-	usedSourcePlugins := map[string]struct{}{}
+	var usedSourcePlugins []Plugin
 	for groupName, groupItems := range cfg.Sources {
 		for name, source := range groupItems.Plugins {
 			l := c.log.WithFields(logrus.Fields{
@@ -148,9 +153,17 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 			}
 
 			l.Debug("Marking source plugin as enabled")
-			usedSourcePlugins[name] = struct{}{}
+			usedSourcePlugins = append(usedSourcePlugins, Plugin{Name: name, Group: groupName})
 		}
 	}
 
-	return maps.Keys(usedExecutorPlugins), maps.Keys(usedSourcePlugins)
+	return usedExecutorPlugins, usedSourcePlugins
+}
+
+func CollectPluginNames(plugins []Plugin) []string {
+	out := make([]string, len(plugins))
+	for i, p := range plugins {
+		out[i] = p.Name
+	}
+	return out
 }

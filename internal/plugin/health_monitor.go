@@ -52,7 +52,7 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case plugin := <-m.sourceSupervisorChan:
-			m.log.Infof("Restarting source plugin %q...", plugin.name)
+			m.log.Infof("Restarting source plugin %q, attempt %d/%d...", plugin.name, m.pluginRestartStats[plugin.name]+1, m.policy.Threshold)
 			if source, ok := m.sourcesStore.EnabledPlugins.Get(plugin.name); ok && source.Cleanup != nil {
 				m.log.Debugf("Releasing resources of source plugin %q...", plugin.name)
 				source.Cleanup()
@@ -74,7 +74,7 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 			}
 
 			m.sourcesStore.EnabledPlugins.Insert(repoPluginPair, p)
-			m.schedulerChan <- repoPluginPair
+			m.schedulerChan <- fmt.Sprintf("%s/%s/%s", plugin.group, plugin.repo, plugin.name)
 		}
 	}
 }
@@ -86,14 +86,14 @@ func (m *HealthMonitor) monitorExecutorPluginHealth(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case plugin := <-m.executorSupervisorChan:
-			m.log.Infof("Restarting executor plugin %q...", plugin.name)
+			m.log.Infof("Restarting executor plugin %q, attempt %d/%d...", plugin.name, m.pluginRestartStats[plugin.name]+1, m.policy.Threshold)
 			if executor, ok := m.executorsStore.EnabledPlugins.Get(plugin.name); ok && executor.Cleanup != nil {
 				m.log.Infof("Releasing executors of executor plugin %q...", plugin.name)
 				executor.Cleanup()
 			}
 
 			// botkube/kubectl
-			// TODO: if other naming scheme is used, it might be safer to try guess the name from channel bindings
+			// note: if other naming scheme is used, it might be safer to try guess the name from channel bindings
 			repoPluginPair := fmt.Sprintf("%s/%s", plugin.repo, plugin.name)
 			m.executorsStore.EnabledPlugins.Delete(repoPluginPair)
 
@@ -122,7 +122,7 @@ func (m *HealthMonitor) shouldRestartPlugin(plugin string) bool {
 		return restarts < m.policy.Threshold
 	case config.RestartAgentWhenThresholdReached:
 		if restarts >= m.policy.Threshold {
-			m.log.Fatalf("Plugin %q has been restarted %d times and selected agentRestartPolicy is %q. Exiting...", plugin, restarts, m.policy.Type)
+			m.log.Fatalf("Plugin %q has been restarted %d times and selected restartPolicy is %q. Exiting...", plugin, restarts, m.policy.Type)
 		}
 		return true
 	default:

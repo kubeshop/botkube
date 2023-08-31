@@ -115,20 +115,21 @@ func (d *Scheduler) Start(ctx context.Context) error {
 func (d *Scheduler) schedule(pluginFilter string) error {
 	for _, sourceConfig := range d.dispatchConfig {
 		for pluginName, config := range sourceConfig {
-			// if ok := d.runningProcesses.exists(pluginName); ok {
-			// 	d.log.Infof("Not starting %q as it was already started.", pluginName)
-			// 	continue
-			// }
-			if pluginFilter != "" && pluginFilter != pluginName {
-				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)
+			key := fmt.Sprintf("%s/%s", config.sourceName, pluginName)
+			if ok := d.runningProcesses.exists(key); ok {
+				d.log.Infof("Not starting %q as it was already started.", key)
+				continue
+			}
+			if pluginFilter != "" && pluginFilter != key {
+				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", key)
 				continue
 			}
 
-			d.log.Infof("Starting a new stream for plugin %q", pluginName)
+			d.log.Infof("Starting a new stream for plugin %q", key)
 			if err := d.dispatcher.Dispatch(config); err != nil {
-				return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
+				return fmt.Errorf("while starting plugin source %s: %w", key, err)
 			}
-			d.runningProcesses.add(pluginName)
+			d.runningProcesses.add(key)
 		}
 	}
 	return nil

@@ -28,7 +28,7 @@ func NewHelpExecutor(log logrus.FieldLogger, cfg config.Config) *HelpExecutor {
 
 	return &HelpExecutor{
 		log:                    log,
-		enabledPluginExecutors: enabledPluginExecutors,
+		enabledPluginExecutors: plugin.CollectPluginNames(enabledPluginExecutors),
 	}
 }
 

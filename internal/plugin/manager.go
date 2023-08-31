@@ -57,17 +57,18 @@ type Manager struct {
 	executorSupervisorChan chan pluginMetadata
 	schedulerChan          chan string
 
-	executorsToEnable []string
+	executorsToEnable []Plugin
 	executorsStore    *store[executor.Executor]
 
 	sourcesStore    *store[source.Source]
-	sourcesToEnable []string
+	sourcesToEnable []Plugin
 
 	healthCheckInterval time.Duration
 	monitor             *HealthMonitor
 }
 
 type pluginMetadata struct {
+	group   string
 	name    string
 	repo    string
 	version string
@@ -75,7 +76,7 @@ type pluginMetadata struct {
 }
 
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string, schedulerChan chan string) *Manager {
+func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []Plugin, schedulerChan chan string) *Manager {
 	sourceSupervisorChan := make(chan pluginMetadata)
 	executorSupervisorChan := make(chan pluginMetadata)
 	executorsStore := newStore[executor.Executor]()
@@ -116,8 +117,8 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	m.log.WithFields(logrus.Fields{
-		"enabledExecutors": strings.Join(m.executorsToEnable, ","),
-		"enabledSources":   strings.Join(m.sourcesToEnable, ","),
+		"enabledExecutors": strings.Join(CollectPluginNames(m.executorsToEnable), ","),
+		"enabledSources":   strings.Join(CollectPluginNames(m.sourcesToEnable), ","),
 	}).Info("Starting Plugin Manager for all enabled plugins")
 
 	err := m.start(ctx, false)
@@ -216,10 +217,10 @@ func releasePlugins[T any](wg *sync.WaitGroup, enabledPlugins *storePlugins[T]) 
 	}
 }
 
-func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEnable []string, repo storeRepository) (map[string]pluginMetadata, error) {
+func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEnable []Plugin, repo storeRepository) (map[string]pluginMetadata, error) {
 	loadedPlugins := map[string]pluginMetadata{}
-	for _, pluginKey := range pluginsToEnable {
-		repoName, pluginName, ver, err := config.DecomposePluginKey(pluginKey)
+	for _, p := range pluginsToEnable {
+		repoName, pluginName, ver, err := config.DecomposePluginKey(p.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -239,17 +240,18 @@ func (m *Manager) loadPlugins(ctx context.Context, pluginType Type, pluginsToEna
 
 		binPath := filepath.Join(m.cfg.CacheDir, repoName, fmt.Sprintf("%s_%s_%s", pluginType, ver, pluginName))
 		log := m.log.WithFields(logrus.Fields{
-			"plugin":  pluginKey,
+			"plugin":  p.Name,
 			"version": ver,
 			"binPath": binPath,
 		})
 
 		err = m.ensurePluginDownloaded(ctx, binPath, latestPluginInfo)
 		if err != nil {
-			return nil, fmt.Errorf("while fetching plugin %q binary: %w", pluginKey, err)
+			return nil, fmt.Errorf("while fetching plugin %q binary: %w", p.Name, err)
 		}
 
-		loadedPlugins[pluginKey] = pluginMetadata{
+		loadedPlugins[p.Name] = pluginMetadata{
+			group:   p.Group,
 			name:    pluginName,
 			repo:    repoName,
 			version: ver,
@@ -285,8 +287,8 @@ func (m *Manager) collectEnabledRepositories() ([]string, error) {
 		return out
 	}
 
-	requestedRepositories := collect(m.executorsToEnable, TypeExecutor)
-	requestedRepositories = append(requestedRepositories, collect(m.sourcesToEnable, TypeSource)...)
+	requestedRepositories := collect(CollectPluginNames(m.executorsToEnable), TypeExecutor)
+	requestedRepositories = append(requestedRepositories, collect(CollectPluginNames(m.sourcesToEnable), TypeSource)...)
 
 	if err := issues.ErrorOrNil(); err != nil {
 		return nil, err

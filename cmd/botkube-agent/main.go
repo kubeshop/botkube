@@ -368,7 +368,7 @@ func run(ctx context.Context) (err error) {
 
 	// Send help message
 	helpDB := storage.NewForHelp(conf.Settings.SystemConfigMap.Namespace, conf.Settings.SystemConfigMap.Name, k8sCli)
-	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, enabledPluginExecutors, bots)
+	err = sendHelp(ctx, helpDB, conf.Settings.ClusterName, plugin.CollectPluginNames(enabledPluginExecutors), bots)
 	if err != nil {
 		return fmt.Errorf("while sending initial help message: %w", err)
 	}
