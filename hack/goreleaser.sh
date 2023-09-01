@@ -208,6 +208,25 @@ prepare_goreleaser() {
       yq e "del(.brews[] | select(.name == \"$DEFAULT_BREW_NAME\"))" -i .goreleaser_temp.yaml
   fi
 
+  if [[ "${SINGLE_PLATFORM}" == "true" ]]; then
+    CURRENT_OS=$(go env GOOS)
+    CURRENT_ARCH=$(go env GOARCH)
+
+    # Remove the goarm from the YAML file if it's not Darwin
+    if [ "$CURRENT_OS" != "darwin" ]; then
+      yq eval 'del(.builds[].goos[] | select(. == "darwin"))' config.yml -i
+      yq eval 'del(.builds[].goarm)' config.yml -i
+    fi
+
+    if [ -n "$CURRENT_OS" ]; then
+      yq eval "del(.builds[].goos[] | select(. == \"$CURRENT_OS\"))" .goreleaser_temp.yaml -i
+    fi
+
+    if [ -n "$CURRENT_ARCH" ]; then
+      yq eval "del(.builds[].goarch[] | select(. == \"$CURRENT_ARCH\"))" .goreleaser_temp.yaml -i
+    fi
+  fi
+
   echo ".goreleaser_temp.yaml"
 }
 
