@@ -97,6 +97,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-agent-amd64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
     use: buildx
@@ -105,6 +106,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm64"
       - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-agent-arm64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
     use: buildx
@@ -114,6 +116,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm"
       - "--build-arg=botkube_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-agent-armv7
   # Config Exporter
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
@@ -122,6 +125,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--build-arg=botkube_config_exporter_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-config-exporter-amd64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
     use: buildx
@@ -130,6 +134,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm64"
       - "--build-arg=botkube_config_exporter_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-config-exporter-arm64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
     use: buildx
@@ -139,6 +144,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm"
       - "--build-arg=botkube_config_exporter_version={{ .Env.IMAGE_TAG }}"
+    id: botkube-config-exporter-armv7
 docker_manifests:
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:
