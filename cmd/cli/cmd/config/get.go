@@ -60,8 +60,7 @@ func NewGet() *cobra.Command {
 				return err
 			}
 
-			status.Infof("Fetching configuration")
-			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), k8sCfg.K8s, opts.Exporter, false)
+			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), status, k8sCfg.K8s, opts.Exporter, false)
 			if err != nil {
 				return fmt.Errorf("while getting configuration: %w", err)
 			}
@@ -78,8 +77,7 @@ func NewGet() *cobra.Command {
 				status.End(true)
 			}
 
-			status.Step("Exported Botkube configuration installed in version %s", botkubeVersionStr)
-			status.End(true)
+			status.Infof("Exported Botkube configuration (agent version: %q)", botkubeVersionStr)
 
 			return resourcePrinter.Print(raw)
 		},

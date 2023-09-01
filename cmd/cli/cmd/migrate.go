@@ -60,8 +60,7 @@ func NewMigrate() *cobra.Command {
 				status.End(err == nil)
 			}()
 
-			status.Infof("Fetching Botkube configuration")
-			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), k8sConfig.K8s, opts.ConfigExporter, opts.AutoApprove)
+			cfg, botkubeVersionStr, err := config.GetFromCluster(cmd.Context(), status, k8sConfig.K8s, opts.ConfigExporter, opts.AutoApprove)
 			if err != nil {
 				return err
 			}
