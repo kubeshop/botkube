@@ -50,7 +50,7 @@ release_snapshot_cli() {
 }
 
 save_images() {
-  #prepare
+  prepare
 
   if [ -z "${IMAGE_TAG}" ]; then
     echo "Missing IMAGE_TAG."
