@@ -248,7 +248,7 @@ jobs:
       - name: CLI Cache
         uses: actions/cache@v3
         with:
-          path: $PWD/dist/botkube-cli_linux_amd64_v1/botkube
+          path: dist/botkube-cli_linux_amd64_v1/botkube
           key: ${{ runner.os }}-botkube-cli
 
       - name: Build CLI
