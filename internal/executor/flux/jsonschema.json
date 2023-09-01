@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Flux",
+  "description": "Run the Flux CLI commands directly from your favorite communication platform.",
+  "type": "object",
+  "uiSchema": {
+    "github": {
+      "auth": {
+        "accessToken": {
+          "ui:widget": "password",
+          "ui:help": "Hint: Make it strong!"
+        }
+      }
+    }
+  },
+  "properties": {
+    "github": {
+      "title": "GitHub",
+      "type": "object",
+      "properties": {
+        "auth": {
+          "title": "Auth",
+          "type": "object",
+          "properties": {
+            "accessToken": {
+              "title": "Access Token",
+              "description": "Instructions for token creation: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token.\n\nLack of token may limit functionality, e.g., adding comments to pull requests or approving them.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": []
+}

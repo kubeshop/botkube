@@ -4,27 +4,47 @@
   "description": "GitHub Events configuration parameters",
   "type": "object",
   "uiSchema": {
+    "github": {
+      "auth": {
+        "accessToken": {
+          "ui:widget": "password"
+        }
+      }
+    },
     "repositories": {
       "on": {
         "pullRequests": {
+          "notificationTemplate": {
+            "extraButtons": {
+              "displayName": {
+                "ui:widget": "textarea"
+              },
+              "commandTpl": {
+                "ui:widget": "textarea"
+              }
+            }
+          },
           "paths": {
             "include": {
-              "ui:classNames": "non-orderable",
+              "ui:widget": "textarea",
               "ui:options": {
                 "orderable": false
               },
               "items": {
+                "ui:widget": "textarea",
                 "ui:options": {
                   "label": false
                 }
               }
             },
             "exclude": {
+              "ui:widget": "textarea",
               "ui:classNames": "non-orderable",
               "ui:options": {
                 "orderable": false
               },
               "items": {
+                "ui:widget": "textarea",
                 "ui:options": {
                   "label": false
                 }
@@ -146,7 +166,7 @@
                           "type": "array",
                           "items": {
                             "type": "string",
-                            "title": "File path"
+                            "title": "Label"
                           }
                         },
                         "exclude": {
@@ -154,13 +174,13 @@
                           "type": "array",
                           "items": {
                             "type": "string",
-                            "title": "File path"
+                            "title": "Label"
                           }
                         }
-                      },
-                      "notificationTemplate": {
-                        "$ref": "#/definitions/notificationTemplate"
                       }
+                    },
+                    "notificationTemplate": {
+                      "$ref": "#/definitions/notificationTemplate"
                     }
                   }
                 }
@@ -242,7 +262,22 @@
               },
               "style": {
                 "title": "Style",
-                "type": "string"
+                "type": "string",
+                "default": "",
+                "oneOf": [
+                  {
+                    "const": "",
+                    "title": "Default"
+                  },
+                  {
+                    "const": "primary",
+                    "title": "Primary"
+                  },
+                  {
+                    "const": "danger",
+                    "title": "Danger"
+                  }
+                ]
               }
             }
           }
