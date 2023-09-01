@@ -61,7 +61,6 @@ jobs:
       - name: Save
         env:
           BUILD_TARGETS: "botkube-agent"
-          SINGLE_PLATFORM: "true"
         run: |
           make save-images
 
@@ -103,7 +102,6 @@ jobs:
       - name: Push
         env:
           BUILD_TARGETS: "botkube-agent"
-          SINGLE_PLATFORM: "true"
         run: make load-and-push-images
 
       - name: Delete Docker image artifact
