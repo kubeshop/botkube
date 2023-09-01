@@ -214,8 +214,8 @@ prepare_goreleaser() {
 
     # Remove the goarm from the YAML file if it's not Darwin
     if [ "$CURRENT_OS" != "darwin" ]; then
-      yq eval 'del(.builds[].goos[] | select(. == "darwin"))' config.yml -i
-      yq eval 'del(.builds[].goarm)' config.yml -i
+      yq eval 'del(.builds[].goos[] | select(. == "darwin"))' .goreleaser_temp.yaml -i
+      yq eval 'del(.builds[].goarm)' .goreleaser_temp.yaml -i
     fi
 
     if [ -n "$CURRENT_OS" ]; then
