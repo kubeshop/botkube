@@ -103,6 +103,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push
+        env:
+          BUILD_TARGETS: "botkube-agent"
         run: make load-and-push-images
 
       - name: Delete Docker image artifact
