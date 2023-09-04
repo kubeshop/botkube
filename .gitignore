@@ -49,3 +49,4 @@ plugins-dev-index.yaml
 plugins-index.yaml
 CHANGELOG.md
 botkube-agent
+.goreleaser_temp.yaml
