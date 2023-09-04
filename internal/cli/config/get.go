@@ -24,6 +24,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
+	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/formatx"
@@ -70,7 +71,10 @@ func (o *ExporterOptions) RegisterFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.CloudEnvs.APIKeyEnvName, "cloud-env-api-key", remote.ProviderAPIKeyEnvKey, "API key environment variable name specified under Deployment for cloud installation.")
 }
 
-func GetFromCluster(ctx context.Context, k8sCfg *rest.Config, opts ExporterOptions, autoApprove bool) ([]byte, string, error) {
+func GetFromCluster(ctx context.Context, status *printer.StatusPrinter, k8sCfg *rest.Config, opts ExporterOptions, autoApprove bool) (config []byte, version string, err error) {
+	defer func() {
+		status.End(err == nil)
+	}()
 	k8sCli, err := kubernetes.NewForConfig(k8sCfg)
 	if err != nil {
 		return nil, "", fmt.Errorf("while getting k8s client: %w", err)
@@ -102,12 +106,14 @@ func GetFromCluster(ctx context.Context, k8sCfg *rest.Config, opts ExporterOptio
 	if err = createExportJob(ctx, k8sCli, botkubePod, botkubeContainer, opts, autoApprove); err != nil {
 		return nil, "", fmt.Errorf("while creating config exporter job: %w", err)
 	}
-
+	status.Step("Fetching configuration")
 	if err = waitForExportJob(ctx, k8sCli, opts); err != nil {
 		return nil, "", fmt.Errorf("while waiting for config exporter job: %w", err)
 	}
+
 	defer cleanup(ctx, k8sCli, opts.BotkubePodNamespace)
-	config, err := readConfigFromCM(ctx, k8sCli, opts.BotkubePodNamespace)
+
+	config, err = readConfigFromCM(ctx, k8sCli, opts.BotkubePodNamespace)
 	if err != nil {
 		return nil, "", fmt.Errorf("while getting exported config: %w", err)
 	}
@@ -231,7 +237,8 @@ func checkIfCanDelete(autoApprove bool) (bool, error) {
 		Default: true,
 	}
 
-	questionIndent := iox.NewIndentStdoutWriter("?", 1) // we indent questions by 1 space to match the step layout
+	// we use os.Stderr as user may user piping output into file, so we don't want to break it.
+	questionIndent := iox.NewIndentFileWriter(os.Stderr, "?", 1) // we indent questions by 1 space to match the step layout
 	err := survey.AskOne(prompt, &run, survey.WithStdio(os.Stdin, questionIndent, os.Stderr))
 	return run, err
 }
@@ -256,7 +263,12 @@ func waitForExportJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Ex
 	for {
 		select {
 		case <-ctxWithTimeout.Done():
-			errMsg := fmt.Sprintf("Timeout (%s) occurred while waiting for export config job.", opts.Timeout.String())
+			var errMsg string
+			if errors.Is(ctxWithTimeout.Err(), context.Canceled) {
+				errMsg = "Interrupted while waiting for export config job."
+			} else {
+				errMsg = fmt.Sprintf("Timeout (%s) occurred while waiting for export config job.", opts.Timeout.String())
+			}
 
 			if job != nil {
 				errMsg = heredoc.Docf(`

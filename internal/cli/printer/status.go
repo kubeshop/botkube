@@ -3,6 +3,7 @@ package printer
 import (
 	"fmt"
 	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -55,7 +56,7 @@ func NewStatus(w io.Writer, header string) *StatusPrinter {
 	}
 	if cli.IsSmartTerminal(w) {
 		st.durationSprintf = color.New(color.Faint, color.Italic).Sprintf
-		st.spinner = NewDynamicSpinner(w)
+		st.spinner = NewDynamicSpinner((w).(*os.File)) // if smart, then interactive with file, so casting is safe
 	} else {
 		st.durationSprintf = fmt.Sprintf
 		st.spinner = NewStaticSpinner(w)
