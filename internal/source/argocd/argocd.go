@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
@@ -73,12 +74,24 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 	}
 
 	s.log.Info("Preparing configuration...")
-	err = s.setupArgoNotifications(ctx, k8sCli)
+
+	err = retry.Do(
+		func() error {
+			return s.setupArgoNotifications(ctx, k8sCli)
+		},
+		retry.OnRetry(func(n uint, err error) {
+			s.log.Errorf("")
+		}),
+		retry.DelayType(retry.RandomDelay), // Randomize the retry time as ConfigMap is updated and there might be conflicts when there are multiple plugin configurations
+		retry.MaxJitter(5*time.Second),
+		retry.Attempts(5),
+		retry.LastErrorOnly(true),
+	)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while configuring Argo notifications: %w", err)
 	}
 
-	s.log.Info("Set up successful")
+	s.log.Info("Set up successful for source configuration %q", input.Context.SourceName)
 	return source.StreamOutput{}, nil
 }
 
@@ -104,6 +117,10 @@ func (s *Source) HandleExternalRequest(ctx context.Context, input source.Externa
 		if section != nil {
 			msg.Sections = append(msg.Sections, *section)
 		}
+	} else {
+		msg.Type = api.NonInteractiveSingleSection
+		// TODO: Display links to details and repository
+		// TODO: Support properly emojis for Discord :large_green_circle:
 	}
 
 	return source.ExternalRequestOutput{

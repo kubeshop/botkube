@@ -562,7 +562,7 @@ sources:
       config:
         defaultSubscriptions:
           applications:
-            - name: guestbook
+            - name: hello
               namespace: argocd
 
         argoCD:
@@ -670,7 +670,7 @@ sources:
               {
                 "message": {
                   "sections": [
-                    { "header": ":large_green_circle: Application `{{.app.metadata.name}}` has been created" }
+                    { "header": ":new: Application `{{.app.metadata.name}}` has been created" }
                   ]
                 },
                 "context": {
@@ -704,12 +704,12 @@ sources:
                           "value": "{{.app.status.sync.status}}"
                         },
                         {
-                          "key": "Revision",
-                          "value": "{{.app.status.sync.revision}}"
+                          "key": "Health Status",
+                          "value": "{{.app.status.health.status}}"
                         },
                         {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
+                          "key": "Revision",
+                          "value": "{{.app.status.sync.revision}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                         ,{
@@ -740,15 +740,11 @@ sources:
                       "textFields": [
                         {
                           "key": "Health Status",
-                          "value": "{{.app.status.health.status}}",
+                          "value": "{{.app.status.health.status}}"
                         },
                         {
                           "key": "Revision",
                           "value": "{{.app.status.sync.revision}}"
-                        },
-                        {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                         ,{
@@ -789,10 +785,6 @@ sources:
                         {
                           "key": "Revision",
                           "value": "{{.app.status.sync.revision}}"
-                        },
-                        {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                       ,{
@@ -827,9 +819,21 @@ sources:
                           "key": "Sync Status",
                           "value": "{{.app.status.sync.status}}"
                         },
+                        {{ if and (.app.status.operationState) (.app.status.operationState.operation) }}
                         {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
+                          "key": "Initiated by",
+                          "value": "{{.app.status.operationState.operation.initiatedBy.username}}"
+                        },
+                        {{ if .app.status.operationState.operation.initiatedBy.automated }}
+                        {
+                          "key": "Automated",
+                          "value": "{{.app.status.operationState.operation.initiatedBy.automated}}"
+                        },
+                        {{ end }}
+                        {{ end }}
+                        {
+                          "key": "Revision",
+                          "value": "{{.app.status.sync.revision}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                       ,{
@@ -861,10 +865,6 @@ sources:
                         {
                           "key": "Sync Status",
                           "value": "{{.app.status.sync.status}}"
-                        },
-                        {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                       ,{
@@ -899,8 +899,8 @@ sources:
                           "value": "{{.app.status.sync.status}}"
                         },
                         {
-                          "key": "Repository",
-                          "value": "{{.app.spec.source.repoURL}}"
+                          "key": "Health Status",
+                          "value": "{{.app.status.health.status}}"
                         }
                         {{range $index, $c := .app.status.conditions}}
                       ,{

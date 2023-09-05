@@ -2,7 +2,6 @@ package argocd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
@@ -49,7 +48,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 	if err != nil {
 		return err
 	}
-	s.log.Debug("Using webhook %q...", webhookName)
+	s.log.Debugf("Using webhook %q...", webhookName)
 
 	// register webhook
 	if s.cfg.Webhook.Register {
@@ -217,7 +216,7 @@ func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []triggers.Condit
 	if err != nil {
 		return "", nil, fmt.Errorf("while rendering trigger name: %w", err)
 	}
-	s.log.WithField("triggerName", triggerName).Debug("Creating new trigger...")
+	s.log.Debugf("Creating new trigger %q...", triggerName)
 
 	errs := multierror.New()
 	triggerDetails := triggerCfg.Conditions
@@ -276,32 +275,34 @@ func (s *Source) registerWebhook(webhookName string) (string, string, error) {
 	return path, value, nil
 }
 
+type webhookConfig struct {
+	Method string `json:"method"`
+	Body   string `json:"body"`
+}
+
 func (s *Source) registerTemplate(webhookName string, tpl Template) (string, string, error) {
-	s.log.Debugf("Registering template %q...", tpl.Name)
 	templateName, err := renderStringIfTemplate(tpl.Name, s.srcCtx)
 	if err != nil {
 		return "", "", fmt.Errorf("while rendering template name: %w", err)
 	}
+	s.log.Debugf("Registering template %q...", templateName)
 
-	var res interface{}
-	err = yaml.Unmarshal([]byte(tpl.Body), &res)
-	if err != nil {
-		return "", "", fmt.Errorf("while unmarshalling template %q: %w", templateName, err)
+	out := map[string]interface{}{
+		"webhook": map[string]interface{}{
+			webhookName: webhookConfig{
+				Method: "POST",
+				Body:   tpl.Body,
+			},
+		},
 	}
 
-	bytes, err := json.Marshal(res)
+	bytes, err := yaml.Marshal(out)
 	if err != nil {
 		return "", "", fmt.Errorf("while marshalling template %q: %w", templateName, err)
 	}
 
 	tplPath := fmt.Sprintf("template.%s", templateName)
-	tplValue := heredoc.Docf(`
-			webhook:
-			  %s:
-			    method: POST
-			    body: |
-			      %s
-		`, webhookName, string(bytes))
+	tplValue := string(bytes)
 
 	return tplPath, tplValue, nil
 }

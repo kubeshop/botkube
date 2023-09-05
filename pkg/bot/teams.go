@@ -573,4 +573,5 @@ var emojiMapping = map[string]string{
 	":cricket:":                 "🦗",
 	":no_entry_sign:":           "🚫",
 	":large_green_circle:":      "🟢",
+	":new:":                     "🆕",
 }
