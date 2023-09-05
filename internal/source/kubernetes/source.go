@@ -27,6 +27,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
+var _ source.Source = (*Source)(nil)
+
 const (
 	// PluginName is the name of the Kubernetes Botkube plugin.
 	PluginName = "kubernetes"
@@ -54,6 +56,8 @@ type Source struct {
 	kubeConfig               []byte
 	messageBuilder           *MessageBuilder
 	isInteractivitySupported bool
+
+	source.HandleExternalRequestUnimplemented
 }
 
 // NewSource returns a new instance of Source.

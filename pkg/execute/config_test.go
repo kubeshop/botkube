@@ -78,6 +78,9 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						plugins:
 						    cacheDir: ""
 						    repositories: {}
+						    incomingWebhook:
+						        enabled: false
+						        port: 0
 						`),
 		},
 	}

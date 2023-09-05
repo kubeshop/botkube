@@ -1132,6 +1132,11 @@ plugins:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
       url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+  # -- Configure Incoming webhook for source plugins.
+  incomingWebhook:
+    enabled: true
+    port: 2115
+    targetPort: 2115
 
 # -- Configuration for synchronizing Botkube configuration.
 config:

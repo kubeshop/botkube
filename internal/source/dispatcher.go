@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -108,7 +110,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 
 	ctx := dispatch.ctx
 	out, err := sourceClient.Stream(ctx, source.StreamInput{
-		Configs: dispatch.pluginConfigs,
+		Configs: []*source.Config{dispatch.pluginConfig},
 		Context: source.StreamInputContext{
 			IsInteractivitySupported: dispatch.isInteractivitySupported,
 			ClusterName:              dispatch.cfg.Settings.ClusterName,
@@ -116,6 +118,11 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		},
 	})
 	if err != nil {
+		statusErr, ok := status.FromError(err)
+		if ok && statusErr.Code() == codes.Unimplemented {
+			log.Debugf("Source %q does not implement streaming. Returning without error...", dispatch.pluginName)
+		}
+
 		return fmt.Errorf(`while opening stream for "%s.%s" source: %w`, dispatch.sourceName, dispatch.pluginName, err)
 	}
 
@@ -133,6 +140,33 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 			}
 		}
 	}()
+	return nil
+}
+
+// DispatchExternalRequest dispatches a single message for a given plugin.
+func (d *Dispatcher) DispatchExternalRequest(dispatch ExternalRequestDispatch) error {
+	sourceClient, err := d.manager.GetSource(dispatch.pluginName)
+	if err != nil {
+		return fmt.Errorf("while getting source client for %s: %w", dispatch.pluginName, err)
+	}
+
+	d.log.Infof("Dispatching external request for %s", dispatch.pluginName)
+
+	ctx := dispatch.ctx
+	out, err := sourceClient.HandleExternalRequest(ctx, source.ExternalRequestInput{
+		Config:  dispatch.pluginConfig,
+		Payload: dispatch.payload,
+		Context: source.SingleDispatchInputContext{
+			IsInteractivitySupported: dispatch.isInteractivitySupported,
+			ClusterName:              dispatch.cfg.Settings.ClusterName,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf(`while handling external request for "%s.%s" source: %w`, dispatch.sourceName, dispatch.pluginName, err)
+	}
+
+	d.dispatchMsg(ctx, out.Event, dispatch.PluginDispatch)
+
 	return nil
 }
 

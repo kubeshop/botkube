@@ -3,14 +3,17 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/anthhub/forwarder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
@@ -25,6 +28,7 @@ import (
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -54,6 +58,12 @@ type Config struct {
 			LabelActionEnabledName        string `envconfig:"default=BOTKUBE_ACTIONS_LABEL-CREATED-SVC-RESOURCE_ENABLED"`
 			StandaloneActionEnabledName   string `envconfig:"default=BOTKUBE_ACTIONS_GET-CREATED-RESOURCE_ENABLED"`
 		}
+	}
+	IncomingWebhookService struct {
+		Name      string `envconfig:"default=botkube"`
+		Namespace string `envconfig:"default=botkube"`
+		Port      int    `envconfig:"default=2115"`
+		LocalPort int    `envconfig:"default=2115"`
 	}
 	Plugins   fake.PluginConfig
 	ConfigMap struct {
@@ -346,7 +356,7 @@ func runBotTest(t *testing.T,
 			assert.NoError(t, err)
 		})
 
-		t.Run("ConfigMap watcher source", func(t *testing.T) {
+		t.Run("ConfigMap watcher source streaming", func(t *testing.T) {
 			t.Log("Creating sample ConfigMap...")
 			cfgMap := &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -368,6 +378,37 @@ func runBotTest(t *testing.T,
 
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMsg)
+			require.NoError(t, err)
+		})
+
+		t.Run("ConfigMap watcher source external requests", func(t *testing.T) {
+			t.Logf("Setting up port forwarding for %s/%s service...", appCfg.IncomingWebhookService.Namespace, appCfg.IncomingWebhookService.Name)
+			t.Logf("Using local port %d and remote port %d...", appCfg.IncomingWebhookService.LocalPort, appCfg.IncomingWebhookService.Port)
+			options := []*forwarder.Option{
+				{
+					LocalPort:   appCfg.IncomingWebhookService.LocalPort,
+					RemotePort:  appCfg.IncomingWebhookService.Port,
+					Source:      fmt.Sprintf("svc/%s", appCfg.IncomingWebhookService.Name),
+					ServiceName: appCfg.IncomingWebhookService.Name,
+					Namespace:   appCfg.IncomingWebhookService.Namespace,
+				},
+			}
+			ret, err := forwarder.WithForwarders(context.Background(), options, appCfg.KubeconfigPath)
+			require.NoError(t, err)
+			defer ret.Close()
+
+			t.Log("Waiting for port forwarding to be ready...")
+			_, err = ret.Ready()
+			require.NoError(t, err)
+
+			sourceName := "other-plugins"
+			t.Logf("Sending a request to the incoming webhook to trigger the %s source plugin...", sourceName)
+			message := "Hello there!"
+			sendIncomingWebhookRequest(t, appCfg.IncomingWebhookService.LocalPort, sourceName, message)
+
+			t.Log("Expecting bot message channel...")
+			expectedMsg := fmt.Sprintf("*Incoming webhook event:* %s", message)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMsg)
 			require.NoError(t, err)
 		})
@@ -1285,4 +1326,23 @@ func cleanupCreatedClusterRoleBinding(t *testing.T, clusterRoleBindingCli rbacv1
 	t.Log("Cleaning up created ClusterRoleBinding...")
 	err := clusterRoleBindingCli.Delete(context.Background(), name, metav1.DeleteOptions{})
 	assert.NoError(t, err)
+}
+
+func sendIncomingWebhookRequest(t *testing.T, localPort int, sourceName, message string) {
+	t.Helper()
+
+	jsonBody := []byte(fmt.Sprintf(`{"message": "%s"}`, message))
+	req, err := http.NewRequest(
+		http.MethodPost,
+		fmt.Sprintf("http://localhost:%d/sources/v1/%s", localPort, sourceName),
+		bytes.NewReader(jsonBody),
+	)
+	require.NoError(t, err)
+
+	client := httpx.NewHTTPClient()
+	res, err := client.Do(req)
+	require.NoError(t, err)
+
+	defer res.Body.Close()
+	require.Equal(t, http.StatusOK, res.StatusCode)
 }

@@ -45,12 +45,24 @@ type (
 	}
 	// IndexEntry defines the plugin definition.
 	IndexEntry struct {
-		Name        string     `yaml:"name"`
-		Type        Type       `yaml:"type"`
-		Description string     `yaml:"description"`
-		Version     string     `yaml:"version"`
-		URLs        []IndexURL `yaml:"urls"`
-		JSONSchema  JSONSchema `yaml:"jsonSchema"`
+		Name            string          `yaml:"name"`
+		Type            Type            `yaml:"type"`
+		Description     string          `yaml:"description"`
+		Version         string          `yaml:"version"`
+		URLs            []IndexURL      `yaml:"urls"`
+		JSONSchema      JSONSchema      `yaml:"jsonSchema"`
+		ExternalRequest ExternalRequest `yaml:"externalRequest,omitempty"`
+	}
+
+	// ExternalRequest contains the external request metadata for a given plugin.
+	ExternalRequest struct {
+		Payload ExternalRequestPayload `yaml:"payload,omitempty"`
+	}
+
+	// ExternalRequestPayload contains the external request payload metadata for a given plugin.
+	ExternalRequestPayload struct {
+		// JSONSchema is a JSON schema for a given incoming webhook payload.
+		JSONSchema JSONSchema `yaml:"jsonSchema"`
 	}
 
 	JSONSchema struct {

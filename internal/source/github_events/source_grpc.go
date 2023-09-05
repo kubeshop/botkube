@@ -11,6 +11,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 )
 
+var _ source.Source = (*Source)(nil)
+
 //go:embed jsonschema.json
 var jsonschema string
 
@@ -24,6 +26,8 @@ const (
 // Source Kubernetes source plugin data structure
 type Source struct {
 	pluginVersion string
+
+	source.HandleExternalRequestUnimplemented
 }
 
 // NewSource returns a new instance of Source.

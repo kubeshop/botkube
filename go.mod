@@ -8,6 +8,7 @@ require (
 	github.com/PullRequestInc/go-gpt3 v1.1.15
 	github.com/alexflint/go-arg v1.4.3
 	github.com/allegro/bigcache/v3 v3.1.0
+	github.com/anthhub/forwarder v1.1.1-0.20230315114022-63dcf7b46a1a
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/avast/retry-go/v4 v4.3.3
 	github.com/aws/aws-sdk-go v1.44.122

@@ -174,7 +174,7 @@ export PLUGINS_SERVER_PORT="3000"
     export KUBECONFIG=/Users/$USER/.kube/config # set custom path if necessary
     export SLACK_TESTER_APP_TOKEN="{Botkube Slack tester app token}" # WARNING: Token for Tester, not the Botkube Slack bot!
     export DISCORD_TESTER_APP_TOKEN="{Botkube Discord tester app token}" # WARNING: Token for Tester, not the Botkube Discord bot!
-    export DISCORD_GUILD_ID="{Discord server ID}" # Where the tests will
+    export DISCORD_GUILD_ID="{Discord server ID}"
     ```
 
 2. Run the tests for Slack:

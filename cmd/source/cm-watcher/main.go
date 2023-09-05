@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -60,6 +61,11 @@ func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		Version:     version,
 		Description: description,
 		JSONSchema:  jsonSchema(),
+		ExternalRequest: api.ExternalRequestMetadata{
+			Payload: api.ExternalRequestPayload{
+				JSONSchema: incomingWebhookJSONSchema(),
+			},
+		},
 	}, nil
 }
 
@@ -78,6 +84,30 @@ func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.Stre
 	go listenEvents(ctx, in.Context.KubeConfig, cfg.ConfigMap, out.Event)
 
 	return out, nil
+}
+
+type payload struct {
+	Message string
+}
+
+// HandleExternalRequest handles incoming payload and returns an event based on it.
+func (CMWatcher) HandleExternalRequest(_ context.Context, in source.ExternalRequestInput) (source.ExternalRequestOutput, error) {
+	var p payload
+	err := json.Unmarshal(in.Payload, &p)
+	if err != nil {
+		return source.ExternalRequestOutput{}, fmt.Errorf("while unmarshaling payload: %w", err)
+	}
+
+	if p.Message == "" {
+		return source.ExternalRequestOutput{}, fmt.Errorf("message cannot be empty")
+	}
+
+	msg := fmt.Sprintf("*Incoming webhook event:* %s", p.Message)
+	return source.ExternalRequestOutput{
+		Event: source.Event{
+			Message: api.NewPlaintextMessage(msg, true),
+		},
+	}, nil
 }
 
 func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan source.Event) {
@@ -139,5 +169,22 @@ func jsonSchema() api.JSONSchema {
 			"properties": {},
 			"required": []
 		}`, description),
+	}
+}
+
+func incomingWebhookJSONSchema() api.JSONSchema {
+	return api.JSONSchema{
+		Value: heredoc.Doc(`{
+		  "$schema": "http://json-schema.org/draft-07/schema#",
+		  "type": "object",
+		  "properties": {
+			"message": {
+			  "type": "string"
+			}
+		  },
+		  "required": [
+			"message"
+		  ]
+		}`),
 	}
 }
