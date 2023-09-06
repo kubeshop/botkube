@@ -36,7 +36,7 @@ notifications:
       # -- Additional subscriptions apart from `defaultSubscriptions`
       additional: []
         #  - name: "guestbook"
-      #    namespace: "argocd"
+        #    namespace: "argocd"
   - trigger:
       create:
         name: "bk-{{ .SourceName }}-on-deleted"

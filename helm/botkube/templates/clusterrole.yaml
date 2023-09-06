@@ -9,9 +9,6 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
-{{- with .Values.rbac.rules }}
-{{- toYaml . | nindent 2 }}
-{{- end }}
 {{- if .Values.podSecurityPolicy.enabled }}
   - apiGroups: ["extensions"]
     resourceNames: ["botkube-psp"]
@@ -21,6 +18,9 @@ rules:
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list"]
   - apiGroups:
     - ""
     resources:
