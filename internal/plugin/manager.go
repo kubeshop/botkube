@@ -266,7 +266,7 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool
 				"repo":        repo,
 				"url":         entry.URL,
 				"forceUpdate": forceUpdate,
-			}).Debug("Downloading repository index")
+			}).Info("Downloading repository index")
 
 			err := m.fetchIndex(ctx, path, entry.URL)
 			if err != nil {

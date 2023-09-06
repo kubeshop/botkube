@@ -238,6 +238,9 @@ func (s *Source) createSubscriptions(ctx context.Context, k8sCli *dynamic.Dynami
 	s.log.Info("Annotating applications...")
 	errs := multierror.New()
 	for _, sub := range subs {
+		if sub.Application.Name == "" || sub.Application.Namespace == "" {
+			errs = multierror.Append(errs, fmt.Errorf("application name and namespace must be set"))
+		}
 		annotationKey := fmt.Sprintf("notifications.argoproj.io/subscribe.%s.%s", sub.TriggerName, sub.WebhookName)
 		s.log.WithField("annotationKey", annotationKey).Debugf("Annotating application \"%s/%s\"...", sub.Application.Namespace, sub.Application.Name)
 		annotationPatch := fmt.Sprintf(appAnnotationPatchFmt, annotationKey)

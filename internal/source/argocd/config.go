@@ -1,7 +1,9 @@
 package argocd
 
 import (
+	"fmt"
 	"github.com/argoproj/notifications-engine/pkg/triggers"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -25,9 +27,9 @@ type Config struct {
 
 // Interactivity contains configuration related to interactivity.
 type Interactivity struct {
-	EnableShowDetailsButton bool     `yaml:"enableShowDetailsButton"`
-	EnableRepoButton        bool     `yaml:"enableRepoButton"`
-	CommandVerbs            []string `yaml:"commandVerbs"`
+	EnableViewInUIButton       bool     `yaml:"enableViewInUIButton"`
+	EnableOpenRepositoryButton bool     `yaml:"enableOpenRepositoryButton"`
+	CommandVerbs               []string `yaml:"commandVerbs"`
 }
 
 // ArgoCD contains configuration related to ArgoCD installation.
@@ -91,18 +93,14 @@ type Template struct {
 
 // mergeConfigs merges all input configuration.
 func mergeConfigs(configs []*source.Config) (Config, error) {
-	defaults := Config{
-		Log: config.Logger{
-			Level: "info",
-		},
-		Interactivity: Interactivity{
-			EnableShowDetailsButton: true,
-			EnableRepoButton:        true,
-			CommandVerbs:            []string{"get", "describe"},
-		},
+	var defaultCfg Config
+	err := yaml.Unmarshal([]byte(defaultConfigYAML), &defaultCfg)
+	if err != nil {
+		return Config{}, fmt.Errorf("while unmarshalling default config: %w", err)
 	}
+
 	var out Config
-	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
+	if err := pluginx.MergeSourceConfigsWithDefaults(defaultCfg, configs, &out); err != nil {
 		return Config{}, err
 	}
 

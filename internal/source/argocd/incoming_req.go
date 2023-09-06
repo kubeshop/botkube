@@ -46,11 +46,11 @@ func (s *Source) generateInteractivitySection(reqBody IncomingRequestBody) *api.
 	}
 
 	btnBldr := api.NewMessageButtonBuilder()
-	if s.cfg.ArgoCD.UIBaseURL != "" && reqBody.Context.DetailsUIPath != nil && *reqBody.Context.DetailsUIPath != "" {
+	if s.shouldDisplayUIDetails(reqBody) {
 		section.Buttons = append(section.Buttons, btnBldr.ForURL("View in UI", fmt.Sprintf("%s%s", s.cfg.ArgoCD.UIBaseURL, *reqBody.Context.DetailsUIPath)))
 	}
 
-	if reqBody.Context.RepoURL != nil && *reqBody.Context.RepoURL != "" {
+	if s.shouldDisplayOpenRepo(reqBody) {
 		section.Buttons = append(section.Buttons, btnBldr.ForURL("Open repository", *reqBody.Context.RepoURL))
 	}
 
@@ -59,4 +59,31 @@ func (s *Source) generateInteractivitySection(reqBody IncomingRequestBody) *api.
 	}
 
 	return &section
+}
+
+func (s *Source) generateNonInteractiveFields(reqBody IncomingRequestBody) []api.TextField {
+	var out []api.TextField
+	if s.shouldDisplayOpenRepo(reqBody) {
+		out = append(out, api.TextField{
+			Key:   "Repository",
+			Value: *reqBody.Context.RepoURL,
+		})
+	}
+
+	if s.shouldDisplayUIDetails(reqBody) {
+		out = append(out, api.TextField{
+			Key:   "Link to ArgoCD UI",
+			Value: fmt.Sprintf("%s%s", s.cfg.ArgoCD.UIBaseURL, *reqBody.Context.DetailsUIPath),
+		})
+	}
+
+	return out
+}
+
+func (s *Source) shouldDisplayUIDetails(reqBody IncomingRequestBody) bool {
+	return s.cfg.ArgoCD.UIBaseURL != "" && reqBody.Context.DetailsUIPath != nil && *reqBody.Context.DetailsUIPath != ""
+}
+
+func (s *Source) shouldDisplayOpenRepo(reqBody IncomingRequestBody) bool {
+	return reqBody.Context.RepoURL != nil && *reqBody.Context.RepoURL != ""
 }
