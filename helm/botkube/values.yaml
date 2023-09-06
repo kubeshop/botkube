@@ -45,6 +45,8 @@ rbac:
   # This is important because we run plugins within the same Pod, and we want to avoid potential bugs when plugins rely on
   # the default in-cluster K8s client configuration. Instead, they should always use kubeconfig specified directly for a given plugin.
   serviceAccountMountPath: /var/run/7e7fd2f5-b15d-4803-bc52-f54fba357e76/secrets/kubernetes.io/serviceaccount
+  # -- Configure if the RBAC resources for `rules` and `staticGroupName` should be created.
+  # Deprecated. Use `rbac.groups` instead.
   create: true
   # -- Deprecated. Use `rbac.groups` instead.
   rules: []
@@ -53,11 +55,13 @@ rbac:
   # -- Use this to create additional RBAC resources for specified groups.
   groups:
     - name: &static-group-name "botkube-plugins-default"
+      create: true
       rules:
         - apiGroups: ["*"]
           resources: ["*"]
           verbs: ["get", "watch", "list"]
     - name: &argocd-group "argocd"
+      create: false # change to true when using ArgoCD plugin
       rules:
         - apiGroups: [""]
           resources: ["configmaps"]
@@ -561,17 +565,19 @@ sources:
               values: [*argocd-group]
       config:
         defaultSubscriptions:
+          # -- Provide application name and namespace to subscribe to all events for a given application.
           applications:
-            - name: hello
-              namespace: argocd
-
+            - name: ""
+              namespace: ""
         argoCD:
+          # -- ArgoCD UI base URL. It is used for generating links in the incoming events.
           uiBaseUrl: http://localhost:8080
+          # -- ArgoCD Notifications ConfigMap reference.
           notificationsConfigMap:
             name: argocd-notifications-cm
             namespace: argocd
 
-        # Triggers and templates based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml
+        # -- Triggers and templates are based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml.
         notifications:
           - trigger:
               # fromExisting:
@@ -586,8 +592,10 @@ sources:
                     send:
                       - "bk-{{ .SourceName }}-app-created" # template Name, you can use templating here
             subscriptions: &triggerSubscriptions
-              create: true # even if false, the default subscriptions are still created
-              additional: [] # additional subscriptions apart from `defaultSubscriptions`
+              # -- Even if false, the default subscriptions are still created.
+              create: true
+              # -- Additional subscriptions apart from `defaultSubscriptions`
+              additional: []
                #  - name: "guestbook"
                #    namespace: "argocd"
           - trigger:
@@ -658,12 +666,13 @@ sources:
                       - "bk-{{ .SourceName }}-app-sync-succeeded"
             subscriptions: *triggerSubscriptions
 
+        # -- Webhook configuration.
         webhook:
+          # -- If true, it registers Botkube webhook in ArgoCD notification config.
           register: true
           name: "bk-{{ .SourceName }}"
           url: "{{ .IncomingWebhook.FullURLForSource }}"
 
-        # Templates based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml
         templates:
           - name: "bk-{{ .SourceName }}-app-created"
             body: |

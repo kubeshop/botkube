@@ -47,11 +47,11 @@ func (s *Source) generateInteractivitySection(reqBody IncomingRequestBody) *api.
 
 	btnBldr := api.NewMessageButtonBuilder()
 	if s.cfg.ArgoCD.UIBaseURL != "" && reqBody.Context.DetailsUIPath != nil && *reqBody.Context.DetailsUIPath != "" {
-		section.Buttons = append(section.Buttons, btnBldr.ForURL("Details", fmt.Sprintf("%s%s", s.cfg.ArgoCD.UIBaseURL, *reqBody.Context.DetailsUIPath), api.ButtonStylePrimary))
+		section.Buttons = append(section.Buttons, btnBldr.ForURL("View in UI", fmt.Sprintf("%s%s", s.cfg.ArgoCD.UIBaseURL, *reqBody.Context.DetailsUIPath)))
 	}
 
 	if reqBody.Context.RepoURL != nil && *reqBody.Context.RepoURL != "" {
-		section.Buttons = append(section.Buttons, btnBldr.ForURL("Repository", *reqBody.Context.RepoURL))
+		section.Buttons = append(section.Buttons, btnBldr.ForURL("Open repository", *reqBody.Context.RepoURL))
 	}
 
 	if len(section.Buttons) == 0 && len(section.Selects.Items) == 0 {

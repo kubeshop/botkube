@@ -22,17 +22,22 @@ import (
 
 var _ source.Source = (*Source)(nil)
 
-//go:embed jsonschema.json
-var jsonSchema string
+var (
+	//go:embed config-jsonschema.json
+	configJSONSchema string
+
+	//go:embed req-jsonschema.json
+	requestJSONSchema string
+)
 
 const (
-	// PluginName is the name of the Kubernetes Botkube plugin.
+	// PluginName is the name of the source plugin.
 	PluginName = "argocd"
 
 	description = "Argo source plugin is used to watch ArgoCD events."
 )
 
-// Source Kubernetes source plugin data structure
+// Source defines ArgoCD source plugin.
 type Source struct {
 	pluginVersion string
 	log           logrus.FieldLogger
@@ -53,7 +58,7 @@ type subscription struct {
 	Application config.K8sResourceRef
 }
 
-// Stream streams Kubernetes events
+// Stream set-ups ArgoCD notifications.
 func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	if err := pluginx.ValidateKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
 		return source.StreamOutput{}, err
@@ -95,7 +100,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 	return source.StreamOutput{}, nil
 }
 
-// HandleExternalRequest handles external requests.
+// HandleExternalRequest handles external requests from ArgoCD.
 func (s *Source) HandleExternalRequest(ctx context.Context, input source.ExternalRequestInput) (source.ExternalRequestOutput, error) {
 	payload := formatx.StructDumper().Sdump(string(input.Payload))
 	s.log.WithField("payload", payload).Debug("Handling external request...")
@@ -130,13 +135,20 @@ func (s *Source) HandleExternalRequest(ctx context.Context, input source.Externa
 	}, nil
 }
 
-// Metadata returns metadata of Kubernetes configuration
+// Metadata returns metadata of the ArgoCD configuration.
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     s.pluginVersion,
 		Description: description,
 		JSONSchema: api.JSONSchema{
-			Value: jsonSchema,
+			Value: configJSONSchema,
+		},
+		ExternalRequest: api.ExternalRequestMetadata{
+			Payload: api.ExternalRequestPayload{
+				JSONSchema: api.JSONSchema{
+					Value: requestJSONSchema,
+				},
+			},
 		},
 	}, nil
 }

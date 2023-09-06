@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Notification Configuration",
+  "uiSchema": {
+    "defaultSubscriptions": {
+      "applications": {
+        "items": {
+          "ui:options": {
+            "label": false
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "defaultSubscriptions": {
+      "type": "object",
+      "title": "Default Subscriptions",
+      "description": "Provide application name and namespace to subscribe to all events for a given application.",
+      "properties": {
+        "applications": {
+          "type": "array",
+          "title": "Applications",
+          "items": {
+            "minItems": 1,
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "title": "Application Name"
+              },
+              "namespace": {
+                "type": "string",
+                "title": "Application Namespace"
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ]
+          }
+        }
+      }
+    },
+    "argoCD": {
+      "type": "object",
+      "title": "ArgoCD Configuration",
+      "description": "ArgoCD UI base URL is used for generating links in the incoming events.",
+      "properties": {
+        "uiBaseUrl": {
+          "type": "string",
+          "title": "ArgoCD UI Base URL",
+          "format": "uri",
+          "default": "http://localhost:8080"
+        },
+        "notificationsConfigMap": {
+          "type": "object",
+          "title": "ArgoCD Notifications ConfigMap",
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "ConfigMap Name",
+              "default": "argocd-notifications-cm"
+            },
+            "namespace": {
+              "type": "string",
+              "title": "ConfigMap Namespace",
+              "default": "argocd"
+            }
+          },
+          "required": [
+            "name",
+            "namespace"
+          ]
+        }
+      }
+    },
+    "webhook": {
+      "type": "object",
+      "title": "Webhook Configuration",
+      "properties": {
+        "register": {
+          "type": "boolean",
+          "title": "Register Webhook",
+          "description": "If true, it registers Botkube webhook in ArgoCD notification config.",
+          "default": true
+        },
+        "name": {
+          "type": "string",
+          "title": "Webhook Name",
+          "description": "Webhook name registered in ArgoCD configuration. It might contain template variables based on the Source Incoming Webhook context.",
+          "default": "bk-{{ .SourceName }}"
+        },
+        "url": {
+          "type": "string",
+          "title": "Webhook URL",
+          "description": "Botkube Webhook URL. It might contain template variables based on the Source Incoming Webhook context.",
+          "format": "uri",
+          "default": "{{ .IncomingWebhook.FullURLForSource }}"
+        }
+      },
+      "required": [
+        "register",
+        "name",
+        "url"
+      ]
+    }
+  },
+  "required": [
+    "defaultSubscriptions",
+    "argoCD",
+    "webhook"
+  ]
+}

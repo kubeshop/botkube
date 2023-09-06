@@ -20,7 +20,7 @@ func renderStringIfTemplate(tpl string, srcCtx source.CommonSourceContext) (stri
 
 	tmpl, err := gotemplate.New("tpl").Parse(tpl)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("while parsing template %q: %w", tpl, err)
 	}
 
 	var result bytes.Buffer
