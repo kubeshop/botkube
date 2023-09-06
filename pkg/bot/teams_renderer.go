@@ -45,7 +45,7 @@ func (r *TeamsRenderer) NonInteractiveSectionToCard(msg interactive.CoreMessage)
 	if event.Base.Header != "" {
 		nodes = append(nodes, &cards.TextBlock{
 			Size: "Large",
-			Text: event.Base.Header,
+			Text: replaceEmojiTagsWithActualOne(event.Base.Header),
 		})
 	}
 
@@ -82,8 +82,8 @@ func (r *TeamsRenderer) renderTextFields(item api.TextFields) cards.Node {
 			continue
 		}
 		facts = append(facts, &cards.Fact{
-			Title: field.Key,
-			Value: field.Value,
+			Title: replaceEmojiTagsWithActualOne(field.Key),
+			Value: replaceEmojiTagsWithActualOne(field.Value),
 		})
 	}
 	if len(facts) == 0 {
@@ -105,7 +105,7 @@ func (r *TeamsRenderer) renderBulletLists(in api.BulletLists) []cards.Node {
 func (r *TeamsRenderer) renderSingleBulletList(item api.BulletList) []cards.Node {
 	return []cards.Node{
 		&cards.TextBlock{
-			Text: fmt.Sprintf("**%s**", item.Title),
+			Text: fmt.Sprintf("**%s**", replaceEmojiTagsWithActualOne(item.Title)),
 		},
 		&cards.TextBlock{
 			Text: r.bulletList(item.Items),
@@ -135,7 +135,7 @@ func (r *TeamsRenderer) bulletList(msgs []string) string {
 		//  +: ghcr.io/kubeshop/botkube:v1.0.0
 		msgs[idx] = strings.ReplaceAll(item, "\n", "\n\n\t\t")
 	}
-	return fmt.Sprintf("- %s", strings.Join(msgs, "\r- "))
+	return replaceEmojiTagsWithActualOne(fmt.Sprintf("- %s", strings.Join(msgs, "\r- ")))
 }
 
 func msNewLineFormatter(msg string) string {

@@ -2,6 +2,7 @@ package argocd
 
 import (
 	"fmt"
+
 	"github.com/argoproj/notifications-engine/pkg/triggers"
 	"gopkg.in/yaml.v3"
 
