@@ -10,6 +10,7 @@ require (
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/anthhub/forwarder v1.1.1-0.20230315114022-63dcf7b46a1a
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/argoproj/notifications-engine v0.4.0
 	github.com/avast/retry-go/v4 v4.3.3
 	github.com/aws/aws-sdk-go v1.44.122
 	github.com/bombsimon/logrusr/v4 v4.0.0
@@ -101,6 +102,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/alexflint/go-scalar v1.1.0 // indirect
+	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect

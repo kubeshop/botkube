@@ -47,13 +47,13 @@ const (
 
 // Message represents a generic message with interactive buttons.
 type Message struct {
-	Type              MessageType
-	BaseBody          Body
-	Timestamp         time.Time
-	Sections          []Section
-	PlaintextInputs   LabelInputs
-	OnlyVisibleForYou bool
-	ReplaceOriginal   bool
+	Type              MessageType `json:"type,omitempty"`
+	BaseBody          Body        `json:"baseBody,omitempty"`
+	Timestamp         time.Time   `json:"timestamp,omitempty"`
+	Sections          []Section   `json:"sections,omitempty"`
+	PlaintextInputs   LabelInputs `json:"plaintextInputs,omitempty"`
+	OnlyVisibleForYou bool        `json:"onlyVisibleForYou,omitempty"`
+	ReplaceOriginal   bool        `json:"replaceOriginal,omitempty"`
 }
 
 func (msg *Message) IsEmpty() bool {
@@ -86,38 +86,38 @@ func (msg *Message) HasInputs() bool {
 
 // Select holds data related to the select drop-down.
 type Select struct {
-	Type    SelectType
-	Name    string
-	Command string
+	Type    SelectType `json:"type,omitempty"`
+	Name    string     `json:"name,omitempty"`
+	Command string     `json:"command,omitempty"`
 	// OptionGroups provides a way to group options in a select menu.
-	OptionGroups []OptionGroup
+	OptionGroups []OptionGroup `json:"optionGroups,omitempty"`
 	// InitialOption holds already pre-selected options. MUST be a sub-set of OptionGroups.
-	InitialOption *OptionItem
+	InitialOption *OptionItem `json:"initialOption,omitempty"`
 }
 
 // Base holds generic message fields.
 type Base struct {
-	Header      string
-	Description string
-	Body        Body
+	Header      string `json:"header,omitempty"`
+	Description string `json:"description,omitempty"`
+	Body        Body   `json:"body,omitempty"`
 }
 
 // Body holds message body fields.
 type Body struct {
-	CodeBlock string
-	Plaintext string
+	CodeBlock string `json:"codeBlock,omitempty"`
+	Plaintext string `json:"plaintext,omitempty"`
 }
 
 // Section holds section related fields.
 type Section struct {
-	Base
-	Buttons         Buttons
-	MultiSelect     MultiSelect
-	Selects         Selects
-	PlaintextInputs LabelInputs
-	TextFields      TextFields
-	BulletLists     BulletLists
-	Context         ContextItems
+	Base            `json:",inline"`
+	Buttons         Buttons      `json:"buttons,omitempty"`
+	MultiSelect     MultiSelect  `json:"multiSelect,omitempty"`
+	Selects         Selects      `json:"selects,omitempty"`
+	PlaintextInputs LabelInputs  `json:"plaintextInputs,omitempty"`
+	TextFields      TextFields   `json:"textFields,omitempty"`
+	BulletLists     BulletLists  `json:"bulletLists,omitempty"`
+	Context         ContextItems `json:"context,omitempty"`
 }
 
 // BulletLists holds the bullet lists.
@@ -144,8 +144,8 @@ type TextFields []TextField
 
 // TextField holds a text field data.
 type TextField struct {
-	Key   string
-	Value string
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // IsEmpty returns true if all fields have zero-value.
@@ -155,8 +155,8 @@ func (t *TextField) IsEmpty() bool {
 
 // BulletList defines a bullet list primitive.
 type BulletList struct {
-	Title string
-	Items []string
+	Title string   `json:"title,omitempty"`
+	Items []string `json:"items,omitempty"`
 }
 
 // IsDefined returns true if there are any context items defined.
@@ -166,14 +166,14 @@ func (c ContextItems) IsDefined() bool {
 
 // ContextItem holds context item.
 type ContextItem struct {
-	Text string
+	Text string `json:"text,omitempty"`
 }
 
 // Selects holds multiple Select objects.
 type Selects struct {
 	// ID allows to identify a given block when we do the updated.
-	ID    string
-	Items []Select
+	ID    string   `json:"id,omitempty"`
+	Items []Select `json:"items,omitempty"`
 }
 
 // DispatchedInputAction defines when the action should be sent to our backend.
@@ -188,10 +188,10 @@ const (
 
 // LabelInput is used to create input elements to use in messages.
 type LabelInput struct {
-	Command          string
-	Text             string
-	Placeholder      string
-	DispatchedAction DispatchedInputAction
+	Command          string                `json:"command,omitempty"`
+	Text             string                `json:"text,omitempty"`
+	Placeholder      string                `json:"placeholder,omitempty"`
+	DispatchedAction DispatchedInputAction `json:"dispatchedAction,omitempty"`
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -204,27 +204,27 @@ func (s *Selects) AreOptionsDefined() bool {
 
 // OptionItem defines an option model.
 type OptionItem struct {
-	Name  string
-	Value string
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // MultiSelect holds multi select related fields.
 type MultiSelect struct {
-	Name        string
-	Description Body
-	Command     string
+	Name        string `json:"name,omitempty"`
+	Description Body   `json:"description,omitempty"`
+	Command     string `json:"command,omitempty"`
 
 	// Options holds all available options
-	Options []OptionItem
+	Options []OptionItem `json:"options,omitempty"`
 
 	// InitialOptions hold already pre-selected options. MUST be a sub-set of Options.
-	InitialOptions []OptionItem
+	InitialOptions []OptionItem `json:"initialOptions,omitempty"`
 }
 
 // OptionGroup holds information about options in the same group.
 type OptionGroup struct {
-	Name    string
-	Options []OptionItem
+	Name    string       `json:"name,omitempty"`
+	Options []OptionItem `json:"options,omitempty"`
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -268,15 +268,15 @@ const (
 
 // Button holds definition of action button.
 type Button struct {
-	Description string
+	Description string `json:"description,omitempty"`
 
 	// DescriptionStyle defines the style of the button description. If not provided, the default style (ButtonDescriptionStyleCode) is used.
-	DescriptionStyle ButtonDescriptionStyle
+	DescriptionStyle ButtonDescriptionStyle `json:"descriptionStyle"`
 
-	Name    string
-	Command string
-	URL     string
-	Style   ButtonStyle
+	Name    string      `json:"name,omitempty"`
+	Command string      `json:"command,omitempty"`
+	URL     string      `json:"url,omitempty"`
+	Style   ButtonStyle `json:"style,omitempty"`
 }
 
 // ButtonBuilder provides a simplified way to construct a Button model.

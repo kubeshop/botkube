@@ -85,6 +85,16 @@ func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interf
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
 }
 
+// TransformIntoUnstructured uses typed object and creates an unstructured interface.
+func TransformIntoUnstructured(obj interface{}) (*unstructured.Unstructured, error) {
+	out, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &unstructured.Unstructured{Object: out}, nil
+}
+
 // extractAnnotationsFromEvent returns annotations of a related resource for the given event.
 func extractAnnotationsFromEvent(ctx context.Context, dynamicCli dynamic.Interface, mapper meta.RESTMapper, obj *coreV1.Event) (map[string]string, error) {
 	gvr, err := GetResourceFromKind(mapper, obj.InvolvedObject.GroupVersionKind())

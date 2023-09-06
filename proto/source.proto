@@ -19,10 +19,21 @@ message StreamRequest {
 }
 
 message StreamContext {
-	bool isInteractivitySupported = 1;
+	SourceContext sourceContext = 1;
 	// kubeConfig is is kubeConfig represented in bytes.
 	bytes kubeConfig = 2;
-	string clusterName = 3;
+}
+
+message SourceContext {
+	bool isInteractivitySupported = 1;
+	string clusterName = 2;
+	string sourceName = 3;
+	IncomingWebhookContext incomingWebhook = 4;
+}
+
+message IncomingWebhookContext {
+	string baseURL = 1;
+	string fullURLForSource = 2;
 }
 
 message StreamResponse {
@@ -39,8 +50,7 @@ message ExternalRequest {
 }
 
 message ExternalRequestContext {
-	bool isInteractivitySupported = 1;
-	string clusterName = 2;
+	SourceContext sourceContext = 1;
 }
 
 message ExternalRequestResponse {

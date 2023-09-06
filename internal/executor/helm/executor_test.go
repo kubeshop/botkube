@@ -177,7 +177,7 @@ func TestExecutorHelmInstallHelp(t *testing.T) {
 			gotOut, err := json.MarshalIndent(out.Message, "", "  ")
 			require.NoError(t, err)
 
-			golden.AssertBytes(t, gotOut, goldenFilepath)
+			golden.Assert(t, string(gotOut), goldenFilepath)
 		})
 	}
 }

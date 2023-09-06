@@ -571,4 +571,7 @@ var emojiMapping = map[string]string{
 	":arrows_counterclockwise:": "🔄",
 	":exclamation:":             "❗",
 	":cricket:":                 "🦗",
+	":no_entry_sign:":           "🚫",
+	":large_green_circle:":      "🟢",
+	":new:":                     "🆕",
 }

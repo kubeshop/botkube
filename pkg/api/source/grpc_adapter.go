@@ -33,14 +33,10 @@ type (
 
 	// StreamInputContext holds streaming context.
 	StreamInputContext struct {
-		// IsInteractivitySupported is set to true only if a communication platform supports interactive Messages.
-		IsInteractivitySupported bool
-
 		// KubeConfig is the path to kubectl configuration file.
 		KubeConfig []byte
 
-		// ClusterName is the name of the underlying Kubernetes cluster which is provided by end user.
-		ClusterName string
+		CommonSourceContext
 	}
 
 	// StreamOutput holds the output of the Stream function.
@@ -61,16 +57,32 @@ type (
 		Config *Config
 
 		// Context holds single dispatch context.
-		Context SingleDispatchInputContext
+		Context ExternalRequestInputContext
 	}
 
-	// SingleDispatchInputContext holds single dispatch context.
-	SingleDispatchInputContext struct {
+	// ExternalRequestInputContext holds single ex context.
+	ExternalRequestInputContext struct {
+		CommonSourceContext
+	}
+
+	// CommonSourceContext holds common source context.
+	CommonSourceContext struct {
 		// IsInteractivitySupported is set to true only if a communication platform supports interactive Messages.
 		IsInteractivitySupported bool
 
 		// ClusterName is the name of the underlying Kubernetes cluster which is provided by end user.
 		ClusterName string
+
+		// SourceName is the name of the source plugin configuration.
+		SourceName string
+
+		IncomingWebhook IncomingWebhookDetailsContext
+	}
+
+	// IncomingWebhookDetailsContext holds incoming webhook context.
+	IncomingWebhookDetailsContext struct {
+		BaseURL          string
+		FullURLForSource string
 	}
 
 	// ExternalRequestOutput holds the output of the Stream function.
@@ -134,9 +146,8 @@ func (p *grpcClient) Stream(ctx context.Context, in StreamInput) (StreamOutput, 
 	request := &StreamRequest{
 		Configs: in.Configs,
 		Context: &StreamContext{
-			IsInteractivitySupported: in.Context.IsInteractivitySupported,
-			KubeConfig:               in.Context.KubeConfig,
-			ClusterName:              in.Context.ClusterName,
+			SourceContext: sourceContextToGRPC(in.Context.CommonSourceContext),
+			KubeConfig:    in.Context.KubeConfig,
 		},
 	}
 	stream, err := p.client.Stream(ctx, request)
@@ -184,8 +195,7 @@ func (p *grpcClient) HandleExternalRequest(ctx context.Context, in ExternalReque
 		Payload: in.Payload,
 		Config:  in.Config,
 		Context: &ExternalRequestContext{
-			IsInteractivitySupported: in.Context.IsInteractivitySupported,
-			ClusterName:              in.Context.ClusterName,
+			SourceContext: sourceContextToGRPC(in.Context.CommonSourceContext),
 		},
 	}
 	out, err := p.client.HandleExternalRequest(ctx, request)
@@ -276,9 +286,8 @@ func (p *grpcServer) Stream(req *StreamRequest, gstream Source_StreamServer) err
 	stream, err := p.Source.Stream(ctx, StreamInput{
 		Configs: req.Configs,
 		Context: StreamInputContext{
-			IsInteractivitySupported: req.Context.IsInteractivitySupported,
-			KubeConfig:               req.Context.KubeConfig,
-			ClusterName:              req.Context.ClusterName,
+			KubeConfig:          req.Context.KubeConfig,
+			CommonSourceContext: sourceContextFromGRPC(req.Context.SourceContext),
 		},
 	})
 	if err != nil {
@@ -313,9 +322,8 @@ func (p *grpcServer) HandleExternalRequest(ctx context.Context, req *ExternalReq
 	out, err := p.Source.HandleExternalRequest(ctx, ExternalRequestInput{
 		Payload: req.Payload,
 		Config:  req.Config,
-		Context: SingleDispatchInputContext{
-			IsInteractivitySupported: req.Context.IsInteractivitySupported,
-			ClusterName:              req.Context.ClusterName,
+		Context: ExternalRequestInputContext{
+			CommonSourceContext: sourceContextFromGRPC(req.Context.SourceContext),
 		},
 	})
 	if err != nil {
@@ -343,4 +351,37 @@ func Serve(p map[string]plugin.Plugin) {
 		},
 		GRPCServer: plugin.DefaultGRPCServer,
 	})
+}
+
+func sourceContextToGRPC(in CommonSourceContext) *SourceContext {
+	return &SourceContext{
+		IsInteractivitySupported: in.IsInteractivitySupported,
+		ClusterName:              in.ClusterName,
+		SourceName:               in.SourceName,
+		IncomingWebhook: &IncomingWebhookContext{
+			BaseURL:          in.IncomingWebhook.BaseURL,
+			FullURLForSource: in.IncomingWebhook.FullURLForSource,
+		},
+	}
+}
+
+func sourceContextFromGRPC(in *SourceContext) CommonSourceContext {
+	if in == nil {
+		return CommonSourceContext{}
+	}
+
+	var incomingWebhook IncomingWebhookDetailsContext
+	if in.IncomingWebhook != nil {
+		incomingWebhook = IncomingWebhookDetailsContext{
+			BaseURL:          in.IncomingWebhook.BaseURL,
+			FullURLForSource: in.IncomingWebhook.FullURLForSource,
+		}
+	}
+
+	return CommonSourceContext{
+		IsInteractivitySupported: in.IsInteractivitySupported,
+		ClusterName:              in.ClusterName,
+		SourceName:               in.SourceName,
+		IncomingWebhook:          incomingWebhook,
+	}
 }

@@ -147,6 +147,9 @@ type PluginsRepositories struct {
 type IncomingWebhook struct {
 	Enabled bool `yaml:"enabled"`
 	Port    int  `yaml:"port"`
+
+	// InClusterBaseURL is the in-cluster URL of the incoming webhook. Passed for plugins in context.
+	InClusterBaseURL string `yaml:"inClusterBaseURL"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.

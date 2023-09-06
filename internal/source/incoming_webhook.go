@@ -17,8 +17,17 @@ import (
 
 const (
 	sourceNameVarName         = "sourceName"
-	incomingWebhookPathPrefix = "/sources/v1"
+	incomingWebhookPathPrefix = "sources/v1"
 )
+
+// IncomingWebhookData holds information about incoming webhook.
+type IncomingWebhookData struct {
+	inClusterBaseURL string
+}
+
+func (w IncomingWebhookData) FullURLForSource(sourceName string) string {
+	return fmt.Sprintf("%s/%s/%s", w.inClusterBaseURL, incomingWebhookPathPrefix, sourceName)
+}
 
 // NewIncomingWebhookServer creates a new HTTP server for incoming webhooks.
 func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string][]StartedSource) *httpx.Server {
@@ -31,7 +40,7 @@ func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispat
 
 func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string][]StartedSource) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc(fmt.Sprintf("%s/{%s}", incomingWebhookPathPrefix, sourceNameVarName), func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc(fmt.Sprintf("/%s/{%s}", incomingWebhookPathPrefix, sourceNameVarName), func(writer http.ResponseWriter, request *http.Request) {
 		sourceName, ok := mux.Vars(request)[sourceNameVarName]
 		if !ok {
 			writeJSONError(log, writer, "Source name in path is required", http.StatusBadRequest)
@@ -72,6 +81,9 @@ func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatche
 					isInteractivitySupported: src.IsInteractivitySupported,
 					cfg:                      cfg,
 					pluginContext:            config.PluginContext{},
+					incomingWebhook: IncomingWebhookData{
+						inClusterBaseURL: cfg.Plugins.IncomingWebhook.InClusterBaseURL,
+					},
 				},
 				payload: payload,
 			})

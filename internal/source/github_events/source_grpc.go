@@ -17,13 +17,13 @@ var _ source.Source = (*Source)(nil)
 var jsonschema string
 
 const (
-	// PluginName is the name of the Kubernetes Botkube plugin.
+	// PluginName is the name of the GitHub events Botkube plugin.
 	PluginName = "github-events"
 
 	description = "Watches for GitHub events."
 )
 
-// Source Kubernetes source plugin data structure
+// Source implements the source.Source interface.
 type Source struct {
 	pluginVersion string
 
@@ -37,7 +37,7 @@ func NewSource(version string) *Source {
 	}
 }
 
-// Stream streams Kubernetes events
+// Stream streams GitHub events.
 func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
 	cfg, err := MergeConfigs(input.Configs)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 	return out, nil
 }
 
-// Metadata returns metadata of Kubernetes configuration
+// Metadata returns metadata for the GitHub source plugin.
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     s.pluginVersion,

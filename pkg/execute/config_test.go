@@ -81,6 +81,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						    incomingWebhook:
 						        enabled: false
 						        port: 0
+						        inClusterBaseURL: ""
 						`),
 		},
 	}

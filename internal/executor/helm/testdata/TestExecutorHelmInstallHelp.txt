@@ -1,12 +1,7 @@
 {
-  "Type": "baseBodyWithFilter",
-  "BaseBody": {
-    "CodeBlock": "Installs a chart archive.\n\nThere are two different ways you to install a Helm chart:\n1. By absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz\n2. By chart reference and repo url: helm install --repo https://example.com/charts/ mynginx nginx\n\nUsage:\n    helm install [NAME] [CHART] [flags]\n\nFlags:\n    --create-namespace\n    --generate-name,-g\n    --dependency-update\n    --description\n    --devel\n    --disable-openapi-validation\n    --dry-run\n    --insecure-skip-tls-verify\n    --name-template\n    --no-hooks\n    --pass-credentials\n    --password\n    --post-renderer\n    --post-renderer-args\n    --render-subchart-notes\n    --replace\n    --repo\n    --set\n    --set-json\n    --set-string\n    --skip-crds\n    --timeout\n    --username\n    --verify\n    --version\n    -o,--output\n",
-    "Plaintext": ""
+  "type": "baseBodyWithFilter",
+  "baseBody": {
+    "codeBlock": "Installs a chart archive.\n\nThere are two different ways you to install a Helm chart:\n1. By absolute URL: helm install mynginx https://example.com/charts/nginx-1.2.3.tgz\n2. By chart reference and repo url: helm install --repo https://example.com/charts/ mynginx nginx\n\nUsage:\n    helm install [NAME] [CHART] [flags]\n\nFlags:\n    --create-namespace\n    --generate-name,-g\n    --dependency-update\n    --description\n    --devel\n    --disable-openapi-validation\n    --dry-run\n    --insecure-skip-tls-verify\n    --name-template\n    --no-hooks\n    --pass-credentials\n    --password\n    --post-renderer\n    --post-renderer-args\n    --render-subchart-notes\n    --replace\n    --repo\n    --set\n    --set-json\n    --set-string\n    --skip-crds\n    --timeout\n    --username\n    --verify\n    --version\n    -o,--output\n"
   },
-  "Timestamp": "0001-01-01T00:00:00Z",
-  "Sections": null,
-  "PlaintextInputs": null,
-  "OnlyVisibleForYou": false,
-  "ReplaceOriginal": false
+  "timestamp": "0001-01-01T00:00:00Z"
 }
