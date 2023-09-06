@@ -52,7 +52,7 @@ rbac:
   rules: []
   # -- Deprecated. Use `rbac.groups` instead.
   staticGroupName: ""
-  # -- Use this to create additional RBAC resources for specified groups.
+  # -- Use this to create RBAC resources for specified group subjects.
   groups:
     - name: &static-group-name "botkube-plugins-default"
       create: true
@@ -61,7 +61,8 @@ rbac:
           resources: ["*"]
           verbs: ["get", "watch", "list"]
     - name: &argocd-group "argocd"
-      create: false # change to true when using ArgoCD plugin
+      # -- Set it to `true` when using ArgoCD source plugin.
+      create: false
       rules:
         - apiGroups: [""]
           resources: ["configmaps"]
@@ -578,6 +579,7 @@ sources:
             namespace: argocd
 
         # -- Triggers and templates are based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml.
+        # Trigger might be created from existing template (`fromExisting`) or from scratch (`create`).
         notifications:
           - trigger:
               # fromExisting:
