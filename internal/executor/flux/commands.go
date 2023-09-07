@@ -47,9 +47,9 @@ func ExecuteCommand(ctx context.Context, in string, opts ...pluginx.ExecuteComma
 	return out.CombinedOutput(), nil
 }
 
-// isConfirmDelete uses string contains in order to detect if a user was asked to confirm deletion.
+// isDeleteConfirmationErr uses string contains in order to detect if a user was asked to confirm deletion.
 // For now, there is no better way as we use terminal output not Go SDK.
-func isConfirmDelete(err error) bool {
+func isDeleteConfirmationErr(err error) bool {
 	if err == nil {
 		return false
 	}
