@@ -141,7 +141,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 			"KUBECONFIG": kubeConfigPath,
 		}))
 		if err != nil {
-			if isConfirmDelete(err) {
+			if isDeleteConfirmationErr(err) {
 				return "", deleteConfirmErr
 			}
 
