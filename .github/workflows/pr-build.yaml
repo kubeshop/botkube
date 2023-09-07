@@ -59,6 +59,8 @@ jobs:
           version: latest
 
       - name: Save
+        env:
+          BUILD_TARGETS: "botkube-agent"
         run: |
           make save-images
 
@@ -98,6 +100,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push
+        env:
+          BUILD_TARGETS: "botkube-agent"
         run: make load-and-push-images
 
       - name: Delete Docker image artifact
@@ -237,12 +241,24 @@ jobs:
         env:
           # we hardcode plugins version, so it's predictable in e2e tests
           GORELEASER_CURRENT_TAG: "v0.0.0-latest"
-          OUTPUT_MODE: "archive"
+          OUTPUT_MODE: "binary"
+          SINGLE_PLATFORM: "true"
+          PLUGIN_TARGETS: "kubernetes,kubectl,cm-watcher,echo,helm"
         run: |
           make build-plugins
 
+      - name: CLI Cache
+        uses: actions/cache@v3
+        with:
+              path: |
+                ~/.cache/go-build
+                ~/go/pkg/mod
+                dist/botkube-cli_linux_amd64_v1/botkube
+          key: ${{ runner.os }}-botkube-cli
+
       - name: Build CLI
         run: make release-snapshot-cli
+
       - name: Add Botkube CLI to env
         run: |
           echo CONFIG_PROVIDER_BOTKUBE_CLI_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV

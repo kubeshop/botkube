@@ -58,20 +58,27 @@ save_images() {
   fi
 
   export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
-  goreleaser release --clean --snapshot --skip-publish
+
+  GORELEASER_FILE="$(prepare_goreleaser)"
+  goreleaser release --clean --snapshot --skip-publish --config="${GORELEASER_FILE}"
 
   mkdir -p "${IMAGE_SAVE_LOAD_DIR}"
 
   # Save images
-  IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
-  docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-agent,"* ]]; then
+      IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
+      docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
+      docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
+      docker save ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 >${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  fi
 
-  CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX=$(echo "${CFG_EXPORTER_IMAGE_REPOSITORY}" | tr "/" "-")
-  docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-amd64.tar
-  docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-arm64.tar
-  docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-config-exporter,"* ]]; then
+      CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX=$(echo "${CFG_EXPORTER_IMAGE_REPOSITORY}" | tr "/" "-")
+      docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-amd64.tar
+      docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-arm64.tar
+      docker save ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7 >${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  fi
+
 }
 
 load_and_push_images() {
@@ -84,37 +91,49 @@ load_and_push_images() {
   export GORELEASER_CURRENT_TAG=${IMAGE_TAG}
 
   # Load images
-  IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-agent,"* ]]; then
+      IMAGE_FILE_NAME_PREFIX=$(echo "${IMAGE_REPOSITORY}" | tr "/" "-")
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-amd64.tar
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-arm64.tar
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  fi
 
-  CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX=$(echo "${CFG_EXPORTER_IMAGE_REPOSITORY}" | tr "/" "-")
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-amd64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-arm64.tar
-  docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-config-exporter,"* ]]; then
+      CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX=$(echo "${CFG_EXPORTER_IMAGE_REPOSITORY}" | tr "/" "-")
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-amd64.tar
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-arm64.tar
+      docker load --input ${IMAGE_SAVE_LOAD_DIR}/${CFG_EXPORTER_IMAGE_FILE_NAME_PREFIX}-armv7.tar
+  fi
 
   # Push images
-  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-agent,"* ]]; then
+      docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
+      docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
+      docker push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  fi
 
-  docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
-  docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
-  docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-config-exporter,"* ]]; then
+      docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64
+      docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64
+      docker push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+  fi
 
   # Create manifest
-  docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-agent,"* ]]; then
+      docker manifest create ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+        --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
+        --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
+        --amend ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+      docker manifest push ${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  fi
 
-  docker manifest create ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
-    --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
-    --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
-    --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
-  docker manifest push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  if [[ -z "$BUILD_TARGETS" || ",$BUILD_TARGETS," == *",botkube-config-exporter,"* ]]; then
+      docker manifest create ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG} \
+        --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-amd64 \
+        --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-arm64 \
+        --amend ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}-armv7
+      docker manifest push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
+  fi
 }
 
 build() {
@@ -150,6 +169,65 @@ build_plugins() {
 build_plugins_single() {
   command+="$(build_plugins_command) --single-target"
   eval "$command"
+}
+
+prepare_goreleaser() {
+  if [ -z "${BUILD_TARGETS}" ]; then
+    echo ".goreleaser.yml"
+    exit 0
+  fi
+
+  cp .goreleaser.yml .goreleaser_temp.yaml
+
+  # Filter the builds section
+  for build_id in $(yq e '.builds[].id' .goreleaser_temp.yaml); do
+      if [[ ! ",$BUILD_TARGETS," == *",$build_id,"* ]]; then
+          yq e "del(.builds[] | select(.id == \"$build_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the dockers section
+  for docker_id in $(yq e '.dockers[].id' .goreleaser_temp.yaml); do
+      build_name=$(echo "$docker_id" | rev | cut -d'-' -f2- | rev)
+      if [[ ! ",$BUILD_TARGETS," == *",$build_name,"* ]]; then
+          yq e "del(.dockers[] | select(.id == \"$docker_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the archives section
+  for archive_id in $(yq e '.archives[].id' .goreleaser_temp.yaml); do
+      if [[ ! ",$BUILD_TARGETS," == *",$archive_id,"* ]]; then
+          yq e "del(.archives[] | select(.id == \"$archive_id\"))" -i .goreleaser_temp.yaml
+      fi
+  done
+
+  # Filter the brews section
+  DEFAULT_BREW_NAME="botkube"
+  BOTKUBE_CLI_ID="botkube-cli"
+  if [[ ! ",$BUILD_TARGETS," == *",$BOTKUBE_CLI_ID,"* ]]; then
+      yq e "del(.brews[] | select(.name == \"$DEFAULT_BREW_NAME\"))" -i .goreleaser_temp.yaml
+  fi
+
+  if [[ "${SINGLE_PLATFORM}" == "true" ]]; then
+    CURRENT_OS=$(go env GOOS)
+    CURRENT_ARCH=$(go env GOARCH)
+
+    # Remove the goarm from the YAML file if it's not Darwin
+    if [ "$CURRENT_OS" != "darwin" ]; then
+      yq eval 'del(.builds[].goos[] | select(. == "darwin"))' .goreleaser_temp.yaml -i
+      yq eval 'del(.builds[].goarm)' .goreleaser_temp.yaml -i
+    fi
+
+    if [ -n "$CURRENT_OS" ]; then
+      yq eval "del(.builds[].goos[] | select(. == \"$CURRENT_OS\"))" .goreleaser_temp.yaml -i
+    fi
+
+    if [ -n "$CURRENT_ARCH" ]; then
+      yq eval "del(.builds[].goarch[] | select(. == \"$CURRENT_ARCH\"))" .goreleaser_temp.yaml -i
+    fi
+  fi
+
+  echo ".goreleaser_temp.yaml"
 }
 
 build_single() {
