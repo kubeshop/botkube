@@ -50,7 +50,7 @@ func NewUninstall() *cobra.Command {
 	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", helm.Namespace, "Botkube namespace.")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for deletion.")
 
-	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "simulate a uninstall")
+	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "Simulate an uninstallation")
 	flags.BoolVar(&opts.HelmParams.DisableHooks, "no-hooks", false, "prevent hooks from running during uninstallation")
 	flags.BoolVar(&opts.HelmParams.KeepHistory, "keep-history", false, "remove all associated resources and mark the release as deleted, but retain the release history")
 	flags.BoolVar(&opts.HelmParams.Wait, "wait", true, "if set, will wait until all the resources are deleted before returning. It will wait for as long as --timeout")
