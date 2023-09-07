@@ -26,7 +26,8 @@ var (
 )
 
 type Config struct {
-	ApiKey string `yaml:"apiKey"`
+	APIBaseURL string `yaml:"apiBaseUrl"`
+	APIKey     string `yaml:"apiKey"`
 }
 
 // Executor provides functionality for running Doctor.
@@ -59,6 +60,12 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 				  "description": "OpenAI Secret API Key",
 				  "type": "string",
 				  "title": "API Key"
+				},
+				"apiBaseUrl": {
+				  "description": "OpenAI API Base URL",
+				  "type": "string",
+				  "title": "API Base URL",
+				  "default": "https://api.openai.com/v1"
 				}
 			  },
 			  "required": [
@@ -153,11 +160,16 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
 	d.l.Lock()
 	defer d.l.Unlock()
-	if cfg.ApiKey == "" {
+	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("OpenAPI API Key cannot be empty. You generate it here: https://platform.openai.com/account/api-keys")
 	}
+
+	var opts []gpt3.ClientOption
+	if cfg.APIBaseURL != "" {
+		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
+	}
 	if d.gptClient == nil {
-		d.gptClient = gpt3.NewClient(cfg.ApiKey)
+		d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	}
 	return d.gptClient, nil
 }
