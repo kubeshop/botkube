@@ -36,7 +36,7 @@ botkube install --repo @local
       --dependency-update            Update dependencies if they are missing before installing the chart
       --description string           add a custom description
       --disable-openapi-validation   If set, it will not validate rendered templates against the Kubernetes OpenAPI Schema
-      --dry-run                      Simulate an install
+      --dry-run                      Simulate an installation
       --force                        Force resource updates through a replacement strategy
   -h, --help                         help for install
       --kubeconfig string            Paths to a kubeconfig. Only required if out-of-cluster.

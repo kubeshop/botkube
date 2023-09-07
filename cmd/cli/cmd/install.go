@@ -54,7 +54,7 @@ func NewInstall() *cobra.Command {
 	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", helm.ReleaseName, "Botkube Helm chart release name.")
 	flags.StringVar(&opts.HelmParams.ChartName, "chart-name", helm.HelmChartName, "Botkube Helm chart name.")
 	flags.StringVar(&opts.HelmParams.RepoLocation, "repo", helm.HelmRepoStable, fmt.Sprintf("Botkube Helm chart repository location. It can be relative path to current working directory or URL. Use %s tag to select repository which holds the stable Helm chart versions.", helm.StableVersionTag))
-	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "Simulate an install")
+	flags.BoolVar(&opts.HelmParams.DryRun, "dry-run", false, "Simulate an installation")
 	flags.BoolVar(&opts.HelmParams.Force, "force", false, "Force resource updates through a replacement strategy")
 	flags.BoolVar(&opts.HelmParams.DisableHooks, "no-hooks", false, "Disable pre/post install/upgrade hooks")
 	flags.BoolVar(&opts.HelmParams.DisableOpenAPIValidation, "disable-openapi-validation", false, "If set, it will not validate rendered templates against the Kubernetes OpenAPI Schema")
