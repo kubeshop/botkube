@@ -2,7 +2,11 @@ package argocd
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/argoproj/notifications-engine/pkg/triggers"
@@ -28,14 +32,23 @@ var (
 		Version:  "v1alpha1",
 		Resource: "applications",
 	}
+	allowedCharsRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 )
 
 const (
-	triggerPathPrefix = "bk"
+	namePrefix = "b"
 
 	fieldManagerName = "botkube"
 
 	appAnnotationPatchFmt = `{"metadata":{"annotations":{"%s":""}}}`
+
+	annotationKeyFmt = "notifications.argoproj.io/subscribe.%s.%s"
+
+	// the K8s annotation needs to be 63 chars or fewer.
+	// `notifications.argoproj.io/subscribe..` is already 37 chars, so we have 26 chars to spend
+	maxWebhookNameLength  = 6
+	maxTriggerNameLength  = 20
+	maxTemplateNameLength = 128 // there's no actual limit apart from 1MB for the ConfigMap, but let's be reasonable
 )
 
 func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.DynamicClient) error {
@@ -48,6 +61,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 	if err != nil {
 		return err
 	}
+	webhookName = s.normalize(webhookName, maxWebhookNameLength)
 	s.log.Debugf("Using webhook %q...", webhookName)
 
 	// register webhook
@@ -185,7 +199,8 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		return "", nil, fmt.Errorf("trigger %q does not exist", originalTriggerPath)
 	}
 
-	triggerName := fmt.Sprintf("%s-%s-%s", triggerPathPrefix, s.srcCtx.SourceName, existingTriggerName)
+	triggerName := fmt.Sprintf("%s-%s-%s", namePrefix, s.srcCtx.SourceName, existingTriggerName)
+	triggerName = s.normalize(triggerName, maxTriggerNameLength)
 
 	s.log.WithFields(logrus.Fields{
 		"originalTriggerPath": originalTriggerPath,
@@ -216,6 +231,8 @@ func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []triggers.Condit
 	if err != nil {
 		return "", nil, fmt.Errorf("while rendering trigger name: %w", err)
 	}
+	triggerName = s.normalize(triggerName, maxTriggerNameLength)
+
 	s.log.Debugf("Creating new trigger %q...", triggerName)
 
 	errs := multierror.New()
@@ -241,7 +258,8 @@ func (s *Source) createSubscriptions(ctx context.Context, k8sCli *dynamic.Dynami
 		if sub.Application.Name == "" || sub.Application.Namespace == "" {
 			errs = multierror.Append(errs, fmt.Errorf("application name and namespace must be set"))
 		}
-		annotationKey := fmt.Sprintf("notifications.argoproj.io/subscribe.%s.%s", sub.TriggerName, sub.WebhookName)
+
+		annotationKey := fmt.Sprintf(annotationKeyFmt, sub.TriggerName, sub.WebhookName)
 		s.log.WithField("annotationKey", annotationKey).Debugf("Annotating application \"%s/%s\"...", sub.Application.Namespace, sub.Application.Name)
 		annotationPatch := fmt.Sprintf(appAnnotationPatchFmt, annotationKey)
 		_, err := k8sCli.Resource(argoAppGVR).Namespace(sub.Application.Namespace).Patch(
@@ -288,6 +306,9 @@ func (s *Source) registerTemplate(webhookName string, tpl Template) (string, str
 	if err != nil {
 		return "", "", fmt.Errorf("while rendering template name: %w", err)
 	}
+
+	// in fact, ConfigMap keys can contain slashes, but hey, let's keep the same normalization rules
+	templateName = s.normalize(templateName, maxTemplateNameLength)
 	s.log.Debugf("Registering template %q...", templateName)
 
 	out := map[string]interface{}{
@@ -308,4 +329,32 @@ func (s *Source) registerTemplate(webhookName string, tpl Template) (string, str
 	tplValue := string(bytes)
 
 	return tplPath, tplValue, nil
+}
+
+func (s *Source) normalize(in string, maxSize int) string {
+	out := in
+	defer s.log.Debugf("Normalized %q to %q", in, out)
+
+	// replace all special characters with `-`
+	out = allowedCharsRegex.ReplaceAllString(out, "-")
+
+	// make it lowercase
+	out = strings.ToLower(out)
+
+	if len(out) <= maxSize {
+		return out
+	}
+
+	// nolint:gosec // false positive
+	h := sha1.New()
+	h.Write([]byte(in))
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	hashMaxSize := maxSize - 2 // 2 chars for the `b-` prefix
+	// if the hash is too long, truncate it
+	if len(hash) > hashMaxSize {
+		hash = hash[:hashMaxSize]
+	}
+
+	return fmt.Sprintf("%s-%s", namePrefix, hash)
 }
