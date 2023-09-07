@@ -22,8 +22,8 @@
         "applications": {
           "type": "array",
           "title": "Applications",
+          "minItems": 1,
           "items": {
-            "minItems": 1,
             "type": "object",
             "properties": {
               "name": {
@@ -41,7 +41,8 @@
             ]
           }
         }
-      }
+      },
+      "required": ["applications"]
     },
     "argoCD": {
       "type": "object",
@@ -96,7 +97,6 @@
           "type": "string",
           "title": "Webhook URL",
           "description": "Botkube Webhook URL. It might contain template variables based on the Source Incoming Webhook context.",
-          "format": "uri",
           "default": "{{ .IncomingWebhook.FullURLForSource }}"
         }
       },
