@@ -3,12 +3,17 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
+)
+
+const (
+	emptyPluginFilter = ""
 )
 
 type pluginDispatcher interface {
@@ -44,37 +49,122 @@ type StartedSource struct {
 
 // Scheduler analyzes the provided configuration and based on that schedules plugin sources.
 type Scheduler struct {
-	log        logrus.FieldLogger
-	cfg        *config.Config
-	dispatcher pluginDispatcher
+	log            logrus.FieldLogger
+	cfg            *config.Config
+	dispatcher     pluginDispatcher
+	dispatchConfig map[string]map[string]PluginDispatch
+	schedulerChan  chan string
 
-	// startedProcesses holds information about started unique plugin processes
-	// We start a new plugin process each time we see a new order of source bindings.
-	// We do that because we pass the array of configs to each `Stream` method and
-	// the merging strategy for configs can depend on the order.
-	// As a result our key is e.g. ['source-name1;source-name2']
-	startedProcesses map[string]struct{}
-
+	openedStreams        *openedStreams
 	startedSourcePlugins map[string][]StartedSource
 }
 
+type openedStreams struct {
+	sync.RWMutex
+	data map[string]map[string]struct{}
+}
+
+func (p *openedStreams) reportStartedStreamWithConfiguration(plugin, configuration string) {
+	p.Lock()
+	defer p.Unlock()
+	if p.data == nil {
+		p.data = map[string]map[string]struct{}{}
+	}
+
+	if p.data[plugin] == nil {
+		p.data[plugin] = map[string]struct{}{}
+	}
+
+	p.data[plugin][configuration] = struct{}{}
+}
+
+func (p *openedStreams) deleteAllStartedStreamsForPlugin(plugin string) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.data, plugin)
+}
+
+func (p *openedStreams) isStartedStreamWithConfiguration(plugin, configuration string) bool {
+	p.RLock()
+	defer p.RUnlock()
+	_, ok := p.data[plugin][configuration]
+	return ok
+}
+
 // NewScheduler create a new Scheduler instance.
-func NewScheduler(log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher) *Scheduler {
-	return &Scheduler{
+func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Config, dispatcher pluginDispatcher, schedulerChan chan string) *Scheduler {
+	s := &Scheduler{
 		log:                  log,
 		cfg:                  cfg,
 		dispatcher:           dispatcher,
-		startedProcesses:     map[string]struct{}{},
 		startedSourcePlugins: map[string][]StartedSource{},
+		openedStreams:        &openedStreams{data: map[string]map[string]struct{}{}},
+		dispatchConfig:       make(map[string]map[string]PluginDispatch),
+		schedulerChan:        schedulerChan,
 	}
+	go s.monitorHealth(ctx)
+	return s
 }
 
 // Start starts all sources and dispatch received events.
 func (d *Scheduler) Start(ctx context.Context) error {
+	if err := d.generateConfigs(ctx); err != nil {
+		return fmt.Errorf("while generating configs for sources: %w", err)
+	}
+	if err := d.schedule(emptyPluginFilter); err != nil {
+		return fmt.Errorf("while scheduling source dispatch: %w", err)
+	}
+	return nil
+}
+
+func (d *Scheduler) monitorHealth(ctx context.Context) {
+	d.log.Info("Starting scheduler plugin health monitor")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case pluginName := <-d.schedulerChan:
+			d.log.Debugf("Scheduling restarted plugin %q", pluginName)
+			//  botkube/kubernetes map to source configuration ->
+			// 	   - k8s-all-events_interactive/true
+			//	   - k8s-all-events_interactive/false
+			d.openedStreams.deleteAllStartedStreamsForPlugin(pluginName)
+			if err := d.schedule(pluginName); err != nil {
+				d.log.Errorf("while scheduling %q: %s", pluginName, err)
+			}
+		}
+	}
+}
+
+func (d *Scheduler) schedule(pluginFilter string) error {
+	for configKey, sourceConfig := range d.dispatchConfig {
+		for pluginName, config := range sourceConfig {
+			if pluginFilter != emptyPluginFilter && pluginFilter != pluginName {
+				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)
+				continue
+			}
+
+			if ok := d.openedStreams.isStartedStreamWithConfiguration(pluginName, configKey); ok {
+				d.log.Infof("Not starting %q as it was already started.", pluginName)
+				continue
+			}
+
+			d.log.Infof("Starting a new stream for plugin %q", pluginName)
+			if err := d.dispatcher.Dispatch(config); err != nil {
+				return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
+			}
+
+			d.openedStreams.reportStartedStreamWithConfiguration(pluginName, configKey)
+		}
+	}
+	return nil
+}
+
+func (d *Scheduler) generateConfigs(ctx context.Context) error {
 	for _, commGroupCfg := range d.cfg.Communications {
 		if commGroupCfg.CloudSlack.Enabled {
 			for _, channel := range commGroupCfg.CloudSlack.Channels {
-				if err := d.schedule(ctx, config.CloudSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.CloudSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -82,7 +172,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.Slack.Enabled {
 			for _, channel := range commGroupCfg.Slack.Channels {
-				if err := d.schedule(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -90,7 +180,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.SocketSlack.Enabled {
 			for _, channel := range commGroupCfg.SocketSlack.Channels {
-				if err := d.schedule(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -98,35 +188,35 @@ func (d *Scheduler) Start(ctx context.Context) error {
 
 		if commGroupCfg.Mattermost.Enabled {
 			for _, channel := range commGroupCfg.Mattermost.Channels {
-				if err := d.schedule(ctx, config.MattermostCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.MattermostCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			if err := d.schedule(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources); err != nil {
+			if err := d.generateSourceConfigs(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources); err != nil {
 				return err
 			}
 		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, channel := range commGroupCfg.Discord.Channels {
-				if err := d.schedule(ctx, config.DiscordCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, config.DiscordCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
 					return err
 				}
 			}
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			if err := d.schedule(ctx, false, commGroupCfg.Webhook.Bindings.Sources); err != nil {
+			if err := d.generateSourceConfigs(ctx, false, commGroupCfg.Webhook.Bindings.Sources); err != nil {
 				return err
 			}
 		}
 
 		if commGroupCfg.Elasticsearch.Enabled {
 			for _, index := range commGroupCfg.Elasticsearch.Indices {
-				if err := d.schedule(ctx, false, index.Bindings.Sources); err != nil {
+				if err := d.generateSourceConfigs(ctx, false, index.Bindings.Sources); err != nil {
 					return err
 				}
 			}
@@ -138,7 +228,7 @@ func (d *Scheduler) Start(ctx context.Context) error {
 		if !act.Enabled {
 			continue
 		}
-		if err := d.schedule(ctx, false, act.Bindings.Sources); err != nil {
+		if err := d.generateSourceConfigs(ctx, false, act.Bindings.Sources); err != nil {
 			return err
 		}
 	}
@@ -146,9 +236,9 @@ func (d *Scheduler) Start(ctx context.Context) error {
 	return nil
 }
 
-func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool, boundSources []string) error {
+func (d *Scheduler) generateSourceConfigs(ctx context.Context, isInteractivitySupported bool, boundSources []string) error {
 	for _, boundSource := range boundSources {
-		err := d.schedulePlugin(ctx, isInteractivitySupported, boundSource)
+		err := d.generatePluginConfig(ctx, isInteractivitySupported, boundSource)
 		if err != nil {
 			return err
 		}
@@ -156,21 +246,12 @@ func (d *Scheduler) schedule(ctx context.Context, isInteractivitySupported bool,
 	return nil
 }
 
-func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
+func (d *Scheduler) generatePluginConfig(ctx context.Context, isInteractivitySupported bool, sourceName string) error {
 	// As not all of our platforms supports interactivity, we need to schedule the same source twice. For example:
 	//  - k8s-all-events_interactive/true
 	//  - k8s-all-events_interactive/false
-	// As a result each Stream method will know if it can produce interactive message or not.
+	// As a result, each Stream method will know if it can produce an interactive message or not.
 	key := fmt.Sprintf("%s_interactive/%v", sourceName, isInteractivitySupported)
-
-	_, found := d.startedProcesses[key]
-	if found {
-		d.log.Infof("Not starting %q as it was already started.", key)
-		return nil // such configuration was already started
-	}
-
-	d.log.Infof("Starting a new stream for %q.", key)
-	d.startedProcesses[key] = struct{}{}
 
 	srcConfig, exists := d.cfg.Sources[sourceName]
 	if !exists {
@@ -186,11 +267,10 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 		if err != nil {
 			return fmt.Errorf("while marshaling config for %s from source %s : %w", pluginName, sourceName, err)
 		}
-
 		pluginConfig := &source.Config{
 			RawYAML: rawYAML,
 		}
-		err = d.dispatcher.Dispatch(PluginDispatch{
+		config := PluginDispatch{
 			ctx:                      ctx,
 			pluginName:               pluginName,
 			pluginConfig:             pluginConfig,
@@ -202,16 +282,17 @@ func (d *Scheduler) schedulePlugin(ctx context.Context, isInteractivitySupported
 			incomingWebhook: IncomingWebhookData{
 				inClusterBaseURL: d.cfg.Plugins.IncomingWebhook.InClusterBaseURL,
 			},
-		})
-		if err != nil {
-			return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 		}
 
-		d.startedSourcePlugins[sourceName] = append(d.startedSourcePlugins[sourceName], StartedSource{
-			SourceDisplayName:        srcConfig.DisplayName,
+		d.dispatchConfig[key] = map[string]PluginDispatch{
+			pluginName: config,
+		}
+
+		d.startedSourcePlugins[config.sourceName] = append(d.startedSourcePlugins[config.sourceName], StartedSource{
+			SourceDisplayName:        config.sourceDisplayName,
 			PluginName:               pluginName,
-			PluginConfig:             pluginConfig,
-			IsInteractivitySupported: isInteractivitySupported,
+			PluginConfig:             config.pluginConfig,
+			IsInteractivitySupported: config.isInteractivitySupported,
 		})
 	}
 	return nil

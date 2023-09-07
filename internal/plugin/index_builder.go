@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/sirupsen/logrus"
@@ -173,23 +174,25 @@ func (*IndexBuilder) dependenciesForBinary(bin pluginBinariesIndex, deps map[str
 	return out
 }
 
-func (i *IndexBuilder) getPluginMetadata(dir string, bins []pluginBinariesIndex) (*api.MetadataOutput, error) {
+func (i *IndexBuilder) getPluginMetadata(dir string, index []pluginBinariesIndex) (*api.MetadataOutput, error) {
 	os, arch := runtime.GOOS, runtime.GOARCH
 
-	for _, item := range bins {
+	for _, item := range index {
 		if item.Arch != arch || item.OS != os {
 			continue
 		}
 
-		bins := map[string]string{
-			item.Type.String(): filepath.Join(dir, item.BinaryPath),
+		bins := map[string]pluginMetadata{
+			item.Type.String(): {
+				binPath: filepath.Join(dir, item.BinaryPath),
+			},
 		}
-		clients, err := createGRPCClients[metadataGetter](i.log, config.Logger{}, bins, item.Type)
+		clients, err := createGRPCClients[metadataGetter](context.Background(), i.log, config.Logger{}, bins, item.Type, make(chan pluginMetadata), 10*time.Second)
 		if err != nil {
 			return nil, fmt.Errorf("while creating gRPC client: %w", err)
 		}
 
-		cli := clients[item.Type.String()]
+		cli := clients.data[item.Type.String()]
 		meta, err := cli.Client.Metadata(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("while calling metadata RPC: %w", err)

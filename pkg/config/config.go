@@ -133,9 +133,27 @@ type Config struct {
 
 // PluginManagement holds Botkube plugin management related configuration.
 type PluginManagement struct {
-	CacheDir        string                         `yaml:"cacheDir"`
-	Repositories    map[string]PluginsRepositories `yaml:"repositories"`
-	IncomingWebhook IncomingWebhook                `yaml:"incomingWebhook"`
+	CacheDir            string                         `yaml:"cacheDir"`
+	Repositories        map[string]PluginsRepositories `yaml:"repositories"`
+	IncomingWebhook     IncomingWebhook                `yaml:"incomingWebhook"`
+	RestartPolicy       PluginRestartPolicy            `yaml:"restartPolicy"`
+	HealthCheckInterval time.Duration                  `yaml:"healthCheckInterval"`
+}
+
+type PluginRestartPolicy struct {
+	Type      PluginRestartPolicyType `yaml:"type"`
+	Threshold int                     `yaml:"threshold"`
+}
+
+type PluginRestartPolicyType string
+
+const (
+	KeepAgentRunningWhenThresholdReached PluginRestartPolicyType = "DeactivatePlugin"
+	RestartAgentWhenThresholdReached     PluginRestartPolicyType = "RestartAgent"
+)
+
+func (p PluginRestartPolicyType) ToLower() string {
+	return strings.ToLower(string(p))
 }
 
 // PluginsRepositories holds the Plugin repository information.
