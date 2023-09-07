@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alexflint/go-arg"
+	"github.com/gookit/color"
 	"github.com/mattn/go-shellwords"
 
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -126,11 +127,16 @@ func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteComma
 		Stderr:   stderr.String(),
 		ExitCode: cmd.ProcessState.ExitCode(),
 	}
+	if opts.ClearColorCodes {
+		out.Stdout = color.ClearCode(out.Stdout)
+		out.Stderr = color.ClearCode(out.Stderr)
+	}
+
 	if err != nil {
-		return out, runErr(stdout.String(), stderr.String(), err)
+		return out, runErr(out.Stdout, out.Stderr, err)
 	}
 	if out.ExitCode != 0 {
-		return out, fmt.Errorf("got non-zero exit code, stdout [%q], stderr [%q]", stdout.String(), stderr.String())
+		return out, fmt.Errorf("got non-zero exit code, stdout [%q], stderr [%q]", out.Stdout, out.Stderr)
 	}
 	return out, nil
 }
