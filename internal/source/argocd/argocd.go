@@ -28,6 +28,9 @@ var (
 
 	//go:embed req-jsonschema.json
 	requestJSONSchema string
+
+	//go:embed default-config.yaml
+	defaultConfigYAML string
 )
 
 const (
@@ -124,8 +127,10 @@ func (s *Source) HandleExternalRequest(ctx context.Context, input source.Externa
 		}
 	} else {
 		msg.Type = api.NonInteractiveSingleSection
-		// TODO: Display links to details and repository
-		// TODO: Support properly emojis for Discord :large_green_circle:
+		lastSectionIdx := len(msg.Sections) - 1
+		if lastSectionIdx != -1 {
+			msg.Sections[lastSectionIdx].TextFields = append(msg.Sections[lastSectionIdx].TextFields, s.generateNonInteractiveFields(reqBody)...)
+		}
 	}
 
 	return source.ExternalRequestOutput{

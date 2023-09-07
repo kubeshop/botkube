@@ -1,0 +1,366 @@
+log:
+  level: "info"
+
+# -- Interactivity configures command dropdown and additional buttons
+# for platforms which support interactivity (`isInteractive: true`) such as Socket Slack or Cloud Slack.
+interactivity:
+  enableViewInUIButton: true
+  enableOpenRepositoryButton: true
+  commandVerbs:
+    - "get"
+    - "describe"
+
+# -- Webhook configuration.
+webhook:
+  # -- If true, it registers Botkube webhook in ArgoCD notification config.
+  register: true
+  name: "bk-{{ .SourceName }}"
+  url: "{{ .IncomingWebhook.FullURLForSource }}"
+
+# -- Triggers and templates are based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml.
+# Trigger might be created from existing template (`fromExisting`) or from scratch (`create`).
+notifications:
+  - trigger:
+      # fromExisting:
+      #  name: on-created # remember to provide shorter name; it is used in annotation, along with the webhook name and the name cannot be longer than 63 characters
+      #  templateName: "botkube-{{ .SourceName }}-app-created"
+      create:
+        name: "bk-{{ .SourceName }}-on-created"
+        conditions: # syntax: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/triggers/
+          - description: Application is created.
+            oncePer: app.metadata.name
+            when: "true"
+            send:
+              - "bk-{{ .SourceName }}-app-created" # template Name, you can use templating here
+    subscriptions: &triggerSubscriptions
+      # -- Even if false, the default subscriptions are still created.
+      create: true
+      # -- Additional subscriptions apart from `defaultSubscriptions`
+      additional: []
+        #  - name: "guestbook"
+        #    namespace: "argocd"
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName }}-on-deleted"
+        conditions:
+          - description: Application is deleted.
+            oncePer: app.metadata.name
+            when: app.metadata.deletionTimestamp != nil
+            send:
+              - "bk-{{ .SourceName }}-app-deleted"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName}}-on-deployed"
+        conditions:
+          - description: Application is synced and healthy. Triggered once per commit.
+            oncePer: app.status.operationState.syncResult.revision
+            when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status
+              == 'Healthy'
+            send:
+              - "bk-{{ .SourceName }}-app-deployed"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName}}-on-health-degraded"
+        conditions:
+          - description: Application has degraded
+            when: app.status.health.status == 'Degraded'
+            send:
+              - "bk-{{ .SourceName }}-app-health-degraded"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName }}-on-sync-failed"
+        conditions:
+          - description: Application syncing has failed
+            when: app.status.operationState != nil and app.status.operationState.phase in ['Error',
+              'Failed']
+            send:
+              - "bk-{{ .SourceName }}-app-sync-failed"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName }}-on-sync-running"
+        conditions:
+          - description: Application is being synced
+            when: app.status.operationState != nil and app.status.operationState.phase in ['Running']
+            send:
+              - "bk-{{ .SourceName }}-app-sync-running"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName }}-on-sync-status-unknown"
+        conditions:
+          - description: Application status is 'Unknown'
+            when: app.status.sync.status == 'Unknown'
+            send:
+              - "bk-{{ .SourceName }}-app-sync-status-unknown"
+    subscriptions: *triggerSubscriptions
+  - trigger:
+      create:
+        name: "bk-{{ .SourceName }}-on-sync-succeeded"
+        conditions:
+          - description: Application syncing has succeeded
+            when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded']
+            send:
+              - "bk-{{ .SourceName }}-app-sync-succeeded"
+    subscriptions: *triggerSubscriptions
+
+templates:
+  - name: "bk-{{ .SourceName }}-app-created"
+    body: |
+      {
+        "message": {
+          "sections": [
+            { "header": ":new: Application `{{.app.metadata.name}}` has been created" }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-deleted"
+    body: |
+      {
+        "message": {
+          "sections": [
+            { "header": ":no_entry_sign: Application `{{.app.metadata.name}}` has been deleted" }
+          ]
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-deployed"
+    body: |
+      {
+        "message": {
+          "sections": [
+            {
+              "header": ":rocket: New version of the application `{{.app.metadata.name}}` is up and running",
+              "textFields": [
+                {
+                  "key": "Sync Status",
+                  "value": "{{.app.status.sync.status}}"
+                },
+                {
+                  "key": "Health Status",
+                  "value": "{{.app.status.health.status}}"
+                },
+                {
+                  "key": "Revision",
+                  "value": "{{.app.status.sync.revision}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+                ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-health-degraded"
+    body: |
+      {
+        "message": {
+          "sections": [
+            {
+              "header": ":exclamation: Application `{{.app.metadata.name}}` has degraded",
+              "textFields": [
+                {
+                  "key": "Health Status",
+                  "value": "{{.app.status.health.status}}"
+                },
+                {
+                  "key": "Revision",
+                  "value": "{{.app.status.sync.revision}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+                ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-sync-failed"
+    body: |
+      {
+        "message": {
+          "timestamp": "{{.app.status.operationState.finishedAt}}",
+          "sections": [
+            {
+              "header": ":exclamation: The sync operation of application `{{.app.metadata.name}}` failed",
+              "textFields": [
+                {
+                  "key": "Error message",
+                  "value": "{{.app.status.operationState.message}}"
+                },
+                {
+                  "key": "Sync Status",
+                  "value": "{{.app.status.sync.status}}"
+                },
+                {
+                  "key": "Revision",
+                  "value": "{{.app.status.sync.revision}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+              ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}?operation=true",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+
+  - name: "bk-{{ .SourceName }}-app-sync-running"
+    body: |
+      {
+        "message": {
+          "timestamp": "{{.app.status.operationState.startedAt}}",
+          "sections": [
+            {
+              "header": ":bulb: The sync operation of application `{{.app.metadata.name}}` started",
+              "textFields": [
+                {
+                  "key": "Sync Status",
+                  "value": "{{.app.status.sync.status}}"
+                },
+                {{ if and (.app.status.operationState) (.app.status.operationState.operation) }}
+                {
+                  "key": "Initiated by",
+                  "value": "{{.app.status.operationState.operation.initiatedBy.username}}"
+                },
+                {{ if .app.status.operationState.operation.initiatedBy.automated }}
+                {
+                  "key": "Automated",
+                  "value": "{{.app.status.operationState.operation.initiatedBy.automated}}"
+                },
+                {{ end }}
+                {{ end }}
+                {
+                  "key": "Revision",
+                  "value": "{{.app.status.sync.revision}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+              ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}?operation=true",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-sync-status-unknown"
+    body: |
+      {
+        "message": {
+          "sections": [
+            {
+              "header": ":warning: Application `{{.app.metadata.name}}` sync status is unknown",
+              "textFields": [
+                {
+                  "key": "Sync Status",
+                  "value": "{{.app.status.sync.status}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+              ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
+  - name: "bk-{{ .SourceName }}-app-sync-succeeded"
+    body: |
+      {
+        "message": {
+          "timestamp": "{{.app.status.operationState.finishedAt}}",
+          "sections": [
+            {
+              "header": ":white_check_mark: Application `{{.app.metadata.name}}` has ben successfully synced",
+              "textFields": [
+                {
+                  "key": "Sync Status",
+                  "value": "{{.app.status.sync.status}}"
+                },
+                {
+                  "key": "Health Status",
+                  "value": "{{.app.status.health.status}}"
+                }
+                {{range $index, $c := .app.status.conditions}}
+              ,{
+                  "key": "{{$c.type}}",
+                  "value": "{{$c.message}}"
+                }
+                {{end}}
+              ]
+            }
+          ]
+        },
+        "context": {
+          "app": {
+            "name": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}"
+          },
+          "detailsUiPath": "/applications/{{.app.metadata.name}}?operation=true",
+          "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
+        }
+      }
