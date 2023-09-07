@@ -26,8 +26,11 @@ var (
 )
 
 type Config struct {
-	APIBaseURL string `yaml:"apiBaseUrl"`
-	APIKey     string `yaml:"apiKey"`
+	APIBaseURL     string `yaml:"apiBaseUrl"`
+	APIKey         string `yaml:"apiKey"`
+	DefaultEngine  string `yaml:"defaultEngine"`
+	OrganizationID string `yaml:"organizationID"`
+	UserAgent      string `yaml:"userAgent"`
 }
 
 // Executor provides functionality for running Doctor.
@@ -66,7 +69,25 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 				  "type": "string",
 				  "title": "API Base URL",
 				  "default": "https://api.openai.com/v1"
-				}
+				},
+				"defaultEngine": {	
+				  "description": "Default engine to use",	
+				  "type": "string",
+				  "title": "Default Engine",	
+				  "default": "davinci"
+				},
+				"organizationID": {	
+				  "description": "Optional organization ID",
+				  "type": "string",
+				  "title": "Organization ID",
+				  "default": ""
+				},
+				"userAgent": {
+				  "description": "User agent to use for requests",
+				  "type": "string",	
+				  "title": "User Agent",	
+				  "default": "go-gpt3"
+				}  	
 			  },
 			  "required": [
 				"apiKey"
@@ -168,6 +189,15 @@ func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
 	if cfg.APIBaseURL != "" {
 		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
 	}
+
+	if cfg.DefaultEngine != "" {
+		opts = append(opts, gpt3.WithDefaultEngine(cfg.DefaultEngine))
+	}
+
+	if cfg.OrganizationID != "" {
+		opts = append(opts, gpt3.WithOrg(cfg.OrganizationID))
+	}
+
 	if d.gptClient == nil {
 		d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	}
