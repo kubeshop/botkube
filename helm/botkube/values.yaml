@@ -565,7 +565,8 @@ sources:
             static:
               values: [*argocd-group]
       # -- Config contains configuration for ArgoCD source plugin.
-      # This section lists only basic options, and uses default triggers and templates which are based on ArgoCD Notification Catalog ones.
+      # This section lists only basic options, and uses default triggers and templates
+      # which are based on ArgoCD Notification Catalog ones (https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml).
       # Advanced customization (including triggers and templates) is described in the documentation.
       config:
         defaultSubscriptions:

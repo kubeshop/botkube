@@ -46,11 +46,11 @@ func (s *Source) generateInteractivitySection(reqBody IncomingRequestBody) *api.
 	}
 
 	btnBldr := api.NewMessageButtonBuilder()
-	if s.shouldDisplayUIDetails(reqBody) {
+	if s.cfg.Interactivity.EnableViewInUIButton && s.shouldDisplayUIDetails(reqBody) {
 		section.Buttons = append(section.Buttons, btnBldr.ForURL("View in UI", fmt.Sprintf("%s%s", s.cfg.ArgoCD.UIBaseURL, *reqBody.Context.DetailsUIPath)))
 	}
 
-	if s.shouldDisplayOpenRepo(reqBody) {
+	if s.cfg.Interactivity.EnableOpenRepositoryButton && s.shouldDisplayOpenRepo(reqBody) {
 		section.Buttons = append(section.Buttons, btnBldr.ForURL("Open repository", *reqBody.Context.RepoURL))
 	}
 

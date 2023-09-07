@@ -1,6 +1,8 @@
 log:
   level: "info"
 
+# -- Interactivity configures command dropdown and additional buttons
+# for platforms which support interactivity (`isInteractive: true`) such as Socket Slack or Cloud Slack.
 interactivity:
   enableViewInUIButton: true
   enableOpenRepositoryButton: true
