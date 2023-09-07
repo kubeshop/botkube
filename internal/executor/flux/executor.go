@@ -141,6 +141,10 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 			"KUBECONFIG": kubeConfigPath,
 		}))
 		if err != nil {
+			if isConfirmDelete(err) {
+				return "", deleteConfirmErr
+			}
+
 			log.WithError(err).WithField("command", command.ToExecute).Error("failed to run command")
 			return "", fmt.Errorf("while running command: %v", err)
 		}

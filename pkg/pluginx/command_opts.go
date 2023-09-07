@@ -4,10 +4,11 @@ import "io"
 
 // ExecuteCommandOptions represents the options for executing a command.
 type ExecuteCommandOptions struct {
-	Envs          map[string]string
-	DependencyDir string
-	WorkDir       string
-	Stdin         io.Reader
+	Envs            map[string]string
+	DependencyDir   string
+	WorkDir         string
+	Stdin           io.Reader
+	ClearColorCodes bool
 }
 
 // ExecuteCommandMutation is a function type that can be used to modify ExecuteCommandOptions.
@@ -38,5 +39,12 @@ func ExecuteCommandWorkingDir(dir string) ExecuteCommandMutation {
 func ExecuteCommandStdin(in io.Reader) ExecuteCommandMutation {
 	return func(options *ExecuteCommandOptions) {
 		options.Stdin = in
+	}
+}
+
+// ExecuteClearColorCodes is a function that enables removing color codes.
+func ExecuteClearColorCodes() ExecuteCommandMutation {
+	return func(options *ExecuteCommandOptions) {
+		options.ClearColorCodes = true
 	}
 }

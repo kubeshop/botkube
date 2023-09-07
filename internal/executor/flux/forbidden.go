@@ -32,6 +32,8 @@ func detectNotSupportedGlobalFlags(normalizedCmd string) error {
 	issues := multierror.New()
 
 	f := pflag.NewFlagSet("detect-not-supported-flags", pflag.ContinueOnError)
+	f.BoolP("help", "h", false, "to make sure that parsing is ignoring the --help,-h flags")
+
 	f.ParseErrorsWhitelist.UnknownFlags = true
 
 	for key := range notSupportedGlobalFlags {
@@ -50,7 +52,7 @@ func detectNotSupportedGlobalFlags(normalizedCmd string) error {
 
 	// visit ONLY flags which have been defined by f.String and explicitly set in the command:
 	f.Visit(func(f *pflag.Flag) {
-		if f == nil {
+		if f == nil || f.Name == "help" {
 			return
 		}
 		issues = multierror.Append(issues, fmt.Errorf("The %q flag is not supported by the Botkube flux plugin. Please remove it.", f.Name))
