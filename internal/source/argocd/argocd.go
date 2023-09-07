@@ -37,7 +37,7 @@ const (
 	// PluginName is the name of the source plugin.
 	PluginName = "argocd"
 
-	description = "Argo source plugin is used to watch ArgoCD events."
+	description = "Argo source plugin is used to get ArgoCD trigger-based notifications."
 )
 
 // Source defines ArgoCD source plugin.
