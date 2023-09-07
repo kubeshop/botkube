@@ -48,7 +48,7 @@ func renderActionButton(tpl ExtraButton, e any) (api.Button, error) {
 		return btns.ForURL(tpl.DisplayName, value, api.ButtonStyle(tpl.Style)), nil
 	}
 
-	value, err := RenderGoTpl(tpl.URL, e)
+	value, err := RenderGoTpl(tpl.CommandTpl, e)
 	if err != nil {
 		return api.Button{}, err
 	}

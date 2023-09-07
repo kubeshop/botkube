@@ -193,7 +193,8 @@ func (w *Watcher) emitMatchingEvent(ctx context.Context, stream *source.StreamOu
 					continue // let's check other events
 				}
 				stream.Event <- source.Event{
-					Message: msg,
+					Message:   msg,
+					RawObject: payload,
 				}
 			}
 		}

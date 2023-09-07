@@ -2,9 +2,9 @@ package flux
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/allegro/bigcache/v3"
 
 	"github.com/kubeshop/botkube/internal/executor/flux/commands"
@@ -16,6 +16,9 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
+
+//go:embed jsonschema.json
+var jsonschema string
 
 const (
 	PluginName  = "flux"
@@ -43,7 +46,9 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:      d.pluginVersion,
 		Description:  description,
 		Dependencies: getPluginDependencies(),
-		JSONSchema:   jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: jsonschema,
+		},
 	}, nil
 }
 
@@ -167,37 +172,4 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 	}
 
 	return out.Message, nil
-}
-
-// jsonSchema returns JSON schema for the executor.
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Flux",
-  "description": "%s",
-  "type": "object",
-  "properties": {
-    "github": {
-      "title": "GitHub",
-      "type": "object",
-      "properties": {
-        "auth": {
-          "title": "Auth",
-          "type": "object",
-          "properties": {
-            "accessToken": {
-              "title": "Access Token",
-              "description": "The GitHub access token. When not provided, some functionality may not work. For example, adding a comment under a pull request.",
-              "type": "string"
-            }
-          }
-        }
-      }
-    }
-  },
-  "required": []
-}
-`, description),
-	}
 }
