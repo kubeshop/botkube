@@ -10,6 +10,15 @@ interactivity:
     - "get"
     - "describe"
 
+# -- ArgoCD-related configuration.
+argoCD:
+  # -- ArgoCD UI base URL. It is used for generating links in the incoming events.
+  uiBaseUrl: http://localhost:8080
+  # -- ArgoCD Notifications ConfigMap reference.
+  notificationsConfigMap:
+    name: argocd-notifications-cm
+    namespace: argocd
+
 # -- Webhook configuration.
 webhook:
   # -- If true, it registers Botkube webhook in ArgoCD notification config.
