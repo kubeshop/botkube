@@ -30,7 +30,7 @@ func (w IncomingWebhookData) FullURLForSource(sourceName string) string {
 }
 
 // NewIncomingWebhookServer creates a new HTTP server for incoming webhooks.
-func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string][]StartedSource) *httpx.Server {
+func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string]StartedSources) *httpx.Server {
 	addr := fmt.Sprintf(":%d", cfg.Plugins.IncomingWebhook.Port)
 	router := incomingWebhookRouter(log, cfg, dispatcher, startedSources)
 
@@ -38,7 +38,7 @@ func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispat
 	return httpx.NewServer(log, addr, router)
 }
 
-func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string][]StartedSource) *mux.Router {
+func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string]StartedSources) *mux.Router {
 	router := mux.NewRouter()
 	pathPrefix := fmt.Sprintf("/%s/", incomingWebhookPathPrefix)
 	router.PathPrefix(pathPrefix).Methods(http.MethodPost).Handler(
@@ -57,7 +57,7 @@ func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatche
 				logger.Debugf("Handling incoming webhook request...")
 
 				sourcePlugins, ok := startedSources[sourceName]
-				if !ok {
+				if !ok || len(sourcePlugins) == 0 {
 					writeJSONError(log, writer, fmt.Sprintf("source %q not found", sourceName), http.StatusNotFound)
 					return
 				}
