@@ -131,6 +131,11 @@ func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan 
 	infiniteWatch := func(event watch.Event) (bool, error) {
 		if event.Type == obj.Event {
 			cm := event.Object.(*corev1.ConfigMap)
+
+			if cm.Annotations["die"] == "true" {
+				exitOnError(fmt.Errorf("die annotation set to true"))
+			}
+
 			msg := fmt.Sprintf("Plugin %s detected `%s` event on `%s/%s`", pluginName, obj.Event, cm.Namespace, cm.Name)
 			sink <- source.Event{
 				Message: api.NewPlaintextMessage(msg, true),
