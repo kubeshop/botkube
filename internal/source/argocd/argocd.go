@@ -135,7 +135,8 @@ func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalR
 
 	return source.ExternalRequestOutput{
 		Event: source.Event{
-			Message: msg,
+			Message:   msg,
+			RawObject: reqBody,
 		},
 	}, nil
 }

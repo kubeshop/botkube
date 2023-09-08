@@ -34,8 +34,7 @@ data:
         {{- .Values.plugins.repositories | toYaml | nindent 8 }}
       incomingWebhook:
         enabled: {{ .Values.plugins.incomingWebhook.enabled }}
-        port: {{ .Values.plugins.incomingWebhook.port }}
-        inClusterBaseURL: "http://{{ include "botkube.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.plugins.incomingWebhook.port }}"
+        # port and baseInClusterURL are set via envs
 
     analytics:
       disable: {{ .Values.analytics.disable }}
