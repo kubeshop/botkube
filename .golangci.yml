@@ -7,6 +7,9 @@ issues:
     - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
     # EXC0008 gosec: Duplicated errcheck checks
     - (G104|G307)
+    # G505: Blocklisted import crypto/sha1: weak cryptographic primitive
+    # This is used just for hashing in ArgoCD plugin
+    - G505
 run:
   tests: true
   build-tags:

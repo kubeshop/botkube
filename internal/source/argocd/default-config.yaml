@@ -14,7 +14,8 @@ interactivity:
 webhook:
   # -- If true, it registers Botkube webhook in ArgoCD notification config.
   register: true
-  name: "bk-{{ .SourceName }}"
+  # -- If the name exceeds 6 characters, it might be truncated and modified to match the external constraints.
+  name: "b-{{ .SourceName }}"
   url: "{{ .IncomingWebhook.FullURLForSource }}"
 
 # -- Triggers and templates are based on https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml.
@@ -22,16 +23,17 @@ webhook:
 notifications:
   - trigger:
       # fromExisting:
-      #  name: on-created # remember to provide shorter name; it is used in annotation, along with the webhook name and the name cannot be longer than 63 characters
+      #  name: on-created
       #  templateName: "botkube-{{ .SourceName }}-app-created"
       create:
-        name: "bk-{{ .SourceName }}-on-created"
+        # -- If the name exceeds 20 characters, it might be modified to match the external constraints.
+        name: "b-{{ .SourceName }}-create"
         conditions: # syntax: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/triggers/
           - description: Application is created.
             oncePer: app.metadata.name
             when: "true"
             send:
-              - "bk-{{ .SourceName }}-app-created" # template Name, you can use templating here
+              - "botkube-{{ .SourceName }}-app-created" # template Name, you can use templating here
     subscriptions: &triggerSubscriptions
       # -- Even if false, the default subscriptions are still created.
       create: true
@@ -41,74 +43,74 @@ notifications:
         #    namespace: "argocd"
   - trigger:
       create:
-        name: "bk-{{ .SourceName }}-on-deleted"
+        name: "b-{{ .SourceName }}-delete"
         conditions:
           - description: Application is deleted.
             oncePer: app.metadata.name
             when: app.metadata.deletionTimestamp != nil
             send:
-              - "bk-{{ .SourceName }}-app-deleted"
+              - "botkube-{{ .SourceName }}-app-deleted"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName}}-on-deployed"
+        name: "b-{{ .SourceName}}-deploy"
         conditions:
           - description: Application is synced and healthy. Triggered once per commit.
             oncePer: app.status.operationState.syncResult.revision
             when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status
               == 'Healthy'
             send:
-              - "bk-{{ .SourceName }}-app-deployed"
+              - "botkube-{{ .SourceName }}-app-deployed"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName}}-on-health-degraded"
+        name: "b-{{ .SourceName}}-degrade"
         conditions:
           - description: Application has degraded
             when: app.status.health.status == 'Degraded'
             send:
-              - "bk-{{ .SourceName }}-app-health-degraded"
+              - "botkube-{{ .SourceName }}-app-health-degraded"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName }}-on-sync-failed"
+        name: "b-{{ .SourceName }}-fail"
         conditions:
           - description: Application syncing has failed
             when: app.status.operationState != nil and app.status.operationState.phase in ['Error',
               'Failed']
             send:
-              - "bk-{{ .SourceName }}-app-sync-failed"
+              - "botkube-{{ .SourceName }}-app-sync-failed"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName }}-on-sync-running"
+        name: "b-{{ .SourceName }}-run"
         conditions:
           - description: Application is being synced
             when: app.status.operationState != nil and app.status.operationState.phase in ['Running']
             send:
-              - "bk-{{ .SourceName }}-app-sync-running"
+              - "botkube-{{ .SourceName }}-app-sync-running"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName }}-on-sync-status-unknown"
+        name: "b-{{ .SourceName }}-unknown"
         conditions:
           - description: Application status is 'Unknown'
             when: app.status.sync.status == 'Unknown'
             send:
-              - "bk-{{ .SourceName }}-app-sync-status-unknown"
+              - "botkube-{{ .SourceName }}-app-sync-status-unknown"
     subscriptions: *triggerSubscriptions
   - trigger:
       create:
-        name: "bk-{{ .SourceName }}-on-sync-succeeded"
+        name: "b-{{ .SourceName }}-success"
         conditions:
           - description: Application syncing has succeeded
             when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded']
             send:
-              - "bk-{{ .SourceName }}-app-sync-succeeded"
+              - "botkube-{{ .SourceName }}-app-sync-succeeded"
     subscriptions: *triggerSubscriptions
 
 templates:
-  - name: "bk-{{ .SourceName }}-app-created"
+  - name: "botkube-{{ .SourceName }}-app-created"
     body: |
       {
         "message": {
@@ -125,7 +127,7 @@ templates:
           "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
         }
       }
-  - name: "bk-{{ .SourceName }}-app-deleted"
+  - name: "botkube-{{ .SourceName }}-app-deleted"
     body: |
       {
         "message": {
@@ -134,7 +136,7 @@ templates:
           ]
         }
       }
-  - name: "bk-{{ .SourceName }}-app-deployed"
+  - name: "botkube-{{ .SourceName }}-app-deployed"
     body: |
       {
         "message": {
@@ -173,7 +175,7 @@ templates:
           "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
         }
       }
-  - name: "bk-{{ .SourceName }}-app-health-degraded"
+  - name: "botkube-{{ .SourceName }}-app-health-degraded"
     body: |
       {
         "message": {
@@ -208,7 +210,7 @@ templates:
           "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
         }
       }
-  - name: "bk-{{ .SourceName }}-app-sync-failed"
+  - name: "botkube-{{ .SourceName }}-app-sync-failed"
     body: |
       {
         "message": {
@@ -249,7 +251,7 @@ templates:
         }
       }
 
-  - name: "bk-{{ .SourceName }}-app-sync-running"
+  - name: "botkube-{{ .SourceName }}-app-sync-running"
     body: |
       {
         "message": {
@@ -297,7 +299,7 @@ templates:
           "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
         }
       }
-  - name: "bk-{{ .SourceName }}-app-sync-status-unknown"
+  - name: "botkube-{{ .SourceName }}-app-sync-status-unknown"
     body: |
       {
         "message": {
@@ -328,7 +330,7 @@ templates:
           "repoUrl": "{{.app.spec.source.repoURL | call .repo.RepoURLToHTTPS}}"
         }
       }
-  - name: "bk-{{ .SourceName }}-app-sync-succeeded"
+  - name: "botkube-{{ .SourceName }}-app-sync-succeeded"
     body: |
       {
         "message": {

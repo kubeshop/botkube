@@ -34,7 +34,7 @@ func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispat
 	addr := fmt.Sprintf(":%d", cfg.Plugins.IncomingWebhook.Port)
 	router := incomingWebhookRouter(log, cfg, dispatcher, startedSources)
 
-	log.Info("Starting server on %q...", addr)
+	log.Infof("Starting server on %q...", addr)
 	return httpx.NewServer(log, addr, router)
 }
 

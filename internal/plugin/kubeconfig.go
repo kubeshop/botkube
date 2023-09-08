@@ -26,6 +26,12 @@ func GenerateKubeConfig(restCfg *rest.Config, clusterName string, pluginCtx conf
 	if rbac == nil {
 		return nil, nil
 	}
+
+	if rbac.User.Type == config.EmptyPolicySubjectType && rbac.Group.Type == config.EmptyPolicySubjectType {
+		// that means the Kubeconfig shouldn't be generated
+		return nil, nil
+	}
+
 	apiCfg := clientcmdapi.Config{
 		Kind:       "Config",
 		APIVersion: "v1",
