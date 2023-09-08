@@ -39,6 +39,9 @@ type ExternalRequestDispatch struct {
 	payload []byte
 }
 
+// StartedSources holds information about started source plugins grouped by interactivity supported.
+type StartedSources map[bool]StartedSource
+
 // StartedSource holds information about started source plugin.
 type StartedSource struct {
 	SourceDisplayName        string
@@ -56,7 +59,7 @@ type Scheduler struct {
 	schedulerChan  chan string
 
 	openedStreams        *openedStreams
-	startedSourcePlugins map[string][]StartedSource
+	startedSourcePlugins map[string]StartedSources
 }
 
 type openedStreams struct {
@@ -97,7 +100,7 @@ func NewScheduler(ctx context.Context, log logrus.FieldLogger, cfg *config.Confi
 		log:                  log,
 		cfg:                  cfg,
 		dispatcher:           dispatcher,
-		startedSourcePlugins: map[string][]StartedSource{},
+		startedSourcePlugins: map[string]StartedSources{},
 		openedStreams:        &openedStreams{data: map[string]map[string]struct{}{}},
 		dispatchConfig:       make(map[string]map[string]PluginDispatch),
 		schedulerChan:        schedulerChan,
@@ -288,16 +291,20 @@ func (d *Scheduler) generatePluginConfig(ctx context.Context, isInteractivitySup
 			pluginName: config,
 		}
 
-		d.startedSourcePlugins[config.sourceName] = append(d.startedSourcePlugins[config.sourceName], StartedSource{
+		if _, exists := d.startedSourcePlugins[config.sourceName]; !exists {
+			d.startedSourcePlugins[config.sourceName] = StartedSources{}
+		}
+
+		d.startedSourcePlugins[config.sourceName][config.isInteractivitySupported] = StartedSource{
 			SourceDisplayName:        config.sourceDisplayName,
 			PluginName:               pluginName,
 			PluginConfig:             config.pluginConfig,
 			IsInteractivitySupported: config.isInteractivitySupported,
-		})
+		}
 	}
 	return nil
 }
 
-func (d *Scheduler) StartedSourcePlugins() map[string][]StartedSource {
+func (d *Scheduler) StartedSourcePlugins() map[string]StartedSources {
 	return d.startedSourcePlugins
 }
