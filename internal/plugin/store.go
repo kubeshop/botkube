@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	semver "github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v3"
@@ -12,7 +13,7 @@ type (
 	// store holds information about processed and started plugins.
 	store[T any] struct {
 		Repository     storeRepository
-		EnabledPlugins storePlugins[T]
+		EnabledPlugins *storePlugins[T]
 	}
 
 	// storeRepository holds known plugins metadata indexed by {repo}/{plugin_name} key.
@@ -33,7 +34,10 @@ type (
 	}
 
 	// storePlugins holds enabled plugins indexed by {repo}/{plugin_name} key.
-	storePlugins[T any] map[string]enabledPlugins[T]
+	storePlugins[T any] struct {
+		sync.RWMutex
+		data map[string]enabledPlugins[T]
+	}
 
 	enabledPlugins[T any] struct {
 		Client  T
@@ -43,9 +47,30 @@ type (
 
 func newStore[T any]() store[T] {
 	return store[T]{
-		Repository:     storeRepository{},
-		EnabledPlugins: map[string]enabledPlugins[T]{},
+		Repository: storeRepository{},
+		EnabledPlugins: &storePlugins[T]{
+			data: map[string]enabledPlugins[T]{},
+		},
 	}
+}
+
+func (p *storePlugins[T]) Insert(key string, plugin enabledPlugins[T]) {
+	p.Lock()
+	defer p.Unlock()
+	p.data[key] = plugin
+}
+
+func (p *storePlugins[T]) Get(key string) (enabledPlugins[T], bool) {
+	p.RLock()
+	defer p.RUnlock()
+	plugin, found := p.data[key]
+	return plugin, found
+}
+
+func (p *storePlugins[T]) Delete(key string) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.data, key)
 }
 
 func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepository, error) {

@@ -1187,6 +1187,13 @@ plugins:
     enabled: true
     port: 2115
     targetPort: 2115
+    # -- Botkube Restart Policy on plugin failure.
+  restartPolicy:
+    # -- Restart policy type. Allowed values: "RestartAgent", "DeactivatePlugin".
+    type: "DeactivatePlugin"
+    # -- Number of restarts before policy takes into effect.
+    threshold: 10
+  healthCheckInterval: 10s
 
 # -- Configuration for synchronizing Botkube configuration.
 config:

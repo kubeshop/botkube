@@ -54,6 +54,10 @@ func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, errors.New("The @fail label was specified. Failing execution.")
 	}
 
+	if strings.Contains(data, "@panic") {
+		panic("The @panic label was specified. Panicking.")
+	}
+
 	if cfg.ChangeResponseToUpperCase != nil && *cfg.ChangeResponseToUpperCase {
 		data = strings.ToUpper(data)
 	}

@@ -82,6 +82,10 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						        enabled: false
 						        port: 0
 						        inClusterBaseURL: ""
+						    restartPolicy:
+						        type: ""
+						        threshold: 0
+						    healthCheckInterval: 0s
 						`),
 		},
 	}
