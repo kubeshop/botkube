@@ -99,12 +99,12 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		return source.StreamOutput{}, fmt.Errorf("while configuring Argo notifications: %w", err)
 	}
 
-	s.log.Info("Set up successful for source configuration %q", input.Context.SourceName)
+	s.log.Infof("Setup successful for source configuration %q", input.Context.SourceName)
 	return source.StreamOutput{}, nil
 }
 
 // HandleExternalRequest handles external requests from ArgoCD.
-func (s *Source) HandleExternalRequest(ctx context.Context, input source.ExternalRequestInput) (source.ExternalRequestOutput, error) {
+func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalRequestInput) (source.ExternalRequestOutput, error) {
 	payload := formatx.StructDumper().Sdump(string(input.Payload))
 	s.log.WithField("payload", payload).Debug("Handling external request...")
 	fallbackTimestamp := time.Now()

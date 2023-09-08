@@ -43,8 +43,7 @@ func TestNormalize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			s := &Source{log: loggerx.NewNoop()}
-			out := s.normalize(tc.Input, tc.MaxSize)
+			out := normalize(loggerx.NewNoop(), tc.Input, tc.MaxSize)
 			assert.Equal(t, tc.ExpectedOutput, out)
 		})
 	}

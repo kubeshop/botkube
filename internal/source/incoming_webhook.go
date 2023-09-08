@@ -40,66 +40,73 @@ func NewIncomingWebhookServer(log logrus.FieldLogger, cfg *config.Config, dispat
 
 func incomingWebhookRouter(log logrus.FieldLogger, cfg *config.Config, dispatcher *Dispatcher, startedSources map[string][]StartedSource) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc(fmt.Sprintf("/%s/{%s}", incomingWebhookPathPrefix, sourceNameVarName), func(writer http.ResponseWriter, request *http.Request) {
-		sourceName, ok := mux.Vars(request)[sourceNameVarName]
-		if !ok {
-			writeJSONError(log, writer, "Source name in path is required", http.StatusBadRequest)
-			return
-		}
-		logger := log.WithFields(logrus.Fields{
-			"sourceName": sourceName,
-		})
-		logger.Debugf("Handling incoming webhook request...")
+	pathPrefix := fmt.Sprintf("/%s/", incomingWebhookPathPrefix)
+	router.PathPrefix(pathPrefix).Methods(http.MethodPost).Handler(
+		http.StripPrefix(
+			pathPrefix,
+			http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				if request == nil || request.URL == nil || request.URL.Path == "" {
+					writeJSONError(log, writer, "Source name in path is required", http.StatusBadRequest)
+					return
+				}
 
-		sourcePlugins, ok := startedSources[sourceName]
-		if !ok {
-			writeJSONError(log, writer, fmt.Sprintf("source %q not found", sourceName), http.StatusNotFound)
-			return
-		}
+				sourceName := request.URL.Path
+				logger := log.WithFields(logrus.Fields{
+					"sourceName": sourceName,
+				})
+				logger.Debugf("Handling incoming webhook request...")
 
-		payload, err := io.ReadAll(request.Body)
-		if err != nil {
-			writeJSONError(log, writer, fmt.Sprintf("while reading request body: %s", err.Error()), http.StatusInternalServerError)
-			return
-		}
-		defer request.Body.Close()
+				sourcePlugins, ok := startedSources[sourceName]
+				if !ok {
+					writeJSONError(log, writer, fmt.Sprintf("source %q not found", sourceName), http.StatusNotFound)
+					return
+				}
 
-		multiErr := multierror.New()
-		for _, src := range sourcePlugins {
-			logger.WithFields(logrus.Fields{
-				"pluginName":               src.PluginName,
-				"isInteractivitySupported": src.IsInteractivitySupported,
-			}).Debug("Dispatching message...")
+				payload, err := io.ReadAll(request.Body)
+				if err != nil {
+					writeJSONError(log, writer, fmt.Sprintf("while reading request body: %s", err.Error()), http.StatusInternalServerError)
+					return
+				}
+				defer request.Body.Close()
 
-			err := dispatcher.DispatchExternalRequest(ExternalRequestDispatch{
-				PluginDispatch: PluginDispatch{
-					ctx:                      context.Background(),
-					sourceName:               sourceName,
-					sourceDisplayName:        src.SourceDisplayName,
-					pluginName:               src.PluginName,
-					pluginConfig:             src.PluginConfig,
-					isInteractivitySupported: src.IsInteractivitySupported,
-					cfg:                      cfg,
-					pluginContext:            config.PluginContext{},
-					incomingWebhook: IncomingWebhookData{
-						inClusterBaseURL: cfg.Plugins.IncomingWebhook.InClusterBaseURL,
-					},
-				},
-				payload: payload,
-			})
-			if err != nil {
-				multiErr = multierror.Append(multiErr, err)
-			}
-		}
+				multiErr := multierror.New()
+				for _, src := range sourcePlugins {
+					logger.WithFields(logrus.Fields{
+						"pluginName":               src.PluginName,
+						"isInteractivitySupported": src.IsInteractivitySupported,
+					}).Debug("Dispatching message...")
 
-		if multiErr.ErrorOrNil() != nil {
-			wrappedErr := fmt.Errorf("while dispatching external request: %w", multiErr)
-			writeJSONError(log, writer, wrappedErr.Error(), http.StatusInternalServerError)
-			return
-		}
+					err := dispatcher.DispatchExternalRequest(ExternalRequestDispatch{
+						PluginDispatch: PluginDispatch{
+							ctx:                      context.Background(),
+							sourceName:               sourceName,
+							sourceDisplayName:        src.SourceDisplayName,
+							pluginName:               src.PluginName,
+							pluginConfig:             src.PluginConfig,
+							isInteractivitySupported: src.IsInteractivitySupported,
+							cfg:                      cfg,
+							pluginContext:            config.PluginContext{},
+							incomingWebhook: IncomingWebhookData{
+								inClusterBaseURL: cfg.Plugins.IncomingWebhook.InClusterBaseURL,
+							},
+						},
+						payload: payload,
+					})
+					if err != nil {
+						multiErr = multierror.Append(multiErr, err)
+					}
+				}
 
-		writeJSONSuccess(log, writer)
-	}).Methods(http.MethodPost)
+				if multiErr.ErrorOrNil() != nil {
+					wrappedErr := fmt.Errorf("while dispatching external request: %w", multiErr)
+					writeJSONError(log, writer, wrappedErr.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				writeJSONSuccess(log, writer)
+			}),
+		),
+	)
 	return router
 }
 
