@@ -88,7 +88,7 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 			return s.setupArgoNotifications(ctx, k8sCli)
 		},
 		retry.OnRetry(func(n uint, err error) {
-			s.log.Errorf("")
+			s.log.WithField("error", err).Errorf("Error setting up Argo notifications. Retrying...")
 		}),
 		retry.DelayType(retry.RandomDelay), // Randomize the retry time as ConfigMap is updated and there might be conflicts when there are multiple plugin configurations
 		retry.MaxJitter(5*time.Second),

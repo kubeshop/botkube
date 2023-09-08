@@ -6,7 +6,6 @@ import (
 	"regexp"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/argoproj/notifications-engine/pkg/triggers"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
@@ -93,7 +92,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 
 		var (
 			triggerName    string
-			triggerDetails []triggers.Condition
+			triggerDetails []TriggerCondition
 		)
 		if notification.Trigger.FromExisting != nil {
 			triggerName, triggerDetails, err = s.useExistingTrigger(cm, *notification.Trigger.FromExisting)
@@ -185,7 +184,7 @@ func (s *Source) updateConfigMap(ctx context.Context, k8sCli *dynamic.DynamicCli
 	return nil
 }
 
-func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExisting) (string, []triggers.Condition, error) {
+func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExisting) (string, []TriggerCondition, error) {
 	existingTriggerName, err := renderStringIfTemplate(triggerCfg.Name, s.srcCtx)
 	if err != nil {
 		return "", nil, fmt.Errorf("while rendering trigger name: %w", err)
@@ -206,7 +205,7 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		"triggerName":         triggerName,
 	}).Debug("Reusing trigger...")
 
-	var triggerDetails []triggers.Condition
+	var triggerDetails []TriggerCondition
 	err = yaml.Unmarshal([]byte(cm.Data[originalTriggerPath]), &triggerDetails)
 	if err != nil {
 		return "", nil, fmt.Errorf("while unmarshalling trigger details for %q: %w", originalTriggerPath, err)
@@ -225,7 +224,7 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 	return triggerName, triggerDetails, nil
 }
 
-func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []triggers.Condition, error) {
+func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []TriggerCondition, error) {
 	triggerName, err := s.renderTriggerName(triggerCfg.Name, s.srcCtx)
 	if err != nil {
 		return "", nil, err

@@ -3,7 +3,6 @@ package argocd
 import (
 	"fmt"
 
-	"github.com/argoproj/notifications-engine/pkg/triggers"
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/api/source"
@@ -66,8 +65,8 @@ type TriggerFromExisting struct {
 
 // NewTrigger contains configuration related to new trigger.
 type NewTrigger struct {
-	Name       string               `yaml:"name"`
-	Conditions []triggers.Condition `yaml:"conditions"`
+	Name       string             `yaml:"name"`
+	Conditions []TriggerCondition `yaml:"conditions"`
 }
 
 // RefByName contains configuration related to reference by name.
@@ -90,6 +89,15 @@ type DefaultNotificationSubscriptions struct {
 type Template struct {
 	Name string `yaml:"name"`
 	Body string `yaml:"body"`
+}
+
+// TriggerCondition holds expression and template that must be used to create notification is expression is returns true
+// Copied from `github.com/argoproj/notifications-engine@v0.4.0/pkg/triggers/service.go` and replaced json tags with yaml.
+type TriggerCondition struct {
+	OncePer     string   `yaml:"oncePer,omitempty"`
+	When        string   `yaml:"when,omitempty"`
+	Description string   `yaml:"description,omitempty"`
+	Send        []string `yaml:"send,omitempty"`
 }
 
 // mergeConfigs merges all input configuration.
