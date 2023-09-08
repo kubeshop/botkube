@@ -2,11 +2,8 @@ package argocd
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/argoproj/notifications-engine/pkg/triggers"
@@ -57,11 +54,10 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 		return fmt.Errorf("while getting ArgoCD config map: %w", err)
 	}
 
-	webhookName, err := renderStringIfTemplate(s.cfg.Webhook.Name, s.srcCtx)
+	webhookName, err := s.renderWebhookName(s.cfg.Webhook.Name, s.srcCtx)
 	if err != nil {
 		return err
 	}
-	webhookName = s.normalize(webhookName, maxWebhookNameLength)
 	s.log.Debugf("Using webhook %q...", webhookName)
 
 	// register webhook
@@ -199,8 +195,11 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		return "", nil, fmt.Errorf("trigger %q does not exist", originalTriggerPath)
 	}
 
-	triggerName := fmt.Sprintf("%s-%s-%s", namePrefix, s.srcCtx.SourceName, existingTriggerName)
-	triggerName = s.normalize(triggerName, maxTriggerNameLength)
+	clonedTriggerName := fmt.Sprintf("%s-%s-%s", namePrefix, s.srcCtx.SourceName, existingTriggerName)
+	triggerName, err := s.renderTriggerName(clonedTriggerName, s.srcCtx)
+	if err != nil {
+		return "", nil, err
+	}
 
 	s.log.WithFields(logrus.Fields{
 		"originalTriggerPath": originalTriggerPath,
@@ -213,9 +212,9 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		return "", nil, fmt.Errorf("while unmarshalling trigger details for %q: %w", originalTriggerPath, err)
 	}
 
-	templateName, err := renderStringIfTemplate(triggerCfg.TemplateName, s.srcCtx)
+	templateName, err := s.renderTemplateName(triggerCfg.TemplateName, s.srcCtx)
 	if err != nil {
-		return "", nil, fmt.Errorf("while rendering template name: %w", err)
+		return "", nil, err
 	}
 
 	s.log.Debug("Modifying new trigger...")
@@ -227,11 +226,10 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 }
 
 func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []triggers.Condition, error) {
-	triggerName, err := renderStringIfTemplate(triggerCfg.Name, s.srcCtx)
+	triggerName, err := s.renderTriggerName(triggerCfg.Name, s.srcCtx)
 	if err != nil {
-		return "", nil, fmt.Errorf("while rendering trigger name: %w", err)
+		return "", nil, err
 	}
-	triggerName = s.normalize(triggerName, maxTriggerNameLength)
 
 	s.log.Debugf("Creating new trigger %q...", triggerName)
 
@@ -239,12 +237,13 @@ func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []triggers.Condit
 	triggerDetails := triggerCfg.Conditions
 	for i, details := range triggerDetails {
 		for j, sendDetails := range details.Send {
-			renderedSend, err := renderStringIfTemplate(sendDetails, s.srcCtx)
+			templateName, err := s.renderTemplateName(sendDetails, s.srcCtx)
 			if err != nil {
 				errs = multierror.Append(errs, err)
 				continue
 			}
-			triggerDetails[i].Send[j] = renderedSend
+
+			triggerDetails[i].Send[j] = templateName
 		}
 	}
 
@@ -302,13 +301,11 @@ type webhookConfig struct {
 }
 
 func (s *Source) registerTemplate(webhookName string, tpl Template) (string, string, error) {
-	templateName, err := renderStringIfTemplate(tpl.Name, s.srcCtx)
+	templateName, err := s.renderTemplateName(tpl.Name, s.srcCtx)
 	if err != nil {
-		return "", "", fmt.Errorf("while rendering template name: %w", err)
+		return "", "", err
 	}
 
-	// in fact, ConfigMap keys can contain slashes, but hey, let's keep the same normalization rules
-	templateName = s.normalize(templateName, maxTemplateNameLength)
 	s.log.Debugf("Registering template %q...", templateName)
 
 	out := map[string]interface{}{
@@ -329,32 +326,4 @@ func (s *Source) registerTemplate(webhookName string, tpl Template) (string, str
 	tplValue := string(bytes)
 
 	return tplPath, tplValue, nil
-}
-
-func (s *Source) normalize(in string, maxSize int) string {
-	out := in
-	defer s.log.Debugf("Normalized %q to %q", in, out)
-
-	// replace all special characters with `-`
-	out = allowedCharsRegex.ReplaceAllString(out, "-")
-
-	// make it lowercase
-	out = strings.ToLower(out)
-
-	if len(out) <= maxSize {
-		return out
-	}
-
-	// nolint:gosec // false positive
-	h := sha1.New()
-	h.Write([]byte(in))
-	hash := hex.EncodeToString(h.Sum(nil))
-
-	hashMaxSize := maxSize - 2 // 2 chars for the `b-` prefix
-	// if the hash is too long, truncate it
-	if len(hash) > hashMaxSize {
-		hash = hash[:hashMaxSize]
-	}
-
-	return fmt.Sprintf("%s-%s", namePrefix, hash)
 }
