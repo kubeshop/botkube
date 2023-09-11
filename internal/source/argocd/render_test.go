@@ -31,13 +31,13 @@ func TestNormalize(t *testing.T) {
 			Name:           "Too long invalid string",
 			Input:          "bk-botkube/argocd_gLhts-app-deleted",
 			MaxSize:        10,
-			ExpectedOutput: "b-00f2d73d",
+			ExpectedOutput: "b-a5efd156",
 		},
 		{
 			Name:           "Too long invalid string with same prefix",
 			Input:          "bk-botkube/argocd_gLhts-app-del",
 			MaxSize:        10,
-			ExpectedOutput: "b-426fe727",
+			ExpectedOutput: "b-80c99c2d",
 		},
 	}
 

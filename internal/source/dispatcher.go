@@ -120,6 +120,7 @@ func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 		statusErr, ok := status.FromError(err)
 		if ok && statusErr.Code() == codes.Unimplemented {
 			log.Debugf("Source %q does not implement streaming. Returning without error...", dispatch.pluginName)
+			return nil
 		}
 
 		return fmt.Errorf(`while opening stream for "%s.%s" source: %w`, dispatch.sourceName, dispatch.pluginName, err)
