@@ -37,7 +37,7 @@ func NewMigrate() *cobra.Command {
 		Supported Botkube bot platforms for migration:
 		- Socket Slack
 		- Discord
-		- Mattermost
+		- Mattermost 
 		
 		Limitations:
 		- Plugins are sourced from Botkube repository
