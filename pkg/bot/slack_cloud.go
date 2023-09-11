@@ -161,6 +161,8 @@ func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn
 }
 
 func (b *CloudSlack) start(ctx context.Context) error {
+	defer b.shutdown()
+
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{creds,
 		grpc.WithStreamInterceptor(b.addStreamingClientCredentials()),
@@ -197,8 +199,6 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("while sending gRPC connection request. %w", err)
 	}
-
-	defer b.shutdown()
 
 	go b.startMessageProcessor(ctx)
 

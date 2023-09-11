@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -40,18 +41,23 @@ const (
 	description = "Argo source plugin is used to get ArgoCD trigger-based notifications."
 )
 
+type sourceInstance struct {
+	cfg    Config
+	srcCtx source.CommonSourceContext
+}
+
 // Source defines ArgoCD source plugin.
 type Source struct {
 	pluginVersion string
 	log           logrus.FieldLogger
-	cfg           Config
-	srcCtx        source.CommonSourceContext
+	cfgs          sync.Map
 }
 
 // NewSource returns a new instance of Source.
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
+		cfgs:          sync.Map{},
 	}
 }
 
@@ -71,10 +77,14 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
-	s.cfg = cfg
+
 	s.log = loggerx.New(cfg.Log)
 
-	s.srcCtx = input.Context.CommonSourceContext
+	sourceName := input.Context.SourceName
+	s.cfgs.Store(sourceName, sourceInstance{
+		cfg:    cfg,
+		srcCtx: input.Context.CommonSourceContext,
+	})
 
 	k8sCli, err := s.getK8sClient(input.Context.KubeConfig)
 	if err != nil {
@@ -85,15 +95,18 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 
 	err = retry.Do(
 		func() error {
-			return s.setupArgoNotifications(ctx, k8sCli)
+			return s.setupArgoNotifications(ctx, k8sCli, sourceInstance{
+				cfg:    cfg,
+				srcCtx: input.Context.CommonSourceContext,
+			})
 		},
 		retry.OnRetry(func(n uint, err error) {
-			s.log.WithField("error", err).Errorf("Error setting up Argo notifications. Retrying...")
+			s.log.WithField("error", err).Errorf("Error setting up Argo notifications for %q. Retrying...", sourceName)
 		}),
 		retry.DelayType(retry.RandomDelay), // Randomize the retry time as ConfigMap is updated and there might be conflicts when there are multiple plugin configurations
 		retry.MaxJitter(5*time.Second),
 		retry.Attempts(5),
-		retry.LastErrorOnly(true),
+		retry.LastErrorOnly(false),
 	)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while configuring Argo notifications: %w", err)
@@ -115,13 +128,23 @@ func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalR
 		return source.ExternalRequestOutput{}, fmt.Errorf("while unmarshalling payload: %w", err)
 	}
 
+	srcCfg, ok := s.cfgs.Load(input.Context.SourceName)
+	if !ok {
+		return source.ExternalRequestOutput{}, fmt.Errorf("source configuration not found")
+	}
+
+	srcInstance, ok := srcCfg.(sourceInstance)
+	if !ok {
+		return source.ExternalRequestOutput{}, fmt.Errorf("source configuration is invalid")
+	}
+
 	msg := reqBody.Message
 	if msg.Timestamp.IsZero() {
 		msg.Timestamp = fallbackTimestamp
 	}
 
 	if input.Context.IsInteractivitySupported {
-		section := s.generateInteractivitySection(reqBody)
+		section := s.generateInteractivitySection(reqBody, srcInstance.cfg)
 		if section != nil {
 			msg.Sections = append(msg.Sections, *section)
 		}
@@ -129,7 +152,7 @@ func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalR
 		msg.Type = api.NonInteractiveSingleSection
 		lastSectionIdx := len(msg.Sections) - 1
 		if lastSectionIdx != -1 {
-			msg.Sections[lastSectionIdx].TextFields = append(msg.Sections[lastSectionIdx].TextFields, s.generateNonInteractiveFields(reqBody)...)
+			msg.Sections[lastSectionIdx].TextFields = append(msg.Sections[lastSectionIdx].TextFields, s.generateNonInteractiveFields(reqBody, srcInstance.cfg)...)
 		}
 	}
 
