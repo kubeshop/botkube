@@ -144,7 +144,7 @@ For faster development, you can also build and run Botkube outside K8s cluster.
 6. Run Botkube binary:
 
    ```sh
-   ./botkube
+   ./botkube-agent
    ```
 
 #### Develop Botkube plugins
