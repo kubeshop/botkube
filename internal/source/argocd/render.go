@@ -68,7 +68,6 @@ func renderStringIfTemplate(tpl string, srcCtx source.CommonSourceContext) (stri
 
 func normalize(log logrus.FieldLogger, in string, maxSize int) string {
 	out := in
-	defer log.Debugf("Normalized %q to %q", in, out)
 
 	// replace all special characters with `-`
 	out = allowedCharsRegex.ReplaceAllString(out, "-")
@@ -77,12 +76,13 @@ func normalize(log logrus.FieldLogger, in string, maxSize int) string {
 	out = strings.ToLower(out)
 
 	if len(out) <= maxSize {
+		log.Debugf("Normalized %q to %q", in, out)
 		return out
 	}
 
 	// nolint:gosec // false positive
 	h := sha1.New()
-	h.Write([]byte(in))
+	h.Write([]byte(out))
 	hash := hex.EncodeToString(h.Sum(nil))
 
 	hashMaxSize := maxSize - 2 // 2 chars for the `b-` prefix
@@ -91,5 +91,7 @@ func normalize(log logrus.FieldLogger, in string, maxSize int) string {
 		hash = hash[:hashMaxSize]
 	}
 
-	return fmt.Sprintf("%s-%s", namePrefix, hash)
+	out = fmt.Sprintf("%s-%s", namePrefix, hash)
+	log.Debugf("Normalized and hashed %q to %q", in, out)
+	return out
 }
