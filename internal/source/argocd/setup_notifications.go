@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -47,21 +48,21 @@ const (
 	maxTemplateNameLength = 128 // there's no actual limit apart from 1MB for the ConfigMap, but let's be reasonable
 )
 
-func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.DynamicClient) error {
-	cm, err := s.getConfigMap(ctx, k8sCli)
+func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.DynamicClient, srcInstance sourceInstance) error {
+	cm, err := s.getConfigMap(ctx, k8sCli, srcInstance)
 	if err != nil {
 		return fmt.Errorf("while getting ArgoCD config map: %w", err)
 	}
 
-	webhookName, err := s.renderWebhookName(s.cfg.Webhook.Name, s.srcCtx)
+	webhookName, err := s.renderWebhookName(srcInstance.cfg.Webhook.Name, srcInstance.srcCtx)
 	if err != nil {
 		return err
 	}
 	s.log.Debugf("Using webhook %q...", webhookName)
 
 	// register webhook
-	if s.cfg.Webhook.Register {
-		path, value, err := s.registerWebhook(webhookName)
+	if srcInstance.cfg.Webhook.Register {
+		path, value, err := s.registerWebhook(webhookName, srcInstance)
 		if err != nil {
 			return fmt.Errorf("while registering webhook %q: %w", webhookName, err)
 		}
@@ -72,18 +73,22 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 	// register templates
 	errs := multierror.New()
 	s.log.Info("Registering templates...")
-	for _, tpl := range s.cfg.Templates {
-		path, value, err := s.registerTemplate(webhookName, tpl)
+	for _, tpl := range srcInstance.cfg.Templates {
+		path, value, err := s.registerTemplate(webhookName, tpl, srcInstance.srcCtx)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while registering template %q: %w", tpl.Name, err))
+			continue
 		}
 
 		cm.Data[path] = value
 	}
+	if errs.ErrorOrNil() != nil {
+		return fmt.Errorf("while registering Argo templates: %w", errs.ErrorOrNil())
+	}
 
 	var subs []subscription
 	s.log.Debug("Registering triggers...")
-	for _, notification := range s.cfg.Notifications {
+	for _, notification := range srcInstance.cfg.Notifications {
 		// register triggers
 		if notification.Trigger.FromExisting == nil && notification.Trigger.Create == nil {
 			errs = multierror.Append(errs, fmt.Errorf("either trigger.fromExisting or trigger.create must be set"))
@@ -95,7 +100,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 			triggerDetails []TriggerCondition
 		)
 		if notification.Trigger.FromExisting != nil {
-			triggerName, triggerDetails, err = s.useExistingTrigger(cm, *notification.Trigger.FromExisting)
+			triggerName, triggerDetails, err = s.useExistingTrigger(cm, *notification.Trigger.FromExisting, srcInstance.srcCtx)
 			if err != nil {
 				errs = multierror.Append(errs, fmt.Errorf("while using existing trigger: %w", err))
 				continue
@@ -103,7 +108,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 		}
 
 		if notification.Trigger.Create != nil {
-			triggerName, triggerDetails, err = s.createTrigger(*notification.Trigger.Create)
+			triggerName, triggerDetails, err = s.createTrigger(*notification.Trigger.Create, srcInstance.srcCtx)
 			if err != nil {
 				errs = multierror.Append(errs, fmt.Errorf("while creating new trigger: %w", err))
 				continue
@@ -118,7 +123,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 		}
 		cm.Data[triggerPath] = string(bytes)
 
-		apps := s.cfg.DefaultSubscriptions.Applications
+		apps := srcInstance.cfg.DefaultSubscriptions.Applications
 		if notification.Subscriptions.Create {
 			apps = append(apps, notification.Subscriptions.Applications...)
 		}
@@ -136,7 +141,7 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 
 	err = s.updateConfigMap(ctx, k8sCli, cm)
 	if err != nil {
-		return fmt.Errorf("while updating ArgoCD config map: %w", err)
+		return err
 	}
 
 	// annotate Applications
@@ -148,8 +153,8 @@ func (s *Source) setupArgoNotifications(ctx context.Context, k8sCli *dynamic.Dyn
 	return nil
 }
 
-func (s *Source) getConfigMap(ctx context.Context, k8sCli *dynamic.DynamicClient) (v1.ConfigMap, error) {
-	notifCfgMap := s.cfg.ArgoCD.NotificationsConfigMap
+func (s *Source) getConfigMap(ctx context.Context, k8sCli *dynamic.DynamicClient, srcInstance sourceInstance) (v1.ConfigMap, error) {
+	notifCfgMap := srcInstance.cfg.ArgoCD.NotificationsConfigMap
 	unstrCM, err := k8sCli.Resource(configMapGVR).Namespace(notifCfgMap.Namespace).Get(ctx, notifCfgMap.Name, metav1.GetOptions{})
 	if err != nil {
 		return v1.ConfigMap{}, fmt.Errorf("while getting ArgoCD config map: %w", err)
@@ -184,8 +189,8 @@ func (s *Source) updateConfigMap(ctx context.Context, k8sCli *dynamic.DynamicCli
 	return nil
 }
 
-func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExisting) (string, []TriggerCondition, error) {
-	existingTriggerName, err := renderStringIfTemplate(triggerCfg.Name, s.srcCtx)
+func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExisting, srcCtx source.CommonSourceContext) (string, []TriggerCondition, error) {
+	existingTriggerName, err := renderStringIfTemplate(triggerCfg.Name, srcCtx)
 	if err != nil {
 		return "", nil, fmt.Errorf("while rendering trigger name: %w", err)
 	}
@@ -194,8 +199,8 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		return "", nil, fmt.Errorf("trigger %q does not exist", originalTriggerPath)
 	}
 
-	clonedTriggerName := fmt.Sprintf("%s-%s-%s", namePrefix, s.srcCtx.SourceName, existingTriggerName)
-	triggerName, err := s.renderTriggerName(clonedTriggerName, s.srcCtx)
+	clonedTriggerName := fmt.Sprintf("%s-%s-%s", namePrefix, srcCtx.SourceName, existingTriggerName)
+	triggerName, err := s.renderTriggerName(clonedTriggerName, srcCtx)
 	if err != nil {
 		return "", nil, err
 	}
@@ -211,7 +216,7 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 		return "", nil, fmt.Errorf("while unmarshalling trigger details for %q: %w", originalTriggerPath, err)
 	}
 
-	templateName, err := s.renderTemplateName(triggerCfg.TemplateName, s.srcCtx)
+	templateName, err := s.renderTemplateName(triggerCfg.TemplateName, srcCtx)
 	if err != nil {
 		return "", nil, err
 	}
@@ -224,8 +229,8 @@ func (s *Source) useExistingTrigger(cm v1.ConfigMap, triggerCfg TriggerFromExist
 	return triggerName, triggerDetails, nil
 }
 
-func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []TriggerCondition, error) {
-	triggerName, err := s.renderTriggerName(triggerCfg.Name, s.srcCtx)
+func (s *Source) createTrigger(triggerCfg NewTrigger, srcCtx source.CommonSourceContext) (string, []TriggerCondition, error) {
+	triggerName, err := s.renderTriggerName(triggerCfg.Name, srcCtx)
 	if err != nil {
 		return "", nil, err
 	}
@@ -236,7 +241,7 @@ func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []TriggerConditio
 	triggerDetails := triggerCfg.Conditions
 	for i, details := range triggerDetails {
 		for j, sendDetails := range details.Send {
-			templateName, err := s.renderTemplateName(sendDetails, s.srcCtx)
+			templateName, err := s.renderTemplateName(sendDetails, srcCtx)
 			if err != nil {
 				errs = multierror.Append(errs, err)
 				continue
@@ -246,7 +251,7 @@ func (s *Source) createTrigger(triggerCfg NewTrigger) (string, []TriggerConditio
 		}
 	}
 
-	return triggerName, triggerDetails, nil
+	return triggerName, triggerDetails, errs.ErrorOrNil()
 }
 
 func (s *Source) createSubscriptions(ctx context.Context, k8sCli *dynamic.DynamicClient, subs []subscription) error {
@@ -255,6 +260,7 @@ func (s *Source) createSubscriptions(ctx context.Context, k8sCli *dynamic.Dynami
 	for _, sub := range subs {
 		if sub.Application.Name == "" || sub.Application.Namespace == "" {
 			errs = multierror.Append(errs, fmt.Errorf("application name and namespace must be set"))
+			continue
 		}
 
 		annotationKey := fmt.Sprintf(annotationKeyFmt, sub.TriggerName, sub.WebhookName)
@@ -271,17 +277,14 @@ func (s *Source) createSubscriptions(ctx context.Context, k8sCli *dynamic.Dynami
 			continue
 		}
 	}
-	if errs.ErrorOrNil() != nil {
-		return fmt.Errorf("while annotating Argo applications: %w", errs.ErrorOrNil())
-	}
 
-	return nil
+	return errs.ErrorOrNil()
 }
 
-func (s *Source) registerWebhook(webhookName string) (string, string, error) {
+func (s *Source) registerWebhook(webhookName string, srcInstance sourceInstance) (string, string, error) {
 	s.log.Info("Registering webhook...")
 
-	webhookURL, err := renderStringIfTemplate(s.cfg.Webhook.URL, s.srcCtx)
+	webhookURL, err := renderStringIfTemplate(srcInstance.cfg.Webhook.URL, srcInstance.srcCtx)
 	if err != nil {
 		return "", "", fmt.Errorf("while rendering webhook URL: %w", err)
 	}
@@ -299,8 +302,8 @@ type webhookConfig struct {
 	Body   string `json:"body"`
 }
 
-func (s *Source) registerTemplate(webhookName string, tpl Template) (string, string, error) {
-	templateName, err := s.renderTemplateName(tpl.Name, s.srcCtx)
+func (s *Source) registerTemplate(webhookName string, tpl Template, srcCtx source.CommonSourceContext) (string, string, error) {
+	templateName, err := s.renderTemplateName(tpl.Name, srcCtx)
 	if err != nil {
 		return "", "", err
 	}
