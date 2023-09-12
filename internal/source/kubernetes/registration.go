@@ -141,19 +141,19 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 	errs := multierror.New()
 	for _, rt := range routes {
 		// event reason
-		if rt.event != nil && rt.event.Reason.AreConstraintsDefined() {
-			match, err := rt.event.Reason.IsAllowed(event.Reason)
+		if rt.Event != nil && rt.Event.Reason.AreConstraintsDefined() {
+			match, err := rt.Event.Reason.IsAllowed(event.Reason)
 			if err != nil {
 				return false, err
 			}
 			if !match {
-				r.log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, rt.event.Reason)
+				r.log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, rt.Event.Reason)
 				return false, nil
 			}
 		}
 
 		// event message
-		if rt.event != nil && rt.event.Message.AreConstraintsDefined() {
+		if rt.Event != nil && rt.Event.Message.AreConstraintsDefined() {
 			var anyMsgMatches bool
 
 			eventMsgs := event.Messages
@@ -163,7 +163,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 			}
 
 			for _, msg := range eventMsgs {
-				match, err := rt.event.Message.IsAllowed(msg)
+				match, err := rt.Event.Message.IsAllowed(msg)
 				if err != nil {
 					return false, err
 				}
@@ -173,42 +173,42 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 				}
 			}
 			if !anyMsgMatches {
-				r.log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), rt.event.Message)
+				r.log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), rt.Event.Message)
 				return false, nil
 			}
 		}
 
 		// resource name
-		if rt.resourceName.AreConstraintsDefined() {
-			allowed, err := rt.resourceName.IsAllowed(event.Name)
+		if rt.ResourceName.AreConstraintsDefined() {
+			allowed, err := rt.ResourceName.IsAllowed(event.Name)
 			if err != nil {
 				return false, err
 			}
 			if !allowed {
-				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, rt.resourceName)
+				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, rt.ResourceName)
 				return false, nil
 			}
 		}
 
 		// namespace
-		if rt.namespaces != nil && rt.namespaces.AreConstraintsDefined() {
-			match, err := rt.namespaces.IsAllowed(event.Namespace)
+		if rt.Namespaces != nil && rt.Namespaces.AreConstraintsDefined() {
+			match, err := rt.Namespaces.IsAllowed(event.Namespace)
 			if err != nil {
 				return false, err
 			}
 			if !match {
-				r.log.Debugf("Ignoring as namespace %q doesn't match constraints %+v", event.Namespace, rt.namespaces)
+				r.log.Debugf("Ignoring as namespace %q doesn't match constraints %+v", event.Namespace, rt.Namespaces)
 				return false, nil
 			}
 		}
 
 		// annotations
-		if !kvsSatisfiedForMap(rt.annotations, event.ObjectMeta.Annotations) {
+		if !kvsSatisfiedForMap(rt.Annotations, event.ObjectMeta.Annotations) {
 			continue
 		}
 
 		// labels
-		if !kvsSatisfiedForMap(rt.labels, event.ObjectMeta.Labels) {
+		if !kvsSatisfiedForMap(rt.Labels, event.ObjectMeta.Labels) {
 			continue
 		}
 		return true, nil
@@ -309,26 +309,26 @@ func (r registration) qualifyEventForUpdate(
 			continue
 		}
 
-		if route.updateSetting == nil {
+		if route.UpdateSetting == nil {
 			// in theory this should never happen, as we check if it is not nil in `route.hasActionableUpdateSetting()`, but just in case
 			r.log.Debugf("Nil updateSetting but hasActionableUpdateSetting returned true for route: %v. This looks like a bug...", route)
 			continue
 		}
 
 		r.log.WithFields(logrus.Fields{"old": oldUnstruct.Object, "new": newUnstruct.Object}).Debug("Getting diff for objects...")
-		diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.updateSetting)
+		diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.UpdateSetting)
 		if err != nil {
 			r.log.Errorf("while getting diff: %w", err)
 		}
-		r.log.Debugf("About to qualify event for route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.updateSetting)
+		r.log.Debugf("About to qualify event for route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
 
-		if route.updateSetting.IncludeDiff {
+		if route.UpdateSetting.IncludeDiff {
 			diffs = append(diffs, diff)
 		}
 
 		if len(diff) > 0 {
 			result = true
-			r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.updateSetting)
+			r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
 		}
 	}
 
