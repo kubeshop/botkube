@@ -38,7 +38,7 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
-# -- Role Based Access for Botkube Pod.
+# -- Role Based Access for Botkube Pod and plugins.
 # [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
 rbac:
   # -- It is used to specify a custom path for mounting a service account to the Botkube deployment.
@@ -54,13 +54,13 @@ rbac:
   staticGroupName: ""
   # -- Use this to create RBAC resources for specified group subjects.
   groups:
-    - name: &static-group-name "botkube-plugins-default"
+    'botkube-plugins-default':
       create: true
       rules:
         - apiGroups: ["*"]
           resources: ["*"]
           verbs: ["get", "watch", "list"]
-    - name: &argocd-group "argocd"
+    'argocd':
       # -- Set it to `true` when using ArgoCD source plugin.
       create: false
       rules:
@@ -150,7 +150,7 @@ sources:
             prefix: ""
             static:
               # -- Name of group.rbac.authorization.k8s.io the plugin will be bound to.
-              values: [*static-group-name]
+              values: ["botkube-plugins-default"]
           # user:
             # type: Static
             # -- Prefix that will be applied to .static.value[*].
@@ -563,7 +563,7 @@ sources:
           group:
             type: Static
             static:
-              values: [*argocd-group]
+              values: ["argocd"]
       # -- Config contains configuration for ArgoCD source plugin.
       # This section lists only basic options, and uses default triggers and templates
       # which are based on ArgoCD Notification Catalog ones (https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml).
