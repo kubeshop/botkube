@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
@@ -50,11 +51,11 @@ func (e *SourceExecutor) FeatureName() FeatureName {
 // List returns a tabular representation of Executors
 func (e *SourceExecutor) List(ctx context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.Debug("List sources")
-	return respond(e.TabularOutput(cmdCtx.Conversation.SourceBindings), cmdCtx), nil
+	return respond(e.TabularOutput(cmdCtx.Conversation.SourceBindings, cmdCtx.PluginHealthStats), cmdCtx), nil
 }
 
 // TabularOutput sorts source groups by key and returns a printable table
-func (e *SourceExecutor) TabularOutput(bindings []string) string {
+func (e *SourceExecutor) TabularOutput(bindings []string, stats *plugin.HealthStats) string {
 	sources := make(map[string]bool)
 	for _, b := range bindings {
 		s, ok := e.cfg.Sources[b]
@@ -69,10 +70,11 @@ func (e *SourceExecutor) TabularOutput(bindings []string) string {
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintf(w, "SOURCE\tENABLED")
+	fmt.Fprintf(w, "SOURCE\tENABLED\tRESTARTS\tSTATUS\tLAST_RESTART")
 	for _, key := range maputil.SortKeys(sources) {
 		enabled := sources[key]
-		fmt.Fprintf(w, "\n%s\t%t", key, enabled)
+		status, restarts, threshold, timestamp := stats.GetStats(key)
+		fmt.Fprintf(w, "\n%s\t%t\t%d/%d\t%s\t%s", key, enabled, restarts, threshold, status, timestamp)
 	}
 	w.Flush()
 	return buf.String()

@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
@@ -52,20 +53,21 @@ func (e *ExecExecutor) FeatureName() FeatureName {
 // List returns a tabular representation of Executors
 func (e *ExecExecutor) List(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
 	e.log.Debug("Listing executors...")
-	return respond(e.TabularOutput(cmdCtx.Conversation.ExecutorBindings), cmdCtx), nil
+	return respond(e.TabularOutput(cmdCtx.Conversation.ExecutorBindings, cmdCtx.PluginHealthStats), cmdCtx), nil
 }
 
 // TabularOutput sorts executor groups by key and returns a printable table
-func (e *ExecExecutor) TabularOutput(bindings []string) string {
+func (e *ExecExecutor) TabularOutput(bindings []string, stats *plugin.HealthStats) string {
 	executors := executorsForBindings(e.cfg.Executors, bindings)
 
 	buf := new(bytes.Buffer)
 	w := tabwriter.NewWriter(buf, 5, 0, 1, ' ', 0)
-	fmt.Fprintf(w, "EXECUTOR\tENABLED\tALIASES")
+	fmt.Fprintf(w, "EXECUTOR\tENABLED\tALIASES\tRESTARTS\tSTATUS\tLAST_RESTART")
 	for _, name := range maputil.SortKeys(executors) {
 		enabled := executors[name]
 		aliases := alias.ListExactForExecutor(name, e.cfg.Aliases)
-		fmt.Fprintf(w, "\n%s\t%t\t%s", name, enabled, strings.Join(aliases, ", "))
+		status, restarts, threshold, timestamp := stats.GetStats(name)
+		fmt.Fprintf(w, "\n%s\t%t\t%s\t%d/%d\t%s\t%s", name, enabled, strings.Join(aliases, ", "), restarts, threshold, status, timestamp)
 	}
 
 	w.Flush()

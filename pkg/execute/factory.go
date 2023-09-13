@@ -33,6 +33,7 @@ type DefaultExecutorFactory struct {
 	sourceExecutor        *SourceExecutor
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
+	pluginHealthStats     *plugin.HealthStats
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -46,6 +47,7 @@ type DefaultExecutorFactoryParams struct {
 	RestCfg           *rest.Config
 	BotKubeVersion    string
 	AuditReporter     audit.AuditReporter
+	PluginHealthStats *plugin.HealthStats
 }
 
 // Executor is an interface for processes to execute commands
@@ -153,6 +155,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		sourceExecutor:        sourceExecutor,
 		cmdsMapping:           mappings,
 		auditReporter:         params.AuditReporter,
+		pluginHealthStats:     params.PluginHealthStats,
 	}, nil
 }
 
@@ -203,6 +206,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		sourceExecutor:        f.sourceExecutor,
 		cmdsMapping:           f.cmdsMapping,
 		auditReporter:         f.auditReporter,
+		pluginHealthStats:     f.pluginHealthStats,
 		user:                  cfg.User,
 		notifierHandler:       cfg.NotifierHandler,
 		conversation:          cfg.Conversation,

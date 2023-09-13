@@ -73,7 +73,7 @@ type pluginMetadata struct {
 }
 
 // NewManager returns a new Manager instance.
-func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string, schedulerChan chan string) *Manager {
+func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.PluginManagement, executors, sources []string, schedulerChan chan string, stats *HealthStats) *Manager {
 	sourceSupervisorChan := make(chan pluginMetadata)
 	executorSupervisorChan := make(chan pluginMetadata)
 	executorsStore := newStore[executor.Executor]()
@@ -102,6 +102,7 @@ func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.Plug
 			&executorsStore,
 			&sourcesStore,
 			cfg.HealthCheckInterval,
+			stats,
 		),
 	}
 }
