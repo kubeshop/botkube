@@ -70,7 +70,7 @@ rbac:
         - apiGroups: ["argoproj.io"]
           resources: ["applications"]
           verbs: ["get", "patch"]
-    'flux':
+    'flux-read-patch':
       # -- Set it to `true` when using Flux executor plugin to enable `flux diff`.
       create: false
       rules:
@@ -669,7 +669,12 @@ executors:
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/flux:
       enabled: false
-      context: *default-plugin-context
+      context:
+        rbac:
+          group:
+            type: Static
+            static:
+              values: ["botkube-plugins-default", "flux-read-patch"]
       ## -- Flux executor plugin configuration.
       config:
         # -- Logging configuration
