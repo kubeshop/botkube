@@ -23,17 +23,18 @@ const (
 	PluginName       = "kubectl"
 	defaultNamespace = "default"
 	description      = "Run the Kubectl CLI commands directly from your favorite communication platform."
+	kubectlVersion   = "v1.28.0"
 )
 
 var kcBinaryDownloadLinks = map[string]string{
-	"windows/amd64": "https://dl.k8s.io/release/v1.26.0/bin/windows/amd64/kubectl.exe",
-	"darwin/amd64":  "https://dl.k8s.io/release/v1.26.0/bin/darwin/amd64/kubectl",
-	"darwin/arm64":  "https://dl.k8s.io/release/v1.26.0/bin/darwin/arm64/kubectl",
-	"linux/amd64":   "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl",
-	"linux/s390x":   "https://dl.k8s.io/release/v1.26.0/bin/linux/s390x/kubectl",
-	"linux/ppc64le": "https://dl.k8s.io/release/v1.26.0/bin/linux/ppc64le/kubectl",
-	"linux/arm64":   "https://dl.k8s.io/release/v1.26.0/bin/linux/arm64/kubectl",
-	"linux/386":     "https://dl.k8s.io/release/v1.26.0/bin/linux/386/kubectl",
+	"windows/amd64": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/windows/amd64/kubectl.exe", kubectlVersion),
+	"darwin/amd64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/amd64/kubectl", kubectlVersion),
+	"darwin/arm64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/arm64/kubectl", kubectlVersion),
+	"linux/amd64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/amd64/kubectl", kubectlVersion),
+	"linux/s390x":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/s390x/kubectl", kubectlVersion),
+	"linux/ppc64le": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/ppc64le/kubectl", kubectlVersion),
+	"linux/arm64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/arm64/kubectl", kubectlVersion),
+	"linux/386":     fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/386/kubectl", kubectlVersion),
 }
 
 var _ executor.Executor = &Executor{}
