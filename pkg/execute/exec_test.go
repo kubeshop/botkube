@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -50,9 +51,9 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
-				EXECUTOR        ENABLED ALIASES
-				botkube/echo    true    
-				botkube/kubectl true    k, kc`),
+				EXECUTOR        ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
+				botkube/echo    true            0/1      Running 
+				botkube/kubectl true    k, kc   0/1      Running`),
 		},
 		{
 			name: "executors and plugins",
@@ -91,17 +92,18 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			},
 			bindings: []string{"kubectl", "botkube/helm", "botkube/echo@v1.0.1-devel"},
 			expOutput: heredoc.Doc(`
-				EXECUTOR                  ENABLED ALIASES
-				botkube/echo@v1.0.1-devel true    e
-				botkube/helm              true    h
-				botkube/kubectl           true`),
+				EXECUTOR                  ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
+				botkube/echo@v1.0.1-devel true    e       0/1      Running 
+				botkube/helm              true    h       0/1      Running 
+				botkube/kubectl           true            0/1      Running`),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			cmdCtx := CommandContext{
-				ExecutorFilter: newExecutorTextFilter(""),
-				Conversation:   Conversation{ExecutorBindings: tc.bindings},
+				ExecutorFilter:    newExecutorTextFilter(""),
+				Conversation:      Conversation{ExecutorBindings: tc.bindings},
+				PluginHealthStats: plugin.NewHealthStats(1),
 			}
 			e := NewExecExecutor(loggerx.NewNoop(), tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
