@@ -1,0 +1,44 @@
+event:
+  types:
+    - delete
+  reason:
+    include: ["reason-include-1-level"]
+    exclude: ["reason-exclude-1-level"]
+  message:
+    include: ["message-include-1-level"]
+    exclude: ["message-exclude-1-level"]
+
+annotations:
+  test: "annotation-1-level"
+
+labels:
+  test: "label-1-level"
+
+namespaces:
+  include: ["namespace-include-1-level"]
+  exclude: ["namespace-exclude-1-level"]
+
+resources:
+  - type: v1/configmaps # change all nested properties
+    namespaces:
+      include: ["namespace-include-2-level"]
+      exclude: ["namespace-exclude-2-level"]
+    event:
+      types:
+        - create
+      reason:
+        include: ["reason-include-2-level"]
+        exclude: ["reason-exclude-2-level"]
+      message:
+        include: ["message-include-2-level"]
+        exclude: ["message-exclude-2-level"]
+    annotations:
+      test: "annotation-2-level"
+    labels:
+      test: "label-2-level"
+
+  - type: apps/v1/deployments # change only ns
+    namespaces:
+      exclude:
+        - "other"
+  - type: v1/pod # use top level properties

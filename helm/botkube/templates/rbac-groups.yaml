@@ -1,14 +1,15 @@
 {{ $groupsToCreate := .Values.rbac.groups }}
 {{- if .Values.rbac.staticGroupName }}
-{{ $defaultGroup := dict "name" .Values.rbac.staticGroupName "rules" .Values.rbac.rules "create" .Values.rbac.create }}
-{{ $groupsToCreate := append .Values.rbac.groups $defaultGroup }}
+{{ $defaultGroup := dict "rules" .Values.rbac.rules "create" .Values.rbac.create }}
+{{ $_ := set $groupsToCreate .Values.rbac.staticGroupName $defaultGroup }}
 {{- end }}
-{{- range $key, $value := $groupsToCreate }}
+
+{{- range $name, $value := $groupsToCreate }}
 {{- if $value.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ $value.name }}
+  name: {{ $name }}
   labels:
     app.kubernetes.io/name: {{ include "botkube.name" $ }}
     helm.sh/chart: {{ include "botkube.chart" $ }}
@@ -22,7 +23,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ $value.name }}
+  name: {{ $name }}
   labels:
     app.kubernetes.io/name: {{ include "botkube.name" $ }}
     helm.sh/chart: {{ include "botkube.chart" $ }}
@@ -31,10 +32,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ $value.name }}
+  name: {{ $name }}
 subjects:
   - kind: Group
-    name: {{ $value.name }}
+    name: {{ $name }}
     apiGroup: rbac.authorization.k8s.io
 ---
 {{ end }}
