@@ -23,7 +23,7 @@ const (
 	PluginName       = "kubectl"
 	defaultNamespace = "default"
 	description      = "Run the Kubectl CLI commands directly from your favorite communication platform."
-	kubectlVersion   = "v1.28.0"
+	kubectlVersion   = "v1.28.1"
 )
 
 var kcBinaryDownloadLinks = map[string]string{
