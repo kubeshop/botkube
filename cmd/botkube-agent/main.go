@@ -90,6 +90,11 @@ func run(ctx context.Context) (err error) {
 		deployClient = remote.NewDeploymentClient(gqlClient)
 	}
 
+	statusReporter := status.GetReporter(remoteCfgEnabled, gqlClient, deployClient, nil)
+	if err = statusReporter.ReportDeploymentConnectionInit(ctx, ""); err != nil {
+		return fmt.Errorf("while reporting botkube connection initialization %w", err)
+	}
+
 	cfgProvider := intconfig.GetProvider(remoteCfgEnabled, deployClient)
 	configs, cfgVersion, err := cfgProvider.Configs(ctx)
 	if err != nil {
@@ -100,15 +105,10 @@ func run(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("while merging app configuration: %w", err)
 	}
-
 	logger := loggerx.New(conf.Settings.Log)
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
-
-	statusReporter := status.GetReporter(remoteCfgEnabled, logger, gqlClient, deployClient, cfgVersion)
-	auditReporter := audit.GetReporter(remoteCfgEnabled, logger, gqlClient)
-
 	// Set up analytics reporter
 	reporter, err := getAnalyticsReporter(conf.Analytics.Disable, logger)
 	if err != nil {
@@ -125,6 +125,34 @@ func run(ctx context.Context) (err error) {
 	defer analytics.ReportPanicIfOccurs(logger, reporter)
 
 	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
+	// Prepare K8s clients and mapper
+	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SACredentialsPathPrefix)
+	if err != nil {
+		return reportFatalError("while loading k8s config", err)
+	}
+	discoveryCli, err := getK8sClients(kubeConfig)
+	if err != nil {
+		return reportFatalError("while getting K8s clients", err)
+	}
+
+	// Register current anonymous identity
+	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		return reportFatalError("while creating K8s clientset", err)
+	}
+	botkubeVersion, k8sVer, err := findVersions(k8sCli)
+	if err = statusReporter.ReportDeploymentConnectionInit(ctx, k8sVer); err != nil {
+		return reportFatalError("while reporting botkube connection initialization", err)
+	}
+	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, remoteCfg.Identifier)
+	if err != nil {
+		return reportFatalError("while registering current identity", err)
+	}
+
+	statusReporter.SetLogger(logger)
+	statusReporter.SetResourceVersion(cfgVersion)
+	auditReporter := audit.GetReporter(remoteCfgEnabled, logger, gqlClient)
+
 	ctx, cancel := context.WithCancel(ctx)
 	errGroup, ctx := errgroup.WithContext(ctx)
 	defer func() {
@@ -162,26 +190,6 @@ func run(ctx context.Context) (err error) {
 	}
 	defer pluginManager.Shutdown()
 
-	// Prepare K8s clients and mapper
-	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SACredentialsPathPrefix)
-	if err != nil {
-		return reportFatalError("while loading k8s config", err)
-	}
-	discoveryCli, err := getK8sClients(kubeConfig)
-	if err != nil {
-		return reportFatalError("while getting K8s clients", err)
-	}
-
-	// Register current anonymous identity
-	k8sCli, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		return reportFatalError("while creating K8s clientset", err)
-	}
-	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, remoteCfg.Identifier)
-	if err != nil {
-		return reportFatalError("while registering current identity", err)
-	}
-
 	// Health endpoint
 	healthChecker := healthChecker{applicationStarted: false}
 	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort, &healthChecker)
@@ -198,7 +206,6 @@ func run(ctx context.Context) (err error) {
 	})
 
 	cmdGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
-	botkubeVersion, err := findVersions(k8sCli)
 	if err != nil {
 		return reportFatalError("while fetching versions", err)
 	}
@@ -586,10 +593,10 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, executor
 	return s.MarkHelpAsSent(ctx, sent)
 }
 
-func findVersions(cli *kubernetes.Clientset) (string, error) {
+func findVersions(cli *kubernetes.Clientset) (string, string, error) {
 	k8sVer, err := cli.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("while getting server version: %w", err)
+		return "", "", fmt.Errorf("while getting server version: %w", err)
 	}
 
 	botkubeVersion := version.Short()
@@ -597,5 +604,5 @@ func findVersions(cli *kubernetes.Clientset) (string, error) {
 		botkubeVersion = "Unknown"
 	}
 
-	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), nil
+	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), k8sVer.String(), nil
 }
