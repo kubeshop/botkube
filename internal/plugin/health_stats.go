@@ -10,6 +10,7 @@ const (
 	pluginDeactivated = "Deactivated"
 )
 
+// HealthStats holds information about plugin health and restarts.
 type HealthStats struct {
 	sync.RWMutex
 	pluginStats            map[string]pluginStats
@@ -22,6 +23,7 @@ type pluginStats struct {
 	lastTransitionTime string
 }
 
+// NewHealthStats returns a new HealthStats instance.
 func NewHealthStats(threshold int) *HealthStats {
 	return &HealthStats{
 		pluginStats:            map[string]pluginStats{},
@@ -29,6 +31,7 @@ func NewHealthStats(threshold int) *HealthStats {
 	}
 }
 
+// Increment increments restart count for a plugin.
 func (h *HealthStats) Increment(plugin string) {
 	h.Lock()
 	defer h.Unlock()
@@ -46,6 +49,7 @@ func (h *HealthStats) Increment(plugin string) {
 	}
 }
 
+// GetRestartCount returns restart count for a plugin.
 func (h *HealthStats) GetRestartCount(plugin string) int {
 	h.RLock()
 	defer h.RUnlock()
@@ -55,6 +59,7 @@ func (h *HealthStats) GetRestartCount(plugin string) int {
 	return h.pluginStats[plugin].restartCount
 }
 
+// GetStats returns plugin status, restart count, restart threshold and last transition time.
 func (h *HealthStats) GetStats(plugin string) (status string, restarts int, threshold int, timestamp string) {
 	h.RLock()
 	defer h.RUnlock()
