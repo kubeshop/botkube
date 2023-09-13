@@ -70,6 +70,13 @@ rbac:
         - apiGroups: ["argoproj.io"]
           resources: ["applications"]
           verbs: ["get", "patch"]
+    'flux':
+      # -- Set it to `true` when using Flux executor plugin to enable `flux diff`.
+      create: false
+      rules:
+        - apiGroups: ["*"]
+          resources: ["*"]
+          verbs: ["get", "watch", "list", "patch"]
 
 ## Kubeconfig settings used by Botkube.
 kubeconfig:
