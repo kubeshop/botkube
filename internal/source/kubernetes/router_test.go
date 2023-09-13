@@ -1,9 +1,16 @@
 package kubernetes
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
+	"gotest.tools/v3/golden"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
@@ -59,5 +66,28 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 			assert.Len(t, router.getSourceRoutes(hasRoutes, config.DeleteEvent), 1)
 			assert.Len(t, router.getSourceRoutes(hasRoutes, config.ErrorEvent), 1)
 		})
+	}
+}
+
+func TestRouterListMergingNestedFields(t *testing.T) {
+	// given
+	router := NewRouter(nil, nil, loggerx.NewNoop())
+
+	var cfg config.Config
+	fixConfig, err := os.ReadFile(filepath.Join("testdata", t.Name(), "override-fields-config.yaml"))
+	require.NoError(t, err)
+
+	err = yaml.Unmarshal(fixConfig, &cfg)
+	require.NoError(t, err)
+
+	// when
+	router = router.BuildTable(&cfg)
+
+	// then
+	for key := range router.table {
+		out, err := yaml.Marshal(router.table[key])
+		require.NoError(t, err)
+		filename := fmt.Sprintf("route-%s.golden.yaml", strings.ReplaceAll(key, "/", "."))
+		golden.Assert(t, string(out), filepath.Join(t.Name(), filename))
 	}
 }
