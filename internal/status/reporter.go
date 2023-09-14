@@ -2,7 +2,6 @@ package status
 
 import (
 	"context"
-
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 
@@ -18,19 +17,9 @@ type StatusReporter interface {
 	SetLogger(logger logrus.FieldLogger)
 }
 
-func GetReporter(remoteCfgEnabled bool, gql GraphQLClient, resVerClient ResVerClient, logger *logrus.FieldLogger) StatusReporter {
+func GetReporter(remoteCfgEnabled bool, gql GraphQLClient, resVerClient ResVerClient, log logrus.FieldLogger) StatusReporter {
 	if remoteCfgEnabled {
-		var log logrus.FieldLogger
-		if logger == nil {
-			log = loggerx.New(config.Logger{
-				Level:         "info",
-				DisableColors: false,
-				Formatter:     "",
-			})
-		} else {
-			log = *logger
-		}
-
+		log = withDefaultLogger(log)
 		return newGraphQLStatusReporter(
 			log.WithField("component", "GraphQLStatusReporter"),
 			gql,
@@ -39,4 +28,13 @@ func GetReporter(remoteCfgEnabled bool, gql GraphQLClient, resVerClient ResVerCl
 	}
 
 	return newNoopStatusReporter()
+}
+
+func withDefaultLogger(log logrus.FieldLogger) logrus.FieldLogger {
+	if log != nil {
+		return log
+	}
+	return loggerx.New(config.Logger{
+		Level: "info",
+	})
 }

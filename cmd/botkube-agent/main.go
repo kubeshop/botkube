@@ -206,9 +206,6 @@ func run(ctx context.Context) (err error) {
 	})
 
 	cmdGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), discoveryCli)
-	if err != nil {
-		return reportFatalError("while fetching versions", err)
-	}
 	// Create executor factory
 	cfgManager := config.NewManager(remoteCfgEnabled, logger.WithField(componentLogFieldKey, "Config manager"), conf.Settings.PersistentConfig, cfgVersion, k8sCli, gqlClient, deployClient)
 	executorFactory, err := execute.NewExecutorFactory(

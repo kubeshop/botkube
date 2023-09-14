@@ -62,7 +62,13 @@ func (r *GraphQLStatusReporter) ReportDeploymentConnectionInit(ctx context.Conte
 			"k8sVer":         k8sVer,
 		}
 		err := r.gql.Client().Mutate(ctx, &mutation, variables)
-		return err
+		if err != nil {
+			return err
+		}
+		if !mutation.Success {
+			return errors.New("failed to report connection initialization")
+		}
+		return nil
 	})
 	if err != nil {
 		return errors.Wrap(err, "while reporting deployment connection initialization")
