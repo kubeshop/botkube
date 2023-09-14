@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -53,12 +54,12 @@ func TestSourceExecutor(t *testing.T) {
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
-				SOURCE       ENABLED
-				botkube/helm true
-				foo          true
-				foo/bar      false
-				kubernetes   true
-				repo/bar     true`),
+				SOURCE       ENABLED RESTARTS STATUS  LAST_RESTART
+				botkube/helm true    0/1      Running 
+				foo          true    0/1      Running 
+				foo/bar      false   0/1      Running 
+				kubernetes   true    0/1      Running 
+				repo/bar     true    0/1      Running`),
 		},
 		{
 			name: "duplicate sources",
@@ -92,16 +93,17 @@ func TestSourceExecutor(t *testing.T) {
 			},
 			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugins"},
 			expOutput: heredoc.Doc(`
-				SOURCE     ENABLED
-				kubernetes true
-				plugin-a   true`),
+				SOURCE     ENABLED RESTARTS STATUS  LAST_RESTART
+				kubernetes true    0/1      Running 
+				plugin-a   true    0/1      Running`),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			cmdCtx := CommandContext{
-				ExecutorFilter: newExecutorTextFilter(""),
-				Conversation:   Conversation{SourceBindings: tc.bindings},
+				ExecutorFilter:    newExecutorTextFilter(""),
+				Conversation:      Conversation{SourceBindings: tc.bindings},
+				PluginHealthStats: plugin.NewHealthStats(1),
 			}
 			e := NewSourceExecutor(loggerx.NewNoop(), tc.cfg)
 			msg, err := e.List(context.Background(), cmdCtx)
