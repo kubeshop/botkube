@@ -4,6 +4,7 @@ import "os"
 
 const (
 	// ProviderEndpointEnvKey holds config provider endpoint.
+	//nolint:gosec // Potential hardcoded credentials
 	ProviderEndpointEnvKey = "CONFIG_PROVIDER_ENDPOINT"
 	// ProviderIdentifierEnvKey holds config provider identifier.
 	ProviderIdentifierEnvKey = "CONFIG_PROVIDER_IDENTIFIER"

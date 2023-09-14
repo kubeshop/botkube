@@ -56,7 +56,8 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range tests {
+	for _, testCase := range tests {
+		tc := testCase
 		t.Run(tc.name, func(t *testing.T) {
 			router := NewRouter(nil, nil, loggerx.NewNoop())
 
