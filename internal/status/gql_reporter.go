@@ -51,16 +51,16 @@ func (r *GraphQLStatusReporter) ReportDeploymentConnectionInit(ctx context.Conte
 		"type":         "connecting",
 	})
 	logger.Debug("Reporting...")
+	var mutation struct {
+		Success bool `graphql:"reportDeploymentConnectionInit(id: $id, botkubeVersion: $botkubeVersion, k8sVer: $k8sVer)"`
+	}
+	variables := map[string]interface{}{
+		"id":             graphql.ID(r.gql.DeploymentID()),
+		"botkubeVersion": version.Info().Version,
+		"k8sVer":         k8sVer,
+	}
 
 	err := r.withRetry(ctx, logger, func() error {
-		var mutation struct {
-			Success bool `graphql:"reportDeploymentConnectionInit(id: $id, botkubeVersion: $botkubeVersion, k8sVer: $k8sVer)"`
-		}
-		variables := map[string]interface{}{
-			"id":             graphql.ID(r.gql.DeploymentID()),
-			"botkubeVersion": version.Info().Version,
-			"k8sVer":         k8sVer,
-		}
 		err := r.gql.Client().Mutate(ctx, &mutation, variables)
 		if err != nil {
 			return err
