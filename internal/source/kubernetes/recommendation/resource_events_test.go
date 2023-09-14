@@ -80,12 +80,13 @@ func TestResourceEventsForConfig(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		t.Run(testCase.Name, func(t *testing.T) {
+		tc := testCase
+		t.Run(tc.Name, func(t *testing.T) {
 			// when
-			actual := recommendation.ResourceEventsForConfig(&testCase.RecCfg)
+			actual := recommendation.ResourceEventsForConfig(&tc.RecCfg)
 
 			// then
-			assert.Equal(t, testCase.Expected, actual)
+			assert.Equal(t, tc.Expected, actual)
 		})
 	}
 }
@@ -178,12 +179,13 @@ func TestShouldIgnoreEvent(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		t.Run(testCase.Name, func(t *testing.T) {
+		tc := testCase
+		t.Run(tc.Name, func(t *testing.T) {
 			// when
-			actual := recommendation.ShouldIgnoreEvent(&testCase.InputConfig, testCase.InputEvent)
+			actual := recommendation.ShouldIgnoreEvent(&tc.InputConfig, tc.InputEvent)
 
 			// then
-			assert.Equal(t, testCase.Expected, actual)
+			assert.Equal(t, tc.Expected, actual)
 		})
 	}
 }
