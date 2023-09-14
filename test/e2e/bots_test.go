@@ -1053,10 +1053,10 @@ func runBotTest(t *testing.T,
 	t.Run("List executors", func(t *testing.T) {
 		command := "list executors"
 		expectedBody := codeBlock(heredoc.Doc(`
-			EXECUTOR                  ENABLED ALIASES
-			botkube/echo@v1.0.1-devel true    e
-			botkube/helm              true    
-			botkube/kubectl           true    k, kc`))
+			EXECUTOR                  ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
+			botkube/echo@v1.0.1-devel true    e       0/0      Running 
+			botkube/helm              true            0/0      Running 
+			botkube/kubectl           true    k, kc   0/0      Running`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -1085,12 +1085,12 @@ func runBotTest(t *testing.T,
 	t.Run("List sources", func(t *testing.T) {
 		command := "list sources"
 		expectedBody := codeBlock(heredoc.Doc(`
-		SOURCE ENABLED`))
+		SOURCE ENABLED RESTARTS STATUS LAST_RESTART`))
 		if botDriver.Type() == commplatform.DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
-			SOURCE             ENABLED
-			botkube/cm-watcher true
-			botkube/kubernetes true`))
+			SOURCE             ENABLED RESTARTS STATUS  LAST_RESTART
+			botkube/cm-watcher true    0/0      Running 
+			botkube/kubernetes true    0/0      Running`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
