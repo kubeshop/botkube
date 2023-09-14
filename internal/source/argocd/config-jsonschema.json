@@ -23,7 +23,7 @@
     "defaultSubscriptions": {
       "type": "object",
       "title": "Default Subscriptions",
-      "description": "Provide application name and namespace to subscribe to all events for a given application.",
+      "description": "Provide existing Application name and namespace to subscribe to all configured events.",
       "properties": {
         "applications": {
           "type": "array",
