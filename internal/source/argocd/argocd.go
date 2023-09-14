@@ -41,6 +41,8 @@ const (
 	description = "Argo source plugin is used to get ArgoCD trigger-based notifications."
 )
 
+var htmlDescription = fmt.Sprintf(`%s<br/><strong>Prerequisite:</strong> Configure RBAC resources with specific permissions. <a href="https://docs.botkube.io/configuration/source/argocd#prerequisite-elevated-rbac-permissions" target="_blank">Read more</a>`, description)
+
 type sourceInstance struct {
 	cfg    Config
 	srcCtx source.CommonSourceContext
@@ -168,7 +170,7 @@ func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalR
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     s.pluginVersion,
-		Description: description,
+		Description: htmlDescription,
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},
