@@ -38,12 +38,8 @@ func (h *HealthStats) Increment(plugin string) {
 	if _, ok := h.pluginStats[plugin]; !ok {
 		h.pluginStats[plugin] = pluginStats{}
 	}
-	count := h.pluginStats[plugin].restartCount + 1
-	if count > h.globalRestartThreshold {
-		count = h.globalRestartThreshold
-	}
 	h.pluginStats[plugin] = pluginStats{
-		restartCount:       count,
+		restartCount:       h.pluginStats[plugin].restartCount + 1,
 		lastTransitionTime: time.Now().Format(time.RFC3339),
 		restartThreshold:   h.globalRestartThreshold,
 	}
