@@ -14,7 +14,7 @@ This command will create a new Botkube Cloud instance based on your existing Bot
 Supported Botkube bot platforms for migration:
 - Socket Slack
 - Discord
-- Mattermost 
+- Mattermost
 
 Limitations:
 - Plugins are sourced from Botkube repository
