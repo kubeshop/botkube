@@ -63,14 +63,13 @@ func (h *HealthStats) GetRestartCount(plugin string) int {
 func (h *HealthStats) GetStats(plugin string) (status string, restarts int, threshold int, timestamp string) {
 	h.RLock()
 	defer h.RUnlock()
+	status = pluginRunning
 	if _, ok := h.pluginStats[plugin]; !ok {
-		status = pluginRunning
 		threshold = h.globalRestartThreshold
 		return
 	}
 
-	status = pluginRunning
-	if h.pluginStats[plugin].restartCount >= h.pluginStats[plugin].restartThreshold {
+	if h.pluginStats[plugin].restartCount > h.pluginStats[plugin].restartThreshold {
 		status = pluginDeactivated
 	}
 	restarts = h.pluginStats[plugin].restartCount
