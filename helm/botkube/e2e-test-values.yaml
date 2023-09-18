@@ -324,8 +324,8 @@ plugins:
       url: http://host.k3d.internal:3000/botkube.yaml
   restartPolicy:
     type: "DeactivatePlugin"
-    threshold: 5
-  healthCheckInterval: 10s
+    threshold: 1
+  healthCheckInterval: 3s
 
 actions:
   'get-created-resource':
