@@ -520,7 +520,6 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	var err error
 	if len(markdown) >= slackMaxMessageSize {
 		if strings.Contains(resp.Description, "logs") {
-
 			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
 			if err != nil {
 				return err
