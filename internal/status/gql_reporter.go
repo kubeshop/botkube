@@ -36,13 +36,46 @@ type GraphQLStatusReporter struct {
 	resVerMutex     sync.RWMutex
 }
 
-func newGraphQLStatusReporter(logger logrus.FieldLogger, client GraphQLClient, resVerClient ResVerClient, cfgVersion int) *GraphQLStatusReporter {
+func newGraphQLStatusReporter(logger logrus.FieldLogger, client GraphQLClient, resVerClient ResVerClient) *GraphQLStatusReporter {
 	return &GraphQLStatusReporter{
-		log:             logger,
-		gql:             client,
-		resVerClient:    resVerClient,
-		resourceVersion: cfgVersion,
+		log:          logger,
+		gql:          client,
+		resVerClient: resVerClient,
 	}
+}
+
+// ReportDeploymentConnectionInit reports connection initialization.
+func (r *GraphQLStatusReporter) ReportDeploymentConnectionInit(ctx context.Context, k8sVer string) error {
+	logger := r.log.WithFields(logrus.Fields{
+		"deploymentID": r.gql.DeploymentID(),
+		"type":         "connecting",
+	})
+	logger.Debug("Reporting...")
+	var mutation struct {
+		Success bool `graphql:"reportDeploymentConnectionInit(id: $id, botkubeVersion: $botkubeVersion, k8sVer: $k8sVer)"`
+	}
+	variables := map[string]interface{}{
+		"id":             graphql.ID(r.gql.DeploymentID()),
+		"botkubeVersion": version.Info().Version,
+		"k8sVer":         k8sVer,
+	}
+
+	err := r.withRetry(ctx, logger, func() error {
+		err := r.gql.Client().Mutate(ctx, &mutation, variables)
+		if err != nil {
+			return err
+		}
+		if !mutation.Success {
+			return errors.New("failed to report connection initialization")
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "while reporting deployment connection initialization")
+	}
+	logger.Debug("Reporting successful.")
+
+	return nil
 }
 
 // ReportDeploymentStartup reports deployment startup to GraphQL server.
@@ -137,6 +170,10 @@ func (r *GraphQLStatusReporter) SetResourceVersion(resourceVersion int) {
 	r.resVerMutex.Lock()
 	defer r.resVerMutex.Unlock()
 	r.resourceVersion = resourceVersion
+}
+
+func (r *GraphQLStatusReporter) SetLogger(logger logrus.FieldLogger) {
+	r.log = logger.WithField("component", "GraphQLStatusReporter")
 }
 
 const (
