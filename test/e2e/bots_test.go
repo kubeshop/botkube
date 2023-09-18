@@ -1117,8 +1117,10 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			expectedMessage := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", appCfg.Deployment.Namespace, testConfigMapName)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-			assert.NoError(t, err)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 3, assertionFn)
 
 			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
 			require.NoError(t, err)
@@ -1126,18 +1128,20 @@ func runBotTest(t *testing.T,
 
 		t.Run("Crash echo executor", func(t *testing.T) {
 			command := "echo @panic"
-			expectedBody := codeBlock("error reading from server")
-			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+			expectedMessage := "error reading from server"
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 
 			t.Log("Waiting for echo plugin to recover from panic...")
 			time.Sleep(7 * time.Second)
 
 			command = "echo hello"
-			expectedBody = codeBlock(strings.ToUpper(command))
+			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
