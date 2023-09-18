@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -54,6 +55,7 @@ type CommandContext struct {
 	NotifierHandler     NotifierHandler
 	Mapping             *CommandMapping
 	CmdHeader           string
+	PluginHealthStats   *plugin.HealthStats
 }
 
 // ProvidedClusterNameEqualOrEmpty returns true when provided cluster name is empty

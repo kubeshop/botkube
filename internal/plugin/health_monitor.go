@@ -21,12 +21,12 @@ type HealthMonitor struct {
 	executorsStore         *store[executor.Executor]
 	sourcesStore           *store[source.Source]
 	policy                 config.PluginRestartPolicy
-	pluginRestartStats     map[string]int
+	pluginHealthStats      *HealthStats
 	healthCheckInterval    time.Duration
 }
 
 // NewHealthMonitor returns a new HealthMonitor instance.
-func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy config.PluginRestartPolicy, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source], healthCheckInterval time.Duration) *HealthMonitor {
+func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy config.PluginRestartPolicy, schedulerChan chan string, sourceSupervisorChan, executorSupervisorChan chan pluginMetadata, executorsStore *store[executor.Executor], sourcesStore *store[source.Source], healthCheckInterval time.Duration, stats *HealthStats) *HealthMonitor {
 	return &HealthMonitor{
 		log:                    logger,
 		logConfig:              logCfg,
@@ -36,7 +36,7 @@ func NewHealthMonitor(logger logrus.FieldLogger, logCfg config.Logger, policy co
 		executorSupervisorChan: executorSupervisorChan,
 		executorsStore:         executorsStore,
 		sourcesStore:           sourcesStore,
-		pluginRestartStats:     make(map[string]int),
+		pluginHealthStats:      stats,
 		healthCheckInterval:    healthCheckInterval,
 	}
 }
@@ -54,7 +54,7 @@ func (m *HealthMonitor) monitorSourcePluginHealth(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case plugin := <-m.sourceSupervisorChan:
-			m.log.Infof("Restarting source plugin %q, attempt %d/%d...", plugin.pluginKey, m.pluginRestartStats[plugin.pluginKey]+1, m.policy.Threshold)
+			m.log.Infof("Restarting source plugin %q, attempt %d/%d...", plugin.pluginKey, m.pluginHealthStats.GetRestartCount(plugin.pluginKey)+1, m.policy.Threshold)
 			if source, ok := m.sourcesStore.EnabledPlugins.Get(plugin.pluginKey); ok && source.Cleanup != nil {
 				m.log.Debugf("Releasing resources of source plugin %q...", plugin.pluginKey)
 				source.Cleanup()
@@ -86,7 +86,7 @@ func (m *HealthMonitor) monitorExecutorPluginHealth(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case plugin := <-m.executorSupervisorChan:
-			m.log.Infof("Restarting executor plugin %q, attempt %d/%d...", plugin.pluginKey, m.pluginRestartStats[plugin.pluginKey]+1, m.policy.Threshold)
+			m.log.Infof("Restarting executor plugin %q, attempt %d/%d...", plugin.pluginKey, m.pluginHealthStats.GetRestartCount(plugin.pluginKey)+1, m.policy.Threshold)
 
 			if executor, ok := m.executorsStore.EnabledPlugins.Get(plugin.pluginKey); ok && executor.Cleanup != nil {
 				m.log.Infof("Releasing executors of executor plugin %q...", plugin.pluginKey)
@@ -111,8 +111,8 @@ func (m *HealthMonitor) monitorExecutorPluginHealth(ctx context.Context) {
 }
 
 func (m *HealthMonitor) shouldRestartPlugin(plugin string) bool {
-	restarts := m.pluginRestartStats[plugin]
-	m.pluginRestartStats[plugin]++
+	restarts := m.pluginHealthStats.GetRestartCount(plugin)
+	m.pluginHealthStats.Increment(plugin)
 
 	switch m.policy.Type.ToLower() {
 	case config.KeepAgentRunningWhenThresholdReached.ToLower():

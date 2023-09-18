@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/audit"
+	"github.com/kubeshop/botkube/internal/plugin"
 	remoteapi "github.com/kubeshop/botkube/internal/remote"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -58,6 +59,7 @@ type DefaultExecutor struct {
 	user                  UserInput
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
+	pluginHealthStats     *plugin.HealthStats
 }
 
 // Execute executes commands and returns output
@@ -70,14 +72,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		Debugf("Expanding aliases from command...")
 
 	cmdCtx := CommandContext{
-		ClusterName:     e.cfg.Settings.ClusterName,
-		ExpandedRawCmd:  expandedRawCmd,
-		CommGroupName:   e.commGroupName,
-		User:            e.user,
-		Conversation:    e.conversation,
-		Platform:        e.platform,
-		NotifierHandler: e.notifierHandler,
-		Mapping:         e.cmdsMapping,
+		ClusterName:       e.cfg.Settings.ClusterName,
+		ExpandedRawCmd:    expandedRawCmd,
+		CommGroupName:     e.commGroupName,
+		User:              e.user,
+		Conversation:      e.conversation,
+		Platform:          e.platform,
+		NotifierHandler:   e.notifierHandler,
+		Mapping:           e.cmdsMapping,
+		PluginHealthStats: e.pluginHealthStats,
 	}
 
 	flags, err := ParseFlags(expandedRawCmd)

@@ -180,9 +180,10 @@ func run(ctx context.Context) (err error) {
 	}()
 
 	schedulerChan := make(chan string)
+	pluginHealthStats := plugin.NewHealthStats(conf.Plugins.RestartPolicy.Threshold)
 	collector := plugin.NewCollector(logger)
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
-	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources, schedulerChan)
+	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources, schedulerChan, pluginHealthStats)
 
 	err = pluginManager.Start(ctx)
 	if err != nil {
@@ -219,6 +220,7 @@ func run(ctx context.Context) (err error) {
 			BotKubeVersion:    botkubeVersion,
 			RestCfg:           kubeConfig,
 			AuditReporter:     auditReporter,
+			PluginHealthStats: pluginHealthStats,
 		},
 	)
 

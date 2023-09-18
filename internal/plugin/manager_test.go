@@ -71,7 +71,7 @@ func TestCollectEnabledRepositories(t *testing.T) {
 			// given
 			manager := NewManager(loggerx.NewNoop(), config.Logger{}, config.PluginManagement{
 				Repositories: tc.definedRepositories,
-			}, tc.enabledExecutors, tc.enabledSources, make(chan string))
+			}, tc.enabledExecutors, tc.enabledSources, make(chan string), NewHealthStats(1))
 
 			// when
 			out, err := manager.collectEnabledRepositories()
