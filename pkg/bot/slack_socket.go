@@ -30,6 +30,10 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
+const (
+	MaxListingLimit = 45
+)
+
 var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
@@ -421,7 +425,7 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, resp interac
 		} else {
 			newBlocks := strings.Split(resp.BaseBody.CodeBlock, "\n")
 
-			newBlocks = newBlocks[:45]
+			newBlocks = newBlocks[:MaxListingLimit]
 
 			result := strings.Join(newBlocks, "\n")
 

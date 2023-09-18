@@ -42,6 +42,7 @@ const (
 	maxRetries              = 30
 	successIntervalDuration = 3 * time.Minute
 	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
+	MaxListingLimit			= 45
 )
 
 var _ Bot = &CloudSlack{}
@@ -533,7 +534,7 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 		} else {
 			newBlocks := strings.Split(resp.BaseBody.CodeBlock, "\n")
 
-			newBlocks = newBlocks[:45]
+			newBlocks = newBlocks[:MaxListingLimit]
 
 			result := strings.Join(newBlocks, "\n")
 
