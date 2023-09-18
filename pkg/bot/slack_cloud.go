@@ -519,14 +519,36 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	var file *slack.File
 	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
-		if err != nil {
-			return err
-		}
-		resp = interactive.CoreMessage{
-			Message: api.Message{
-				PlaintextInputs: resp.PlaintextInputs,
-			},
+		if strings.Contains(resp.Description, "logs") {
+
+			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
+			if err != nil {
+				return err
+			}
+			resp = interactive.CoreMessage{
+				Message: api.Message{
+					PlaintextInputs: resp.PlaintextInputs,
+				},
+			}
+		} else {
+			newBlocks := strings.Split(resp.BaseBody.CodeBlock, "\n")
+
+			newBlocks = newBlocks[:45]
+
+			result := strings.Join(newBlocks, "\n")
+
+			fmt.Println("result is",result)
+
+			resp = interactive.CoreMessage{
+				Description: resp.Description,
+				Message: api.Message{
+					PlaintextInputs: resp.PlaintextInputs,
+
+					BaseBody: api.Body{
+						CodeBlock: result,
+					},
+				},
+			}
 		}
 	}
 
