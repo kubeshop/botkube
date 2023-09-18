@@ -1055,9 +1055,9 @@ func runBotTest(t *testing.T,
 		command := "list executors"
 		expectedBody := codeBlock(heredoc.Doc(`
 			EXECUTOR                  ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
-			botkube/echo@v1.0.1-devel true    e       0/0      Running 
-			botkube/helm              true            0/0      Running 
-			botkube/kubectl           true    k, kc   0/0      Running`))
+			botkube/echo@v1.0.1-devel true    e       0/1      Running 
+			botkube/helm              true            0/1      Running 
+			botkube/kubectl           true    k, kc   0/1      Running`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -1090,8 +1090,8 @@ func runBotTest(t *testing.T,
 		if botDriver.Type() == commplatform.DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE             ENABLED RESTARTS STATUS  LAST_RESTART
-			botkube/cm-watcher true    0/0      Running 
-			botkube/kubernetes true    0/0      Running`))
+			botkube/cm-watcher true    0/1      Running 
+			botkube/kubernetes true    0/1      Running`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
@@ -1126,7 +1126,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Crash echo executor", func(t *testing.T) {
 			command := "echo @panic"
-			expectedBody := codeBlock("error reading from server: EOF")
+			expectedBody := codeBlock("error reading from server")
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
