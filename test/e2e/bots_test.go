@@ -1121,6 +1121,7 @@ func runBotTest(t *testing.T,
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 3, assertionFn)
+			require.NoError(t, err)
 
 			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
 			require.NoError(t, err)
