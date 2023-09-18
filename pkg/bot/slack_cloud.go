@@ -537,8 +537,6 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 
 			result := strings.Join(newBlocks, "\n")
 
-			fmt.Println("result is",result)
-
 			resp = interactive.CoreMessage{
 				Description: resp.Description,
 				Message: api.Message{

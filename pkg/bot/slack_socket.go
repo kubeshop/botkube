@@ -429,8 +429,6 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, resp interac
 
 			result := strings.Join(newBlocks, "\n")
 
-			fmt.Println("result is",result)
-
 			resp = interactive.CoreMessage{
 				Description: resp.Description,
 				Message: api.Message{
