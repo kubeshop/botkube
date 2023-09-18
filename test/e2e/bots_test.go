@@ -236,47 +236,6 @@ func runBotTest(t *testing.T,
 	// Those are a temporary tests. When we will extract kubectl and kubernetes as plugins
 	// they won't be needed anymore.
 	t.Run("Botkube PluginManagement", func(t *testing.T) {
-		t.Run("Crash config map source", func(t *testing.T) {
-			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
-			crashConfigMapSourcePlugin(t, cfgMapCli)
-
-			cm := &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testConfigMapName,
-				},
-			}
-			_, err := cfgMapCli.Create(context.Background(), cm, metav1.CreateOptions{})
-			require.NoError(t, err)
-
-			expectedMessage := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", appCfg.Deployment.Namespace, testConfigMapName)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-			assert.NoError(t, err)
-
-			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
-			require.NoError(t, err)
-		})
-
-		t.Run("Crash echo executor", func(t *testing.T) {
-			command := "echo @panic"
-			expectedBody := codeBlock("error reading from server: EOF")
-			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-			assert.NoError(t, err)
-
-			t.Log("Waiting for echo plugin to recover from panic...")
-			time.Sleep(7 * time.Second)
-
-			command = "echo hello"
-			expectedBody = codeBlock(strings.ToUpper(command))
-			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
-			assert.NoError(t, err)
-		})
-
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
 			expectedBody := codeBlock(strings.ToUpper(command))
@@ -1139,6 +1098,49 @@ func runBotTest(t *testing.T,
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
+	})
+
+	t.Run("Plugin crash & recovery", func(t *testing.T) {
+		t.Run("Crash config map source", func(t *testing.T) {
+			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+			crashConfigMapSourcePlugin(t, cfgMapCli)
+
+			cm := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testConfigMapName,
+				},
+			}
+			_, err := cfgMapCli.Create(context.Background(), cm, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			expectedMessage := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", appCfg.Deployment.Namespace, testConfigMapName)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+
+			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
+			require.NoError(t, err)
+		})
+
+		t.Run("Crash echo executor", func(t *testing.T) {
+			command := "echo @panic"
+			expectedBody := codeBlock("error reading from server: EOF")
+			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+
+			t.Log("Waiting for echo plugin to recover from panic...")
+			time.Sleep(7 * time.Second)
+
+			command = "echo hello"
+			expectedBody = codeBlock(strings.ToUpper(command))
+			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+		})
 	})
 
 	t.Run("RBAC", func(t *testing.T) {
