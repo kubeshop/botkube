@@ -1105,6 +1105,9 @@ func runBotTest(t *testing.T,
 			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
 			crashConfigMapSourcePlugin(t, cfgMapCli)
 
+			t.Log("Waiting for cm-watcher plugin to recover from panic...")
+			time.Sleep(7 * time.Second)
+
 			cm := &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: testConfigMapName,
