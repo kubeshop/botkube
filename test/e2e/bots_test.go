@@ -69,9 +69,10 @@ type Config struct {
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
-	ClusterName string `envconfig:"default=sample"`
-	Slack       commplatform.SlackConfig
-	Discord     commplatform.DiscordConfig
+	ClusterName      string `envconfig:"default=sample"`
+	Slack            commplatform.SlackConfig
+	Discord          commplatform.DiscordConfig
+	ShortWaitTimeout time.Duration `envconfig:"default=7s"`
 }
 
 const (
@@ -1106,7 +1107,7 @@ func runBotTest(t *testing.T,
 			crashConfigMapSourcePlugin(t, cfgMapCli)
 
 			t.Log("Waiting for cm-watcher plugin to recover from panic...")
-			time.Sleep(7 * time.Second)
+			time.Sleep(appCfg.ShortWaitTimeout)
 
 			cm := &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1139,13 +1140,39 @@ func runBotTest(t *testing.T,
 			assert.NoError(t, err)
 
 			t.Log("Waiting for echo plugin to recover from panic...")
-			time.Sleep(7 * time.Second)
+			time.Sleep(appCfg.ShortWaitTimeout)
 
 			command = "echo hello"
 			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+
+			command = "echo @panic"
+			expectedMessage = "error reading from server"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			assertionFn = func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+
+			t.Log("Waiting for plugin manager to deactivate echo plugin...")
+			time.Sleep(appCfg.ShortWaitTimeout)
+			command = "list executors"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+
+			assertionFn = func(msg string) (bool, int, string) {
+				return strings.Contains(msg, "Deactivated"), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+
+			command = "echo foo"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			expectedMessage = fmt.Sprintf("<@%s> %s", botDriver.BotUserID(), command)
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
