@@ -462,6 +462,7 @@ type Elasticsearch struct {
 	SkipTLSVerify bool                `yaml:"skipTLSVerify"`
 	AWSSigning    AWSSigning          `yaml:"awsSigning"`
 	Indices       map[string]ELSIndex `yaml:"indices"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	LogLevel      string              `yaml:"logLevel"`
 }
 
 // AWSSigning contains AWS configurations
