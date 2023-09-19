@@ -63,9 +63,6 @@ type CloudSlack struct {
 	notifyMutex      sync.Mutex
 	clusterName      string
 	msgStatusTracker *SlackMessageStatusTracker
-	messages         chan *pb.ConnectResponse
-	messageWorkers   *pool.Pool
-	shutdownOnce     sync.Once
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -111,8 +108,6 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		messages:         make(chan *pb.ConnectResponse, platformMessageChannelSize),
-		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
 	}, nil
 }
 
@@ -161,7 +156,9 @@ func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn
 }
 
 func (b *CloudSlack) start(ctx context.Context) error {
-	defer b.shutdown()
+	messageWorkers := pool.New().WithMaxGoroutines(platformMessageWorkersCount)
+	messages := make(chan *pb.ConnectResponse, platformMessageChannelSize)
+	defer b.shutdown(messageWorkers, messages)
 
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{creds,
@@ -200,7 +197,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		return fmt.Errorf("while sending gRPC connection request. %w", err)
 	}
 
-	go b.startMessageProcessor(ctx)
+	go b.startMessageProcessor(ctx, messageWorkers, messages)
 
 	for {
 		data, err := c.Recv()
@@ -216,16 +213,16 @@ func (b *CloudSlack) start(ctx context.Context) error {
 			}
 			return fmt.Errorf("while receiving cloud slack events: %w", err)
 		}
-		b.messages <- data
+		messages <- data
 	}
 }
 
-func (b *CloudSlack) startMessageProcessor(ctx context.Context) {
+func (b *CloudSlack) startMessageProcessor(ctx context.Context, messageWorkers *pool.Pool, messages chan *pb.ConnectResponse) {
 	b.log.Info("Starting cloud slack message processor...")
 	defer b.log.Info("Stopped cloud slack message processor...")
 
-	for msg := range b.messages {
-		b.messageWorkers.Go(func() {
+	for msg := range messages {
+		messageWorkers.Go(func() {
 			err, _ := b.handleStreamMessage(ctx, msg)
 			if err != nil {
 				b.log.WithError(err).Error("Failed to handle Cloud Slack message")
@@ -234,12 +231,10 @@ func (b *CloudSlack) startMessageProcessor(ctx context.Context) {
 	}
 }
 
-func (b *CloudSlack) shutdown() {
-	b.shutdownOnce.Do(func() {
-		b.log.Info("Shutting down cloud slack message processor...")
-		close(b.messages)
-		b.messageWorkers.Wait()
-	})
+func (b *CloudSlack) shutdown(messageWorkers *pool.Pool, messages chan *pb.ConnectResponse) {
+	b.log.Info("Shutting down cloud slack message processor...")
+	close(messages)
+	messageWorkers.Wait()
 }
 
 func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectResponse) (error, bool) {
