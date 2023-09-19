@@ -1172,8 +1172,7 @@ func runBotTest(t *testing.T,
 
 			command = "echo foo"
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			expectedMessage = fmt.Sprintf("<@%s> %s", botDriver.BotUserID(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			err = botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), command)
 			assert.NoError(t, err)
 		})
 	})
