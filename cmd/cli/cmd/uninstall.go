@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/analytics"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/install/helm"
 	"github.com/kubeshop/botkube/internal/cli/uninstall"
@@ -42,10 +43,13 @@ func NewUninstall() *cobra.Command {
 		},
 	}
 
+	uninstallCmd = analytics.InjectAnalyticsReporting(*uninstallCmd, "uninstall")
+
 	flags := uninstallCmd.Flags()
 
 	kubex.RegisterKubeconfigFlag(flags)
 
+	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", helm.ReleaseName, "Botkube Helm release name.")
 	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", helm.Namespace, "Botkube namespace.")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for deletion.")

@@ -17,6 +17,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/charmbracelet/log v0.2.2
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.15.0
 	github.com/fluxcd/kustomize-controller/api v1.0.1

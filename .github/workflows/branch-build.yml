@@ -48,6 +48,7 @@ jobs:
         run: make release-snapshot
         env:
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+          CLI_ANALYTICS_API_KEY: ${{ secrets.CLI_ANALYTICS_API_KEY }}
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:

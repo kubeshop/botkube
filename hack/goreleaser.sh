@@ -144,6 +144,7 @@ build() {
     -w /go/src/github.com/kubeshop/botkube \
     -e GORELEASER_CURRENT_TAG=v9.99.9-dev \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
+    -e CLI_ANALYTICS_API_KEY="${CLI_ANALYTICS_API_KEY}" \
     goreleaser/goreleaser release --clean --snapshot --skip-publish
 }
 
@@ -238,6 +239,7 @@ build_single() {
     -w /go/src/github.com/kubeshop/botkube \
     -e IMAGE_TAG=${IMAGE_TAG} \
     -e ANALYTICS_API_KEY="${ANALYTICS_API_KEY}" \
+    -e CLI_ANALYTICS_API_KEY="${CLI_ANALYTICS_API_KEY}" \
     goreleaser/goreleaser build --single-target --clean --snapshot --id botkube-agent -o "./botkube-agent"
   docker build -f "$PWD/build/Dockerfile" --platform "${IMAGE_PLATFORM}" -t "${IMAGE_REGISTRY}/${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
   rm "$PWD/botkube-agent"

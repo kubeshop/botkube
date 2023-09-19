@@ -18,7 +18,8 @@ var (
 
 // Config is botkube cli config
 type Config struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	Identity string `json:"identity"`
 }
 
 // NewConfig creates new Config from local data

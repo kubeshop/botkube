@@ -42,6 +42,7 @@ botkube install --repo @local
       --kubeconfig string            Paths to a kubeconfig. Only required if out-of-cluster.
       --namespace string             Botkube installation namespace. (default "botkube")
       --no-hooks                     Disable pre/post install/upgrade hooks
+      --opt-out-analytics            The Botkube CLI tool collects anonymous usage analytics. This data is only available to the Botkube authors and helps us improve the tool.
       --release-name string          Botkube Helm chart release name. (default "botkube")
       --render-subchart-notes        If set, render subchart notes along with the parent
       --repo string                  Botkube Helm chart repository location. It can be relative path to current working directory or URL. Use @stable tag to select repository which holds the stable Helm chart versions. (default "https://charts.botkube.io/")

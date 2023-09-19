@@ -51,6 +51,7 @@ botkube migrate [OPTIONS] [flags]
       --kubeconfig string                    Paths to a kubeconfig. Only required if out-of-cluster.
   -l, --label string                         Label used for identifying the Botkube pod (default "app=botkube")
   -n, --namespace string                     Namespace of Botkube pod (default "botkube")
+      --opt-out-analytics                    The Botkube CLI tool collects anonymous usage analytics. This data is only available to the Botkube authors and helps us improve the tool.
   -q, --skip-connect                         Skips connecting to Botkube Cloud after migration
       --skip-open-browser                    Skips opening web browser after migration
       --timeout duration                     Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". (default 10m0s)

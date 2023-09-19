@@ -29,7 +29,10 @@ func Run(ctx context.Context, w io.Writer, opts Options) error {
 		return err
 	}
 
-	c := cli.Config{Token: t.Token}
+	c := &cli.Config{}
+	_ = c.Read()
+	c.Token = t.Token
+
 	if err := c.Save(); err != nil {
 		return err
 	}

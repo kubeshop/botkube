@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/analytics"
 	"github.com/kubeshop/botkube/internal/cli/config"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/printer"
@@ -83,9 +84,12 @@ func NewGet() *cobra.Command {
 		},
 	}
 
+	cmd = analytics.InjectAnalyticsReporting(*cmd, "config get")
+
 	flags := cmd.Flags()
 
 	flags.BoolVar(&opts.OmitEmpty, "omit-empty-values", true, "Omits empty keys from printed configuration")
+	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 
 	opts.Exporter.RegisterFlags(flags)
 

@@ -79,5 +79,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           IMAGE_TAG: ${{ github.ref_name }}
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+          CLI_ANALYTICS_API_KEY: ${{ secrets.CLI_ANALYTICS_API_KEY }}
         run: |
           goreleaser release --clean --release-notes=CHANGELOG.md
