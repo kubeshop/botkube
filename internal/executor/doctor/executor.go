@@ -74,7 +74,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 				  "description": "Default engine to use",	
 				  "type": "string",
 				  "title": "Default Engine",	
-				  "default": "davinci"
+				  "default": "text-davinci-003"
 				},
 				"organizationID": {	
 				  "description": "Optional organization ID",
@@ -114,8 +114,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while initializing GPT client: %w", err)
 	}
 	sb := strings.Builder{}
-	err = gpt.CompletionStreamWithEngine(ctx,
-		gpt3.TextDavinci003Engine,
+	err = gpt.CompletionStream(ctx,
 		gpt3.CompletionRequest{
 			Prompt:      []string{buildPrompt(doctorParams)},
 			MaxTokens:   gpt3.IntPtr(300),
@@ -185,13 +184,16 @@ func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
 		return nil, fmt.Errorf("OpenAPI API Key cannot be empty. You generate it here: https://platform.openai.com/account/api-keys")
 	}
 
-	var opts []gpt3.ClientOption
-	if cfg.APIBaseURL != "" {
-		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
+	defaultEngine := gpt3.TextDavinci003Engine
+	if cfg.DefaultEngine != "" {
+		defaultEngine = cfg.DefaultEngine
+	}
+	opts := []gpt3.ClientOption{
+		gpt3.WithDefaultEngine(defaultEngine),
 	}
 
-	if cfg.DefaultEngine != "" {
-		opts = append(opts, gpt3.WithDefaultEngine(cfg.DefaultEngine))
+	if cfg.APIBaseURL != "" {
+		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
 	}
 
 	if cfg.OrganizationID != "" {
