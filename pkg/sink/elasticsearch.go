@@ -55,7 +55,17 @@ type Elasticsearch struct {
 func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
-	var creds *credentials.Credentials
+
+	var elsOpts []elastic.ClientOptionFunc
+	switch c.LogLevel {
+	case "info":
+		elsOpts = append(elsOpts, elastic.SetInfoLog(log))
+	case "error":
+		elsOpts = append(elsOpts, elastic.SetInfoLog(log), elastic.SetErrorLog(log))
+	case "trace":
+		elsOpts = append(elsOpts, elastic.SetInfoLog(log), elastic.SetErrorLog(log), elastic.SetTraceLog(log))
+	}
+
 	if c.AWSSigning.Enabled {
 		// Get credentials from environment variables and create the AWS Signature Version 4 signer
 		sess := session.Must(session.NewSession())
@@ -63,6 +73,7 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 		// Use OIDC token to generate credentials if using IAM to Service Account
 		awsRoleARN := os.Getenv(awsRoleARNEnvName)
 		awsWebIdentityTokenFile := os.Getenv(awsWebIDTokenFileEnvName)
+		var creds *credentials.Credentials
 		if awsRoleARN != "" && awsWebIdentityTokenFile != "" {
 			svc := sts.New(sess)
 			p := stscreds.NewWebIdentityRoleProviderWithOptions(svc, awsRoleARN, "", stscreds.FetchTokenPath(awsWebIdentityTokenFile))
@@ -78,7 +89,7 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 		if err != nil {
 			return nil, fmt.Errorf("while creating new AWS Signing client: %w", err)
 		}
-		elsClient, err = elastic.NewClient(
+		elsOpts = append(elsOpts,
 			elastic.SetURL(c.Server),
 			elastic.SetScheme("https"),
 			elastic.SetHttpClient(awsClient),
@@ -86,17 +97,14 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(false),
 		)
-		if err != nil {
-			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
-		}
 	} else {
-		elsClientParams := []elastic.ClientOptionFunc{
+		elsOpts = append(elsOpts,
 			elastic.SetURL(c.Server),
 			elastic.SetBasicAuth(c.Username, c.Password),
 			elastic.SetSniff(false),
 			elastic.SetHealthcheck(false),
 			elastic.SetGzip(true),
-		}
+		)
 
 		if c.SkipTLSVerify {
 			tr := &http.Transport{
@@ -104,15 +112,14 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			httpClient := &http.Client{Transport: tr}
-			elsClientParams = append(elsClientParams, elastic.SetHttpClient(httpClient))
-		}
-		// create elasticsearch client
-		elsClient, err = elastic.NewClient(elsClientParams...)
-		if err != nil {
-			return nil, fmt.Errorf("while creating new Elastic client: %w", err)
+			elsOpts = append(elsOpts, elastic.SetHttpClient(httpClient))
 		}
 	}
 
+	elsClient, err = elastic.NewClient(elsOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("while creating new Elastic client: %w", err)
+	}
 	pong, _, err := elsClient.Ping(c.Server).Do(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("while pinging cluster: %w", err)
@@ -177,10 +184,10 @@ func (e *Elasticsearch) flushIndex(ctx context.Context, indexCfg config.ELSIndex
 	if err != nil {
 		return fmt.Errorf("while getting cluster major version: %w", err)
 	}
-	if majorVersion <= 7 {
+	if majorVersion <= 7 && indexCfg.Type != "" {
 		// Only Elasticsearch <= 7.x supports Type parameter
 		// nolint:staticcheck
-		indexService.Type(e.clusterVersion)
+		indexService.Type(indexCfg.Type)
 	}
 	_, err = indexService.BodyJson(event).Do(ctx)
 	if err != nil {

@@ -131,6 +131,7 @@ communications:
                     bindings:
                         sources:
                             - k8s-events
+            logLevel: ""
 analytics:
     disable: true
 settings:

@@ -177,6 +177,13 @@ func (d *Dispatcher) getBotNotifiers(dispatch PluginDispatch) []notifier.Bot {
 	return d.markdownNotifiers
 }
 
+func (d *Dispatcher) getSinkNotifiers(dispatch PluginDispatch) []notifier.Sink {
+	if dispatch.isInteractivitySupported {
+		return nil // we shouldn't forward interactive events
+	}
+	return d.sinkNotifiers
+}
+
 func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispatch PluginDispatch) {
 	var (
 		pluginName = dispatch.pluginName
@@ -207,7 +214,7 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 		}(n)
 	}
 
-	for _, n := range d.sinkNotifiers {
+	for _, n := range d.getSinkNotifiers(dispatch) {
 		go func(n notifier.Sink) {
 			defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 			err := n.SendEvent(ctx, event.RawObject, sources)
