@@ -10,17 +10,22 @@ import (
 	"sync"
 
 	"github.com/PullRequestInc/go-gpt3"
+	"github.com/sirupsen/logrus"
+	stringsutil "k8s.io/utils/strings"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
-	PluginName        = "doctor"
-	promptTemplate    = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
-	defaultAPIBaseURL = "https://api.openai.com/v1"
-	defaultUserAgent  = "go-gpt3"
+	PluginName           = "doctor"
+	promptTemplate       = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	defaultAPIBaseURL    = "https://api.openai.com/v1"
+	defaultUserAgent     = "go-gpt3"
+	printAPIKeyCharCount = 3
 )
 
 var (
@@ -30,6 +35,8 @@ var (
 )
 
 type Config struct {
+	Logger config.Logger `yaml:"log"`
+
 	APIBaseURL     string `yaml:"apiBaseUrl"`
 	APIKey         string `yaml:"apiKey"`
 	DefaultEngine  string `yaml:"defaultEngine"`
@@ -69,18 +76,24 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
+	log := loggerx.New(cfg.Logger)
+
 	doctorParams, err := normalizeCommand(in.Command)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while normalizing command: %w", err)
 	}
-	gpt, err := d.getGptClient(&cfg)
+	prompt := buildPrompt(doctorParams)
+
+	gpt, err := d.getGptClient(log, cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while initializing GPT client: %w", err)
 	}
+
+	log.WithField("prompt", prompt).Info("Streaming completion result...")
 	sb := strings.Builder{}
 	err = gpt.CompletionStream(ctx,
 		gpt3.CompletionRequest{
-			Prompt:      []string{buildPrompt(doctorParams)},
+			Prompt:      []string{prompt},
 			MaxTokens:   gpt3.IntPtr(300),
 			Temperature: gpt3.Float32Ptr(0),
 		}, func(resp *gpt3.CompletionResponse) {
@@ -91,12 +104,16 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 	response := sb.String()
+	log.WithField("response", response).Debug("Completion result received successfully")
+
 	response = strings.TrimLeft(response, "\n")
 	if doctorParams.IsRaw() {
+		log.Debug("Returning raw response...")
 		return executor.ExecuteOutput{
 			Message: api.NewPlaintextMessage(response, true),
 		}, nil
 	}
+	log.Debug("Building possible actions based on response...")
 	btnBuilder := api.NewMessageButtonBuilder()
 	var btns []api.Button
 	for i, s := range strings.Split(response, "\n") {
@@ -141,7 +158,7 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 	}, nil
 }
 
-func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
+func (d *Executor) getGptClient(log logrus.FieldLogger, cfg Config) (gpt3.Client, error) {
 	d.l.Lock()
 	defer d.l.Unlock()
 
@@ -179,6 +196,13 @@ func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
 		gpt3.WithUserAgent(userAgent),
 		gpt3.WithOrg(orgID),
 	}
+
+	log.WithFields(logrus.Fields{
+		"baseURL":       baseURL,
+		"defaultEngine": defaultEngine,
+		"userAgent":     userAgent,
+		"orgID":         orgID,
+	}).Debugf("Creating GPT3 client with API key starting with %q...", stringsutil.ShortenString(cfg.APIKey, printAPIKeyCharCount))
 
 	d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	return d.gptClient, nil
