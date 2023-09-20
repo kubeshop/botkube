@@ -2,30 +2,41 @@ package doctor
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/PullRequestInc/go-gpt3"
+	"github.com/sirupsen/logrus"
+	stringsutil "k8s.io/utils/strings"
 
+	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const (
-	PluginName     = "doctor"
-	promptTemplate = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	PluginName           = "doctor"
+	promptTemplate       = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	defaultAPIBaseURL    = "https://api.openai.com/v1"
+	defaultUserAgent     = "go-gpt3"
+	printAPIKeyCharCount = 3
 )
 
 var (
-	k8sPromptRegex = regexp.MustCompile(`--(\w+)=([^\s]+)`)
+	//go:embed config-jsonschema.json
+	configJSONSchema string
+	k8sPromptRegex   = regexp.MustCompile(`--(\w+)=([^\s]+)`)
 )
 
 type Config struct {
+	Logger config.Logger `yaml:"log"`
+
 	APIBaseURL     string `yaml:"apiBaseUrl"`
 	APIKey         string `yaml:"apiKey"`
 	DefaultEngine  string `yaml:"defaultEngine"`
@@ -53,47 +64,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:     d.pluginVersion,
 		Description: "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 		JSONSchema: api.JSONSchema{
-			Value: heredoc.Doc(`{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "doctor",
-			  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
-			  "type": "object",
-			  "properties": {
-				"apiKey": {
-				  "description": "OpenAI Secret API Key",
-				  "type": "string",
-				  "title": "API Key"
-				},
-				"apiBaseUrl": {
-				  "description": "OpenAI API Base URL",
-				  "type": "string",
-				  "title": "API Base URL",
-				  "default": "https://api.openai.com/v1"
-				},
-				"defaultEngine": {	
-				  "description": "Default engine to use",	
-				  "type": "string",
-				  "title": "Default Engine",	
-				  "default": "davinci"
-				},
-				"organizationID": {	
-				  "description": "Optional organization ID",
-				  "type": "string",
-				  "title": "Organization ID",
-				  "default": ""
-				},
-				"userAgent": {
-				  "description": "User agent to use for requests",
-				  "type": "string",	
-				  "title": "User Agent",	
-				  "default": "go-gpt3"
-				}  	
-			  },
-			  "required": [
-				"apiKey"
-			  ],
-			  "additionalProperties": false
-			}`),
+			Value: configJSONSchema,
 		},
 	}, nil
 }
@@ -105,19 +76,24 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
+	log := loggerx.New(cfg.Logger)
+
 	doctorParams, err := normalizeCommand(in.Command)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while normalizing command: %w", err)
 	}
-	gpt, err := d.getGptClient(&cfg)
+	prompt := buildPrompt(doctorParams)
+
+	gpt, err := d.getGptClient(log, cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while initializing GPT client: %w", err)
 	}
+
+	log.WithField("prompt", prompt).Info("Streaming completion result...")
 	sb := strings.Builder{}
-	err = gpt.CompletionStreamWithEngine(ctx,
-		gpt3.TextDavinci003Engine,
+	err = gpt.CompletionStream(ctx,
 		gpt3.CompletionRequest{
-			Prompt:      []string{buildPrompt(doctorParams)},
+			Prompt:      []string{prompt},
 			MaxTokens:   gpt3.IntPtr(300),
 			Temperature: gpt3.Float32Ptr(0),
 		}, func(resp *gpt3.CompletionResponse) {
@@ -128,12 +104,16 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 	response := sb.String()
+	log.WithField("response", response).Debug("Completion result received successfully")
+
 	response = strings.TrimLeft(response, "\n")
 	if doctorParams.IsRaw() {
+		log.Debug("Returning raw response...")
 		return executor.ExecuteOutput{
 			Message: api.NewPlaintextMessage(response, true),
 		}, nil
 	}
+	log.Debug("Building possible actions based on response...")
 	btnBuilder := api.NewMessageButtonBuilder()
 	var btns []api.Button
 	for i, s := range strings.Split(response, "\n") {
@@ -178,29 +158,54 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 	}, nil
 }
 
-func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
+func (d *Executor) getGptClient(log logrus.FieldLogger, cfg Config) (gpt3.Client, error) {
 	d.l.Lock()
 	defer d.l.Unlock()
+
+	if d.gptClient != nil {
+		return d.gptClient, nil
+	}
+
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("OpenAPI API Key cannot be empty. You generate it here: https://platform.openai.com/account/api-keys")
+		return nil, fmt.Errorf("API Key cannot be empty. If you use OpenAI API, generate it here: https://platform.openai.com/account/api-keys")
 	}
 
-	var opts []gpt3.ClientOption
+	baseURL := defaultAPIBaseURL
 	if cfg.APIBaseURL != "" {
-		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
+		baseURL = cfg.APIBaseURL
 	}
 
+	defaultEngine := gpt3.TextDavinci003Engine
 	if cfg.DefaultEngine != "" {
-		opts = append(opts, gpt3.WithDefaultEngine(cfg.DefaultEngine))
+		defaultEngine = cfg.DefaultEngine
 	}
 
+	userAgent := defaultUserAgent
+	if cfg.UserAgent != "" {
+		userAgent = cfg.UserAgent
+	}
+
+	orgID := ""
 	if cfg.OrganizationID != "" {
-		opts = append(opts, gpt3.WithOrg(cfg.OrganizationID))
+		orgID = cfg.OrganizationID
 	}
 
-	if d.gptClient == nil {
-		d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
+	opts := []gpt3.ClientOption{
+		gpt3.WithBaseURL(baseURL),
+		gpt3.WithDefaultEngine(defaultEngine),
+		gpt3.WithUserAgent(userAgent),
+		gpt3.WithOrg(orgID),
 	}
+
+	log.WithFields(logrus.Fields{
+		"baseURL":       baseURL,
+		"defaultEngine": defaultEngine,
+		"userAgent":     userAgent,
+		"orgID":         orgID,
+		"apiKeyPrefix":  stringsutil.ShortenString(cfg.APIKey, printAPIKeyCharCount),
+	}).Debugf("Creating GPT3 client...")
+
+	d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	return d.gptClient, nil
 }
 

@@ -661,8 +661,19 @@ executors:
       context: *default-plugin-context
       ## -- Custom doctor plugin configuration.
       config:
+        #  # To see the plugin standard output you need to enable it. Learn more at https://docs.botkube.io/plugin/debugging/.
+        #  log:
+        #    level: "info"
         ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
         apiKey: ""
+        ## -- OpenAI API Base URL. If empty, the default "https://api.openai.com/v1" value is used.
+        apiBaseUrl: ""
+        ## -- Default engine to use. If empty, "text-davinci-003" engine is used.
+        defaultEngine: ""
+        ## -- Optional organization ID for requests.
+        organizationID: ""
+        ## -- User agent to use for requests. If empty, the default value is used ("go-gpt3").
+        userAgent: ""
 
   flux:
     # Flux executor configuration.
