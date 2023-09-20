@@ -202,7 +202,8 @@ func (d *Executor) getGptClient(log logrus.FieldLogger, cfg Config) (gpt3.Client
 		"defaultEngine": defaultEngine,
 		"userAgent":     userAgent,
 		"orgID":         orgID,
-	}).Debugf("Creating GPT3 client with API key starting with %q...", stringsutil.ShortenString(cfg.APIKey, printAPIKeyCharCount))
+		"apiKeyPrefix":  stringsutil.ShortenString(cfg.APIKey, printAPIKeyCharCount),
+	}).Debugf("Creating GPT3 client...")
 
 	d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	return d.gptClient, nil
