@@ -1172,6 +1172,7 @@ func runBotTest(t *testing.T,
 
 			command = "echo foo"
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			t.Log("Ensuring bot didn't post anything new...")
 			time.Sleep(appCfg.ShortWaitTimeout)
 
 			assertionFn = func(msg string) (bool, int, string) {
