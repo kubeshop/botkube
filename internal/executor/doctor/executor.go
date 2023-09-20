@@ -2,13 +2,13 @@ package doctor
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/PullRequestInc/go-gpt3"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -17,12 +17,16 @@ import (
 )
 
 const (
-	PluginName     = "doctor"
-	promptTemplate = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	PluginName        = "doctor"
+	promptTemplate    = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	defaultAPIBaseURL = "https://api.openai.com/v1"
+	defaultUserAgent  = "go-gpt3"
 )
 
 var (
-	k8sPromptRegex = regexp.MustCompile(`--(\w+)=([^\s]+)`)
+	//go:embed config-jsonschema.json
+	configJSONSchema string
+	k8sPromptRegex   = regexp.MustCompile(`--(\w+)=([^\s]+)`)
 )
 
 type Config struct {
@@ -53,47 +57,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:     d.pluginVersion,
 		Description: "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 		JSONSchema: api.JSONSchema{
-			Value: heredoc.Doc(`{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "doctor",
-			  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
-			  "type": "object",
-			  "properties": {
-				"apiKey": {
-				  "description": "OpenAI Secret API Key",
-				  "type": "string",
-				  "title": "API Key"
-				},
-				"apiBaseUrl": {
-				  "description": "OpenAI API Base URL",
-				  "type": "string",
-				  "title": "API Base URL",
-				  "default": "https://api.openai.com/v1"
-				},
-				"defaultEngine": {	
-				  "description": "Default engine to use",	
-				  "type": "string",
-				  "title": "Default Engine",	
-				  "default": "text-davinci-003"
-				},
-				"organizationID": {	
-				  "description": "Optional organization ID",
-				  "type": "string",
-				  "title": "Organization ID",
-				  "default": ""
-				},
-				"userAgent": {
-				  "description": "User agent to use for requests",
-				  "type": "string",	
-				  "title": "User Agent",	
-				  "default": "go-gpt3"
-				}  	
-			  },
-			  "required": [
-				"apiKey"
-			  ],
-			  "additionalProperties": false
-			}`),
+			Value: configJSONSchema,
 		},
 	}, nil
 }
@@ -180,29 +144,43 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 func (d *Executor) getGptClient(cfg *Config) (gpt3.Client, error) {
 	d.l.Lock()
 	defer d.l.Unlock()
+
+	if d.gptClient != nil {
+		return d.gptClient, nil
+	}
+
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("OpenAPI API Key cannot be empty. You generate it here: https://platform.openai.com/account/api-keys")
+		return nil, fmt.Errorf("API Key cannot be empty. If you use OpenAI API, generate it here: https://platform.openai.com/account/api-keys")
+	}
+
+	baseURL := defaultAPIBaseURL
+	if cfg.APIBaseURL != "" {
+		baseURL = cfg.APIBaseURL
 	}
 
 	defaultEngine := gpt3.TextDavinci003Engine
 	if cfg.DefaultEngine != "" {
 		defaultEngine = cfg.DefaultEngine
 	}
-	opts := []gpt3.ClientOption{
-		gpt3.WithDefaultEngine(defaultEngine),
+
+	userAgent := defaultUserAgent
+	if cfg.UserAgent != "" {
+		userAgent = cfg.UserAgent
 	}
 
-	if cfg.APIBaseURL != "" {
-		opts = append(opts, gpt3.WithBaseURL(cfg.APIBaseURL))
-	}
-
+	orgID := ""
 	if cfg.OrganizationID != "" {
-		opts = append(opts, gpt3.WithOrg(cfg.OrganizationID))
+		orgID = cfg.OrganizationID
 	}
 
-	if d.gptClient == nil {
-		d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
+	opts := []gpt3.ClientOption{
+		gpt3.WithBaseURL(baseURL),
+		gpt3.WithDefaultEngine(defaultEngine),
+		gpt3.WithUserAgent(userAgent),
+		gpt3.WithOrg(orgID),
 	}
+
+	d.gptClient = gpt3.NewClient(cfg.APIKey, opts...)
 	return d.gptClient, nil
 }
 

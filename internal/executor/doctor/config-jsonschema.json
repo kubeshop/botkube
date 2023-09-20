@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "doctor",
+  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
+  "type": "object",
+  "properties": {
+    "apiKey": {
+      "description": "OpenAI Secret API Key",
+      "type": "string",
+      "title": "API Key"
+    },
+    "apiBaseUrl": {
+      "description": "OpenAI API Base URL",
+      "type": "string",
+      "title": "API Base URL",
+      "default": "https://api.openai.com/v1"
+    },
+    "defaultEngine": {
+      "description": "Default engine to use",
+      "type": "string",
+      "title": "Default Engine",
+      "default": "text-davinci-003"
+    },
+    "organizationID": {
+      "description": "Optional organization ID",
+      "type": "string",
+      "title": "Organization ID",
+      "default": ""
+    },
+    "userAgent": {
+      "description": "User agent to use for requests",
+      "type": "string",
+      "title": "User Agent",
+      "default": "go-gpt3"
+    }
+  },
+  "required": [
+    "apiKey"
+  ],
+  "additionalProperties": false
+}
