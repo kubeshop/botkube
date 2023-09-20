@@ -7,7 +7,7 @@ import (
 
 // Config holds Flux executor configuration.
 type Config struct {
-	Logger config.Logger `yaml:"logger"`
+	Logger config.Logger `yaml:"log"`
 	TmpDir plugin.TmpDir `yaml:"tmpDir"`
 	GitHub struct {
 		Auth struct {
