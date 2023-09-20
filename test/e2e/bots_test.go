@@ -69,13 +69,15 @@ type Config struct {
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
-	ClusterName string `envconfig:"default=sample"`
-	Slack       commplatform.SlackConfig
-	Discord     commplatform.DiscordConfig
+	ClusterName      string `envconfig:"default=sample"`
+	Slack            commplatform.SlackConfig
+	Discord          commplatform.DiscordConfig
+	ShortWaitTimeout time.Duration `envconfig:"default=7s"`
 }
 
 const (
 	globalConfigMapName = "botkube-global-config"
+	testConfigMapName   = "cm-watcher-trigger"
 )
 
 var (
@@ -1054,9 +1056,9 @@ func runBotTest(t *testing.T,
 		command := "list executors"
 		expectedBody := codeBlock(heredoc.Doc(`
 			EXECUTOR                  ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
-			botkube/echo@v1.0.1-devel true    e       0/0      Running 
-			botkube/helm              true            0/0      Running 
-			botkube/kubectl           true    k, kc   0/0      Running`))
+			botkube/echo@v1.0.1-devel true    e       0/1      Running 
+			botkube/helm              true            0/1      Running 
+			botkube/kubectl           true    k, kc   0/1      Running`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -1089,14 +1091,96 @@ func runBotTest(t *testing.T,
 		if botDriver.Type() == commplatform.DiscordBot {
 			expectedBody = codeBlock(heredoc.Doc(`
 			SOURCE             ENABLED RESTARTS STATUS  LAST_RESTART
-			botkube/cm-watcher true    0/0      Running 
-			botkube/kubernetes true    0/0      Running`))
+			botkube/cm-watcher true    0/1      Running 
+			botkube/kubernetes true    0/1      Running`))
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		assert.NoError(t, err)
+	})
+
+	t.Run("Plugin crash & recovery", func(t *testing.T) {
+		t.Run("Crash config map source", func(t *testing.T) {
+			cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
+			crashConfigMapSourcePlugin(t, cfgMapCli)
+
+			t.Log("Waiting for cm-watcher plugin to recover from panic...")
+			time.Sleep(appCfg.ShortWaitTimeout)
+
+			cm := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testConfigMapName,
+				},
+			}
+			_, err := cfgMapCli.Create(context.Background(), cm, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			expectedMessage := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", appCfg.Deployment.Namespace, testConfigMapName)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 3, assertionFn)
+			require.NoError(t, err)
+
+			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
+			require.NoError(t, err)
+		})
+
+		t.Run("Crash echo executor", func(t *testing.T) {
+			command := "echo @panic"
+			expectedMessage := "error reading from server"
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			assertionFn := func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+
+			t.Log("Waiting for echo plugin to recover from panic...")
+			time.Sleep(appCfg.ShortWaitTimeout)
+
+			command = "echo hello"
+			expectedBody := codeBlock(strings.ToUpper(command))
+			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			assert.NoError(t, err)
+
+			command = "echo @panic"
+			expectedMessage = "error reading from server"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			assertionFn = func(msg string) (bool, int, string) {
+				return strings.Contains(msg, expectedMessage), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+
+			t.Log("Waiting for plugin manager to deactivate echo plugin...")
+			time.Sleep(appCfg.ShortWaitTimeout)
+			command = "list executors"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+
+			assertionFn = func(msg string) (bool, int, string) {
+				return strings.Contains(msg, "Deactivated"), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+
+			command = "echo foo"
+			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			t.Log("Ensuring bot didn't post anything new...")
+			time.Sleep(appCfg.ShortWaitTimeout)
+
+			assertionFn = func(msg string) (bool, int, string) {
+				return strings.Contains(msg, command), 0, ""
+			}
+			err = botDriver.WaitForMessagePosted(botDriver.TesterUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			assert.NoError(t, err)
+		})
 	})
 
 	t.Run("RBAC", func(t *testing.T) {
@@ -1345,4 +1429,24 @@ func sendIncomingWebhookRequest(t *testing.T, localPort int, sourceName, message
 
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
+}
+
+func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterface) {
+	t.Helper()
+	t.Log("Crashing ConfigMap source plugin...")
+	_ = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
+
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testConfigMapName,
+			Annotations: map[string]string{
+				"die": "true",
+			},
+		},
+	}
+	_, err := cfgMapCli.Create(context.Background(), cm, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
+	require.NoError(t, err)
 }
