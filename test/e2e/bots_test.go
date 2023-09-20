@@ -1172,11 +1172,12 @@ func runBotTest(t *testing.T,
 
 			command = "echo foo"
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			time.Sleep(appCfg.ShortWaitTimeout)
 
 			assertionFn = func(msg string) (bool, int, string) {
 				return strings.Contains(msg, command), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.TesterUserID(), botDriver.Channel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 	})
