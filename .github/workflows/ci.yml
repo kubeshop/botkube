@@ -6,6 +6,11 @@ env:
   HELM_VERSION: v3.9.0
   GOLANGCI_LINT_VERSION: v1.54.2
   GOLANGCI_LINT_TIMEOUT: 10m
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} #  scope to for the current workflow
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }} # cancel only PR related jobs
+
 jobs:
   lint-go:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}

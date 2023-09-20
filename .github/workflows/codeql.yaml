@@ -10,6 +10,10 @@ on:
     # Runs at 09:00 UTC on Wed.
     - cron: '0 9 * * 3'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} #  scope to for the current workflow
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }} # cancel only PR related jobs
+
 jobs:
   analyze:
     name: Analyze
