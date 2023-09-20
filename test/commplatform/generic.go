@@ -43,8 +43,10 @@ type BotDriver interface {
 	BotName() string
 	BotUserID() string
 	TesterUserID() string
+	MDFormatter() interactive.MDFormatter
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
+	WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error
 }
 
 type MessageAssertion func(content string) (bool, int, string)

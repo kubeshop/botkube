@@ -210,7 +210,7 @@ jobs:
           cache: true
 
       - name: Install Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v3
         with:
           version: ${{ env.HELM_VERSION }}
 
