@@ -23,7 +23,7 @@ jobs:
         id: extract
         run: |
           BASE_VERSION=$(echo "${{ inputs.version }}" | cut -c2- |  awk 'BEGIN{FS=OFS="."}NF--')
-          echo ::set-output name=base-version::$BASE_VERSION
+          echo "base-version=$BASE_VERSION" >> $GITHUB_OUTPUT
 
   process-chart:
     needs: [extract-metadata]
