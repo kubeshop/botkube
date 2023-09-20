@@ -879,6 +879,14 @@ communications:
       # -- If true, skips the verification of TLS certificate of the Elastic nodes.
       # It's useful for clusters with self-signed certificates.
       skipTLSVerify: false
+      # -- Specify the log level for Elasticsearch client. Leave empty to disable logging.
+      ## Possible values: "info", "error", "trace".
+      ## - "info": Logs information level messages.
+      ## - "error": Logs information and error level messages.
+      ## - "trace": Logs information, error, and trace level messages.
+      ## To disable logging, simply leave the logLevel empty or remove the line.
+      logLevel: ""
+
       # -- Map of configured indices. The `indices` property name is an alias for a given configuration.
       #
       ## Format: indices.{alias}
