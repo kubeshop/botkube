@@ -28,6 +28,7 @@ import (
 	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/config/reloader"
 	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/insights"
@@ -54,7 +55,6 @@ const (
 	botLogFieldKey            = "bot"
 	sinkLogFieldKey           = "sink"
 	commGroupFieldKey         = "commGroup"
-	healthEndpointName        = "/healthz"
 	printAPIKeyCharCount      = 3
 	reportHeartbeatInterval   = 10
 	reportHeartbeatMaxRetries = 30
@@ -195,8 +195,8 @@ func run(ctx context.Context) (err error) {
 	defer pluginManager.Shutdown()
 
 	// Health endpoint
-	healthChecker := healthChecker{applicationStarted: false}
-	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort, &healthChecker)
+	healthChecker := health.NewChecker()
+	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return healthSrv.Serve(ctx)
@@ -447,35 +447,6 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpx.Server 
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
 	return httpx.NewServer(log, addr, router)
-}
-
-func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpx.Server {
-	addr := fmt.Sprintf(":%s", port)
-	router := mux.NewRouter()
-	router.Handle(healthEndpointName, healthChecker)
-	return httpx.NewServer(log, addr, router)
-}
-
-type healthChecker struct {
-	applicationStarted bool
-}
-
-func (h *healthChecker) MarkAsReady() {
-	h.applicationStarted = true
-}
-
-func (h *healthChecker) IsReady() bool {
-	return h.applicationStarted
-}
-
-func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	if h.IsReady() {
-		resp.WriteHeader(http.StatusOK)
-		fmt.Fprint(resp, "ok")
-	} else {
-		resp.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(resp, "unavailable")
-	}
 }
 
 func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
