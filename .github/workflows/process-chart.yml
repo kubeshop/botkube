@@ -35,7 +35,7 @@ jobs:
     outputs:
       new-version: ${{ inputs.next-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release-branch }}
           token: ${{ secrets.gh-token }}
@@ -86,7 +86,7 @@ jobs:
           git push --tags
 
       - name: Checkout to gh-pages for Helm
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: chart
           ref: gh-pages
