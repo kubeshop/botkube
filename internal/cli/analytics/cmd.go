@@ -23,7 +23,7 @@ func InjectAnalyticsReporting(in cobra.Command, cmdName string) *cobra.Command {
 		if skipAnalytics {
 			return
 		}
-		reporter.ReportCommand(cmdName)
+		_ = reporter.ReportCommand(cmdName)
 	}
 
 	runner := in.RunE
@@ -36,7 +36,7 @@ func InjectAnalyticsReporting(in cobra.Command, cmdName string) *cobra.Command {
 				return err
 			}
 			if !skipAnalytics {
-				reporter.ReportError(err, cmdName)
+				_ = reporter.ReportError(err, cmdName)
 				// On error PostRun is not called, so we need to close the reporter here.
 				reporter.Close()
 			}

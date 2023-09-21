@@ -1,16 +1,16 @@
 package analytics
 
 import (
-	"fmt"
 	"runtime"
 
 	"github.com/denisbrodbeck/machineid"
-	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/pkg/errors"
 	segment "github.com/segmentio/analytics-go"
 	"go.szostok.io/version"
+
+	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 var _ Reporter = &SegmentReporter{}
@@ -36,11 +36,8 @@ func (r *SegmentReporter) ReportCommand(cmd string) error {
 		return errors.Wrap(err, "failed to get machine identity")
 	}
 
-	fmt.Printf("identity: %s\n", id)
-
 	isLoggedIn, err := r.reportAndSaveIdentity(id)
 	if err != nil {
-		fmt.Printf("failed to report identity: %v\n", err)
 		return err
 	}
 
@@ -51,8 +48,7 @@ func (r *SegmentReporter) ReportCommand(cmd string) error {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to report command: %v\n", err)
-		return err
+		return errors.Wrap(err, "failed to report command")
 	}
 
 	return nil
@@ -72,7 +68,7 @@ func (r *SegmentReporter) ReportError(in error, cmd string) error {
 			Set("command", cmd),
 	})
 	if err != nil {
-		errors.Wrap(err, "failed to report error")
+		return errors.Wrap(err, "failed to report error")
 	}
 	return nil
 }
@@ -90,11 +86,8 @@ func (r *SegmentReporter) reportAndSaveIdentity(machineID string) (bool, error) 
 
 	isLoggedIn := c.Token != ""
 	if c.Identity == machineID {
-		fmt.Println("identity already reported")
 		return isLoggedIn, nil
 	}
-
-	fmt.Printf("reporting identity: %s\n", machineID)
 
 	err := r.client.Enqueue(segment.Identify{
 		AnonymousId: machineID,
@@ -104,7 +97,6 @@ func (r *SegmentReporter) reportAndSaveIdentity(machineID string) (bool, error) 
 		return isLoggedIn, errors.Wrap(err, "failed to report identity")
 	}
 
-	fmt.Printf("saving identity: %s\n", machineID)
 	c.Identity = machineID
 	if err := c.Save(); err != nil {
 		return isLoggedIn, errors.Wrap(err, "failed to save config")
