@@ -1,3 +1,4 @@
+{{- if not (include "botkube.remoteConfigEnabled" $) }}
 {{- $runtimeStateCfgMap := .Values.settings.persistentConfig.runtime.configMap.name -}}
 {{- $communications := .Values.communications }}
 {{- if .Values.existingCommunicationsSecretName }}
@@ -104,4 +105,4 @@ data:
         {{/* MS Teams doesn't support notification configuration via Botkube commands. */}}
       {{- end }}
     {{- end }}
-
+{{- end }}
