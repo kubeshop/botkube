@@ -6,7 +6,7 @@ import "github.com/spf13/cobra"
 func NewCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "telemetry",
-		Short: "This command consists of subcommands to disable or enable telemetry",
+		Short: "Configure collection of anonymous analytics",
 	}
 
 	root.AddCommand(
