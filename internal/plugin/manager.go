@@ -312,7 +312,7 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool
 
 			err := m.fetchIndex(ctx, path, entry.URL)
 			if err != nil {
-				return fmt.Errorf("while fetching index for %q repository: %w", repo, err)
+				return fmt.Errorf("while fetching index for %q repository with URL %q: %w", repo, entry.URL, err)
 			}
 		}
 

@@ -12,7 +12,7 @@ jobs:
       GOBIN: /home/runner/work/botkube/bin
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: GCP auth
       uses: 'google-github-actions/auth@v1'
       with:
@@ -20,14 +20,14 @@ jobs:
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version-file: 'go.mod'
         cache: true
     - name: Install GoReleaser
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v5
       with:
         install-only: true
         version: latest

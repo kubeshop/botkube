@@ -6,6 +6,11 @@ env:
   HELM_VERSION: v3.9.0
   GOLANGCI_LINT_VERSION: v1.54.2
   GOLANGCI_LINT_TIMEOUT: 10m
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || 'branch' }} # scope to for the current workflow
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # cancel only PR related jobs
+
 jobs:
   lint-go:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
@@ -13,17 +18,12 @@ jobs:
     name: Lint Go code
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
           cache: true
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: --timeout=${{ env.GOLANGCI_LINT_TIMEOUT }}
       - name: Verify Go modules
         run: go mod verify
         if: always()
@@ -40,6 +40,32 @@ jobs:
           else
             echo '✔ No issues detected. Have a nice day :-)'
           fi
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+          # When the files to be extracted are already present,
+          # tar extraction in Golangci Lint fails with the "File exists"
+          # errors. These files appear to be present because of
+          # cache in setup-go, on disabling the cache we are no more seeing
+          # such error. Cache is to be enabled once the fix is available for
+          # this issue:
+          # https://github.com/golangci/golangci-lint-action/issues/807
+          cache: false
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=${{ env.GOLANGCI_LINT_TIMEOUT }}
+
 
   test:
     if: ${{ !contains(github.event.commits[0].message, '[skip-ci]') }}
@@ -47,9 +73,9 @@ jobs:
     name: Run tests
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
           cache: true
@@ -65,9 +91,9 @@ jobs:
     name: Build app
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
           cache: true

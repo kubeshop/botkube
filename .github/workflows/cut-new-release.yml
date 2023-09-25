@@ -21,7 +21,7 @@ jobs:
       ref: ${{ steps.extract.outputs.ref }}
       base-version: ${{ steps.extract.outputs.base-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
@@ -43,8 +43,8 @@ jobs:
               echo "release-${BASE_VERSION} is found, now REF=release-${BASE_VERSION}"
               REF=$(echo "release-${BASE_VERSION}") 
             fi 
-            echo ::set-output name=ref::$REF
-            echo ::set-output name=base-version::$BASE_VERSION
+            echo "ref=$REF" >> $GITHUB_OUTPUT
+            echo "base-version=$BASE_VERSION" >> $GITHUB_OUTPUT
           else
             # Fail entire job if it is not a valid format
             echo "${{ inputs.version }} is not a valid version format. Use something like 'v0.14.0'"
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [workflow-metadata]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.workflow-metadata.outputs.ref }}
           token: ${{ secrets.GH_TOKEN }}

@@ -10,6 +10,10 @@ on:
     # Runs at 09:00 UTC on Wed.
     - cron: '0 9 * * 3'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || 'branch' }} # scope to for the current workflow
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # cancel only PR related jobs
+
 jobs:
   analyze:
     name: Analyze
@@ -26,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: 1.19
 

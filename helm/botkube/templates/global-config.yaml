@@ -35,6 +35,10 @@ data:
       incomingWebhook:
         enabled: {{ .Values.plugins.incomingWebhook.enabled }}
         # port and baseInClusterURL are set via envs
+      restartPolicy:
+        type: {{ .Values.plugins.restartPolicy.type }}
+        threshold: {{ .Values.plugins.restartPolicy.threshold }}
+      healthCheckInterval: {{ .Values.plugins.healthCheckInterval }}
 
     analytics:
       disable: {{ .Values.analytics.disable }}

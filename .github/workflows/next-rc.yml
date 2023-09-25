@@ -22,7 +22,7 @@ jobs:
       branch: ${{ steps.next-rc.outputs.branch }}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
@@ -59,10 +59,10 @@ jobs:
           NEW_RELEASE_VERSION="${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
           echo "Latest release-candidate tag found: ${BASE_TAG}-rc.${LATEST_RELEASE_TAG}, creating: ${BASE_TAG}-rc.${NEW_RELEASE_REVISION}"
 
-          echo ::set-output name=release-version::$BASE_TAG
-          echo ::set-output name=new-rc-version::$NEW_RELEASE_VERSION
-          echo ::set-output name=commit-msg::$COMMIT_MSG
-          echo ::set-output name=branch::$CURRENT_BRANCH
+          echo "release-version=$BASE_TAG" >> $GITHUB_OUTPUT
+          echo "new-rc-version=$NEW_RELEASE_VERSION" >> $GITHUB_OUTPUT
+          echo "commit-msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
 
   process-chart:
     if: ${{ (!contains(github.event.commits[0].message, '[skip-ci]')) && (needs.next-rc.outputs.new-rc-version != '') }}
