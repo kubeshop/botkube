@@ -23,7 +23,7 @@ func NewEnable() *cobra.Command {
 		`, cli.Name),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			config := cli.NewConfig()
-			config.Telemetry = "enabled"
+			config.Telemetry = cli.TelemetryEnabled
 			err = config.Save()
 			if err != nil {
 				return err

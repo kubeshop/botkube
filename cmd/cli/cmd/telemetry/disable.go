@@ -23,7 +23,7 @@ func NewDisable() *cobra.Command {
 		`, cli.Name),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			config := cli.NewConfig()
-			config.Telemetry = "disabled"
+			config.Telemetry = cli.TelemetryDisabled
 			err = config.Save()
 			if err != nil {
 				return err
