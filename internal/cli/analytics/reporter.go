@@ -25,7 +25,7 @@ type Reporter interface {
 // NewReporter creates a new Reporter instance.
 func GetReporter(cmd cobra.Command) Reporter {
 	if APIKey == "" {
-		printWhenVerboseEnabled(cmd, "Telemetry disabled - no API key")
+		printWhenVerboseEnabled(cmd, "Telemetry is disabled as the API key wasn't provided.")
 		return &NoopReporter{}
 	}
 
