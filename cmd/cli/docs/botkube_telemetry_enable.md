@@ -13,8 +13,11 @@ botkube telemetry enable [flags]
 ### Examples
 
 ```
-# The Botkube CLI tool collects anonymous usage analytics.
-# This data is only available to the Botkube authors and helps us improve the tool.
+# To improve the user experience, Botkube collects anonymized data.
+# It does not collect any identifying information, and all analytics
+# are used only as aggregated collection of data to improve Botkube
+# and adjust its roadmap.
+# Read our privacy policy at https://docs.botkube.io/privacy
 
 # Enable Botkube telemetry
 botkube telemetry enable
@@ -37,5 +40,5 @@ botkube telemetry enable
 
 ### SEE ALSO
 
-* [botkube telemetry](botkube_telemetry.md)	 - This command consists of subcommands to disable or enable telemetry
+* [botkube telemetry](botkube_telemetry.md)	 - Configure collection of anonymous analytics
 

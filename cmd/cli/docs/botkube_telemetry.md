@@ -4,7 +4,7 @@ title: botkube telemetry
 
 ## botkube telemetry
 
-This command consists of subcommands to disable or enable telemetry
+Configure collection of anonymous analytics
 
 ### Options
 
