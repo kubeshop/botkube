@@ -1,13 +1,17 @@
 package analytics
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"k8s.io/utils/strings"
 
 	"github.com/kubeshop/botkube/internal/cli"
 )
 
 const (
-	defaultCliVersion = "v9.99.9-dev"
+	defaultCliVersion    = "v9.99.9-dev"
+	printAPIKeyCharCount = 3
 )
 
 var (
@@ -43,7 +47,7 @@ func GetReporter(cmd cobra.Command) Reporter {
 		return &NoopReporter{}
 	}
 
-	printWhenVerboseEnabled(cmd, "Telemetry is enabled. Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
+	printWhenVerboseEnabled(cmd, fmt.Sprintf("Telemetry is enabled. Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount)))
 	return r
 }
 
