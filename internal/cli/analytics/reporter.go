@@ -31,7 +31,7 @@ func GetReporter(cmd cobra.Command) Reporter {
 
 	conf := cli.NewConfig()
 	if conf.IsTelemetryDisabled() {
-		printWhenVerboseEnabled(cmd, "Telemetry disabled - config")
+		printWhenVerboseEnabled(cmd, "Telemetry is disabled based on config value.")
 		return &NoopReporter{}
 	}
 
