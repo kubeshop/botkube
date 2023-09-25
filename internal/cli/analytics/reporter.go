@@ -39,7 +39,7 @@ func GetReporter(cmd cobra.Command) Reporter {
 	r, err := NewSegmentReporter(APIKey)
 	if err != nil {
 		// do not crash on telemetry errors
-		printWhenVerboseEnabled(cmd, "Telemetry disabled - API key wasn't accepted")
+		printWhenVerboseEnabled(cmd, "Telemetry is disabled due to reporter misconfiguration.")
 		return &NoopReporter{}
 	}
 
