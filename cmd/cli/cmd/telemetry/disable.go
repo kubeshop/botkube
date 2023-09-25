@@ -3,6 +3,7 @@ package telemetry
 import (
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
+
 	"github.com/spf13/cobra"
 )
 
