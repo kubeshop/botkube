@@ -40,7 +40,7 @@ bctl migrate --namespace botkube --labels app=botkube
 We tried to make the migration process as simple and automated as possible.
 The login workflow involves a locally served http server that listens for a callback from the browser
 after the user login. The callback contains the access token that is used to authenticate the user
-and is stored locally in `~/.botkube/cloud.json`.
+and is stored locally in `~/.botkube/config.json`.
 The server is stopped after the callback is received.
 
 ### Migration

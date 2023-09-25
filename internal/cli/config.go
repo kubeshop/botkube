@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "cloud.json")
+	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "config.json")
 	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, Name)
 )
 
