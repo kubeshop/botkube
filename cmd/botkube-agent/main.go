@@ -195,7 +195,7 @@ func run(ctx context.Context) (err error) {
 	defer pluginManager.Shutdown()
 
 	// Health endpoint
-	healthChecker := health.NewChecker()
+	healthChecker := health.NewChecker(conf, pluginHealthStats)
 	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
