@@ -31,8 +31,8 @@ env:
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }} #  scope to for the current workflow
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }} # cancel only PR related jobs
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || 'branch' }} # scope to for the current workflow
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # cancel only PR related jobs
 
 jobs:
 
