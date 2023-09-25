@@ -43,7 +43,7 @@ func GetReporter(cmd cobra.Command) Reporter {
 		return &NoopReporter{}
 	}
 
-	printWhenVerboseEnabled(cmd, "Telemetry enabled")
+	printWhenVerboseEnabled(cmd, "Telemetry is enabled. Using API Key starting with %q...", strings.ShortenString(APIKey, printAPIKeyCharCount))
 	return r
 }
 
