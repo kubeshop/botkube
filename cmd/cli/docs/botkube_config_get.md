@@ -39,7 +39,6 @@ botkube config get > config.yaml
   -l, --label string                         Label used for identifying the Botkube pod (default "app=botkube")
   -n, --namespace string                     Namespace of Botkube pod (default "botkube")
       --omit-empty-values                    Omits empty keys from printed configuration (default true)
-      --opt-out-analytics                    The Botkube CLI tool collects anonymous usage analytics. This data is only available to the Botkube authors and helps us improve the tool.
   -o, --output string                        Output format. One of: json | yaml (default "yaml")
 ```
 

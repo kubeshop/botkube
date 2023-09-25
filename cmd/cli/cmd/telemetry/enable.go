@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewEnable returns a new cobra.Command for enabling telemetry.
 func NewEnable() *cobra.Command {
 	enable := &cobra.Command{
 		Use:   "enable",

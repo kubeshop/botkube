@@ -36,7 +36,6 @@ botkube uninstall --release-name botkube-dev
       --kubeconfig string     Paths to a kubeconfig. Only required if out-of-cluster.
       --namespace string      Botkube namespace. (default "botkube")
       --no-hooks              prevent hooks from running during uninstallation
-      --opt-out-analytics     The Botkube CLI tool collects anonymous usage analytics. This data is only available to the Botkube authors and helps us improve the tool.
       --release-name string   Botkube Helm release name. (default "botkube")
       --timeout duration      time to wait for any individual Kubernetes operation (like Jobs for hooks) (default 5m0s)
       --wait                  if set, will wait until all the resources are deleted before returning. It will wait for as long as --timeout (default true)
