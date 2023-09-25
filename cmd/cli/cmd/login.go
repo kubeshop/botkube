@@ -32,7 +32,6 @@ func NewLogin() *cobra.Command {
 	flags := login.Flags()
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")
 	flags.StringVar(&opts.LocalServerAddress, "local-server-addr", "localhost:8085", "Address of a local server which is used for the login flow")
-	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 
 	return login
 }

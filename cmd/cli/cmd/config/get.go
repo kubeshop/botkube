@@ -89,7 +89,6 @@ func NewGet() *cobra.Command {
 	flags := cmd.Flags()
 
 	flags.BoolVar(&opts.OmitEmpty, "omit-empty-values", true, "Omits empty keys from printed configuration")
-	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 
 	opts.Exporter.RegisterFlags(flags)
 

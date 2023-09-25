@@ -47,7 +47,6 @@ func NewInstall() *cobra.Command {
 
 	flags := installCmd.Flags()
 
-	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 	kubex.RegisterKubeconfigFlag(flags)
 	flags.DurationVar(&opts.Timeout, "timeout", 10*time.Minute, `Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	flags.BoolVarP(&opts.Watch, "watch", "w", true, "Watches the status of the Botkube installation until it finish or the defined `--timeout` occurs.")

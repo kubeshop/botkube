@@ -35,16 +35,23 @@ func (r *SegmentReporter) ReportCommand(cmd string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine identity")
 	}
+	c := cli.NewConfig()
+	isLoggedIn := c.IsUserLoggedIn()
+	properties := newProperties(id, isLoggedIn)
 
-	isLoggedIn, err := r.reportAndSaveIdentity(id)
+	err = r.client.Enqueue(segment.Identify{
+		AnonymousId: id,
+		Traits:      properties,
+	})
+
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to report identity")
 	}
 
 	err = r.client.Enqueue(segment.Track{
 		AnonymousId: id,
 		Event:       cmd,
-		Properties:  newProperties(id, isLoggedIn),
+		Properties:  properties,
 	})
 
 	if err != nil {
@@ -78,42 +85,15 @@ func (r *SegmentReporter) Close() {
 	_ = r.client.Close()
 }
 
-func (r *SegmentReporter) reportAndSaveIdentity(machineID string) (bool, error) {
-	c := &cli.Config{}
-	if err := c.Read(); err != nil {
-		return false, errors.Wrap(err, "failed to read config")
-	}
-
-	isLoggedIn := c.Token != ""
-	if c.Identity == machineID {
-		return isLoggedIn, nil
-	}
-
-	err := r.client.Enqueue(segment.Identify{
-		AnonymousId: machineID,
-		Traits:      newProperties(machineID, isLoggedIn),
-	})
-	if err != nil {
-		return isLoggedIn, errors.Wrap(err, "failed to report identity")
-	}
-
-	c.Identity = machineID
-	if err := c.Save(); err != nil {
-		return isLoggedIn, errors.Wrap(err, "failed to save config")
-	}
-
-	return isLoggedIn, nil
-}
-
 func newProperties(id string, cloudLogin bool) map[string]interface{} {
 	v := defaultCliVersion
 	if vals := version.Get(); vals != nil {
 		v = vals.Version
 	}
 	return map[string]interface{}{
-		"OS":          runtime.GOOS,
-		"version":     v,
-		"machine_id":  id,
-		"cloud_login": cloudLogin,
+		"OS":              runtime.GOOS,
+		"version":         v,
+		"machine_id":      id,
+		"cloud_logged_in": cloudLogin,
 	}
 }

@@ -49,7 +49,6 @@ func NewUninstall() *cobra.Command {
 
 	kubex.RegisterKubeconfigFlag(flags)
 
-	flags.Bool(analytics.OptOutAnalyticsFlag, false, analytics.OptOutAnalyticsFlagUsage)
 	flags.StringVar(&opts.HelmParams.ReleaseName, "release-name", helm.ReleaseName, "Botkube Helm release name.")
 	flags.StringVar(&opts.HelmParams.ReleaseNamespace, "namespace", helm.Namespace, "Botkube namespace.")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for deletion.")

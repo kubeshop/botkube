@@ -1,5 +1,7 @@
 package analytics
 
+import "github.com/kubeshop/botkube/internal/cli"
+
 const (
 	defaultCliVersion = "v9.99.9-dev"
 )
@@ -17,12 +19,20 @@ type Reporter interface {
 }
 
 // NewReporter creates a new Reporter instance.
-func NewReporter() Reporter {
+func GetReporter() Reporter {
 	if APIKey == "" {
 		return &NoopReporter{}
 	}
+
+	conf := cli.NewConfig()
+	if conf.IsTelemetryDisabled() {
+		return &NoopReporter{}
+	}
+
+	// Create segment reporter if telemetry enabled and API key is set
 	r, err := NewSegmentReporter(APIKey)
 	if err != nil {
+		// do not crash on telemetry errors
 		return &NoopReporter{}
 	}
 	return r
