@@ -16,7 +16,6 @@ func InjectAnalyticsReporting(in cobra.Command, cmdName string) *cobra.Command {
 		if err != nil {
 			// do not crash on telemetry errors
 			_ = reporter.ReportError(err, cmdName)
-
 		}
 		return err
 	}
