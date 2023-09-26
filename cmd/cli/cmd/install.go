@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/analytics"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/install"
 	"github.com/kubeshop/botkube/internal/cli/install/helm"
@@ -41,6 +42,8 @@ func NewInstall() *cobra.Command {
 			return install.Install(cmd.Context(), os.Stdout, config, opts)
 		},
 	}
+
+	installCmd = analytics.InjectAnalyticsReporting(*installCmd, "install")
 
 	flags := installCmd.Flags()
 

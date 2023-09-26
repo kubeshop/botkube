@@ -12,23 +12,50 @@ import (
 )
 
 var (
-	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "cloud.json")
+	configFilePath = filepath.Join(homedir.HomeDir(), ".botkube", "config.json")
 	loginCmd       = heredoc.WithCLIName(`login with: <cli> login`, Name)
 )
 
 // Config is botkube cli config
 type Config struct {
-	Token string `json:"token"`
+	Token     string          `json:"token"`
+	Telemetry TelemetrySwitch `json:"telemetry"`
 }
 
-// NewConfig creates new Config from local data
-func NewConfig() (*Config, error) {
+// TelemetrySwitch controls telemetry
+type TelemetrySwitch string
+
+const (
+	// TelemetryEnabled is a value for enabled telemetry
+	TelemetryEnabled TelemetrySwitch = "enabled"
+	// TelemetryDisabled is a value for disabled telemetry
+	TelemetryDisabled TelemetrySwitch = "disabled"
+)
+
+// IsTelemetryDisabled checks if telemetry is disabled
+func (c Config) IsTelemetryDisabled() bool {
+	return c.Telemetry == TelemetryDisabled
+}
+
+// IsUserLoggedIn checks if user is logged in
+func (c Config) IsUserLoggedIn() bool {
+	return c.Token != ""
+}
+
+// ReadConfig creates new Config from local data
+func ReadConfig() (*Config, error) {
 	c := &Config{}
 	err := c.Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config: %v\n%s", err, loginCmd)
+		return c, fmt.Errorf("failed to read config: %v\n%s", err, loginCmd)
 	}
 	return c, nil
+}
+
+// NewConfig creates new Config from local data or empty one
+func NewConfig() *Config {
+	c, _ := ReadConfig()
+	return c
 }
 
 const (

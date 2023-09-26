@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/analytics"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/login"
 )
@@ -25,6 +26,8 @@ func NewLogin() *cobra.Command {
 			return login.Run(cmd.Context(), os.Stdout, opts)
 		},
 	}
+
+	login = analytics.InjectAnalyticsReporting(*login, "login")
 
 	flags := login.Flags()
 	flags.StringVar(&opts.CloudDashboardURL, "cloud-dashboard-url", "https://app.botkube.io", "Botkube Cloud URL")

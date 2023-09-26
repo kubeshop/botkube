@@ -33,7 +33,7 @@ const (
 func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, k8sCfg *kubex.ConfigWithMeta, opts Options) (string, error) {
 	authToken := opts.Token
 	if authToken == "" {
-		cfg, err := cli.NewConfig()
+		cfg, err := cli.ReadConfig()
 		if err != nil {
 			return "", err
 		}

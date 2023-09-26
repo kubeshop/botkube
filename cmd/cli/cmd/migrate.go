@@ -12,6 +12,7 @@ import (
 	"go.szostok.io/version"
 
 	"github.com/kubeshop/botkube/internal/cli"
+	"github.com/kubeshop/botkube/internal/cli/analytics"
 	"github.com/kubeshop/botkube/internal/cli/config"
 	"github.com/kubeshop/botkube/internal/cli/heredoc"
 	"github.com/kubeshop/botkube/internal/cli/migrate"
@@ -27,7 +28,7 @@ const (
 func NewMigrate() *cobra.Command {
 	var opts migrate.Options
 
-	login := &cobra.Command{
+	migrate := &cobra.Command{
 		Use:   "migrate [OPTIONS]",
 		Short: "Automatically migrates Botkube installation into Botkube Cloud",
 		Long: heredoc.WithCLIName(`
@@ -129,7 +130,9 @@ func NewMigrate() *cobra.Command {
 		},
 	}
 
-	flags := login.Flags()
+	migrate = analytics.InjectAnalyticsReporting(*migrate, "migrate")
+
+	flags := migrate.Flags()
 
 	flags.DurationVar(&opts.Timeout, "timeout", 10*time.Minute, `Maximum time during which the Botkube installation is being watched, where "0" means "infinite". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	flags.StringVar(&opts.Token, "token", "", "Botkube Cloud authentication token")
@@ -145,5 +148,5 @@ func NewMigrate() *cobra.Command {
 	opts.ConfigExporter.RegisterFlags(flags)
 	kubex.RegisterKubeconfigFlag(flags)
 
-	return login
+	return migrate
 }

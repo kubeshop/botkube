@@ -5,6 +5,7 @@ env:
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
   - CFG_EXPORTER_IMAGE_REPOSITORY={{ if index .Env "CFG_EXPORTER_IMAGE_REPOSITORY" }}{{ .Env.CFG_EXPORTER_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-config-exporter{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
+  - CLI_ANALYTICS_API_KEY={{ if index .Env "CLI_ANALYTICS_API_KEY"  }}{{ .Env.CLI_ANALYTICS_API_KEY }}{{ else }}{{ end }}
   - HOMEBREW_REPO_OWNER={{ if index .Env "HOMEBREW_REPO_OWNER"  }}{{ .Env.HOMEBREW_REPO_OWNER }}{{ else }}kubeshop{{ end }}
   - HOMEBREW_REPO_NAME={{ if index .Env "HOMEBREW_REPO_NAME"  }}{{ .Env.HOMEBREW_REPO_NAME }}{{ else }}homebrew-botkube{{ end }}
 before:
@@ -36,10 +37,11 @@ builds:
     ldflags:
       - -s -w
         -X github.com/kubeshop/botkube/cmd/cli/cmd/migrate.DefaultImageTag={{ .Env.IMAGE_TAG }}
+        -X github.com/kubeshop/botkube/internal/cli/analytics.APIKey={{ .Env.CLI_ANALYTICS_API_KEY }}
         -X go.szostok.io/version.version={{.Version}}
         -X go.szostok.io/version.buildDate={{.Date}}
-      - -X go.szostok.io/version.commit={{.FullCommit}}
-      - -X go.szostok.io/version.commitDate={{.CommitDate}}
+        -X go.szostok.io/version.commit={{.FullCommit}}
+        -X go.szostok.io/version.commitDate={{.CommitDate}}
         -X go.szostok.io/version.name=botkube
     env:
       - CGO_ENABLED=0
