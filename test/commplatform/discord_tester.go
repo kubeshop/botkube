@@ -93,6 +93,10 @@ func (d *DiscordTester) ThirdChannel() Channel {
 	return d.thirdChannel
 }
 
+func (d *DiscordTester) MDFormatter() interactive.MDFormatter {
+	return d.mdFormatter
+}
+
 func (d *DiscordTester) InitUsers(t *testing.T) {
 	t.Helper()
 
@@ -421,6 +425,17 @@ func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqual(userID, channel
 		if !strings.EqualFold(markdown, msg) {
 			count := diff.CountMatchBlock(markdown, msg)
 			msgDiff := diff.Diff(markdown, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
+	})
+}
+
+func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
+	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(renderedMsg, msg) {
+			count := diff.CountMatchBlock(renderedMsg, msg)
+			msgDiff := diff.Diff(renderedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""

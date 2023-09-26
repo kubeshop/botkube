@@ -198,3 +198,56 @@ kubectl delete cm botkube-system -n botkube # or the namespace where Botkube is 
 ```
 
 If you don't remove the ConfigMap, any e2e tests looking to verify that a help message is displayed will error. This also stops the rest of the e2e tests from running.
+
+## Testing Cloud Slack end-to-end with Botkube Cloud
+
+You can test Botkube Cloud Slack with Botkube Cloud. Follow the instructions below to set up the test environment and run the tests. 
+
+### Setting up test environment
+
+1. Create Slack user for testing purposes with access to a given Slack workspace.
+1. Create Botkube Cloud user with two organizations: FREE and TEAM one (with Cloud Slack quota).
+1. Follow the [Testing Slack](#testing-slack) instructions to set up "Tester" bot.
+
+### Running tests
+
+To run the tests, get all the noted data from previous steps and export them as environment variables.
+
+```bash
+# Required
+export SLACK_WORKSPACE_NAME="" # e.g. my-workspace
+# The test log ins to the Slack workspace using the credentials below
+export SLACK_EMAIL="" # e.g. my-email@example.com
+export SLACK_PASSWORD=""
+export SLACK_TESTER_BOT_NAME="" # e.g. botkubedev
+export SLACK_TESTER_TESTER_BOT_TOKEN="" # e.g. xoxb-...
+export BOTKUBE_CLOUD_EMAIL="" # e.g. my-email@example.com
+export BOTKUBE_CLOUD_PASSWORD=""
+export BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID="" # e.g. 204a2d86-265c-4ae2-89a8-928f823ec4da
+export BOTKUBE_CLOUD_FREE_ORGANIZATION_ID="" # e.g. c03bd605-7b8d-490f-b4d5-57c8a0560e83
+
+# Optional - useful for running tests locally 
+export KUBECONFIG="" # path to your kubeconfig
+export BOTKUBE_CLOUD_API_BASE_URL="" e.g. http://localhost:8080
+export BOTKUBE_CLOUD_API_SLACK_APP_INSTALLATION_BASE_URL_OVERRIDE="" # provide if necessary e.g. using ngrok: https://d5ac-194-33-77-250.ngrok-free.app
+export SLACK_BOT_DISPLAY_NAME="" # e.g. BotkubeDev
+export SLACK_WORKSPACE_ALREADY_CONNECTED="true"
+export SLACK_DISCONNECT_WORKSPACE_AFTER_TESTS="false"
+export PAGE_TIMEOUT="1m"
+export SCREENSHOTS_ENABLED="false" # disable screenshots
+```
+
+To run the test in headless mode (without browser window), run:
+
+```shell
+make test-cloud-slack-dev-e2e
+```
+
+To run the tests with Chromium browser window visible, run:
+
+```shell
+test-cloud-slack-dev-e2e-show-browser
+```
+
+Refer to the `E2ESlackConfig` (`./cloud-slack-dev-e2e/cloud_slack_dev_e2e_test.go`) for all possible environment variables.
+

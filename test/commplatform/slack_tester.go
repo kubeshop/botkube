@@ -22,11 +22,12 @@ import (
 )
 
 type SlackConfig struct {
-	BotName                  string `envconfig:"default=botkube"`
-	TesterName               string `envconfig:"default=tester"`
-	AdditionalContextMessage string `envconfig:"optional"`
-	TesterAppToken           string
-	CloudTesterAppToken      string
+	BotName                  string        `envconfig:"default=botkube"`
+	TesterName               string        `envconfig:"default=tester"`
+	AdditionalContextMessage string        `envconfig:"optional"`
+	TesterAppToken           string        `envconfig:"optional"`
+	TesterBotToken           string        `envconfig:"optional"`
+	CloudTesterAppToken      string        `envconfig:"optional"`
 	RecentMessagesLimit      int           `envconfig:"default=6"`
 	MessageWaitTimeout       time.Duration `envconfig:"default=30s"`
 }
@@ -57,7 +58,18 @@ type SlackTester struct {
 }
 
 func NewSlackTester(slackCfg SlackConfig) (BotDriver, error) {
-	slackCli := slack.New(slackCfg.TesterAppToken)
+	var token string
+	if slackCfg.TesterAppToken == "" && slackCfg.TesterBotToken == "" {
+		return nil, errors.New("slack tester token is not set")
+	}
+	if slackCfg.TesterAppToken != "" {
+		token = slackCfg.TesterAppToken
+	}
+	if slackCfg.TesterBotToken != "" {
+		token = slackCfg.TesterBotToken
+	}
+
+	slackCli := slack.New(token)
 	_, err := slackCli.AuthTest()
 	if err != nil {
 		return nil, err
@@ -120,6 +132,10 @@ func (s *SlackTester) SecondChannel() Channel {
 
 func (s *SlackTester) ThirdChannel() Channel {
 	return s.thirdChannel
+}
+
+func (s *SlackTester) MDFormatter() interactive.MDFormatter {
+	return s.mdFormatter
 }
 
 func (s *SlackTester) PostInitialMessage(t *testing.T, channelName string) {
@@ -338,6 +354,18 @@ func (s *SlackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, chann
 
 func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	renderedMsg := interactive.RenderMessage(s.mdFormatter, msg)
+	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
+		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
+		if !strings.EqualFold(renderedMsg, msg) {
+			count := diff.CountMatchBlock(renderedMsg, msg)
+			msgDiff := diff.Diff(renderedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
+	})
+}
+
+func (s *SlackTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
 	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
 		if !strings.EqualFold(renderedMsg, msg) {
