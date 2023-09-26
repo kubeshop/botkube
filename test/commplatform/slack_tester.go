@@ -31,8 +31,8 @@ var slackLinks = regexp.MustCompile(`<(?P<val>https://[^>]*)>`)
 
 type SlackConfig struct {
 	BotName                  string        `envconfig:"default=botkube"`
-	CloudBotName             string `envconfig:"default=botkubedev"`
-	CloudBasedTestEnabled    bool   `envconfig:"default=true"`
+	CloudBotName             string        `envconfig:"default=botkubedev"`
+	CloudBasedTestEnabled    bool          `envconfig:"default=true"`
 	TesterName               string        `envconfig:"default=tester"`
 	AdditionalContextMessage string        `envconfig:"optional"`
 	TesterAppToken           string        `envconfig:"optional"`
