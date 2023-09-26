@@ -249,5 +249,5 @@ To run the tests with Chromium browser window visible, run:
 test-cloud-slack-dev-e2e-show-browser
 ```
 
-Refer to the `E2ESlackConfig` (`./cloud-slack-dev-e2e/e2e_test.go`) for all possible environment variables.
+Refer to the `E2ESlackConfig` (`./cloud-slack-dev-e2e/cloud_slack_dev_e2e_test.go`) for all possible environment variables.
 

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'cloud-slack-dev-e2e' # TODO: Remove before merge
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
