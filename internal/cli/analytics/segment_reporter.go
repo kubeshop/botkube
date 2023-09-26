@@ -92,6 +92,7 @@ func newProperties(id string, cloudLogin bool) map[string]interface{} {
 	}
 	return map[string]interface{}{
 		"OS":              runtime.GOOS,
+		"arch":            runtime.GOARCH,
 		"version":         v,
 		"machine_id":      id,
 		"cloud_logged_in": cloudLogin,
