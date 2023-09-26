@@ -101,8 +101,10 @@ spec:
             - name: cache
               mountPath: "/.kube/cache"
           env:
+            {{- if not (include "botkube.remoteConfigEnabled" $) }}
             - name: BOTKUBE_CONFIG_PATHS
               value: "/config/global_config.yaml,/config/comm_config.yaml,/config/{{ .Values.settings.persistentConfig.runtime.fileName}},/startup-config/{{ .Values.settings.persistentConfig.startup.fileName}}"
+            {{- end }}
             - name: BOTKUBE_SETTINGS_METRICS__PORT
               value: {{ .Values.service.targetPort | quote }}
             {{- if .Values.kubeconfig.enabled }}
@@ -207,7 +209,7 @@ spec:
         - name: startup-config
           configMap:
             name: {{ .Values.settings.persistentConfig.startup.configMap.name }}
-        {{ end}}
+        {{ end }}
       {{- with .Values.extraVolumes }}
         {{ toYaml . | nindent 8 }}
       {{- end }}

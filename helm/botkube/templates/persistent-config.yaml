@@ -1,4 +1,12 @@
+{{- if not (include "botkube.remoteConfigEnabled" $) }}
 {{- $runtimeStateCfgMap := .Values.settings.persistentConfig.runtime.configMap.name -}}
+{{- $communications := .Values.communications }}
+{{- if .Values.existingCommunicationsSecretName }}
+  {{- $secret := lookup "v1" "Secret" .Release.Namespace .Values.existingCommunicationsSecretName | default dict  }}
+  {{- $data := b64dec (index $secret.data "comm_config.yaml") -}}
+  {{- $dataYaml := $data | fromYaml -}}
+  {{- $communications =  $dataYaml.communications }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,7 +24,7 @@ metadata:
 data:
   {{- $prevRuntimeCfgMap := lookup "v1" "ConfigMap" .Release.Namespace $runtimeStateCfgMap | default dict }}
   {{- $prevRuntimeFile := index ( $prevRuntimeCfgMap.data | default dict ) .Values.settings.persistentConfig.runtime.fileName | default "" | fromYaml -}}
-  {{- $mergedRuntimeCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevRuntimeFile.communications )) (mustDeepCopy .Values.communications) }}
+  {{- $mergedRuntimeCommunications := mustMergeOverwrite (mustDeepCopy (default (dict) $prevRuntimeFile.communications )) (mustDeepCopy $communications) }}
   {{- $mergedRuntimeAction := mustMergeOverwrite (mustDeepCopy (default (dict) $prevRuntimeFile.actions )) (mustDeepCopy .Values.actions) }}
   # This file has a special prefix to load it as the last config file during Botkube startup.
   {{ .Values.settings.persistentConfig.runtime.fileName }}: |
@@ -97,4 +105,4 @@ data:
         {{/* MS Teams doesn't support notification configuration via Botkube commands. */}}
       {{- end }}
     {{- end }}
-
+{{- end }}
