@@ -13,6 +13,7 @@ import (
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 type BotkubeStatus string
@@ -33,6 +34,7 @@ type Checker struct {
 	config             *config.Config
 	pluginHealthStats  *plugin.HealthStats
 	bots               map[string]bot.Bot
+	sinks              []notifier.Sink
 }
 
 type pluginStatuses struct {
@@ -90,7 +92,7 @@ func (h *Checker) GetStatus() (*Status, error) {
 }
 
 // ServeHTTP serves status on health endpoint.
-func (h *Checker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (h *Checker) ServeHTTP(resp http.ResponseWriter, _ *http.Request) {
 	if h.IsReady() {
 		resp.Header().Set("Content-Type", "application/json")
 		resp.WriteHeader(http.StatusOK)
@@ -122,6 +124,11 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 // SetBots sets platform bots instances.
 func (h *Checker) SetBots(bots map[string]bot.Bot) {
 	h.bots = bots
+}
+
+// SetSinks sets platform sink instances.
+func (h *Checker) SetSinks(sinks []notifier.Sink) {
+	h.sinks = sinks
 }
 
 func (h *Checker) getSourcePluginsStatuses(plugins map[string]pluginStatuses) {
@@ -161,6 +168,17 @@ func (h *Checker) getPlatformsStatus() platformStatuses {
 	if h.bots != nil {
 		for key, botInstance := range h.bots {
 			defaultStatuses[key] = botInstance.GetStatus()
+		}
+	}
+
+	if h.sinks != nil {
+		for key, sinkInstance := range h.sinks {
+			status := sinkInstance.GetStatus()
+			defaultStatuses[fmt.Sprintf("%s/%d", sinkInstance.IntegrationName(), key)] = bot.Status{
+				Status:   bot.StatusMsg(status.Status),
+				Restarts: status.Restarts,
+				Reason:   bot.FailureReasonMsg(status.Reason),
+			}
 		}
 	}
 

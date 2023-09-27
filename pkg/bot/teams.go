@@ -593,6 +593,7 @@ func (b *Teams) setFailureReason(reason FailureReasonMsg) {
 	b.failureReason = reason
 }
 
+// GetStatus gets bot status.
 func (b *Teams) GetStatus() Status {
 	return Status{
 		Status:   b.status,

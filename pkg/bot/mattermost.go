@@ -603,6 +603,7 @@ func (b *Mattermost) setStatusReason(reason FailureReasonMsg) {
 	b.failureReason = reason
 }
 
+// GetStatus gets bot status.
 func (b *Mattermost) GetStatus() Status {
 	return Status{
 		Status:   b.status,

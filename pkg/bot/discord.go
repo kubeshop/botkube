@@ -432,6 +432,7 @@ func (b *Discord) setFailureReason(reason FailureReasonMsg) {
 	b.failureReason = reason
 }
 
+// GetStatus gets bot status.
 func (b *Discord) GetStatus() Status {
 	return Status{
 		Status:   b.status,

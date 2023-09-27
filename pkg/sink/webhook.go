@@ -13,6 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
@@ -22,8 +23,10 @@ type Webhook struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
 
-	URL      string
-	Bindings config.SinkBindings
+	URL           string
+	Bindings      config.SinkBindings
+	status        notifier.StatusMsg
+	failureReason notifier.FailureReasonMsg
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -36,10 +39,12 @@ type WebhookPayload struct {
 // NewWebhook creates a new Webhook instance.
 func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
-		log:      log,
-		reporter: reporter,
-		URL:      c.URL,
-		Bindings: c.Bindings,
+		log:           log,
+		reporter:      reporter,
+		URL:           c.URL,
+		Bindings:      c.Bindings,
+		status:        notifier.StatusUnknown,
+		failureReason: "",
 	}
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
@@ -59,9 +64,11 @@ func (w *Webhook) SendEvent(ctx context.Context, rawData any, sources []string) 
 
 	err := w.PostWebhook(ctx, jsonPayload)
 	if err != nil {
+		w.setFailureReason(notifier.FailureReasonConnectionError)
 		return fmt.Errorf("while sending message to webhook: %w", err)
 	}
 
+	w.setFailureReason("")
 	w.log.Debugf("Message successfully sent to Webhook: %+v", rawData)
 	return nil
 }
@@ -106,4 +113,22 @@ func (w *Webhook) IntegrationName() config.CommPlatformIntegration {
 // Type describes the notifier type.
 func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
+}
+
+func (w *Webhook) setFailureReason(reason notifier.FailureReasonMsg) {
+	if reason == "" {
+		w.status = notifier.StatusHealthy
+	} else {
+		w.status = notifier.StatusUnHealthy
+	}
+	w.failureReason = reason
+}
+
+// GetStatus gets sink status
+func (w *Webhook) GetStatus() notifier.Status {
+	return notifier.Status{
+		Status:   w.status,
+		Restarts: "0/0",
+		Reason:   w.failureReason,
+	}
 }

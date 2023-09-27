@@ -426,6 +426,7 @@ func (b *Slack) setFailureReason(reason FailureReasonMsg) {
 	b.failureReason = reason
 }
 
+// GetStatus gets bot status.
 func (b *Slack) GetStatus() Status {
 	return Status{
 		Status:   b.status,

@@ -742,6 +742,7 @@ func (b *CloudSlack) setFailureReason(reason FailureReasonMsg) {
 	b.failureReason = reason
 }
 
+// GetStatus gets bot status.
 func (b *CloudSlack) GetStatus() Status {
 	return Status{
 		Status:   b.status,

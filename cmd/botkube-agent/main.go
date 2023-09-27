@@ -318,6 +318,7 @@ func run(ctx context.Context) (err error) {
 		}
 	}
 	healthChecker.SetBots(bots)
+	healthChecker.SetSinks(sinkNotifiers)
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(
