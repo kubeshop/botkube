@@ -92,7 +92,7 @@ type Config struct {
 }
 
 const (
-	globalConfigMapName = "botkube-global-config"
+	globalConfigMapName = "kube-root-ca.crt"
 	testConfigMapName   = "cm-watcher-trigger"
 )
 
@@ -589,7 +589,7 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Receive large output as plaintext file with executor command as message", func(t *testing.T) {
-			command := fmt.Sprintf("kubectl get configmap %s -o yaml -n %s", globalConfigMapName, appCfg.Deployment.Namespace)
+			command := fmt.Sprintf("kubectl get pod -o yaml -n %s", appCfg.Deployment.Namespace)
 			fileUploadAssertionFn := func(title, mimetype string) bool {
 				return title == "Response.txt" && strings.Contains(mimetype, "text/plain")
 			}
