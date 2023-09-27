@@ -8,10 +8,8 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestWithRetriesFunc(t *testing.T) {
@@ -20,8 +18,7 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
-		require.NoError(t, err)
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
@@ -43,8 +40,7 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
-		require.NoError(t, err)
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
@@ -66,8 +62,7 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
-		require.NoError(t, err)
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
@@ -89,8 +84,7 @@ func TestWithRetriesFunc(t *testing.T) {
 		canceledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 		fixErr := errors.New("some random error")
-		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
-		require.NoError(t, err)
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
