@@ -1520,7 +1520,7 @@ func runBotTest(t *testing.T,
 			assertionFn = func(msg string) (bool, int, string) {
 				return strings.Contains(msg, command), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.TesterUserID(), botDriver.Channel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 	})

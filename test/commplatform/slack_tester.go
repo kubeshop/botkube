@@ -38,6 +38,7 @@ type SlackConfig struct {
 	TesterAppToken           string        `envconfig:"optional"`
 	TesterBotToken           string        `envconfig:"optional"`
 	CloudTesterAppToken      string        `envconfig:"optional"`
+	CloudTesterName          string        `envconfig:"default=tester2"`
 	RecentMessagesLimit      int           `envconfig:"default=6"`
 	MessageWaitTimeout       time.Duration `envconfig:"default=50s"`
 }
@@ -106,8 +107,8 @@ func (s *SlackTester) InitUsers(t *testing.T) {
 	s.botUserID = s.findUserID(t, botName)
 	assert.NotEmpty(t, s.botUserID, "could not find slack botUserID with name: %s", botName)
 
-	s.testerUserID = s.findUserID(t, s.cfg.TesterName)
-	assert.NotEmpty(t, s.testerUserID, "could not find slack testerUserID with name: %s", s.cfg.TesterName)
+	s.testerUserID = s.findUserID(t, s.cfg.CloudTesterName)
+	assert.NotEmpty(t, s.testerUserID, "could not find slack testerUserID with name: %s", s.cfg.CloudTesterName)
 }
 
 func (s *SlackTester) InitChannels(t *testing.T) []func() {
