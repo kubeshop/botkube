@@ -92,8 +92,7 @@ type Config struct {
 }
 
 const (
-	globalConfigMapName = "kube-root-ca.crt"
-	testConfigMapName   = "cm-watcher-trigger"
+	testConfigMapName = "cm-watcher-trigger"
 )
 
 var (
