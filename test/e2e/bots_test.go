@@ -563,6 +563,12 @@ func runBotTest(t *testing.T,
 					strings.Contains(msg, "kube-root-ca.crt") &&
 					strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
+			if botDriver.Type() == commplatform.SlackBot {
+				assertionFn = func(msg string) (bool, int, string) {
+					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
+						strings.Contains(msg, "kube-root-ca.crt"), 0, ""
+				}
+			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
