@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/kubeshop/botkube/pkg/bot"
 
 	"fmt"
@@ -27,6 +28,7 @@ const (
 	healthEndpointName = "/healthz"
 )
 
+// Checker gives health bot agent status.
 type Checker struct {
 	applicationStarted bool
 	ctx                context.Context
@@ -47,12 +49,14 @@ type botStatus struct {
 
 type platformStatuses map[string]bot.Status
 
+// Status defines bot agent status.
 type Status struct {
 	Botkube   botStatus
 	Plugins   map[string]pluginStatuses
 	Platforms platformStatuses
 }
 
+// NewChecker create new health checker.
 func NewChecker(ctx context.Context, config *config.Config, stats *plugin.HealthStats) Checker {
 	return Checker{
 		applicationStarted: false,
@@ -62,32 +66,32 @@ func NewChecker(ctx context.Context, config *config.Config, stats *plugin.Health
 	}
 }
 
+// MarkAsReady marks bot as ready
 func (h *Checker) MarkAsReady() {
 	h.applicationStarted = true
 }
 
+// IsReady gets info if bot is ready
 func (h *Checker) IsReady() bool {
 	return h.applicationStarted
 }
 
+// GetStatus gets bot status
 func (h *Checker) GetStatus() (*Status, error) {
 	pluginsStats := make(map[string]pluginStatuses)
 	h.getSourcePluginsStatuses(pluginsStats)
 	h.getExecutorPluginsStatuses(pluginsStats)
-	platformStatuses, err := h.getPlatformsStatus()
-	if err != nil {
-		return nil, err
-	}
 
 	return &Status{
 		Botkube: botStatus{
 			Status: h.getBotkubeStatus(),
 		},
 		Plugins:   pluginsStats,
-		Platforms: platformStatuses,
+		Platforms: h.getPlatformsStatus(),
 	}, nil
 }
 
+// ServeHTTP serves status on health endpoint.
 func (h *Checker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if h.IsReady() {
 		resp.Header().Set("Content-Type", "application/json")
@@ -109,6 +113,7 @@ func (h *Checker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// NewServer creates http server for health checker.
 func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	addr := fmt.Sprintf(":%s", port)
 	router := mux.NewRouter()
@@ -116,6 +121,7 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	return httpx.NewServer(log, addr, router)
 }
 
+// SetBots sets platform bots instances.
 func (h *Checker) SetBots(bots map[string]bot.Bot) {
 	h.bots = bots
 }
@@ -152,7 +158,7 @@ func (h *Checker) getBotkubeStatus() BotkubeStatus {
 	return BotkubeStatusUnhealthy
 }
 
-func (h *Checker) getPlatformsStatus() (platformStatuses, error) {
+func (h *Checker) getPlatformsStatus() platformStatuses {
 	defaultStatuses := platformStatuses{}
 	if h.bots != nil {
 		for key, botInstance := range h.bots {
@@ -160,5 +166,5 @@ func (h *Checker) getPlatformsStatus() (platformStatuses, error) {
 		}
 	}
 
-	return defaultStatuses, nil
+	return defaultStatuses
 }

@@ -125,13 +125,14 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 		b.log.Warn(quotaExceededMsg)
 		return nil
 	}
-	return b.withRetries(ctx, b.log, func() error {
+	return b.withRetries(ctx, b.log, maxRetries, func() error {
 		return b.start(ctx)
 	})
 }
 
-func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, fn func() error) error {
+func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
 	b.failuresNo = 0
+	b.maxRetries = maxRetries
 	var lastFailureTimestamp time.Time
 	return retry.Do(
 		func() error {

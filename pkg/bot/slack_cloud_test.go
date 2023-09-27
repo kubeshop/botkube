@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/stretchr/testify/assert"
 
@@ -18,11 +21,12 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
+		require.NoError(t, err)
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 5, func() error {
 				return retry.Unrecoverable(fixErr)
 			})
 			close(retriesFinalError)
@@ -40,11 +44,12 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
+		require.NoError(t, err)
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 5, func() error {
 				return fixErr
 			})
 			close(retriesFinalError)
@@ -62,11 +67,12 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
+		require.NoError(t, err)
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 0, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 0, func() error {
 				return fixErr
 			})
 			close(retriesFinalError)
@@ -84,11 +90,12 @@ func TestWithRetriesFunc(t *testing.T) {
 		canceledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 		fixErr := errors.New("some random error")
-
+		bot, err := NewCloudSlack(loggerx.NewNoop(), "", config.CloudSlack{}, "clusterName", nil, nil)
+		require.NoError(t, err)
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(canceledCtx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(canceledCtx, loggerx.NewNoop(), 5, func() error {
 				return retry.Unrecoverable(fixErr)
 			})
 			close(retriesFinalError)
