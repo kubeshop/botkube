@@ -3,18 +3,16 @@ package health
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/kubeshop/botkube/pkg/bot"
-
 	"fmt"
-
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/sirupsen/logrus"
 )
 
 type BotkubeStatus string

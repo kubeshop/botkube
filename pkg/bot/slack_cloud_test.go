@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/stretchr/testify/require"
-
 	"github.com/avast/retry-go/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 func TestWithRetriesFunc(t *testing.T) {
