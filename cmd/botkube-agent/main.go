@@ -195,7 +195,7 @@ func run(ctx context.Context) (err error) {
 	defer pluginManager.Shutdown()
 
 	// Health endpoint
-	healthChecker := health.NewChecker(conf, pluginHealthStats)
+	healthChecker := health.NewChecker(ctx, conf, pluginHealthStats)
 	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
 	errGroup.Go(func() error {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
@@ -317,6 +317,7 @@ func run(ctx context.Context) (err error) {
 			sinkNotifiers = append(sinkNotifiers, wh)
 		}
 	}
+	healthChecker.SetBots(bots)
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(

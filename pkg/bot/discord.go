@@ -54,6 +54,8 @@ type Discord struct {
 	messages              chan discordMessage
 	discordMessageWorkers *pool.Pool
 	shutdownOnce          sync.Once
+	status                StatusMsg
+	failureReason         FailureReasonMsg
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -90,6 +92,8 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		renderer:              NewDiscordRenderer(),
 		messages:              make(chan discordMessage, platformMessageChannelSize),
 		discordMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:                StatusUnknown,
+		failureReason:         "",
 	}, nil
 }
 
@@ -119,15 +123,18 @@ func (b *Discord) Start(ctx context.Context) error {
 	// Open a websocket connection to Discord and begin listening.
 	err := b.api.Open()
 	if err != nil {
+		b.setFailureReason(FailureReasonConnectionError)
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setFailureReason(FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
 	b.log.Info("Botkube connected to Discord!")
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx)
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
@@ -414,4 +421,21 @@ func discordError(err error, channel string) error {
 		}
 	}
 	return err
+}
+
+func (b *Discord) setFailureReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *Discord) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

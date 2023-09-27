@@ -63,6 +63,10 @@ type CloudSlack struct {
 	notifyMutex      sync.Mutex
 	clusterName      string
 	msgStatusTracker *SlackMessageStatusTracker
+	status           StatusMsg
+	maxRetries       int
+	failuresNo       int
+	failureReason    FailureReasonMsg
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -108,21 +112,26 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
+		status:           StatusUnknown,
+		maxRetries:       maxRetries,
+		failuresNo:       0,
+		failureReason:    "",
 	}, nil
 }
 
 func (b *CloudSlack) Start(ctx context.Context) error {
 	if b.cfg.ExecutionEventStreamingDisabled {
+		b.setFailureReason(FailureReasonQuotaExceeded)
 		b.log.Warn(quotaExceededMsg)
 		return nil
 	}
-	return withRetries(ctx, b.log, maxRetries, func() error {
+	return b.withRetries(ctx, b.log, func() error {
 		return b.start(ctx)
 	})
 }
 
-func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
-	failuresNo := 0
+func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, fn func() error) error {
+	b.failuresNo = 0
 	var lastFailureTimestamp time.Time
 	return retry.Do(
 		func() error {
@@ -131,22 +140,24 @@ func withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn
 				if !lastFailureTimestamp.IsZero() && time.Since(lastFailureTimestamp) >= successIntervalDuration {
 					// if the last run was long enough, we treat is as success, so we reset failures
 					log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
-					failuresNo = 0
+					b.failuresNo = 0
 				}
 
-				if failuresNo >= maxRetries {
-					log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
+				if b.failuresNo >= b.maxRetries {
+					b.setFailureReason(FailureReasonMaxRetriesExceeded)
+					log.Debugf("Reached max number of %d retries: %s", b.maxRetries, err)
 					return retry.Unrecoverable(err)
 				}
 
 				lastFailureTimestamp = time.Now()
-				failuresNo++
+				b.failuresNo++
 				return err
 			}
+			b.setFailureReason("")
 			return nil
 		},
 		retry.OnRetry(func(_ uint, err error) {
-			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", failuresNo, maxRetries, err)
+			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", b.failuresNo, b.maxRetries, err)
 		}),
 		retry.Delay(retryDelay),
 		retry.Attempts(0), // infinite, we cancel that by our own
@@ -238,7 +249,9 @@ func (b *CloudSlack) shutdown(messageWorkers *pool.Pool, messages chan *pb.Conne
 }
 
 func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectResponse) (error, bool) {
+	b.setFailureReason("")
 	if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
+		b.setFailureReason(FailureReasonQuotaExceeded)
 		b.log.Warn(quotaExceededMsg)
 		return nil, true
 	}
@@ -278,6 +291,7 @@ func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectRe
 				UserID:         ev.User,
 				EventTimeStamp: ev.EventTimeStamp,
 			}
+			b.setFailureReason(FailureReasonQuotaExceeded)
 			response := quotaExceeded()
 
 			if err := b.send(ctx, msg, response); err != nil {
@@ -715,5 +729,22 @@ func quotaExceeded() interactive.CoreMessage {
 				},
 			},
 		},
+	}
+}
+
+func (b *CloudSlack) setFailureReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *CloudSlack) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: fmt.Sprintf("%d/%d", b.failuresNo, b.maxRetries),
+		Reason:   b.failureReason,
 	}
 }

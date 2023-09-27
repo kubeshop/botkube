@@ -1,7 +1,9 @@
 package health
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/kubeshop/botkube/pkg/bot"
 
 	"fmt"
 
@@ -27,8 +29,10 @@ const (
 
 type Checker struct {
 	applicationStarted bool
+	ctx                context.Context
 	config             *config.Config
 	pluginHealthStats  *plugin.HealthStats
+	bots               map[string]bot.Bot
 }
 
 type pluginStatuses struct {
@@ -37,23 +41,11 @@ type pluginStatuses struct {
 	Restarts string
 }
 
-type platformStatus struct {
-	Status string
-}
-
 type botStatus struct {
 	Status BotkubeStatus
 }
 
-type platformStatuses struct {
-	SlackCloud    platformStatus
-	SocketSlack   platformStatus
-	Discord       platformStatus
-	Mattermost    platformStatus
-	Teams         platformStatus
-	Webhook       platformStatus
-	Elasticsearch platformStatus
-}
+type platformStatuses map[string]bot.Status
 
 type Status struct {
 	Botkube   botStatus
@@ -61,9 +53,10 @@ type Status struct {
 	Platforms platformStatuses
 }
 
-func NewChecker(config *config.Config, stats *plugin.HealthStats) Checker {
+func NewChecker(ctx context.Context, config *config.Config, stats *plugin.HealthStats) Checker {
 	return Checker{
 		applicationStarted: false,
+		ctx:                ctx,
 		config:             config,
 		pluginHealthStats:  stats,
 	}
@@ -81,35 +74,17 @@ func (h *Checker) GetStatus() (*Status, error) {
 	pluginsStats := make(map[string]pluginStatuses)
 	h.getSourcePluginsStatuses(pluginsStats)
 	h.getExecutorPluginsStatuses(pluginsStats)
+	platformStatuses, err := h.getPlatformsStatus()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Status{
 		Botkube: botStatus{
 			Status: h.getBotkubeStatus(),
 		},
-		Plugins: pluginsStats,
-		Platforms: platformStatuses{
-			SlackCloud: platformStatus{
-				Status: "Unknown",
-			},
-			SocketSlack: platformStatus{
-				Status: "Unknown",
-			},
-			Discord: platformStatus{
-				Status: "Unknown",
-			},
-			Mattermost: platformStatus{
-				Status: "Unknown",
-			},
-			Teams: platformStatus{
-				Status: "Unknown",
-			},
-			Webhook: platformStatus{
-				Status: "Unknown",
-			},
-			Elasticsearch: platformStatus{
-				Status: "Unknown",
-			},
-		},
+		Plugins:   pluginsStats,
+		Platforms: platformStatuses,
 	}, nil
 }
 
@@ -117,8 +92,16 @@ func (h *Checker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if h.IsReady() {
 		resp.Header().Set("Content-Type", "application/json")
 		resp.WriteHeader(http.StatusOK)
-		status, _ := h.GetStatus()
-		respJSon, _ := json.Marshal(status)
+		status, err := h.GetStatus()
+		if err != nil {
+			resp.WriteHeader(http.StatusInternalServerError)
+			_, _ = fmt.Fprint(resp, "Internal Error")
+		}
+		respJSon, err := json.Marshal(status)
+		if err != nil {
+			resp.WriteHeader(http.StatusInternalServerError)
+			_, _ = fmt.Fprint(resp, "Internal Error")
+		}
 		_, _ = fmt.Fprint(resp, string(respJSon))
 	} else {
 		resp.WriteHeader(http.StatusServiceUnavailable)
@@ -131,6 +114,10 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	router := mux.NewRouter()
 	router.Handle(healthEndpointName, h)
 	return httpx.NewServer(log, addr, router)
+}
+
+func (h *Checker) SetBots(bots map[string]bot.Bot) {
+	h.bots = bots
 }
 
 func (h *Checker) getSourcePluginsStatuses(plugins map[string]pluginStatuses) {
@@ -163,4 +150,15 @@ func (h *Checker) getBotkubeStatus() BotkubeStatus {
 		return BotkubeStatusHealthy
 	}
 	return BotkubeStatusUnhealthy
+}
+
+func (h *Checker) getPlatformsStatus() (platformStatuses, error) {
+	defaultStatuses := platformStatuses{}
+	if h.bots != nil {
+		for key, botInstance := range h.bots {
+			defaultStatuses[key] = botInstance.GetStatus()
+		}
+	}
+
+	return defaultStatuses, nil
 }

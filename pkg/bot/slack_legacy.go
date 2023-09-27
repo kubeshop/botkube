@@ -54,6 +54,8 @@ type Slack struct {
 	messages            chan slackLegacyMessage
 	slackMessageWorkers *pool.Pool
 	shutdownOnce        sync.Once
+	status              StatusMsg
+	failureReason       FailureReasonMsg
 }
 
 // slackLegacyMessage contains message details to execute command and send back the result
@@ -96,6 +98,8 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		renderer:            NewSlackRenderer(),
 		messages:            make(chan slackLegacyMessage, platformMessageChannelSize),
 		slackMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:              StatusUnknown,
+		failureReason:       "",
 	}, nil
 }
 
@@ -123,6 +127,7 @@ func (b *Slack) Start(ctx context.Context) error {
 		rtm.ManageConnection()
 	}()
 
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -141,6 +146,7 @@ func (b *Slack) Start(ctx context.Context) error {
 			case *slack.ConnectedEvent:
 				err := b.reporter.ReportBotEnabled(b.IntegrationName())
 				if err != nil {
+					b.setFailureReason(FailureReasonConnectionError)
 					return fmt.Errorf("while reporting analytics: %w", err)
 				}
 
@@ -182,6 +188,7 @@ func (b *Slack) Start(ctx context.Context) error {
 				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
 
 			case *slack.InvalidAuthEvent:
+				b.setFailureReason(FailureReasonConnectionError)
 				return fmt.Errorf("invalid credentials")
 			}
 		}
@@ -408,6 +415,23 @@ func (b *Slack) shutdown(rtm *slack.RTM) {
 			b.log.Errorf("Error while disconnecting from Slack: %v", err)
 		}
 	})
+}
+
+func (b *Slack) setFailureReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *Slack) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }
 
 func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {

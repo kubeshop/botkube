@@ -50,6 +50,8 @@ type SocketSlack struct {
 	messages         chan slackMessage
 	messageWorkers   *pool.Pool
 	shutdownOnce     sync.Once
+	status           StatusMsg
+	failureReason    FailureReasonMsg
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -92,6 +94,8 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
 		messages:         make(chan slackMessage, platformMessageChannelSize),
 		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:           StatusUnknown,
+		failureReason:    "",
 	}, nil
 }
 
@@ -112,6 +116,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 		}
 	}()
 
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -126,6 +131,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
 				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
+					b.setFailureReason(FailureReasonConnectionError)
 					return fmt.Errorf("report analytics error: %w", err)
 				}
 				b.log.Info("Botkube connected to Slack!")
@@ -602,4 +608,21 @@ func (b *SocketSlack) getRealNameWithFallbackToUserID(ctx context.Context, userI
 
 	b.realNamesForID[userID] = user.RealName
 	return user.RealName
+}
+
+func (b *SocketSlack) setFailureReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *SocketSlack) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

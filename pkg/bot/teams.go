@@ -73,14 +73,16 @@ type Teams struct {
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
 
-	botName     string
-	AppID       string
-	AppPassword string
-	MessagePath string
-	Port        string
-	ClusterName string
-	Adapter     core.Adapter
-	renderer    *TeamsRenderer
+	botName       string
+	AppID         string
+	AppPassword   string
+	MessagePath   string
+	Port          string
+	ClusterName   string
+	Adapter       core.Adapter
+	renderer      *TeamsRenderer
+	status        StatusMsg
+	failureReason FailureReasonMsg
 }
 
 type consentContext struct {
@@ -118,6 +120,8 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		renderer:        NewTeamsRenderer(),
 		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
+		status:          StatusUnknown,
+		failureReason:   "",
 	}, nil
 }
 
@@ -131,6 +135,7 @@ func (b *Teams) Start(ctx context.Context) error {
 	}
 	b.Adapter, err = core.NewBotAdapter(setting)
 	if err != nil {
+		b.setFailureReason(FailureReasonConnectionError)
 		return fmt.Errorf("while starting Teams bot: %w", err)
 	}
 
@@ -141,14 +146,17 @@ func (b *Teams) Start(ctx context.Context) error {
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setFailureReason(FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
 	srv := httpx.NewServer(b.log, addr, router)
 	err = srv.Serve(ctx)
 	if err != nil {
+		b.setFailureReason(FailureReasonConnectionError)
 		return fmt.Errorf("while running MS Teams server: %w", err)
 	}
+	b.setFailureReason("")
 
 	return nil
 }
@@ -574,4 +582,21 @@ var emojiMapping = map[string]string{
 	":no_entry_sign:":           "🚫",
 	":large_green_circle:":      "🟢",
 	":new:":                     "🆕",
+}
+
+func (b *Teams) setFailureReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *Teams) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

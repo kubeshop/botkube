@@ -70,6 +70,8 @@ type Mattermost struct {
 	messages        chan mattermostMessage
 	messageWorkers  *pool.Pool
 	shutdownOnce    sync.Once
+	status          StatusMsg
+	failureReason   FailureReasonMsg
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -138,6 +140,8 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		userNamesForID:  map[string]string{},
 		messages:        make(chan mattermostMessage, platformMessageChannelSize),
 		messageWorkers:  pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:          StatusUnknown,
+		failureReason:   "",
 	}, nil
 }
 
@@ -160,11 +164,13 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// Check connection to Mattermost server
 	err := b.checkServerConnection(ctx)
 	if err != nil {
+		b.setStatusReason(FailureReasonConnectionError)
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setStatusReason(FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
@@ -172,7 +178,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
 	b.log.Info("Botkube connected to Mattermost!")
-
+	b.setStatusReason("")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -185,6 +191,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 			var appErr error
 			b.wsClient, appErr = model.NewWebSocketClient4(b.webSocketURL, b.apiClient.AuthToken)
 			if appErr != nil {
+				b.setStatusReason(FailureReasonConnectionError)
 				return fmt.Errorf("while creating WebSocket connection: %w", appErr)
 			}
 			b.listen(ctx)
@@ -585,4 +592,21 @@ func postFromEvent(event *model.WebSocketEvent) (*model.Post, error) {
 		return nil, fmt.Errorf("while getting post from event: %w", err)
 	}
 	return post, nil
+}
+
+func (b *Mattermost) setStatusReason(reason FailureReasonMsg) {
+	if reason == "" {
+		b.status = StatusHealthy
+	} else {
+		b.status = StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *Mattermost) GetStatus() Status {
+	return Status{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }
