@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -75,18 +76,19 @@ func (s *SlackTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, cl
 	msg.ReplaceBotNamePlaceholder(s.BotName(), api.BotNameWithClusterName(clusterName))
 }
 
-func NewSlackTester(slackCfg SlackConfig, apiKey string) (BotDriver, error) {
+func NewSlackTester(slackCfg SlackConfig, apiKey *string) (BotDriver, error) {
 	var token string
 	if slackCfg.TesterAppToken == "" && slackCfg.TesterBotToken == "" && slackCfg.CloudTesterAppToken == "" {
 		return nil, errors.New("slack tester tokens are not set")
 	}
+
 	if slackCfg.TesterAppToken != "" {
 		token = slackCfg.TesterAppToken
 	}
 	if slackCfg.TesterBotToken != "" {
 		token = slackCfg.TesterBotToken
 	}
-	if slackCfg.CloudBasedTestEnabled {
+	if slackCfg.CloudBasedTestEnabled && slackCfg.CloudTesterAppToken != "" {
 		token = slackCfg.CloudTesterAppToken
 	}
 
@@ -98,7 +100,7 @@ func NewSlackTester(slackCfg SlackConfig, apiKey string) (BotDriver, error) {
 	mdFormatter := interactive.NewMDFormatter(interactive.NewlineFormatter, func(msg string) string {
 		return fmt.Sprintf("*%s*", msg)
 	})
-	return &SlackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter, configProviderApiKey: apiKey}, nil
+	return &SlackTester{cli: slackCli, cfg: slackCfg, mdFormatter: mdFormatter, configProviderApiKey: ptr.ToValue(apiKey)}, nil
 }
 
 func (s *SlackTester) InitUsers(t *testing.T) {

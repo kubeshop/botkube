@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeshop/botkube/internal/httpx"
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -151,7 +152,7 @@ func TestDiscord(t *testing.T) {
 func newBotDriver(cfg Config, driverType commplatform.DriverType) (commplatform.BotDriver, error) {
 	switch driverType {
 	case commplatform.SlackBot:
-		return commplatform.NewSlackTester(cfg.Slack, cfg.ConfigProvider.ApiKey)
+		return commplatform.NewSlackTester(cfg.Slack, ptr.FromType(cfg.ConfigProvider.ApiKey))
 	case commplatform.DiscordBot:
 		return commplatform.NewDiscordTester(cfg.Discord)
 	}
