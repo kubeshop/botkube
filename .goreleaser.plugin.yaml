@@ -114,6 +114,21 @@ builds:
       - arm64
     goarm:
       - 7
+  - id: thread-mate
+    main: cmd/executor/thread-mate/main.go
+    binary: executor_thread-mate_{{ .Os }}_{{ .Arch }}
+
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
   - id: argocd
     main: cmd/source/argocd/main.go
     binary: source_argocd_{{ .Os }}_{{ .Arch }}
@@ -245,6 +260,12 @@ archives:
       
   - builds: [kubectl]
     id: kubectl
+    files:
+      - none*
+    name_template: "{{ .Binary }}"
+      
+  - builds: [thread-mate]
+    id: thread-mate
     files:
       - none*
     name_template: "{{ .Binary }}"

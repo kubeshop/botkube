@@ -55,13 +55,21 @@ func (b *SlackMessageStatusTracker) MarkAsReceived(msgRef *slack.ItemRef) {
 // MarkAsProcessed marks a message as processed by removing the "eyes" reaction and adding the "heavy_check_mark" reaction.
 // If msgRef is nil, no action is performed.
 func (b *SlackMessageStatusTracker) MarkAsProcessed(msgRef *slack.ItemRef) {
+	b.MarkAsProcessedWithCustomEmoji(msgRef, msgProcessedEmoji)
+}
+
+func (b *SlackMessageStatusTracker) MarkAsProcessedWithCustomEmoji(msgRef *slack.ItemRef, emoji string) {
 	if msgRef == nil {
 		return
 	}
 
 	_ = b.client.RemoveReaction(msgReceivedEmoji, *msgRef) // The reaction may be missing as there was an error earlier.
 
-	err := b.client.AddReaction(msgProcessedEmoji, *msgRef)
+	if emoji == "" {
+		return
+	}
+
+	err := b.client.AddReaction(emoji, *msgRef)
 	b.handleReactionError(err, "processed")
 }
 

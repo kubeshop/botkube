@@ -1,0 +1,30 @@
+- type: threadMessage
+  sections:
+    - base:
+        header: Botkube here!
+        body:
+          plaintext: |
+            Thanks for reaching out! Today, {{ .Assignee.ID | toMention }} will assist you in getting your Botkube up and running :botkube-intensifies:
+    - base:
+        description: |-
+          Meanwhile, please check our troubleshooting guide. If you haven't already, please share your configuration and agent logs for more efficient problem-solving!
+          Thanks! :bow:
+      buttons:
+        - name: See troubleshooting guide
+          url: https://docs.botkube.io/operation/common-problems
+          style: primary
+        - name: How to get config
+          url: https://docs.botkube.io/operation/diagnostics/#agent-configuration
+        - name: How to get logs
+          url: https://docs.botkube.io/operation/diagnostics#agent-logs
+- userHandler: {{ .Assignee.ID }}
+  sections:
+    - base:
+        header: Botkube here!
+        body:
+          plaintext: |
+            Good day! You've been picked to help {{ .Message.User.ID | toMention }}!
+    - base:
+      buttons:
+        - name: View Message
+          url: '{{ .Message.URL }}'

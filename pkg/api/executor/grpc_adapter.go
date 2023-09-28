@@ -10,8 +10,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/kubeshop/botkube/internal/executor/x/mathx"
 	"github.com/kubeshop/botkube/pkg/api"
 )
+
+const maxMessageNumberForSingleCommandExecution = 15
 
 // Executor defines the Botkube executor plugin functionality.
 type Executor interface {
@@ -45,6 +48,26 @@ type (
 		// This is an alpha feature and may change in the future.
 		// Most likely, it will be generalized to support all communication platforms.
 		SlackState *slack.BlockActionStates
+
+		// Message details that triggered a given Executor.
+		// Limitations:
+		//   - It's available only for SocketSlack. In the future, it may be adopted across other platforms.
+		Message Message
+	}
+
+	// Message holds information about the message that triggered a given Executor.
+	Message struct {
+		Text string
+		URL  string
+		User User
+	}
+
+	// User represents the user that sent a message.
+	User struct {
+		// ID represents users identifier.
+		Mention string
+		// DisplayName represents user display name. It can be empty.
+		DisplayName string
 	}
 
 	// ExecuteOutput holds the output of the Execute function.
@@ -54,6 +77,12 @@ type (
 		//   - api.NewCodeBlockMessage("body", true)
 		//   - api.NewPlaintextMessage("body", true)
 		Message api.Message
+		// Messages holds a collection of messages that should be dispatched to the user in the context of a given command execution.
+		// To avoid spamming, you can specify max 15 messages.
+		// Limitations:
+		//   - It's available only for SocketSlack. In the future, it may be adopted across other platforms.
+		//   - Message filtering is not available.
+		Messages []api.Message
 	}
 )
 
@@ -103,6 +132,14 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 		Context: &ExecuteContext{
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
 			KubeConfig:               in.Context.KubeConfig,
+			Message: &MessageContext{
+				Text: in.Context.Message.Text,
+				Url:  in.Context.Message.URL,
+				User: &UserContext{
+					Mention:     in.Context.Message.User.Mention,
+					DisplayName: in.Context.Message.User.DisplayName,
+				},
+			},
 		},
 	}
 
@@ -119,15 +156,33 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 		return ExecuteOutput{}, err
 	}
 
-	var msg api.Message
-	if len(res.Message) != 0 && string(res.Message) != "" {
-		if err := json.Unmarshal(res.Message, &msg); err != nil {
-			return ExecuteOutput{}, fmt.Errorf("while unmarshalling message from JSON: %w", err)
+	extract := func(in []byte) (api.Message, error) {
+		var msg api.Message
+		if len(in) != 0 && string(in) != "" {
+			if err := json.Unmarshal(in, &msg); err != nil {
+				return api.Message{}, fmt.Errorf("while unmarshalling message from JSON: %w", err)
+			}
 		}
+		return msg, nil
+	}
+	msg, err := extract(res.Message)
+	if err != nil {
+		return ExecuteOutput{}, err
+	}
+
+	var msgs []api.Message
+	for _, item := range res.Messages[:mathx.Min(maxMessageNumberForSingleCommandExecution, len(res.Messages))] {
+		casted, err := extract(item)
+		if err != nil {
+			return ExecuteOutput{}, err
+		}
+
+		msgs = append(msgs, casted)
 	}
 
 	return ExecuteOutput{
-		Message: msg,
+		Message:  msg,
+		Messages: msgs,
 	}, nil
 }
 
@@ -180,6 +235,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 			SlackState:               &slackState,
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,
 			KubeConfig:               request.Context.KubeConfig,
+			Message:                  p.toMessageIfPResent(request.Context.Message),
 		},
 	})
 	if err != nil {
@@ -190,9 +246,40 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 	if err != nil {
 		return nil, fmt.Errorf("while marshalling help to JSON: %w", err)
 	}
+
+	var encodedMsgs [][]byte
+	for _, item := range out.Messages {
+		marshalled, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("while marshalling help to JSON: %w", err)
+		}
+
+		encodedMsgs = append(encodedMsgs, marshalled)
+	}
+
 	return &ExecuteResponse{
-		Message: marshalled,
+		Message:  marshalled,
+		Messages: encodedMsgs,
 	}, nil
+}
+
+func (*grpcServer) toMessageIfPResent(msg *MessageContext) Message {
+	if msg == nil {
+		return Message{}
+	}
+	var user User
+	if msg.User != nil {
+		user = User{
+			Mention:     msg.User.Mention,
+			DisplayName: msg.User.DisplayName,
+		}
+	}
+
+	return Message{
+		Text: msg.Text,
+		URL:  msg.Url,
+		User: user,
+	}
 }
 
 func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataResponse, error) {

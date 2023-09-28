@@ -1,0 +1,84 @@
+{
+  "uiSchema": {
+    "roundRobin": {
+      "assignees": {
+        "ui:classNames": "non-orderable",
+        "ui:options": {
+          "orderable": false
+        },
+        "items": {
+          "ui:options": {
+            "label": false
+          }
+        }
+      }
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "roundRobin": {
+      "type": "object",
+      "title": "Round Robin Configuration",
+      "properties": {
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Assignees",
+          "description": "Assignee in format {id}:{name}, e.g. 'U0401FW96U8:Paweł'"
+        },
+        "groupName": {
+          "type": "string",
+          "default": "default",
+          "title": "Group Name"
+        }
+      },
+      "required": [
+        "assignees"
+      ]
+    },
+    "pick": {
+      "type": "object",
+      "title": "Pick Configuration",
+      "properties": {
+        "userCooldownTime": {
+          "type": "string",
+          "format": "duration",
+          "default": "3m",
+          "description": "Represents the time that must elapse for a given user's message before the 'pick' method can be used again.",
+          "title": "User Cooldown Time"
+        },
+        "messagesTemplate": {
+          "type": "string",
+          "title": "Messages Template"
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "title": "Persistence Configuration",
+      "properties": {
+        "syncInterval": {
+          "type": "string",
+          "format": "duration",
+          "default": "5s",
+          "title": "Sync Interval",
+          "description": "Represents the time that must elapse before saving in-memory data."
+        },
+        "configMapNamespace": {
+          "type": "string",
+          "default": "botkube",
+          "title": "Config Map Namespace"
+        }
+      }
+    }
+  },
+  "required": [
+    "roundRobin",
+    "pick",
+    "persistence"
+  ]
+}

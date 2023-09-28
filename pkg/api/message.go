@@ -43,17 +43,23 @@ const (
 	NonInteractiveSingleSection MessageType = "nonInteractiveEventSingleSection"
 	// PopupMessage defines a message that should be displayed to the user as popup (if possible).
 	PopupMessage MessageType = "form"
+	// ThreadMessage defines a message that should be sent in a thread.
+	ThreadMessage MessageType = "threadMessage"
+	// SkipMessage defines a message that should not be sent to the end user.
+	// If not used and message is empty, a special indicator will be sent as the response.
+	SkipMessage MessageType = "skipMessage"
 )
 
 // Message represents a generic message with interactive buttons.
 type Message struct {
-	Type              MessageType `json:"type,omitempty"`
-	BaseBody          Body        `json:"baseBody,omitempty"`
-	Timestamp         time.Time   `json:"timestamp,omitempty"`
-	Sections          []Section   `json:"sections,omitempty"`
-	PlaintextInputs   LabelInputs `json:"plaintextInputs,omitempty"`
-	OnlyVisibleForYou bool        `json:"onlyVisibleForYou,omitempty"`
-	ReplaceOriginal   bool        `json:"replaceOriginal,omitempty"`
+	Type              MessageType `json:"type,omitempty" yaml:"type"`
+	BaseBody          Body        `json:"baseBody,omitempty" yaml:"baseBody"`
+	Timestamp         time.Time   `json:"timestamp,omitempty" yaml:"timestamp"`
+	Sections          []Section   `json:"sections,omitempty" yaml:"sections"`
+	PlaintextInputs   LabelInputs `json:"plaintextInputs,omitempty" yaml:"plaintextInputs"`
+	OnlyVisibleForYou bool        `json:"onlyVisibleForYou,omitempty" yaml:"onlyVisibleForYou"`
+	ReplaceOriginal   bool        `json:"replaceOriginal,omitempty" yaml:"replaceOriginal"`
+	UserHandler       string      `json:"userHandler,omitempty" yaml:"userHandler"`
 }
 
 func (msg *Message) IsEmpty() bool {
@@ -86,38 +92,38 @@ func (msg *Message) HasInputs() bool {
 
 // Select holds data related to the select drop-down.
 type Select struct {
-	Type    SelectType `json:"type,omitempty"`
-	Name    string     `json:"name,omitempty"`
-	Command string     `json:"command,omitempty"`
+	Type    SelectType `json:"type,omitempty" yaml:"type"`
+	Name    string     `json:"name,omitempty" yaml:"name"`
+	Command string     `json:"command,omitempty" yaml:"command"`
 	// OptionGroups provides a way to group options in a select menu.
-	OptionGroups []OptionGroup `json:"optionGroups,omitempty"`
+	OptionGroups []OptionGroup `json:"optionGroups,omitempty" yaml:"optionGroups"`
 	// InitialOption holds already pre-selected options. MUST be a sub-set of OptionGroups.
-	InitialOption *OptionItem `json:"initialOption,omitempty"`
+	InitialOption *OptionItem `json:"initialOption,omitempty" yaml:"initialOption"`
 }
 
 // Base holds generic message fields.
 type Base struct {
-	Header      string `json:"header,omitempty"`
-	Description string `json:"description,omitempty"`
-	Body        Body   `json:"body,omitempty"`
+	Header      string `json:"header,omitempty" yaml:"header"`
+	Description string `json:"description,omitempty" yaml:"description"`
+	Body        Body   `json:"body,omitempty" yaml:"body"`
 }
 
 // Body holds message body fields.
 type Body struct {
-	CodeBlock string `json:"codeBlock,omitempty"`
-	Plaintext string `json:"plaintext,omitempty"`
+	CodeBlock string `json:"codeBlock,omitempty" yaml:"codeBlock"`
+	Plaintext string `json:"plaintext,omitempty" yaml:"plaintext"`
 }
 
 // Section holds section related fields.
 type Section struct {
-	Base            `json:",inline"`
-	Buttons         Buttons      `json:"buttons,omitempty"`
-	MultiSelect     MultiSelect  `json:"multiSelect,omitempty"`
-	Selects         Selects      `json:"selects,omitempty"`
-	PlaintextInputs LabelInputs  `json:"plaintextInputs,omitempty"`
-	TextFields      TextFields   `json:"textFields,omitempty"`
-	BulletLists     BulletLists  `json:"bulletLists,omitempty"`
-	Context         ContextItems `json:"context,omitempty"`
+	Base            `json:",inline" yaml:"base"`
+	Buttons         Buttons      `json:"buttons,omitempty" yaml:"buttons"`
+	MultiSelect     MultiSelect  `json:"multiSelect,omitempty" yaml:"multiSelect"`
+	Selects         Selects      `json:"selects,omitempty" yaml:"selects"`
+	PlaintextInputs LabelInputs  `json:"plaintextInputs,omitempty" yaml:"plaintextInputs"`
+	TextFields      TextFields   `json:"textFields,omitempty" yaml:"textFields"`
+	BulletLists     BulletLists  `json:"bulletLists,omitempty" yaml:"bulletLists"`
+	Context         ContextItems `json:"context,omitempty" yaml:"context"`
 }
 
 // BulletLists holds the bullet lists.
@@ -144,8 +150,8 @@ type TextFields []TextField
 
 // TextField holds a text field data.
 type TextField struct {
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
+	Key   string `json:"key,omitempty" yaml:"key"`
+	Value string `json:"value,omitempty" yaml:"value"`
 }
 
 // IsEmpty returns true if all fields have zero-value.
@@ -155,8 +161,8 @@ func (t *TextField) IsEmpty() bool {
 
 // BulletList defines a bullet list primitive.
 type BulletList struct {
-	Title string   `json:"title,omitempty"`
-	Items []string `json:"items,omitempty"`
+	Title string   `json:"title,omitempty" yaml:"title"`
+	Items []string `json:"items,omitempty" yaml:"items"`
 }
 
 // IsDefined returns true if there are any context items defined.
@@ -166,14 +172,14 @@ func (c ContextItems) IsDefined() bool {
 
 // ContextItem holds context item.
 type ContextItem struct {
-	Text string `json:"text,omitempty"`
+	Text string `json:"text,omitempty" yaml:"text"`
 }
 
 // Selects holds multiple Select objects.
 type Selects struct {
 	// ID allows to identify a given block when we do the updated.
-	ID    string   `json:"id,omitempty"`
-	Items []Select `json:"items,omitempty"`
+	ID    string   `json:"id,omitempty" yaml:"id"`
+	Items []Select `json:"items,omitempty" yaml:"items"`
 }
 
 // DispatchedInputAction defines when the action should be sent to our backend.
@@ -188,10 +194,10 @@ const (
 
 // LabelInput is used to create input elements to use in messages.
 type LabelInput struct {
-	Command          string                `json:"command,omitempty"`
-	Text             string                `json:"text,omitempty"`
-	Placeholder      string                `json:"placeholder,omitempty"`
-	DispatchedAction DispatchedInputAction `json:"dispatchedAction,omitempty"`
+	Command          string                `json:"command,omitempty" yaml:"command"`
+	Text             string                `json:"text,omitempty" yaml:"text"`
+	Placeholder      string                `json:"placeholder,omitempty" yaml:"placeholder"`
+	DispatchedAction DispatchedInputAction `json:"dispatchedAction,omitempty" yaml:"dispatchedAction"`
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -204,27 +210,27 @@ func (s *Selects) AreOptionsDefined() bool {
 
 // OptionItem defines an option model.
 type OptionItem struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
+	Name  string `json:"name,omitempty" yaml:"name"`
+	Value string `json:"value,omitempty" yaml:"value"`
 }
 
 // MultiSelect holds multi select related fields.
 type MultiSelect struct {
-	Name        string `json:"name,omitempty"`
-	Description Body   `json:"description,omitempty"`
-	Command     string `json:"command,omitempty"`
+	Name        string `json:"name,omitempty" yaml:"name"`
+	Description Body   `json:"description,omitempty" yaml:"description"`
+	Command     string `json:"command,omitempty" yaml:"command"`
 
 	// Options holds all available options
-	Options []OptionItem `json:"options,omitempty"`
+	Options []OptionItem `json:"options,omitempty" yaml:"options"`
 
 	// InitialOptions hold already pre-selected options. MUST be a sub-set of Options.
-	InitialOptions []OptionItem `json:"initialOptions,omitempty"`
+	InitialOptions []OptionItem `json:"initialOptions,omitempty" yaml:"initialOptions"`
 }
 
 // OptionGroup holds information about options in the same group.
 type OptionGroup struct {
-	Name    string       `json:"name,omitempty"`
-	Options []OptionItem `json:"options,omitempty"`
+	Name    string       `json:"name,omitempty" yaml:"name"`
+	Options []OptionItem `json:"options,omitempty" yaml:"options"`
 }
 
 // AreOptionsDefined returns true if some options are available.
@@ -268,15 +274,15 @@ const (
 
 // Button holds definition of action button.
 type Button struct {
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description"`
 
 	// DescriptionStyle defines the style of the button description. If not provided, the default style (ButtonDescriptionStyleCode) is used.
-	DescriptionStyle ButtonDescriptionStyle `json:"descriptionStyle"`
+	DescriptionStyle ButtonDescriptionStyle `json:"descriptionStyle" yaml:"descriptionStyle"`
 
-	Name    string      `json:"name,omitempty"`
-	Command string      `json:"command,omitempty"`
-	URL     string      `json:"url,omitempty"`
-	Style   ButtonStyle `json:"style,omitempty"`
+	Name    string      `json:"name,omitempty" yaml:"name"`
+	Command string      `json:"command,omitempty" yaml:"command"`
+	URL     string      `json:"url,omitempty" yaml:"url"`
+	Style   ButtonStyle `json:"style,omitempty" yaml:"style"`
 }
 
 // ButtonBuilder provides a simplified way to construct a Button model.

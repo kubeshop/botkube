@@ -172,14 +172,44 @@ type IncomingWebhook struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name         string              `yaml:"name"`
-	Notification ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
-	Bindings     BotBindings         `yaml:"bindings"`
+	Name                string              `yaml:"name"`
+	Notification        ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings            BotBindings         `yaml:"bindings"`
+	TextMessageBindings TextMessageBindings `yaml:"textMessageBindings"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
 func (c ChannelBindingsByName) Identifier() string {
 	return c.Name
+}
+
+// TextMessageBindings defines bindings for text messages.
+type TextMessageBindings struct {
+	Type     string             `yaml:"type"`
+	Messages []MessagesBindings `yaml:"messages"`
+}
+
+// MessagesBindings contains information about matching messages and their associated commands.
+type MessagesBindings struct {
+	Text                    RegexConstraints        `yaml:"text"`
+	Users                   UsersMessageConstraints `yaml:"users"`
+	Command                 string                  `yaml:"command"`
+	Executors               []string                `yaml:"executors"`
+	ProcessedEmojiIndicator string                  `yaml:"processedEmojiIndicator"`
+}
+
+type UsersMessageConstraints struct {
+	Exclude []string `yaml:"exclude"`
+}
+
+func (m *MessagesBindings) IsUserExcluded(userID string) bool {
+	for _, user := range m.Users.Exclude {
+		toIgnore, _, _ := strings.Cut(user, ":")
+		if toIgnore == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // ChannelBindingsByID contains configuration bindings per channel.
