@@ -14,7 +14,7 @@ type (
 		Assignee       Assignee
 		MessageContext executor.Message `csv:"Message"`
 		StartedAt      time.Time
-		ResolvedBy     *Assignee
+		ResolvedBy     Assignee
 	}
 	// Assignee represents a participant in a conversation.
 	Assignee struct {

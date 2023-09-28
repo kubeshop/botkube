@@ -1,6 +1,7 @@
 package thread_mate
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -8,7 +9,9 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/gocarina/gocsv"
 	"github.com/google/uuid"
+	"github.com/olekukonko/tablewriter"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/executor/x/mathx"
@@ -86,7 +89,7 @@ func (t *ThreadMate) Pick(cmd *PickCmd, msg executor.Message) []api.Message {
 	nextIndex := atomic.AddUint32(&t.next, 1)
 	assignee := t.assignees[nextIndex%t.membersLen]
 
-	msg.Text = msg.Text[:mathx.Max(len(msg.Text), maxMsgContextLen)]
+	msg.Text = msg.Text[:mathx.Min(len(msg.Text), maxMsgContextLen)]
 	th := Thread{
 		ID:             uuid.NewString(),
 		MessageContext: msg,
@@ -169,8 +172,9 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 
 	var ongoing []api.Section
 	if cmd.Type == "" || strings.EqualFold(cmd.Type, "ongoing") {
-		for _, item := range t.ongoingThreads.Get() {
-			section := t.renderThreadAsInteractiveMessage(item, true, assignees, extractIDFromMention(message.User.Mention))
+		items := t.ongoingThreads.Get()
+		for idx := len(items) - 1; idx >= 0; idx-- {
+			section := t.renderThreadAsInteractiveMessage(items[idx], true, assignees, extractIDFromMention(message.User.Mention))
 			if section == nil {
 				continue
 			}
@@ -182,8 +186,9 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 	}
 	var resolved []api.Section
 	if cmd.Type == "" || strings.EqualFold(cmd.Type, "resolved") {
-		for _, item := range t.resolvedThreads.Get() {
-			section := t.renderThreadAsInteractiveMessage(item, false, assignees, extractIDFromMention(message.User.Mention))
+		items := t.resolvedThreads.Get()
+		for idx := len(items) - 1; idx >= 0; idx-- {
+			section := t.renderThreadAsInteractiveMessage(items[idx], false, assignees, extractIDFromMention(message.User.Mention))
 			if section == nil {
 				continue
 			}
@@ -213,11 +218,42 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 				Value: assignee.ID,
 			})
 		}
-
 	} else {
 		selectedOpts = allOpts
 	}
 
+	sections := append(ongoing, resolved...)
+	allItems := len(sections)
+	if allItems == 1 {
+		sections = append(sections, api.Section{
+			Base: api.Base{
+				Header: "🔍 No threads found",
+			},
+		})
+	}
+
+	// paginate
+	start := mathx.Min(cmd.PageIdx*perPage, allItems)
+	stop := mathx.Min(start+perPage, allItems)
+	sections = sections[start:stop]
+
+	paginateBtns := t.getPaginationButtons(allItems, cmd.PageIdx, t.buildActivityCommand(cmd))
+	if paginateBtns != nil {
+		sections = append(sections, api.Section{Buttons: paginateBtns})
+	}
+
+	// search
+	search := t.GetSearchSection(cmd, message, selectedOpts, allOpts)
+	sections = append([]api.Section{search}, sections...)
+
+	return api.Message{
+		OnlyVisibleForYou: true,
+		ReplaceOriginal:   true,
+		Sections:          sections,
+	}
+}
+
+func (t *ThreadMate) GetSearchSection(cmd *ActivityCmd, message executor.Message, selectedOpts []api.OptionItem, allOpts []api.OptionItem) api.Section {
 	btns := api.Buttons{}
 	if len(selectedOpts) < len(allOpts) {
 		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show all", "thread-mate get activity"))
@@ -236,38 +272,78 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show ongoing", fmt.Sprintf("thread-mate get activity --assignee-ids %q --thread-type=ongoing", cmd.AssigneeIDs)))
 	}
 
-	search := []api.Section{
-		{
-			Base: api.Base{
-				Header: "Search criteria",
-			},
-			MultiSelect: api.MultiSelect{
-				Name: "Select assignee",
-				Description: api.Body{
-					Plaintext: "List by assignee",
-				},
-				Command:        fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, "thread-mate get activity --assignee-ids"),
-				Options:        allOpts,
-				InitialOptions: selectedOpts,
-			},
-			Buttons: btns,
+	return api.Section{
+		Base: api.Base{
+			Header: "Search criteria",
 		},
-	}
-	sections := append(search, ongoing...)
-	sections = append(sections, resolved...)
-
-	if len(sections) == 1 {
-		sections = append(sections, api.Section{
-			Base: api.Base{
-				Header: "🔍 No threads found",
+		Selects: api.Selects{
+			ID: "Export",
+			Items: []api.Select{
+				{
+					Name:          "Export type",
+					Command:       fmt.Sprintf("%s thread-mate export --type=", api.MessageBotNamePlaceholder),
+					InitialOption: nil,
+					OptionGroups: []api.OptionGroup{
+						{
+							Name: "Types",
+							Options: []api.OptionItem{
+								{Name: "CSV", Value: "csv"},
+								{Name: "Markdown table", Value: "md"},
+							},
+						},
+					},
+				},
 			},
-		})
+		},
+		MultiSelect: api.MultiSelect{
+			Name: "Select assignee",
+			Description: api.Body{
+				Plaintext: "List by assignee",
+			},
+			Command:        fmt.Sprintf("%s %s", api.MessageBotNamePlaceholder, "thread-mate get activity --assignee-ids"),
+			Options:        allOpts,
+			InitialOptions: selectedOpts,
+		},
+		Buttons: btns,
 	}
-	return api.Message{
-		OnlyVisibleForYou: true,
-		ReplaceOriginal:   true,
-		Sections:          sections,
+}
+
+func (*ThreadMate) buildActivityCommand(cmd *ActivityCmd) string {
+	base := "get activity"
+
+	if ids := strings.TrimSpace(cmd.AssigneeIDs); ids != "" {
+		base = fmt.Sprintf("%s --assignee-ids %q", base, ids)
 	}
+
+	if cmd.Type != "" {
+		base = fmt.Sprintf("%s --thread-type %q", base, cmd.Type)
+	}
+
+	if cmd.PageIdx != 0 {
+		base = fmt.Sprintf("%s -p %v", base, cmd.PageIdx)
+	}
+
+	return base
+}
+
+const perPage = 5
+
+func (*ThreadMate) getPaginationButtons(allItems, pageIndex int, cmd string) []api.Button {
+	if allItems <= perPage {
+		return nil
+	}
+
+	btnsBuilder := api.NewMessageButtonBuilder()
+
+	var out []api.Button
+	if pageIndex > 0 {
+		out = append(out, btnsBuilder.ForCommandWithoutDesc("Prev", fmt.Sprintf("%s %s -p=%d", "thread-mate", cmd, mathx.DecreaseWithMin(pageIndex, 0))))
+	}
+
+	if pageIndex*perPage < allItems-1 {
+		out = append(out, btnsBuilder.ForCommandWithoutDesc("Next", fmt.Sprintf("%s %s -p=%d", "thread-mate", cmd, mathx.IncreaseWithMax(pageIndex, allItems-1)), api.ButtonStylePrimary))
+	}
+	return out
 }
 
 // Resolve handles the "resolve" command and marks a thread as resolved.
@@ -282,7 +358,7 @@ func (t *ThreadMate) Resolve(r *ResolveCmd, message executor.Message) api.Messag
 		return api.NewPlaintextMessage("🔍 Thread not found", false)
 	}
 
-	deletedItem.ResolvedBy = &Assignee{
+	deletedItem.ResolvedBy = Assignee{
 		ID:          extractIDFromMention(message.User.Mention),
 		DisplayName: message.User.DisplayName,
 	}
@@ -425,7 +501,7 @@ func (t *ThreadMate) renderThreadAsInteractiveMessage(item Thread, includeResolv
 		{Key: "Started At", Value: item.StartedAt.Format(time.RFC822)},
 	}
 
-	if item.ResolvedBy != nil {
+	if !includeResolveBtn {
 		fields = append(fields, api.TextField{Key: "Resolved by", Value: asMention(item.ResolvedBy.ID)})
 	}
 	return &api.Section{
@@ -439,5 +515,39 @@ func (t *ThreadMate) renderThreadAsInteractiveMessage(item Thread, includeResolv
 		},
 		Buttons:    btns,
 		TextFields: fields,
+	}
+}
+
+func (t *ThreadMate) Export(export *ExportCmd) api.Message {
+	switch export.Type {
+	case "csv":
+		ongoing := t.ongoingThreads.Get()
+		resolved := t.resolvedThreads.Get()
+		all := append(ongoing, resolved...)
+		marshalString, err := gocsv.MarshalString(all)
+		if err != nil {
+			t.log.WithError(err).Error("Failed to export threads")
+			return api.NewPlaintextMessage("Failed to export", false)
+		}
+		return api.NewCodeBlockMessage(marshalString, false)
+	case "md", "markdown":
+		ongoing := t.ongoingThreads.Get()
+		resolved := t.resolvedThreads.Get()
+
+		var data [][]string
+		for _, item := range append(ongoing, resolved...) {
+			data = append(data, []string{extractIDFromMention(item.MessageContext.User.Mention), item.MessageContext.User.DisplayName, item.MessageContext.URL, item.MessageContext.Text, item.Assignee.ID, item.Assignee.DisplayName, item.ResolvedBy.ID, item.ResolvedBy.DisplayName, item.StartedAt.String()})
+		}
+		var markdownTable bytes.Buffer
+		table := tablewriter.NewWriter(&markdownTable)
+		table.SetHeader([]string{"User ID", "User Display Name", "Message URL", "Message Text", "Assignee ID", "Assignee Display Name", "Resolved By ID", "Resolved By Display Name", "Started At"})
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetCenterSeparator("|")
+		table.AppendBulk(data)
+		table.Render()
+
+		return api.NewCodeBlockMessage(markdownTable.String(), false)
+	default:
+		return api.NewPlaintextMessage(fmt.Sprintf("Not supported export type %q", export.Type), false)
 	}
 }

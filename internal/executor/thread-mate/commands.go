@@ -7,8 +7,12 @@ type (
 		Get      *GetCmd      `arg:"subcommand:get"`
 		Resolve  *ResolveCmd  `arg:"subcommand:resolve"`
 		Takeover *TakeoverCmd `arg:"subcommand:takeover"`
+		Export   *ExportCmd   `arg:"subcommand:export"`
 	}
 
+	ExportCmd struct {
+		Type string `arg:"--type"`
+	}
 	// ResolveCmd represents the "resolve" subcommand.
 	ResolveCmd struct {
 		ID string `arg:"--id"`
@@ -28,10 +32,11 @@ type (
 	GetCmd struct {
 		Activity *ActivityCmd `arg:"subcommand:activity"`
 	}
-	
+
 	// ActivityCmd represents the "activity" subcommand under the "get" command.
 	ActivityCmd struct {
 		AssigneeIDs string `arg:"--assignee-ids"`
 		Type        string `arg:"--thread-type"`
+		PageIdx     int    `arg:"-p,--page"`
 	}
 )

@@ -25,10 +25,7 @@ var version = "dev"
 
 // ThreadMateExecutor implements the Botkube executor plugin interface.
 type ThreadMateExecutor struct {
-	members    []string
-	next       uint32
-	membersLen uint32
-	once       sync.Map
+	once sync.Map
 }
 
 func NewThreadMateExecutor() *ThreadMateExecutor {
@@ -118,11 +115,14 @@ func (t *ThreadMateExecutor) Execute(ctx context.Context, in executor.ExecuteInp
 		return executor.ExecuteOutput{
 			Message: svc.Takeover(cmd.Takeover, in.Context.Message),
 		}, nil
+	case cmd.Export != nil:
+		return executor.ExecuteOutput{
+			Message: svc.Export(cmd.Export),
+		}, nil
 	default:
 		return executor.ExecuteOutput{
 			Message: api.NewPlaintextMessage("Command not supported", false),
 		}, nil
-
 	}
 }
 

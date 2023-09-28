@@ -27,6 +27,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-rod/rod v0.113.3
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
+	github.com/gocarina/gocsv v0.0.0-20230616125104-99d496ca653d
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/go-querystring v1.1.0
 	github.com/google/uuid v1.3.0
@@ -49,6 +50,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/morikuni/aec v1.0.0
 	github.com/muesli/reflow v0.3.0
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
@@ -147,7 +149,6 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/gocarina/gocsv v0.0.0-20230616125104-99d496ca653d // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/goccy/go-yaml v1.11.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

@@ -22,8 +22,8 @@ func NewTutorialWrapper() *TutorialWrapper {
 func (p *TutorialWrapper) RenderMessage(cmd, _ string, _ *state.Container, msgCtx *template.Template) (api.Message, error) {
 	var (
 		msg   = msgCtx.TutorialMessage
-		start = mathx.Max(msg.Paginate.CurrentPage*msg.Paginate.Page, len(msg.Buttons)-2)
-		stop  = mathx.Max(start+msg.Paginate.Page, len(msg.Buttons))
+		start = mathx.Min(msg.Paginate.CurrentPage*msg.Paginate.Page, len(msg.Buttons)-2)
+		stop  = mathx.Min(start+msg.Paginate.Page, len(msg.Buttons))
 	)
 
 	return api.Message{
