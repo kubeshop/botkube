@@ -522,8 +522,9 @@ type Webhook struct {
 
 // CfgWatcher describes configuration for watching the configuration.
 type CfgWatcher struct {
-	Enabled bool             `yaml:"enabled"`
-	Remote  RemoteCfgWatcher `yaml:"remote"`
+	Enabled   bool                `yaml:"enabled"`
+	Remote    RemoteCfgWatcher    `yaml:"remote"`
+	InCluster InClusterCfgWatcher `yaml:"inCluster"`
 
 	InitialSyncTimeout time.Duration  `yaml:"initialSyncTimeout"`
 	TmpDir             string         `yaml:"tmpDir"`
@@ -533,6 +534,12 @@ type CfgWatcher struct {
 // RemoteCfgWatcher describes configuration for watching the configuration using remote config provider.
 type RemoteCfgWatcher struct {
 	PollInterval time.Duration `yaml:"pollInterval"`
+}
+
+// InClusterCfgWatcher describes configuration for watching the configuration using in-cluster config provider.
+type InClusterCfgWatcher struct {
+	Namespace            string        `yaml:"namespace"`
+	InformerResyncPeriod time.Duration `yaml:"informerResyncPeriod"`
 }
 
 // Settings contains Botkube's related configuration.

@@ -14,9 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/strings"
@@ -32,7 +32,6 @@ import (
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/kubex"
-	"github.com/kubeshop/botkube/internal/lifecycle"
 	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/internal/source"
@@ -105,6 +104,10 @@ func run(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("while merging app configuration: %w", err)
 	}
+	if conf == nil {
+		return fmt.Errorf("configuration cannot be nil")
+	}
+
 	logger := loggerx.New(conf.Settings.Log)
 	if confDetails.ValidateWarnings != nil {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
@@ -130,7 +133,7 @@ func run(ctx context.Context) (err error) {
 	if err != nil {
 		return reportFatalError("while loading k8s config", err)
 	}
-	discoveryCli, err := getK8sClients(kubeConfig)
+	dynamicCli, discoveryCli, err := getK8sClients(kubeConfig)
 	if err != nil {
 		return reportFatalError("while getting K8s clients", err)
 	}
@@ -223,7 +226,6 @@ func run(ctx context.Context) (err error) {
 			PluginHealthStats: pluginHealthStats,
 		},
 	)
-
 	if err != nil {
 		return reportFatalError("while creating executor factory", err)
 	}
@@ -316,59 +318,34 @@ func run(ctx context.Context) (err error) {
 		}
 	}
 
-	// TODO(https://github.com/kubeshop/botkube/issues/1011): Move restarter under `if conf.ConfigWatcher.Enabled {`
-	restarter := reloader.NewRestarter(
-		logger.WithField(componentLogFieldKey, "Restarter"),
-		k8sCli,
-		conf.ConfigWatcher.Deployment,
-		conf.Settings.ClusterName,
-		func(msg string) error {
-			return notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(bots), msg)
-		},
-	)
 	if conf.ConfigWatcher.Enabled {
-		cfgReloader := reloader.Get(
+		restarter := reloader.NewRestarter(
+			logger.WithField(componentLogFieldKey, "Restarter"),
+			k8sCli,
+			conf.ConfigWatcher.Deployment,
+			conf.Settings.ClusterName,
+			func(msg string) error {
+				return notifier.SendPlaintextMessage(ctx, bot.AsNotifiers(bots), msg)
+			},
+		)
+
+		cfgReloader, err := reloader.Get(
 			remoteCfgEnabled,
-			logger.WithField(componentLogFieldKey, "Config Updater"),
+			logger.WithField(componentLogFieldKey, "Config Reloader"),
 			deployClient,
+			dynamicCli,
 			restarter,
+			reporter,
 			*conf,
 			cfgVersion,
-			statusReporter,
 			cfgManager,
 		)
+		if err != nil {
+			return reportFatalError("while creating config reloader", err)
+		}
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, reporter)
 			return cfgReloader.Do(ctx)
-		})
-
-		// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
-		err := config.WaitForWatcherSync(
-			ctx,
-			logger.WithField(componentLogFieldKey, "Config Watcher Sync"),
-			conf.ConfigWatcher,
-		)
-		if err != nil {
-			if wait.Interrupted(err) {
-				return reportFatalError("while waiting for Config Watcher sync", err)
-			}
-
-			// non-blocking error, move forward
-			logger.Warn("Config Watcher is still not synchronized. Read the logs of the sidecar container to see the cause. Continuing running Botkube...")
-		}
-	}
-
-	// TODO(https://github.com/kubeshop/botkube/issues/1011): Remove once we migrate to ConfigMap-based config reloader
-	// Lifecycle server
-	if conf.Settings.LifecycleServer.Enabled {
-		lifecycleSrv := lifecycle.NewServer(
-			logger.WithField(componentLogFieldKey, "Lifecycle server"),
-			conf.Settings.LifecycleServer,
-			restarter,
-		)
-		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
-			return lifecycleSrv.Serve(ctx)
 		})
 	}
 
@@ -401,7 +378,7 @@ func run(ctx context.Context) (err error) {
 	scheduler := source.NewScheduler(ctx, logger, conf, sourcePluginDispatcher, schedulerChan)
 	err = scheduler.Start(ctx)
 	if err != nil {
-		return fmt.Errorf("while starting source plugin event dispatcher: %w", err)
+		return reportFatalError("while starting source plugin event dispatcher: %w", err)
 	}
 
 	if conf.Plugins.IncomingWebhook.Enabled {
@@ -530,14 +507,19 @@ func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (ana
 	return analyticsReporter, nil
 }
 
-func getK8sClients(cfg *rest.Config) (discovery.DiscoveryInterface, error) {
+func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, error) {
+	dynamicK8sCli, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("while creating dynamic client: %w", err)
+	}
+
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("while creating discovery client: %w", err)
+		return nil, nil, fmt.Errorf("while creating discovery client: %w", err)
 	}
 
 	discoCacheClient := memory.NewMemCacheClient(discoveryClient)
-	return discoCacheClient, nil
+	return dynamicK8sCli, discoCacheClient, nil
 }
 
 func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {

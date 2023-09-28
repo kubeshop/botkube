@@ -1185,24 +1185,10 @@ analytics:
   # see [Privacy Policy](https://docs.botkube.io/privacy#privacy-policy).
   disable: false
 
-## Parameters for the config watcher container.
+## Parameters for the Config Watcher component which reloads Botkube on ConfigMap changes.
 configWatcher:
   # -- If true, restarts the Botkube Pod on config changes.
   enabled: true
-  # -- Directory, where watched configuration resources are stored.
-  tmpDir: "/tmp/watched-cfg/"
-  # -- Timeout for the initial Config Watcher sync.
-  # If set to 0, waiting for Config Watcher sync will be skipped. In a result, configuration changes may not reload Botkube app during the first few seconds after Botkube startup.
-  initialSyncTimeout: 0
-  image:
-    # -- Config watcher image registry.
-    registry: ghcr.io
-    # -- Config watcher image repository.
-    repository: kubeshop/k8s-sidecar # kiwigrid/k8s-sidecar:1.19.5 - see https://github.com/kubeshop/k8s-sidecar/pull/1
-    # -- Config watcher image tag.
-    tag: in-cluster-config
-    # -- Config watcher image pull policy.
-    pullPolicy: IfNotPresent
 
 # -- Configuration for Botkube executors and sources plugins.
 plugins:

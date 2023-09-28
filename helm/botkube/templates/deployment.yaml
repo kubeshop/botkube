@@ -83,8 +83,6 @@ spec:
               mountPath: "/config"
             - name: startup-config
               mountPath: "/startup-config"
-            - name: cfg-watcher-tmp
-              mountPath: {{ .Values.configWatcher.tmpDir }}
           {{- end }}
           {{- with .Values.extraVolumeMounts }}
             {{ toYaml . | nindent 12 }}
@@ -144,40 +142,6 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
-        {{- if and (.Values.configWatcher.enabled) (not (include "botkube.remoteConfigEnabled" $))}}
-        - name: cfg-watcher
-          image: "{{ .Values.configWatcher.image.registry }}/{{ .Values.configWatcher.image.repository }}:{{ .Values.configWatcher.image.tag }}"
-          imagePullPolicy: "{{ .Values.configWatcher.image.pullPolicy }}"
-          env:
-            - name: FOLDER
-              value: {{ .Values.configWatcher.tmpDir }}
-            - name: RESOURCE
-              value: "both"
-            - name: LOG_LEVEL
-              value: "DEBUG"
-            - name: NAMESPACE
-              value: "{{.Release.Namespace}}"
-            - name: LABEL
-              value: "botkube.io/config-watch"
-            - name: LABEL_VALUE
-              value: "true"
-            - name: REQ_URL
-              value: "http://{{ include "botkube.fullname" . }}:{{.Values.settings.lifecycleServer.port}}/reload"
-            - name: REQ_IGNORE_INITIAL_EVENT
-              value: "true"
-            - name: REQ_METHOD
-              value: "POST"
-            - name: IGNORE_ALREADY_PROCESSED
-              value: "true"
-            - name: BOTKUBE_SETTINGS_SA__CREDENTIALS__PATH__PREFIX
-              value: {{.Values.rbac.serviceAccountMountPath}}/default-sa
-          volumeMounts:
-            - name: cfg-watcher-tmp
-              mountPath: {{ .Values.configWatcher.tmpDir }}
-            - name: default-sa
-              mountPath: {{.Values.rbac.serviceAccountMountPath}}
-              readOnly: true
-        {{- end }}
       volumes:
         - name: cache-volume
           emptyDir: {}
@@ -193,8 +157,6 @@ spec:
                     path: default-sa-ca.crt
                   name: kube-root-ca.crt
         {{- if not (include "botkube.remoteConfigEnabled" $) }}
-        - name: cfg-watcher-tmp
-          emptyDir: {}
         - name: config-volume
           projected:
             sources:

@@ -8,7 +8,7 @@ metadata:
     helm.sh/chart: {{ include "botkube.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    botkube.io/config-watch: "true"
+    botkube.io/config-watch: "false" # explicitly disable config watcher
 data:
   global_config.yaml: |
     executors:
