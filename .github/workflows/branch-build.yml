@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - fix-cloud-slack-tests # TODO: Remove
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
