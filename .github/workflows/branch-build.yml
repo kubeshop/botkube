@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix-cloud-slack-tests # TODO:
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
@@ -123,6 +124,28 @@ jobs:
         run: |
           make build-plugins
 
+      - name: Build all plugins into dist directory
+        env:
+          # we hardcode plugins version, so it's predictable in e2e tests
+          GORELEASER_CURRENT_TAG: "v0.0.0-latest"
+          OUTPUT_MODE: "binary"
+          SINGLE_PLATFORM: "true"
+          PLUGIN_TARGETS: "kubernetes,kubectl,cm-watcher,echo,helm"
+        run: |
+          make build-plugins
+
+      - name: CLI Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            dist/botkube-cli_linux_amd64_v1/botkube
+          key: ${{ runner.os }}-botkube-cli
+
+      - name: Build CLI
+        run: make release-snapshot-cli
+
       - name: Run ${{ matrix.integration }} tests
         env:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
@@ -132,6 +155,11 @@ jobs:
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${{github.sha}} - https://github.com/kubeshop/botkube/commit/${{github.sha}}"
           PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/plugin-dist
+          CONFIG_PROVIDER_API_KEY: ${{ secrets.CONFIG_PROVIDER_API_KEY }}
+          CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}
+          CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID: ${{ secrets.CONFIG_PROVIDER_SLACK_WORKSPACE_TEAM_ID }}
+          CONFIG_PROVIDER_IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          CONFIG_PROVIDER_HELM_REPO_DIRECTORY: ${{ github.workspace }}/helm
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
