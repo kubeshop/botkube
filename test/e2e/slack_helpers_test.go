@@ -11,7 +11,7 @@ import (
 
 var slackLinks = regexp.MustCompile(`<(?P<val>https://[^>]*)>`)
 
-func removeSlackLinksIndicators(content string) string {
+func RemoveSlackLinksIndicators(content string) string {
 	tpl := "$val"
 
 	return slackLinks.ReplaceAllStringFunc(content, func(s string) string {
@@ -47,7 +47,7 @@ func TestRemoveSlackLinksIndicators(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// when
-			got := removeSlackLinksIndicators(tc.content)
+			got := RemoveSlackLinksIndicators(tc.content)
 
 			// then
 			assert.Equal(t, tc.expected, got)

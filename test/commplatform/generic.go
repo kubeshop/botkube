@@ -1,6 +1,7 @@
 package commplatform
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -47,6 +48,9 @@ type BotDriver interface {
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error
+	SetTimeout(timeout time.Duration)
+	Timeout() time.Duration
+	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
 }
 
 type MessageAssertion func(content string) (bool, int, string)
@@ -62,6 +66,20 @@ type ExpAttachmentInput struct {
 type DriverType string
 
 const (
-	SlackBot   DriverType = "slack"
+	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
 )
+
+// AssertContains checks if message contains expected message
+func AssertContains(expectedMessage string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		return strings.Contains(msg, expectedMessage), 0, ""
+	}
+}
+
+// AssertEquals checks if message is equal to expected message
+func AssertEquals(expectedMessage string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		return msg == expectedMessage, 0, ""
+	}
+}
