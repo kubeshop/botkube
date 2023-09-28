@@ -132,24 +132,24 @@ func (h *Checker) SetSinks(sinks []notifier.Sink) {
 }
 
 func (h *Checker) getSourcePluginsStatuses(plugins map[string]pluginStatuses) {
-	for _, sourceValues := range h.config.Sources {
+	for pluginConfigName, sourceValues := range h.config.Sources {
 		for pluginName, pluginValues := range sourceValues.GetPlugins() {
-			h.getPluginStatus(plugins, pluginName, pluginValues.Enabled)
+			h.getPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
 		}
 	}
 }
 
 func (h *Checker) getExecutorPluginsStatuses(plugins map[string]pluginStatuses) {
-	for _, execValues := range h.config.Executors {
+	for pluginConfigName, execValues := range h.config.Executors {
 		for pluginName, pluginValues := range execValues.GetPlugins() {
-			h.getPluginStatus(plugins, pluginName, pluginValues.Enabled)
+			h.getPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
 		}
 	}
 }
 
-func (h *Checker) getPluginStatus(plugins map[string]pluginStatuses, pluginName string, enabled bool) {
+func (h *Checker) getPluginStatus(plugins map[string]pluginStatuses, pluginConfigName string, pluginName string, enabled bool) {
 	status, restarts, threshold, _ := h.pluginHealthStats.GetStats(pluginName)
-	plugins[pluginName] = pluginStatuses{
+	plugins[pluginConfigName] = pluginStatuses{
 		Enabled:  enabled,
 		Status:   status,
 		Restarts: fmt.Sprintf("%d/%d", restarts, threshold),
