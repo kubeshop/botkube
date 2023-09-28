@@ -51,6 +51,12 @@ type SocketSlack struct {
 	messageWorkers   *pool.Pool
 	shutdownOnce     sync.Once
 }
+type outputter struct{}
+
+func (o *outputter) Output(_ int, msg string) error {
+	fmt.Println(msg)
+	return nil
+}
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
@@ -60,7 +66,11 @@ type socketSlackAnalyticsReporter interface {
 
 // NewSocketSlack creates a new SocketSlack instance.
 func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
-	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
+	client := slack.New(cfg.BotToken,
+		slack.OptionAppLevelToken(cfg.AppToken),
+		slack.OptionDebug(true),
+		slack.OptionLog(&outputter{}),
+	)
 
 	authResp, err := client.AuthTest()
 	if err != nil {
@@ -140,17 +150,51 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 					b.log.Debugf("Got callback event %s", formatx.StructDumper().Sdump(eventsAPIEvent))
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
-					case *slackevents.AppMentionEvent:
-						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
-						userName := b.getRealNameWithFallbackToUserID(ctx, ev.User)
+					case *slackevents.MessageEvent:
+						b.log.Debugf("Got message %s", formatx.StructDumper().Sdump(ev))
+
+						if ev.BotID != "" {
+							b.log.Infof("Not reacting to bot messages")
+							continue
+						}
+
+						if ev.ThreadTimeStamp != "" {
+							b.log.Infof("Reacting to thread messages is not yet implemented")
+							continue
+						}
+
+						_, hasBotMention := b.findAndTrimBotMention(ev.Text)
+						if hasBotMention {
+							// we will get the same event on slackevents.AppMentionEvent, so to avoid duplication, let's skip this one
+							continue
+						}
+
 						msg := slackMessage{
-							Text:            ev.Text,
-							Channel:         ev.Channel,
-							ThreadTimeStamp: ev.ThreadTimeStamp,
-							EventTimeStamp:  ev.EventTimeStamp,
-							UserID:          ev.User,
-							UserName:        userName,
-							CommandOrigin:   command.TypedOrigin,
+							Text:                 ev.Text,
+							Channel:              ev.Channel,
+							RootMessageTimeStamp: ev.TimeStamp,
+							ThreadTimeStamp:      ev.ThreadTimeStamp,
+							EventTimeStamp:       ev.EventTimeStamp,
+							UserID:               ev.User,
+							UserName:             b.getRealNameWithFallbackToUserID(ctx, ev.User),
+						}
+
+						b.messages <- msg
+					case *slackevents.AppMentionEvent:
+						if ev.BotID != "" {
+							b.log.Infof("Not reacting to own messages, or anything from other bots")
+							continue
+						}
+						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
+						msg := slackMessage{
+							Text:                 ev.Text,
+							Channel:              ev.Channel,
+							RootMessageTimeStamp: ev.TimeStamp,
+							ThreadTimeStamp:      ev.ThreadTimeStamp,
+							EventTimeStamp:       ev.EventTimeStamp,
+							UserID:               ev.User,
+							UserName:             b.getRealNameWithFallbackToUserID(ctx, ev.User),
+							CommandOrigin:        command.TypedOrigin,
 						}
 
 						b.messages <- msg
@@ -253,6 +297,11 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 	}
 }
 
+func isRegexpMatching(binding config.MessagesBindings, msg string) bool {
+	matched, err := regexp.MatchString(binding.Match, msg)
+	return matched && err == nil
+}
+
 func removeBotNameFromIDs(botName string, state *slack.BlockActionStates) *slack.BlockActionStates {
 	if state == nil {
 		return nil
@@ -336,11 +385,7 @@ func (b *SocketSlack) shutdown() {
 
 func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) error {
 	// Handle message only if starts with mention
-	request, found := b.findAndTrimBotMention(event.Text)
-	if !found {
-		b.log.Debugf("Ignoring message as it doesn't contain %q mention", b.botID)
-		return nil
-	}
+	request, hasBotMention := b.findAndTrimBotMention(event.Text)
 
 	b.log.Debugf("Slack incoming Request: %s", request)
 
@@ -357,6 +402,24 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	}
 
 	channel, exists := b.getChannels()[info.Name]
+	bindings := channel.Bindings
+
+	if !hasBotMention { // there wasn't botkube mentions, trying to match against messages
+		cmd, textBindings, matched := b.testAgainstTextMessageBindings(channel, request, bindings)
+		request, bindings = cmd, textBindings
+		if !matched {
+			b.log.Debugf("Ignoring message as it doesn't contain %q mention nor text matchers", b.botID)
+			return nil
+		}
+	}
+
+	permalink, err := b.client.GetPermalink(&slack.PermalinkParameters{
+		Channel: event.Channel,
+		Ts:      event.EventTimeStamp,
+	})
+	if err != nil {
+		b.log.WithError(err).Error("Cannot get permalink ")
+	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
 		CommGroupName:   b.commGroupName,
@@ -366,11 +429,13 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 			Alias:            channel.alias,
 			ID:               channel.Identifier(),
 			DisplayName:      info.Name,
-			ExecutorBindings: channel.Bindings.Executors,
-			SourceBindings:   channel.Bindings.Sources,
+			ExecutorBindings: bindings.Executors,
+			SourceBindings:   bindings.Sources,
 			IsKnown:          exists,
 			CommandOrigin:    event.CommandOrigin,
 			SlackState:       event.State,
+			URL:              permalink,
+			Text:             event.Text,
 		},
 		Message: request,
 		User: execute.UserInput{
@@ -380,7 +445,9 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	})
 
 	msgRef := b.msgStatusTracker.GetMsgRef(event)
-	b.msgStatusTracker.MarkAsReceived(msgRef)
+	if exists {
+		b.msgStatusTracker.MarkAsReceived(msgRef)
+	}
 
 	response := e.Execute(ctx)
 	err = b.send(ctx, event, response)
@@ -388,70 +455,117 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 		return fmt.Errorf("while sending message: %w", err)
 	}
 
-	b.msgStatusTracker.MarkAsProcessed(msgRef)
-
+	if exists {
+		b.msgStatusTracker.MarkAsProcessed(msgRef)
+	}
 	return nil
 }
 
-func (b *SocketSlack) send(ctx context.Context, event slackMessage, resp interactive.CoreMessage) error {
-	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
-
-	resp.ReplaceBotNamePlaceholder(b.BotName())
-	markdown := b.renderer.MessageToMarkdown(resp)
-
-	if len(markdown) == 0 {
-		return errors.New("while reading Slack response: empty response")
-	}
-
-	// Upload message as a file if too long
-	var file *slack.File
-	var err error
-	if len(markdown) >= slackMaxMessageSize {
-		file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
-		if err != nil {
-			return err
+func (b *SocketSlack) testAgainstTextMessageBindings(channel channelConfigByName, request string, bindings config.BotBindings) (string, config.BotBindings, bool) {
+	for _, binding := range channel.TextMessageBindings.Messages {
+		if binding.Match != request && !isRegexpMatching(binding, request) {
+			continue
 		}
-		resp = interactive.CoreMessage{
-			Message: api.Message{
-				PlaintextInputs: resp.PlaintextInputs,
-			},
+
+		bindings = config.BotBindings{
+			Executors: binding.Executors,
 		}
+
+		request = fmt.Sprintf(" %s", binding.Command)
+		return request, bindings, true
+	}
+	return "", config.BotBindings{}, false
+}
+
+func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interactive.CoreMessage) error {
+	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, in)
+
+	var msgs []api.Message
+	if !in.Message.IsEmpty() {
+		msgs = append(msgs, in.Message)
 	}
 
-	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
-	if resp.Type == api.PopupMessage && event.TriggerID != "" {
-		modalView := b.renderer.RenderModal(resp)
-		modalView.PrivateMetadata = event.Channel
-		_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
-		if err != nil {
-			return fmt.Errorf("while opening modal: %w", err)
+	msgs = append(msgs, in.Messages...)
+
+	for idx := range msgs {
+		if msgs[idx].IsEmpty() {
+			continue
 		}
-		return nil
-	}
+		msgs[idx].ReplaceBotNamePlaceholder(b.BotName())
 
-	options := []slack.MsgOption{
-		b.renderer.RenderInteractiveMessage(resp),
-	}
-
-	if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
-		options = append(options, ts)
-	}
-
-	if resp.ReplaceOriginal && event.ResponseURL != "" {
-		options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
-	}
-
-	if resp.OnlyVisibleForYou {
-		if _, err := b.client.PostEphemeralContext(ctx, event.Channel, event.UserID, options...); err != nil {
-			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
+		resp := interactive.CoreMessage{
+			Header:      in.Header,
+			Description: in.Description,
+			Metadata:    in.Metadata,
+			Message:     msgs[idx],
 		}
-	} else {
-		if _, _, err := b.client.PostMessageContext(ctx, event.Channel, options...); err != nil {
-			return fmt.Errorf("while posting Slack message: %w", slackError(err, event.Channel))
+
+		markdown := b.renderer.MessageToMarkdown(resp)
+
+		if len(markdown) == 0 {
+			return errors.New("while reading Slack response: empty response")
 		}
+
+		// Upload message as a file if too long
+		var file *slack.File
+		var err error
+		if len(markdown) >= slackMaxMessageSize {
+			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
+			if err != nil {
+				return err
+			}
+			resp = interactive.CoreMessage{
+				Message: api.Message{
+					PlaintextInputs: resp.Message.PlaintextInputs,
+				},
+			}
+		}
+
+		// we can open modal only if we have a TriggerID (it's available when user clicks a button)
+		if resp.Message.Type == api.PopupMessage && event.TriggerID != "" {
+			modalView := b.renderer.RenderModal(resp)
+			modalView.PrivateMetadata = event.Channel
+			_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
+			if err != nil {
+				return fmt.Errorf("while opening modal: %w", err)
+			}
+			return nil
+		}
+
+		options := []slack.MsgOption{
+			b.renderer.RenderInteractiveMessage(resp),
+		}
+
+		if resp.Message.Type == api.ThreadMessage && event.ThreadTimeStamp == "" {
+			// if the message should be sent in thread, but thread is not yet started, then use the root message timestamp
+			event.ThreadTimeStamp = event.RootMessageTimeStamp
+		}
+		if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+			options = append(options, ts)
+		}
+
+		if resp.Message.ReplaceOriginal && event.ResponseURL != "" {
+			options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
+		}
+
+		if resp.Message.OnlyVisibleForYou {
+			if _, err := b.client.PostEphemeralContext(ctx, event.Channel, event.UserID, options...); err != nil {
+				return fmt.Errorf("while posting Slack message visible only to user: %w", err)
+			}
+		} else {
+			id := event.Channel
+			if resp.Message.UserHandler != "" {
+				id = resp.Message.UserHandler
+			}
+			_, _, err = b.client.PostMessageContext(ctx, id, options...)
+			if err != nil {
+				return fmt.Errorf("while posting Slack message: %w", slackError(err, event.Channel))
+			}
+		}
+
+		b.log.Debugf("Message successfully sent to channel %q", event.Channel)
 	}
 
-	b.log.Debugf("Message successfully sent to channel %q", event.Channel)
 	return nil
 }
 
@@ -529,7 +643,7 @@ func (b *SocketSlack) setChannels(channels map[string]channelConfigByName) {
 
 func (b *SocketSlack) findAndTrimBotMention(msg string) (string, bool) {
 	if !b.botMentionRegex.MatchString(msg) {
-		return "", false
+		return msg, false
 	}
 
 	return b.botMentionRegex.ReplaceAllString(msg, ""), true

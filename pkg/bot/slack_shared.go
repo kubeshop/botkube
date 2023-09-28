@@ -56,15 +56,16 @@ func slackError(err error, channel string) error {
 
 // slackMessage contains message details to execute command and send back the result
 type slackMessage struct {
-	Text            string
-	Channel         string
-	ThreadTimeStamp string
-	UserID          string
-	UserName        string
-	TriggerID       string
-	CommandOrigin   command.Origin
-	State           *slack.BlockActionStates
-	ResponseURL     string
-	BlockID         string
-	EventTimeStamp  string
+	Text                 string
+	Channel              string
+	ThreadTimeStamp      string
+	UserID               string
+	UserName             string
+	TriggerID            string
+	CommandOrigin        command.Origin
+	State                *slack.BlockActionStates
+	ResponseURL          string
+	BlockID              string
+	EventTimeStamp       string
+	RootMessageTimeStamp string
 }

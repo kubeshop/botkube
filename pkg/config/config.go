@@ -172,9 +172,23 @@ type IncomingWebhook struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name         string              `yaml:"name"`
-	Notification ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
-	Bindings     BotBindings         `yaml:"bindings"`
+	Name                string              `yaml:"name"`
+	Notification        ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings            BotBindings         `yaml:"bindings"`
+	TextMessageBindings TextMessageBindings `yaml:"textMessageBindings"`
+}
+
+// TextMessageBindings defines bindings for text messages.
+type TextMessageBindings struct {
+	Type     string             `yaml:"type"`
+	Messages []MessagesBindings `yaml:"messages"`
+}
+
+// MessagesBindings contains information about matching messages and their associated commands.
+type MessagesBindings struct {
+	Match     string   `yaml:"match"`
+	Command   string   `yaml:"command"`
+	Executors []string `yaml:"executors"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.

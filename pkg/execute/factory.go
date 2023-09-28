@@ -169,6 +169,8 @@ type Conversation struct {
 	IsKnown          bool
 	CommandOrigin    command.Origin
 	SlackState       *slack.BlockActionStates
+	URL              string
+	Text             string
 }
 
 // NewDefaultInput an input for NewDefault

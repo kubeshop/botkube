@@ -1,0 +1,51 @@
+{
+  "uiSchema": {
+    "assignees": {
+      "ui:classNames": "non-orderable",
+      "ui:options": {
+        "orderable": false
+      },
+      "items": {
+        "ui:options": {
+          "label": false
+        }
+      }
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "description": "Streamlines managing assignment for incidents or user support",
+  "properties": {
+    "roundRobinGroupName": {
+      "type": "string",
+      "default": "default",
+      "title": "Round Robin Group Name",
+      "description": "The group name serves as a unique identifier for managing the round-robin order of assignees. Make it unique among all active Thread-Mate plugins."
+    },
+    "assignees": {
+      "type": "array",
+      "description": "List of assignees provided in the format {id}:{display name}, such as 'U02KKBR5PE1:Matt'.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Assignees"
+    },
+    "dataSyncInterval": {
+      "type": "string",
+      "format": "duration",
+      "default": "5s",
+      "title": "Data Sync Interval"
+    },
+    "configMapNamespace": {
+      "type": "string",
+      "default": "botkube",
+      "title": "Config Map Namespace"
+    }
+  },
+  "required": [
+    "roundRobinGroupName",
+    "assignees",
+    "dataSyncInterval",
+    "configMapNamespace"
+  ]
+}

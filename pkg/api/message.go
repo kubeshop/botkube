@@ -43,6 +43,8 @@ const (
 	NonInteractiveSingleSection MessageType = "nonInteractiveEventSingleSection"
 	// PopupMessage defines a message that should be displayed to the user as popup (if possible).
 	PopupMessage MessageType = "form"
+	// ThreadMessage defines a message that should be sent in a thread.
+	ThreadMessage MessageType = "threadMessage"
 )
 
 // Message represents a generic message with interactive buttons.
@@ -54,6 +56,7 @@ type Message struct {
 	PlaintextInputs   LabelInputs `json:"plaintextInputs,omitempty"`
 	OnlyVisibleForYou bool        `json:"onlyVisibleForYou,omitempty"`
 	ReplaceOriginal   bool        `json:"replaceOriginal,omitempty"`
+	UserHandler       string      `json:"userHandler,omitempty"`
 }
 
 func (msg *Message) IsEmpty() bool {
