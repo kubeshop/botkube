@@ -120,14 +120,6 @@ jobs:
         env:
           # we hardcode plugins version, so it's predictable in e2e tests
           GORELEASER_CURRENT_TAG: "v0.0.0-latest"
-          OUTPUT_MODE: "archive"
-        run: |
-          make build-plugins
-
-      - name: Build all plugins into dist directory
-        env:
-          # we hardcode plugins version, so it's predictable in e2e tests
-          GORELEASER_CURRENT_TAG: "v0.0.0-latest"
           OUTPUT_MODE: "binary"
           SINGLE_PLATFORM: "true"
           PLUGIN_TARGETS: "kubernetes,kubectl,cm-watcher,echo,helm"
