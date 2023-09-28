@@ -1,6 +1,7 @@
 package commplatform
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -68,3 +69,17 @@ const (
 	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
 )
+
+// AssertContains checks if message contains expected message
+func AssertContains(expectedMessage string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		return strings.Contains(msg, expectedMessage), 0, ""
+	}
+}
+
+// AssertEquals checks if message is equal to expected message
+func AssertEquals(expectedMessage string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		return msg == expectedMessage, 0, ""
+	}
+}

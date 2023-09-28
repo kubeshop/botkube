@@ -205,8 +205,8 @@ func runBotTest(t *testing.T,
 		botDriver.PostInitialMessage(t, currentChannel.Identifier())
 		botDriver.InviteBotToChannel(t, currentChannel.ID())
 	}
-
-	if botDriver.Type() == commplatform.DiscordBot {
+	switch botDriver.Type() {
+	case commplatform.DiscordBot:
 		t.Log("Patching Deployment with test env variables...")
 		deployNsCli := k8sCli.AppsV1().Deployments(appCfg.Deployment.Namespace)
 		revertDeployFn := setTestEnvsForDeploy(t, appCfg, deployNsCli, botDriver.Type(), channels, indexEndpoint)
@@ -215,7 +215,7 @@ func runBotTest(t *testing.T,
 		t.Log("Waiting for Deployment")
 		err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 		require.NoError(t, err)
-	} else if botDriver.Type() == commplatform.SlackBot {
+	case commplatform.SlackBot:
 		t.Log("Creating Botkube Cloud instance...")
 		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
 		appCfg.ClusterName = botDriver.Channel().Name()
@@ -224,13 +224,17 @@ func runBotTest(t *testing.T,
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
 		t.Cleanup(func() {
+			// We have a glitch on backend side and the logic below is a workaround for that.
+			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deplyment deletion reports "DELETED" status.
+			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
+			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
 			for !botkubeDeploymentUninstalled {
 				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
 				time.Sleep(1 * time.Second)
 			}
 
 			t.Log("Helm chart uninstalled. Waiting a bit...")
-			time.Sleep(30 * time.Second)
+			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
 
 			t.Log("Deleting Botkube Cloud instance...")
 			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
@@ -557,20 +561,20 @@ func runBotTest(t *testing.T,
 
 		t.Run("Get Configmap", func(t *testing.T) {
 			command := fmt.Sprintf("kubectl get configmap -n %s", appCfg.Deployment.Namespace)
-			assertionFn := func(msg string) (bool, int, string) {
-				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-					strings.Contains(msg, "kube-root-ca.crt") &&
-					strings.Contains(msg, "botkube-global-config"), 0, ""
+			assertConfigMaps := func(msg string) bool {
+				return strings.Contains(msg, "kube-root-ca.crt") && strings.Contains(msg, "botkube-global-config")
 			}
+
 			if botDriver.Type() == commplatform.SlackBot {
-				assertionFn = func(msg string) (bool, int, string) {
-					return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) &&
-						strings.Contains(msg, "kube-root-ca.crt"), 0, ""
+				assertConfigMaps = func(msg string) bool {
+					return strings.Contains(msg, "kube-root-ca.crt")
 				}
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, func(msg string) (bool, int, string) {
+				return strings.Contains(msg, heredoc.Doc(fmt.Sprintf("`%s` on `%s`", command, appCfg.ClusterName))) && assertConfigMaps(msg), 0, ""
+			})
 			assert.NoError(t, err)
 		})
 
@@ -757,10 +761,7 @@ func runBotTest(t *testing.T,
 
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 		if botDriver.Type() == commplatform.SlackBot {
-			expMsgFn := func(msg string) (bool, int, string) {
-				return strings.Contains(msg, expectedMessage), 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, expMsgFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertContains(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		}
@@ -774,11 +775,7 @@ func runBotTest(t *testing.T,
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 
 		if botDriver.Type() == commplatform.SlackBot {
-			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.SecondChannel().ID(), appCfg.ClusterName)
-			expMsgFn := func(msg string) (bool, int, string) {
-				return strings.Contains(msg, expectedMessage), 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 6, expMsgFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 6, commplatform.AssertContains(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		}
@@ -842,10 +839,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		if botDriver.Type() == commplatform.SlackBot {
-			assertionFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		}
@@ -860,17 +854,14 @@ func runBotTest(t *testing.T,
 
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		limitMessages := 2
 		if botDriver.Type() == commplatform.SlackBot {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 6, expAttachmentIn)
-		} else {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, expAttachmentIn)
+			limitMessages = 6
 		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, expAttachmentIn)
 		require.NoError(t, err)
 		if botDriver.Type() == commplatform.SlackBot {
-			assertionFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		}
@@ -917,10 +908,7 @@ func runBotTest(t *testing.T,
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		if botDriver.Type() == commplatform.SlackBot {
 			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.Channel().ID(), appCfg.ClusterName)
-			disableMsgFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, disableMsgFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		}
@@ -956,10 +944,7 @@ func runBotTest(t *testing.T,
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
 		if botDriver.Type() == commplatform.SlackBot {
-			expMessageFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, expMessageFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		}
@@ -995,10 +980,7 @@ func runBotTest(t *testing.T,
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 		if botDriver.Type() == commplatform.SlackBot {
-			expMsgFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, expMsgFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		}
@@ -1026,10 +1008,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		if botDriver.Type() == commplatform.SlackBot {
-			noNewMsgFn := func(msg string) (bool, int, string) {
-				return msg == expectedMessage, 0, ""
-			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, noNewMsgFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
 		} else {
 			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
 		}
@@ -1067,12 +1046,12 @@ func runBotTest(t *testing.T,
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		limitMessages = 2
 		if botDriver.Type() == commplatform.SlackBot {
 			// There are 2 config reload requested after second cm update
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 10, secondCMUpdate)
-		} else {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
+			limitMessages = 10
 		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, secondCMUpdate)
 		require.NoError(t, err)
 	})
 
@@ -1098,11 +1077,11 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podDefaultNSCli, podIgnored.Name) })
 
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		limitMessages := 1
 		if botDriver.Type() == commplatform.SlackBot {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 5, firstCMUpdate)
-		} else {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 1, firstCMUpdate)
+			limitMessages = 5
 		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Creating Pod...")
