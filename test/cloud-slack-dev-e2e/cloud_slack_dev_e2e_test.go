@@ -88,6 +88,8 @@ func TestCloudSlackE2E(t *testing.T) {
 	err := envconfig.Init(&cfg)
 	require.NoError(t, err)
 
+	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
+
 	authHeaderValue := ""
 	firstPageClosed := false
 	helmChartUninstalled := false
@@ -267,7 +269,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		require.NotEmpty(t, authHeaderValue, "Previous subtest needs to pass to get authorization header value")
 
 		t.Log("Initializing Slack...")
-		tester, err := commplatform.NewSlackTester(cfg.Slack.Tester)
+		tester, err := commplatform.NewSlackTester(cfg.Slack.Tester, nil)
 		require.NoError(t, err)
 
 		t.Log("Initializing users...")
