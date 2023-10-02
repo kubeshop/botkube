@@ -160,18 +160,21 @@ docker_manifests:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
   - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}"
     image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
+  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}"
+    image_templates:
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
+      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
+  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}"
+    image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
-
 archives:
   - id: botkube-cli
     format: binary
