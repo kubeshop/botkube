@@ -45,7 +45,9 @@ jobs:
           install-only: true
           version: latest
       - name: Run GoReleaser
-        run: SNAPSHOT_IMAGE_TAG=$(git rev-parse --short HEAD) make release-snapshot
+        run: | 
+          export SNAPSHOT_IMAGE_TAG=$(git rev-parse --short HEAD)
+          make release-snapshot
         env:
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
       - name: Install Helm
