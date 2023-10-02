@@ -152,6 +152,7 @@ func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 
 				lastFailureTimestamp = time.Now()
 				b.failuresNo++
+				b.setFailureReason(FailureReasonConnectionError)
 				return err
 			}
 			b.setFailureReason("")
