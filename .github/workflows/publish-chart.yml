@@ -47,7 +47,7 @@ jobs:
 
       - name: Publish Chart
         run: |
-          helm package -d ${{ github.workspace }}/main-chart ./helm/botkube --version 0.0.0-${{ steps.process-chart.outputs.chart_version }}
+          helm package -d ${{ github.workspace }}/main-chart ./helm/botkube --version ${{ steps.process-chart.outputs.chart_version }}
           helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ${{ github.workspace }}/main-chart/index.yaml ${{ github.workspace }}/main-chart/
 
       - name: GCP auth
