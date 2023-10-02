@@ -1,0 +1,65 @@
+name: Publish main helm chart
+
+on:
+  push:
+    paths:
+      - 'helm/**'
+    branches:
+      - 'main'
+
+env:
+  git-user: github-actions[bot]
+  git-email: 41898282+github-actions[bot]@users.noreply.github.com
+  HELM_DOCS_VERSION: 1.11.0
+  CHART_REPOSITORY: https://storage.googleapis.com/dev-botkube-latest-main-charts
+  LATEST_PLUGIN_INDEX_URL: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+  LATEST_X_PLUGIN_TPLS_URL: github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=main
+
+jobs:
+  process-chart:
+    name: Process Chart Updates
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Chart Version in YAML Files
+        id: process-chart
+        run: |
+          SHA_SHORT="$(git rev-parse --short HEAD)"
+          HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
+          CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
+          CHART_DEV_VERSION="v9.99.9-dev"
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${SHA_SHORT}/g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${SHA_SHORT}/g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_PLUGIN_INDEX_URL}~https://github.com/kubeshop/botkube/releases/download/${{ inputs.next-version }}/plugins-index.yaml~g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_X_PLUGIN_TPLS_URL}~github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=${{ inputs.next-version }}~g" {} +
+          
+          echo "chart_version=$(echo $SHA_SHORT)" >> $GITHUB_OUTPUT
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.2.1
+
+      - name: Run chart-testing
+        working-directory: ${{ github.workspace }}/helm
+        run: |
+          ct lint --all --chart-dirs . --config ./ct/lint-cfg.yaml --lint-conf ./ct/lint-rules.yaml
+
+      - name: Publish Chart
+        run: |
+          helm package -d ${{ github.workspace }}/main-chart ./helm/botkube --version 0.0.0-${{ steps.process-chart.outputs.chart_version }}
+          helm repo index --url "${{ env.CHART_REPOSITORY }}" --merge ${{ github.workspace }}/main-chart/index.yaml ${{ github.workspace }}/main-chart/
+
+      - name: GCP auth
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{ secrets.PLUGINS_BUCKET_CREDENTIALS }}
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Upload chart to GCS
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: ${{ github.workspace }}/main-chart
+          destination: 'dev-botkube-latest-main-charts/'
+          parent: false
