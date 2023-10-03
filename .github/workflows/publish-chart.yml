@@ -27,13 +27,12 @@ jobs:
         id: process-chart
         run: |
           VERSION_WITH_SHA_SHORT="0.0.0-$(git rev-parse --short HEAD)"
+          CHART_VERSION="0.0.0-${SHA_SHORT}"
           HELM_FOLDER=$(echo "${{ github.workspace }}/helm")
           CHART_CURRENT_VERSION=$(sed -nE 's/^version\s*:\s*([^\s\/]*).*/\1/p' ${HELM_FOLDER}/botkube/Chart.yaml)
           CHART_DEV_VERSION="v9.99.9-dev"
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${VERSION_WITH_SHA_SHORT}/g" {} +
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${VERSION_WITH_SHA_SHORT}/g" {} +
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_PLUGIN_INDEX_URL}~https://github.com/kubeshop/botkube/releases/download/${{ inputs.next-version }}/plugins-index.yaml~g" {} +
-          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s~${LATEST_X_PLUGIN_TPLS_URL}~github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=${{ inputs.next-version }}~g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_CURRENT_VERSION}/${CHART_VERSION}/g" {} +
+          find ${HELM_FOLDER} -name "*.yaml" -exec sed -i "s/${CHART_DEV_VERSION}/${CHART_VERSION}/g" {} +
           
           echo "chart_version=$(echo $VERSION_WITH_SHA_SHORT)" >> $GITHUB_OUTPUT
 
@@ -62,5 +61,5 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: ${{ github.workspace }}/main-chart
-          destination: 'dev-botkube-latest-main-charts/'
+          destination: 'botkube-latest-main-charts/'
           parent: false
