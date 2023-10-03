@@ -28,13 +28,12 @@ jobs:
       - name: Extract version
         id: extract-version
         run: |
-            IMAGE_VERSION=$(git rev-parse --short HEAD)
-            echo "versions=toJSON([${IMAGE_VERSION},v9.99.9-dev])" >> $GITHUB_OUTPUT
+          IMAGE_VERSION=$(git rev-parse --short HEAD)
+          echo "versions={\"image-version\":[\"v9.99.9-dev\",\"${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
   build:
     needs: [extract-metadata]
     strategy:
-      matrix:
-        image-version: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
+      matrix: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
