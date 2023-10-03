@@ -8,6 +8,7 @@ IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-kubeshop/botkube}"
 CFG_EXPORTER_IMAGE_REPOSITORY="${CFG_EXPORTER_IMAGE_REPOSITORY:-kubeshop/botkube-config-exporter}"
 IMAGE_SAVE_LOAD_DIR="${IMAGE_SAVE_LOAD_DIR:-/tmp/botkube-images}"
 IMAGE_PLATFORM="${IMAGE_PLATFORM:-linux/amd64}"
+GORELEASER_CURRENT_TAG="${GORELEASER_CURRENT_TAG:-v9.99.9-dev}"
 
 prepare() {
   export DOCKER_CLI_EXPERIMENTAL="enabled"
@@ -16,7 +17,6 @@ prepare() {
 
 release_snapshot() {
   prepare
-  export GORELEASER_CURRENT_TAG=v9.99.9-dev
   goreleaser release --clean --snapshot --skip-publish
 
   # Push images

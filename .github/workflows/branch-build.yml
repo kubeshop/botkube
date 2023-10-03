@@ -16,7 +16,22 @@ env:
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
+  extract-metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      image-version: ${{ steps.extract-version.outputs.image-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract version
+        run: |
+            IMAGE_VERSION=$(git rev-parse --short HEAD)
+            echo "image-version=${IMAGE_VERSION}" >> $GITHUB_OUTPUT
   build:
+    needs: [extract-metadata]
+    strategy:
+      matrix:
+        image-version: ["v9.99.9-dev", "${{ needs.extract-metadata.outputs.image-version }}"]
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
@@ -46,10 +61,10 @@ jobs:
           version: latest
       - name: Run GoReleaser
         run: | 
-          export SNAPSHOT_IMAGE_TAG=$(git rev-parse --short HEAD)
           make release-snapshot
         env:
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+          GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
