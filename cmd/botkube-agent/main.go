@@ -317,8 +317,7 @@ func run(ctx context.Context) (err error) {
 			sinkNotifiers = append(sinkNotifiers, wh)
 		}
 	}
-	healthChecker.SetBots(bots)
-	healthChecker.SetSinks(sinkNotifiers)
+	healthChecker.SetNotifiers(getHealthNotifiers(bots, sinkNotifiers))
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(
@@ -559,4 +558,16 @@ func findVersions(cli *kubernetes.Clientset) (string, string, error) {
 	}
 
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), k8sVer.String(), nil
+}
+
+func getHealthNotifiers(bots map[string]bot.Bot, sinks []notifier.Sink) map[string]health.Notifier {
+	notifiers := make(map[string]health.Notifier)
+	for key, botInstance := range bots {
+		notifiers[key] = botInstance
+	}
+	for key, sinkInstance := range sinks {
+		notifiers[fmt.Sprintf("%s-%d", sinkInstance.IntegrationName(), key)] = sinkInstance
+	}
+
+	return notifiers
 }

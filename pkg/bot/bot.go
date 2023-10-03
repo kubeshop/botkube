@@ -3,18 +3,10 @@ package bot
 import (
 	"context"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/notifier"
-)
-
-type StatusMsg string
-type FailureReasonMsg string
-
-const (
-	StatusUnknown   StatusMsg = "Unknown"
-	StatusHealthy   StatusMsg = "Healthy"
-	StatusUnHealthy StatusMsg = "Unhealthy"
 )
 
 const (
@@ -22,23 +14,17 @@ const (
 	platformMessageChannelSize  = 100
 )
 
-const (
-	FailureReasonConnectionError    FailureReasonMsg = "Connection error"
-	FailureReasonQuotaExceeded      FailureReasonMsg = "Quota exceeded"
-	FailureReasonMaxRetriesExceeded FailureReasonMsg = "Max retries exceeded"
-)
-
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
-	GetStatus() Status
+	GetStatus() health.PlatformStatus
 	notifier.Bot
 }
 
 type Status struct {
-	Status   StatusMsg
+	Status   health.PlatformStatusMsg
 	Restarts string
-	Reason   FailureReasonMsg
+	Reason   health.FailureReasonMsg
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.

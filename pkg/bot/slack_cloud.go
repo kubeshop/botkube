@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudslack"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -63,10 +64,9 @@ type CloudSlack struct {
 	notifyMutex      sync.Mutex
 	clusterName      string
 	msgStatusTracker *SlackMessageStatusTracker
-	status           StatusMsg
-	maxRetries       int
+	status           health.PlatformStatusMsg
 	failuresNo       int
-	failureReason    FailureReasonMsg
+	failureReason    health.FailureReasonMsg
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -112,8 +112,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 		clusterName:      clusterName,
 		realNamesForID:   map[string]string{},
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		status:           StatusUnknown,
-		maxRetries:       maxRetries,
+		status:           health.StatusUnknown,
 		failuresNo:       0,
 		failureReason:    "",
 	}, nil
@@ -121,7 +120,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 
 func (b *CloudSlack) Start(ctx context.Context) error {
 	if b.cfg.ExecutionEventStreamingDisabled {
-		b.setFailureReason(FailureReasonQuotaExceeded)
+		b.setFailureReason(health.FailureReasonQuotaExceeded)
 		b.log.Warn(quotaExceededMsg)
 		return nil
 	}
@@ -132,7 +131,6 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 
 func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
 	b.failuresNo = 0
-	b.maxRetries = maxRetries
 	var lastFailureTimestamp time.Time
 	return retry.Do(
 		func() error {
@@ -144,22 +142,22 @@ func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 					b.failuresNo = 0
 				}
 
-				if b.failuresNo >= b.maxRetries {
-					b.setFailureReason(FailureReasonMaxRetriesExceeded)
-					log.Debugf("Reached max number of %d retries: %s", b.maxRetries, err)
+				if b.failuresNo >= maxRetries {
+					b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
+					log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
 					return retry.Unrecoverable(err)
 				}
 
 				lastFailureTimestamp = time.Now()
 				b.failuresNo++
-				b.setFailureReason(FailureReasonConnectionError)
+				b.setFailureReason(health.FailureReasonConnectionError)
 				return err
 			}
 			b.setFailureReason("")
 			return nil
 		},
 		retry.OnRetry(func(_ uint, err error) {
-			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", b.failuresNo, b.maxRetries, err)
+			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", b.failuresNo, maxRetries, err)
 		}),
 		retry.Delay(retryDelay),
 		retry.Attempts(0), // infinite, we cancel that by our own
@@ -253,7 +251,7 @@ func (b *CloudSlack) shutdown(messageWorkers *pool.Pool, messages chan *pb.Conne
 func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectResponse) (error, bool) {
 	b.setFailureReason("")
 	if streamingError := b.checkStreamingError(data.Event); pb.IsQuotaExceededErr(streamingError) {
-		b.setFailureReason(FailureReasonQuotaExceeded)
+		b.setFailureReason(health.FailureReasonQuotaExceeded)
 		b.log.Warn(quotaExceededMsg)
 		return nil, true
 	}
@@ -293,7 +291,7 @@ func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectRe
 				UserID:         ev.User,
 				EventTimeStamp: ev.EventTimeStamp,
 			}
-			b.setFailureReason(FailureReasonQuotaExceeded)
+			b.setFailureReason(health.FailureReasonQuotaExceeded)
 			response := quotaExceeded()
 
 			if err := b.send(ctx, msg, response); err != nil {
@@ -734,20 +732,20 @@ func quotaExceeded() interactive.CoreMessage {
 	}
 }
 
-func (b *CloudSlack) setFailureReason(reason FailureReasonMsg) {
+func (b *CloudSlack) setFailureReason(reason health.FailureReasonMsg) {
 	if reason == "" {
-		b.status = StatusHealthy
+		b.status = health.StatusHealthy
 	} else {
-		b.status = StatusUnHealthy
+		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
 }
 
 // GetStatus gets bot status.
-func (b *CloudSlack) GetStatus() Status {
-	return Status{
+func (b *CloudSlack) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
 		Status:   b.status,
-		Restarts: fmt.Sprintf("%d/%d", b.failuresNo, b.maxRetries),
+		Restarts: fmt.Sprintf("%d/%d", b.failuresNo, maxRetries),
 		Reason:   b.failureReason,
 	}
 }

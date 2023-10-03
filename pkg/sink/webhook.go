@@ -11,9 +11,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/notifier"
 )
 
 const defaultHTTPCliTimeout = 30 * time.Second
@@ -25,8 +25,8 @@ type Webhook struct {
 
 	URL           string
 	Bindings      config.SinkBindings
-	status        notifier.StatusMsg
-	failureReason notifier.FailureReasonMsg
+	status        health.PlatformStatusMsg
+	failureReason health.FailureReasonMsg
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -43,7 +43,7 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 		reporter:      reporter,
 		URL:           c.URL,
 		Bindings:      c.Bindings,
-		status:        notifier.StatusUnknown,
+		status:        health.StatusUnknown,
 		failureReason: "",
 	}
 
@@ -64,7 +64,7 @@ func (w *Webhook) SendEvent(ctx context.Context, rawData any, sources []string) 
 
 	err := w.PostWebhook(ctx, jsonPayload)
 	if err != nil {
-		w.setFailureReason(notifier.FailureReasonConnectionError)
+		w.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while sending message to webhook: %w", err)
 	}
 
@@ -115,18 +115,18 @@ func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }
 
-func (w *Webhook) setFailureReason(reason notifier.FailureReasonMsg) {
+func (w *Webhook) setFailureReason(reason health.FailureReasonMsg) {
 	if reason == "" {
-		w.status = notifier.StatusHealthy
+		w.status = health.StatusHealthy
 	} else {
-		w.status = notifier.StatusUnHealthy
+		w.status = health.StatusUnHealthy
 	}
 	w.failureReason = reason
 }
 
 // GetStatus gets sink status
-func (w *Webhook) GetStatus() notifier.Status {
-	return notifier.Status{
+func (w *Webhook) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
 		Status:   w.status,
 		Restarts: "0/0",
 		Reason:   w.failureReason,

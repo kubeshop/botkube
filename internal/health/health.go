@@ -11,21 +11,17 @@ import (
 
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/plugin"
-	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/notifier"
-)
-
-type BotkubeStatus string
-
-const (
-	BotkubeStatusHealthy   BotkubeStatus = "Healthy"
-	BotkubeStatusUnhealthy BotkubeStatus = "Unhealthy"
 )
 
 const (
 	healthEndpointName = "/healthz"
 )
+
+// Notifier represents notifier interface
+type Notifier interface {
+	GetStatus() PlatformStatus
+}
 
 // Checker gives health bot agent status.
 type Checker struct {
@@ -33,27 +29,7 @@ type Checker struct {
 	ctx                context.Context
 	config             *config.Config
 	pluginHealthStats  *plugin.HealthStats
-	bots               map[string]bot.Bot
-	sinks              []notifier.Sink
-}
-
-type pluginStatuses struct {
-	Enabled  bool
-	Status   string
-	Restarts string
-}
-
-type botStatus struct {
-	Status BotkubeStatus
-}
-
-type platformStatuses map[string]bot.Status
-
-// Status defines bot agent status.
-type Status struct {
-	Botkube   botStatus
-	Plugins   map[string]pluginStatuses
-	Platforms platformStatuses
+	notifiers          map[string]Notifier
 }
 
 // NewChecker create new health checker.
@@ -76,41 +52,23 @@ func (h *Checker) IsReady() bool {
 	return h.applicationStarted
 }
 
-// GetStatus gets bot status
-func (h *Checker) GetStatus() (*Status, error) {
-	pluginsStats := make(map[string]pluginStatuses)
-	h.getSourcePluginsStatuses(pluginsStats)
-	h.getExecutorPluginsStatuses(pluginsStats)
-
-	return &Status{
-		Botkube: botStatus{
-			Status: h.getBotkubeStatus(),
-		},
-		Plugins:   pluginsStats,
-		Platforms: h.getPlatformsStatus(),
-	}, nil
-}
-
 // ServeHTTP serves status on health endpoint.
 func (h *Checker) ServeHTTP(resp http.ResponseWriter, _ *http.Request) {
-	if h.IsReady() {
-		resp.Header().Set("Content-Type", "application/json")
-		resp.WriteHeader(http.StatusOK)
-		status, err := h.GetStatus()
-		if err != nil {
-			resp.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprint(resp, "Internal Error")
-		}
-		respJSon, err := json.Marshal(status)
-		if err != nil {
-			resp.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprint(resp, "Internal Error")
-		}
-		_, _ = fmt.Fprint(resp, string(respJSon))
-	} else {
-		resp.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = fmt.Fprint(resp, "unavailable")
+	statusCode := http.StatusOK
+	if !h.IsReady() {
+		statusCode = http.StatusServiceUnavailable
 	}
+	resp.Header().Set("Content-Type", "application/json")
+
+	status := h.getStatus()
+	respJSon, err := json.Marshal(status)
+	if err != nil {
+		http.Error(resp, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp.WriteHeader(statusCode)
+	_, _ = fmt.Fprint(resp, string(respJSon))
 }
 
 // NewServer creates http server for health checker.
@@ -121,33 +79,48 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	return httpx.NewServer(log, addr, router)
 }
 
-// SetBots sets platform bots instances.
-func (h *Checker) SetBots(bots map[string]bot.Bot) {
-	h.bots = bots
+// SetNotifiers sets platform bots instances.
+func (h *Checker) SetNotifiers(notifiers map[string]Notifier) {
+	h.notifiers = notifiers
 }
 
-// SetSinks sets platform sink instances.
-func (h *Checker) SetSinks(sinks []notifier.Sink) {
-	h.sinks = sinks
+func (h *Checker) getStatus() *status {
+	pluginsStats := make(map[string]pluginStatuses)
+	h.collectSourcePluginsStatuses(pluginsStats)
+	h.collectExecutorPluginsStatuses(pluginsStats)
+
+	return &status{
+		Botkube: botStatus{
+			Status: h.getBotkubeStatus(),
+		},
+		Plugins:   pluginsStats,
+		Platforms: h.getPlatformsStatus(),
+	}
 }
 
-func (h *Checker) getSourcePluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectSourcePluginsStatuses(plugins map[string]pluginStatuses) {
+	if h.config == nil {
+		return
+	}
 	for pluginConfigName, sourceValues := range h.config.Sources {
 		for pluginName, pluginValues := range sourceValues.GetPlugins() {
-			h.getPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
+			h.collectPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
 		}
 	}
 }
 
-func (h *Checker) getExecutorPluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]pluginStatuses) {
+	if h.config == nil {
+		return
+	}
 	for pluginConfigName, execValues := range h.config.Executors {
 		for pluginName, pluginValues := range execValues.GetPlugins() {
-			h.getPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
+			h.collectPluginStatus(plugins, pluginConfigName, pluginName, pluginValues.Enabled)
 		}
 	}
 }
 
-func (h *Checker) getPluginStatus(plugins map[string]pluginStatuses, pluginConfigName string, pluginName string, enabled bool) {
+func (h *Checker) collectPluginStatus(plugins map[string]pluginStatuses, pluginConfigName string, pluginName string, enabled bool) {
 	status, restarts, threshold, _ := h.pluginHealthStats.GetStats(pluginName)
 	plugins[pluginConfigName] = pluginStatuses{
 		Enabled:  enabled,
@@ -165,20 +138,9 @@ func (h *Checker) getBotkubeStatus() BotkubeStatus {
 
 func (h *Checker) getPlatformsStatus() platformStatuses {
 	defaultStatuses := platformStatuses{}
-	if h.bots != nil {
-		for key, botInstance := range h.bots {
-			defaultStatuses[key] = botInstance.GetStatus()
-		}
-	}
-
-	if h.sinks != nil {
-		for key, sinkInstance := range h.sinks {
-			status := sinkInstance.GetStatus()
-			defaultStatuses[fmt.Sprintf("%s/%d", sinkInstance.IntegrationName(), key)] = bot.Status{
-				Status:   bot.StatusMsg(status.Status),
-				Restarts: status.Restarts,
-				Reason:   bot.FailureReasonMsg(status.Reason),
-			}
+	if h.notifiers != nil {
+		for key, notifier := range h.notifiers {
+			defaultStatuses[key] = notifier.GetStatus()
 		}
 	}
 

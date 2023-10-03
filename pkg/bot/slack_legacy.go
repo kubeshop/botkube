@@ -12,6 +12,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -54,8 +55,8 @@ type Slack struct {
 	messages            chan slackLegacyMessage
 	slackMessageWorkers *pool.Pool
 	shutdownOnce        sync.Once
-	status              StatusMsg
-	failureReason       FailureReasonMsg
+	status              health.PlatformStatusMsg
+	failureReason       health.FailureReasonMsg
 }
 
 // slackLegacyMessage contains message details to execute command and send back the result
@@ -98,7 +99,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		renderer:            NewSlackRenderer(),
 		messages:            make(chan slackLegacyMessage, platformMessageChannelSize),
 		slackMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
-		status:              StatusUnknown,
+		status:              health.StatusUnknown,
 		failureReason:       "",
 	}, nil
 }
@@ -146,7 +147,7 @@ func (b *Slack) Start(ctx context.Context) error {
 			case *slack.ConnectedEvent:
 				err := b.reporter.ReportBotEnabled(b.IntegrationName())
 				if err != nil {
-					b.setFailureReason(FailureReasonConnectionError)
+					b.setFailureReason(health.FailureReasonConnectionError)
 					return fmt.Errorf("while reporting analytics: %w", err)
 				}
 
@@ -188,7 +189,7 @@ func (b *Slack) Start(ctx context.Context) error {
 				b.log.Errorf("Slack rate limiting error: %+v", ev.Error())
 
 			case *slack.InvalidAuthEvent:
-				b.setFailureReason(FailureReasonConnectionError)
+				b.setFailureReason(health.FailureReasonConnectionError)
 				return fmt.Errorf("invalid credentials")
 			}
 		}
@@ -417,18 +418,18 @@ func (b *Slack) shutdown(rtm *slack.RTM) {
 	})
 }
 
-func (b *Slack) setFailureReason(reason FailureReasonMsg) {
+func (b *Slack) setFailureReason(reason health.FailureReasonMsg) {
 	if reason == "" {
-		b.status = StatusHealthy
+		b.status = health.StatusHealthy
 	} else {
-		b.status = StatusUnHealthy
+		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
 }
 
 // GetStatus gets bot status.
-func (b *Slack) GetStatus() Status {
-	return Status{
+func (b *Slack) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
 		Status:   b.status,
 		Restarts: "0/0",
 		Reason:   b.failureReason,
