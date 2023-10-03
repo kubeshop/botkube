@@ -19,8 +19,7 @@ jobs:
   extract-metadata:
     runs-on: ubuntu-latest
     outputs:
-      v1: ${{ steps.extract-version.outputs.v1 }}
-      v2: ${{ steps.extract-version.outputs.v2 }}
+      versions: ${{ steps.extract-version.outputs.versions }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
