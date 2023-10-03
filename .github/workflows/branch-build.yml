@@ -26,6 +26,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Extract version
+        id: extract-version
         run: |
             IMAGE_VERSION=$(git rev-parse --short HEAD)
             echo "versions={image-version: [${IMAGE_VERSION},v9.99.9-dev]}" >> $GITHUB_OUTPUT
