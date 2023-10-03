@@ -3,7 +3,6 @@ env:
   - IMAGE_REGISTRY={{ if index .Env "IMAGE_REGISTRY"  }}{{ .Env.IMAGE_REGISTRY }}{{ else }}ghcr.io{{ end }}
   - IMAGE_REPOSITORY={{ if index .Env "IMAGE_REPOSITORY"  }}{{ .Env.IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube{{ end }}
   - IMAGE_TAG={{ if index .Env "IMAGE_TAG"  }}{{ .Env.IMAGE_TAG }}{{ else }}{{ .Tag }}{{ end }}
-  - SNAPSHOT_IMAGE_TAG={{ if index .Env "SNAPSHOT_IMAGE_TAG"  }}{{ .Env.SNAPSHOT_IMAGE_TAG }}{{ else }}{{ .ShortCommit }}{{ end }}
   - CFG_EXPORTER_IMAGE_REPOSITORY={{ if index .Env "CFG_EXPORTER_IMAGE_REPOSITORY" }}{{ .Env.CFG_EXPORTER_IMAGE_REPOSITORY }}{{ else }}kubeshop/botkube-config-exporter{{ end }}
   - ANALYTICS_API_KEY={{ if index .Env "ANALYTICS_API_KEY"  }}{{ .Env.ANALYTICS_API_KEY }}{{ else }}{{ end }}
   - CLI_ANALYTICS_API_KEY={{ if index .Env "CLI_ANALYTICS_API_KEY"  }}{{ .Env.CLI_ANALYTICS_API_KEY }}{{ else }}{{ end }}
@@ -95,7 +94,6 @@ dockers:
   # Botkube Agent
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
     use: buildx
     dockerfile: "build/Dockerfile"
     build_flag_templates:
@@ -104,7 +102,6 @@ dockers:
     id: botkube-agent-amd64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
     use: buildx
     goarch: arm64
     dockerfile: "build/Dockerfile"
@@ -114,7 +111,6 @@ dockers:
     id: botkube-agent-arm64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
     use: buildx
     goarch: arm
     goarm: 7
@@ -126,7 +122,6 @@ dockers:
   # Config Exporter
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
     use: buildx
     dockerfile: "build/Dockerfile.config_exporter"
     build_flag_templates:
@@ -135,7 +130,6 @@ dockers:
     id: botkube-config-exporter-amd64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
     use: buildx
     goarch: arm64
     dockerfile: "build/Dockerfile.config_exporter"
@@ -145,7 +139,6 @@ dockers:
     id: botkube-config-exporter-arm64
   - image_templates:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
     use: buildx
     goarch: arm
     goarm: 7
@@ -165,16 +158,7 @@ docker_manifests:
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-amd64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-arm64"
       - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.IMAGE_TAG }}-armv7"
-  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}"
-    image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
-  - name_template: "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}"
-    image_templates:
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-amd64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-arm64"
-      - "{{.Env.IMAGE_REGISTRY}}/{{.Env.CFG_EXPORTER_IMAGE_REPOSITORY}}:{{ .Env.SNAPSHOT_IMAGE_TAG }}-armv7"
+
 archives:
   - id: botkube-cli
     format: binary
