@@ -67,6 +67,7 @@ jobs:
         env:
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
           GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
+          IMAGE_TAG: ${{ matrix.image-version }}
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
