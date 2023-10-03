@@ -19,19 +19,20 @@ jobs:
   extract-metadata:
     runs-on: ubuntu-latest
     outputs:
-      image-version: ${{ steps.extract-version.outputs.image-version }}
+      v1: ${{ steps.extract-version.outputs.v1 }}
+      v2: ${{ steps.extract-version.outputs.v2 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Extract version
         run: |
             IMAGE_VERSION=$(git rev-parse --short HEAD)
-            echo "image-version=${IMAGE_VERSION}" >> $GITHUB_OUTPUT
+            echo "versions={image-version: [${IMAGE_VERSION},v9.99.9-dev]}" >> $GITHUB_OUTPUT
   build:
     needs: [extract-metadata]
     strategy:
       matrix:
-        image-version: ["v9.99.9-dev", "${{ needs.extract-metadata.outputs.image-version }}"]
+        image-version: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
