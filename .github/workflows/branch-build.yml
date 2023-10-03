@@ -11,8 +11,8 @@ env:
   HELM_VERSION: v3.9.0
   K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
-  IMAGE_REPOSITORY: "kubeshop/botkube"
-  CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/botkube-config-exporter"
+  IMAGE_REPOSITORY: "huseyinbabal/botkube"
+  CFG_EXPORTER_IMAGE_REPOSITORY: "huseyinbabal/botkube-config-exporter"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
