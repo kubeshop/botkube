@@ -208,6 +208,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		return fmt.Errorf("while sending gRPC connection request. %w", err)
 	}
 
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx, messageWorkers, messages)
 
 	for {
