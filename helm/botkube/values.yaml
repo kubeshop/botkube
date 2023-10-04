@@ -1185,7 +1185,8 @@ analytics:
   # see [Privacy Policy](https://docs.botkube.io/privacy#privacy-policy).
   disable: false
 
-## Parameters for the Config Watcher component which reloads Botkube on ConfigMap changes.
+# -- Parameters for the Config Watcher component which reloads Botkube on ConfigMap changes.
+# It restarts Botkube when configuration data change is detected. It watches ConfigMaps and/or Secrets with the `botkube.io/config-watch: "true"` label from the namespace where Botkube is installed.
 configWatcher:
   # -- If true, restarts the Botkube Pod on config changes.
   enabled: true

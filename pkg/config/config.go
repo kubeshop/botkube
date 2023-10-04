@@ -526,9 +526,7 @@ type CfgWatcher struct {
 	Remote    RemoteCfgWatcher    `yaml:"remote"`
 	InCluster InClusterCfgWatcher `yaml:"inCluster"`
 
-	InitialSyncTimeout time.Duration  `yaml:"initialSyncTimeout"`
-	TmpDir             string         `yaml:"tmpDir"`
-	Deployment         K8sResourceRef `yaml:"deployment"`
+	Deployment K8sResourceRef `yaml:"deployment"`
 }
 
 // RemoteCfgWatcher describes configuration for watching the configuration using remote config provider.
@@ -538,7 +536,6 @@ type RemoteCfgWatcher struct {
 
 // InClusterCfgWatcher describes configuration for watching the configuration using in-cluster config provider.
 type InClusterCfgWatcher struct {
-	Namespace            string        `yaml:"namespace"`
 	InformerResyncPeriod time.Duration `yaml:"informerResyncPeriod"`
 }
 

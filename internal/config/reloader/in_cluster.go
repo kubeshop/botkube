@@ -54,7 +54,7 @@ func NewInClusterConfigReloader(log logrus.FieldLogger, cli dynamic.Interface, c
 	if informerResyncPeriod == 0 {
 		informerResyncPeriod = defaultInformerResyncPeriod
 	}
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(cli, informerResyncPeriod, cfg.InCluster.Namespace, tweakListOptions)
+	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(cli, informerResyncPeriod, cfg.Deployment.Namespace, tweakListOptions)
 	return &InClusterConfigReloader{log: log, cli: cli, cfg: cfg, reporter: reporter, restarter: restarter, informerFactory: informerFactory}, nil
 }
 
