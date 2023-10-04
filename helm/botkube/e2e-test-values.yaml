@@ -11,7 +11,7 @@ rbac:
 
 communications:
   'default-group':
-    slack: # Configuration for the Slack app with RTM support1
+    slack: # Configuration for the Slack app with RTM support
       enabled: false # Tests will override this temporarily
       token: "" # Provide a valid token for Botkube app
       channels:
