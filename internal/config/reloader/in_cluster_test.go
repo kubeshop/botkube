@@ -2,6 +2,9 @@ package reloader
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	"sync"
 	"testing"
 	"time"
@@ -15,6 +18,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	clienttesting "k8s.io/client-go/testing"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -22,13 +26,24 @@ import (
 )
 
 var (
-	namespace        = "test-ns"
-	namespace2       = "diff-ns"
-	initialResources = fixResources()
+	namespace  = "test-ns"
+	namespace2 = "diff-ns"
+
+	timeout = 3 * time.Second
 )
 
 func TestInClusterConfigReloader_Do(t *testing.T) {
 	// given
+	initialResources := fixResources()
+	cfg := config.CfgWatcher{
+		InCluster: config.InClusterCfgWatcher{
+			InformerResyncPeriod: 0,
+		},
+		Deployment: config.K8sResourceRef{
+			Namespace: namespace,
+		},
+	}
+
 	testCases := []struct {
 		Name            string
 		Operation       func(ctx context.Context, t *testing.T, cli dynamic.Interface)
@@ -68,7 +83,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Create arbitrary Secret",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(secretGVR).Namespace(namespace).Create(ctx, fixSecret(t, "cm2", namespace, false, false), metav1.CreateOptions{})
+				_, err := cli.Resource(secretGVR).Namespace(namespace).Create(ctx, fixSecret(t, "secret2", namespace, false, false), metav1.CreateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -76,7 +91,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Create labeled Secret in different namespace",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(secretGVR).Namespace(namespace2).Create(ctx, fixSecret(t, "cm2", namespace2, true, false), metav1.CreateOptions{})
+				_, err := cli.Resource(secretGVR).Namespace(namespace2).Create(ctx, fixSecret(t, "secret2", namespace2, true, false), metav1.CreateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -84,7 +99,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Create labeled Secret",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(secretGVR).Namespace(namespace).Create(ctx, fixSecret(t, "cm2", namespace, true, false), metav1.CreateOptions{})
+				_, err := cli.Resource(secretGVR).Namespace(namespace).Create(ctx, fixSecret(t, "secret2", namespace, true, false), metav1.CreateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: true,
@@ -94,7 +109,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Update arbitrary ConfigMap",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(configMapGVR).Namespace(namespace).Update(ctx, fixConfigMap(t, "cm", namespace, false, false), metav1.UpdateOptions{})
+				_, err := cli.Resource(configMapGVR).Namespace(namespace).Update(ctx, fixConfigMap(t, "cm", namespace, false, true), metav1.UpdateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -102,7 +117,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Update labeled ConfigMap in different namespace",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(configMapGVR).Namespace(namespace2).Update(ctx, fixConfigMap(t, "cm-labeled-diff-ns", namespace2, true, false), metav1.UpdateOptions{})
+				_, err := cli.Resource(configMapGVR).Namespace(namespace2).Update(ctx, fixConfigMap(t, "cm-labeled-diff-ns", namespace2, true, true), metav1.UpdateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -126,7 +141,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Update arbitrary Secret",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(secretGVR).Namespace(namespace).Update(ctx, fixSecret(t, "secret", namespace, false, false), metav1.UpdateOptions{})
+				_, err := cli.Resource(secretGVR).Namespace(namespace).Update(ctx, fixSecret(t, "secret", namespace, false, true), metav1.UpdateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -134,7 +149,7 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 		{
 			Name: "Update labeled Secret in different namespace",
 			Operation: func(ctx context.Context, t *testing.T, cli dynamic.Interface) {
-				_, err := cli.Resource(secretGVR).Namespace(namespace2).Update(ctx, fixSecret(t, "secret-labeled-diff-ns", namespace2, true, false), metav1.UpdateOptions{})
+				_, err := cli.Resource(secretGVR).Namespace(namespace2).Update(ctx, fixSecret(t, "secret-labeled-diff-ns", namespace2, true, true), metav1.UpdateOptions{})
 				require.NoError(t, err)
 			},
 			ExpectedRestart: false,
@@ -209,23 +224,31 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			gvrs := make(map[schema.GroupVersionResource]struct{})
 			dynamicCli := fake.NewSimpleDynamicClient(scheme.Scheme, initialResources...)
+			dynamicCli.PrependWatchReactor("*", func(action clienttesting.Action) (handled bool, ret watch.Interface, err error) {
+				gvr := action.GetResource()
+				ns := action.GetNamespace()
+				watch, err := dynamicCli.Tracker().Watch(gvr, ns)
+				if err != nil {
+					return false, nil, err
+				}
+
+				gvrs[gvr] = struct{}{}
+				return true, watch, nil
+			})
 			restarter := &noopRestarter{}
 			reloader, err := NewInClusterConfigReloader(
 				loggerx.NewNoop(),
 				dynamicCli,
-				config.CfgWatcher{
-					Deployment: config.K8sResourceRef{
-						Namespace: namespace,
-					},
-				},
+				cfg,
 				restarter,
 				analytics.NewNoopReporter(),
 			)
 			require.NoError(t, err)
 
-			ctx, cancelFn := context.WithCancel(context.Background())
-
+			ctx, cancelFn := context.WithTimeout(context.Background(), timeout)
+			defer cancelFn()
 			// when
 			wg := sync.WaitGroup{}
 			var rErr error
@@ -236,13 +259,26 @@ func TestInClusterConfigReloader_Do(t *testing.T) {
 			}(ctx)
 
 			reloader.InformerFactory().WaitForCacheSync(ctx.Done())
+			// "(...) Any writes to the client after the informer's initial LIST and before the informer establishing the
+			// watcher will be missed by the informer.
+			// Source: https://github.com/kubernetes/client-go/blob/master/examples/fake-client/main_test.go#L74-L81
+			//
+			// So here, we wait for the informer to establish the watcher for both Secrets and ConfigMaps.
+			err = wait.PollUntilContextCancel(ctx, 100*time.Millisecond, true, func(ctx context.Context) (done bool, err error) {
+				if len(gvrs) == 2 {
+					return true, nil
+				}
+				return false, nil
+			})
+			require.NoError(t, err)
+
 			// then
 			require.False(t, restarter.restarted)
 
 			// when
 			if tc.Operation != nil {
 				tc.Operation(ctx, t, dynamicCli)
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(50 * time.Millisecond) // make sure the operation can be processed
 			}
 
 			cancelFn()
@@ -303,8 +339,8 @@ func fixResources() []runtime.Object {
 				Name:      "secret",
 				Namespace: namespace,
 			},
-			StringData: map[string]string{
-				"test": "test",
+			Data: map[string][]byte{
+				"test": []byte("test"),
 			},
 		},
 		&v1.Secret{
@@ -315,8 +351,8 @@ func fixResources() []runtime.Object {
 					labelKey: labelValue,
 				},
 			},
-			StringData: map[string]string{
-				"test": "test",
+			Data: map[string][]byte{
+				"test": []byte("test"),
 			},
 		},
 		&v1.Secret{
@@ -327,25 +363,29 @@ func fixResources() []runtime.Object {
 					labelKey: labelValue,
 				},
 			},
-			StringData: map[string]string{
-				"test": "test",
+			Data: map[string][]byte{
+				"test": []byte("test"),
 			},
 		},
 	}
 }
 
-func fixConfigMap(t *testing.T, name string, namespace string, labeled, newData bool) *unstructured.Unstructured {
+func fixConfigMap(t *testing.T, name string, namespace string, labeled, isNewObj bool) *unstructured.Unstructured {
 	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			ResourceVersion: "1",
+			Name:            name,
+			Namespace:       namespace,
 		},
 		Data: map[string]string{
-			"new": "data",
+			"test": "test",
 		},
 	}
-	if newData {
-		cm.Data = map[string]string{}
+	if isNewObj {
+		cm.ResourceVersion = "2"
+		cm.Data = map[string]string{
+			"new": "data",
+		}
 	}
 
 	if labeled {
@@ -359,19 +399,21 @@ func fixConfigMap(t *testing.T, name string, namespace string, labeled, newData 
 	return &unstructured.Unstructured{Object: unstrObj}
 }
 
-func fixSecret(t *testing.T, name string, namespace string, labeled, newData bool) *unstructured.Unstructured {
+func fixSecret(t *testing.T, name string, namespace string, labeled, isNewObj bool) *unstructured.Unstructured {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			ResourceVersion: "1",
+			Name:            name,
+			Namespace:       namespace,
 		},
-		StringData: map[string]string{
-			"test": "test",
+		Data: map[string][]byte{
+			"test": []byte("test"),
 		},
 	}
-	if newData {
-		secret.StringData = map[string]string{
-			"new": "data",
+	if isNewObj {
+		secret.ResourceVersion = "2"
+		secret.Data = map[string][]byte{
+			"new": []byte("data"),
 		}
 	}
 

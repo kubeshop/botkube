@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,16 +20,15 @@ import (
 )
 
 const (
-	labelKey                    = "botkube.io/config-watch"
-	labelValue                  = "true"
-	defaultInformerResyncPeriod = 60 * time.Second
-	dataKey                     = "data"
+	labelKey   = "botkube.io/config-watch"
+	labelValue = "true"
+	dataKey    = "data"
 )
 
 var (
-	selector         = labels.SelectorFromSet(map[string]string{labelKey: labelValue}).String()
+	labelSelector    = labels.SelectorFromSet(map[string]string{labelKey: labelValue}).String()
 	tweakListOptions = func(options *metav1.ListOptions) {
-		options.LabelSelector = selector
+		options.LabelSelector = labelSelector
 	}
 
 	configMapGVR = schema.GroupVersionResource{Version: metav1.SchemeGroupVersion.Version, Group: "", Resource: "configmaps"}
@@ -55,9 +53,6 @@ type InClusterConfigReloader struct {
 
 func NewInClusterConfigReloader(log logrus.FieldLogger, cli dynamic.Interface, cfg config.CfgWatcher, restarter restarter, reporter analytics.Reporter) (*InClusterConfigReloader, error) {
 	informerResyncPeriod := cfg.InCluster.InformerResyncPeriod
-	if informerResyncPeriod == 0 {
-		informerResyncPeriod = defaultInformerResyncPeriod
-	}
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(cli, informerResyncPeriod, cfg.Deployment.Namespace, tweakListOptions)
 	return &InClusterConfigReloader{log: log, cli: cli, cfg: cfg, reporter: reporter, restarter: restarter, informerFactory: informerFactory}, nil
 }
@@ -65,11 +60,11 @@ func NewInClusterConfigReloader(log logrus.FieldLogger, cli dynamic.Interface, c
 func (l *InClusterConfigReloader) Do(ctx context.Context) error {
 	l.log.Info("Adding event handlers...")
 	eventHandler := newGenericEventHandler(ctx, l.log.WithField("subcomponent", "genericEventHandler"), l.restarter)
+
 	_, err := l.informerFactory.ForResource(configMapGVR).Informer().AddEventHandler(eventHandler)
 	if err != nil {
 		return fmt.Errorf("while adding event handler for configmaps: %w", err)
 	}
-
 	_, err = l.informerFactory.ForResource(secretGVR).Informer().AddEventHandler(eventHandler)
 	if err != nil {
 		return fmt.Errorf("while adding event handler for secrets: %w", err)

@@ -1190,6 +1190,10 @@ analytics:
 configWatcher:
   # -- If true, restarts the Botkube Pod on config changes.
   enabled: true
+  # -- In-cluster Config Watcher configuration. It is used when remote configuration is not provided.
+  inCluster:
+    # -- Resync period for the Config Watcher informers.
+    informerResyncPeriod: 10m
 
 # -- Configuration for Botkube executors and sources plugins.
 plugins:
