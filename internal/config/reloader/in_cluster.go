@@ -34,22 +34,26 @@ var (
 	}
 
 	configMapGVR = schema.GroupVersionResource{Version: metav1.SchemeGroupVersion.Version, Group: "", Resource: "configmaps"}
-	secretsGVR   = schema.GroupVersionResource{Version: metav1.SchemeGroupVersion.Version, Group: "", Resource: "secrets"}
+	secretGVR    = schema.GroupVersionResource{Version: metav1.SchemeGroupVersion.Version, Group: "", Resource: "secrets"}
 )
 
 var _ Reloader = &InClusterConfigReloader{}
+
+type restarter interface {
+	Do(ctx context.Context) error
+}
 
 type InClusterConfigReloader struct {
 	log       logrus.FieldLogger
 	cli       dynamic.Interface
 	cfg       config.CfgWatcher
 	reporter  analytics.Reporter
-	restarter *Restarter
+	restarter restarter
 
 	informerFactory dynamicinformer.DynamicSharedInformerFactory
 }
 
-func NewInClusterConfigReloader(log logrus.FieldLogger, cli dynamic.Interface, cfg config.CfgWatcher, restarter *Restarter, reporter analytics.Reporter) (*InClusterConfigReloader, error) {
+func NewInClusterConfigReloader(log logrus.FieldLogger, cli dynamic.Interface, cfg config.CfgWatcher, restarter restarter, reporter analytics.Reporter) (*InClusterConfigReloader, error) {
 	informerResyncPeriod := cfg.InCluster.InformerResyncPeriod
 	if informerResyncPeriod == 0 {
 		informerResyncPeriod = defaultInformerResyncPeriod
@@ -66,7 +70,7 @@ func (l *InClusterConfigReloader) Do(ctx context.Context) error {
 		return fmt.Errorf("while adding event handler for configmaps: %w", err)
 	}
 
-	_, err = l.informerFactory.ForResource(secretsGVR).Informer().AddEventHandler(eventHandler)
+	_, err = l.informerFactory.ForResource(secretGVR).Informer().AddEventHandler(eventHandler)
 	if err != nil {
 		return fmt.Errorf("while adding event handler for secrets: %w", err)
 	}
@@ -83,15 +87,19 @@ func (l *InClusterConfigReloader) Do(ctx context.Context) error {
 	return nil
 }
 
+func (l *InClusterConfigReloader) InformerFactory() dynamicinformer.DynamicSharedInformerFactory {
+	return l.informerFactory
+}
+
 var _ cache.ResourceEventHandler = &genericEventHandler{}
 
 type genericEventHandler struct {
 	log       logrus.FieldLogger
 	ctx       context.Context
-	restarter *Restarter
+	restarter restarter
 }
 
-func newGenericEventHandler(ctx context.Context, log logrus.FieldLogger, restarter *Restarter) *genericEventHandler {
+func newGenericEventHandler(ctx context.Context, log logrus.FieldLogger, restarter restarter) *genericEventHandler {
 	return &genericEventHandler{log: log, ctx: ctx, restarter: restarter}
 }
 
