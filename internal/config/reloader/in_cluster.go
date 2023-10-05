@@ -99,13 +99,13 @@ func (g *genericEventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 	g.log.WithFields(logrus.Fields{
 		"obj":             formatx.StructDumper().Sdump(obj),
 		"isInInitialList": isInInitialList,
-	}).Debug("OnCreate called")
+	}).Debug("OnAdd called")
 
 	if isInInitialList {
-		g.log.Debug("OnAdd: initial list. Skipping...")
+		g.log.Debug("OnAdd: this is the initial list. Skipping reloading...")
 		return
 	}
-	g.log.Infoln("OnAdd", formatx.StructDumper().Sdump(obj), isInInitialList)
+
 	g.reloadIfCan(g.ctx)
 }
 
@@ -137,7 +137,6 @@ func (g *genericEventHandler) OnUpdate(oldObj, newObj interface{}) {
 
 	g.log.Debug("Comparing content...")
 	// both Secret and ConfigMap have Data field
-
 	oldData := unstrOldObj.Object[dataKey]
 	newData := unstrNewObj.Object[dataKey]
 
@@ -150,12 +149,15 @@ func (g *genericEventHandler) OnUpdate(oldObj, newObj interface{}) {
 }
 
 func (g *genericEventHandler) OnDelete(obj interface{}) {
-	g.log.Infoln("OnDelete", formatx.StructDumper().Sdump(obj))
+	g.log.WithFields(logrus.Fields{
+		"obj": formatx.StructDumper().Sdump(obj),
+	}).Debug("OnDelete called")
+
 	g.reloadIfCan(g.ctx)
 }
 
 func (g *genericEventHandler) reloadIfCan(ctx context.Context) {
-	g.log.Info("Reloading configuration...")
+	g.log.Debug("Reloading configuration...")
 	err := g.restarter.Do(ctx)
 	if err != nil {
 		g.log.Errorf("while restarting the app: %s", err.Error())

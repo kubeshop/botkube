@@ -24,12 +24,7 @@ rules:
   - apiGroups: [ "" ]
     resources: [ "nodes" ]
     verbs: [ "list" ]
-  - apiGroups:
-      - ""
-    resources:
-      - users
-      - groups
-      - serviceaccounts
-    verbs:
-      - impersonate
+  - apiGroups: [ "" ]
+    resources: [ "users", "groups", "serviceaccounts" ]
+    verbs: [ "impersonate" ]
   {{- end }}
