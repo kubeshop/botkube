@@ -22,9 +22,9 @@ const (
 
 // PlatformStatus defines single platform status
 type PlatformStatus struct {
-	Status   PlatformStatusMsg
-	Restarts string
-	Reason   FailureReasonMsg
+	Status   PlatformStatusMsg `json:"status,omitempty"`
+	Restarts string            `json:"restarts,omitempty"`
+	Reason   FailureReasonMsg  `json:"reason,omitempty"`
 }
 
 // status defines bot agent status.
@@ -37,11 +37,11 @@ type status struct {
 type platformStatuses map[string]PlatformStatus
 
 type pluginStatuses struct {
-	Enabled  bool
-	Status   string
-	Restarts string
+	Enabled  bool   `json:"enabled,omitempty"`
+	Status   string `json:"status,omitempty"`
+	Restarts string `json:"restarts,omitempty"`
 }
 
 type botStatus struct {
-	Status BotkubeStatus
+	Status BotkubeStatus `json:"status,omitempty"`
 }

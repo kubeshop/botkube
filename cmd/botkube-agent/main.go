@@ -188,12 +188,6 @@ func run(ctx context.Context) (err error) {
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
 	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources, schedulerChan, pluginHealthStats)
 
-	err = pluginManager.Start(ctx)
-	if err != nil {
-		return fmt.Errorf("while starting plugins manager: %w", err)
-	}
-	defer pluginManager.Shutdown()
-
 	// Health endpoint
 	healthChecker := health.NewChecker(ctx, conf, pluginHealthStats)
 	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
@@ -201,6 +195,12 @@ func run(ctx context.Context) (err error) {
 		defer analytics.ReportPanicIfOccurs(logger, reporter)
 		return healthSrv.Serve(ctx)
 	})
+
+	err = pluginManager.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("while starting plugins manager: %w", err)
+	}
+	defer pluginManager.Shutdown()
 
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
