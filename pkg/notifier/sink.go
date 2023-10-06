@@ -3,6 +3,7 @@ package notifier
 import (
 	"context"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -16,4 +17,7 @@ type Sink interface {
 
 	// Type returns a given integration type. See config.IntegrationType for possible integration types.
 	Type() config.IntegrationType
+
+	// GetStatus gets sink status
+	GetStatus() health.PlatformStatus
 }

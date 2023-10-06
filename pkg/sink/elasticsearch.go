@@ -21,6 +21,7 @@ import (
 	"github.com/sha1sum/aws_signing_client"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
@@ -49,6 +50,8 @@ type Elasticsearch struct {
 	client         *elastic.Client
 	indices        map[string]config.ELSIndex
 	clusterVersion string
+	status         health.PlatformStatusMsg
+	failureReason  health.FailureReasonMsg
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
@@ -131,6 +134,8 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 		client:         elsClient,
 		indices:        c.Indices,
 		clusterVersion: pong.Version.Number,
+		status:         health.StatusUnknown,
+		failureReason:  "",
 	}
 
 	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
@@ -212,10 +217,12 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, sources []st
 		}
 		err := e.flushIndex(ctx, indexCfg, rawData)
 		if err != nil {
+			e.setFailureReason(health.FailureReasonConnectionError)
 			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
 			continue
 		}
 
+		e.setFailureReason("")
 		e.log.Debugf("Event successfully sent to Elasticsearch index %q", indexCfg.Name)
 	}
 
@@ -230,6 +237,24 @@ func (e *Elasticsearch) IntegrationName() config.CommPlatformIntegration {
 // Type describes the notifier type.
 func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
+}
+
+func (e *Elasticsearch) setFailureReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		e.status = health.StatusHealthy
+	} else {
+		e.status = health.StatusUnHealthy
+	}
+	e.failureReason = reason
+}
+
+// GetStatus gets sink status
+func (e *Elasticsearch) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   e.status,
+		Restarts: "0/0",
+		Reason:   e.failureReason,
+	}
 }
 
 func esMajorClusterVersion(v string) (int, error) {

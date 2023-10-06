@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sourcegraph/conc/pool"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -54,6 +55,8 @@ type Discord struct {
 	messages              chan discordMessage
 	discordMessageWorkers *pool.Pool
 	shutdownOnce          sync.Once
+	status                health.PlatformStatusMsg
+	failureReason         health.FailureReasonMsg
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -90,6 +93,8 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		renderer:              NewDiscordRenderer(),
 		messages:              make(chan discordMessage, platformMessageChannelSize),
 		discordMessageWorkers: pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:                health.StatusUnknown,
+		failureReason:         "",
 	}, nil
 }
 
@@ -119,15 +124,18 @@ func (b *Discord) Start(ctx context.Context) error {
 	// Open a websocket connection to Discord and begin listening.
 	err := b.api.Open()
 	if err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
 	b.log.Info("Botkube connected to Discord!")
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx)
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
@@ -414,4 +422,22 @@ func discordError(err error, channel string) error {
 		}
 	}
 	return err
+}
+
+func (b *Discord) setFailureReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		b.status = health.StatusHealthy
+	} else {
+		b.status = health.StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+// GetStatus gets bot status.
+func (b *Discord) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

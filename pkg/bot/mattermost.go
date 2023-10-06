@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sourcegraph/conc/pool"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -70,6 +71,8 @@ type Mattermost struct {
 	messages        chan mattermostMessage
 	messageWorkers  *pool.Pool
 	shutdownOnce    sync.Once
+	status          health.PlatformStatusMsg
+	failureReason   health.FailureReasonMsg
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -138,6 +141,8 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 		userNamesForID:  map[string]string{},
 		messages:        make(chan mattermostMessage, platformMessageChannelSize),
 		messageWorkers:  pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:          health.StatusUnknown,
+		failureReason:   "",
 	}, nil
 }
 
@@ -160,11 +165,13 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// Check connection to Mattermost server
 	err := b.checkServerConnection(ctx)
 	if err != nil {
+		b.setStatusReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setStatusReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
@@ -172,7 +179,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
 	b.log.Info("Botkube connected to Mattermost!")
-
+	b.setStatusReason("")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -185,6 +192,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 			var appErr error
 			b.wsClient, appErr = model.NewWebSocketClient4(b.webSocketURL, b.apiClient.AuthToken)
 			if appErr != nil {
+				b.setStatusReason(health.FailureReasonConnectionError)
 				return fmt.Errorf("while creating WebSocket connection: %w", appErr)
 			}
 			b.listen(ctx)
@@ -585,4 +593,22 @@ func postFromEvent(event *model.WebSocketEvent) (*model.Post, error) {
 		return nil, fmt.Errorf("while getting post from event: %w", err)
 	}
 	return post, nil
+}
+
+func (b *Mattermost) setStatusReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		b.status = health.StatusHealthy
+	} else {
+		b.status = health.StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+// GetStatus gets bot status.
+func (b *Mattermost) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }
