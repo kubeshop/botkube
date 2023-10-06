@@ -14,6 +14,8 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+var _ Reloader = &RemoteConfigReloader{}
+
 // DeploymentClient defines GraphQL client.
 type DeploymentClient interface {
 	GetResourceVersion(ctx context.Context) (int, error)

@@ -2,15 +2,23 @@ package reloader
 
 import (
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/dynamic"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+const (
+	typeKey = "type"
+)
+
 // Get returns Reloader based on remoteCfgEnabled flag.
-func Get(remoteCfgEnabled bool, log logrus.FieldLogger, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) Reloader {
+func Get(remoteCfgEnabled bool, log logrus.FieldLogger, deployCli DeploymentClient, dynamicCli dynamic.Interface, restarter *Restarter, reporter analytics.Reporter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) (Reloader, error) {
 	if remoteCfgEnabled {
-		return NewRemote(log, deployCli, restarter, cfg, cfgVer, resVerHolders...)
+		log = log.WithField(typeKey, "remote")
+		return NewRemote(log, deployCli, restarter, cfg, cfgVer, resVerHolders...), nil
 	}
 
-	return NewNoopReloader()
+	log = log.WithField(typeKey, "in-cluster")
+	return NewInClusterConfigReloader(log, dynamicCli, cfg.ConfigWatcher, restarter, reporter)
 }

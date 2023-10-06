@@ -10,23 +10,21 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
 {{- if .Values.podSecurityPolicy.enabled }}
-  - apiGroups: ["extensions"]
-    resourceNames: ["botkube-psp"]
-    resources: ["podsecuritypolicies"]
-    verbs: ["use"]
+  - apiGroups: [ "extensions" ]
+    resourceNames: [ "botkube-psp" ]
+    resources: [ "podsecuritypolicies" ]
+    verbs: [ "use" ]
 {{ end }}
-  - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["list"]
-  - apiGroups:
-    - ""
-    resources:
-    - users
-    - groups
-    - serviceaccounts
-    verbs:
-    - impersonate
+  - apiGroups: [ "" ]
+    resources: [ "namespaces" ]
+    verbs: [ "get" ]
+  - apiGroups: [ "" ]
+    resources: [ "secrets", "configmaps" ]
+    verbs: [ "get", "list", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "nodes" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "" ]
+    resources: [ "users", "groups", "serviceaccounts" ]
+    verbs: [ "impersonate" ]
   {{- end }}
