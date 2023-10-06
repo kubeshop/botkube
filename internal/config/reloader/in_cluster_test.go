@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
@@ -407,7 +406,7 @@ func fixSecret(t *testing.T, name string, namespace string, labeled, isNewObj bo
 }
 
 func createFakeK8sCli(objects ...runtime.Object) (dynamic.Interface, func(t *testing.T, ctx context.Context)) {
-	gvrs := make(map[schema.GroupVersionResource]struct{})
+	gvrs := sync.Map{}
 	dynamicCli := fake.NewSimpleDynamicClient(scheme.Scheme, objects...)
 	dynamicCli.PrependWatchReactor("*", func(action clienttesting.Action) (handled bool, ret watch.Interface, err error) {
 		gvr := action.GetResource()
@@ -417,7 +416,7 @@ func createFakeK8sCli(objects ...runtime.Object) (dynamic.Interface, func(t *tes
 			return false, nil, err
 		}
 
-		gvrs[gvr] = struct{}{}
+		gvrs.Store(gvr, struct{}{})
 		return true, watch, nil
 	})
 
@@ -428,7 +427,12 @@ func createFakeK8sCli(objects ...runtime.Object) (dynamic.Interface, func(t *tes
 		//
 		// So here, we wait for the informer to establish the watcher for both Secrets and ConfigMaps.
 		err := wait.PollUntilContextCancel(ctx, 100*time.Millisecond, true, func(ctx context.Context) (done bool, err error) {
-			if len(gvrs) == 2 {
+			gvrsLen := 0
+			gvrs.Range(func(key, value any) bool {
+				gvrsLen++
+				return true
+			})
+			if gvrsLen == 2 {
 				return true, nil
 			}
 			return false, nil
