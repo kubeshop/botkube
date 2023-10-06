@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/notifier"
@@ -16,7 +17,14 @@ const (
 // Bot connects to communication channels and reads/sends messages. It is a two-way integration.
 type Bot interface {
 	Start(ctx context.Context) error
+	GetStatus() health.PlatformStatus
 	notifier.Bot
+}
+
+type Status struct {
+	Status   health.PlatformStatusMsg
+	Restarts string
+	Reason   health.FailureReasonMsg
 }
 
 // ExecutorFactory facilitates creation of execute.Executor instances.

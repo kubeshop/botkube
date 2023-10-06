@@ -16,6 +16,7 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -73,14 +74,16 @@ type Teams struct {
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
 
-	botName     string
-	AppID       string
-	AppPassword string
-	MessagePath string
-	Port        string
-	ClusterName string
-	Adapter     core.Adapter
-	renderer    *TeamsRenderer
+	botName       string
+	AppID         string
+	AppPassword   string
+	MessagePath   string
+	Port          string
+	ClusterName   string
+	Adapter       core.Adapter
+	renderer      *TeamsRenderer
+	status        health.PlatformStatusMsg
+	failureReason health.FailureReasonMsg
 }
 
 type consentContext struct {
@@ -118,6 +121,8 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 		renderer:        NewTeamsRenderer(),
 		conversations:   make(map[string]conversation),
 		botMentionRegex: botMentionRegex,
+		status:          health.StatusUnknown,
+		failureReason:   "",
 	}, nil
 }
 
@@ -131,6 +136,7 @@ func (b *Teams) Start(ctx context.Context) error {
 	}
 	b.Adapter, err = core.NewBotAdapter(setting)
 	if err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while starting Teams bot: %w", err)
 	}
 
@@ -141,14 +147,17 @@ func (b *Teams) Start(ctx context.Context) error {
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName())
 	if err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while reporting analytics: %w", err)
 	}
 
 	srv := httpx.NewServer(b.log, addr, router)
 	err = srv.Serve(ctx)
 	if err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while running MS Teams server: %w", err)
 	}
+	b.setFailureReason("")
 
 	return nil
 }
@@ -574,4 +583,22 @@ var emojiMapping = map[string]string{
 	":no_entry_sign:":           "🚫",
 	":large_green_circle:":      "🟢",
 	":new:":                     "🆕",
+}
+
+func (b *Teams) setFailureReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		b.status = health.StatusHealthy
+	} else {
+		b.status = health.StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+// GetStatus gets bot status.
+func (b *Teams) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
@@ -22,8 +23,10 @@ type Webhook struct {
 	log      logrus.FieldLogger
 	reporter AnalyticsReporter
 
-	URL      string
-	Bindings config.SinkBindings
+	URL           string
+	Bindings      config.SinkBindings
+	status        health.PlatformStatusMsg
+	failureReason health.FailureReasonMsg
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -36,10 +39,12 @@ type WebhookPayload struct {
 // NewWebhook creates a new Webhook instance.
 func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
-		log:      log,
-		reporter: reporter,
-		URL:      c.URL,
-		Bindings: c.Bindings,
+		log:           log,
+		reporter:      reporter,
+		URL:           c.URL,
+		Bindings:      c.Bindings,
+		status:        health.StatusUnknown,
+		failureReason: "",
 	}
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
@@ -59,9 +64,11 @@ func (w *Webhook) SendEvent(ctx context.Context, rawData any, sources []string) 
 
 	err := w.PostWebhook(ctx, jsonPayload)
 	if err != nil {
+		w.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while sending message to webhook: %w", err)
 	}
 
+	w.setFailureReason("")
 	w.log.Debugf("Message successfully sent to Webhook: %+v", rawData)
 	return nil
 }
@@ -106,4 +113,22 @@ func (w *Webhook) IntegrationName() config.CommPlatformIntegration {
 // Type describes the notifier type.
 func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
+}
+
+func (w *Webhook) setFailureReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		w.status = health.StatusHealthy
+	} else {
+		w.status = health.StatusUnHealthy
+	}
+	w.failureReason = reason
+}
+
+// GetStatus gets sink status
+func (w *Webhook) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   w.status,
+		Restarts: "0/0",
+		Reason:   w.failureReason,
+	}
 }
