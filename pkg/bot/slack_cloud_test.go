@@ -18,11 +18,11 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 5, func() error {
 				return retry.Unrecoverable(fixErr)
 			})
 			close(retriesFinalError)
@@ -40,11 +40,11 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 5, func() error {
 				return fixErr
 			})
 			close(retriesFinalError)
@@ -62,11 +62,11 @@ func TestWithRetriesFunc(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		fixErr := errors.New("some random error")
-
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(ctx, loggerx.NewNoop(), 0, func() error {
+			retriesFinalError <- bot.withRetries(ctx, loggerx.NewNoop(), 0, func() error {
 				return fixErr
 			})
 			close(retriesFinalError)
@@ -84,11 +84,11 @@ func TestWithRetriesFunc(t *testing.T) {
 		canceledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 		fixErr := errors.New("some random error")
-
+		bot := &CloudSlack{}
 		// when
 		retriesFinalError := make(chan error, 1)
 		go func() {
-			retriesFinalError <- withRetries(canceledCtx, loggerx.NewNoop(), 5, func() error {
+			retriesFinalError <- bot.withRetries(canceledCtx, loggerx.NewNoop(), 5, func() error {
 				return retry.Unrecoverable(fixErr)
 			})
 			close(retriesFinalError)

@@ -16,6 +16,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -50,6 +51,8 @@ type SocketSlack struct {
 	messages         chan slackMessage
 	messageWorkers   *pool.Pool
 	shutdownOnce     sync.Once
+	status           health.PlatformStatusMsg
+	failureReason    health.FailureReasonMsg
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -92,6 +95,8 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
 		messages:         make(chan slackMessage, platformMessageChannelSize),
 		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:           health.StatusUnknown,
+		failureReason:    "",
 	}, nil
 }
 
@@ -112,6 +117,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 		}
 	}()
 
+	b.setFailureReason("")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -126,6 +132,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
 				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
+					b.setFailureReason(health.FailureReasonConnectionError)
 					return fmt.Errorf("report analytics error: %w", err)
 				}
 				b.log.Info("Botkube connected to Slack!")
@@ -602,4 +609,21 @@ func (b *SocketSlack) getRealNameWithFallbackToUserID(ctx context.Context, userI
 
 	b.realNamesForID[userID] = user.RealName
 	return user.RealName
+}
+
+func (b *SocketSlack) setFailureReason(reason health.FailureReasonMsg) {
+	if reason == "" {
+		b.status = health.StatusHealthy
+	} else {
+		b.status = health.StatusUnHealthy
+	}
+	b.failureReason = reason
+}
+
+func (b *SocketSlack) GetStatus() health.PlatformStatus {
+	return health.PlatformStatus{
+		Status:   b.status,
+		Restarts: "0/0",
+		Reason:   b.failureReason,
+	}
 }

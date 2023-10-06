@@ -28,6 +28,7 @@ import (
 	intconfig "github.com/kubeshop/botkube/internal/config"
 	"github.com/kubeshop/botkube/internal/config/reloader"
 	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/httpx"
 	"github.com/kubeshop/botkube/internal/insights"
@@ -54,7 +55,6 @@ const (
 	botLogFieldKey            = "bot"
 	sinkLogFieldKey           = "sink"
 	commGroupFieldKey         = "commGroup"
-	healthEndpointName        = "/healthz"
 	printAPIKeyCharCount      = 3
 	reportHeartbeatInterval   = 10
 	reportHeartbeatMaxRetries = 30
@@ -188,19 +188,19 @@ func run(ctx context.Context) (err error) {
 	enabledPluginExecutors, enabledPluginSources := collector.GetAllEnabledAndUsedPlugins(conf)
 	pluginManager := plugin.NewManager(logger, conf.Settings.Log, conf.Plugins, enabledPluginExecutors, enabledPluginSources, schedulerChan, pluginHealthStats)
 
+	// Health endpoint
+	healthChecker := health.NewChecker(ctx, conf, pluginHealthStats)
+	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
+	errGroup.Go(func() error {
+		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		return healthSrv.Serve(ctx)
+	})
+
 	err = pluginManager.Start(ctx)
 	if err != nil {
 		return fmt.Errorf("while starting plugins manager: %w", err)
 	}
 	defer pluginManager.Shutdown()
-
-	// Health endpoint
-	healthChecker := healthChecker{applicationStarted: false}
-	healthSrv := newHealthServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort, &healthChecker)
-	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
-		return healthSrv.Serve(ctx)
-	})
 
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
@@ -317,6 +317,7 @@ func run(ctx context.Context) (err error) {
 			sinkNotifiers = append(sinkNotifiers, wh)
 		}
 	}
+	healthChecker.SetNotifiers(getHealthNotifiers(bots, sinkNotifiers))
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(
@@ -449,35 +450,6 @@ func newMetricsServer(log logrus.FieldLogger, metricsPort string) *httpx.Server 
 	return httpx.NewServer(log, addr, router)
 }
 
-func newHealthServer(log logrus.FieldLogger, port string, healthChecker *healthChecker) *httpx.Server {
-	addr := fmt.Sprintf(":%s", port)
-	router := mux.NewRouter()
-	router.Handle(healthEndpointName, healthChecker)
-	return httpx.NewServer(log, addr, router)
-}
-
-type healthChecker struct {
-	applicationStarted bool
-}
-
-func (h *healthChecker) MarkAsReady() {
-	h.applicationStarted = true
-}
-
-func (h *healthChecker) IsReady() bool {
-	return h.applicationStarted
-}
-
-func (h *healthChecker) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	if h.IsReady() {
-		resp.WriteHeader(http.StatusOK)
-		fmt.Fprint(resp, "ok")
-	} else {
-		resp.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprint(resp, "unavailable")
-	}
-}
-
 func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (analytics.Reporter, error) {
 	if disableAnalytics {
 		logger.Info("Analytics disabled via configuration settings.")
@@ -586,4 +558,16 @@ func findVersions(cli *kubernetes.Clientset) (string, string, error) {
 	}
 
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), k8sVer.String(), nil
+}
+
+func getHealthNotifiers(bots map[string]bot.Bot, sinks []notifier.Sink) map[string]health.Notifier {
+	notifiers := make(map[string]health.Notifier)
+	for key, botInstance := range bots {
+		notifiers[key] = botInstance
+	}
+	for key, sinkInstance := range sinks {
+		notifiers[fmt.Sprintf("%s-%d", sinkInstance.IntegrationName(), key)] = sinkInstance
+	}
+
+	return notifiers
 }
