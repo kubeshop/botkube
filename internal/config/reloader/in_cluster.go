@@ -99,13 +99,28 @@ func newGenericEventHandler(ctx context.Context, log logrus.FieldLogger, restart
 }
 
 func (g *genericEventHandler) OnAdd(obj interface{}, isInInitialList bool) {
-	g.log.WithFields(logrus.Fields{
+	log := g.log.WithField("type", "OnAdd")
+	log.WithFields(logrus.Fields{
 		"obj":             formatx.StructDumper().Sdump(obj),
 		"isInInitialList": isInInitialList,
-	}).Debug("OnAdd called")
+	}).Debug("Handling event...")
 
 	if isInInitialList {
-		g.log.Debug("OnAdd: this is the initial list. Skipping reloading...")
+		log.Debug("this is the initial list. Skipping reloading...")
+		return
+	}
+
+	unstrObj, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		log.Errorf("unexpected type of object: %T", obj)
+		return
+	}
+
+	// This shouldn't happen at all, as we use FilteredDynamicSharedInformerFactory
+	// which filters out objects without the label. However, fake K8s client doesn't seem to support labelSelector in tweakListOptions - at least in OnAdd events.
+	// Controversial decision here: I decided to handle this case anyway, just in case.
+	if unstrObj.GetLabels()[labelKey] != labelValue {
+		log.Debug("label is not set. Skipping...")
 		return
 	}
 
@@ -116,35 +131,36 @@ func (g *genericEventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 //
 // We don't need to handle the case when new object has removed the label. That case is handled by OnDelete.
 func (g *genericEventHandler) OnUpdate(oldObj, newObj interface{}) {
-	g.log.WithFields(logrus.Fields{
+	log := g.log.WithField("type", "OnUpdate")
+	log.WithFields(logrus.Fields{
 		"old": formatx.StructDumper().Sdump(oldObj),
 		"new": formatx.StructDumper().Sdump(newObj),
-	}).Debug("OnUpdate called")
+	}).Debug("Handling event...")
 
 	unstrOldObj, ok := oldObj.(*unstructured.Unstructured)
 	if !ok {
-		g.log.Errorf("unexpected type of old object: %T", oldObj)
+		log.Errorf("Unexpected type of old object: %T", oldObj)
 		return
 	}
 
 	unstrNewObj, ok := newObj.(*unstructured.Unstructured)
 	if !ok {
-		g.log.Errorf("unexpected type of new object: %T", newObj)
+		log.Errorf("Unexpected type of new object: %T", newObj)
 		return
 	}
 
 	if unstrOldObj.GetResourceVersion() == unstrNewObj.GetResourceVersion() {
-		g.log.Debug("OnUpdate: resource version is the same. Skipping...")
+		log.Debug("Resource version is the same. Skipping...")
 		return
 	}
 
-	g.log.Debug("Comparing content...")
+	log.Debug("Comparing content...")
 	// both Secret and ConfigMap have Data field
 	oldData := unstrOldObj.Object[dataKey]
 	newData := unstrNewObj.Object[dataKey]
 
 	if reflect.DeepEqual(oldData, newData) {
-		g.log.Debug("OnUpdate: content is the same. Skipping...")
+		g.log.Debug("Content is the same. Skipping...")
 		return
 	}
 
@@ -153,9 +169,9 @@ func (g *genericEventHandler) OnUpdate(oldObj, newObj interface{}) {
 
 func (g *genericEventHandler) OnDelete(obj interface{}) {
 	g.log.WithFields(logrus.Fields{
-		"obj": formatx.StructDumper().Sdump(obj),
-	}).Debug("OnDelete called")
-
+		"obj":  formatx.StructDumper().Sdump(obj),
+		"type": "OnDelete",
+	}).Debug("Handling event...")
 	g.reloadIfCan(g.ctx)
 }
 

@@ -165,8 +165,8 @@ configWatcher:
     enabled: false
     remote:
         pollInterval: 15s
-    initialSyncTimeout: 0s
-    tmpDir: ""
+    inCluster:
+        informerResyncPeriod: 0s
     deployment: {}
 plugins:
     cacheDir: /tmp
