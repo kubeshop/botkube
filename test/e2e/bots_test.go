@@ -672,7 +672,6 @@ func runBotTest(t *testing.T,
 				exit status 1`))
 				if botDriver.Type() == commplatform.DiscordBot {
 					expectedBody = codeBlock(heredoc.Docf(`
-				Defaulted container "botkube" out of: botkube, cfg-watcher
 				Error from server (Forbidden): pods "botkube-pod" is forbidden: User "kubectl-first-channel" cannot create resource "pods/exec" in API group "" in the namespace "botkube"
 
 				exit status 1`))
