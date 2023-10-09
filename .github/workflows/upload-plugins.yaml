@@ -3,7 +3,6 @@ on:
   push:
     branches:
     - main
-    - narrow-down-gcs-upload
 jobs:
   publish_plugins:
     runs-on: ubuntu-latest
