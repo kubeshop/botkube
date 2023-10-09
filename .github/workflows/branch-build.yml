@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix-slack-e2e # TODO: Remove before merge
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
@@ -27,9 +28,10 @@ jobs:
           fetch-depth: 0
       - name: Extract version
         id: extract-version
+        # TODO: Revert
         run: |
           IMAGE_VERSION=$(git rev-parse --short HEAD)
-          echo "versions={\"image-version\":[\"v9.99.9-dev\",\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
+          echo "versions={\"image-version\":[\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
   build:
     needs: [extract-metadata]
     strategy:
