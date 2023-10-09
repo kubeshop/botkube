@@ -3,6 +3,7 @@ on:
   push:
     branches:
     - main
+    - narrow-down-gcs-upload
 jobs:
   publish_plugins:
     runs-on: ubuntu-latest
@@ -43,6 +44,7 @@ jobs:
       with:
           path: 'plugin-dist'
           destination: 'botkube-plugins-latest/'
+          glob: '*.tar.gz'
           parent: false
     - name: Upload plugin index to GCS
       uses: google-github-actions/upload-cloud-storage@v1
