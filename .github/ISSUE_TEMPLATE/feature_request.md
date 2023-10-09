@@ -18,6 +18,7 @@ labels: enhancement
 <!-- Provide a list of conditions that must be satisfied to close this issue. -->
 - [ ] Make sure documentation is up-to-date, create one if needed
 - [ ] Add test coverage for happy-path (unit or e2e test)
+- [ ] Record raw demo video for the user-facing changes
 
 ## Reason
 
