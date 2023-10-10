@@ -3,6 +3,7 @@ package helmx
 import (
 	"encoding/json"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -23,9 +24,11 @@ type versionsResponse struct {
 }
 
 // ToOptions converts Command to helm install options.
-func (p *InstallChartParams) ToOptions() []string {
+func (p *InstallChartParams) ToOptions(version string) []string {
 	cmd := strings.Replace(p.Command, "\n", "", -1)
 	cmd = strings.Replace(cmd, "\\", " ", -1)
+	versionRegex := regexp.MustCompile(`--version (\S+)`)
+	cmd = versionRegex.ReplaceAllString(cmd, "--version "+version)
 	return strings.Fields(cmd)[1:]
 }
 
@@ -54,9 +57,10 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	latestVersion := latestVersion(t, versionsOutput)
 	t.Logf("Found version: %s", latestVersion)
 
-	t.Logf("Installing chart %s with command %s", params.Name, params.ToOptions())
+	helmOpts := params.ToOptions(latestVersion)
+	t.Logf("Installing chart %s with command %s", params.Name, helmOpts)
 	//nolint:gosec // this is not production code
-	cmd = exec.Command("helm", params.ToOptions()...)
+	cmd = exec.Command("helm", helmOpts...)
 	installOutput, err := cmd.CombinedOutput()
 	t.Log(string(installOutput))
 	require.NoError(t, err)
