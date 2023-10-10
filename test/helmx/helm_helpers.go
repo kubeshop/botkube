@@ -1,6 +1,7 @@
 package helmx
 
 import (
+	"encoding/json"
 	"os/exec"
 	"strings"
 	"testing"
@@ -15,6 +16,10 @@ type InstallChartParams struct {
 	Name      string
 	Namespace string
 	Command   string
+}
+
+type versionsResponse struct {
+	Version string `json:"version"`
 }
 
 // ToOptions converts Command to helm install options.
@@ -42,6 +47,13 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	t.Log(string(repoUpdateOutput))
 	require.NoError(t, err)
 
+	t.Log("Finding latest version...")
+	cmd = exec.Command("helm", "search", "repo", params.RepoName, "--devel", "--versions", "-o", "json") // #nosec G204
+	versionsOutput, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	latestVersion := latestVersion(t, versionsOutput)
+	t.Logf("Found version: %s", latestVersion)
+
 	t.Logf("Installing chart %s with command %s", params.Name, params.ToOptions())
 	//nolint:gosec // this is not production code
 	cmd = exec.Command("helm", params.ToOptions()...)
@@ -58,4 +70,12 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 		t.Log(string(delOutput))
 		require.NoError(t, err)
 	}
+}
+
+func latestVersion(t *testing.T, versionsOutput []byte) string {
+	var versions []versionsResponse
+	err := json.Unmarshal(versionsOutput, &versions)
+	require.NoError(t, err)
+	require.NotEmpty(t, versions)
+	return versions[0].Version
 }

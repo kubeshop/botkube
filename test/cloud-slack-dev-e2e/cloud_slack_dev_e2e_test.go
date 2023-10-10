@@ -328,7 +328,6 @@ func TestCloudSlackE2E(t *testing.T) {
 		})
 
 		params := helmx.InstallChartParams{
-			// TODO(https://github.com/kubeshop/botkube/issues/1203): Update Helm chart version to the latest released one
 			RepoURL:   "https://storage.googleapis.com/botkube-latest-main-charts",
 			RepoName:  "botkube",
 			Name:      "botkube",
