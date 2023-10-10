@@ -34,6 +34,7 @@ import (
 	"github.com/kubeshop/botkube/test/cloud_graphql"
 	gqlModel "github.com/kubeshop/botkube/test/cloud_graphql/model"
 	"github.com/kubeshop/botkube/test/commplatform"
+	"github.com/kubeshop/botkube/test/diff"
 	"github.com/kubeshop/botkube/test/helmx"
 )
 
@@ -481,12 +482,20 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
-			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedWatchBeginMsg)
+			recentMessages := 2 // take into the account the  optional "upgrade checker message"
+			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
+				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
+					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
+					msgDiff := diff.Diff(expectedWatchBeginMsg, msg)
+					return false, count, msgDiff
+				}
+				return true, 0, ""
+			})
 			require.NoError(t, err)
 			tester.PostMessageToBot(t, channel.ID(), "list sources")
 
 			t.Log("Waiting for empty source list...")
-			expectedSourceListMsg := fmt.Sprintf("%s\n```\nSOURCE ENABLED\n```", cmdHeader("list sources"))
+			expectedSourceListMsg := fmt.Sprintf("%s\n```\nSOURCE ENABLED RESTARTS STATUS LAST_RESTART\n```", cmdHeader("list sources"))
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedSourceListMsg)
 			require.NoError(t, err)
 			tester.PostMessageToBot(t, channel.ID(), "list actions")
