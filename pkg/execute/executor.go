@@ -258,12 +258,12 @@ func removeMultipleSpaces(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, verb string, withFilter bool, cmdCtx CommandContext) {
-	if err := e.analyticsReporter.ReportCommand(e.platform, verb, e.conversation.CommandOrigin, withFilter); err != nil {
-		e.log.Errorf("while reporting %s command: %s", verb, err.Error())
+func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, cmd string, withFilter bool, cmdCtx CommandContext) {
+	if err := e.analyticsReporter.ReportCommand(e.platform, pluginName, cmd, e.conversation.CommandOrigin, withFilter); err != nil {
+		e.log.Errorf("while reporting %s command: %s", cmd, err.Error())
 	}
 	if err := e.reportAuditEvent(ctx, pluginName, cmdCtx); err != nil {
-		e.log.Errorf("while reporting executor audit event for %s: %s", verb, err.Error())
+		e.log.Errorf("while reporting executor audit event for %s: %s", cmd, err.Error())
 	}
 }
 

@@ -69,10 +69,11 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error {
+func (r *SegmentReporter) ReportCommand(platform config.CommPlatformIntegration, pluginName, command string, origin command.Origin, withFilter bool) error {
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": platform,
 		"command":  command,
+		"plugin":   pluginName,
 		"origin":   origin,
 		"filtered": withFilter,
 	})

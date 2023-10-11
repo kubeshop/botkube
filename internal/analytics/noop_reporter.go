@@ -25,7 +25,7 @@ func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.In
 }
 
 // ReportCommand reports a new executed command. The command should be anonymized before using this method.
-func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _ string, _ command.Origin, _ bool) error {
+func (n NoopReporter) ReportCommand(_ config.CommPlatformIntegration, _, _ string, _ command.Origin, _ bool) error {
 	return nil
 }
 

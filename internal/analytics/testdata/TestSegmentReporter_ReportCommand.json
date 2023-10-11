@@ -9,7 +9,8 @@
 			"command": "enable notifications",
 			"filtered": false,
 			"origin": "typed",
-			"platform": "discord"
+			"platform": "discord",
+			"plugin": ""
 		}
 	},
 	{
@@ -22,7 +23,8 @@
 			"command": "get",
 			"filtered": false,
 			"origin": "buttonClick",
-			"platform": "slack"
+			"platform": "slack",
+			"plugin": "botkube/kubectl"
 		}
 	},
 	{
@@ -35,7 +37,8 @@
 			"command": "disable notifications",
 			"filtered": false,
 			"origin": "selectValueChange",
-			"platform": "teams"
+			"platform": "teams",
+			"plugin": ""
 		}
 	}
 ]

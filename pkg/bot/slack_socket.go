@@ -58,7 +58,7 @@ type SocketSlack struct {
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
+	ReportCommand(platform config.CommPlatformIntegration, pluginName, command string, origin command.Origin, withFilter bool) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
@@ -183,7 +183,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					act := callback.ActionCallback.BlockActions[0]
 					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
+						reportErr := b.reporter.ReportCommand(b.IntegrationName(), "", act.ActionID, command.ButtonClickOrigin, false)
 						if reportErr != nil {
 							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 						}
