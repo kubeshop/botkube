@@ -6,6 +6,7 @@
 		"event": "Integration enabled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
+			"index": 1,
 			"platform": "webhook",
 			"type": "sink"
 		}
@@ -17,6 +18,7 @@
 		"event": "Integration enabled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
+			"index": 2,
 			"platform": "elasticsearch",
 			"type": "sink"
 		}

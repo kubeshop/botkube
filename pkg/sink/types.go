@@ -13,5 +13,5 @@ type Sink interface {
 // AnalyticsReporter defines a reporter that collects analytics data for sinks.
 type AnalyticsReporter interface {
 	// ReportSinkEnabled reports an enabled sink.
-	ReportSinkEnabled(platform config.CommPlatformIntegration) error
+	ReportSinkEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error
 }

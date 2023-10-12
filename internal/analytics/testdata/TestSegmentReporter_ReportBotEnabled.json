@@ -6,6 +6,7 @@
 		"event": "Integration enabled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
+			"index": 1,
 			"platform": "slack",
 			"type": "bot"
 		}
@@ -17,6 +18,7 @@
 		"event": "Integration enabled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
+			"index": 2,
 			"platform": "discord",
 			"type": "bot"
 		}
@@ -28,6 +30,7 @@
 		"event": "Integration enabled",
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
+			"index": 1,
 			"platform": "teams",
 			"type": "bot"
 		}

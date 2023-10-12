@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -49,34 +50,34 @@ var _ Bot = &CloudSlack{}
 
 // CloudSlack listens for user's message, execute commands and sends back the response.
 type CloudSlack struct {
-	log              logrus.FieldLogger
-	cfg              config.CloudSlack
-	client           *slack.Client
-	executorFactory  ExecutorFactory
-	reporter         cloudSlackAnalyticsReporter
-	commGroupName    string
-	realNamesForID   map[string]string
-	botMentionRegex  *regexp.Regexp
-	botID            string
-	channelsMutex    sync.RWMutex
-	renderer         *SlackRenderer
-	channels         map[string]channelConfigByName
-	notifyMutex      sync.Mutex
-	clusterName      string
-	msgStatusTracker *SlackMessageStatusTracker
-	status           health.PlatformStatusMsg
-	failuresNo       int
-	failureReason    health.FailureReasonMsg
+	log               logrus.FieldLogger
+	cfg               config.CloudSlack
+	client            *slack.Client
+	executorFactory   ExecutorFactory
+	reporter          cloudSlackAnalyticsReporter
+	commGroupMetadata CommGroupMetadata
+	realNamesForID    map[string]string
+	botMentionRegex   *regexp.Regexp
+	botID             string
+	channelsMutex     sync.RWMutex
+	renderer          *SlackRenderer
+	channels          map[string]channelConfigByName
+	notifyMutex       sync.Mutex
+	clusterName       string
+	msgStatusTracker  *SlackMessageStatusTracker
+	status            health.PlatformStatusMsg
+	failuresNo        int
+	failureReason     health.FailureReasonMsg
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
 type cloudSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, pluginName, command string, origin command.Origin, withFilter bool) error
+	ReportCommand(in analytics.ReportCommand) error
 }
 
 func NewCloudSlack(log logrus.FieldLogger,
-	commGroupName string,
+	commGroupMetadata CommGroupMetadata,
 	cfg config.CloudSlack,
 	clusterName string,
 	executorFactory ExecutorFactory,
@@ -99,22 +100,22 @@ func NewCloudSlack(log logrus.FieldLogger,
 	}
 
 	return &CloudSlack{
-		log:              log,
-		cfg:              cfg,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		commGroupName:    commGroupName,
-		botMentionRegex:  botMentionRegex,
-		renderer:         NewSlackRenderer(),
-		channels:         channels,
-		client:           client,
-		botID:            cfg.BotID,
-		clusterName:      clusterName,
-		realNamesForID:   map[string]string{},
-		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		status:           health.StatusUnknown,
-		failuresNo:       0,
-		failureReason:    "",
+		log:               log,
+		cfg:               cfg,
+		executorFactory:   executorFactory,
+		reporter:          reporter,
+		commGroupMetadata: commGroupMetadata,
+		botMentionRegex:   botMentionRegex,
+		renderer:          NewSlackRenderer(),
+		channels:          channels,
+		client:            client,
+		botID:             cfg.BotID,
+		clusterName:       clusterName,
+		realNamesForID:    map[string]string{},
+		msgStatusTracker:  NewSlackMessageStatusTracker(log, client),
+		status:            health.StatusUnknown,
+		failuresNo:        0,
+		failureReason:     "",
 	}, nil
 }
 
@@ -318,7 +319,12 @@ func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectRe
 
 			act := callback.ActionCallback.BlockActions[0]
 			if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-				reportErr := b.reporter.ReportCommand(b.IntegrationName(), "", act.ActionID, command.ButtonClickOrigin, false)
+				reportErr := b.reporter.ReportCommand(
+					analytics.ReportCommand{
+						Platform: b.IntegrationName(),
+						Command:  act.ActionID,
+						Origin:   command.ButtonClickOrigin,
+					})
 				if reportErr != nil {
 					b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 				}
@@ -481,7 +487,7 @@ func (b *CloudSlack) handleMessage(ctx context.Context, event slackMessage) erro
 	channel, exists := b.getChannels()[info.Name]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{

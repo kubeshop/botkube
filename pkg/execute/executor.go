@@ -10,6 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	"github.com/kubeshop/botkube/internal/plugin"
 	remoteapi "github.com/kubeshop/botkube/internal/remote"
@@ -259,7 +260,13 @@ func removeMultipleSpaces(s string) string {
 }
 
 func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, cmd string, withFilter bool, cmdCtx CommandContext) {
-	if err := e.analyticsReporter.ReportCommand(e.platform, pluginName, cmd, e.conversation.CommandOrigin, withFilter); err != nil {
+	if err := e.analyticsReporter.ReportCommand(analytics.ReportCommand{
+		Platform:   e.platform,
+		PluginName: pluginName,
+		Command:    cmd,
+		Origin:     e.conversation.CommandOrigin,
+		WithFilter: withFilter,
+	}); err != nil {
 		e.log.Errorf("while reporting %s command: %s", cmd, err.Error())
 	}
 	if err := e.reportAuditEvent(ctx, pluginName, cmdCtx); err != nil {

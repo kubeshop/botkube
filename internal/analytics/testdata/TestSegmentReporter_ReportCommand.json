@@ -21,7 +21,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"command": "get",
-			"filtered": false,
+			"filtered": true,
 			"origin": "buttonClick",
 			"platform": "slack",
 			"plugin": "botkube/kubectl"

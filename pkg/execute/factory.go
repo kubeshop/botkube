@@ -7,6 +7,7 @@ import (
 	"github.com/slack-go/slack"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
 	guard "github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/plugin"
@@ -58,7 +59,7 @@ type Executor interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(platform config.CommPlatformIntegration, pluginName, command string, origin command.Origin, withFilter bool) error
+	ReportCommand(in analytics.ReportCommand) error
 }
 
 // CommandGuard is an interface that allows to check if a given command is allowed to be executed.
