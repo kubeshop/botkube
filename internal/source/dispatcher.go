@@ -46,10 +46,10 @@ type ActionProvider interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportHandledEventSuccess reports a successfully handled event using a given integration type, communication platform, and plugin.
-	ReportHandledEventSuccess(event analytics.ReportEvent) error
+	ReportHandledEventSuccess(event analytics.ReportEventInput) error
 
 	// ReportHandledEventError reports a failure while handling event using a given integration type, communication platform, and plugin.
-	ReportHandledEventError(event analytics.ReportEvent, err error) error
+	ReportHandledEventError(event analytics.ReportEventInput, err error) error
 
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
@@ -291,7 +291,7 @@ type genericNotifier interface {
 
 func (d *Dispatcher) reportSuccess(n genericNotifier, pluginName string, event source.Event) error {
 	errs := multierror.New()
-	reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEvent{
+	reportErr := d.reporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       n.Type(),
 		Platform:              n.IntegrationName(),
 		PluginName:            pluginName,
@@ -305,7 +305,7 @@ func (d *Dispatcher) reportSuccess(n genericNotifier, pluginName string, event s
 
 func (d *Dispatcher) reportError(err error, n genericNotifier, pluginName string, event source.Event) error {
 	errs := multierror.New()
-	reportErr := d.reporter.ReportHandledEventError(analytics.ReportEvent{
+	reportErr := d.reporter.ReportHandledEventError(analytics.ReportEventInput{
 		IntegrationType:       n.Type(),
 		Platform:              n.IntegrationName(),
 		PluginName:            pluginName,

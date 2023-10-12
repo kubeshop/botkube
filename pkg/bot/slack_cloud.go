@@ -73,7 +73,7 @@ type CloudSlack struct {
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
 type cloudSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(in analytics.ReportCommand) error
+	ReportCommand(in analytics.ReportCommandInput) error
 }
 
 func NewCloudSlack(log logrus.FieldLogger,
@@ -320,7 +320,7 @@ func (b *CloudSlack) handleStreamMessage(ctx context.Context, data *pb.ConnectRe
 			act := callback.ActionCallback.BlockActions[0]
 			if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
 				reportErr := b.reporter.ReportCommand(
-					analytics.ReportCommand{
+					analytics.ReportCommandInput{
 						Platform: b.IntegrationName(),
 						Command:  act.ActionID,
 						Origin:   command.ButtonClickOrigin,

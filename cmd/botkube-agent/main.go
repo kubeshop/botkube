@@ -44,6 +44,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/maputil"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -239,10 +240,15 @@ func run(ctx context.Context) (err error) {
 	//    For example, if in both communication groups there's a Slack configuration pointing to the same workspace,
 	//	  when user executes `kubectl` command, one Bot instance will execute the command and return response,
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
-	commGroupIdx := 1
-	for commGroupName, commGroupCfg := range conf.Communications {
+	commKeys := maputil.SortKeys(conf.Communications)
+	for commGroupIdx, commGroupName := range commKeys {
+		commGroupCfg := conf.Communications[commGroupName]
+
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
-		commGroupMeta := bot.CommGroupMetadata{Name: commGroupName, Index: commGroupIdx}
+		commGroupMeta := bot.CommGroupMetadata{
+			Name:  commGroupName,
+			Index: commGroupIdx + 1,
+		}
 
 		scheduleBotNotifier := func(in bot.Bot) {
 			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
@@ -318,8 +324,6 @@ func run(ctx context.Context) (err error) {
 
 			sinkNotifiers = append(sinkNotifiers, wh)
 		}
-
-		commGroupIdx++
 	}
 	healthChecker.SetNotifiers(getHealthNotifiers(bots, sinkNotifiers))
 

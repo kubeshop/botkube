@@ -101,14 +101,14 @@ func TestSegmentReporter_ReportCommand(t *testing.T) {
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 
 	// when
-	err := segmentReporter.ReportCommand(analytics.ReportCommand{
+	err := segmentReporter.ReportCommand(analytics.ReportCommandInput{
 		Platform: config.DiscordCommPlatformIntegration,
 		Command:  "enable notifications",
 		Origin:   command.TypedOrigin,
 	})
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportCommand(analytics.ReportCommand{
+	err = segmentReporter.ReportCommand(analytics.ReportCommandInput{
 		Platform:   config.SlackCommPlatformIntegration,
 		PluginName: "botkube/kubectl",
 		Command:    "get",
@@ -117,7 +117,7 @@ func TestSegmentReporter_ReportCommand(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportCommand(analytics.ReportCommand{
+	err = segmentReporter.ReportCommand(analytics.ReportCommandInput{
 		Platform: config.TeamsCommPlatformIntegration,
 		Command:  "disable notifications",
 		Origin:   command.SelectValueChangeOrigin,
@@ -177,7 +177,7 @@ func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
 	}
 
 	// when
-	err := segmentReporter.ReportHandledEventSuccess(analytics.ReportEvent{
+	err := segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       config.BotIntegrationType,
 		Platform:              config.SlackCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
@@ -185,7 +185,7 @@ func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEvent{
+	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       config.SinkIntegrationType,
 		Platform:              config.ElasticsearchCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
@@ -209,7 +209,7 @@ func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
 	sampleErr := errors.New("sample error")
 
 	// when
-	err := segmentReporter.ReportHandledEventError(analytics.ReportEvent{
+	err := segmentReporter.ReportHandledEventError(analytics.ReportEventInput{
 		IntegrationType:       config.BotIntegrationType,
 		Platform:              config.SlackCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
@@ -217,7 +217,7 @@ func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
 	}, sampleErr)
 	require.NoError(t, err)
 
-	err = segmentReporter.ReportHandledEventError(analytics.ReportEvent{
+	err = segmentReporter.ReportHandledEventError(analytics.ReportEventInput{
 		IntegrationType:       config.SinkIntegrationType,
 		Platform:              config.ElasticsearchCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",

@@ -14,8 +14,8 @@ type Reporter interface {
 	// RegisterCurrentIdentity loads the current anonymous identity and registers it.
 	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, deployID string) error
 
-	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-	ReportCommand(in ReportCommand) error
+	// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
+	ReportCommand(in ReportCommandInput) error
 
 	// ReportBotEnabled reports an enabled bot.
 	ReportBotEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error
@@ -24,10 +24,10 @@ type Reporter interface {
 	ReportSinkEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error
 
 	// ReportHandledEventSuccess reports a successfully handled event using a given integration type, communication platform, and plugin.
-	ReportHandledEventSuccess(event ReportEvent) error
+	ReportHandledEventSuccess(event ReportEventInput) error
 
 	// ReportHandledEventError reports a failure while handling event using a given integration type, communication platform, and plugin.
-	ReportHandledEventError(event ReportEvent, err error) error
+	ReportHandledEventError(event ReportEventInput, err error) error
 
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
@@ -36,14 +36,14 @@ type Reporter interface {
 	Close() error
 }
 
-type ReportEvent struct {
+type ReportEventInput struct {
 	IntegrationType       config.IntegrationType
 	Platform              config.CommPlatformIntegration
 	PluginName            string
 	AnonymizedEventFields map[string]any
 }
 
-type ReportCommand struct {
+type ReportCommandInput struct {
 	Platform   config.CommPlatformIntegration
 	PluginName string
 	Command    string

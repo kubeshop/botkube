@@ -260,7 +260,7 @@ func removeMultipleSpaces(s string) string {
 }
 
 func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, cmd string, withFilter bool, cmdCtx CommandContext) {
-	if err := e.analyticsReporter.ReportCommand(analytics.ReportCommand{
+	if err := e.analyticsReporter.ReportCommand(analytics.ReportCommandInput{
 		Platform:   e.platform,
 		PluginName: pluginName,
 		Command:    cmd,

@@ -66,9 +66,9 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 	return nil
 }
 
-// ReportCommand reports a new executed command. The command should be anonymized before using this method.
+// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportCommand(in ReportCommand) error {
+func (r *SegmentReporter) ReportCommand(in ReportCommandInput) error {
 	return r.reportEvent("Command executed", map[string]interface{}{
 		"platform": in.Platform,
 		"command":  in.Command,
@@ -82,9 +82,9 @@ func (r *SegmentReporter) ReportCommand(in ReportCommand) error {
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error {
 	return r.reportEvent("Integration enabled", map[string]interface{}{
-		"platform": platform,
-		"type":     config.BotIntegrationType,
-		"index":    commGroupIdx,
+		"platform":             platform,
+		"type":                 config.BotIntegrationType,
+		"communicationGroupID": commGroupIdx,
 	})
 }
 
@@ -92,15 +92,15 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportSinkEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error {
 	return r.reportEvent("Integration enabled", map[string]interface{}{
-		"platform": platform,
-		"type":     config.SinkIntegrationType,
-		"index":    commGroupIdx,
+		"platform":             platform,
+		"type":                 config.SinkIntegrationType,
+		"communicationGroupID": commGroupIdx,
 	})
 }
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEvent) error {
+func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEventInput) error {
 	return r.reportEvent("Event handled", map[string]interface{}{
 		"platform": event.Platform,
 		"type":     event.IntegrationType,
@@ -112,7 +112,7 @@ func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEvent) error {
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
-func (r *SegmentReporter) ReportHandledEventError(event ReportEvent, err error) error {
+func (r *SegmentReporter) ReportHandledEventError(event ReportEventInput, err error) error {
 	if err == nil {
 		return nil
 	}

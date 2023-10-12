@@ -23,8 +23,8 @@ func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.In
 	return nil
 }
 
-// ReportCommand reports a new executed command. The command should be anonymized before using this method.
-func (n NoopReporter) ReportCommand(_ ReportCommand) error {
+// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
+func (n NoopReporter) ReportCommand(_ ReportCommandInput) error {
 	return nil
 }
 
@@ -39,12 +39,12 @@ func (n NoopReporter) ReportSinkEnabled(_ config.CommPlatformIntegration, _ int)
 }
 
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
-func (n NoopReporter) ReportHandledEventSuccess(_ ReportEvent) error {
+func (n NoopReporter) ReportHandledEventSuccess(_ ReportEventInput) error {
 	return nil
 }
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
-func (n NoopReporter) ReportHandledEventError(_ ReportEvent, _ error) error {
+func (n NoopReporter) ReportHandledEventError(_ ReportEventInput, _ error) error {
 	return nil
 }
 
