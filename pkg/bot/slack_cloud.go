@@ -212,6 +212,12 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	b.setFailureReason("")
 	go b.startMessageProcessor(ctx, messageWorkers, messages)
 
+	if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
+		b.setFailureReason(health.FailureReasonConnectionError)
+		return fmt.Errorf("report analytics error: %w", err)
+	}
+	b.log.Info("Botkube connected to Slack!")
+
 	for {
 		data, err := c.Recv()
 		if err != nil {
