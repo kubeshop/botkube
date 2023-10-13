@@ -69,7 +69,7 @@ type Teams struct {
 	//channels map[string][ChannelBindingsByName]
 	bindings           config.BotBindings
 	conversationsMutex sync.RWMutex
-	commGroupName      string
+	commGroupMetadata  CommGroupMetadata
 	conversations      map[string]conversation
 	notifyMutex        sync.Mutex
 	botMentionRegex    *regexp.Regexp
@@ -91,7 +91,7 @@ type consentContext struct {
 }
 
 // NewTeams creates a new Teams instance.
-func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Teams, error) {
+func NewTeams(log logrus.FieldLogger, commGroupMetadata CommGroupMetadata, cfg config.Teams, clusterName string, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Teams, error) {
 	botMentionRegex, err := teamsBotMentionRegex(cfg.BotName)
 	if err != nil {
 		return nil, err
@@ -107,22 +107,22 @@ func NewTeams(log logrus.FieldLogger, commGroupName string, cfg config.Teams, cl
 	}
 
 	return &Teams{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		botName:         cfg.BotName,
-		ClusterName:     clusterName,
-		AppID:           cfg.AppID,
-		AppPassword:     cfg.AppPassword,
-		bindings:        cfg.Bindings,
-		commGroupName:   commGroupName,
-		MessagePath:     msgPath,
-		Port:            port,
-		renderer:        NewTeamsRenderer(),
-		conversations:   make(map[string]conversation),
-		botMentionRegex: botMentionRegex,
-		status:          health.StatusUnknown,
-		failureReason:   "",
+		log:               log,
+		executorFactory:   executorFactory,
+		reporter:          reporter,
+		botName:           cfg.BotName,
+		ClusterName:       clusterName,
+		AppID:             cfg.AppID,
+		AppPassword:       cfg.AppPassword,
+		bindings:          cfg.Bindings,
+		commGroupMetadata: commGroupMetadata,
+		MessagePath:       msgPath,
+		Port:              port,
+		renderer:          NewTeamsRenderer(),
+		conversations:     make(map[string]conversation),
+		botMentionRegex:   botMentionRegex,
+		status:            health.StatusUnknown,
+		failureReason:     "",
 	}, nil
 }
 
@@ -145,10 +145,9 @@ func (b *Teams) Start(ctx context.Context) error {
 	router := mux.NewRouter()
 	router.PathPrefix(b.MessagePath).HandlerFunc(b.processActivity)
 
-	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	err = b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 	if err != nil {
-		b.setFailureReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("while reporting analytics: %w", err)
+		b.log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	srv := httpx.NewServer(b.log, addr, router)
@@ -289,7 +288,7 @@ func (b *Teams) processMessage(ctx context.Context, activity schema.Activity) (i
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: newTeamsNotifMgrForActivity(b, ref),
 		Conversation: execute.Conversation{

@@ -50,7 +50,7 @@ type Slack struct {
 	channels            map[string]channelConfigByName
 	notifyMutex         sync.Mutex
 	botMentionRegex     *regexp.Regexp
-	commGroupName       string
+	commGroupMetadata   CommGroupMetadata
 	renderer            *SlackRenderer
 	messages            chan slackLegacyMessage
 	slackMessageWorkers *pool.Pool
@@ -68,7 +68,7 @@ type slackLegacyMessage struct {
 }
 
 // NewSlack creates a new Slack instance.
-func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
+func NewSlack(log logrus.FieldLogger, commGroupMetadata CommGroupMetadata, cfg config.Slack, executorFactory ExecutorFactory, reporter FatalErrorAnalyticsReporter) (*Slack, error) {
 	client := slack.New(cfg.Token)
 
 	authResp, err := client.AuthTest()
@@ -94,7 +94,7 @@ func NewSlack(log logrus.FieldLogger, commGroupName string, cfg config.Slack, ex
 		botID:               botID,
 		client:              client,
 		channels:            channels,
-		commGroupName:       commGroupName,
+		commGroupMetadata:   commGroupMetadata,
 		botMentionRegex:     botMentionRegex,
 		renderer:            NewSlackRenderer(),
 		messages:            make(chan slackLegacyMessage, platformMessageChannelSize),
@@ -145,10 +145,9 @@ func (b *Slack) Start(ctx context.Context) error {
 
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
-				err := b.reporter.ReportBotEnabled(b.IntegrationName())
+				err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 				if err != nil {
-					b.setFailureReason(health.FailureReasonConnectionError)
-					return fmt.Errorf("while reporting analytics: %w", err)
+					b.log.Errorf("report analytics error: %s", err.Error())
 				}
 
 				b.log.Info("Botkube connected to Slack!")
@@ -260,7 +259,7 @@ func (b *Slack) handleMessage(ctx context.Context, msg slackLegacyMessage) error
 	channel, exists := b.getChannels()[info.Name]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{

@@ -35,7 +35,7 @@ type ExecutorFactory interface {
 // AnalyticsReporter defines a reporter that collects analytics data.
 type AnalyticsReporter interface {
 	// ReportBotEnabled reports an enabled bot.
-	ReportBotEnabled(platform config.CommPlatformIntegration) error
+	ReportBotEnabled(platform config.CommPlatformIntegration, commGroupIdx int) error
 }
 
 // FatalErrorAnalyticsReporter reports a fatal errors.
@@ -62,6 +62,11 @@ type channelConfigByName struct {
 
 	alias  string
 	notify bool
+}
+
+type CommGroupMetadata struct {
+	Name  string
+	Index int
 }
 
 func AsNotifiers(bots map[string]Bot) []notifier.Bot {

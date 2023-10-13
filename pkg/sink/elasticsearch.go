@@ -55,7 +55,7 @@ type Elasticsearch struct {
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
-func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
+func NewElasticsearch(log logrus.FieldLogger, commGroupIdx int, c config.Elasticsearch, reporter AnalyticsReporter) (*Elasticsearch, error) {
 	var elsClient *elastic.Client
 	var err error
 
@@ -138,9 +138,9 @@ func NewElasticsearch(log logrus.FieldLogger, c config.Elasticsearch, reporter A
 		failureReason:  "",
 	}
 
-	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName())
+	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName(), commGroupIdx)
 	if err != nil {
-		return nil, fmt.Errorf("while reporting analytics: %w", err)
+		log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	return esNotifier, nil

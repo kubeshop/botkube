@@ -51,28 +51,28 @@ const (
 
 // Mattermost listens for user's message, execute commands and sends back the response.
 type Mattermost struct {
-	log             logrus.FieldLogger
-	executorFactory ExecutorFactory
-	reporter        AnalyticsReporter
-	serverURL       string
-	botName         string
-	botUserID       string
-	teamName        string
-	webSocketURL    string
-	wsClient        *model.WebSocketClient
-	apiClient       *model.Client4
-	channelsMutex   sync.RWMutex
-	commGroupName   string
-	channels        map[string]channelConfigByID
-	notifyMutex     sync.Mutex
-	botMentionRegex *regexp.Regexp
-	renderer        *MattermostRenderer
-	userNamesForID  map[string]string
-	messages        chan mattermostMessage
-	messageWorkers  *pool.Pool
-	shutdownOnce    sync.Once
-	status          health.PlatformStatusMsg
-	failureReason   health.FailureReasonMsg
+	log               logrus.FieldLogger
+	executorFactory   ExecutorFactory
+	reporter          AnalyticsReporter
+	serverURL         string
+	botName           string
+	botUserID         string
+	teamName          string
+	webSocketURL      string
+	wsClient          *model.WebSocketClient
+	apiClient         *model.Client4
+	channelsMutex     sync.RWMutex
+	commGroupMetadata CommGroupMetadata
+	channels          map[string]channelConfigByID
+	notifyMutex       sync.Mutex
+	botMentionRegex   *regexp.Regexp
+	renderer          *MattermostRenderer
+	userNamesForID    map[string]string
+	messages          chan mattermostMessage
+	messageWorkers    *pool.Pool
+	shutdownOnce      sync.Once
+	status            health.PlatformStatusMsg
+	failureReason     health.FailureReasonMsg
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -81,7 +81,7 @@ type mattermostMessage struct {
 }
 
 // NewMattermost creates a new Mattermost instance.
-func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName string, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
+func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupMetadata CommGroupMetadata, cfg config.Mattermost, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Mattermost, error) {
 	botMentionRegex, err := mattermostBotMentionRegex(cfg.BotName)
 	if err != nil {
 		return nil, err
@@ -125,24 +125,24 @@ func NewMattermost(ctx context.Context, log logrus.FieldLogger, commGroupName st
 	}
 
 	return &Mattermost{
-		log:             log,
-		executorFactory: executorFactory,
-		reporter:        reporter,
-		serverURL:       cfg.URL,
-		botName:         cfg.BotName,
-		botUserID:       botUserID,
-		teamName:        team.Name,
-		apiClient:       client,
-		webSocketURL:    webSocketURL,
-		commGroupName:   commGroupName,
-		channels:        channelsByIDCfg,
-		botMentionRegex: botMentionRegex,
-		renderer:        NewMattermostRenderer(),
-		userNamesForID:  map[string]string{},
-		messages:        make(chan mattermostMessage, platformMessageChannelSize),
-		messageWorkers:  pool.New().WithMaxGoroutines(platformMessageWorkersCount),
-		status:          health.StatusUnknown,
-		failureReason:   "",
+		log:               log,
+		executorFactory:   executorFactory,
+		reporter:          reporter,
+		serverURL:         cfg.URL,
+		botName:           cfg.BotName,
+		botUserID:         botUserID,
+		teamName:          team.Name,
+		apiClient:         client,
+		webSocketURL:      webSocketURL,
+		commGroupMetadata: commGroupMetadata,
+		channels:          channelsByIDCfg,
+		botMentionRegex:   botMentionRegex,
+		renderer:          NewMattermostRenderer(),
+		userNamesForID:    map[string]string{},
+		messages:          make(chan mattermostMessage, platformMessageChannelSize),
+		messageWorkers:    pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:            health.StatusUnknown,
+		failureReason:     "",
 	}, nil
 }
 
@@ -169,10 +169,9 @@ func (b *Mattermost) Start(ctx context.Context) error {
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
 
-	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	err = b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 	if err != nil {
-		b.setStatusReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("while reporting analytics: %w", err)
+		b.log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	// It is observed that Mattermost server closes connections unexpectedly after some time.
@@ -279,7 +278,7 @@ func (b *Mattermost) handleMessage(ctx context.Context, mm mattermostMessage) er
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{

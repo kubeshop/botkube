@@ -44,6 +44,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/controller"
 	"github.com/kubeshop/botkube/pkg/execute"
+	"github.com/kubeshop/botkube/pkg/maputil"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/sink"
@@ -239,8 +240,15 @@ func run(ctx context.Context) (err error) {
 	//    For example, if in both communication groups there's a Slack configuration pointing to the same workspace,
 	//	  when user executes `kubectl` command, one Bot instance will execute the command and return response,
 	//	  and the second "Sorry, this channel is not authorized to execute kubectl command" error.
-	for commGroupName, commGroupCfg := range conf.Communications {
+	commKeys := maputil.SortKeys(conf.Communications)
+	for commGroupIdx, commGroupName := range commKeys {
+		commGroupCfg := conf.Communications[commGroupName]
+
 		commGroupLogger := logger.WithField(commGroupFieldKey, commGroupName)
+		commGroupMeta := bot.CommGroupMetadata{
+			Name:  commGroupName,
+			Index: commGroupIdx + 1,
+		}
 
 		scheduleBotNotifier := func(in bot.Bot) {
 			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
@@ -252,7 +260,7 @@ func run(ctx context.Context) (err error) {
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
-			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupName, commGroupCfg.Slack, executorFactory, reporter)
+			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupMeta, commGroupCfg.Slack, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Slack bot", err)
 			}
@@ -260,7 +268,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupName, commGroupCfg.SocketSlack, executorFactory, reporter)
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
@@ -268,7 +276,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupName, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, reporter)
+			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating CloudSlack bot", err)
 			}
@@ -276,7 +284,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupName, commGroupCfg.Mattermost, executorFactory, reporter)
+			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
@@ -284,7 +292,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupName, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupMeta, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Teams bot", err)
 			}
@@ -292,7 +300,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Discord.Enabled {
-			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupName, commGroupCfg.Discord, executorFactory, reporter)
+			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, reporter)
 			if err != nil {
 				return reportFatalError("while creating Discord bot", err)
 			}
@@ -301,7 +309,7 @@ func run(ctx context.Context) (err error) {
 
 		// Run sinks
 		if commGroupCfg.Elasticsearch.Enabled {
-			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupCfg.Elasticsearch, reporter)
+			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, reporter)
 			if err != nil {
 				return reportFatalError("while creating Elasticsearch sink", err)
 			}
@@ -309,7 +317,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupCfg.Webhook, reporter)
+			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, reporter)
 			if err != nil {
 				return reportFatalError("while creating Webhook sink", err)
 			}

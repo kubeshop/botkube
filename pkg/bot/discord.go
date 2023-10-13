@@ -50,7 +50,7 @@ type Discord struct {
 	channels              map[string]channelConfigByID
 	notifyMutex           sync.Mutex
 	botMentionRegex       *regexp.Regexp
-	commGroupName         string
+	commGroupMetadata     CommGroupMetadata
 	renderer              *DiscordRenderer
 	messages              chan discordMessage
 	discordMessageWorkers *pool.Pool
@@ -65,7 +65,7 @@ type discordMessage struct {
 }
 
 // NewDiscord creates a new Discord instance.
-func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Discord, error) {
+func NewDiscord(log logrus.FieldLogger, commGroupMetadata CommGroupMetadata, cfg config.Discord, executorFactory ExecutorFactory, reporter AnalyticsReporter) (*Discord, error) {
 	botMentionRegex, err := discordBotMentionRegex(cfg.BotID)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func NewDiscord(log logrus.FieldLogger, commGroupName string, cfg config.Discord
 		executorFactory:       executorFactory,
 		api:                   api,
 		botID:                 cfg.BotID,
-		commGroupName:         commGroupName,
+		commGroupMetadata:     commGroupMetadata,
 		channels:              channelsCfg,
 		botMentionRegex:       botMentionRegex,
 		renderer:              NewDiscordRenderer(),
@@ -128,10 +128,9 @@ func (b *Discord) Start(ctx context.Context) error {
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
-	err = b.reporter.ReportBotEnabled(b.IntegrationName())
+	err = b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 	if err != nil {
-		b.setFailureReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("while reporting analytics: %w", err)
+		b.log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	b.log.Info("Botkube connected to Discord!")
@@ -251,7 +250,7 @@ func (b *Discord) handleMessage(ctx context.Context, dm discordMessage) error {
 	}
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{

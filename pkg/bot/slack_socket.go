@@ -35,34 +35,34 @@ var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
 type SocketSlack struct {
-	log              logrus.FieldLogger
-	executorFactory  ExecutorFactory
-	reporter         socketSlackAnalyticsReporter
-	botID            string
-	client           *slack.Client
-	channelsMutex    sync.RWMutex
-	channels         map[string]channelConfigByName
-	notifyMutex      sync.Mutex
-	botMentionRegex  *regexp.Regexp
-	commGroupName    string
-	renderer         *SlackRenderer
-	realNamesForID   map[string]string
-	msgStatusTracker *SlackMessageStatusTracker
-	messages         chan slackMessage
-	messageWorkers   *pool.Pool
-	shutdownOnce     sync.Once
-	status           health.PlatformStatusMsg
-	failureReason    health.FailureReasonMsg
+	log               logrus.FieldLogger
+	executorFactory   ExecutorFactory
+	reporter          socketSlackAnalyticsReporter
+	botID             string
+	client            *slack.Client
+	channelsMutex     sync.RWMutex
+	channels          map[string]channelConfigByName
+	notifyMutex       sync.Mutex
+	botMentionRegex   *regexp.Regexp
+	commGroupMetadata CommGroupMetadata
+	renderer          *SlackRenderer
+	realNamesForID    map[string]string
+	msgStatusTracker  *SlackMessageStatusTracker
+	messages          chan slackMessage
+	messageWorkers    *pool.Pool
+	shutdownOnce      sync.Once
+	status            health.PlatformStatusMsg
+	failureReason     health.FailureReasonMsg
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
 type socketSlackAnalyticsReporter interface {
 	FatalErrorAnalyticsReporter
-	ReportCommand(platform config.CommPlatformIntegration, command string, origin command.Origin, withFilter bool) error
+	ReportCommand(in analytics.ReportCommandInput) error
 }
 
 // NewSocketSlack creates a new SocketSlack instance.
-func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
+func NewSocketSlack(log logrus.FieldLogger, commGroupMetadata CommGroupMetadata, cfg config.SocketSlack, executorFactory ExecutorFactory, reporter socketSlackAnalyticsReporter) (*SocketSlack, error) {
 	client := slack.New(cfg.BotToken, slack.OptionAppLevelToken(cfg.AppToken))
 
 	authResp, err := client.AuthTest()
@@ -82,21 +82,21 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupName string, cfg config.Soc
 	}
 
 	return &SocketSlack{
-		log:              log,
-		executorFactory:  executorFactory,
-		reporter:         reporter,
-		botID:            botID,
-		client:           client,
-		channels:         channels,
-		commGroupName:    commGroupName,
-		renderer:         NewSlackRenderer(),
-		botMentionRegex:  botMentionRegex,
-		realNamesForID:   map[string]string{},
-		msgStatusTracker: NewSlackMessageStatusTracker(log, client),
-		messages:         make(chan slackMessage, platformMessageChannelSize),
-		messageWorkers:   pool.New().WithMaxGoroutines(platformMessageWorkersCount),
-		status:           health.StatusUnknown,
-		failureReason:    "",
+		log:               log,
+		executorFactory:   executorFactory,
+		reporter:          reporter,
+		botID:             botID,
+		client:            client,
+		channels:          channels,
+		commGroupMetadata: commGroupMetadata,
+		renderer:          NewSlackRenderer(),
+		botMentionRegex:   botMentionRegex,
+		realNamesForID:    map[string]string{},
+		msgStatusTracker:  NewSlackMessageStatusTracker(log, client),
+		messages:          make(chan slackMessage, platformMessageChannelSize),
+		messageWorkers:    pool.New().WithMaxGoroutines(platformMessageWorkersCount),
+		status:            health.StatusUnknown,
+		failureReason:     "",
 	}, nil
 }
 
@@ -131,9 +131,8 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 			case socketmode.EventTypeConnecting:
 				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
-				if err := b.reporter.ReportBotEnabled(b.IntegrationName()); err != nil {
-					b.setFailureReason(health.FailureReasonConnectionError)
-					return fmt.Errorf("report analytics error: %w", err)
+				if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
+					b.log.Errorf("report analytics error: %s", err.Error())
 				}
 				b.log.Info("Botkube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:
@@ -183,7 +182,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 					act := callback.ActionCallback.BlockActions[0]
 					if act == nil || strings.HasPrefix(act.ActionID, urlButtonActionIDPrefix) {
-						reportErr := b.reporter.ReportCommand(b.IntegrationName(), act.ActionID, command.ButtonClickOrigin, false)
+						reportErr := b.reporter.ReportCommand(analytics.ReportCommandInput{Platform: b.IntegrationName(), Command: act.ActionID, Origin: command.ButtonClickOrigin})
 						if reportErr != nil {
 							b.log.Errorf("while reporting URL command, error: %s", reportErr.Error())
 						}
@@ -366,7 +365,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	channel, exists := b.getChannels()[info.Name]
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
-		CommGroupName:   b.commGroupName,
+		CommGroupName:   b.commGroupMetadata.Name,
 		Platform:        b.IntegrationName(),
 		NotifierHandler: b,
 		Conversation: execute.Conversation{

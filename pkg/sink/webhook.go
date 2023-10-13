@@ -37,7 +37,7 @@ type WebhookPayload struct {
 }
 
 // NewWebhook creates a new Webhook instance.
-func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
+func NewWebhook(log logrus.FieldLogger, commGroupIdx int, c config.Webhook, reporter AnalyticsReporter) (*Webhook, error) {
 	whNotifier := &Webhook{
 		log:           log,
 		reporter:      reporter,
@@ -47,9 +47,9 @@ func NewWebhook(log logrus.FieldLogger, c config.Webhook, reporter AnalyticsRepo
 		failureReason: "",
 	}
 
-	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName())
+	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName(), commGroupIdx)
 	if err != nil {
-		return nil, fmt.Errorf("while reporting analytics: %w", err)
+		log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	return whNotifier, nil
