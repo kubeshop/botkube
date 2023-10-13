@@ -1,5 +1,7 @@
 package thread_mate
 
+import "strings"
+
 type (
 	// Commands represents a collection of subcommands.
 	Commands struct {
@@ -42,8 +44,22 @@ type (
 
 	// ActivityCmd represents the "activity" subcommand under the "get" command.
 	ActivityCmd struct {
-		AssigneeIDs string `arg:"--assignee-ids"`
-		Type        string `arg:"--thread-type"`
-		PageIdx     int    `arg:"-p,--page"`
+		AssigneeIDs string     `arg:"--assignee-ids"`
+		Type        ThreadType `arg:"--thread-type"`
+		PageIdx     int        `arg:"-p,--page"`
 	}
 )
+
+type ThreadType string
+
+const (
+	ThreadTypeOngoing  = "ongoing"
+	ThreadTypeResolved = "resolved"
+)
+
+func (t ThreadType) IsEmptyOrEqual(exp ThreadType) bool {
+	if t == "" {
+		return true
+	}
+	return strings.EqualFold(string(t), string(exp))
+}

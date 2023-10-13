@@ -37,7 +37,7 @@ func (a *ConfigMapDumper) SaveOrUpdate(namespace, name, data string) error {
 		},
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	_, err := a.k8sCli.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
 	switch {
 	case err == nil:
@@ -73,7 +73,7 @@ func (a *ConfigMapDumper) Get(namespace, name string) (string, error) {
 		},
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	cm, err := a.k8sCli.CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("while getting ConfigMap: %w", err)

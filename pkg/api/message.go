@@ -59,7 +59,7 @@ type Message struct {
 	PlaintextInputs   LabelInputs `json:"plaintextInputs,omitempty" yaml:"plaintextInputs"`
 	OnlyVisibleForYou bool        `json:"onlyVisibleForYou,omitempty" yaml:"onlyVisibleForYou"`
 	ReplaceOriginal   bool        `json:"replaceOriginal,omitempty" yaml:"replaceOriginal"`
-	UserHandler       string      `json:"userHandler,omitempty" yaml:"userHandler"`
+	UserHandle        string      `json:"userHandler,omitempty" yaml:"userHandle"`
 }
 
 func (msg *Message) IsEmpty() bool {

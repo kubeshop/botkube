@@ -63,7 +63,7 @@ func New(cfg Config, cfgDumper *ConfigMapDumper) *ThreadMate {
 		assignees: assignees,
 		systemData: SystemData{
 			roundRobin: RoundRobin{
-				//nolint:gosec // //nolint:gosec // false positive
+				//nolint:gosec // false positive
 				next: uint32(rand.Int31n(int32(len(assignees)))), // randomize the first next person on each start
 			},
 		},
@@ -83,8 +83,6 @@ func (t *ThreadMate) Start() {
 		for range time.Tick(t.cfg.Persistence.SyncInterval) {
 			t.tryToDumpThreads(ongoingCMName, &t.ongoingThreads)
 			t.tryToDumpThreads(resolvedCMName, &t.resolvedThreads)
-
-			// TODO: in the future we can persist next index and time off table
 		}
 	}()
 }
@@ -217,7 +215,7 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 	}
 
 	var ongoing []api.Section
-	if cmd.Type == "" || strings.EqualFold(cmd.Type, "ongoing") {
+	if cmd.Type.IsEmptyOrEqual(ThreadTypeOngoing) {
 		items := t.ongoingThreads.Get()
 		for idx := len(items) - 1; idx >= 0; idx-- {
 			section := t.renderThreadAsInteractiveMessage(items[idx], true, assignees, extractIDFromMention(message.User.Mention))
@@ -231,7 +229,7 @@ func (t *ThreadMate) GetActivity(cmd *ActivityCmd, message executor.Message) api
 		}
 	}
 	var resolved []api.Section
-	if cmd.Type == "" || strings.EqualFold(cmd.Type, "resolved") {
+	if cmd.Type.IsEmptyOrEqual(ThreadTypeResolved) {
 		items := t.resolvedThreads.Get()
 		for idx := len(items) - 1; idx >= 0; idx-- {
 			section := t.renderThreadAsInteractiveMessage(items[idx], false, assignees, extractIDFromMention(message.User.Mention))
@@ -310,12 +308,12 @@ func (t *ThreadMate) GetSearchSection(cmd *ActivityCmd, message executor.Message
 		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show mine", fmt.Sprintf("thread-mate get activity --assignee-ids %q", requestUserID)))
 	}
 
-	if !strings.EqualFold(cmd.Type, "resolved") {
-		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show resolved", fmt.Sprintf("thread-mate get activity --assignee-ids %q --thread-type=resolved", cmd.AssigneeIDs)))
+	if cmd.Type.IsEmptyOrEqual(ThreadTypeOngoing) {
+		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show resolved", fmt.Sprintf("thread-mate get activity --assignee-ids %q --thread-type=%s", cmd.AssigneeIDs, ThreadTypeResolved)))
 	}
 
-	if !strings.EqualFold(cmd.Type, "ongoing") {
-		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show ongoing", fmt.Sprintf("thread-mate get activity --assignee-ids %q --thread-type=ongoing", cmd.AssigneeIDs)))
+	if cmd.Type.IsEmptyOrEqual(ThreadTypeResolved) {
+		btns = append(btns, t.btnBuilder.ForCommandWithoutDesc("Show ongoing", fmt.Sprintf("thread-mate get activity --assignee-ids %q --thread-type=%s", cmd.AssigneeIDs, ThreadTypeOngoing)))
 	}
 
 	return api.Section{

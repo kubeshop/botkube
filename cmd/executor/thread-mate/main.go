@@ -125,8 +125,10 @@ func (t *ThreadMateExecutor) Execute(ctx context.Context, in executor.ExecuteInp
 			Message: svc.Export(cmd.Export),
 		}, nil
 	default:
+		msg, _ := t.Help(ctx)
+		msg.BaseBody.Plaintext = "Please specify a valid command"
 		return executor.ExecuteOutput{
-			Message: api.NewPlaintextMessage("Command not supported", false),
+			Message: msg,
 		}, nil
 	}
 }

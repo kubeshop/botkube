@@ -157,12 +157,15 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 	}
 
 	extract := func(in []byte) (api.Message, error) {
-		var msg api.Message
-		if len(in) != 0 && string(in) != "" {
-			if err := json.Unmarshal(in, &msg); err != nil {
-				return api.Message{}, fmt.Errorf("while unmarshalling message from JSON: %w", err)
-			}
+		if len(in) == 0 || string(in) == "" {
+			return api.Message{}, nil
 		}
+
+		var msg api.Message
+		if err := json.Unmarshal(in, &msg); err != nil {
+			return api.Message{}, fmt.Errorf("while unmarshalling message from JSON: %w", err)
+		}
+
 		return msg, nil
 	}
 	msg, err := extract(res.Message)
@@ -235,7 +238,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 			SlackState:               &slackState,
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,
 			KubeConfig:               request.Context.KubeConfig,
-			Message:                  p.toMessageIfPResent(request.Context.Message),
+			Message:                  p.toMessageIfPresent(request.Context.Message),
 		},
 	})
 	if err != nil {
@@ -263,7 +266,7 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 	}, nil
 }
 
-func (*grpcServer) toMessageIfPResent(msg *MessageContext) Message {
+func (*grpcServer) toMessageIfPresent(msg *MessageContext) Message {
 	if msg == nil {
 		return Message{}
 	}

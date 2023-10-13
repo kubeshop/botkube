@@ -407,14 +407,14 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	bindings := channel.Bindings
 	processedEmoji := msgProcessedEmoji
 	if !hasBotMention { // there wasn't botkube mentions, trying to match against messages
-		textBindings, matched := b.testAgainstTextMessageBindings(channel, request, event.UserID)
+		messageTrigger, matched := b.hasMatchingTextMessageTrigger(channel, request, event.UserID)
 		if !matched {
 			b.log.Debugf("Ignoring message as it doesn't contain %q mention nor text matchers", b.botID)
 			return nil
 		}
-		bindings = config.BotBindings{Executors: textBindings.Executors}
-		request = textBindings.Command
-		processedEmoji = textBindings.ProcessedEmojiIndicator
+		bindings = config.BotBindings{Executors: messageTrigger.Executors}
+		request = messageTrigger.Command
+		processedEmoji = messageTrigger.ProcessedEmojiIndicator
 	}
 
 	permalink, err := b.client.GetPermalink(&slack.PermalinkParameters{
@@ -465,8 +465,8 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	return nil
 }
 
-func (b *SocketSlack) testAgainstTextMessageBindings(channel channelConfigByName, request string, id string) (config.MessagesBindings, bool) {
-	for _, binding := range channel.TextMessageBindings.Messages {
+func (b *SocketSlack) hasMatchingTextMessageTrigger(channel channelConfigByName, request string, id string) (config.TextMessageTriggers, bool) {
+	for _, binding := range channel.TextMessageTriggers {
 		allowed, err := binding.Text.IsAllowed(request)
 		if err != nil {
 			b.log.WithError(err).Error("Cannot validate text message constraint")
@@ -483,7 +483,7 @@ func (b *SocketSlack) testAgainstTextMessageBindings(channel channelConfigByName
 
 		return binding, true
 	}
-	return config.MessagesBindings{}, false
+	return config.TextMessageTriggers{}, false
 }
 
 func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interactive.CoreMessage) error {
@@ -563,8 +563,8 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 			}
 		} else {
 			id := event.Channel
-			if resp.Message.UserHandler != "" {
-				id = resp.Message.UserHandler
+			if resp.Message.UserHandle != "" {
+				id = resp.Message.UserHandle
 			}
 			_, _, err = b.client.PostMessageContext(ctx, id, options...)
 			if err != nil {

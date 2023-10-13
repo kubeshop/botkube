@@ -13,9 +13,6 @@ type (
 	}
 	RoundRobin struct {
 		next uint32
-		// TODO: rotationExclusion holds the assignee IDs as a key.
-		// At a later stage, we can add for each entry the endDate, so it will be automatically enabled again.
-		//rotationExclusion map[string]struct{}
 	}
 )
 

@@ -172,10 +172,10 @@ type IncomingWebhook struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name                string              `yaml:"name"`
-	Notification        ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
-	Bindings            BotBindings         `yaml:"bindings"`
-	TextMessageBindings TextMessageBindings `yaml:"textMessageBindings"`
+	Name                string                `yaml:"name"`
+	Notification        ChannelNotification   `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings            BotBindings           `yaml:"bindings"`
+	TextMessageTriggers []TextMessageTriggers `yaml:"messageTriggers"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
@@ -183,14 +183,15 @@ func (c ChannelBindingsByName) Identifier() string {
 	return c.Name
 }
 
-// TextMessageBindings defines bindings for text messages.
-type TextMessageBindings struct {
-	Type     string             `yaml:"type"`
-	Messages []MessagesBindings `yaml:"messages"`
-}
+type TextMessageTriggerEvent string
 
-// MessagesBindings contains information about matching messages and their associated commands.
-type MessagesBindings struct {
+const (
+	MessageTriggerChannelEvent TextMessageTriggerEvent = "ChannelMessage"
+)
+
+// TextMessageTriggers contains information about matching messages and their associated commands.
+type TextMessageTriggers struct {
+	Event                   TextMessageTriggerEvent `yaml:"event"`
 	Text                    RegexConstraints        `yaml:"text"`
 	Users                   UsersMessageConstraints `yaml:"users"`
 	Command                 string                  `yaml:"command"`
@@ -202,7 +203,7 @@ type UsersMessageConstraints struct {
 	Exclude []string `yaml:"exclude"`
 }
 
-func (m *MessagesBindings) IsUserExcluded(userID string) bool {
+func (m *TextMessageTriggers) IsUserExcluded(userID string) bool {
 	for _, user := range m.Users.Exclude {
 		toIgnore, _, _ := strings.Cut(user, ":")
 		if toIgnore == userID {
