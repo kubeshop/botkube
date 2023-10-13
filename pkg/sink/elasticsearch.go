@@ -140,7 +140,7 @@ func NewElasticsearch(log logrus.FieldLogger, commGroupIdx int, c config.Elastic
 
 	err = reporter.ReportSinkEnabled(esNotifier.IntegrationName(), commGroupIdx)
 	if err != nil {
-		return nil, fmt.Errorf("while reporting analytics: %w", err)
+		log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	return esNotifier, nil

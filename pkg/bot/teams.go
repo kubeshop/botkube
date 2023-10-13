@@ -147,8 +147,7 @@ func (b *Teams) Start(ctx context.Context) error {
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 	if err != nil {
-		b.setFailureReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("while reporting analytics: %w", err)
+		b.log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	srv := httpx.NewServer(b.log, addr, router)

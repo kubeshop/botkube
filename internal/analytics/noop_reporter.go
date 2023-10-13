@@ -23,7 +23,7 @@ func (n NoopReporter) RegisterCurrentIdentity(_ context.Context, _ kubernetes.In
 	return nil
 }
 
-// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
+// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 func (n NoopReporter) ReportCommand(_ ReportCommandInput) error {
 	return nil
 }

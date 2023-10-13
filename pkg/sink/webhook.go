@@ -49,7 +49,7 @@ func NewWebhook(log logrus.FieldLogger, commGroupIdx int, c config.Webhook, repo
 
 	err := reporter.ReportSinkEnabled(whNotifier.IntegrationName(), commGroupIdx)
 	if err != nil {
-		return nil, fmt.Errorf("while reporting analytics: %w", err)
+		log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	return whNotifier, nil

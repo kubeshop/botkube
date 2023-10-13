@@ -132,8 +132,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 				b.log.Info("Botkube is connecting to Slack...")
 			case socketmode.EventTypeConnected:
 				if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
-					b.setFailureReason(health.FailureReasonConnectionError)
-					return fmt.Errorf("report analytics error: %w", err)
+					b.log.Errorf("report analytics error: %s", err.Error())
 				}
 				b.log.Info("Botkube connected to Slack!")
 			case socketmode.EventTypeEventsAPI:

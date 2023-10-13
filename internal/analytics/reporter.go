@@ -14,7 +14,7 @@ type Reporter interface {
 	// RegisterCurrentIdentity loads the current anonymous identity and registers it.
 	RegisterCurrentIdentity(ctx context.Context, k8sCli kubernetes.Interface, deployID string) error
 
-	// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
+	// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 	ReportCommand(in ReportCommandInput) error
 
 	// ReportBotEnabled reports an enabled bot.

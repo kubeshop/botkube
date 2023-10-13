@@ -171,8 +171,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 
 	err = b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index)
 	if err != nil {
-		b.setStatusReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("while reporting analytics: %w", err)
+		b.log.Errorf("report analytics error: %s", err.Error())
 	}
 
 	// It is observed that Mattermost server closes connections unexpectedly after some time.

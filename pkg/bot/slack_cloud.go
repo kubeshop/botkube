@@ -68,6 +68,7 @@ type CloudSlack struct {
 	status            health.PlatformStatusMsg
 	failuresNo        int
 	failureReason     health.FailureReasonMsg
+	reportOnce        sync.Once
 }
 
 // cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -212,11 +213,12 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	b.setFailureReason("")
 	go b.startMessageProcessor(ctx, messageWorkers, messages)
 
-	if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
-		b.setFailureReason(health.FailureReasonConnectionError)
-		return fmt.Errorf("report analytics error: %w", err)
-	}
-	b.log.Info("Botkube connected to Slack!")
+	b.reportOnce.Do(func() {
+		if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
+			b.log.Errorf("report analytics error: %s", err.Error())
+		}
+		b.log.Info("Botkube connected to Slack!")
+	})
 
 	for {
 		data, err := c.Recv()

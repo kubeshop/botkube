@@ -66,7 +66,7 @@ func (r *SegmentReporter) RegisterCurrentIdentity(ctx context.Context, k8sCli ku
 	return nil
 }
 
-// ReportCommandInput reports a new executed command. The command should be anonymized before using this method.
+// ReportCommand reports a new executed command. The command should be anonymized before using this method.
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportCommand(in ReportCommandInput) error {
 	return r.reportEvent("Command executed", map[string]interface{}{
