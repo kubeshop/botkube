@@ -21,8 +21,7 @@ type Help struct {
 	systemConfigMapName      string
 	systemConfigMapNamespace string
 
-	k8sCli   kubernetes.Interface
-	nsGetter func(ctx context.Context, opts metav1.ListOptions) (*corev1.NamespaceList, error)
+	k8sCli kubernetes.Interface
 }
 
 // NewForHelp returns a new Help instance.
@@ -37,7 +36,6 @@ func NewForHelp(ns, name string, k8sCli kubernetes.Interface) *Help {
 // GetSentHelpDetails returns details about sent help messages.
 func (a *Help) GetSentHelpDetails(ctx context.Context) (HelpEntries, error) {
 	obj, err := a.k8sCli.CoreV1().ConfigMaps(a.systemConfigMapNamespace).Get(ctx, a.systemConfigMapName, metav1.GetOptions{})
-	a.nsGetter = a.k8sCli.CoreV1().Namespaces().List
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):

@@ -105,6 +105,14 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
 			SlackState:               slackState,
 			KubeConfig:               kubeconfig,
+			Message: executor.Message{
+				Text: cmdCtx.Conversation.Text,
+				URL:  cmdCtx.Conversation.URL,
+				User: executor.User{
+					Mention:     cmdCtx.User.Mention,
+					DisplayName: cmdCtx.User.DisplayName,
+				},
+			},
 		},
 	})
 	if err != nil {
@@ -115,7 +123,11 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, NewExecutionCommandError(s.Message())
 	}
 
-	if resp.Message.IsEmpty() {
+	if resp.Message.Type == api.SkipMessage && allMessagesMarkedAsSkip(resp.Messages) {
+		return interactive.CoreMessage{}, nil
+	}
+
+	if resp.Message.IsEmpty() && allMessagesAreEmpty(resp.Messages) {
 		return emptyMsg(cmdCtx), nil
 	}
 
@@ -124,13 +136,32 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	}
 
 	out := interactive.CoreMessage{
-		Message: resp.Message,
+		Message:  resp.Message,
+		Messages: resp.Messages,
 	}
 	if !resp.Message.OnlyVisibleForYou {
 		out.Description = header(cmdCtx)
 	}
 
 	return out, nil
+}
+
+func allMessagesMarkedAsSkip(msgs []api.Message) bool {
+	for _, item := range msgs {
+		if item.Type != api.SkipMessage {
+			return false
+		}
+	}
+	return true
+}
+
+func allMessagesAreEmpty(msgs []api.Message) bool {
+	for _, item := range msgs {
+		if !item.IsEmpty() {
+			return false
+		}
+	}
+	return true
 }
 
 // sanitizeSlackStateIDs makes sure that the slack state doesn't contain the --cluster-name

@@ -9,5 +9,6 @@ type CoreMessage struct {
 	Header      string
 	Description string
 	Metadata    any
+	Messages    []api.Message
 	api.Message
 }

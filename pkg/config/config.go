@@ -172,14 +172,45 @@ type IncomingWebhook struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name         string              `yaml:"name"`
-	Notification ChannelNotification `yaml:"notification"` // TODO: rename to `notifications` later
-	Bindings     BotBindings         `yaml:"bindings"`
+	Name            string                `yaml:"name"`
+	Notification    ChannelNotification   `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings        BotBindings           `yaml:"bindings"`
+	MessageTriggers []TextMessageTriggers `yaml:"messageTriggers"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
 func (c ChannelBindingsByName) Identifier() string {
 	return c.Name
+}
+
+type TextMessageTriggerEvent string
+
+const (
+	MessageTriggerChannelEvent TextMessageTriggerEvent = "ChannelMessage"
+)
+
+// TextMessageTriggers contains information about matching messages and their associated commands.
+type TextMessageTriggers struct {
+	Event                   TextMessageTriggerEvent `yaml:"event"`
+	Text                    RegexConstraints        `yaml:"text"`
+	Users                   UsersMessageConstraints `yaml:"users"`
+	Command                 string                  `yaml:"command"`
+	Executors               []string                `yaml:"executors"`
+	ProcessedEmojiIndicator string                  `yaml:"processedEmojiIndicator"`
+}
+
+type UsersMessageConstraints struct {
+	Exclude []string `yaml:"exclude"`
+}
+
+func (m *TextMessageTriggers) IsUserExcluded(userID string) bool {
+	for _, user := range m.Users.Exclude {
+		toIgnore, _, _ := strings.Cut(user, ":")
+		if toIgnore == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // ChannelBindingsByID contains configuration bindings per channel.
@@ -608,6 +639,10 @@ type LoadWithDefaultsDetails struct {
 // LoadWithDefaults loads new configuration from files and environment variables.
 func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error) {
 	k := koanf.New(configDelimiter)
+
+	for _, data := range configs {
+		fmt.Println(string(data))
+	}
 
 	// load default settings
 	if err := k.Load(rawbytes.Provider(defaultConfiguration), koanfyaml.Parser()); err != nil {

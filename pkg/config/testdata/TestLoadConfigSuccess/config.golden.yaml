@@ -51,6 +51,7 @@ communications:
                             - k8s-events
                         executors:
                             - k8s-tools
+                    messageTriggers: []
             token: xoxb-token-from-env
         socketSlack:
             enabled: true
@@ -64,6 +65,7 @@ communications:
                             - k8s-events
                         executors:
                             - k8s-tools
+                    messageTriggers: []
             botToken: xoxb-token-from-env
             appToken: xapp-token-from-env
         mattermost:
@@ -82,6 +84,7 @@ communications:
                             - k8s-events
                         executors:
                             - k8s-tools
+                    messageTriggers: []
         discord:
             enabled: false
             token: DISCORD_TOKEN

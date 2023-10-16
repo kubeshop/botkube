@@ -24,10 +24,23 @@ message ExecuteContext {
 	bool isInteractivitySupported = 1;
 	bytes slackState = 2;
 	bytes kubeConfig = 3;
+	MessageContext message = 4;
+}
+
+message MessageContext {
+	string text = 1;
+	string url = 2;
+	UserContext user = 3;
+}
+
+message UserContext {
+	string mention = 1;
+	string displayName = 2;
 }
 
 message ExecuteResponse {
 	bytes message = 1;
+	repeated bytes messages = 2;
 }
 
 message MetadataResponse {

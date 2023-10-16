@@ -18,8 +18,8 @@ func DecreaseWithMin(in, min int) int {
 	return in
 }
 
-// Max returns the largest of a or b.
-func Max(a, b int) int {
+// Min returns the smallest of a or b.
+func Min(a, b int) int {
 	if a > b {
 		return b
 	}
