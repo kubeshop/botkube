@@ -17,7 +17,7 @@
           url: https://docs.botkube.io/operation/diagnostics/#agent-configuration
         - name: How to get logs
           url: https://docs.botkube.io/operation/diagnostics#agent-logs
-- userHandler: {{ .Assignee.ID }}
+- userHandle: {{ .Assignee.ID }}
   sections:
     - base:
         header: Botkube here!

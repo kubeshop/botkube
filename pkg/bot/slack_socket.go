@@ -466,7 +466,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 }
 
 func (b *SocketSlack) hasMatchingTextMessageTrigger(channel channelConfigByName, request string, id string) (config.TextMessageTriggers, bool) {
-	for _, binding := range channel.TextMessageTriggers {
+	for _, binding := range channel.MessageTriggers {
 		allowed, err := binding.Text.IsAllowed(request)
 		if err != nil {
 			b.log.WithError(err).Error("Cannot validate text message constraint")

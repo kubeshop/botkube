@@ -172,10 +172,10 @@ type IncomingWebhook struct {
 
 // ChannelBindingsByName contains configuration bindings per channel.
 type ChannelBindingsByName struct {
-	Name                string                `yaml:"name"`
-	Notification        ChannelNotification   `yaml:"notification"` // TODO: rename to `notifications` later
-	Bindings            BotBindings           `yaml:"bindings"`
-	TextMessageTriggers []TextMessageTriggers `yaml:"messageTriggers"`
+	Name            string                `yaml:"name"`
+	Notification    ChannelNotification   `yaml:"notification"` // TODO: rename to `notifications` later
+	Bindings        BotBindings           `yaml:"bindings"`
+	MessageTriggers []TextMessageTriggers `yaml:"messageTriggers"`
 }
 
 // Identifier returns ChannelBindingsByID identifier.
@@ -639,6 +639,10 @@ type LoadWithDefaultsDetails struct {
 // LoadWithDefaults loads new configuration from files and environment variables.
 func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error) {
 	k := koanf.New(configDelimiter)
+
+	for _, data := range configs {
+		fmt.Println(string(data))
+	}
 
 	// load default settings
 	if err := k.Load(rawbytes.Provider(defaultConfiguration), koanfyaml.Parser()); err != nil {
