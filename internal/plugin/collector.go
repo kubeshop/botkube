@@ -17,6 +17,22 @@ func NewCollector(log logrus.FieldLogger) *Collector {
 	return &Collector{log: log}
 }
 
+type botBindingsGetter interface {
+	config.Identifiable
+	GetBotBindings() config.BotBindings
+}
+
+func collect[T botBindingsGetter](boundExecutors, boundSources map[string]struct{}, channels config.IdentifiableMap[T]) {
+	for _, bindings := range channels {
+		for _, name := range bindings.GetBotBindings().Executors {
+			boundExecutors[name] = struct{}{}
+		}
+		for _, name := range bindings.GetBotBindings().Sources {
+			boundSources[name] = struct{}{}
+		}
+	}
+}
+
 // GetAllEnabledAndUsedPlugins returns the list of all plugins that are both enabled and bind to at
 // least one communicator or action (automation) that is enabled.
 func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, []string) {
@@ -25,33 +41,21 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 		boundSources   = map[string]struct{}{}
 	)
 
-	// Collect all used executors/sources by communication platforms
-	collect := func(channels config.IdentifiableMap[config.ChannelBindingsByName]) {
-		for _, bindings := range channels {
-			for _, name := range bindings.Bindings.Executors {
-				boundExecutors[name] = struct{}{}
-			}
-			for _, name := range bindings.Bindings.Sources {
-				boundSources[name] = struct{}{}
-			}
-		}
-	}
-
 	for _, commGroupCfg := range cfg.Communications {
 		if commGroupCfg.Slack.Enabled {
-			collect(commGroupCfg.Slack.Channels)
+			collect(boundExecutors, boundSources, commGroupCfg.Slack.Channels)
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			collect(commGroupCfg.SocketSlack.Channels)
+			collect(boundExecutors, boundSources, commGroupCfg.SocketSlack.Channels)
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			collect(commGroupCfg.CloudSlack.Channels)
+			collect(boundExecutors, boundSources, commGroupCfg.CloudSlack.Channels)
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			collect(commGroupCfg.Mattermost.Channels)
+			collect(boundExecutors, boundSources, commGroupCfg.Mattermost.Channels)
 		}
 
 		if commGroupCfg.Teams.Enabled {
@@ -63,15 +67,14 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 			}
 		}
 
-		if commGroupCfg.Discord.Enabled {
-			for _, bindings := range commGroupCfg.Discord.Channels {
-				for _, name := range bindings.Bindings.Executors {
-					boundExecutors[name] = struct{}{}
-				}
-				for _, name := range bindings.Bindings.Sources {
-					boundSources[name] = struct{}{}
-				}
+		if commGroupCfg.CloudTeams.Enabled {
+			for _, team := range commGroupCfg.CloudTeams.Teams {
+				collect(boundExecutors, boundSources, team.Channels)
 			}
+		}
+
+		if commGroupCfg.Discord.Enabled {
+			collect(boundExecutors, boundSources, commGroupCfg.Discord.Channels)
 		}
 
 		if commGroupCfg.Webhook.Enabled {

@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 
+	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
@@ -47,6 +48,12 @@ type FatalErrorAnalyticsReporter interface {
 
 	// Close cleans up the reporter resources.
 	Close() error
+}
+
+// AnalyticsCommandReporter defines a reporter that collects analytics data.
+type AnalyticsCommandReporter interface {
+	FatalErrorAnalyticsReporter
+	ReportCommand(in analytics.ReportCommandInput) error
 }
 
 type channelConfigByID struct {

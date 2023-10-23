@@ -202,6 +202,15 @@ func (d *Scheduler) generateConfigs(ctx context.Context) error {
 				return err
 			}
 		}
+		if commGroupCfg.CloudTeams.Enabled {
+			for _, teams := range commGroupCfg.CloudTeams.Teams {
+				for _, channel := range teams.Channels {
+					if err := d.generateSourceConfigs(ctx, config.CloudTeamsCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
+						return err
+					}
+				}
+			}
+		}
 
 		if commGroupCfg.Discord.Enabled {
 			for _, channel := range commGroupCfg.Discord.Channels {

@@ -87,6 +87,9 @@ const (
 	// TeamsCommPlatformIntegration defines Teams integration.
 	TeamsCommPlatformIntegration CommPlatformIntegration = "teams"
 
+	// CloudTeamsCommPlatformIntegration defines Teams integration.
+	CloudTeamsCommPlatformIntegration CommPlatformIntegration = "cloudTeams"
+
 	// DiscordCommPlatformIntegration defines Discord integration.
 	DiscordCommPlatformIntegration CommPlatformIntegration = "discord"
 
@@ -178,9 +181,14 @@ type ChannelBindingsByName struct {
 	MessageTriggers []TextMessageTriggers `yaml:"messageTriggers"`
 }
 
-// Identifier returns ChannelBindingsByID identifier.
+// Identifier returns ChannelBindingsByName identifier.
 func (c ChannelBindingsByName) Identifier() string {
 	return c.Name
+}
+
+// GetBotBindings returns associated bindings.
+func (c ChannelBindingsByName) GetBotBindings() BotBindings {
+	return c.Bindings
 }
 
 type TextMessageTriggerEvent string
@@ -223,6 +231,11 @@ type ChannelBindingsByID struct {
 // Identifier returns ChannelBindingsByID identifier.
 func (c ChannelBindingsByID) Identifier() string {
 	return c.ID
+}
+
+// GetBotBindings returns associated bindings.
+func (c ChannelBindingsByID) GetBotBindings() BotBindings {
+	return c.Bindings
 }
 
 // BotBindings contains configuration for possible Bot bindings.
@@ -448,6 +461,7 @@ type Communications struct {
 	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
 	Discord       Discord       `yaml:"discord,omitempty"`
 	Teams         Teams         `yaml:"teams,omitempty"`
+	CloudTeams    CloudTeams    `yaml:"cloudTeams,omitempty"`
 	Webhook       Webhook       `yaml:"webhook,omitempty"`
 	Elasticsearch Elasticsearch `yaml:"elasticsearch,omitempty"`
 }
@@ -525,15 +539,26 @@ type Mattermost struct {
 
 // Teams creds for authentication with MS Teams
 type Teams struct {
-	Enabled     bool   `yaml:"enabled"`
-	BotName     string `yaml:"botName,omitempty"`
-	AppID       string `yaml:"appID,omitempty"`
-	AppPassword string `yaml:"appPassword,omitempty"`
-	Port        string `yaml:"port"`
-	MessagePath string `yaml:"messagePath,omitempty"`
-	// TODO: Be consistent with other communicators when MS Teams support multiple channels
-	//Channels     IdentifiableMap[ChannelBindingsByName] `yaml:"channels"`
-	Bindings BotBindings `yaml:"bindings" validate:"required_if=Enabled true"`
+	Enabled     bool        `yaml:"enabled"`
+	BotName     string      `yaml:"botName,omitempty"`
+	AppID       string      `yaml:"appID,omitempty"`
+	AppPassword string      `yaml:"appPassword,omitempty"`
+	Port        string      `yaml:"port"`
+	MessagePath string      `yaml:"messagePath,omitempty"`
+	Bindings    BotBindings `yaml:"bindings" validate:"required_if=Enabled true"`
+}
+
+// CloudTeams configuration for cloud MS Teams.
+type CloudTeams struct {
+	Enabled bool            `yaml:"enabled"`
+	BotName string          `yaml:"botName"`
+	Server  GRPCServer      `yaml:"server"`
+	Teams   []TeamsBindings `yaml:"teams" validate:"required_if=Enabled true,dive,omitempty,min=1"`
+}
+
+type TeamsBindings struct {
+	ID       string                               `yaml:"id"`
+	Channels IdentifiableMap[ChannelBindingsByID] `yaml:"channels" validate:"dive,omitempty,min=1"`
 }
 
 // Discord configuration for authentication and send notifications
@@ -639,10 +664,6 @@ type LoadWithDefaultsDetails struct {
 // LoadWithDefaults loads new configuration from files and environment variables.
 func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error) {
 	k := koanf.New(configDelimiter)
-
-	for _, data := range configs {
-		fmt.Println(string(data))
-	}
 
 	// load default settings
 	if err := k.Load(rawbytes.Provider(defaultConfiguration), koanfyaml.Parser()); err != nil {

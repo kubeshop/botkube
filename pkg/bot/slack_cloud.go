@@ -20,13 +20,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/api/cloudplatform"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudslack"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -38,8 +38,6 @@ import (
 )
 
 const (
-	APIKeyContextKey        = "X-Api-Key"       // #nosec
-	DeploymentIDContextKey  = "X-Deployment-Id" // #nosec
 	retryDelay              = time.Second
 	maxRetries              = 30
 	successIntervalDuration = 3 * time.Minute
@@ -54,7 +52,7 @@ type CloudSlack struct {
 	cfg               config.CloudSlack
 	client            *slack.Client
 	executorFactory   ExecutorFactory
-	reporter          cloudSlackAnalyticsReporter
+	reporter          AnalyticsCommandReporter
 	commGroupMetadata CommGroupMetadata
 	realNamesForID    map[string]string
 	botMentionRegex   *regexp.Regexp
@@ -71,18 +69,12 @@ type CloudSlack struct {
 	reportOnce        sync.Once
 }
 
-// cloudSlackAnalyticsReporter defines a reporter that collects analytics data.
-type cloudSlackAnalyticsReporter interface {
-	FatalErrorAnalyticsReporter
-	ReportCommand(in analytics.ReportCommandInput) error
-}
-
 func NewCloudSlack(log logrus.FieldLogger,
 	commGroupMetadata CommGroupMetadata,
 	cfg config.CloudSlack,
 	clusterName string,
 	executorFactory ExecutorFactory,
-	reporter cloudSlackAnalyticsReporter) (*CloudSlack, error) {
+	reporter AnalyticsCommandReporter) (*CloudSlack, error) {
 	client := slack.New(cfg.Token)
 
 	_, err := client.AuthTest()
@@ -173,10 +165,15 @@ func (b *CloudSlack) start(ctx context.Context) error {
 	messages := make(chan *pb.ConnectResponse, platformMessageChannelSize)
 	defer b.shutdown(messageWorkers, messages)
 
+	remoteConfig, ok := remote.GetConfig()
+	if !ok {
+		return fmt.Errorf("while getting remote config for %s", config.CloudSlackCommPlatformIntegration)
+	}
+
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{creds,
-		grpc.WithStreamInterceptor(b.addStreamingClientCredentials()),
-		grpc.WithUnaryInterceptor(b.addUnaryClientCredentials()),
+		grpc.WithStreamInterceptor(cloudplatform.AddStreamingClientCredentials(remoteConfig)),
+		grpc.WithUnaryInterceptor(cloudplatform.AddUnaryClientCredentials(remoteConfig)),
 	}
 
 	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
@@ -184,11 +181,6 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		return err
 	}
 	defer conn.Close()
-
-	remoteConfig, ok := remote.GetConfig()
-	if !ok {
-		return fmt.Errorf("while getting remote config for %s", config.CloudSlackCommPlatformIntegration)
-	}
 
 	req := &pb.ConnectRequest{
 		InstanceId: remoteConfig.Identifier,
@@ -681,44 +673,6 @@ func (b *CloudSlack) getChannelsToNotify(sourceBindings []string) []string {
 		out = append(out, cfg.Identifier())
 	}
 	return out
-}
-
-func (b *CloudSlack) addStreamingClientCredentials() grpc.StreamClientInterceptor {
-	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-		remoteCfg, ok := remote.GetConfig()
-		if !ok {
-			return nil, errors.New("empty remote configuration")
-		}
-		md := metadata.New(map[string]string{
-			APIKeyContextKey:       remoteCfg.APIKey,
-			DeploymentIDContextKey: remoteCfg.Identifier,
-		})
-
-		ctx = metadata.NewOutgoingContext(ctx, md)
-
-		clientStream, err := streamer(ctx, desc, cc, method, opts...)
-		if err != nil {
-			return nil, err
-		}
-
-		return clientStream, nil
-	}
-}
-
-func (b *CloudSlack) addUnaryClientCredentials() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		remoteCfg, ok := remote.GetConfig()
-		if !ok {
-			return errors.New("empty remote configuration")
-		}
-		md := metadata.New(map[string]string{
-			APIKeyContextKey:       remoteCfg.APIKey,
-			DeploymentIDContextKey: remoteCfg.Identifier,
-		})
-
-		ctx = metadata.NewOutgoingContext(ctx, md)
-		return invoker(ctx, method, req, reply, cc, opts...)
-	}
 }
 
 func (b *CloudSlack) checkStreamingError(data []byte) error {
