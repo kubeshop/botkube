@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.24.0
-// source: cloudslack.proto
+// source: cloud_slack.proto
 
 package cloudslack
 
@@ -137,5 +137,5 @@ var CloudSlack_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "cloudslack.proto",
+	Metadata: "cloud_slack.proto",
 }
