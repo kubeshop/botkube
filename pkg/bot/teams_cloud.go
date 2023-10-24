@@ -181,7 +181,7 @@ func (b *CloudTeams) GetStatus() health.PlatformStatus {
 func (b *CloudTeams) start(ctx context.Context) error {
 	svc, err := newGrpcCloudTeamsConnector(b.log, b.cfg.Server.URL)
 	if err != nil {
-		return err
+		return fmt.Errorf("while creating gRPC connector")
 	}
 	defer svc.Shutdown()
 
@@ -265,7 +265,7 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 
 		raw, err := json.Marshal(msg.Message)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while marshaling message to trasfer it via gRPC: %w", err)
 		}
 
 		conversationRef := activity.GetCoversationReference(act)
