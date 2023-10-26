@@ -56,6 +56,11 @@ func (c *Config) Validate() error {
 // MergeConfigs merges the configuration.
 func MergeConfigs(configs []*executor.Config) (Config, error) {
 	defaults := Config{
+		Logger: config.Logger{
+			Level:         "info",
+			DisableColors: false,
+			Formatter:     "text",
+		},
 		RoundRobin: RoundRobinConfig{
 			GroupName: "default",
 		},

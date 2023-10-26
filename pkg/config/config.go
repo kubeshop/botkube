@@ -204,7 +204,7 @@ type TextMessageTriggers struct {
 	Users                   UsersMessageConstraints `yaml:"users"`
 	Command                 string                  `yaml:"command"`
 	Executors               []string                `yaml:"executors"`
-	ProcessedEmojiIndicator string                  `yaml:"processedEmojiIndicator"`
+	ProcessedEmojiIndicator *string                 `yaml:"processedEmojiIndicator,omitempty"`
 }
 
 type UsersMessageConstraints struct {

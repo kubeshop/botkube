@@ -24,7 +24,8 @@
         "assignees": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "title": "Assignee"
           },
           "minItems": 1,
           "title": "Assignees",
@@ -46,7 +47,6 @@
       "properties": {
         "userCooldownTime": {
           "type": "string",
-          "format": "duration",
           "default": "3m",
           "description": "Represents the time that must elapse for a given user's message before the 'pick' method can be used again.",
           "title": "User Cooldown Time"
@@ -63,7 +63,6 @@
       "properties": {
         "syncInterval": {
           "type": "string",
-          "format": "duration",
           "default": "5s",
           "title": "Sync Interval",
           "description": "Represents the time that must elapse before saving in-memory data."
