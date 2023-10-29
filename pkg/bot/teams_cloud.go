@@ -260,6 +260,7 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 
 		msg := b.processMessage(ctx, act, channel, exists)
 		if msg.IsEmpty() {
+			b.log.WithField("activityID", act.ID).Debug("Empty message... Skipping sending response")
 			return nil, nil
 		}
 
@@ -270,13 +271,11 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 
 		conversationRef := activity.GetCoversationReference(act)
 		return &pb.AgentActivity{
-			Req: &pb.AgentActivity_Message{
-				Message: &pb.Message{
-					TeamId:         channel.teamID,
-					ConversationId: conversationRef.Conversation.ID,
-					ActivityId:     conversationRef.ActivityID, // activity ID allows us to send it as a thread message
-					Data:           raw,
-				},
+			Message: &pb.Message{
+				TeamId:         channel.teamID,
+				ConversationId: conversationRef.Conversation.ID,
+				ActivityId:     conversationRef.ActivityID, // activity ID allows us to send it as a thread message
+				Data:           raw,
 			},
 		}, nil
 	default:
@@ -322,13 +321,11 @@ func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.Core
 		}
 
 		act := &pb.AgentActivity{
-			Req: &pb.AgentActivity_Message{
-				Message: &pb.Message{
-					TeamId:         channel.teamID,
-					ActivityId:     "", // empty so it will be sent on root instead of sending as a thread message
-					ConversationId: channel.ID,
-					Data:           raw,
-				},
+			Message: &pb.Message{
+				TeamId:         channel.teamID,
+				ActivityId:     "", // empty so it will be sent on root instead of sending as a thread message
+				ConversationId: channel.ID,
+				Data:           raw,
 			},
 		}
 
