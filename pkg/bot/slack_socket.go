@@ -409,12 +409,14 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 	if !hasBotMention { // there wasn't botkube mentions, trying to match against messages
 		messageTrigger, matched := b.hasMatchingTextMessageTrigger(channel, request, event.UserID)
 		if !matched {
-			b.log.Debugf("Ignoring message as it doesn't contain %q mention nor text matchers", b.botID)
+			b.log.WithField("matchers", formatx.StructDumper().Sdump(channel.MessageTriggers)).Debugf("Ignoring message as it doesn't contain %q mention nor text matchers", b.botID)
 			return nil
 		}
 		bindings = config.BotBindings{Executors: messageTrigger.Executors}
 		request = messageTrigger.Command
-		processedEmoji = messageTrigger.ProcessedEmojiIndicator
+		if messageTrigger.ProcessedEmojiIndicator != nil {
+			processedEmoji = *messageTrigger.ProcessedEmojiIndicator
+		}
 	}
 
 	permalink, err := b.client.GetPermalink(&slack.PermalinkParameters{
