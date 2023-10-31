@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/config"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -30,10 +31,10 @@ type grpcCloudTeamsConnector struct {
 }
 
 func newGrpcCloudTeamsConnector(log logrus.FieldLogger, url string) (*grpcCloudTeamsConnector, error) {
-	remoteConfig, _ := remote.GetConfig()
-	//if !ok { TODO: enable when config generator will work
-	//	return nil, fmt.Errorf("while getting remote config for %q", config.CloudTeamsCommPlatformIntegration)
-	//}
+	remoteConfig, ok := remote.GetConfig()
+	if !ok {
+		return nil, fmt.Errorf("while getting remote config for %q", config.CloudTeamsCommPlatformIntegration)
+	}
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{
 		creds,
