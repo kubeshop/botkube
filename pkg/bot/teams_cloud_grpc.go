@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api/cloudplatform"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudteams"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type grpcCloudTeamsConnector struct {
@@ -30,10 +31,10 @@ type grpcCloudTeamsConnector struct {
 }
 
 func newGrpcCloudTeamsConnector(log logrus.FieldLogger, url string) (*grpcCloudTeamsConnector, error) {
-	remoteConfig, _ := remote.GetConfig()
-	//if !ok { TODO: enable when config generator will work
-	//	return nil, fmt.Errorf("while getting remote config for %q", config.CloudTeamsCommPlatformIntegration)
-	//}
+	remoteConfig, ok := remote.GetConfig()
+	if !ok {
+		return nil, fmt.Errorf("while getting remote config for %q", config.CloudTeamsCommPlatformIntegration)
+	}
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts := []grpc.DialOption{
 		creds,
@@ -81,8 +82,7 @@ func (c *grpcCloudTeamsConnector) Start(ctx context.Context) error {
 
 	err = activityClient.Send(&pb.AgentActivity{
 		Req: &pb.AgentActivity_InstanceId{
-			//InstanceId: c.remoteConfig.Identifier, // TODO: enable when config generator will work
-			InstanceId: "foo-123",
+			InstanceId: c.remoteConfig.Identifier,
 		},
 	})
 	if err != nil {
