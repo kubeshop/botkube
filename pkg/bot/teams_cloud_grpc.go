@@ -81,8 +81,7 @@ func (c *grpcCloudTeamsConnector) Start(ctx context.Context) error {
 
 	err = activityClient.Send(&pb.AgentActivity{
 		Req: &pb.AgentActivity_InstanceId{
-			//InstanceId: c.remoteConfig.Identifier, // TODO: enable when config generator will work
-			InstanceId: "foo-123",
+			InstanceId: c.remoteConfig.Identifier,
 		},
 	})
 	if err != nil {
