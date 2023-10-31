@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/config"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -17,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api/cloudplatform"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudteams"
+	"github.com/kubeshop/botkube/pkg/config"
 )
 
 type grpcCloudTeamsConnector struct {
