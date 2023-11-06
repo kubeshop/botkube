@@ -80,15 +80,6 @@ func (c *grpcCloudTeamsConnector) Start(ctx context.Context) error {
 		return fmt.Errorf("while initializing gRPC cloud client: %w", err)
 	}
 
-	err = activityClient.Send(&pb.AgentActivity{
-		Req: &pb.AgentActivity_InstanceId{
-			InstanceId: c.remoteConfig.Identifier,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("while sending gRPC connection request. %w", err)
-	}
-
 	c.activityClient = activityClient
 
 	return nil
@@ -161,7 +152,7 @@ func (c *grpcCloudTeamsConnector) ProcessCloudActivity(ctx context.Context, hand
 			errStatus, ok := status.FromError(err)
 			if ok && errStatus.Code() == codes.Canceled && errStatus.Message() == context.Canceled.Error() {
 				c.log.Debugf("Context was cancelled...")
-				return errStatus.Err()
+				return nil
 			}
 			return fmt.Errorf("while receiving Cloud Teams events: %w", err)
 		}
