@@ -264,7 +264,8 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 			return nil, nil
 		}
 
-		raw, err := json.Marshal(msg.Message)
+		msg.ReplaceBotNamePlaceholder(b.BotName(), api.BotNameWithClusterName(b.clusterName))
+		raw, err := json.Marshal(msg)
 		if err != nil {
 			return nil, fmt.Errorf("while marshaling message to trasfer it via gRPC: %w", err)
 		}
@@ -313,8 +314,7 @@ func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.Core
 		b.log.Debugf("Sending message to channel %q: %+v", channel.ID, msg)
 
 		msg.ReplaceBotNamePlaceholder(b.BotName(), api.BotNameWithClusterName(b.clusterName))
-
-		raw, err := json.Marshal(msg.Message)
+		raw, err := json.Marshal(msg)
 		if err != nil {
 			errs = multierror.Append(errs, fmt.Errorf("while proxing message via agent for channel id %q: %w", channel.ID, err))
 			continue

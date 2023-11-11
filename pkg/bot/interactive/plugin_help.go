@@ -30,11 +30,8 @@ var pluginHelpProvider = map[string]pluginHelpProviderFn{
 
 		// without the kubectl command builder
 		return api.Section{
-			Base: api.Base{
-				Header: "Run kubectl commands (if enabled)",
-			},
 			Buttons: []api.Button{
-				btnBuilder.ForCommandWithoutDesc("kubectl help", "kubectl help"),
+				btnBuilder.ForCommandWithBoldDesc("kubectl help", "Run kubectl commands (if enabled)", "kubectl help"),
 			},
 		}
 	},
