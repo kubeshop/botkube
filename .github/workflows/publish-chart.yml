@@ -1,6 +1,7 @@
 name: Publish main helm chart
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'helm/**'
