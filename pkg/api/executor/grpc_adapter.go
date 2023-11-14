@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/kubeshop/botkube/internal/executor/x/mathx"
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/mathx"
 )
 
 const maxMessageNumberForSingleCommandExecution = 15

@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/kubeshop/botkube/internal/executor/x"
-	"github.com/kubeshop/botkube/internal/executor/x/mathx"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/mathx"
 )
 
 // TutorialWrapper allows constructing interactive message with predefined steps.

@@ -10,15 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/executor/x"
-	"github.com/kubeshop/botkube/internal/executor/x/parser"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
 	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 // Parser defines
 type Parser interface {
-	TableSeparated(in string) parser.TableOutput
+	TableSeparated(in string) formatx.TableOutput
 }
 
 // TableCommandParser allows to render table command output into interactive message based on registered templates.
@@ -32,7 +32,7 @@ func NewTableCommandParser(log logrus.FieldLogger) *TableCommandParser {
 	return &TableCommandParser{
 		log: log,
 		parsers: map[string]Parser{
-			"space": &parser.TableSpace{},
+			"space": &formatx.TableSpace{},
 		},
 	}
 }
@@ -78,7 +78,7 @@ func (p *TableCommandParser) RenderMessage(cmd, output string, state *state.Cont
 	}, nil
 }
 
-func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table parser.Table, cmd string, idx int) (api.Section, error) {
+func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table formatx.Table, cmd string, idx int) (api.Section, error) {
 	if idx >= len(table.Rows) {
 		idx = len(table.Rows) - 1
 	}
@@ -120,7 +120,7 @@ func (p *TableCommandParser) renderActions(msgCtx template.ParseMessage, table p
 	}, nil
 }
 
-func (p *TableCommandParser) renderPreview(msgCtx template.ParseMessage, out parser.TableOutput, requestedRow int) (api.Section, error) {
+func (p *TableCommandParser) renderPreview(msgCtx template.ParseMessage, out formatx.TableOutput, requestedRow int) (api.Section, error) {
 	headerLine := out.Lines[0]
 
 	if requestedRow >= len(out.Table.Rows) {
@@ -161,7 +161,7 @@ func (*TableCommandParser) getPreviewLine(lines []string, idx int) string {
 	return lines[1] // otherwise default first line
 }
 
-func (p *TableCommandParser) renderDropdowns(selects []template.Select, commandData parser.Table, cmd string, state *state.Container) (api.Section, int) {
+func (p *TableCommandParser) renderDropdowns(selects []template.Select, commandData formatx.Table, cmd string, state *state.Container) (api.Section, int) {
 	var (
 		dropdowns       []api.Select
 		lastSelectedIdx int
@@ -187,7 +187,7 @@ func (p *TableCommandParser) renderDropdowns(selects []template.Select, commandD
 	}, lastSelectedIdx
 }
 
-func (p *TableCommandParser) selectDropdown(name, cmd, keyTpl string, table parser.Table, state *state.Container) (*api.Select, int) {
+func (p *TableCommandParser) selectDropdown(name, cmd, keyTpl string, table formatx.Table, state *state.Container) (*api.Select, int) {
 	log := p.log.WithField("selectName", name)
 	var options []api.OptionItem
 	for idx, row := range table.Rows {

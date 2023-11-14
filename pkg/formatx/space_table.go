@@ -1,11 +1,11 @@
-package parser
+package formatx
 
 import (
 	"bufio"
 	"strings"
 	"unicode"
 
-	"github.com/kubeshop/botkube/internal/executor/x/mathx"
+	"github.com/kubeshop/botkube/pkg/mathx"
 )
 
 // Table holds table data.
