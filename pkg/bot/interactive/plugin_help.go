@@ -16,7 +16,8 @@ var pluginHelpProvider = map[string]pluginHelpProviderFn{
 		}
 	},
 	"botkube/kubectl": func(platform config.CommPlatformIntegration, btnBuilder *api.ButtonBuilder) api.Section {
-		if platform.IsInteractive() {
+		// TODO(https://github.com/kubeshop/botkube-cloud/issues/645): add support for kubectl builder
+		if platform.IsInteractive() && platform != config.CloudTeamsCommPlatformIntegration {
 			return api.Section{
 				Base: api.Base{
 					Header: "Run kubectl commands",

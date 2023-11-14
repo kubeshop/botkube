@@ -101,7 +101,7 @@ const (
 )
 
 func (c CommPlatformIntegration) IsInteractive() bool {
-	return c == SocketSlackCommPlatformIntegration || c == CloudSlackCommPlatformIntegration
+	return c == SocketSlackCommPlatformIntegration || c == CloudSlackCommPlatformIntegration || c == CloudTeamsCommPlatformIntegration
 }
 
 // String returns string platform name.

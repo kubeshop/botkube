@@ -11,6 +11,7 @@ import (
 	"github.com/avast/retry-go/v4"
 	"github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
+	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
@@ -25,8 +26,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
-
-const channelIDKeyName = "teamsChannelId"
 
 var _ Bot = &CloudTeams{}
 
@@ -92,7 +91,6 @@ func NewCloudTeams(
 	if err != nil {
 		return nil, err
 	}
-
 	return &CloudTeams{
 		log:                  log,
 		executorFactory:      executorFactory,
@@ -254,9 +252,12 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 		return nil, fmt.Errorf("while unmarshaling activity event: %w", err)
 	}
 	switch act.Type {
-	case schema.Message:
+	case schema.Message, schema.Invoke:
 		b.log.WithField("message", formatx.StructDumper().Sdump(act)).Debug("Processing Cloud message...")
-		channel, exists := b.getChannelForActivity(act)
+		channel, exists, err := b.getChannelForActivity(act)
+		if err != nil {
+			b.log.WithError(err).Error("cannot extract message channel id, processing with empty...")
+		}
 
 		msg := b.processMessage(ctx, act, channel, exists)
 		if msg.IsEmpty() {
@@ -273,6 +274,7 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 		conversationRef := activity.GetCoversationReference(act)
 		return &pb.AgentActivity{
 			Message: &pb.Message{
+				MessageType:    pb.MessageType_MESSAGE_EXECUTOR,
 				TeamId:         channel.teamID,
 				ConversationId: conversationRef.Conversation.ID,
 				ActivityId:     conversationRef.ActivityID, // activity ID allows us to send it as a thread message
@@ -301,7 +303,8 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 		},
 		Message: trimmedMsg,
 		User: execute.UserInput{
-			//Mention:     "", // TODO(https://github.com/kubeshop/botkube-cloud/issues/677): set when adding interactivity support.
+			// TODO: we need to add support for mentions on cloud side.
+			//Mention:     "",
 			DisplayName: act.From.Name,
 		},
 	})
@@ -322,6 +325,7 @@ func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.Core
 
 		act := &pb.AgentActivity{
 			Message: &pb.Message{
+				MessageType:    pb.MessageType_MESSAGE_SOURCE,
 				TeamId:         channel.teamID,
 				ActivityId:     "", // empty so it will be sent on root instead of sending as a thread message
 				ConversationId: channel.ID,
@@ -338,19 +342,31 @@ func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.Core
 	return errs.ErrorOrNil()
 }
 
-func (b *CloudTeams) getChannelForActivity(act schema.Activity) (teamsCloudChannelConfigByID, bool) {
-	rawChannelID, exists := act.ChannelData[channelIDKeyName]
-	if !exists {
-		return teamsCloudChannelConfigByID{}, false
+type channelData struct {
+	Channel struct {
+		ID string `mapstructure:"id"`
+	} `mapstructure:"channel"`
+	TeamsChannelID string `mapstructure:"teamsChannelId"`
+}
+
+func (b *CloudTeams) getChannelForActivity(act schema.Activity) (teamsCloudChannelConfigByID, bool, error) {
+	var data channelData
+	err := mapstructure.Decode(act.ChannelData, &data)
+	if err != nil {
+		return teamsCloudChannelConfigByID{}, false, fmt.Errorf("while decoding data: %w", err)
 	}
 
-	channelID, ok := rawChannelID.(string)
-	if !ok {
-		return teamsCloudChannelConfigByID{}, false
+	if data.Channel.ID == "" && data.TeamsChannelID == "" {
+		return teamsCloudChannelConfigByID{}, false, fmt.Errorf("cannot find channel id in: %s", formatx.StructDumper().Sdump(act.ChannelData))
 	}
 
-	channel, exists := b.getChannels()[channelID]
-	return channel, exists
+	id := data.TeamsChannelID
+	if id == "" {
+		id = data.Channel.ID
+	}
+
+	channel, exists := b.getChannels()[id]
+	return channel, exists, nil
 }
 
 func (b *CloudTeams) getChannelsToNotify(sourceBindings []string) []teamsCloudChannelConfigByID {

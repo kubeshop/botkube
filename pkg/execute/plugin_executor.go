@@ -102,7 +102,7 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		Command: cmdCtx.CleanCmd,
 		Configs: configs,
 		Context: executor.ExecuteInputContext{
-			IsInteractivitySupported: cmdCtx.Platform.IsInteractive(),
+			IsInteractivitySupported: e.doesPlatformInteractivity(cmdCtx),
 			SlackState:               slackState,
 			KubeConfig:               kubeconfig,
 			Message: executor.Message{
@@ -144,6 +144,15 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 	}
 
 	return out, nil
+}
+
+func (e *PluginExecutor) doesPlatformInteractivity(cmdCtx CommandContext) bool {
+	// TODO(https://github.com/kubeshop/botkube-cloud/issues/645): add support for kubectl builder
+	if strings.EqualFold(cmdCtx.CleanCmd, "kubectl") && cmdCtx.Platform == config.CloudTeamsCommPlatformIntegration {
+		// event though the cloud Teams support some interactivity, we do not support the command builder yet.
+		return false
+	}
+	return cmdCtx.Platform.IsInteractive()
 }
 
 func allMessagesMarkedAsSkip(msgs []api.Message) bool {
