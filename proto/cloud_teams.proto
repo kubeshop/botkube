@@ -9,11 +9,17 @@ message AgentActivity {
   Message message = 2;
 }
 
+enum MessageType {
+  MESSAGE_EXECUTOR = 0;
+  MESSAGE_SOURCE = 1;
+}
+
 message Message {
   string teamId = 1;
   string activityId = 2;
   string conversationId = 3;
-  bytes data = 4;
+  MessageType messageType = 4;
+  bytes data = 5;
 }
 
 message CloudActivity {
