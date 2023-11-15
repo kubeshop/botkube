@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -399,6 +400,7 @@ func (b *CloudTeams) setChannels(channels map[string]teamsCloudChannelConfigByID
 }
 
 func (b *CloudTeams) trimBotMention(msg string) string {
+	msg = strings.TrimSpace(msg)
 	return b.botMentionRegex.ReplaceAllString(msg, "")
 }
 
