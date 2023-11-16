@@ -1,0 +1,54 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "cluster-id",
+		"event": "Heartbeat",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"eventsCount": 3,
+			"sources": {
+				"botkube/argocd": {
+					"events": [
+						{
+							"anonymizedEventFields": {
+								"baz": 1,
+								"foo": "bar"
+							},
+							"error": null,
+							"integrationType": "sink",
+							"platform": "elasticsearch",
+							"pluginName": "botkube/argocd",
+							"success": true
+						}
+					],
+					"eventsCount": 1
+				},
+				"botkube/kubernetes": {
+					"events": [
+						{
+							"anonymizedEventFields": null,
+							"error": "sample error",
+							"integrationType": "bot",
+							"platform": "cloudSlack",
+							"pluginName": "botkube/kubernetes",
+							"success": false
+						},
+						{
+							"anonymizedEventFields": {
+								"foo": "bar"
+							},
+							"error": null,
+							"integrationType": "bot",
+							"platform": "discord",
+							"pluginName": "botkube/kubernetes",
+							"success": true
+						}
+					],
+					"eventsCount": 2
+				}
+			},
+			"timeWindowInHours": 1
+		}
+	}
+]

@@ -2,14 +2,18 @@ package analytics
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	segment "github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/kubeshop/botkube/internal/analytics/batched"
+	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/version"
 )
@@ -22,6 +26,8 @@ const (
 	// The labels were copied as it is problematic to add k8s.io/kubernetes dependency: https://github.com/kubernetes/kubernetes/issues/79384
 	controlPlaneNodeLabel           = "node-role.kubernetes.io/control-plane"
 	deprecatedControlPlaneNodeLabel = "node-role.kubernetes.io/master"
+
+	defaultTimeWindowInHours = 1
 )
 
 var (
@@ -31,19 +37,31 @@ var (
 
 var _ Reporter = &SegmentReporter{}
 
+type BatchedDataStore interface {
+	AddSourceEvent(event batched.SourceEvent)
+	HeartbeatProperties() batched.HeartbeatProperties
+	IncrementTimeWindowInHours()
+	Reset()
+}
+
 // SegmentReporter is a default Reporter implementation that uses Twilio Segment.
 type SegmentReporter struct {
 	log logrus.FieldLogger
 	cli segment.Client
 
 	identity *Identity
+
+	batchedData  BatchedDataStore
+	tickDuration time.Duration
 }
 
 // NewSegmentReporter creates a new SegmentReporter instance.
 func NewSegmentReporter(log logrus.FieldLogger, cli segment.Client) *SegmentReporter {
 	return &SegmentReporter{
-		log: log,
-		cli: cli,
+		log:          log,
+		cli:          cli,
+		batchedData:  batched.NewData(defaultTimeWindowInHours),
+		tickDuration: defaultTimeWindowInHours * time.Hour,
 	}
 }
 
@@ -101,13 +119,15 @@ func (r *SegmentReporter) ReportSinkEnabled(platform config.CommPlatformIntegrat
 // ReportHandledEventSuccess reports a successfully handled event using a given communication platform.
 // The RegisterCurrentIdentity needs to be called first.
 func (r *SegmentReporter) ReportHandledEventSuccess(event ReportEventInput) error {
-	return r.reportEvent("Event handled", map[string]interface{}{
-		"platform": event.Platform,
-		"type":     event.IntegrationType,
-		"plugin":   event.PluginName,
-		"event":    event.AnonymizedEventFields,
-		"success":  true,
+	r.batchedData.AddSourceEvent(batched.SourceEvent{
+		IntegrationType:       event.IntegrationType,
+		Platform:              event.Platform,
+		PluginName:            event.PluginName,
+		AnonymizedEventFields: event.AnonymizedEventFields,
+		Success:               true,
 	})
+
+	return nil
 }
 
 // ReportHandledEventError reports a failure while handling event using a given communication platform.
@@ -117,13 +137,16 @@ func (r *SegmentReporter) ReportHandledEventError(event ReportEventInput, err er
 		return nil
 	}
 
-	return r.reportEvent("Event handled", map[string]interface{}{
-		"platform": event.Platform,
-		"type":     event.IntegrationType,
-		"plugin":   event.PluginName,
-		"event":    event.AnonymizedEventFields,
-		"error":    err.Error(),
+	r.batchedData.AddSourceEvent(batched.SourceEvent{
+		IntegrationType:       event.IntegrationType,
+		Platform:              event.Platform,
+		PluginName:            event.PluginName,
+		AnonymizedEventFields: event.AnonymizedEventFields,
+		Success:               false,
+		Error:                 ptr.FromType(err.Error()),
 	})
+
+	return nil
 }
 
 // ReportFatalError reports a fatal app error.
@@ -158,10 +181,59 @@ func (r *SegmentReporter) ReportFatalError(err error) error {
 	return nil
 }
 
+// Run runs the reporter.
+func (r *SegmentReporter) Run(ctx context.Context) error {
+	r.log.Debug("Running heartbeat reporting...")
+
+	ticker := time.NewTicker(r.tickDuration)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			err := r.reportHeartbeatEvent()
+			if err != nil {
+				return fmt.Errorf("while reporting heartbeat event: %w", err)
+			}
+
+			return nil
+		case <-ticker.C:
+			err := r.reportHeartbeatEvent()
+			if err != nil {
+				wrappedErr := fmt.Errorf("while reporting heartbeat event: %w", err)
+				r.log.Error(wrappedErr.Error())
+				r.batchedData.IncrementTimeWindowInHours()
+				continue
+			}
+
+			r.batchedData.Reset()
+		}
+	}
+}
+
 // Close cleans up the reporter resources.
 func (r *SegmentReporter) Close() error {
 	r.log.Info("Closing...")
 	return r.cli.Close()
+}
+
+func (r *SegmentReporter) reportHeartbeatEvent() error {
+	r.log.Debug("Reporting heartbeat event...")
+	heartbeatProps := r.batchedData.HeartbeatProperties()
+
+	// we can't use mapstructure because of this missing feature: https://github.com/mitchellh/mapstructure/issues/249
+	bytes, err := json.Marshal(heartbeatProps)
+	if err != nil {
+		return fmt.Errorf("while marshalling heartbeat properties: %w", err)
+	}
+
+	var props map[string]interface{}
+	err = json.Unmarshal(bytes, &props)
+	if err != nil {
+		return fmt.Errorf("while unmarshalling heartbeat properties: %w", err)
+	}
+
+	return r.reportEvent("Heartbeat", props)
 }
 
 func (r *SegmentReporter) reportEvent(event string, properties map[string]interface{}) error {
