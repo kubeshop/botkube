@@ -27,9 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	batched "github.com/kubeshop/botkube/internal/analytics/batched"
 	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -272,23 +270,6 @@ func TestSegmentReporter_ReportFatalError(t *testing.T) {
 	}
 }
 
-func TestSegmentReporter_ReportHeartbeatEvent(t *testing.T) {
-	//given
-	identity := fixIdentity()
-	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
-	batchedData := fakeBatchedData{
-		props: fixHeartbeatProperties(),
-	}
-	segmentReporter.SetBatchedData(batchedData)
-
-	// when
-	err := segmentReporter.ReportHeartbeatEvent()
-	require.NoError(t, err)
-
-	// then
-	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
-}
-
 func fakeSegmentReporterWithIdentity(identity *analytics.Identity) (*analytics.SegmentReporter, *fakeSegmentCli) {
 	segmentCli := &fakeSegmentCli{}
 	segmentReporter := analytics.NewSegmentReporter(loggerx.NewNoop(), segmentCli)
@@ -327,64 +308,3 @@ func fixIdentity() *analytics.Identity {
 		ControlPlaneNodeCount: 0,
 	}
 }
-
-func fixHeartbeatProperties() batched.HeartbeatProperties {
-	return batched.HeartbeatProperties{
-		TimeWindowInHours: 1,
-		EventsCount:       3,
-		Sources: map[string]batched.SourceProperties{
-			"botkube/argocd": {
-				EventsCount: 1,
-				Events: []batched.SourceEvent{
-					{
-						IntegrationType: config.SinkIntegrationType,
-						Platform:        config.ElasticsearchCommPlatformIntegration,
-						PluginName:      "botkube/argocd",
-						AnonymizedEventFields: map[string]any{
-							"foo": "bar",
-							"baz": 1,
-						},
-						Success: true,
-						Error:   nil,
-					},
-				},
-			},
-			"botkube/kubernetes": {
-				EventsCount: 2,
-				Events: []batched.SourceEvent{
-					{
-						IntegrationType:       config.BotIntegrationType,
-						Platform:              config.CloudSlackCommPlatformIntegration,
-						PluginName:            "botkube/kubernetes",
-						AnonymizedEventFields: nil,
-						Success:               false,
-						Error:                 ptr.FromType("sample error"),
-					},
-					{
-						IntegrationType: config.BotIntegrationType,
-						Platform:        config.DiscordCommPlatformIntegration,
-						PluginName:      "botkube/kubernetes",
-						AnonymizedEventFields: map[string]any{
-							"foo": "bar",
-						},
-						Success: true,
-					},
-				},
-			},
-		},
-	}
-}
-
-type fakeBatchedData struct {
-	props batched.HeartbeatProperties
-}
-
-func (f fakeBatchedData) AddSourceEvent(event batched.SourceEvent) {}
-
-func (f fakeBatchedData) HeartbeatProperties() batched.HeartbeatProperties {
-	return f.props
-}
-
-func (f fakeBatchedData) IncrementTimeWindowInHours() {}
-
-func (f fakeBatchedData) Reset() {}
