@@ -53,6 +53,11 @@ func (n NoopReporter) ReportFatalError(_ error) error {
 	return nil
 }
 
+// Run runs the reporter.
+func (n NoopReporter) Run(_ context.Context) error {
+	return nil
+}
+
 // Close cleans up the reporter resources.
 func (n NoopReporter) Close() error {
 	return nil

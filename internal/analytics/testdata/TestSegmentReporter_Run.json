@@ -1,0 +1,91 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "cluster-id",
+		"event": "Heartbeat",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"eventsCount": 2,
+			"sources": {
+				"botkube/kubernetes": {
+					"events": [
+						{
+							"anonymizedEventFields": {
+								"apiVersion": "apps/v1",
+								"kind": "Deployment",
+								"type": "create"
+							},
+							"error": null,
+							"integrationType": "bot",
+							"platform": "slack",
+							"pluginName": "botkube/kubernetes",
+							"success": true
+						},
+						{
+							"anonymizedEventFields": {
+								"apiVersion": "apps/v1",
+								"kind": "Deployment",
+								"type": "create"
+							},
+							"error": "sample error",
+							"integrationType": "sink",
+							"platform": "elasticsearch",
+							"pluginName": "botkube/kubernetes",
+							"success": false
+						}
+					],
+					"eventsCount": 2
+				}
+			},
+			"timeWindowInHours": 1
+		}
+	},
+	{
+		"type": "track",
+		"messageId": "1",
+		"anonymousId": "cluster-id",
+		"event": "Heartbeat",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"eventsCount": 2,
+			"sources": {
+				"botkube/argocd": {
+					"events": [
+						{
+							"anonymizedEventFields": {
+								"apiVersion": "apps/v1",
+								"kind": "Deployment",
+								"type": "create"
+							},
+							"error": null,
+							"integrationType": "bot",
+							"platform": "teams",
+							"pluginName": "botkube/argocd",
+							"success": true
+						}
+					],
+					"eventsCount": 1
+				},
+				"botkube/kubernetes": {
+					"events": [
+						{
+							"anonymizedEventFields": {
+								"apiVersion": "apps/v1",
+								"kind": "Deployment",
+								"type": "create"
+							},
+							"error": null,
+							"integrationType": "bot",
+							"platform": "slack",
+							"pluginName": "botkube/kubernetes",
+							"success": true
+						}
+					],
+					"eventsCount": 1
+				}
+			},
+			"timeWindowInHours": 1
+		}
+	}
+]

@@ -32,6 +32,8 @@ type Reporter interface {
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
 
+	Run(ctx context.Context) error
+
 	// Close cleans up the reporter resources.
 	Close() error
 }

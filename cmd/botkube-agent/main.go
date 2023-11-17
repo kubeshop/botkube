@@ -114,21 +114,21 @@ func run(ctx context.Context) (err error) {
 		logger.Warnf("Configuration validation warnings: %v", confDetails.ValidateWarnings.Error())
 	}
 	// Set up analytics reporter
-	reporter, err := getAnalyticsReporter(conf.Analytics.Disable, logger)
+	analyticsReporter, err := getAnalyticsReporter(conf.Analytics.Disable, logger)
 	if err != nil {
 		return fmt.Errorf("while creating analytics reporter: %w", err)
 	}
 	defer func() {
-		err := reporter.Close()
+		err := analyticsReporter.Close()
 		if err != nil {
 			logger.Errorf("while closing reporter: %s", err.Error())
 		}
 	}()
 	// from now on recover from any panic, report it and close reader and app.
 	// The reader must be not closed to report the panic properly.
-	defer analytics.ReportPanicIfOccurs(logger, reporter)
+	defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 
-	reportFatalError := reportFatalErrFn(logger, reporter, statusReporter)
+	reportFatalError := reportFatalErrFn(logger, analyticsReporter, statusReporter)
 	// Prepare K8s clients and mapper
 	kubeConfig, err := kubex.BuildConfigFromFlags("", conf.Settings.Kubeconfig, conf.Settings.SACredentialsPathPrefix)
 	if err != nil {
@@ -148,7 +148,7 @@ func run(ctx context.Context) (err error) {
 	if err = statusReporter.ReportDeploymentConnectionInit(ctx, k8sVer); err != nil {
 		return reportFatalError("while reporting botkube connection initialization", err)
 	}
-	err = reporter.RegisterCurrentIdentity(ctx, k8sCli, remoteCfg.Identifier)
+	err = analyticsReporter.RegisterCurrentIdentity(ctx, k8sCli, remoteCfg.Identifier)
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}
@@ -183,6 +183,14 @@ func run(ctx context.Context) (err error) {
 		err = reportFatalError("while waiting for goroutines to finish gracefully", multiErr.ErrorOrNil())
 	}()
 
+	errGroup.Go(func() error {
+		err := analyticsReporter.Run(ctx)
+		if err != nil {
+			logger.Errorf("while closing reporter: %s", err.Error())
+		}
+		return err
+	})
+
 	schedulerChan := make(chan string)
 	pluginHealthStats := plugin.NewHealthStats(conf.Plugins.RestartPolicy.Threshold)
 	collector := plugin.NewCollector(logger)
@@ -193,7 +201,7 @@ func run(ctx context.Context) (err error) {
 	healthChecker := health.NewChecker(ctx, conf, pluginHealthStats)
 	healthSrv := healthChecker.NewServer(logger.WithField(componentLogFieldKey, "Health server"), conf.Settings.HealthPort)
 	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 		return healthSrv.Serve(ctx)
 	})
 
@@ -206,7 +214,7 @@ func run(ctx context.Context) (err error) {
 	// Prometheus metrics
 	metricsSrv := newMetricsServer(logger.WithField(componentLogFieldKey, "Metrics server"), conf.Settings.MetricsPort)
 	errGroup.Go(func() error {
-		defer analytics.ReportPanicIfOccurs(logger, reporter)
+		defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 		return metricsSrv.Serve(ctx)
 	})
 
@@ -218,7 +226,7 @@ func run(ctx context.Context) (err error) {
 			Log:               logger.WithField(componentLogFieldKey, "Executor"),
 			Cfg:               *conf,
 			CfgManager:        cfgManager,
-			AnalyticsReporter: reporter,
+			AnalyticsReporter: analyticsReporter,
 			CommandGuard:      cmdGuard,
 			PluginManager:     pluginManager,
 			BotKubeVersion:    botkubeVersion,
@@ -253,14 +261,14 @@ func run(ctx context.Context) (err error) {
 		scheduleBotNotifier := func(in bot.Bot) {
 			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
 			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, reporter)
+				defer analytics.ReportPanicIfOccurs(commGroupLogger, analyticsReporter)
 				return in.Start(ctx)
 			})
 		}
 
 		// Run bots
 		if commGroupCfg.Slack.Enabled {
-			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupMeta, commGroupCfg.Slack, executorFactory, reporter)
+			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupMeta, commGroupCfg.Slack, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Slack bot", err)
 			}
@@ -268,7 +276,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.SocketSlack.Enabled {
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, reporter)
+			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating SocketSlack bot", err)
 			}
@@ -276,7 +284,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, reporter)
+			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating CloudSlack bot", err)
 			}
@@ -284,7 +292,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, reporter)
+			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
@@ -292,7 +300,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Teams.Enabled {
-			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupMeta, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, reporter)
+			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupMeta, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Teams bot", err)
 			}
@@ -300,7 +308,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {
-			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, reporter)
+			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating CloudSlack bot", err)
 			}
@@ -308,7 +316,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Discord.Enabled {
-			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, reporter)
+			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Discord bot", err)
 			}
@@ -317,7 +325,7 @@ func run(ctx context.Context) (err error) {
 
 		// Run sinks
 		if commGroupCfg.Elasticsearch.Enabled {
-			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, reporter)
+			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Elasticsearch sink", err)
 			}
@@ -325,7 +333,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, reporter)
+			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, analyticsReporter)
 			if err != nil {
 				return reportFatalError("while creating Webhook sink", err)
 			}
@@ -352,7 +360,7 @@ func run(ctx context.Context) (err error) {
 			deployClient,
 			dynamicCli,
 			restarter,
-			reporter,
+			analyticsReporter,
 			*conf,
 			cfgVersion,
 			cfgManager,
@@ -361,7 +369,7 @@ func run(ctx context.Context) (err error) {
 			return reportFatalError("while creating config reloader", err)
 		}
 		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 			return cfgReloader.Do(ctx)
 		})
 	}
@@ -384,14 +392,14 @@ func run(ctx context.Context) (err error) {
 			ghCli.Repositories,
 		)
 		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 			return upgradeChecker.Run(ctx)
 		})
 	}
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, reporter, auditReporter, kubeConfig)
+	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, analyticsReporter, auditReporter, kubeConfig)
 	scheduler := source.NewScheduler(ctx, logger, conf, sourcePluginDispatcher, schedulerChan)
 	err = scheduler.Start(ctx)
 	if err != nil {
@@ -407,7 +415,7 @@ func run(ctx context.Context) (err error) {
 		)
 
 		errGroup.Go(func() error {
-			defer analytics.ReportPanicIfOccurs(logger, reporter)
+			defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
 			return incomingWebhookSrv.Serve(ctx)
 		})
 	}

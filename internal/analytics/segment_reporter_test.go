@@ -4,7 +4,7 @@
 //
 // To update golden files, run:
 //
-//	go test ./internal/analytics/... -test.update-golden
+//	go test ./internal/analytics -test.update-golden
 package analytics_test
 
 import (
@@ -12,7 +12,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	segment "github.com/segmentio/analytics-go"
 	"github.com/stretchr/testify/assert"
@@ -166,10 +168,18 @@ func TestSegmentReporter_ReportSinkEnabled(t *testing.T) {
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
 }
 
-func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
+// ReportHandledEventSuccess and ReportHandledEventError are tested together as a part of TestSegmentReporter_Run.
+
+func TestSegmentReporter_Run(t *testing.T) {
 	// given
+	tick := 50 * time.Millisecond
+	timeout := 5 * time.Second
+	sampleErr := errors.New("sample error")
+
 	identity := fixIdentity()
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
+	segmentReporter.SetTickDuration(tick)
+
 	eventDetails := map[string]interface{}{
 		"type":       "create",
 		"apiVersion": "apps/v1",
@@ -177,44 +187,23 @@ func TestSegmentReporter_ReportHandledEventSuccess(t *testing.T) {
 	}
 
 	// when
+	ctx, cancelFn := context.WithTimeout(context.Background(), timeout)
+	defer cancelFn()
+
+	wg := sync.WaitGroup{}
+	var runErr error
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer wg.Done()
+		runErr = segmentReporter.Run(ctx)
+	}(ctx)
+
 	err := segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       config.BotIntegrationType,
 		Platform:              config.SlackCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
 		AnonymizedEventFields: eventDetails,
 	})
-	require.NoError(t, err)
-
-	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
-		IntegrationType:       config.SinkIntegrationType,
-		Platform:              config.ElasticsearchCommPlatformIntegration,
-		PluginName:            "botkube/kubernetes",
-		AnonymizedEventFields: eventDetails,
-	})
-	require.NoError(t, err)
-
-	// then
-	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
-}
-
-func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
-	// given
-	identity := fixIdentity()
-	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
-	eventDetails := map[string]interface{}{
-		"type":       "create",
-		"apiVersion": "apps/v1",
-		"kind":       "Deployment",
-	}
-	sampleErr := errors.New("sample error")
-
-	// when
-	err := segmentReporter.ReportHandledEventError(analytics.ReportEventInput{
-		IntegrationType:       config.BotIntegrationType,
-		Platform:              config.SlackCommPlatformIntegration,
-		PluginName:            "botkube/kubernetes",
-		AnonymizedEventFields: eventDetails,
-	}, sampleErr)
 	require.NoError(t, err)
 
 	err = segmentReporter.ReportHandledEventError(analytics.ReportEventInput{
@@ -224,6 +213,27 @@ func TestSegmentReporter_ReportHandledEventError(t *testing.T) {
 		AnonymizedEventFields: eventDetails,
 	}, sampleErr)
 	require.NoError(t, err)
+
+	time.Sleep(tick + 5*time.Millisecond)
+
+	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
+		IntegrationType:       config.BotIntegrationType,
+		Platform:              config.TeamsCommPlatformIntegration,
+		PluginName:            "botkube/argocd",
+		AnonymizedEventFields: eventDetails,
+	})
+	require.NoError(t, err)
+	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
+		IntegrationType:       config.BotIntegrationType,
+		Platform:              config.SlackCommPlatformIntegration,
+		PluginName:            "botkube/kubernetes",
+		AnonymizedEventFields: eventDetails,
+	})
+	require.NoError(t, err)
+
+	cancelFn()
+	wg.Wait()
+	require.NoError(t, runErr)
 
 	// then
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
