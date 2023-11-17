@@ -66,9 +66,14 @@ type AddMemberForOrganizationInput struct {
 type AddPlatformToOrganizationInput struct {
 	OrganizationID string                       `json:"organizationId"`
 	Slack          *AddSlackToOrganizationInput `json:"slack"`
+	Teams          *AddTeamsToOrganizationInput `json:"teams"`
 }
 
 type AddSlackToOrganizationInput struct {
+	Token string `json:"token"`
+}
+
+type AddTeamsToOrganizationInput struct {
 	Token string `json:"token"`
 }
 
@@ -104,6 +109,28 @@ type AliasUpdateInput struct {
 	Command       *string  `json:"command"`
 	DeploymentIds []string `json:"deploymentIds"`
 }
+
+type APICallEvent struct {
+	ID           string              `json:"id"`
+	Type         *AuditEventType     `json:"type"`
+	DeploymentID string              `json:"deploymentId"`
+	CreatedAt    string              `json:"createdAt"`
+	PluginName   string              `json:"pluginName"`
+	Deployment   *Deployment         `json:"deployment"`
+	User         string              `json:"user"`
+	GqlType      APICallEventQglType `json:"gqlType"`
+	GqlName      string              `json:"gqlName"`
+	RequestBody  string              `json:"requestBody"`
+	ResponseBody string              `json:"responseBody"`
+}
+
+func (APICallEvent) IsAuditEvent()                   {}
+func (this APICallEvent) GetID() string              { return this.ID }
+func (this APICallEvent) GetType() *AuditEventType   { return this.Type }
+func (this APICallEvent) GetDeploymentID() string    { return this.DeploymentID }
+func (this APICallEvent) GetCreatedAt() string       { return this.CreatedAt }
+func (this APICallEvent) GetPluginName() string      { return this.PluginName }
+func (this APICallEvent) GetDeployment() *Deployment { return this.Deployment }
 
 type APIKey struct {
 	Name  string `json:"name"`
@@ -186,20 +213,56 @@ type ChannelBindingsByIDUpdateInput struct {
 }
 
 type ChannelBindingsByName struct {
-	Name                  string       `json:"name"`
-	Bindings              *BotBindings `json:"bindings"`
-	NotificationsDisabled *bool        `json:"notificationsDisabled"`
+	Name                  string                 `json:"name"`
+	Bindings              *BotBindings           `json:"bindings"`
+	NotificationsDisabled *bool                  `json:"notificationsDisabled"`
+	MessageTriggers       []*TextMessageTriggers `json:"messageTriggers"`
 }
 
 type ChannelBindingsByNameCreateInput struct {
-	Name                  string                  `json:"name"`
-	Bindings              *BotBindingsCreateInput `json:"bindings"`
-	NotificationsDisabled *bool                   `json:"notificationsDisabled"`
+	Name                  string                      `json:"name"`
+	Bindings              *BotBindingsCreateInput     `json:"bindings"`
+	NotificationsDisabled *bool                       `json:"notificationsDisabled"`
+	MessageTriggers       []*TextMessageTriggersInput `json:"messageTriggers"`
 }
 
 type ChannelBindingsByNameUpdateInput struct {
-	Name     string                  `json:"name"`
-	Bindings *BotBindingsUpdateInput `json:"bindings"`
+	Name            string                      `json:"name"`
+	Bindings        *BotBindingsUpdateInput     `json:"bindings"`
+	MessageTriggers []*TextMessageTriggersInput `json:"messageTriggers"`
+}
+
+type CloudMsTeams struct {
+	ID                    string                         `json:"id"`
+	Name                  string                         `json:"name"`
+	AadGroupID            string                         `json:"aadGroupId"`
+	AttachmentStorage     *CloudMsTeamsAttachmentStorage `json:"attachmentStorage"`
+	NotificationsDisabled *bool                          `json:"notificationsDisabled"`
+	Channels              []*ChannelBindingsByID         `json:"channels"`
+}
+
+type CloudMsTeamsAttachmentStorage struct {
+	SharePointSiteName    string `json:"sharePointSiteName"`
+	AutoCreateDirectories bool   `json:"autoCreateDirectories"`
+}
+
+type CloudMsTeamsAttachmentStorageCreateInput struct {
+	SharePointSiteName    *string `json:"sharePointSiteName"`
+	AutoCreateDirectories *bool   `json:"autoCreateDirectories"`
+}
+
+type CloudMsTeamsAttachmentStorageUpdateInput struct {
+	SharePointSiteName    string `json:"sharePointSiteName"`
+	AutoCreateDirectories *bool  `json:"autoCreateDirectories"`
+}
+
+type CloudMsTeamsUpdateInput struct {
+	ID                    *string                                   `json:"id"`
+	Name                  string                                    `json:"name"`
+	AadGroupID            string                                    `json:"aadGroupId"`
+	AttachmentStorage     *CloudMsTeamsAttachmentStorageUpdateInput `json:"attachmentStorage"`
+	NotificationsDisabled *bool                                     `json:"notificationsDisabled"`
+	Channels              []*ChannelBindingsByIDUpdateInput         `json:"channels"`
 }
 
 type CloudSlack struct {
@@ -245,7 +308,8 @@ func (this CommandExecutedEvent) GetPluginName() string      { return this.Plugi
 func (this CommandExecutedEvent) GetDeployment() *Deployment { return this.Deployment }
 
 type ConnectedPlatforms struct {
-	Slack *SlackWorkspace `json:"slack"`
+	Slack *SlackWorkspace    `json:"slack"`
+	Teams *TeamsOrganization `json:"teams"`
 }
 
 type Coupon struct {
@@ -267,6 +331,7 @@ type DeletePlatformInput struct {
 	Mattermost    *DeleteByIDInput `json:"mattermost"`
 	Webhook       *DeleteByIDInput `json:"webhook"`
 	MsTeams       *DeleteByIDInput `json:"msTeams"`
+	CloudMsTeams  *DeleteByIDInput `json:"cloudMsTeams"`
 	Elasticsearch *DeleteByIDInput `json:"elasticsearch"`
 }
 
@@ -284,6 +349,7 @@ type Deployment struct {
 	ResourceVersion            int                                      `json:"resourceVersion"`
 	Heartbeat                  *Heartbeat                               `json:"heartbeat"`
 	InstallUpgradeInstructions []*InstallUpgradeInstructionsForPlatform `json:"installUpgradeInstructions"`
+	Draft                      *bool                                    `json:"draft"`
 }
 
 type DeploymentConfig struct {
@@ -298,6 +364,7 @@ type DeploymentCreateInput struct {
 	Actions              []*ActionCreateUpdateInput `json:"actions"`
 	AttachDefaultAliases *bool                      `json:"attachDefaultAliases"`
 	AttachDefaultActions *bool                      `json:"attachDefaultActions"`
+	Draft                *bool                      `json:"draft"`
 }
 
 type DeploymentFailureInput struct {
@@ -338,11 +405,14 @@ type DeploymentStatusInput struct {
 }
 
 type DeploymentUpdateInput struct {
-	Name            string                     `json:"name"`
-	Platforms       *PlatformsUpdateInput      `json:"platforms"`
-	Plugins         []*PluginsUpdateInput      `json:"plugins"`
-	Actions         []*ActionCreateUpdateInput `json:"actions"`
-	ResourceVersion int                        `json:"resourceVersion"`
+	Name                 string                     `json:"name"`
+	Platforms            *PlatformsUpdateInput      `json:"platforms"`
+	Plugins              []*PluginsUpdateInput      `json:"plugins"`
+	Actions              []*ActionCreateUpdateInput `json:"actions"`
+	AttachDefaultAliases *bool                      `json:"attachDefaultAliases"`
+	AttachDefaultActions *bool                      `json:"attachDefaultActions"`
+	ResourceVersion      int                        `json:"resourceVersion"`
+	Draft                *bool                      `json:"draft"`
 }
 
 type DeploymentUpgradeStatus struct {
@@ -469,11 +539,13 @@ type HubspotIdentificationTokenInput struct {
 
 type InstallUpgradeInstructionsForPlatform struct {
 	PlatformName          string                        `json:"platformName"`
+	InstallationType      InstallationType              `json:"installationType"`
 	Prerequisites         []*InstallUpgradePrerequisite `json:"prerequisites"`
 	InstallUpgradeCommand string                        `json:"installUpgradeCommand"`
 }
 
 type InstallUpgradePrerequisite struct {
+	Title       *string `json:"title"`
 	Description *string `json:"description"`
 	Command     *string `json:"command"`
 }
@@ -632,6 +704,7 @@ type PlatformsUpdateInput struct {
 	Mattermosts     []*MattermostUpdateInput    `json:"mattermosts"`
 	Webhooks        []*WebhookUpdateInput       `json:"webhooks"`
 	MsTeams         []*MsTeamsUpdateInput       `json:"msTeams"`
+	CloudMsTeams    []*CloudMsTeamsUpdateInput  `json:"cloudMsTeams"`
 	Elasticsearches []*ElasticsearchUpdateInput `json:"elasticsearches"`
 }
 
@@ -728,6 +801,16 @@ type RBACUpdateInput struct {
 	Group *GroupPolicySubjectInput `json:"group"`
 }
 
+type RegexConstraints struct {
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
+}
+
+type RegexConstraintsInput struct {
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
+}
+
 type RemoveMemberFromOrganizationInput struct {
 	OrgID  string `json:"orgId"`
 	UserID string `json:"userId"`
@@ -736,9 +819,14 @@ type RemoveMemberFromOrganizationInput struct {
 type RemovePlatformFromOrganizationInput struct {
 	OrganizationID string                            `json:"organizationId"`
 	Slack          *RemoveSlackFromOrganizationInput `json:"slack"`
+	Teams          *RemoveTeamsFromOrganizationInput `json:"teams"`
 }
 
 type RemoveSlackFromOrganizationInput struct {
+	ID string `json:"ID"`
+}
+
+type RemoveTeamsFromOrganizationInput struct {
 	ID string `json:"ID"`
 }
 
@@ -839,9 +927,43 @@ type SubscriptionPlan struct {
 	TrialPeriodDays  int    `json:"trialPeriodDays"`
 }
 
+type TeamsOrganizationConnectedOrganizations struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type TeamsOrganizationTeamChannel struct {
+	ConversationID string `json:"conversationId"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+}
+
+type TextMessageTriggers struct {
+	Event                   TextMessageTriggerEvent `json:"event"`
+	Text                    *RegexConstraints       `json:"text"`
+	Users                   *RegexConstraints       `json:"users"`
+	Command                 *string                 `json:"command"`
+	Executors               []string                `json:"executors"`
+	ProcessedEmojiIndicator *string                 `json:"processedEmojiIndicator"`
+}
+
+type TextMessageTriggersInput struct {
+	Event                   TextMessageTriggerEvent `json:"event"`
+	Text                    *RegexConstraintsInput  `json:"text"`
+	Users                   *RegexConstraintsInput  `json:"users"`
+	Command                 *string                 `json:"command"`
+	Executors               []string                `json:"executors"`
+	ProcessedEmojiIndicator *string                 `json:"processedEmojiIndicator"`
+}
+
+type UpdateCurrentUserInput struct {
+	FirstLoginPageVisitedIn bool `json:"firstLoginPageVisitedIn"`
+}
+
 type User struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
+	ID                      string `json:"id"`
+	Email                   string `json:"email"`
+	FirstLoginPageVisitedIn bool   `json:"firstLoginPageVisitedIn"`
 }
 
 type UserPolicySubject struct {
@@ -884,21 +1006,64 @@ type WebhookUpdateInput struct {
 	Bindings *SinkBindingsUpdateInput `json:"bindings"`
 }
 
+type APICallEventQglType string
+
+const (
+	APICallEventQglTypeQuery    APICallEventQglType = "QUERY"
+	APICallEventQglTypeMutation APICallEventQglType = "MUTATION"
+)
+
+var AllAPICallEventQglType = []APICallEventQglType{
+	APICallEventQglTypeQuery,
+	APICallEventQglTypeMutation,
+}
+
+func (e APICallEventQglType) IsValid() bool {
+	switch e {
+	case APICallEventQglTypeQuery, APICallEventQglTypeMutation:
+		return true
+	}
+	return false
+}
+
+func (e APICallEventQglType) String() string {
+	return string(e)
+}
+
+func (e *APICallEventQglType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = APICallEventQglType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ApiCallEventQglType", str)
+	}
+	return nil
+}
+
+func (e APICallEventQglType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type AuditEventType string
 
 const (
 	AuditEventTypeCommandExecuted    AuditEventType = "COMMAND_EXECUTED"
 	AuditEventTypeSourceEventEmitted AuditEventType = "SOURCE_EVENT_EMITTED"
+	AuditEventTypeAPICall            AuditEventType = "API_CALL"
 )
 
 var AllAuditEventType = []AuditEventType{
 	AuditEventTypeCommandExecuted,
 	AuditEventTypeSourceEventEmitted,
+	AuditEventTypeAPICall,
 }
 
 func (e AuditEventType) IsValid() bool {
 	switch e {
-	case AuditEventTypeCommandExecuted, AuditEventTypeSourceEventEmitted:
+	case AuditEventTypeCommandExecuted, AuditEventTypeSourceEventEmitted, AuditEventTypeAPICall:
 		return true
 	}
 	return false
@@ -975,6 +1140,7 @@ func (e BotPlatform) MarshalGQL(w io.Writer) {
 type DeploymentStatusPhase string
 
 const (
+	DeploymentStatusPhaseConnecting   DeploymentStatusPhase = "CONNECTING"
 	DeploymentStatusPhaseConnected    DeploymentStatusPhase = "CONNECTED"
 	DeploymentStatusPhaseDisconnected DeploymentStatusPhase = "DISCONNECTED"
 	DeploymentStatusPhaseFailed       DeploymentStatusPhase = "FAILED"
@@ -984,6 +1150,7 @@ const (
 )
 
 var AllDeploymentStatusPhase = []DeploymentStatusPhase{
+	DeploymentStatusPhaseConnecting,
 	DeploymentStatusPhaseConnected,
 	DeploymentStatusPhaseDisconnected,
 	DeploymentStatusPhaseFailed,
@@ -994,7 +1161,7 @@ var AllDeploymentStatusPhase = []DeploymentStatusPhase{
 
 func (e DeploymentStatusPhase) IsValid() bool {
 	switch e {
-	case DeploymentStatusPhaseConnected, DeploymentStatusPhaseDisconnected, DeploymentStatusPhaseFailed, DeploymentStatusPhaseCreating, DeploymentStatusPhaseUpdating, DeploymentStatusPhaseDeleted:
+	case DeploymentStatusPhaseConnecting, DeploymentStatusPhaseConnected, DeploymentStatusPhaseDisconnected, DeploymentStatusPhaseFailed, DeploymentStatusPhaseCreating, DeploymentStatusPhaseUpdating, DeploymentStatusPhaseDeleted:
 		return true
 	}
 	return false
@@ -1018,6 +1185,47 @@ func (e *DeploymentStatusPhase) UnmarshalGQL(v interface{}) error {
 }
 
 func (e DeploymentStatusPhase) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type InstallationType string
+
+const (
+	InstallationTypeCli    InstallationType = "CLI"
+	InstallationTypeGitOps InstallationType = "GIT_OPS"
+)
+
+var AllInstallationType = []InstallationType{
+	InstallationTypeCli,
+	InstallationTypeGitOps,
+}
+
+func (e InstallationType) IsValid() bool {
+	switch e {
+	case InstallationTypeCli, InstallationTypeGitOps:
+		return true
+	}
+	return false
+}
+
+func (e InstallationType) String() string {
+	return string(e)
+}
+
+func (e *InstallationType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InstallationType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InstallationType", str)
+	}
+	return nil
+}
+
+func (e InstallationType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -1147,5 +1355,44 @@ func (e *StripeCouponDuration) UnmarshalGQL(v interface{}) error {
 }
 
 func (e StripeCouponDuration) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type TextMessageTriggerEvent string
+
+const (
+	TextMessageTriggerEventChannelMessage TextMessageTriggerEvent = "CHANNEL_MESSAGE"
+)
+
+var AllTextMessageTriggerEvent = []TextMessageTriggerEvent{
+	TextMessageTriggerEventChannelMessage,
+}
+
+func (e TextMessageTriggerEvent) IsValid() bool {
+	switch e {
+	case TextMessageTriggerEventChannelMessage:
+		return true
+	}
+	return false
+}
+
+func (e TextMessageTriggerEvent) String() string {
+	return string(e)
+}
+
+func (e *TextMessageTriggerEvent) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TextMessageTriggerEvent(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TextMessageTriggerEvent", str)
+	}
+	return nil
+}
+
+func (e TextMessageTriggerEvent) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

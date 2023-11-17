@@ -61,7 +61,7 @@ func NewBotPlatform(s string) *BotPlatform {
 		platform = BotPlatformMattermost
 	case "TEAMS":
 		fallthrough
-	case "MS_TEAMS":
+	case "MS_TEAMS", "CLOUDTEAMS":
 		platform = BotPlatformMsTeams
 	default:
 		platform = BotPlatformUnknown
