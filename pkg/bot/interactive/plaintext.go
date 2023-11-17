@@ -5,10 +5,10 @@ func MessageToPlaintext(msg CoreMessage, newlineFormatter func(in string) string
 	msg.Description = ""
 
 	fmt := MDFormatter{
-		newlineFormatter:           newlineFormatter,
-		headerFormatter:            NoFormatting,
-		codeBlockFormatter:         NoFormatting,
-		adaptiveCodeBlockFormatter: NoFormatting,
+		NewlineFormatter:           newlineFormatter,
+		HeaderFormatter:            NoFormatting,
+		CodeBlockFormatter:         NoFormatting,
+		AdaptiveCodeBlockFormatter: NoFormatting,
 	}
 	return RenderMessage(fmt, msg)
 }
