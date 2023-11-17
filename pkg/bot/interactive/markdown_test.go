@@ -131,21 +131,21 @@ func TestInteractiveMessageToMarkdownMultiSelect(t *testing.T) {
 // go test -run=TestInteractiveMessageToMarkdown ./pkg/bot/interactive/... -test.update-golden
 func TestInteractiveMessageToMarkdown(t *testing.T) {
 	formatterForCustomNewLines := MDFormatter{
-		newlineFormatter: func(msg string) string {
+		NewlineFormatter: func(msg string) string {
 			return fmt.Sprintf("%s<br>", msg)
 		},
-		headerFormatter:            MdHeaderFormatter,
-		codeBlockFormatter:         formatx.CodeBlock,
-		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
+		HeaderFormatter:            MdHeaderFormatter,
+		CodeBlockFormatter:         formatx.CodeBlock,
+		AdaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 
 	formatterForCustomHeaders := MDFormatter{
-		newlineFormatter: NewlineFormatter,
-		headerFormatter: func(msg string) string {
+		NewlineFormatter: NewlineFormatter,
+		HeaderFormatter: func(msg string) string {
 			return fmt.Sprintf("*%s*", msg)
 		},
-		codeBlockFormatter:         formatx.CodeBlock,
-		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
+		CodeBlockFormatter:         formatx.CodeBlock,
+		AdaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 	tests := []struct {
 		name        string

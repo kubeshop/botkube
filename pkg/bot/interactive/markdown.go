@@ -11,19 +11,19 @@ import (
 
 // MDFormatter represents the capability of Markdown Formatter
 type MDFormatter struct {
-	newlineFormatter           func(msg string) string
-	headerFormatter            func(msg string) string
-	codeBlockFormatter         func(msg string) string
-	adaptiveCodeBlockFormatter func(msg string) string
+	NewlineFormatter           func(msg string) string
+	HeaderFormatter            func(msg string) string
+	CodeBlockFormatter         func(msg string) string
+	AdaptiveCodeBlockFormatter func(msg string) string
 }
 
 // NewMDFormatter is for initializing custom Markdown formatter
 func NewMDFormatter(newlineFormatter, headerFormatter func(msg string) string) MDFormatter {
 	return MDFormatter{
-		newlineFormatter:           newlineFormatter,
-		headerFormatter:            headerFormatter,
-		codeBlockFormatter:         formatx.CodeBlock,
-		adaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
+		NewlineFormatter:           newlineFormatter,
+		HeaderFormatter:            headerFormatter,
+		CodeBlockFormatter:         formatx.CodeBlock,
+		AdaptiveCodeBlockFormatter: formatx.AdaptiveCodeBlock,
 	}
 }
 
@@ -36,11 +36,11 @@ func DefaultMDFormatter() MDFormatter {
 func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 	var out strings.Builder
 	addLine := func(in string) {
-		out.WriteString(mdFormatter.newlineFormatter(in))
+		out.WriteString(mdFormatter.NewlineFormatter(in))
 	}
 
 	if msg.Header != "" {
-		addLine(mdFormatter.headerFormatter(msg.Header))
+		addLine(mdFormatter.HeaderFormatter(msg.Header))
 	}
 
 	if msg.Description != "" {
@@ -52,7 +52,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 	}
 
 	if msg.BaseBody.CodeBlock != "" {
-		addLine(mdFormatter.codeBlockFormatter(msg.BaseBody.CodeBlock))
+		addLine(mdFormatter.CodeBlockFormatter(msg.BaseBody.CodeBlock))
 	}
 
 	for i, section := range msg.Sections {
@@ -63,13 +63,13 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		}
 
 		if section.Header != "" {
-			addLine(mdFormatter.headerFormatter(section.Header))
+			addLine(mdFormatter.HeaderFormatter(section.Header))
 		}
 
 		if len(section.TextFields) > 0 {
-			addLine(mdFormatter.headerFormatter("Fields"))
+			addLine(mdFormatter.HeaderFormatter("Fields"))
 			for _, field := range section.TextFields {
-				addLine(fmt.Sprintf(" • %s: %s", mdFormatter.headerFormatter(field.Key), field.Value))
+				addLine(fmt.Sprintf(" • %s: %s", mdFormatter.HeaderFormatter(field.Key), field.Value))
 			}
 			addLine("") // new line to separate other
 		}
@@ -85,13 +85,13 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 		if section.Body.CodeBlock != "" {
 			// not using the adaptive code block is on purpose, we always want to have
 			// a multiline code block to improve readability
-			addLine(mdFormatter.codeBlockFormatter(section.Body.CodeBlock))
+			addLine(mdFormatter.CodeBlockFormatter(section.Body.CodeBlock))
 		}
 
 		if section.BulletLists.AreItemsDefined() {
 			for _, item := range section.BulletLists {
 				addLine("") // new line
-				addLine(mdFormatter.headerFormatter(item.Title))
+				addLine(mdFormatter.HeaderFormatter(item.Title))
 
 				for _, opt := range item.Items {
 					addLine(fmt.Sprintf(" • %s", opt))
@@ -107,26 +107,26 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 			}
 
 			if ms.Description.CodeBlock != "" {
-				addLine(mdFormatter.adaptiveCodeBlockFormatter(ms.Description.CodeBlock))
+				addLine(mdFormatter.AdaptiveCodeBlockFormatter(ms.Description.CodeBlock))
 			}
 
 			addLine("") // new line
-			addLine(mdFormatter.headerFormatter("Available options"))
+			addLine(mdFormatter.HeaderFormatter("Available options"))
 
 			for _, opt := range ms.Options {
-				addLine(fmt.Sprintf(" • %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
+				addLine(fmt.Sprintf(" • %s", mdFormatter.AdaptiveCodeBlockFormatter(opt.Value)))
 			}
 		}
 
 		if section.Selects.AreOptionsDefined() {
 			addLine("") // new line
-			addLine(mdFormatter.headerFormatter("Available options"))
+			addLine(mdFormatter.HeaderFormatter("Available options"))
 
 			for _, item := range section.Selects.Items {
 				for _, group := range item.OptionGroups {
 					addLine(fmt.Sprintf(" • %s", group.Name))
 					for _, opt := range group.Options {
-						addLine(fmt.Sprintf("    • %s", mdFormatter.adaptiveCodeBlockFormatter(opt.Value)))
+						addLine(fmt.Sprintf("    • %s", mdFormatter.AdaptiveCodeBlockFormatter(opt.Value)))
 					}
 				}
 			}
@@ -134,7 +134,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 
 		for _, btn := range section.Buttons {
 			if btn.DescriptionStyle == api.ButtonDescriptionStyleBold && btn.Description != "" {
-				addLine(mdFormatter.headerFormatter(btn.Description))
+				addLine(mdFormatter.HeaderFormatter(btn.Description))
 			}
 
 			if btn.URL != "" {
@@ -142,7 +142,7 @@ func RenderMessage(mdFormatter MDFormatter, msg CoreMessage) string {
 				continue
 			}
 			if btn.Command != "" {
-				addLine(fmt.Sprintf("  • %s", mdFormatter.adaptiveCodeBlockFormatter(btn.Command)))
+				addLine(fmt.Sprintf("  • %s", mdFormatter.AdaptiveCodeBlockFormatter(btn.Command)))
 				continue
 			}
 		}
