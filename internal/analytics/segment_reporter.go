@@ -200,8 +200,7 @@ func (r *SegmentReporter) Run(ctx context.Context) error {
 		case <-ticker.C:
 			err := r.reportHeartbeatEvent()
 			if err != nil {
-				wrappedErr := fmt.Errorf("while reporting heartbeat event: %w", err)
-				r.log.Error(wrappedErr.Error())
+				r.log.WithError(err).Error("Failed to report heartbeat event")
 				r.batchedData.IncrementTimeWindowInHours()
 				continue
 			}

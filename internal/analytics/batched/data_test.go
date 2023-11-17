@@ -96,3 +96,64 @@ func TestData(t *testing.T) {
 	assert.Equal(t, 0, data.heartbeatProperties.EventsCount)
 	assert.Len(t, data.heartbeatProperties.Sources, 0)
 }
+
+func TestData_EventDetailsLimit(t *testing.T) {
+	// given
+	data := NewData(1)
+	addEvent1Count := 50
+	addEvent2Count := 70
+	addEvent3Count := 30
+
+	totalCount := addEvent1Count + addEvent2Count + addEvent3Count
+	expectedKubernetesEventCount := addEvent1Count + addEvent3Count
+	expectedKubernetesEventDetailsLen := addEvent1Count
+	expectedArgoCDEventCount := addEvent2Count
+
+	kubernetesPlugin := "botkube/kubernetes"
+	argoCDPlugin := "botkube/argocd"
+
+	// when
+	for i := 0; i < addEvent1Count; i++ {
+		data.AddSourceEvent(SourceEvent{
+			IntegrationType: config.BotIntegrationType,
+			Platform:        config.DiscordCommPlatformIntegration,
+			PluginName:      kubernetesPlugin,
+			AnonymizedEventFields: map[string]any{
+				"foo": "bar",
+			},
+			Success: true,
+		})
+	}
+
+	for i := 0; i < addEvent2Count; i++ {
+		data.AddSourceEvent(SourceEvent{
+			IntegrationType:       config.BotIntegrationType,
+			Platform:              config.CloudSlackCommPlatformIntegration,
+			PluginName:            argoCDPlugin,
+			AnonymizedEventFields: nil,
+			Success:               true,
+		})
+	}
+
+	for i := 0; i < addEvent3Count; i++ {
+		data.AddSourceEvent(SourceEvent{
+			IntegrationType: config.SinkIntegrationType,
+			Platform:        config.ElasticsearchCommPlatformIntegration,
+			PluginName:      kubernetesPlugin,
+			AnonymizedEventFields: map[string]any{
+				"foo": "bar",
+			},
+			Success: true,
+		})
+	}
+
+	// then
+	assert.Equal(t, totalCount, data.heartbeatProperties.EventsCount)
+	assert.Len(t, data.heartbeatProperties.Sources, 2)
+
+	assert.Equal(t, expectedKubernetesEventCount, data.heartbeatProperties.Sources[kubernetesPlugin].EventsCount)
+	assert.Len(t, data.heartbeatProperties.Sources[kubernetesPlugin].Events, expectedKubernetesEventDetailsLen)
+
+	assert.Equal(t, expectedArgoCDEventCount, data.heartbeatProperties.Sources[argoCDPlugin].EventsCount)
+	assert.Len(t, data.heartbeatProperties.Sources[argoCDPlugin].Events, maxEventDetailsCount-addEvent1Count)
+}
