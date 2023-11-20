@@ -221,10 +221,12 @@
                     },
                     "jsonPath": {
                       "title": "JSONPath Expression",
+                      "description": "The JSONPath expression to filter based on specific criteria within the event payload.",
                       "type": "string"
                     },
                     "value": {
                       "title": "Value",
+                      "description": "The regex value to match in the JSONPath result.",
                       "type": "string"
                     },
                     "notificationTemplate": {
