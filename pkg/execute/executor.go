@@ -61,6 +61,7 @@ type DefaultExecutor struct {
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
 	pluginHealthStats     *plugin.HealthStats
+	auditContext          map[string]interface{}
 }
 
 // Execute executes commands and returns output
@@ -82,6 +83,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 		NotifierHandler:   e.notifierHandler,
 		Mapping:           e.cmdsMapping,
 		PluginHealthStats: e.pluginHealthStats,
+		AuditContext:      e.auditContext,
 	}
 
 	flags, err := ParseFlags(expandedRawCmd)
@@ -283,12 +285,13 @@ func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, pluginName strin
 	}
 
 	event := audit.ExecutorAuditEvent{
-		PlatformUser: cmdCtx.User.DisplayName,
-		CreatedAt:    time.Now().Format(time.RFC3339),
-		PluginName:   pluginName,
-		Channel:      channelName,
-		Command:      cmdCtx.ExpandedRawCmd,
-		BotPlatform:  platform,
+		PlatformUser:            cmdCtx.User.DisplayName,
+		CreatedAt:               time.Now().Format(time.RFC3339),
+		PluginName:              pluginName,
+		Channel:                 channelName,
+		Command:                 cmdCtx.ExpandedRawCmd,
+		BotPlatform:             platform,
+		AdditionalCreateContext: cmdCtx.AuditContext,
 	}
 	return e.auditReporter.ReportExecutorAuditEvent(ctx, event)
 }

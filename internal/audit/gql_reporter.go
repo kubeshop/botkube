@@ -6,7 +6,7 @@ import (
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
 
-	remoteapi "github.com/kubeshop/botkube/internal/remote"
+	gqlmodel "github.com/kubeshop/botkube/internal/remote/graphql"
 )
 
 var _ AuditReporter = (*GraphQLAuditReporter)(nil)
@@ -39,16 +39,17 @@ func (r *GraphQLAuditReporter) ReportExecutorAuditEvent(ctx context.Context, e E
 		} `graphql:"createAuditEvent(input: $input)"`
 	}
 	variables := map[string]interface{}{
-		"input": remoteapi.AuditEventCreateInput{
+		"input": gqlmodel.AuditEventCreateInput{
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
 			DeploymentID: r.gql.DeploymentID(),
-			Type:         remoteapi.AuditEventTypeCommandExecuted,
-			CommandExecuted: &remoteapi.AuditEventCommandCreateInput{
-				PlatformUser: e.PlatformUser,
-				BotPlatform:  e.BotPlatform,
-				Command:      e.Command,
-				Channel:      e.Channel,
+			Type:         gqlmodel.AuditEventTypeCommandExecuted,
+			CommandExecuted: &gqlmodel.AuditEventCommandCreateInput{
+				PlatformUser:            e.PlatformUser,
+				BotPlatform:             e.BotPlatform,
+				Command:                 e.Command,
+				Channel:                 e.Channel,
+				AdditionalCreateContext: e.AdditionalCreateContext,
 			},
 		},
 	}
@@ -65,14 +66,14 @@ func (r *GraphQLAuditReporter) ReportSourceAuditEvent(ctx context.Context, e Sou
 		} `graphql:"createAuditEvent(input: $input)"`
 	}
 	variables := map[string]interface{}{
-		"input": remoteapi.AuditEventCreateInput{
+		"input": gqlmodel.AuditEventCreateInput{
 			CreatedAt:    e.CreatedAt,
 			PluginName:   e.PluginName,
 			DeploymentID: r.gql.DeploymentID(),
-			Type:         remoteapi.AuditEventTypeSourceEventEmitted,
-			SourceEventEmitted: &remoteapi.AuditEventSourceCreateInput{
+			Type:         gqlmodel.AuditEventTypeSourceEventEmitted,
+			SourceEventEmitted: &gqlmodel.AuditEventSourceCreateInput{
 				Event: e.Event,
-				Source: remoteapi.AuditEventSourceDetailsInput{
+				Source: &gqlmodel.AuditEventSourceDetailsInput{
 					Name:        e.Source.Name,
 					DisplayName: e.Source.DisplayName,
 				},

@@ -308,6 +308,7 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 			//Mention:     "",
 			DisplayName: act.From.Name,
 		},
+		AuditContext: act.ChannelData,
 	})
 	return e.Execute(ctx)
 }
