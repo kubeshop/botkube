@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/remote"
+	gqlmodel "github.com/kubeshop/botkube/internal/remote/graphql"
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
@@ -150,7 +150,7 @@ func (r *GraphQLStatusReporter) ReportDeploymentFailure(ctx context.Context, err
 
 		variables := map[string]interface{}{
 			"id": graphql.ID(r.gql.DeploymentID()),
-			"input": remote.DeploymentFailureInput{
+			"input": gqlmodel.DeploymentFailureInput{
 				Message:         errMsg,
 				ResourceVersion: r.getResourceVersion(),
 			},

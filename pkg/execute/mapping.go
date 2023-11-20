@@ -56,6 +56,7 @@ type CommandContext struct {
 	Mapping             *CommandMapping
 	CmdHeader           string
 	PluginHealthStats   *plugin.HealthStats
+	AuditContext        map[string]interface{}
 }
 
 // ProvidedClusterNameEqualOrEmpty returns true when provided cluster name is empty
