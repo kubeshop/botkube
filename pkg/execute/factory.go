@@ -182,6 +182,7 @@ type NewDefaultInput struct {
 	Conversation    Conversation
 	Message         string
 	User            UserInput
+	AuditContext    map[string]interface{}
 }
 
 // UserInput contains details about the user.
@@ -216,5 +217,6 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		message:               cfg.Message,
 		platform:              cfg.Platform,
 		commGroupName:         cfg.CommGroupName,
+		auditContext:          cfg.AuditContext,
 	}
 }

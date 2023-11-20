@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	remoteapi "github.com/kubeshop/botkube/internal/remote"
+	"github.com/kubeshop/botkube/internal/remote/graphql"
 )
 
 // AuditReporter defines interface for reporting audit events
@@ -16,12 +16,13 @@ type AuditReporter interface {
 
 // ExecutorAuditEvent contains audit event data
 type ExecutorAuditEvent struct {
-	CreatedAt    string
-	PluginName   string
-	PlatformUser string
-	BotPlatform  *remoteapi.BotPlatform
-	Command      string
-	Channel      string
+	CreatedAt               string
+	PluginName              string
+	PlatformUser            string
+	BotPlatform             *graphql.BotPlatform
+	Command                 string
+	Channel                 string
+	AdditionalCreateContext map[string]interface{}
 }
 
 // SourceAuditEvent contains audit event data

@@ -17,6 +17,7 @@ var (
 		DiscordCommPlatformIntegration:     {},
 		MattermostCommPlatformIntegration:  {},
 		TeamsCommPlatformIntegration:       {},
+		CloudTeamsCommPlatformIntegration:  {},
 	}
 	supportedPlatformsNotifications = map[CommPlatformIntegration]struct{}{
 		SlackCommPlatformIntegration:       {},
@@ -24,6 +25,7 @@ var (
 		SocketSlackCommPlatformIntegration: {},
 		DiscordCommPlatformIntegration:     {},
 		MattermostCommPlatformIntegration:  {},
+		CloudTeamsCommPlatformIntegration:  {},
 	}
 )
 
