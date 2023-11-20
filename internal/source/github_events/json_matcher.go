@@ -3,6 +3,7 @@ package github_events
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -27,11 +28,23 @@ func (j *JSONPathMatcher) IsEventMatchingCriteria(obj json.RawMessage, jsonPath,
 		j.log.WithError(err).Errorf("while parsing %s JSONPath", jsonPath)
 		return false
 	}
-	if value != expValue {
-		return false
+
+	return j.isEqual(expValue, value)
+}
+
+func (j *JSONPathMatcher) isEqual(exp, got string) bool {
+	// exact match
+	if exp == got {
+		return true
 	}
 
-	return true
+	// regexp
+	matched, err := regexp.MatchString(exp, got)
+	if err != nil {
+		j.log.WithError(err).Errorf("while matching %q with regex %q", got, exp)
+		return false
+	}
+	return matched
 }
 
 func (j *JSONPathMatcher) parseJsonpath(raw []byte, jsonpathStr string) (string, error) {
