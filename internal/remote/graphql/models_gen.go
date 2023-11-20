@@ -138,10 +138,12 @@ type APIKey struct {
 }
 
 type AuditEventCommandCreateInput struct {
-	PlatformUser string       `json:"platformUser"`
-	Channel      string       `json:"channel"`
-	BotPlatform  *BotPlatform `json:"botPlatform"`
-	Command      string       `json:"command"`
+	PlatformUser            string       `json:"platformUser"`
+	ConversationGroup       *string      `json:"conversationGroup"`
+	Channel                 string       `json:"channel"`
+	BotPlatform             *BotPlatform `json:"botPlatform"`
+	Command                 string       `json:"command"`
+	AdditionalCreateContext interface{}  `json:"additionalCreateContext"`
 }
 
 type AuditEventCreateInput struct {
@@ -287,16 +289,17 @@ type CloudSlackUpdateInput struct {
 }
 
 type CommandExecutedEvent struct {
-	ID           string          `json:"id"`
-	Type         *AuditEventType `json:"type"`
-	PlatformUser *string         `json:"platformUser"`
-	DeploymentID string          `json:"deploymentId"`
-	Deployment   *Deployment     `json:"deployment"`
-	CreatedAt    string          `json:"createdAt"`
-	Command      string          `json:"command"`
-	BotPlatform  *BotPlatform    `json:"botPlatform"`
-	Channel      string          `json:"channel"`
-	PluginName   string          `json:"pluginName"`
+	ID                string          `json:"id"`
+	Type              *AuditEventType `json:"type"`
+	PlatformUser      *string         `json:"platformUser"`
+	DeploymentID      string          `json:"deploymentId"`
+	Deployment        *Deployment     `json:"deployment"`
+	CreatedAt         string          `json:"createdAt"`
+	Command           string          `json:"command"`
+	BotPlatform       *BotPlatform    `json:"botPlatform"`
+	ConversationGroup *string         `json:"conversationGroup"`
+	Channel           string          `json:"channel"`
+	PluginName        string          `json:"pluginName"`
 }
 
 func (CommandExecutedEvent) IsAuditEvent()                   {}

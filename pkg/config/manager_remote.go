@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	remoteapi "github.com/kubeshop/botkube/internal/remote"
+	gqlmodel "github.com/kubeshop/botkube/internal/remote/graphql"
 )
 
 // ResVerClient defines client for getting resource version.
@@ -57,9 +58,9 @@ func (m *RemotePersistenceManager) PersistNotificationsEnabled(ctx context.Conte
 		}
 		variables := map[string]interface{}{
 			"id": graphql.ID(m.gql.DeploymentID()),
-			"input": remoteapi.PatchDeploymentConfigInput{
+			"input": gqlmodel.PatchDeploymentConfigInput{
 				ResourceVersion: m.getResourceVersion(),
-				Notification: &remoteapi.NotificationPatchDeploymentConfigInput{
+				Notification: &gqlmodel.NotificationPatchDeploymentConfigInput{
 					CommunicationGroupName: commGroupName,
 					Platform:               *p,
 					ChannelAlias:           channelAlias,
@@ -107,9 +108,9 @@ func (m *RemotePersistenceManager) PersistSourceBindings(ctx context.Context, co
 		}
 		variables := map[string]interface{}{
 			"id": graphql.ID(m.gql.DeploymentID()),
-			"input": remoteapi.PatchDeploymentConfigInput{
+			"input": gqlmodel.PatchDeploymentConfigInput{
 				ResourceVersion: m.getResourceVersion(),
-				SourceBinding: &remoteapi.SourceBindingPatchDeploymentConfigInput{
+				SourceBinding: &gqlmodel.SourceBindingPatchDeploymentConfigInput{
 					CommunicationGroupName: commGroupName,
 					Platform:               *p,
 					ChannelAlias:           channelAlias,
@@ -148,9 +149,9 @@ func (m *RemotePersistenceManager) PersistActionEnabled(ctx context.Context, nam
 		}
 		variables := map[string]interface{}{
 			"id": graphql.ID(m.gql.DeploymentID()),
-			"input": remoteapi.PatchDeploymentConfigInput{
+			"input": gqlmodel.PatchDeploymentConfigInput{
 				ResourceVersion: m.getResourceVersion(),
-				Action: &remoteapi.ActionPatchDeploymentConfigInput{
+				Action: &gqlmodel.ActionPatchDeploymentConfigInput{
 					Name:    name,
 					Enabled: &enabled,
 				},
