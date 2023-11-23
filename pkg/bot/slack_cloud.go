@@ -42,7 +42,7 @@ const (
 	maxRetries               = 30
 	successIntervalDuration  = 3 * time.Minute
 	quotaExceededMsg         = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
-	cloudSlackConnectTimeout = 10 * time.Second
+	cloudSlackConnectTimeout = 5 * time.Second
 )
 
 var _ Bot = &CloudSlack{}

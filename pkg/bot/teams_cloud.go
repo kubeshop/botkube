@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	cloudTeamsConnectTimeout = 10 * time.Second
+	cloudTeamsConnectTimeout = 5 * time.Second
 )
 
 var _ Bot = &CloudTeams{}
