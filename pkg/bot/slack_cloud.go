@@ -38,10 +38,11 @@ import (
 )
 
 const (
-	retryDelay              = time.Second
-	maxRetries              = 30
-	successIntervalDuration = 3 * time.Minute
-	quotaExceededMsg        = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
+	retryDelay               = time.Second
+	maxRetries               = 30
+	successIntervalDuration  = 3 * time.Minute
+	quotaExceededMsg         = "Quota exceeded detected. Stopping reconnecting to Botkube Cloud gRPC API..."
+	cloudSlackConnectTimeout = 10 * time.Second
 )
 
 var _ Bot = &CloudSlack{}
@@ -178,7 +179,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("while creating gRPC connection: %w", err)
 	}
 	defer conn.Close()
 
@@ -186,7 +187,9 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		InstanceId: remoteConfig.Identifier,
 		BotId:      b.botID,
 	}
-	c, err := pb.NewCloudSlackClient(conn).Connect(ctx)
+	ctxTimeout, cancelFn := context.WithTimeout(ctx, cloudSlackConnectTimeout)
+	defer cancelFn()
+	c, err := pb.NewCloudSlackClient(conn).Connect(ctxTimeout)
 	if err != nil {
 		return fmt.Errorf("while initializing gRPC cloud client: %w", err)
 	}
@@ -195,6 +198,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		if err != nil {
 			b.log.Errorf("while closing connection: %s", err.Error())
 		}
+		b.log.Info("Cloud Slack client is closed successfully")
 	}(c)
 
 	err = c.Send(req)

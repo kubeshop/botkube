@@ -28,6 +28,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
+const (
+	cloudTeamsConnectTimeout = 10 * time.Second
+)
+
 var _ Bot = &CloudTeams{}
 
 // CloudTeams listens for user's messages, execute commands and sends back the response.
@@ -184,9 +188,11 @@ func (b *CloudTeams) start(ctx context.Context) error {
 	}
 	defer svc.Shutdown()
 
-	err = svc.Start(ctx)
+	ctxTimeout, cancelFn := context.WithTimeout(ctx, cloudTeamsConnectTimeout)
+	defer cancelFn()
+	err = svc.Start(ctxTimeout)
 	if err != nil {
-		return err
+		return fmt.Errorf("while starting gRPC connector %w", err)
 	}
 
 	b.setFailureReason("")
