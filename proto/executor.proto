@@ -52,6 +52,8 @@ message MetadataResponse {
 	JSONSchema json_schema = 3;
 	// dependencies is a list of dependencies of a given plugin.
 	map<string, Dependency> dependencies = 4;
+	// URL to plugin documentation.
+	string documentation_url = 5;
 }
 
 message JSONSchema {

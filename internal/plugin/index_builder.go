@@ -74,7 +74,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChec
 	for key, bins := range entries {
 		meta, err := i.getPluginMetadata(dir, bins)
 		if err != nil {
-			return Index{}, fmt.Errorf("while getting plugin metadata: %w", err)
+			return Index{}, fmt.Errorf("while getting %s plugin's metadata: %w", key, err)
 		}
 
 		urls, err := i.mapToIndexURLs(dir, bins, urlBasePath, meta.Dependencies, skipChecksum, useArchive)
@@ -84,10 +84,11 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChec
 
 		pType, pName, _ := strings.Cut(key, "/")
 		out.Entries = append(out.Entries, IndexEntry{
-			Name:        pName,
-			Type:        Type(pType),
-			Description: meta.Description,
-			Version:     meta.Version,
+			Name:             pName,
+			Type:             Type(pType),
+			Description:      meta.Description,
+			DocumentationURL: meta.DocumentationURL,
+			Version:          meta.Version,
 			JSONSchema: JSONSchema{
 				Value:  meta.JSONSchema.Value,
 				RefURL: meta.JSONSchema.RefURL,

@@ -45,13 +45,14 @@ type (
 	}
 	// IndexEntry defines the plugin definition.
 	IndexEntry struct {
-		Name            string          `yaml:"name"`
-		Type            Type            `yaml:"type"`
-		Description     string          `yaml:"description"`
-		Version         string          `yaml:"version"`
-		URLs            []IndexURL      `yaml:"urls"`
-		JSONSchema      JSONSchema      `yaml:"jsonSchema"`
-		ExternalRequest ExternalRequest `yaml:"externalRequest,omitempty"`
+		Name             string          `yaml:"name"`
+		Type             Type            `yaml:"type"`
+		Description      string          `yaml:"description"`
+		DocumentationURL string          `yaml:"documentationUrl"`
+		Version          string          `yaml:"version"`
+		URLs             []IndexURL      `yaml:"urls"`
+		JSONSchema       JSONSchema      `yaml:"jsonSchema"`
+		ExternalRequest  ExternalRequest `yaml:"externalRequest,omitempty"`
 	}
 
 	// ExternalRequest contains the external request metadata for a given plugin.

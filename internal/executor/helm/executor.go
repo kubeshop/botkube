@@ -59,9 +59,10 @@ func NewExecutor(ver string) *Executor {
 // Metadata returns details about Helm plugin.
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     e.pluginVersion,
-		Description: description,
-		JSONSchema:  jsonSchema(),
+		Version:          e.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/executor/helm/",
+		JSONSchema:       jsonSchema(),
 		Dependencies: map[string]api.Dependency{
 			helmBinaryName: {
 				URLs: helmBinaryDownloadLinks,

@@ -169,8 +169,9 @@ func (s *Source) HandleExternalRequest(_ context.Context, input source.ExternalR
 // Metadata returns metadata of the ArgoCD configuration.
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     s.pluginVersion,
-		Description: htmlDescription,
+		Version:          s.pluginVersion,
+		Description:      htmlDescription,
+		DocumentationURL: "https://docs.botkube.io/configuration/source/argocd",
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},

@@ -21,6 +21,8 @@ type MetadataOutput struct {
 	Version string
 	// Descriptions is a description of a given plugin.
 	Description string
+	// URL to plugin documentation.
+	DocumentationURL string
 	// JSONSchema is a JSON schema for a given plugin configuration.
 	JSONSchema JSONSchema
 

@@ -69,6 +69,8 @@ message MetadataResponse {
 	map<string, Dependency> dependencies = 4;
 	// external_request is a metadata of a given external request.
 	optional ExternalRequestMetadata external_request = 5;
+	// URL to plugin documentation.
+	string documentation_url = 6;
 }
 
 message ExternalRequestMetadata {
