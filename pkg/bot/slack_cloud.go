@@ -138,16 +138,16 @@ func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 
 		return retry.BackOffDelay(uint(b.failuresNo), err, cfg)
 	}
-	isRecoverable := func(err error) bool {
-		if b.failuresNo >= maxRetries {
-			b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
-			log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
-			return false
-		}
-		return true
-	}
 	return retry.Do(
-		fn,
+		func() error {
+			err := fn()
+			if b.failuresNo >= maxRetries {
+				b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
+				log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
+				return retry.Unrecoverable(err)
+			}
+			return err
+		},
 		retry.OnRetry(func(_ uint, err error) {
 			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", b.failuresNo, maxRetries, err)
 		}),
@@ -155,7 +155,6 @@ func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 		retry.Attempts(0), // infinite, we cancel that by our own
 		retry.LastErrorOnly(true),
 		retry.Context(ctx),
-		retry.RetryIf(isRecoverable),
 	)
 }
 
