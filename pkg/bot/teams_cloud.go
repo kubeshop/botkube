@@ -28,10 +28,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
-const (
-	cloudTeamsConnectTimeout = 5 * time.Second
-)
-
 var _ Bot = &CloudTeams{}
 
 // CloudTeams listens for user's messages, execute commands and sends back the response.
@@ -188,20 +184,18 @@ func (b *CloudTeams) start(ctx context.Context) error {
 	}
 	defer svc.Shutdown()
 
-	ctxTimeout, cancelFn := context.WithTimeout(ctx, cloudTeamsConnectTimeout)
-	defer cancelFn()
-	err = svc.Start(ctxTimeout)
+	err = svc.Start(ctx)
 	if err != nil {
-		return fmt.Errorf("while starting gRPC connector %w", err)
+		return err
 	}
 
-	b.setFailureReason("")
-	b.failuresNo = 0 // Reset the failures to start exponential back-off from the beginning
 	b.reportOnce.Do(func() {
 		if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
 			b.log.Errorf("report analytics error: %s", err.Error())
 		}
 	})
+	b.failuresNo = 0 // Reset the failures to start exponential back-off from the beginning
+	b.setFailureReason("")
 	b.log.Info("Botkube connected to Cloud Teams!")
 
 	parallel, ctx := errgroup.WithContext(ctx)
@@ -223,6 +217,7 @@ func (b *CloudTeams) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 			// if the last run was long enough, we treat is as success, so we reset failures
 			log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
 			b.failuresNo = 0
+			b.setFailureReason("")
 		}
 		lastFailureTimestamp = time.Now()
 		b.failuresNo++

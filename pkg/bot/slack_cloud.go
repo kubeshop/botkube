@@ -131,6 +131,7 @@ func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 			// if the last run was long enough, we treat is as success, so we reset failures
 			log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
 			b.failuresNo = 0
+			b.setFailureReason("")
 		}
 		lastFailureTimestamp = time.Now()
 		b.failuresNo++
