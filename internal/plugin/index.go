@@ -48,7 +48,7 @@ type (
 		Name             string          `yaml:"name"`
 		Type             Type            `yaml:"type"`
 		Description      string          `yaml:"description"`
-		DocumentationURL string          `yaml:"documentationUrl"`
+		DocumentationURL string          `yaml:"documentationUrl,omitempty"`
 		Version          string          `yaml:"version"`
 		URLs             []IndexURL      `yaml:"urls"`
 		JSONSchema       JSONSchema      `yaml:"jsonSchema"`
