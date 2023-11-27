@@ -62,9 +62,10 @@ func NewExecutor(ver string, kcRunner kcRunner) *Executor {
 // Metadata returns details about Helm plugin.
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     e.pluginVersion,
-		Description: description,
-		JSONSchema:  jsonSchema(description),
+		Version:          e.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/executor/kubectl",
+		JSONSchema:       jsonSchema(description),
 		Dependencies: map[string]api.Dependency{
 			binaryName: {
 				URLs: kcBinaryDownloadLinks,

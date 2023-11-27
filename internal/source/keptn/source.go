@@ -53,9 +53,10 @@ func (p *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 // Metadata returns metadata of Keptn configuration
 func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     p.pluginVersion,
-		Description: description,
-		JSONSchema:  jsonSchema(),
+		Version:          p.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/source/keptn",
+		JSONSchema:       jsonSchema(),
 	}, nil
 }
 

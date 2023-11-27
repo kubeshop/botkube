@@ -67,8 +67,9 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 // Metadata returns metadata for the GitHub source plugin.
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     s.pluginVersion,
-		Description: description,
+		Version:          s.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/source/github-events",
 		JSONSchema: api.JSONSchema{
 			Value: jsonschema,
 		},

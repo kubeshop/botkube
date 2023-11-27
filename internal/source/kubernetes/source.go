@@ -105,8 +105,9 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 // Metadata returns metadata of Kubernetes configuration
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     s.pluginVersion,
-		Description: description,
+		Version:          s.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/source/kubernetes",
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},

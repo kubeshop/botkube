@@ -43,9 +43,10 @@ func NewExecutor(cache *bigcache.BigCache, ver string) *Executor {
 // Metadata returns details about the Flux plugin.
 func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:      d.pluginVersion,
-		Description:  description,
-		Dependencies: getPluginDependencies(),
+		Version:          d.pluginVersion,
+		Description:      description,
+		DocumentationURL: "https://docs.botkube.io/configuration/executor/flux",
+		Dependencies:     getPluginDependencies(),
 		JSONSchema: api.JSONSchema{
 			Value: jsonschema,
 		},

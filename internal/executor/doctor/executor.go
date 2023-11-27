@@ -61,8 +61,9 @@ func NewExecutor(ver string) *Executor {
 // Metadata returns details about the Doctor plugin.
 func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
-		Version:     d.pluginVersion,
-		Description: "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
+		Version:          d.pluginVersion,
+		DocumentationURL: "https://docs.botkube.io/configuration/executor/doctor",
+		Description:      "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},

@@ -21,11 +21,12 @@ type (
 	storeRepository map[string][]storeEntry
 
 	storeEntry struct {
-		Description  string
-		Version      string
-		URLs         map[string]URL
-		Dependencies map[string]map[string]string
-		JSONSchema   JSONSchema
+		Description      string
+		Version          string
+		DocumentationURL string
+		URLs             map[string]URL
+		Dependencies     map[string]map[string]string
+		JSONSchema       JSONSchema
 	}
 
 	URL struct {
@@ -95,19 +96,21 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 			switch entry.Type {
 			case TypeExecutor:
 				executorsRepositories.Insert(repo, entry.Name, storeEntry{
-					Description:  entry.Description,
-					Version:      entry.Version,
-					URLs:         binURLs,
-					Dependencies: depURLs,
-					JSONSchema:   entry.JSONSchema,
+					Description:      entry.Description,
+					DocumentationURL: entry.DocumentationURL,
+					Version:          entry.Version,
+					URLs:             binURLs,
+					Dependencies:     depURLs,
+					JSONSchema:       entry.JSONSchema,
 				})
 			case TypeSource:
 				sourcesRepositories.Insert(repo, entry.Name, storeEntry{
-					Description:  entry.Description,
-					Version:      entry.Version,
-					URLs:         binURLs,
-					Dependencies: depURLs,
-					JSONSchema:   entry.JSONSchema,
+					Description:      entry.Description,
+					DocumentationURL: entry.DocumentationURL,
+					Version:          entry.Version,
+					URLs:             binURLs,
+					Dependencies:     depURLs,
+					JSONSchema:       entry.JSONSchema,
 				})
 			}
 		}
