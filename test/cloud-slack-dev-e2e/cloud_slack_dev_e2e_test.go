@@ -193,8 +193,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		}
 
 		// it shows a popup for the new slack UI
-		shortTimeoutPage := slackPage.Timeout(cfg.DefaultWaitTime)
-		elem, _ := shortTimeoutPage.ElementR("button.c-button", "I’ll Explore on My Own")
+		elem, _ = shortTimeoutPage.ElementR("button.c-button", "I’ll Explore on My Own")
 		if elem != nil {
 			t.Log("Closing the 'New Slack UI' modal...")
 			elem.MustClick()
