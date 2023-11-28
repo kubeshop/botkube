@@ -12,7 +12,7 @@ env:
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
   CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/botkube-config-exporter"
-  IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branc
+  IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
 
 jobs:
   cloud-slack-prod-e2e:
