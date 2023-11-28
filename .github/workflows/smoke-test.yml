@@ -1,0 +1,80 @@
+name: Smoke test
+
+on:
+  push:
+    branches:
+      - smoke-test
+
+env:
+  HELM_VERSION: v3.9.0
+  K3D_VERSION: v5.4.6
+  IMAGE_REGISTRY: "ghcr.io"
+  IMAGE_REPOSITORY: "kubeshop/botkube"
+  CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/botkube-config-exporter"
+  IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+
+jobs:
+  cloud-slack-prod-e2e:
+    name: Botkube Cloud Slack Prod E2E
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: cloud-slack-prod-e2e
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+      - name: Create k3d cluster
+        run: "k3d cluster create cloud-slack-prod-e2e-cluster --wait --timeout=5m"
+
+      - name: Run e2e tests
+        env:
+          SLACK_WORKSPACE_NAME: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
+          SLACK_EMAIL: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
+          SLACK_PASSWORD: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
+          SLACK_TESTER_TESTER_BOT_TOKEN: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
+          SLACK_TESTER_BOT_NAME: botkubedev
+          SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 1m
+          BOTKUBE_CLOUD_EMAIL: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
+          BOTKUBE_CLOUD_PASSWORD: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
+          BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
+          BOTKUBE_CLOUD_FREE_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
+          SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
+          DEBUG_MODE: true
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cloud-slack-dev-e2e
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: screenshots_dump_${{github.sha}}
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 5
+
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: ${{ failure() }}
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'Cloud Slack Prod E2E tests failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
