@@ -192,6 +192,11 @@ func TestCloudSlackE2E(t *testing.T) {
 			screenshotIfShould(t, cfg, slackPage)
 		}
 
+		t.Log("Selecting the conversation with the bot...")
+		screenshotIfShould(t, cfg, slackPage)
+		slackPage.MustElementR(".c-scrollbar__child .c-virtual_list__scroll_container .p-channel_sidebar__static_list__item .p-channel_sidebar__name span", fmt.Sprintf("^%s$", cfg.Slack.BotDisplayName)).MustParent().MustParent().MustParent().MustClick()
+		screenshotIfShould(t, cfg, slackPage)
+
 		// it shows a popup for the new slack UI
 		elem, _ = shortTimeoutPage.ElementR("button.c-button", "I’ll Explore on My Own")
 		if elem != nil {
@@ -200,11 +205,6 @@ func TestCloudSlackE2E(t *testing.T) {
 			time.Sleep(cfg.DefaultWaitTime) // to ensure the additional screenshot we do below shows closed modal
 			screenshotIfShould(t, cfg, slackPage)
 		}
-
-		t.Log("Selecting the conversation with the bot...")
-		screenshotIfShould(t, cfg, slackPage)
-		slackPage.MustElementR(".c-scrollbar__child .c-virtual_list__scroll_container .p-channel_sidebar__static_list__item .p-channel_sidebar__name span", fmt.Sprintf("^%s$", cfg.Slack.BotDisplayName)).MustParent().MustParent().MustParent().MustClick()
-		screenshotIfShould(t, cfg, slackPage)
 
 		t.Log("Clicking 'Connect' button...")
 		slackPage.MustElement(".p-actions_block__action button.c-button") // workaround for `MustElements` not having built-in retry
