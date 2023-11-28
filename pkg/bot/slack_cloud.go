@@ -126,34 +126,33 @@ func (b *CloudSlack) Start(ctx context.Context) error {
 func (b *CloudSlack) withRetries(ctx context.Context, log logrus.FieldLogger, maxRetries int, fn func() error) error {
 	b.failuresNo = 0
 	var lastFailureTimestamp time.Time
+	resettableBackoff := func(n uint, err error, cfg *retry.Config) time.Duration {
+		if !lastFailureTimestamp.IsZero() && time.Since(lastFailureTimestamp) >= successIntervalDuration {
+			// if the last run was long enough, we treat is as success, so we reset failures
+			log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
+			b.failuresNo = 0
+			b.setFailureReason("")
+		}
+		lastFailureTimestamp = time.Now()
+		b.failuresNo++
+		b.setFailureReason(health.FailureReasonConnectionError)
+
+		return retry.BackOffDelay(uint(b.failuresNo), err, cfg)
+	}
 	return retry.Do(
 		func() error {
 			err := fn()
-			if err != nil {
-				if !lastFailureTimestamp.IsZero() && time.Since(lastFailureTimestamp) >= successIntervalDuration {
-					// if the last run was long enough, we treat is as success, so we reset failures
-					log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
-					b.failuresNo = 0
-				}
-
-				if b.failuresNo >= maxRetries {
-					b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
-					log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
-					return retry.Unrecoverable(err)
-				}
-
-				lastFailureTimestamp = time.Now()
-				b.failuresNo++
-				b.setFailureReason(health.FailureReasonConnectionError)
-				return err
+			if b.failuresNo >= maxRetries {
+				b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
+				log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
+				return retry.Unrecoverable(err)
 			}
-			b.setFailureReason("")
-			return nil
+			return err
 		},
 		retry.OnRetry(func(_ uint, err error) {
 			log.Warnf("Retrying Cloud Slack startup (attempt no %d/%d): %s", b.failuresNo, maxRetries, err)
 		}),
-		retry.Delay(retryDelay),
+		retry.DelayType(resettableBackoff),
 		retry.Attempts(0), // infinite, we cancel that by our own
 		retry.LastErrorOnly(true),
 		retry.Context(ctx),
@@ -178,7 +177,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 	conn, err := grpc.Dial(b.cfg.Server.URL, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("while creating gRPC connection: %w", err)
 	}
 	defer conn.Close()
 
@@ -195,6 +194,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		if err != nil {
 			b.log.Errorf("while closing connection: %s", err.Error())
 		}
+		b.log.Info("Cloud Slack client is closed successfully")
 	}(c)
 
 	err = c.Send(req)
@@ -209,8 +209,10 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		if err := b.reporter.ReportBotEnabled(b.IntegrationName(), b.commGroupMetadata.Index); err != nil {
 			b.log.Errorf("report analytics error: %s", err.Error())
 		}
-		b.log.Info("Botkube connected to Slack!")
 	})
+	b.failuresNo = 0 // Reset the failures to start exponential back-off from the beginning
+	b.setFailureReason("")
+	b.log.Info("Botkube connected to Slack!")
 
 	for {
 		data, err := c.Recv()
