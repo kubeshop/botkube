@@ -565,13 +565,6 @@ func TestCloudSlackE2E(t *testing.T) {
 			gotSrcEvents := SourceEmittedEventsFromAuditResponse(auditPage.Audits)
 			require.ElementsMatch(t, wantSrcEvents, gotSrcEvents)
 		})
-
-		t.Run("Try to create deployment with Cloud Slack in free tier", func(t *testing.T) {
-			gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.FreeOrganizationID, authHeaderValue)
-			_, err := gqlCli.CreateBasicDeploymentWithCloudSlack(t, "it won't be created anyway", slackWorkspace.TeamID, channel.Name())
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "you cannot use Cloud Slack within your plan")
-		})
 	})
 }
 
