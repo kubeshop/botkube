@@ -45,7 +45,7 @@ jobs:
           SLACK_PASSWORD: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
           SLACK_BOT_DISPLAY_NAME: Botkube
           SLACK_TESTER_TESTER_BOT_TOKEN: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
-          SLACK_TESTER_BOT_NAME: botkubedev
+          SLACK_TESTER_BOT_NAME: botkube
           SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 1m
           BOTKUBE_CLOUD_API_BASE_URL: https://api.botkube.io
           BOTKUBE_CLOUD_EMAIL: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
