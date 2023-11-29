@@ -81,6 +81,7 @@ type BotkubeCloudConfig struct {
 
 	TeamOrganizationID string
 	FreeOrganizationID string
+	PluginRepoURL      string `envconfig:"default=https://storage.googleapis.com/botkube-plugins-latest/plugins-dev-index.yaml"`
 }
 
 func TestCloudSlackE2E(t *testing.T) {
@@ -337,11 +338,12 @@ func TestCloudSlackE2E(t *testing.T) {
 		})
 
 		params := helmx.InstallChartParams{
-			RepoURL:   "https://storage.googleapis.com/botkube-latest-main-charts",
-			RepoName:  "botkube",
-			Name:      "botkube",
-			Namespace: "botkube",
-			Command:   *deployment.HelmCommand,
+			RepoURL:       "https://storage.googleapis.com/botkube-latest-main-charts",
+			RepoName:      "botkube",
+			Name:          "botkube",
+			Namespace:     "botkube",
+			Command:       *deployment.HelmCommand,
+			PluginRepoURL: cfg.BotkubeCloud.PluginRepoURL,
 		}
 		helmInstallCallback := helmx.InstallChart(t, params)
 		t.Cleanup(func() {

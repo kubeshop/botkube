@@ -2,6 +2,7 @@ package helmx
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -12,11 +13,12 @@ import (
 
 // InstallChartParams are parameters for InstallChart.
 type InstallChartParams struct {
-	RepoName  string
-	RepoURL   string
-	Name      string
-	Namespace string
-	Command   string
+	RepoName      string
+	RepoURL       string
+	Name          string
+	Namespace     string
+	Command       string
+	PluginRepoURL string
 }
 
 type versionsResponse struct {
@@ -29,7 +31,15 @@ func (p *InstallChartParams) ToOptions(version string) []string {
 	cmd = strings.Replace(cmd, "\\", " ", -1)
 	versionRegex := regexp.MustCompile(`--version (\S+)`)
 	cmd = versionRegex.ReplaceAllString(cmd, "--version "+version)
-	return strings.Fields(cmd)[1:]
+	cmdParts := strings.Fields(cmd)[1:]
+	extraEnvs := []string{
+		"--set",
+		fmt.Sprintf("extraEnv[0].name=%s", "BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"),
+		"--set-string",
+		fmt.Sprintf("extraEnv[0].value=%s", p.PluginRepoURL),
+	}
+	cmdParts = append(cmdParts, extraEnvs...)
+	return cmdParts
 }
 
 // InstallChart installs helm chart.
