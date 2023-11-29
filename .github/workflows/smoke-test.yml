@@ -2,9 +2,8 @@ name: Smoke test
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - smoke-test
+  schedule:
+    - cron: "0 0 * * *" # Every day at 00:00 UTC
 
 env:
   HELM_VERSION: v3.9.0
@@ -81,4 +80,4 @@ jobs:
           SLACK_MESSAGE: 'Cloud Slack Prod E2E tests failed :scream:'
           SLACK_ICON_EMOJI: ':this-is-fine-fire:'
           SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
-          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_PROD_ALERTS_WEBHOOK }}
