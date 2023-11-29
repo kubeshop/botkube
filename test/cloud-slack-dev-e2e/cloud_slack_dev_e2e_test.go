@@ -464,8 +464,15 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
-			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedWatchBeginMsg)
-			require.NoError(t, err)
+			recentMessages := 2 // take into the account the  optional "upgrade checker message"
+			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
+				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
+					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
+					msgDiff := diff.Diff(expectedWatchBeginMsg, msg)
+					return false, count, msgDiff
+				}
+				return true, 0, ""
+			})
 
 			t.Log("Verifying disabled notification on Cloud...")
 			deploy := gqlCli.MustGetDeployment(t, graphql.ID(deployment.ID))
