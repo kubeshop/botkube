@@ -384,7 +384,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			t.Log("Testing ping for not existing deployment")
 			command = "ping"
 			deployName := "non-existing-deployment"
-			expectedMessage = "*Instance not found* The cluster non-existing-deployment does not exist."
+			expectedMessage = fmt.Sprintf("*Instance not found* The cluster %q does not exist.", deployName)
 			tester.PostMessageToBot(t, channel.ID(), fmt.Sprintf("%s --cluster-name %s", command, deployName))
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			require.NoError(t, err)
