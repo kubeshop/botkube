@@ -464,7 +464,7 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
-			recentMessages := 2 // take into the account the  optional "upgrade checker message"
+			recentMessages := 2 // take into the account the optional "upgrade checker message"
 			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
 				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
 					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
