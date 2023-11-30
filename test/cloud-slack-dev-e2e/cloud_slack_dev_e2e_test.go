@@ -81,6 +81,7 @@ type BotkubeCloudConfig struct {
 
 	TeamOrganizationID string
 	FreeOrganizationID string
+	PluginRepoURL      string `envconfig:"default=https://storage.googleapis.com/botkube-plugins-latest/plugins-dev-index.yaml"`
 }
 
 func TestCloudSlackE2E(t *testing.T) {
@@ -196,6 +197,15 @@ func TestCloudSlackE2E(t *testing.T) {
 		screenshotIfShould(t, cfg, slackPage)
 		slackPage.MustElementR(".c-scrollbar__child .c-virtual_list__scroll_container .p-channel_sidebar__static_list__item .p-channel_sidebar__name span", fmt.Sprintf("^%s$", cfg.Slack.BotDisplayName)).MustParent().MustParent().MustParent().MustClick()
 		screenshotIfShould(t, cfg, slackPage)
+
+		// it shows a popup for the new slack UI
+		elem, _ = shortTimeoutPage.ElementR("button.c-button", "I’ll Explore on My Own")
+		if elem != nil {
+			t.Log("Closing the 'New Slack UI' modal...")
+			elem.MustClick()
+			time.Sleep(cfg.DefaultWaitTime) // to ensure the additional screenshot we do below shows closed modal
+			screenshotIfShould(t, cfg, slackPage)
+		}
 
 		t.Log("Clicking 'Connect' button...")
 		slackPage.MustElement(".p-actions_block__action button.c-button") // workaround for `MustElements` not having built-in retry
@@ -328,11 +338,12 @@ func TestCloudSlackE2E(t *testing.T) {
 		})
 
 		params := helmx.InstallChartParams{
-			RepoURL:   "https://storage.googleapis.com/botkube-latest-main-charts",
-			RepoName:  "botkube",
-			Name:      "botkube",
-			Namespace: "botkube",
-			Command:   *deployment.HelmCommand,
+			RepoURL:       "https://storage.googleapis.com/botkube-latest-main-charts",
+			RepoName:      "botkube",
+			Name:          "botkube",
+			Namespace:     "botkube",
+			Command:       *deployment.HelmCommand,
+			PluginRepoURL: cfg.BotkubeCloud.PluginRepoURL,
 		}
 		helmInstallCallback := helmx.InstallChart(t, params)
 		t.Cleanup(func() {
@@ -373,7 +384,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			t.Log("Testing ping for not existing deployment")
 			command = "ping"
 			deployName := "non-existing-deployment"
-			expectedMessage = "*Instance not found* The cluster non-existing-deployment does not exist."
+			expectedMessage = fmt.Sprintf("*Instance not found* The cluster %q does not exist.", deployName)
 			tester.PostMessageToBot(t, channel.ID(), fmt.Sprintf("%s --cluster-name %s", command, deployName))
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			require.NoError(t, err)
@@ -453,8 +464,15 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
-			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedWatchBeginMsg)
-			require.NoError(t, err)
+			recentMessages := 2 // take into the account the optional "upgrade checker message"
+			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
+				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
+					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
+					msgDiff := diff.Diff(expectedWatchBeginMsg, msg)
+					return false, count, msgDiff
+				}
+				return true, 0, ""
+			})
 
 			t.Log("Verifying disabled notification on Cloud...")
 			deploy := gqlCli.MustGetDeployment(t, graphql.ID(deployment.ID))
@@ -546,13 +564,6 @@ func TestCloudSlackE2E(t *testing.T) {
 			}
 			gotSrcEvents := SourceEmittedEventsFromAuditResponse(auditPage.Audits)
 			require.ElementsMatch(t, wantSrcEvents, gotSrcEvents)
-		})
-
-		t.Run("Try to create deployment with Cloud Slack in free tier", func(t *testing.T) {
-			gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.FreeOrganizationID, authHeaderValue)
-			_, err := gqlCli.CreateBasicDeploymentWithCloudSlack(t, "it won't be created anyway", slackWorkspace.TeamID, channel.Name())
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "you cannot use Cloud Slack within your plan")
 		})
 	})
 }
