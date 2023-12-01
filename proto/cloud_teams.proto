@@ -24,6 +24,7 @@ message Message {
 
 message CloudActivity {
   bytes event = 1;
+  string conversationDisplayName = 2;
 }
 
 service CloudTeams {
