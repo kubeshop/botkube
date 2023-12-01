@@ -32,6 +32,9 @@ func (p *InstallChartParams) ToOptions(version string) []string {
 	versionRegex := regexp.MustCompile(`--version (\S+)`)
 	cmd = versionRegex.ReplaceAllString(cmd, "--version "+version)
 	cmdParts := strings.Fields(cmd)[1:]
+	if p.PluginRepoURL == "" {
+		return cmdParts
+	}
 	extraEnvs := []string{
 		"--set",
 		fmt.Sprintf("extraEnv[0].name=%s", "BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"),
