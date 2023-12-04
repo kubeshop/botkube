@@ -1,6 +1,8 @@
 package conversation
 
-import "strings"
+import (
+	"strings"
+)
 
 // NormalizeChannelIdentifier removes leading and trailing spaces and # from the channel name.
 // this is platform-agnostic, as different platforms use different rules:

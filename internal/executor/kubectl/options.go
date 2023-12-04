@@ -1,6 +1,8 @@
 package kubectl
 
-import "github.com/MakeNowJust/heredoc"
+import (
+	"github.com/MakeNowJust/heredoc"
+)
 
 func optionsCommandOutput() string {
 	return heredoc.Doc(`

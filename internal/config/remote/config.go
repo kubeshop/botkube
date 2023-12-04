@@ -1,6 +1,8 @@
 package remote
 
-import "os"
+import (
+	"os"
+)
 
 const (
 	// ProviderEndpointEnvKey holds config provider endpoint.

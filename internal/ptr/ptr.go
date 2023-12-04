@@ -1,6 +1,8 @@
 package ptr
 
-import "golang.org/x/exp/constraints"
+import (
+	"golang.org/x/exp/constraints"
+)
 
 // ToSlice converts a given slice of pointers to slice with non-nil elems.
 func ToSlice[T any](in []*T) []T {

@@ -1,6 +1,8 @@
 package thread_mate
 
-import "strings"
+import (
+	"strings"
+)
 
 type (
 	// Commands represents a collection of subcommands.

@@ -1,6 +1,8 @@
 package analytics
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // InjectAnalyticsReporting injects analytics reporting into the command.
 func InjectAnalyticsReporting(in cobra.Command, cmdName string) *cobra.Command {

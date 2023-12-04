@@ -1,6 +1,8 @@
 package config
 
-import "github.com/spf13/pflag"
+import (
+	"github.com/spf13/pflag"
+)
 
 var configPathsFlag []string
 

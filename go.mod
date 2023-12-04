@@ -1,5 +1,7 @@
 module github.com/kubeshop/botkube
 
+go 1.21
+
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/DanielTitkov/go-adaptive-cards v0.2.2
@@ -279,8 +281,6 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
-
-go 1.19
 
 replace (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0

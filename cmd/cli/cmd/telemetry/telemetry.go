@@ -1,6 +1,8 @@
 package telemetry
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // NewCmd returns a new cobra.Command subcommand for telemetry-related operations.
 func NewCmd() *cobra.Command {
