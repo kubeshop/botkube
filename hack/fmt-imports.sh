@@ -9,7 +9,7 @@ set -E         # needs to be set if we want the ERR trap
 
 CURRENT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT_DIR=$(cd "${CURRENT_DIR}/.." && pwd)
-GOIMPORTS_REVISER_VERSION=3.3.1
+GOIMPORTS_REVISER_VERSION=3.6.0
 
 host::os() {
   local host_os

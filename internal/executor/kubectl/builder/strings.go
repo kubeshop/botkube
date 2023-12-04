@@ -1,6 +1,8 @@
 package builder
 
-import "strings"
+import (
+	"strings"
+)
 
 func overflowSentence(in []string) []string {
 	for idx := range in {

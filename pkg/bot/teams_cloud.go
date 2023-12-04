@@ -254,13 +254,15 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 	}
 	switch act.Type {
 	case schema.Message, schema.Invoke:
-		b.log.WithField("message", formatx.StructDumper().Sdump(act)).Debug("Processing Cloud message...")
+		b.log.WithFields(logrus.Fields{
+			"message":                 formatx.StructDumper().Sdump(act),
+			"conversationDisplayName": data.ConversationDisplayName,
+		}).Debug("Processing Cloud message...")
 		channel, exists, err := b.getChannelForActivity(act)
 		if err != nil {
 			b.log.WithError(err).Error("cannot extract message channel id, processing with empty...")
 		}
-
-		msg := b.processMessage(ctx, act, channel, exists)
+		msg := b.processMessage(ctx, act, channel, data.ConversationDisplayName, exists)
 		if msg.IsEmpty() {
 			b.log.WithField("activityID", act.ID).Debug("Empty message... Skipping sending response")
 			return nil, nil
@@ -287,7 +289,7 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 	}
 }
 
-func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, channel teamsCloudChannelConfigByID, exists bool) interactive.CoreMessage {
+func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, channel teamsCloudChannelConfigByID, channelDisplayName string, exists bool) interactive.CoreMessage {
 	trimmedMsg := b.trimBotMention(act.Text)
 
 	e := b.executorFactory.NewDefault(execute.NewDefaultInput{
@@ -301,6 +303,7 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
 			CommandOrigin:    command.TypedOrigin,
+			DisplayName:      channelDisplayName,
 		},
 		Message: trimmedMsg,
 		User: execute.UserInput{

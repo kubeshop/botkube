@@ -1,6 +1,8 @@
 package reloader
 
-import "context"
+import (
+	"context"
+)
 
 var _ Reloader = (*NoopReloader)(nil)
 

@@ -81,9 +81,16 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 		return interactive.CoreMessage{}, fmt.Errorf("while collecting configs: %w", err)
 	}
 
-	input := plugin.KubeConfigInput{
-		Channel: cmdCtx.Conversation.DisplayName,
+	channel := cmdCtx.Conversation.DisplayName
+	if channel == "" {
+		channel = cmdCtx.Conversation.ID
 	}
+
+	input := plugin.KubeConfigInput{
+		Channel: channel,
+	}
+	e.log.WithField("input", input).Debug("Generating Kubeconfig...")
+
 	kubeconfig, err := plugin.GenerateKubeConfig(e.restCfg, e.cfg.Settings.ClusterName, plugins[0].Context, input)
 	if err != nil {
 		return interactive.CoreMessage{}, fmt.Errorf("while generating kube config: %w", err)

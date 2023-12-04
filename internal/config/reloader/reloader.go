@@ -1,6 +1,8 @@
 package reloader
 
-import "context"
+import (
+	"context"
+)
 
 // Reloader is an interface for reloading configuration.
 type Reloader interface {

@@ -1,6 +1,8 @@
 package config
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // NewCmd returns a new cobra.Command subcommand for config-related operations.
 func NewCmd() *cobra.Command {
