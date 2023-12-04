@@ -24,7 +24,7 @@ import (
 var _ source.Source = (*Source)(nil)
 
 var (
-	//go:embed config-jsonschema.json
+	//go:embed config_schema.json
 	configJSONSchema string
 
 	//go:embed req-jsonschema.json

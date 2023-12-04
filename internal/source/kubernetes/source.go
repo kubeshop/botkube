@@ -30,9 +30,9 @@ import (
 var _ source.Source = (*Source)(nil)
 
 var (
-	// configJSONSchema JSON schema with duplications,
+	// configJSONSchema contains duplications,
 	// as some UI components (e.g. https://github.com/rjsf-team/react-jsonschema-form) don't support nested defaults for definitions.
-	//go:embed config-jsonschema.json
+	//go:embed config_schema.json
 	configJSONSchema string
 )
 

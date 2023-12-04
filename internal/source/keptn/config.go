@@ -17,11 +17,6 @@ type Config struct {
 	Log     config.Logger `yaml:"log,omitempty"`
 }
 
-// Log logging configuration
-type Log struct {
-	Level string `yaml:"level"`
-}
-
 // MergeConfigs merges all input configuration.
 func MergeConfigs(configs []*source.Config) (Config, error) {
 	defaults := Config{}

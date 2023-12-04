@@ -12,17 +12,15 @@ import (
 
 // Config contains configuration for ArgoCD source plugin.
 type Config struct {
-	Log config.Logger `yaml:"log"`
-
-	ArgoCD ArgoCD `yaml:"argoCD"`
-
+	Log                  config.Logger                    `yaml:"log"`
+	ArgoCD               ArgoCD                           `yaml:"argoCD"`
 	DefaultSubscriptions DefaultNotificationSubscriptions `yaml:"defaultSubscriptions"`
+	Webhook              Webhook                          `yaml:"webhook"`
 
-	Webhook       Webhook        `yaml:"webhook"`
+	// Fields not exposed to the user in the JSON schema
 	Notifications []Notification `yaml:"notifications"`
 	Templates     []Template     `yaml:"templates"`
-
-	Interactivity Interactivity `yaml:"interactivity"`
+	Interactivity Interactivity  `yaml:"interactivity"`
 }
 
 // Interactivity contains configuration related to interactivity.

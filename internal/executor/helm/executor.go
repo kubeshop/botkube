@@ -2,10 +2,10 @@ package helm
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -20,20 +20,26 @@ const (
 	description    = "Run the Helm CLI commands directly from your favorite communication platform."
 )
 
-// Links source: https://github.com/helm/helm/releases/tag/v3.6.3
-// Using go-getter syntax to unwrap the underlying directory structure.
-// Read more on https://github.com/hashicorp/go-getter#subdirectories
-var helmBinaryDownloadLinks = map[string]string{
-	"darwin/amd64":  "https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz//darwin-amd64",
-	"darwin/arm64":  "https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz//darwin-arm64",
-	"linux/amd64":   "https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz//linux-amd64",
-	"linux/arm":     "https://get.helm.sh/helm-v3.6.3-linux-arm.tar.gz//linux-arm",
-	"linux/arm64":   "https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz//linux-arm64",
-	"linux/386":     "https://get.helm.sh/helm-v3.6.3-linux-386.tar.gz//linux-386",
-	"linux/ppc64le": "https://get.helm.sh/helm-v3.6.3-linux-ppc64le.tar.gz//linux-ppc64le",
-	"linux/s390x":   "https://get.helm.sh/helm-v3.6.3-linux-s390x.tar.gz//linux-s390x",
-	"windows/amd64": "https://get.helm.sh/helm-v3.6.3-windows-amd64.zip//windows-amd64",
-}
+var (
+	// Links source: https://github.com/helm/helm/releases/tag/v3.6.3
+	// Using go-getter syntax to unwrap the underlying directory structure.
+	// Read more on https://github.com/hashicorp/go-getter#subdirectories
+	helmBinaryDownloadLinks = map[string]string{
+		"darwin/amd64":  "https://get.helm.sh/helm-v3.6.3-darwin-amd64.tar.gz//darwin-amd64",
+		"darwin/arm64":  "https://get.helm.sh/helm-v3.6.3-darwin-arm64.tar.gz//darwin-arm64",
+		"linux/amd64":   "https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz//linux-amd64",
+		"linux/arm":     "https://get.helm.sh/helm-v3.6.3-linux-arm.tar.gz//linux-arm",
+		"linux/arm64":   "https://get.helm.sh/helm-v3.6.3-linux-arm64.tar.gz//linux-arm64",
+		"linux/386":     "https://get.helm.sh/helm-v3.6.3-linux-386.tar.gz//linux-386",
+		"linux/ppc64le": "https://get.helm.sh/helm-v3.6.3-linux-ppc64le.tar.gz//linux-ppc64le",
+		"linux/s390x":   "https://get.helm.sh/helm-v3.6.3-linux-s390x.tar.gz//linux-s390x",
+		"windows/amd64": "https://get.helm.sh/helm-v3.6.3-windows-amd64.zip//windows-amd64",
+	}
+
+	//go:embed config_schema.json
+	// helmCacheDir and helmConfigDir were skipped as the options are not user-facing.
+	configJSONSchema string
+)
 
 type command interface {
 	Validate() error
@@ -62,7 +68,9 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:          e.pluginVersion,
 		Description:      description,
 		DocumentationURL: "https://docs.botkube.io/configuration/executor/helm/",
-		JSONSchema:       jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 		Dependencies: map[string]api.Dependency{
 			helmBinaryName: {
 				URLs: helmBinaryDownloadLinks,
@@ -196,46 +204,4 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 	return executor.ExecuteOutput{
 		Message: api.NewCodeBlockMessage(out.Stdout, true),
 	}, nil
-}
-
-// jsonSchema returns JSON schema for the executor.
-// helmCacheDir and helmConfigDir were skipped as the options are not user-facing.
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "Helm",
-			  "description": "%s",
-			  "type": "object",
-			  "properties": {
-				"defaultNamespace": {
-				  "title": "Default Kubernetes Namespace",
-				  "description": "Namespace used if not explicitly specified during command execution.",
-				  "type": "string",
-				  "default": "default"
-				},
-				"helmDriver": {
-				  "title": "Storage driver",
-				  "description": "Storage driver for Helm.",
-				  "type": "string",
-				  "default": "secret",
-				  "oneOf": [
-					{
-					  "const": "configmap",
-					  "title": "ConfigMap"
-					},
-					{
-					  "const": "secret",
-					  "title": "Secret"
-					},
-					{
-					  "const": "memory",
-					  "title": "Memory"
-					}
-				  ]
-				}
-			  },
-			  "required": []
-			}`, description),
-	}
 }

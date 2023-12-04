@@ -1,17 +1,26 @@
 package x
 
 import (
+	_ "embed"
+
 	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
+var (
+	//go:embed config_schema_fmt.json
+	ConfigJSONSchemaFmt string
+)
+
 // Config holds exec plugin configuration.
 type Config struct {
 	Templates []getter.Source `yaml:"templates"`
-	TmpDir    plugin.TmpDir   `yaml:"tmpDir"`
 	Logger    config.Logger
+
+	// Fields not exposed to the user in the JSON schema
+	TmpDir plugin.TmpDir `yaml:"tmpDir"`
 }
 
 // GetPluginDependencies returns exec plugin dependencies.

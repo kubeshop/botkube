@@ -8,7 +8,6 @@ import (
 // Config holds Flux executor configuration.
 type Config struct {
 	Logger config.Logger `yaml:"log"`
-	TmpDir plugin.TmpDir `yaml:"tmpDir"`
 	GitHub struct {
 		Auth struct {
 			// The GitHub access token.
@@ -17,4 +16,7 @@ type Config struct {
 			AccessToken string `yaml:"accessToken"`
 		} `yaml:"auth"`
 	} `yaml:"github"`
+
+	// Fields not exposed to the user in the JSON schema
+	TmpDir plugin.TmpDir `yaml:"tmpDir"`
 }

@@ -55,7 +55,9 @@ func (*XExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:      version,
 		Description:  "Install and run CLIs directly from chat window without hassle. All magic included.",
 		Dependencies: x.GetPluginDependencies(),
-		JSONSchema:   jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: heredoc.Docf(x.ConfigJSONSchemaFmt, getDefaultTemplateSource()),
+		},
 	}, nil
 }
 
@@ -203,43 +205,6 @@ func main() {
 			Executor: &XExecutor{},
 		},
 	})
-}
-
-// jsonSchema returns JSON schema for the executor.
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-		  "$schema": "http://json-schema.org/draft-07/schema#",
-		  "title": "exec",
-		  "description": "Install and run CLIs directly from the chat window without hassle. All magic included.",
-		  "type": "object",
-		  "properties": {
-			"templates": {
-			  "type": "array",
-			  "title": "List of templates",
-			  "description": "An array of templates that define how to convert the command output into an interactive message.",
-			  "items": {
-				"type": "object",
-				"properties": {
-				  "ref": {
-					"title": "Link to templates source",
-					"description": "It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives. For more details, see the documentation at https://github.com/hashicorp/go-getter.",
-					"type": "string",
-					"default": "%s"
-				  }
-				},
-				"required": [
-				  "ref"
-				],
-				"additionalProperties": false
-			  }
-			}
-		  },
-		  "required": [
-			"templates"
-		  ]
-		}`, getDefaultTemplateSource()),
-	}
 }
 
 func getDefaultTemplateSource() string {

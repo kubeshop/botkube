@@ -1,37 +1,50 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "doctor",
-  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
+  "title": "Prometheus",
+  "description": "Get notifications about alerts polled from configured Prometheus AlertManager.",
   "type": "object",
   "properties": {
-    "apiKey": {
-      "description": "OpenAI Secret API Key",
+    "url": {
+      "title": "Endpoint",
+      "description": "Prometheus endpoint without API version and resource.",
       "type": "string",
-      "title": "API Key"
+      "format": "uri"
     },
-    "apiBaseUrl": {
-      "description": "OpenAI API Base URL",
-      "type": "string",
-      "title": "API Base URL",
-      "default": "https://api.openai.com/v1"
+    "ignoreOldAlerts": {
+      "title": "Ignore old alerts",
+      "description": "If set to true, Prometheus source plugin will not send alerts that is created before the plugin start time.",
+      "type": "boolean",
+      "default": true
     },
-    "defaultEngine": {
-      "description": "Default engine to use",
-      "type": "string",
-      "title": "Default Engine",
-      "default": "text-davinci-003"
-    },
-    "organizationID": {
-      "description": "Optional organization ID",
-      "type": "string",
-      "title": "Organization ID",
-      "default": ""
-    },
-    "userAgent": {
-      "description": "User agent to use for requests",
-      "type": "string",
-      "title": "User Agent",
-      "default": "go-gpt3"
+    "alertStates": {
+      "title": "Alert states",
+      "description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
+      "type": "array",
+      "default": [
+        "firing",
+        "pending",
+        "inactive"
+      ],
+      "items": {
+        "type": "string",
+        "title": "Alert state",
+        "oneOf": [
+          {
+            "const": "firing",
+            "title": "Firing"
+          },
+          {
+            "const": "pending",
+            "title": "Pending"
+          },
+          {
+            "const": "inactive",
+            "title": "Inactive"
+          }
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 1
     },
     "log": {
       "title": "Logging",
@@ -84,6 +97,6 @@
     }
   },
   "required": [
-    "apiKey"
+    "url"
   ]
 }

@@ -12,11 +12,13 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
-//go:embed jsonschema.json
-var JSONSchema string
+var (
+	//go:embed config_schema.json
+	ConfigJSONSchema string
 
-//go:embed messages/round-robin.yaml
-var defaultRoundRobinMessage string
+	//go:embed messages/round-robin.yaml
+	defaultRoundRobinMessage string
+)
 
 // Config holds the executor configuration.
 type Config struct {

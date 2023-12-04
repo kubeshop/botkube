@@ -2,6 +2,7 @@ package kubectl
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -26,16 +27,20 @@ const (
 	kubectlVersion   = "v1.28.1"
 )
 
-var kcBinaryDownloadLinks = map[string]string{
-	"windows/amd64": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/windows/amd64/kubectl.exe", kubectlVersion),
-	"darwin/amd64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/amd64/kubectl", kubectlVersion),
-	"darwin/arm64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/arm64/kubectl", kubectlVersion),
-	"linux/amd64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/amd64/kubectl", kubectlVersion),
-	"linux/s390x":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/s390x/kubectl", kubectlVersion),
-	"linux/ppc64le": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/ppc64le/kubectl", kubectlVersion),
-	"linux/arm64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/arm64/kubectl", kubectlVersion),
-	"linux/386":     fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/386/kubectl", kubectlVersion),
-}
+var (
+	//go:embed config_schema.json
+	configJSONSchema      string
+	kcBinaryDownloadLinks = map[string]string{
+		"windows/amd64": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/windows/amd64/kubectl.exe", kubectlVersion),
+		"darwin/amd64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/amd64/kubectl", kubectlVersion),
+		"darwin/arm64":  fmt.Sprintf("https://dl.k8s.io/release/%s/bin/darwin/arm64/kubectl", kubectlVersion),
+		"linux/amd64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/amd64/kubectl", kubectlVersion),
+		"linux/s390x":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/s390x/kubectl", kubectlVersion),
+		"linux/ppc64le": fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/ppc64le/kubectl", kubectlVersion),
+		"linux/arm64":   fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/arm64/kubectl", kubectlVersion),
+		"linux/386":     fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/386/kubectl", kubectlVersion),
+	}
+)
 
 var _ executor.Executor = &Executor{}
 
@@ -65,7 +70,9 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		Version:          e.pluginVersion,
 		Description:      description,
 		DocumentationURL: "https://docs.botkube.io/configuration/executor/kubectl",
-		JSONSchema:       jsonSchema(description),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 		Dependencies: map[string]api.Dependency{
 			binaryName: {
 				URLs: kcBinaryDownloadLinks,

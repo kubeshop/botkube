@@ -11,10 +11,12 @@ const defaultNamespace = "default"
 
 // Config holds Helm plugin configuration parameters.
 type Config struct {
-	HelmDriver       string `yaml:"helmDriver,omitempty"`
-	HelmCacheDir     string `yaml:"helmCacheDir,omitempty"`
-	HelmConfigDir    string `yaml:"helmConfigDir,omitempty"`
 	DefaultNamespace string `yaml:"defaultNamespace,omitempty"`
+	HelmDriver       string `yaml:"helmDriver,omitempty"`
+
+	// Fields not exposed to the user in the JSON schema
+	HelmCacheDir  string `yaml:"helmCacheDir,omitempty"`
+	HelmConfigDir string `yaml:"helmConfigDir,omitempty"`
 }
 
 // Validate validates the Helm configuration parameters.

@@ -13,8 +13,10 @@ import (
 
 var _ source.Source = (*Source)(nil)
 
-//go:embed jsonschema.json
-var jsonschema string
+var (
+	//go:embed config_schema.json
+	configJSONSchema string
+)
 
 const (
 	// PluginName is the name of the GitHub events Botkube plugin.
@@ -71,7 +73,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		Description:      description,
 		DocumentationURL: "https://docs.botkube.io/configuration/source/github-events",
 		JSONSchema: api.JSONSchema{
-			Value: jsonschema,
+			Value: configJSONSchema,
 		},
 	}, nil
 }
