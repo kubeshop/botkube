@@ -97,6 +97,9 @@ func (c *grpcCloudTeamsConnector) ProcessAgentActivity(ctx context.Context, agen
 			if msg == nil {
 				continue
 			}
+
+			msg.Message.ConversationId = msg.Message.ConversationId + "-malformed"
+
 			c.agentActivityWorkers.Go(func() {
 				err := c.activityClient.Send(msg)
 				if err != nil {
