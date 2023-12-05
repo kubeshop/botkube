@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Echo",
+  "description": "Echo is an example Botkube executor plugin used during e2e tests. It's not meant for production usage.",
+  "type": "object",
+  "properties": {
+    "changeResponseToUpperCase": {
+      "description": "When changeResponseToUpperCase is true, the echoed string will be in upper case",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": []
+}

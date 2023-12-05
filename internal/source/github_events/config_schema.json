@@ -68,7 +68,8 @@
           "properties": {
             "accessToken": {
               "title": "Access Token",
-              "type": "string"
+              "type": "string",
+              "default": ""
             }
           }
         }
@@ -84,6 +85,7 @@
       "title": "Repository Configurations",
       "description": "List of configurations for monitored repositories.",
       "type": "array",
+      "minItems": 1,
       "items": {
         "title": "Repository Configuration",
         "description": "Configuration settings for a specific repository.",
@@ -92,17 +94,24 @@
           "name": {
             "title": "Repository Name",
             "description": "The name of the GitHub repository in the form 'owner/repository'.",
-            "type": "string"
+            "type": "string",
+            "default": "",
+            "minLength": 3
           },
           "on": {
             "title": "Event Matchers",
             "description": "Criteria for matching events in the repository.",
             "type": "object",
+            "default": {
+              "pullRequests": [],
+              "eventsAPI": []
+            },
             "properties": {
               "pullRequests": {
                 "title": "Pull Request Matchers",
                 "description": "Criteria for matching pull requests.",
                 "type": "array",
+                "minItems": 0,
                 "items": {
                   "title": "Pull Request Matcher",
                   "description": "Matcher settings for pull requests.",
@@ -189,6 +198,7 @@
                 "title": "Events API Matchers",
                 "description": "Criteria for matching events from the /events API.",
                 "type": "array",
+                "minItems": 0,
                 "items": {
                   "title": "Events API Matcher",
                   "type": "object",
@@ -237,7 +247,11 @@
               }
             }
           }
-        }
+        },
+        "required": [
+          "name",
+          "on"
+        ]
       }
     },
     "log": {

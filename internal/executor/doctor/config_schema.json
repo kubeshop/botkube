@@ -12,7 +12,9 @@
     "apiKey": {
       "description": "OpenAI Secret API Key",
       "type": "string",
-      "title": "API Key"
+      "title": "API Key",
+      "minLength": 3,
+      "default": ""
     },
     "apiBaseUrl": {
       "description": "OpenAI API Base URL",

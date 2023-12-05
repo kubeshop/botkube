@@ -1,52 +1,50 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Prometheus",
-  "description": "Get notifications about alerts polled from configured Prometheus AlertManager.",
+  "title": "GH",
+  "description": "GH creates an issue on GitHub for a related Kubernetes resource.",
   "type": "object",
-  "properties": {
-    "url": {
-      "title": "Endpoint",
-      "description": "Prometheus endpoint without API version and resource.",
-      "type": "string",
-      "format": "uri",
-      "default": "",
-      "minLength": 3
-    },
-    "ignoreOldAlerts": {
-      "title": "Ignore old alerts",
-      "description": "If set to true, Prometheus source plugin will not send alerts that is created before the plugin start time.",
-      "type": "boolean",
-      "default": true
-    },
-    "alertStates": {
-      "title": "Alert states",
-      "description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
-      "type": "array",
-      "default": [
-        "firing",
-        "pending",
-        "inactive"
-      ],
-      "items": {
-        "type": "string",
-        "title": "Alert state",
-        "oneOf": [
-          {
-            "const": "firing",
-            "title": "Firing"
-          },
-          {
-            "const": "pending",
-            "title": "Pending"
-          },
-          {
-            "const": "inactive",
-            "title": "Inactive"
-          }
-        ]
+  "additionalProperties": false,
+  "uiSchema": {
+    "github": {
+      "issueTemplate": {
+        "ui:widget": "textarea"
       },
-      "uniqueItems": true,
-      "minItems": 1
+      "token": {
+        "ui:widget": "password"
+      }
+    }
+  },
+  "properties": {
+    "github": {
+      "description": "GitHub-related configuration",
+      "title": "GitHub configuration",
+      "type": "object",
+      "properties": {
+        "token": {
+          "description": "GitHub Personal Access Token",
+          "title": "GitHub Token",
+          "type": "string",
+          "minLength": 3,
+          "default": ""
+        },
+        "issueTemplate": {
+          "description": "Issue template to use. If not specified, the default one will be used.",
+          "title": "Issue Template",
+          "type": "string",
+          "default": ""
+        },
+        "repository": {
+          "type": "string",
+          "title": "Repository",
+          "description": "GitHub repository to create issues in. Must be in the format of 'owner/repo'.",
+          "minLength": 3,
+          "default": ""
+        }
+      },
+      "required": [
+        "token",
+        "repository"
+      ]
     },
     "log": {
       "title": "Logging",
@@ -99,6 +97,6 @@
     }
   },
   "required": [
-    "url"
+    "github"
   ]
 }

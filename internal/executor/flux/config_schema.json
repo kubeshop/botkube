@@ -24,7 +24,8 @@
             "accessToken": {
               "title": "Access Token",
               "description": "Instructions for token creation: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token. When not provided some functionality may not work, e.g., adding comments to pull requests or approving them.",
-              "type": "string"
+              "type": "string",
+              "default": ""
             }
           }
         }

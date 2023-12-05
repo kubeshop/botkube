@@ -35,12 +35,18 @@
             "properties": {
               "name": {
                 "type": "string",
-                "title": "Name"
+                "title": "Name",
+                "minLength": 3
               },
               "namespace": {
                 "type": "string",
-                "title": "Namespace"
+                "title": "Namespace",
+                "minLength": 3
               }
+            },
+            "default": {
+              "name": "",
+              "namespace": ""
             },
             "required": [
               "name",

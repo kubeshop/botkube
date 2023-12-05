@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
 
 	"github.com/kubeshop/botkube/pkg/api"
@@ -14,8 +14,13 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
-// version is set via ldflags by GoReleaser.
-var version = "dev"
+var (
+	// version is set via ldflags by GoReleaser.
+	version = "dev"
+
+	//go:embed config_schema.json
+	configJSONSchema string
+)
 
 const (
 	pluginName  = "echo"
@@ -37,7 +42,9 @@ func (*EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
 		Description: description,
-		JSONSchema:  jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 	}, nil
 }
 
@@ -78,22 +85,4 @@ func main() {
 			Executor: &EchoExecutor{},
 		},
 	})
-}
-
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-07/schema#",
-			"title": "botkube/echo",
-			"description": "%s",
-			"type": "object",
-			"properties": {
-				"changeResponseToUpperCase": {
-					"description": "When changeResponseToUpperCase is true, the echoed string will be in upper case",
-					"type": "boolean"
-				}
-			},
-			"required": []
-		}`, description),
-	}
 }

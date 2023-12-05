@@ -26,7 +26,9 @@
           "type": "array",
           "items": {
             "type": "string",
-            "title": "Assignee"
+            "title": "Assignee",
+            "minLength": 3,
+            "default": ""
           },
           "minItems": 1,
           "title": "Assignees",

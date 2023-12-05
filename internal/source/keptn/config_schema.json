@@ -18,17 +18,21 @@
     "token": {
       "description": "Keptn API Token to access events through API Gateway",
       "type": "string",
-      "title": "Keptn API Token"
+      "title": "Keptn API Token",
+      "minLength": 3,
+      "default": ""
     },
     "project": {
-      "description": "Keptn Project",
+      "description": "Optional Keptn Project",
       "type": "string",
-      "title": "Project"
+      "title": "Project",
+      "default": ""
     },
     "service": {
-      "description": "Keptn Service name under the project",
+      "description": "Optional Keptn Service name under the Project",
       "type": "string",
-      "title": "Service"
+      "title": "Service",
+      "default": ""
     },
     "log": {
       "title": "Logging",
