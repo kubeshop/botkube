@@ -2,10 +2,10 @@ package keptn
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"time"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -14,6 +14,11 @@ import (
 )
 
 var _ source.Source = (*Source)(nil)
+
+var (
+	//go:embed config_schema.json
+	configJSONSchema string
+)
 
 const (
 	// PluginName is the name of the Keptn Botkube plugin.
@@ -56,7 +61,9 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		Version:          p.pluginVersion,
 		Description:      description,
 		DocumentationURL: "https://docs.botkube.io/configuration/source/keptn",
-		JSONSchema:       jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 	}, nil
 }
 
@@ -117,43 +124,6 @@ func (p *Source) consumeEvents(ctx context.Context, cfg Config, ch chan<- source
 			log.Info("Stopping Keptn event consuming...")
 			return
 		}
-	}
-}
-
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-07/schema#",
-			"title": "Keptn",
-			"description": "%s",
-			"type": "object",
-			"properties": {
-			  "url": {
-				"description": "Keptn API Gateway URL",
-				"type": "string",
-				"default": "http://api-gateway-nginx.keptn.svc.cluster.local/api",
-				"title": "Endpoint URL"
-			  },
-			  "token": {
-				"description": "Keptn API Token to access events through API Gateway",
-				"type": "string",
-				"title": "Keptn API Token"
-			  },
-			  "project": {
-				"description": "Keptn Project",
-				"type": "string",
-				"title": "Project"
-			  },
-			  "service": {
-				"description": "Keptn Service name under the project",
-				"type": "string",
-				"title": "Service"
-			  }
-			},
-            "required": [
-              "token"
-            ]
-		  }`, description),
 	}
 }
 

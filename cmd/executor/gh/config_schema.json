@@ -1,37 +1,50 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "doctor",
-  "description": "Doctor is a ChatGPT integration project that knows how to diagnose Kubernetes problems and suggest solutions.",
+  "title": "GH",
+  "description": "GH creates an issue on GitHub for a related Kubernetes resource.",
   "type": "object",
+  "additionalProperties": false,
+  "uiSchema": {
+    "github": {
+      "issueTemplate": {
+        "ui:widget": "textarea"
+      },
+      "token": {
+        "ui:widget": "password"
+      }
+    }
+  },
   "properties": {
-    "apiKey": {
-      "description": "OpenAI Secret API Key",
-      "type": "string",
-      "title": "API Key"
-    },
-    "apiBaseUrl": {
-      "description": "OpenAI API Base URL",
-      "type": "string",
-      "title": "API Base URL",
-      "default": "https://api.openai.com/v1"
-    },
-    "defaultEngine": {
-      "description": "Default engine to use",
-      "type": "string",
-      "title": "Default Engine",
-      "default": "text-davinci-003"
-    },
-    "organizationID": {
-      "description": "Optional organization ID",
-      "type": "string",
-      "title": "Organization ID",
-      "default": ""
-    },
-    "userAgent": {
-      "description": "User agent to use for requests",
-      "type": "string",
-      "title": "User Agent",
-      "default": "go-gpt3"
+    "github": {
+      "description": "GitHub-related configuration",
+      "title": "GitHub configuration",
+      "type": "object",
+      "properties": {
+        "token": {
+          "description": "GitHub Personal Access Token",
+          "title": "GitHub Token",
+          "type": "string",
+          "minLength": 3,
+          "default": ""
+        },
+        "issueTemplate": {
+          "description": "Issue template to use. If not specified, the default one will be used.",
+          "title": "Issue Template",
+          "type": "string",
+          "default": ""
+        },
+        "repository": {
+          "type": "string",
+          "title": "Repository",
+          "description": "GitHub repository to create issues in. Must be in the format of 'owner/repo'.",
+          "minLength": 3,
+          "default": ""
+        }
+      },
+      "required": [
+        "token",
+        "repository"
+      ]
     },
     "log": {
       "title": "Logging",
@@ -84,6 +97,6 @@
     }
   },
   "required": [
-    "apiKey"
+    "github"
   ]
 }

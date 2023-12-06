@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	//go:embed config-jsonschema.json
+	//go:embed config_schema.json
 	configJSONSchema string
 	k8sPromptRegex   = regexp.MustCompile(`--(\w+)=([^\s]+)`)
 )

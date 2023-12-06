@@ -17,8 +17,11 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
-//go:embed jsonschema.json
-var jsonschema string
+var (
+	//go:embed config_schema.json
+	// some of the fields are not exposed, so "additionalProperties" is set to true
+	configJSONSchema string
+)
 
 const (
 	PluginName  = "flux"
@@ -48,7 +51,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		DocumentationURL: "https://docs.botkube.io/configuration/executor/flux",
 		Dependencies:     getPluginDependencies(),
 		JSONSchema: api.JSONSchema{
-			Value: jsonschema,
+			Value: configJSONSchema,
 		},
 	}, nil
 }

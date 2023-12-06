@@ -37,7 +37,7 @@ func (*ThreadMateExecutor) Metadata(context.Context) (api.MetadataOutput, error)
 		Version:     version,
 		Description: "Streamlines managing assignment for incidents or user support",
 		JSONSchema: api.JSONSchema{
-			Value: thmate.JSONSchema,
+			Value: thmate.ConfigJSONSchema,
 		},
 	}, nil
 }

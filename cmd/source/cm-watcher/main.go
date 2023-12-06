@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/hashicorp/go-plugin"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,8 +23,16 @@ import (
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
-// version is set via ldflags by GoReleaser.
-var version = "dev"
+var (
+	// version is set via ldflags by GoReleaser.
+	version = "dev"
+
+	//go:embed config_schema.json
+	configJSONSchema string
+
+	//go:embed webhook_schema.json
+	incomingWebhookJSONSchema string
+)
 
 const (
 	pluginName  = "cm-watcher"
@@ -60,10 +68,14 @@ func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:     version,
 		Description: description,
-		JSONSchema:  jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 		ExternalRequest: api.ExternalRequestMetadata{
 			Payload: api.ExternalRequestPayload{
-				JSONSchema: incomingWebhookJSONSchema(),
+				JSONSchema: api.JSONSchema{
+					Value: incomingWebhookJSONSchema,
+				},
 			},
 		},
 	}, nil
@@ -161,35 +173,5 @@ func main() {
 func exitOnError(err error) {
 	if err != nil {
 		log.Fatal(err)
-	}
-}
-
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-			"$schema": "http://json-schema.org/draft-07/schema#",
-			"title": "botkube/cm-watcher",
-			"description": "%s",
-			"type": "object",
-			"properties": {},
-			"required": []
-		}`, description),
-	}
-}
-
-func incomingWebhookJSONSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Doc(`{
-		  "$schema": "http://json-schema.org/draft-07/schema#",
-		  "type": "object",
-		  "properties": {
-			"message": {
-			  "type": "string"
-			}
-		  },
-		  "required": [
-			"message"
-		  ]
-		}`),
 	}
 }

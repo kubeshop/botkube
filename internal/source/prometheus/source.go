@@ -2,10 +2,10 @@ package prometheus
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"time"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/loggerx"
@@ -14,6 +14,11 @@ import (
 )
 
 var _ source.Source = (*Source)(nil)
+
+var (
+	//go:embed config_schema.json
+	configJSONSchema string
+)
 
 const (
 	// PluginName is the name of the Prometheus Botkube plugin.
@@ -58,7 +63,9 @@ func (p *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		Version:          p.pluginVersion,
 		Description:      description,
 		DocumentationURL: "https://docs.botkube.io/configuration/source/prometheus",
-		JSONSchema:       jsonSchema(),
+		JSONSchema: api.JSONSchema{
+			Value: configJSONSchema,
+		},
 	}, nil
 }
 
@@ -105,111 +112,6 @@ func (p *Source) consumeAlerts(ctx context.Context, cfg Config, ch chan<- source
 		}
 		// Fetch alerts periodically with given frequency
 		time.Sleep(time.Second * pollPeriodInSeconds)
-	}
-}
-
-func jsonSchema() api.JSONSchema {
-	return api.JSONSchema{
-		Value: heredoc.Docf(`{
-		  "$schema": "http://json-schema.org/draft-07/schema#",
-		  "title": "Prometheus",
-		  "description": "%s",
-		  "type": "object",
-		  "properties": {
-			"url": {
-			  "title": "Endpoint",
-			  "description": "Prometheus endpoint without API version and resource.",
-			  "type": "string",
-			  "format": "uri"
-			},
-			"ignoreOldAlerts": {
-			  "title": "Ignore old alerts",
-			  "description": "If set to true, Prometheus source plugin will not send alerts that is created before the plugin start time.",
-			  "type": "boolean",
-			  "default": true
-			},
-			"alertStates": {
-			  "title": "Alert states",
-			  "description": "Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState",
-			  "type": "array",
-			  "default": [
-				"firing",
-				"pending",
-				"inactive"
-			  ],
-			  "items": {
-				"type": "string",
-				"title": "Alert state",
-				"oneOf": [
-				  {
-					"const": "firing",
-					"title": "Firing"
-				  },
-				  {
-					"const": "pending",
-					"title": "Pending"
-				  },
-				  {
-					"const": "inactive",
-					"title": "Inactive"
-				  }
-				]
-			  },
-			  "uniqueItems": true,
-			  "minItems": 1
-			},
-			"log": {
-			  "title": "Logging",
-			  "description": "Logging configuration for the plugin.",
-			  "type": "object",
-			  "properties": {
-				"level": {
-				  "title": "Log Level",
-				  "description": "Define log level for the plugin. Ensure that Botkube has plugin logging enabled for standard output.",
-				  "type": "string",
-				  "default": "info",
-				  "oneOf": [
-					{
-					  "const": "panic",
-					  "title": "Panic"
-					},
-					{
-					  "const": "fatal",
-					  "title": "Fatal"
-					},
-					{
-					  "const": "error",
-					  "title": "Error"
-					},
-					{
-					  "const": "warn",
-					  "title": "Warning"
-					},
-					{
-					  "const": "info",
-					  "title": "Info"
-					},
-					{
-					  "const": "debug",
-					  "title": "Debug"
-					},
-					{
-					  "const": "trace",
-					  "title": "Trace"
-					}
-				  ]
-				},
-				"disableColors": {
-				  "type": "boolean",
-				  "default": false,
-				  "description": "If enabled, disables color logging output.",
-				  "title": "Disable Colors"
-				}
-			  }
-			}
-		  },
-		  "required": ["url"]
-		}`, description),
 	}
 }
 
