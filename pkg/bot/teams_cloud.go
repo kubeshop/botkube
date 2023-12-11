@@ -312,7 +312,7 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 		Message: trimmedMsg,
 		User: execute.UserInput{
 			// Note: this is a plain text mention, a native mentions will be provided as a part of:
-			// https://github.com/kubeshop/botkube-cloud/issues/738
+			// https://github.com/kubeshop/botkube/issues/1331
 			Mention:     act.From.Name,
 			DisplayName: act.From.Name,
 		},
@@ -323,7 +323,7 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 
 // generate a function code tab based on in type will return proper command origin.
 func (b *CloudTeams) mapToCommandOrigin(act schema.Activity) command.Origin {
-	// in the newer control-plane version, the origin is explicitly set
+	// in the newer Botkube Cloud version, the origin is explicitly set
 	c, found := b.extractExplicitOrigin(act)
 	if found {
 		return c

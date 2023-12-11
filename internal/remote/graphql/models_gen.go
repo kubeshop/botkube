@@ -333,7 +333,6 @@ type DeletePlatformInput struct {
 	Discord       *DeleteByIDInput `json:"discord"`
 	Mattermost    *DeleteByIDInput `json:"mattermost"`
 	Webhook       *DeleteByIDInput `json:"webhook"`
-	MsTeams       *DeleteByIDInput `json:"msTeams"`
 	CloudMsTeams  *DeleteByIDInput `json:"cloudMsTeams"`
 	Elasticsearch *DeleteByIDInput `json:"elasticsearch"`
 }
@@ -599,40 +598,6 @@ type MattermostUpdateInput struct {
 	Channels []*ChannelBindingsByNameUpdateInput `json:"channels"`
 }
 
-type MsTeams struct {
-	ID                    string       `json:"id"`
-	Name                  string       `json:"name"`
-	BotName               string       `json:"botName"`
-	AppID                 string       `json:"appId"`
-	AppPassword           string       `json:"appPassword"`
-	Port                  string       `json:"port"`
-	MessagePath           string       `json:"messagePath"`
-	NotificationsDisabled *bool        `json:"notificationsDisabled"`
-	Bindings              *BotBindings `json:"bindings"`
-}
-
-type MsTeamsCreateInput struct {
-	Name                  string                  `json:"name"`
-	BotName               string                  `json:"botName"`
-	AppID                 string                  `json:"appId"`
-	AppPassword           string                  `json:"appPassword"`
-	Port                  string                  `json:"port"`
-	MessagePath           string                  `json:"messagePath"`
-	NotificationsDisabled *bool                   `json:"notificationsDisabled"`
-	Bindings              *BotBindingsCreateInput `json:"bindings"`
-}
-
-type MsTeamsUpdateInput struct {
-	ID          *string                 `json:"id"`
-	Name        string                  `json:"name"`
-	BotName     string                  `json:"botName"`
-	AppID       string                  `json:"appId"`
-	AppPassword string                  `json:"appPassword"`
-	Port        string                  `json:"port"`
-	MessagePath string                  `json:"messagePath"`
-	Bindings    *BotBindingsUpdateInput `json:"bindings"`
-}
-
 type NotificationPatchDeploymentConfigInput struct {
 	CommunicationGroupName string      `json:"communicationGroupName"`
 	Platform               BotPlatform `json:"platform"`
@@ -696,7 +661,6 @@ type PlatformsCreateInput struct {
 	CloudSlacks     []*CloudSlackCreateInput    `json:"cloudSlacks"`
 	Mattermosts     []*MattermostCreateInput    `json:"mattermosts"`
 	Webhooks        []*WebhookCreateInput       `json:"webhooks"`
-	MsTeams         []*MsTeamsCreateInput       `json:"msTeams"`
 	Elasticsearches []*ElasticsearchCreateInput `json:"elasticsearches"`
 }
 
@@ -706,7 +670,6 @@ type PlatformsUpdateInput struct {
 	Discords        []*DiscordUpdateInput       `json:"discords"`
 	Mattermosts     []*MattermostUpdateInput    `json:"mattermosts"`
 	Webhooks        []*WebhookUpdateInput       `json:"webhooks"`
-	MsTeams         []*MsTeamsUpdateInput       `json:"msTeams"`
 	CloudMsTeams    []*CloudMsTeamsUpdateInput  `json:"cloudMsTeams"`
 	Elasticsearches []*ElasticsearchUpdateInput `json:"elasticsearches"`
 }
@@ -760,11 +723,12 @@ func (this PluginPage) GetPageInfo() *PageInfo { return this.PageInfo }
 func (this PluginPage) GetTotalCount() int     { return this.TotalCount }
 
 type PluginTemplate struct {
-	Name        string      `json:"name"`
-	Title       string      `json:"title"`
-	Description string      `json:"description"`
-	Type        PluginType  `json:"type"`
-	Schema      interface{} `json:"schema"`
+	Name             string      `json:"name"`
+	Title            string      `json:"title"`
+	Description      string      `json:"description"`
+	DocumentationURL *string     `json:"documentationUrl"`
+	Type             PluginType  `json:"type"`
+	Schema           interface{} `json:"schema"`
 }
 
 type PluginTemplatePage struct {
