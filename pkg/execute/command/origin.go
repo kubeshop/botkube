@@ -25,3 +25,13 @@ const (
 	// AutomationOrigin is the value for Origin when the command was triggered by an automation.
 	AutomationOrigin Origin = "automation"
 )
+
+// IsValidOrigin returns true if the given string is a valid Origin.
+func IsValidOrigin(in string) bool {
+	switch Origin(in) {
+	case TypedOrigin, ButtonClickOrigin, SelectValueChangeOrigin, MultiSelectValueChangeOrigin, PlainTextInputOrigin, AutomationOrigin:
+		return true
+	default:
+		return false
+	}
+}
