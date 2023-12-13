@@ -28,6 +28,10 @@ import (
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
+const (
+	originKeyName = "originName"
+)
+
 var _ Bot = &CloudTeams{}
 
 // CloudTeams listens for user's messages, execute commands and sends back the response.
@@ -302,18 +306,70 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 			ID:               channel.Identifier(),
 			ExecutorBindings: channel.Bindings.Executors,
 			SourceBindings:   channel.Bindings.Sources,
-			CommandOrigin:    command.TypedOrigin,
+			CommandOrigin:    b.mapToCommandOrigin(act),
 			DisplayName:      channelDisplayName,
 		},
 		Message: trimmedMsg,
 		User: execute.UserInput{
-			// TODO: we need to add support for mentions on cloud side.
-			//Mention:     "",
+			// Note: this is a plain text mention, a native mentions will be provided as a part of:
+			// https://github.com/kubeshop/botkube/issues/1331
+			Mention:     act.From.Name,
 			DisplayName: act.From.Name,
 		},
 		AuditContext: act.ChannelData,
 	})
 	return e.Execute(ctx)
+}
+
+// generate a function code tab based on in type will return proper command origin.
+func (b *CloudTeams) mapToCommandOrigin(act schema.Activity) command.Origin {
+	// in the newer Botkube Cloud version, the origin is explicitly set
+	c, found := b.extractExplicitOrigin(act)
+	if found {
+		return c
+	}
+
+	// fallback to default strategy
+	switch act.Type {
+	case schema.Message:
+		return command.TypedOrigin
+	case schema.Invoke:
+		return command.ButtonClickOrigin
+	default:
+		return command.UnknownOrigin
+	}
+}
+
+type activityMetadata struct {
+	// OriginName is inlined for e.g. 'Action.Submit'. We are not able to force the unified approach.
+	OriginName string `mapstructure:"originName"`
+	Action     struct {
+		Data struct {
+			// OriginName is nested for e.g. 'Action.Execute'.
+			OriginName string `mapstructure:"originName"`
+		} `mapstructure:"data"`
+	} `mapstructure:"action"`
+}
+
+func (b *CloudTeams) extractExplicitOrigin(act schema.Activity) (command.Origin, bool) {
+	if act.Value == nil {
+		return "", false
+	}
+	var data activityMetadata
+	err := mapstructure.Decode(act.Value, &data)
+	if err != nil {
+		b.log.WithError(err).Debug("Cannot decode activity value to extract command origin")
+		return "", false
+	}
+
+	origin := data.OriginName
+	if origin == "" {
+		origin = data.Action.Data.OriginName
+	}
+	if command.IsValidOrigin(origin) {
+		return command.Origin(origin), true
+	}
+	return "", false
 }
 
 func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.CoreMessage, channels []teamsCloudChannelConfigByID) error {

@@ -8,9 +8,6 @@ type Platforms struct {
 	Discords        []*Discord       `json:"discords"`
 	Mattermosts     []*Mattermost    `json:"mattermosts"`
 	Webhooks        []*Webhook       `json:"webhooks"`
-	MsTeams         []*MsTeams       `json:"msTeams"`
 	Elasticsearches []*Elasticsearch `json:"elasticsearches"`
 	CloudMsTeams    []*CloudMsTeams  `json:"cloudTeams"`
-
-	// All internal, ignored fields are removed
 }
