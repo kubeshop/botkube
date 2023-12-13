@@ -10,13 +10,13 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api/cloudplatform"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudteams"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/grpcx"
 )
 
 type grpcCloudTeamsConnector struct {
@@ -30,19 +30,32 @@ type grpcCloudTeamsConnector struct {
 	activityClient pb.CloudTeams_StreamActivityClient
 }
 
-func newGrpcCloudTeamsConnector(log logrus.FieldLogger, url string) (*grpcCloudTeamsConnector, error) {
+func newGrpcCloudTeamsConnector(log logrus.FieldLogger, cfg config.GRPCServer) (*grpcCloudTeamsConnector, error) {
 	remoteConfig, ok := remote.GetConfig()
 	if !ok {
 		return nil, fmt.Errorf("while getting remote config for %q", config.CloudTeamsCommPlatformIntegration)
 	}
-	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
+
+	log.WithFields(logrus.Fields{
+		"url":                  cfg.URL,
+		"disableSecurity":      cfg.DisableSecurity,
+		"tlsUseSystemCertPool": cfg.TLS.UseSystemCertPool,
+		"tlsCACertificateLen":  len(cfg.TLS.CACertificate),
+		"tlsSkipVerify":        cfg.TLS.InsecureSkipVerify,
+	}).Debug("Creating gRPC connection to Cloud Teams...")
+
+	creds, err := grpcx.ClientTransportCredentials(log, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("while creating gRPC credentials: %w", err)
+	}
+
 	opts := []grpc.DialOption{
-		creds,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithStreamInterceptor(cloudplatform.AddStreamingClientCredentials(remoteConfig)),
 		grpc.WithUnaryInterceptor(cloudplatform.AddUnaryClientCredentials(remoteConfig)),
 	}
 
-	conn, err := grpc.Dial(url, opts...)
+	conn, err := grpc.Dial(cfg.URL, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("while creating gRCP connection: %w", err)
 	}

@@ -495,7 +495,16 @@ type CloudSlack struct {
 
 // GRPCServer config for gRPC server
 type GRPCServer struct {
-	URL string `yaml:"url"`
+	URL             string              `yaml:"url"`
+	DisableSecurity bool                `yaml:"insecure"`
+	TLS             GRPCServerTLSConfig `yaml:"tls"`
+}
+
+// GRPCServerTLSConfig describes gRPC server TLS configuration.m
+type GRPCServerTLSConfig struct {
+	CACertificate      []byte `yaml:"caCertificate"`
+	UseSystemCertPool  bool   `yaml:"useSystemCertPool"`
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
 }
 
 // Elasticsearch config auth settings

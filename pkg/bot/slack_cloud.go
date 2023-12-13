@@ -19,7 +19,6 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"github.com/kubeshop/botkube/internal/analytics"
@@ -33,6 +32,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/grpcx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
@@ -169,8 +169,21 @@ func (b *CloudSlack) start(ctx context.Context) error {
 		return fmt.Errorf("while getting remote config for %s", config.CloudSlackCommPlatformIntegration)
 	}
 
-	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-	opts := []grpc.DialOption{creds,
+	b.log.WithFields(logrus.Fields{
+		"url":                  b.cfg.Server.URL,
+		"disableSecurity":      b.cfg.Server.DisableSecurity,
+		"tlsUseSystemCertPool": b.cfg.Server.TLS.UseSystemCertPool,
+		"tlsCACertificateLen":  len(b.cfg.Server.TLS.CACertificate),
+		"tlsSkipVerify":        b.cfg.Server.TLS.InsecureSkipVerify,
+	}).Debug("Creating gRPC connection to Cloud Teams...")
+
+	creds, err := grpcx.ClientTransportCredentials(b.log, b.cfg.Server)
+	if err != nil {
+		return fmt.Errorf("while creating gRPC credentials: %w", err)
+	}
+
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
 		grpc.WithStreamInterceptor(cloudplatform.AddStreamingClientCredentials(remoteConfig)),
 		grpc.WithUnaryInterceptor(cloudplatform.AddUnaryClientCredentials(remoteConfig)),
 	}

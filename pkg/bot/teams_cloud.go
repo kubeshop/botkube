@@ -182,9 +182,9 @@ func (b *CloudTeams) GetStatus() health.PlatformStatus {
 }
 
 func (b *CloudTeams) start(ctx context.Context) error {
-	svc, err := newGrpcCloudTeamsConnector(b.log, b.cfg.Server.URL)
+	svc, err := newGrpcCloudTeamsConnector(b.log, b.cfg.Server)
 	if err != nil {
-		return fmt.Errorf("while creating gRPC connector")
+		return fmt.Errorf("while creating gRPC connector: %w", err)
 	}
 	defer svc.Shutdown()
 
