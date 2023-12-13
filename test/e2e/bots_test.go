@@ -70,6 +70,10 @@ type Config struct {
 			DefaultDiscordChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_DEFAULT_ID"`
 			SecondaryDiscordChannelIDName string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_SECONDARY_ID"`
 			ThirdDiscordChannelIDName     string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_DISCORD_CHANNELS_THIRD_ID"`
+			TeamsEnabledName              string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_TEAMS_ENABLED"`
+			DefaultTeamsChannelIDName     string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_TEAMS_CHANNELS_DEFAULT_ID"`
+			SecondaryTeamsChannelIDName   string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_TEAMS_CHANNELS_SECONDARY_ID"`
+			ThirdTeamsChannelIDName       string `envconfig:"default=BOTKUBE_COMMUNICATIONS_DEFAULT-GROUP_TEAMS_CHANNELS_THIRD_ID"`
 			BotkubePluginRepoURL          string `envconfig:"default=BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"`
 			LabelActionEnabledName        string `envconfig:"default=BOTKUBE_ACTIONS_LABEL-CREATED-SVC-RESOURCE_ENABLED"`
 			StandaloneActionEnabledName   string `envconfig:"default=BOTKUBE_ACTIONS_GET-CREATED-RESOURCE_ENABLED"`
@@ -88,6 +92,7 @@ type Config struct {
 	ClusterName      string `envconfig:"default=sample"`
 	Slack            commplatform.SlackConfig
 	Discord          commplatform.DiscordConfig
+	Teams            commplatform.TeamsConfig
 	ConfigProvider   ConfigProvider
 	ShortWaitTimeout time.Duration `envconfig:"default=7s"`
 }
@@ -106,6 +111,7 @@ var (
 
 				exit status 1`)
 	slackInvalidCmd = strings.NewReplacer("<", "&lt;", ">", "&gt;").Replace(discordInvalidCmd)
+	teamsInvalidCmd = "todo"
 	configMapLabels = map[string]string{
 		"test.botkube.io": "true",
 	}
@@ -149,12 +155,30 @@ func TestDiscord(t *testing.T) {
 	)
 }
 
+func TestTeams(t *testing.T) {
+	t.Log("Loading configuration...")
+	var appCfg Config
+	err := envconfig.Init(&appCfg)
+	require.NoError(t, err)
+
+	runBotTest(t,
+		appCfg,
+		commplatform.TeamsBot,
+		teamsInvalidCmd,
+		appCfg.Deployment.Envs.DefaultTeamsChannelIDName,
+		appCfg.Deployment.Envs.SecondaryTeamsChannelIDName,
+		appCfg.Deployment.Envs.ThirdTeamsChannelIDName,
+	)
+}
+
 func newBotDriver(cfg Config, driverType commplatform.DriverType) (commplatform.BotDriver, error) {
 	switch driverType {
 	case commplatform.SlackBot:
 		return commplatform.NewSlackTester(cfg.Slack, ptr.FromType(cfg.ConfigProvider.ApiKey))
 	case commplatform.DiscordBot:
 		return commplatform.NewDiscordTester(cfg.Discord)
+	case commplatform.TeamsBot:
+		return commplatform.NewTeamsTester(cfg.Teams, ptr.FromType(cfg.ConfigProvider.ApiKey))
 	}
 	return nil, nil
 }
@@ -217,6 +241,49 @@ func runBotTest(t *testing.T,
 		err = waitForDeploymentReady(deployNsCli, appCfg.Deployment.Name, appCfg.Deployment.WaitTimeout)
 		require.NoError(t, err)
 	case commplatform.SlackBot:
+		t.Log("Creating Botkube Cloud instance...")
+		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
+		appCfg.ClusterName = botDriver.Channel().Name()
+		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, botDriver.Channel().Name(), botDriver.SecondChannel().Name(), botDriver.ThirdChannel().Name())
+		for _, alias := range aliases {
+			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
+		}
+		t.Cleanup(func() {
+			// We have a glitch on backend side and the logic below is a workaround for that.
+			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deplyment deletion reports "DELETED" status.
+			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
+			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
+			for !botkubeDeploymentUninstalled {
+				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
+				time.Sleep(1 * time.Second)
+			}
+
+			t.Log("Helm chart uninstalled. Waiting a bit...")
+			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+
+			t.Log("Deleting Botkube Cloud instance...")
+			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
+		})
+
+		err = botkubex.Install(t, botkubex.InstallParams{
+			BinaryPath:                              appCfg.ConfigProvider.BotkubeCliBinaryPath,
+			HelmRepoDirectory:                       appCfg.ConfigProvider.HelmRepoDirectory,
+			ConfigProviderEndpoint:                  appCfg.ConfigProvider.Endpoint,
+			ConfigProviderIdentifier:                deployment.ID,
+			ConfigProviderAPIKey:                    deployment.APIKey.Value,
+			ImageTag:                                appCfg.ConfigProvider.ImageTag,
+			ImageRegistry:                           appCfg.ConfigProvider.ImageRegistry,
+			ImageRepository:                         appCfg.ConfigProvider.ImageRepository,
+			PluginRestartPolicyThreshold:            1,
+			PluginRestartHealthCheckIntervalSeconds: 2,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			t.Log("Uninstalling Helm chart...")
+			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			botkubeDeploymentUninstalled = true
+		})
+	case commplatform.TeamsBot:
 		t.Log("Creating Botkube Cloud instance...")
 		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
 		appCfg.ClusterName = botDriver.Channel().Name()

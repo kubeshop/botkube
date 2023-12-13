@@ -68,6 +68,7 @@ type DriverType string
 const (
 	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
+	TeamsBot   DriverType = "teams"
 )
 
 // AssertContains checks if message contains expected message
