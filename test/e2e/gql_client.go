@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"net/http"
 	"testing"
 
@@ -389,14 +390,25 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 }
 
 // CreateBasicDeploymentWithCloudTeams create deployment with Teams platform and three plugins.
-func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, slackTeamID, firstChannel, secondChannel, thirdChannel string) (*gqlModel.Deployment, error) {
+func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel string) (*gqlModel.Deployment, error) {
 	t.Helper()
 
 	var mutation struct {
 		CreateDeployment *gqlModel.Deployment `graphql:"createDeployment(input: $input)"`
 	}
 
-	rbac := gqlModel.RBACInput{
+	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
+		"input": gqlModel.DeploymentCreateInput{
+			Name:      clusterName,
+			Platforms: &gqlModel.PlatformsCreateInput{},
+		},
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "while creating deployment")
+	}
+
+	rbacUpdate := gqlModel.RBACUpdateInput{
 		User: &gqlModel.UserPolicySubjectInput{
 			Type:   gqlModel.PolicySubjectTypeStatic,
 			Static: &gqlModel.UserStaticSubjectInput{Value: "botkube-plugins-default"},
@@ -407,21 +419,26 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 		},
 	}
 
-	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": gqlModel.DeploymentCreateInput{
-			Name: clusterName,
-			Plugins: []*gqlModel.PluginsCreateInput{
+	var updateMutation struct {
+		UpdateDeployment *gqlModel.Deployment `graphql:"updateDeployment(id: $id, input: $input)"`
+	}
+
+	err = c.Client.Mutate(context.Background(), &updateMutation, map[string]interface{}{
+		"id": graphql.ID(mutation.CreateDeployment.ID),
+		"input": gqlModel.DeploymentUpdateInput{
+			ResourceVersion: mutation.CreateDeployment.ResourceVersion,
+			Plugins: []*gqlModel.PluginsUpdateInput{
 				{
-					Groups: []*gqlModel.PluginConfigurationGroupInput{
+					Groups: []*gqlModel.PluginConfigurationGroupUpdateInput{
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s recommendations",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-events",
 									Configuration: "{\"log\":{\"level\":\"debug\"},\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":false,\"tlsSecretValid\":false}},\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\",\"update\"]},\"resources\":[{\"type\":\"v1/configmaps\",\"updateSetting\":{\"includeDiff\":false,\"fields\":[\"data\"]}}]}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -429,11 +446,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s ConfigMap delete events",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-annotated-cm-delete",
 									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"botkube\"]},\"labels\":{\"test.botkube.io\":\"true\"},\"event\":{\"types\":[\"delete\"]},\"resources\":[{\"type\":\"v1/configmaps\"}]}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -441,11 +458,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "Pod Create Events",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-pod-create-events",
 									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/pods\"}]}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -453,11 +470,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s Service creation, used only by action",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-service-create-event-for-action-only",
 									Configuration: "{\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/services\"}]}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -465,11 +482,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s ConfigMaps updates",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-updates",
 									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"default\"]},\"event\":{\"types\":[\"create\",\"update\",\"delete\"]},\"resources\":[{\"type\":\"v1/configmaps\",\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"update\"]},\"updateSetting\":{\"includeDiff\":false,\"fields\":[\"data\"]}}]}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -477,11 +494,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s ConfigMaps updates",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "rbac-with-static-mapping",
 									Configuration: "{\"namespaces\":{\"include\":[\"botkube\"]},\"annotations\":{\"rbac.botkube.io\":\"true\"},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/configmaps\"}]}",
-									Rbac: &gqlModel.RBACInput{
+									Rbac: &gqlModel.RBACUpdateInput{
 										User: &gqlModel.UserPolicySubjectInput{
 											Type:   gqlModel.PolicySubjectTypeStatic,
 											Static: &gqlModel.UserStaticSubjectInput{Value: "kc-watch-cm"},
@@ -500,11 +517,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Resource Created Events",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-create-events",
 									Configuration: "{\"namespaces\":{\"include\":[\"*\"],\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/configmaps\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -512,11 +529,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Errors for resources with logs",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-err-with-logs-events",
 									Configuration: "{\"namespaces\":{\"include\":[\"*\"],\"event\":{\"types\":[\"error\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -524,11 +541,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/cm-watcher",
 							DisplayName: "K8s ConfigMaps changes",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "other-plugins",
 									Configuration: "{\"configMap\":{\"name\":\"cm-watcher-trigger\",\"namespace\":\"botkube\",\"event\":\"ADDED\"}}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -536,11 +553,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/cm-watcher",
 							DisplayName: "CM watcher RBAC",
 							Type:        gqlModel.PluginTypeSource,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "rbac-with-default-configuration",
 									Configuration: "{\"configMap\":{\"name\":\"cm-rbac\",\"namespace\":\"botkube\",\"event\":\"DELETED\"}}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -548,7 +565,7 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubectl",
 							DisplayName: "Default Tools",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-default-tools",
 									Configuration: "{}",
@@ -559,11 +576,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubectl",
 							DisplayName: "First channel",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "kubectl-first-channel-cmd",
 									Configuration: "{}",
-									Rbac: &gqlModel.RBACInput{
+									Rbac: &gqlModel.RBACUpdateInput{
 										User: &gqlModel.UserPolicySubjectInput{
 											Type:   gqlModel.PolicySubjectTypeStatic,
 											Static: &gqlModel.UserStaticSubjectInput{Value: "kubectl-first-channel"},
@@ -579,11 +596,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubectl",
 							DisplayName: "Not bounded",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "kubectl-not-bound-to-any-channel",
 									Configuration: "{}",
-									Rbac: &gqlModel.RBACInput{
+									Rbac: &gqlModel.RBACUpdateInput{
 										User: &gqlModel.UserPolicySubjectInput{
 											Type:   gqlModel.PolicySubjectTypeStatic,
 											Static: &gqlModel.UserStaticSubjectInput{Value: "kubectl-first-channel"},
@@ -600,11 +617,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubectl",
 							DisplayName: "Service label perms",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "kubectl-with-svc-label-perms",
 									Configuration: "{}",
-									Rbac: &gqlModel.RBACInput{
+									Rbac: &gqlModel.RBACUpdateInput{
 										User: &gqlModel.UserPolicySubjectInput{
 											Type:   gqlModel.PolicySubjectTypeStatic,
 											Static: &gqlModel.UserStaticSubjectInput{Value: "kc-label-svc-all"},
@@ -621,11 +638,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/kubectl",
 							DisplayName: "Rbac Channel Mapping",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "rbac-with-channel-mapping",
 									Configuration: "{\"defaultNamespace\":\"botkube\"}",
-									Rbac: &gqlModel.RBACInput{
+									Rbac: &gqlModel.RBACUpdateInput{
 										Group: &gqlModel.GroupPolicySubjectInput{
 											Type:   gqlModel.PolicySubjectTypeChannelName,
 											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{""}},
@@ -638,11 +655,11 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/helm",
 							DisplayName: "Helm",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "helm",
 									Configuration: "{}",
-									Rbac:          &rbac,
+									Rbac:          &rbacUpdate,
 								},
 							},
 						},
@@ -650,7 +667,7 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/echo@v0.0.0-latest",
 							DisplayName: "Echo",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "other-plugins",
 									Configuration: "{\"changeResponseToUpperCase\":true}",
@@ -661,7 +678,7 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							Name:        "botkube/echo@v0.0.0-latest",
 							DisplayName: "Echo with no RBAC",
 							Type:        gqlModel.PluginTypeExecutor,
-							Configurations: []*gqlModel.PluginConfigurationInput{
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "rbac-with-no-configuration",
 									Configuration: "{\"changeResponseToUpperCase\":true}",
@@ -713,35 +730,33 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 					},
 				},
 			},
-			Platforms: &gqlModel.PlatformsCreateInput{
-				CloudSlacks: []*gqlModel.CloudSlackCreateInput{
+			Platforms: &gqlModel.PlatformsUpdateInput{
+				CloudMsTeams: []*gqlModel.CloudMsTeamsUpdateInput{
 					{
-						Name:   "Cloud Slack",
-						TeamID: slackTeamID,
-						Channels: []*gqlModel.ChannelBindingsByNameCreateInput{
+						Name:              "Cloud Teams",
+						AadGroupID:        aadGroupID,
+						AttachmentStorage: &gqlModel.CloudMsTeamsAttachmentStorageUpdateInput{},
+						Channels: []*gqlModel.ChannelBindingsByIDUpdateInput{
 							{
-								Name: firstChannel,
-								Bindings: &gqlModel.BotBindingsCreateInput{
+								ID: firstChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
 									Sources:   []*string{ptr.FromType("k8s-events"), ptr.FromType("k8s-annotated-cm-delete"), ptr.FromType("k8s-pod-create-events"), ptr.FromType("other-plugins")},
 									Executors: []*string{ptr.FromType("kubectl-first-channel-cmd"), ptr.FromType("other-plugins"), ptr.FromType("helm")},
 								},
-								NotificationsDisabled: ptr.FromType[bool](false),
 							},
 							{
-								Name: secondChannel,
-								Bindings: &gqlModel.BotBindingsCreateInput{
+								ID: secondChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
 									Sources:   []*string{ptr.FromType("k8s-updates")},
 									Executors: []*string{ptr.FromType("k8s-default-tools")},
 								},
-								NotificationsDisabled: ptr.FromType[bool](true),
 							},
 							{
-								Name: thirdChannel,
-								Bindings: &gqlModel.BotBindingsCreateInput{
+								ID: thirdChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
 									Sources:   []*string{ptr.FromType("rbac-with-static-mapping"), ptr.FromType("rbac-with-default-configuration")},
 									Executors: []*string{ptr.FromType("rbac-with-channel-mapping"), ptr.FromType("rbac-with-no-configuration")},
 								},
-								NotificationsDisabled: ptr.FromType[bool](false),
 							},
 						},
 					},
@@ -762,9 +777,9 @@ func (c *Client) MustCreateBasicDeploymentWithCloudSlack(t *testing.T, clusterNa
 }
 
 // MustCreateBasicDeploymentWithCloudTeams is like CreateBasicDeploymentWithCloudTeams but fails on error.
-func (c *Client) MustCreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, slackTeamID, firstChannel, secondChannel, thirdChannel string) *gqlModel.Deployment {
+func (c *Client) MustCreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel string) *gqlModel.Deployment {
 	t.Helper()
-	deployment, err := c.CreateBasicDeploymentWithCloudTeams(t, clusterName, slackTeamID, firstChannel, secondChannel, thirdChannel)
+	deployment, err := c.CreateBasicDeploymentWithCloudTeams(t, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel)
 	require.NoError(t, err)
 	return deployment
 }

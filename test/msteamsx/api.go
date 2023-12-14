@@ -9,7 +9,9 @@ import (
 	"github.com/kubeshop/botkube/internal/ptr"
 	msgraphsdkgo "github.com/microsoftgraph/msgraph-sdk-go"
 	graphmodels "github.com/microsoftgraph/msgraph-sdk-go/models"
+	"github.com/microsoftgraph/msgraph-sdk-go/teams"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 const (
@@ -75,12 +77,31 @@ func (c *Client) SendMessage(ctx context.Context, convID, msg string) error {
 	})
 }
 
-func (c *Client) GetMessages(ctx context.Context, teamID, channelID string) ([]graphmodels.ChatMessageable, error) {
-	msgs, err := c.cli.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Messages().Get(ctx, nil)
+func (c *Client) GetMessages(ctx context.Context, teamID, channelID string, pageSize int) ([]MsTeamsMessage, error) {
+	limit := int32(pageSize)
+	query := teams.ItemChannelsItemMessagesRequestBuilderGetQueryParameters{
+		Top: &limit,
+	}
+	options := teams.ItemChannelsItemMessagesRequestBuilderGetRequestConfiguration{
+		QueryParameters: &query,
+	}
+	msgs, err := c.cli.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Messages().Get(ctx, &options)
 	if err != nil {
 		return nil, err
 	}
-	return msgs.GetValue(), nil
+	var messages []MsTeamsMessage
+	for _, t := range msgs.GetValue() {
+		messages = append(messages, MsTeamsMessage{Raw: t, Rendered: c.MessageFrom(t)})
+	}
+	return messages, nil
+}
+
+func (c *Client) MessageFrom(msg graphmodels.ChatMessageable) string {
+	var msgTexts []string
+	for _, a := range msg.GetAttachments() {
+		msgTexts = append(msgTexts, *a.GetContent())
+	}
+	return strings.Join(msgTexts, "\n")
 }
 
 func (c *Client) getConvReference(url, conversationID string) schema.ConversationReference {
@@ -95,4 +116,9 @@ func (c *Client) getConvReference(url, conversationID string) schema.Conversatio
 		ChannelID:  "msteams",
 		ServiceURL: url,
 	}
+}
+
+type MsTeamsMessage struct {
+	Raw      graphmodels.ChatMessageable
+	Rendered string
 }

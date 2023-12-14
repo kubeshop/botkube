@@ -6,6 +6,7 @@ import (
 	"fmt"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudteams"
 	"github.com/kubeshop/botkube/test/msteamsx"
+	"log"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,7 @@ type TeamsConfig struct {
 	AppPassword              string
 	TenantID                 string
 	TeamID                   string
+	AADGroupID               string
 }
 
 type TeamsChannel struct {
@@ -126,7 +128,7 @@ func (s *TeamsTester) BotName() string {
 }
 
 func (s *TeamsTester) BotUserID() string {
-	return s.botUserID
+	return s.cfg.TeamID
 }
 
 func (s *TeamsTester) TesterUserID() string {
@@ -253,38 +255,34 @@ func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessag
 	return nil
 }
 
-func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
-	var fetchedMessages []slack.Message
+func (s *TeamsTester) WaitForInteractiveMessagePosted(teamID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+	var fetchedMessages []msteamsx.MsTeamsMessage
 	var lastErr error
 	// SA1019 suggested `PollWithContextTimeout` does not exist
 	// nolint:staticcheck
 	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
-		/*	historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
-				ChannelID: channelID, Limit: limitMessages,
-			})
-			if err != nil {
-				lastErr = err
-				return false, nil
+		historyRes, err := s.cli.GetMessages(context.Background(), teamID, channelID, limitMessages)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+
+		fetchedMessages = historyRes
+		for _, msg := range fetchedMessages {
+			log.Println(msg.Raw.GetFrom().GetApplication().GetDisplayName())
+			log.Println(s.BotName())
+			log.Println(msg.Rendered)
+			if !strings.EqualFold(ptr.ToValue(msg.Raw.GetFrom().GetApplication().GetDisplayName()), s.BotName()) {
+				continue
+			}
+			ok, _, _ := assertFn(msg.Rendered)
+
+			if !ok {
+				continue
 			}
 
-			fetchedMessages = historyRes.Messages
-			for _, msg := range historyRes.Messages {
-				if msg.User != userID {
-					continue
-				}
-
-				if len(msg.Blocks.BlockSet) == 0 {
-					continue
-				}
-
-				ok, _, _ := assertFn(sPrintBlocks(msg.Blocks)))
-
-				if !ok {
-					continue
-				}
-
-				return true, nil
-			}*/
+			return true, nil
+		}
 
 		return false, nil
 	})
@@ -386,12 +384,12 @@ func (s *TeamsTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	})
 }
 
-func (s *TeamsTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
-	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
-	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(msg, printedBlocks) {
-			count := diff.CountMatchBlock(printedBlocks, msg)
-			msgDiff := diff.Diff(printedBlocks, msg)
+func (s *TeamsTester) WaitForInteractiveMessagePostedRecentlyEqual(teamID, channelID string, msg interactive.CoreMessage) error {
+	msgMd := bot.NewTeamsRenderer().MessageToMarkdown(msg)
+	return s.WaitForInteractiveMessagePosted(teamID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(msg, msgMd) {
+			count := diff.CountMatchBlock(msgMd, msg)
+			msgDiff := diff.Diff(msgMd, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""

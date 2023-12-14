@@ -287,7 +287,7 @@ func runBotTest(t *testing.T,
 		t.Log("Creating Botkube Cloud instance...")
 		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
 		appCfg.ClusterName = botDriver.Channel().Name()
-		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, botDriver.Channel().Name(), botDriver.SecondChannel().Name(), botDriver.ThirdChannel().Name())
+		deployment := gqlCli.MustCreateBasicDeploymentWithCloudTeams(t, appCfg.ClusterName, appCfg.Teams.AADGroupID, botDriver.Channel().ID(), botDriver.SecondChannel().ID(), botDriver.ThirdChannel().ID())
 		for _, alias := range aliases {
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
@@ -338,6 +338,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for interactive help")
 	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
 	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
+	t.Log(expMessage)
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.Channel().ID(),
 		expMessage,
