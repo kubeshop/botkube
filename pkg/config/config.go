@@ -495,9 +495,9 @@ type CloudSlack struct {
 
 // GRPCServer config for gRPC server
 type GRPCServer struct {
-	URL             string              `yaml:"url"`
-	DisableSecurity bool                `yaml:"insecure"`
-	TLS             GRPCServerTLSConfig `yaml:"tls"`
+	URL                      string              `yaml:"url"`
+	DisableTransportSecurity bool                `yaml:"disableTransportSecurity"`
+	TLS                      GRPCServerTLSConfig `yaml:"tls"`
 }
 
 // GRPCServerTLSConfig describes gRPC server TLS configuration.m

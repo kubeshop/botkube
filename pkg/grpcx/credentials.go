@@ -14,8 +14,8 @@ import (
 
 // ClientTransportCredentials returns gRPC client transport credentials based on the provided configuration.
 func ClientTransportCredentials(log logrus.FieldLogger, cfg config.GRPCServer) (credentials.TransportCredentials, error) {
-	if cfg.DisableSecurity {
-		log.Warn("Server CA certificate is not provided. Using insecure gRPC connection...")
+	if cfg.DisableTransportSecurity {
+		log.Warn("gRPC encryption is disabled. Disabling transport security...")
 		return insecure.NewCredentials(), nil
 	}
 

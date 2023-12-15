@@ -38,7 +38,7 @@ func newGrpcCloudTeamsConnector(log logrus.FieldLogger, cfg config.GRPCServer) (
 
 	log.WithFields(logrus.Fields{
 		"url":                  cfg.URL,
-		"disableSecurity":      cfg.DisableSecurity,
+		"disableSecurity":      cfg.DisableTransportSecurity,
 		"tlsUseSystemCertPool": cfg.TLS.UseSystemCertPool,
 		"tlsCACertificateLen":  len(cfg.TLS.CACertificate),
 		"tlsSkipVerify":        cfg.TLS.InsecureSkipVerify,

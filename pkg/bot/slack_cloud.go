@@ -171,7 +171,7 @@ func (b *CloudSlack) start(ctx context.Context) error {
 
 	b.log.WithFields(logrus.Fields{
 		"url":                  b.cfg.Server.URL,
-		"disableSecurity":      b.cfg.Server.DisableSecurity,
+		"disableSecurity":      b.cfg.Server.DisableTransportSecurity,
 		"tlsUseSystemCertPool": b.cfg.Server.TLS.UseSystemCertPool,
 		"tlsCACertificateLen":  len(b.cfg.Server.TLS.CACertificate),
 		"tlsSkipVerify":        b.cfg.Server.TLS.InsecureSkipVerify,
