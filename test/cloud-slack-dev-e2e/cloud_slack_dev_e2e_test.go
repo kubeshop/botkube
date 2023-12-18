@@ -28,11 +28,11 @@ import (
 	"k8s.io/client-go/util/homedir"
 	stringsutil "k8s.io/utils/strings"
 
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/test/cloud_graphql"
-	gqlModel "github.com/kubeshop/botkube/test/cloud_graphql/model"
 	"github.com/kubeshop/botkube/test/commplatform"
 	"github.com/kubeshop/botkube/test/diff"
 	"github.com/kubeshop/botkube/test/helmx"
