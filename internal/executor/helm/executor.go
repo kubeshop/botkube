@@ -76,6 +76,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 				URLs: helmBinaryDownloadLinks,
 			},
 		},
+		Recommended: false,
 	}, nil
 }
 

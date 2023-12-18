@@ -31,6 +31,8 @@ type MetadataOutput struct {
 
 	// Dependencies holds the dependencies for a given platform binary.
 	Dependencies map[string]Dependency
+	// Recommended says if plugin is recommended
+	Recommended bool
 }
 
 // ExternalRequestMetadata contains the metadata for external requests.

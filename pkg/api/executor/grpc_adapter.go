@@ -204,6 +204,7 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 			RefURL: resp.GetJsonSchema().GetRefUrl(),
 		},
 		Dependencies: api.ConvertDependenciesToAPI(resp.Dependencies),
+		Recommended:  resp.Recommended,
 	}, nil
 }
 
@@ -300,6 +301,7 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 			RefUrl: meta.JSONSchema.RefURL,
 		},
 		Dependencies: api.ConvertDependenciesFromAPI[*Dependency, Dependency](meta.Dependencies),
+		Recommended:  meta.Recommended,
 	}, nil
 }
 

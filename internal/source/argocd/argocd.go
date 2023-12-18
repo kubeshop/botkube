@@ -182,6 +182,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 				},
 			},
 		},
+		Recommended: false,
 	}, nil
 }
 

@@ -67,6 +67,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},
+		Recommended: false,
 	}, nil
 }
 
