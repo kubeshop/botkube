@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/ptr"
-	"github.com/kubeshop/botkube/test/cloud_graphql/model"
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 )
 
 const (
@@ -30,32 +30,32 @@ type Client struct {
 }
 
 // MustCreateEmptyDeployment create empty deployment (without platform, plugins, etc.)
-func (c *Client) MustCreateEmptyDeployment(t *testing.T) *model.Deployment {
+func (c *Client) MustCreateEmptyDeployment(t *testing.T) *gqlModel.Deployment {
 	t.Helper()
 
 	var mutation struct {
 		CreateDeployment struct {
-			ID                         string                                         `json:"id"`
-			Name                       string                                         `json:"name"`
-			Status                     *model.DeploymentStatus                        `json:"status"`
-			APIKey                     *model.APIKey                                  `json:"apiKey"`
-			YamlConfig                 *string                                        `json:"yamlConfig"`
-			HelmCommand                *string                                        `json:"helmCommand"`
-			InstallUpgradeInstructions []*model.InstallUpgradeInstructionsForPlatform `json:"installUpgradeInstructions"`
-			ResourceVersion            int                                            `json:"resourceVersion"`
-			Heartbeat                  *model.Heartbeat                               `json:"heartbeat"`
+			ID                         string                                            `json:"id"`
+			Name                       string                                            `json:"name"`
+			Status                     *gqlModel.DeploymentStatus                        `json:"status"`
+			APIKey                     *gqlModel.APIKey                                  `json:"apiKey"`
+			YamlConfig                 *string                                           `json:"yamlConfig"`
+			HelmCommand                *string                                           `json:"helmCommand"`
+			InstallUpgradeInstructions []*gqlModel.InstallUpgradeInstructionsForPlatform `json:"installUpgradeInstructions"`
+			ResourceVersion            int                                               `json:"resourceVersion"`
+			Heartbeat                  *gqlModel.Heartbeat                               `json:"heartbeat"`
 		} `graphql:"createDeployment(input: $input)"`
 	}
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": model.DeploymentCreateInput{
+		"input": gqlModel.DeploymentCreateInput{
 			Name:      fmt.Sprintf("test/%s", t.Name()),
-			Platforms: &model.PlatformsCreateInput{},
+			Platforms: &gqlModel.PlatformsCreateInput{},
 		},
 	})
 	require.NoError(t, err)
 
-	return &model.Deployment{
+	return &gqlModel.Deployment{
 		ID:                         mutation.CreateDeployment.ID,
 		Name:                       mutation.CreateDeployment.Name,
 		Status:                     mutation.CreateDeployment.Status,
@@ -69,26 +69,26 @@ func (c *Client) MustCreateEmptyDeployment(t *testing.T) *model.Deployment {
 }
 
 // MustCreateBasicDeployment create deployment with Slack platform and three plugins.
-func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
+func (c *Client) MustCreateBasicDeployment(t *testing.T) *gqlModel.Deployment {
 	t.Helper()
 
 	var mutation struct {
-		CreateDeployment model.Deployment `graphql:"createDeployment(input: $input)"`
+		CreateDeployment gqlModel.Deployment `graphql:"createDeployment(input: $input)"`
 	}
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": model.DeploymentCreateInput{
+		"input": gqlModel.DeploymentCreateInput{
 			Name:                 fmt.Sprintf("test/%s", t.Name()),
 			AttachDefaultAliases: ptr.FromType(true),
 			AttachDefaultActions: ptr.FromType(true),
-			Plugins: []*model.PluginsCreateInput{
+			Plugins: []*gqlModel.PluginsCreateInput{
 				{
-					Groups: []*model.PluginConfigurationGroupInput{
+					Groups: []*gqlModel.PluginConfigurationGroupInput{
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Info",
-							Type:        model.PluginTypeSource,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubernetes_config",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}",
@@ -98,8 +98,8 @@ func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Info2",
-							Type:        model.PluginTypeSource,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubernetes_config2",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}",
@@ -109,8 +109,8 @@ func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
 						{
 							Name:        "botkube/kubectl",
 							DisplayName: "Kubectl",
-							Type:        model.PluginTypeExecutor,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubectl_config",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}",
@@ -120,16 +120,16 @@ func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
 					},
 				},
 			},
-			Platforms: &model.PlatformsCreateInput{
-				SocketSlacks: []*model.SocketSlackCreateInput{
+			Platforms: &gqlModel.PlatformsCreateInput{
+				SocketSlacks: []*gqlModel.SocketSlackCreateInput{
 					{
 						Name:     "slack",
 						AppToken: "app token",
 						BotToken: "bot token",
-						Channels: []*model.ChannelBindingsByNameCreateInput{
+						Channels: []*gqlModel.ChannelBindingsByNameCreateInput{
 							{
 								Name: "foo",
-								Bindings: &model.BotBindingsCreateInput{
+								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("kubernetes_config")},
 									Executors: []*string{ptr.FromType("kubectl_config")},
 								},
@@ -137,7 +137,7 @@ func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
 							},
 							{
 								Name: "bar",
-								Bindings: &model.BotBindingsCreateInput{
+								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("kubernetes_config2")},
 									Executors: []*string{},
 								},
@@ -155,24 +155,24 @@ func (c *Client) MustCreateBasicDeployment(t *testing.T) *model.Deployment {
 }
 
 // CreateBasicDeploymentWithCloudSlack create deployment with Slack platform and three plugins.
-func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, slackTeamID, channelName string) (*model.Deployment, error) {
+func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, slackTeamID, channelName string) (*gqlModel.Deployment, error) {
 	t.Helper()
 
 	var mutation struct {
-		CreateDeployment *model.Deployment `graphql:"createDeployment(input: $input)"`
+		CreateDeployment *gqlModel.Deployment `graphql:"createDeployment(input: $input)"`
 	}
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": model.DeploymentCreateInput{
+		"input": gqlModel.DeploymentCreateInput{
 			Name: clusterName,
-			Plugins: []*model.PluginsCreateInput{
+			Plugins: []*gqlModel.PluginsCreateInput{
 				{
-					Groups: []*model.PluginConfigurationGroupInput{
+					Groups: []*gqlModel.PluginConfigurationGroupInput{
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Info",
-							Type:        model.PluginTypeSource,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubernetes_config",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}},\"namespaces\":{\"include\":[\"default\"],\"exclude\":[]},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/persistentvolumes\"},{\"type\":\"v1/persistentvolumeclaims\"},{\"type\":\"v1/configmaps\"},{\"type\":\"rbac.authorization.k8s.io/v1/roles\"},{\"type\":\"rbac.authorization.k8s.io/v1/rolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterrolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterroles\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}],\"commands\":{\"verbs\":[\"api-resources\",\"api-versions\",\"cluster-info\",\"describe\",\"explain\",\"get\",\"logs\",\"top\"],\"resources\":[\"deployments\",\"pods\",\"namespaces\",\"daemonsets\",\"statefulsets\",\"storageclasses\",\"nodes\",\"configmaps\",\"services\",\"ingresses\"]},\"filters\":{\"objectAnnotationChecker\":true,\"nodeEventsChecker\":true},\"informerResyncPeriod\":\"30m\",\"log\":{\"level\":\"info\",\"disableColors\":false}}",
@@ -182,8 +182,8 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "Kubernetes Info2",
-							Type:        model.PluginTypeSource,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubernetes_config2",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}",
@@ -193,8 +193,8 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 						{
 							Name:        "botkube/kubectl",
 							DisplayName: "Kubectl",
-							Type:        model.PluginTypeExecutor,
-							Configurations: []*model.PluginConfigurationInput{
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
 									Name:          "kubectl_config",
 									Configuration: "{\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true}}}",
@@ -204,15 +204,15 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 					},
 				},
 			},
-			Platforms: &model.PlatformsCreateInput{
-				CloudSlacks: []*model.CloudSlackCreateInput{
+			Platforms: &gqlModel.PlatformsCreateInput{
+				CloudSlacks: []*gqlModel.CloudSlackCreateInput{
 					{
 						Name:   "Cloud Slack",
 						TeamID: slackTeamID,
-						Channels: []*model.ChannelBindingsByNameCreateInput{
+						Channels: []*gqlModel.ChannelBindingsByNameCreateInput{
 							{
 								Name: channelName,
-								Bindings: &model.BotBindingsCreateInput{
+								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("kubernetes_config")},
 									Executors: []*string{ptr.FromType("kubectl_config")},
 								},
@@ -228,7 +228,7 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 }
 
 // MustCreateBasicDeploymentWithCloudSlack is like CreateBasicDeploymentWithCloudSlack but fails on error.
-func (c *Client) MustCreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, slackTeamID, channelName string) *model.Deployment {
+func (c *Client) MustCreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, slackTeamID, channelName string) *gqlModel.Deployment {
 	t.Helper()
 	deployment, err := c.CreateBasicDeploymentWithCloudSlack(t, clusterName, slackTeamID, channelName)
 	require.NoError(t, err)
@@ -240,34 +240,34 @@ type (
 	//
 	//   Field "slack" argument "id" of type "ID!" is required, but it was not provided.
 	Organization struct {
-		ID                      string                              `json:"id"`
-		DisplayName             string                              `json:"displayName"`
-		Subscription            *model.OrganizationSubscription     `json:"subscription"`
-		ConnectedPlatforms      *OrganizationConnectedPlatforms     `json:"connectedPlatforms"`
-		OwnerID                 string                              `json:"ownerId"`
-		Owner                   *model.User                         `json:"owner"`
-		Members                 []*model.User                       `json:"members"`
-		Quota                   *model.Quota                        `json:"quota"`
-		BillingHistoryAvailable bool                                `json:"billingHistoryAvailable"`
-		UpdateOperations        *model.OrganizationUpdateOperations `json:"updateOperations"`
-		Usage                   *model.Usage                        `json:"usage"`
+		ID                      string                                 `json:"id"`
+		DisplayName             string                                 `json:"displayName"`
+		Subscription            *gqlModel.OrganizationSubscription     `json:"subscription"`
+		ConnectedPlatforms      *OrganizationConnectedPlatforms        `json:"connectedPlatforms"`
+		OwnerID                 string                                 `json:"ownerId"`
+		Owner                   *gqlModel.User                         `json:"owner"`
+		Members                 []*gqlModel.User                       `json:"members"`
+		Quota                   *gqlModel.Quota                        `json:"quota"`
+		BillingHistoryAvailable bool                                   `json:"billingHistoryAvailable"`
+		UpdateOperations        *gqlModel.OrganizationUpdateOperations `json:"updateOperations"`
+		Usage                   *gqlModel.Usage                        `json:"usage"`
 	}
 	// Organizations holds organization collection.
 	Organizations []Organization
 
 	// OrganizationConnectedPlatforms skips the 'slack' field.
 	OrganizationConnectedPlatforms struct {
-		Slacks []*model.SlackWorkspace `json:"slacks"`
+		Slacks []*gqlModel.SlackWorkspace `json:"slacks"`
 	}
 )
 
 // ToModel returns official gql model.
-func (o Organization) ToModel() model.Organization {
-	return model.Organization{
+func (o Organization) ToModel() gqlModel.Organization {
+	return gqlModel.Organization{
 		ID:           o.ID,
 		DisplayName:  o.DisplayName,
 		Subscription: o.Subscription,
-		ConnectedPlatforms: &model.OrganizationConnectedPlatforms{
+		ConnectedPlatforms: &gqlModel.OrganizationConnectedPlatforms{
 			Slacks: o.ConnectedPlatforms.Slacks,
 		},
 		OwnerID:                 o.OwnerID,
@@ -281,8 +281,8 @@ func (o Organization) ToModel() model.Organization {
 }
 
 // ToModel returns official gql model.
-func (o Organizations) ToModel() []model.Organization {
-	var out []model.Organization
+func (o Organizations) ToModel() []gqlModel.Organization {
+	var out []gqlModel.Organization
 	for _, item := range o {
 		out = append(out, item.ToModel())
 	}
@@ -290,7 +290,7 @@ func (o Organizations) ToModel() []model.Organization {
 }
 
 // MustCreateOrganization creates organization.
-func (c *Client) MustCreateOrganization(t *testing.T) model.Organization {
+func (c *Client) MustCreateOrganization(t *testing.T) gqlModel.Organization {
 	t.Helper()
 
 	var mutation struct {
@@ -298,7 +298,7 @@ func (c *Client) MustCreateOrganization(t *testing.T) model.Organization {
 	}
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": model.OrganizationCreateInput{
+		"input": gqlModel.OrganizationCreateInput{
 			DisplayName: fmt.Sprintf("My %s organization:%s", t.Name(), uuid.NewString()),
 		},
 	})
@@ -308,7 +308,7 @@ func (c *Client) MustCreateOrganization(t *testing.T) model.Organization {
 }
 
 // MustGetOrganization gets organization.
-func (c *Client) MustGetOrganization(t *testing.T, id graphql.ID) model.Organization {
+func (c *Client) MustGetOrganization(t *testing.T, id graphql.ID) gqlModel.Organization {
 	t.Helper()
 
 	var query struct {
@@ -324,7 +324,7 @@ func (c *Client) MustGetOrganization(t *testing.T, id graphql.ID) model.Organiza
 }
 
 // MustAddMember adds member to organization.
-func (c *Client) MustAddMember(t *testing.T, input model.AddMemberForOrganizationInput) model.Organization {
+func (c *Client) MustAddMember(t *testing.T, input gqlModel.AddMemberForOrganizationInput) gqlModel.Organization {
 	t.Helper()
 
 	var mutation struct {
@@ -340,7 +340,7 @@ func (c *Client) MustAddMember(t *testing.T, input model.AddMemberForOrganizatio
 }
 
 // MustRemoveMember removes member from organization.
-func (c *Client) MustRemoveMember(t *testing.T, input model.RemoveMemberFromOrganizationInput) model.Organization {
+func (c *Client) MustRemoveMember(t *testing.T, input gqlModel.RemoveMemberFromOrganizationInput) gqlModel.Organization {
 	t.Helper()
 
 	var mutation struct {
@@ -356,11 +356,11 @@ func (c *Client) MustRemoveMember(t *testing.T, input model.RemoveMemberFromOrga
 }
 
 // MustListAliases returns all aliases scoped to a given user.
-func (c *Client) MustListAliases(t *testing.T) []*model.Alias {
+func (c *Client) MustListAliases(t *testing.T) []*gqlModel.Alias {
 	t.Helper()
 
 	var page struct {
-		Aliases model.AliasPage `graphql:"aliases(offset: $offset, limit: $limit)"`
+		Aliases gqlModel.AliasPage `graphql:"aliases(offset: $offset, limit: $limit)"`
 	}
 
 	err := c.Client.Query(context.Background(), &page, c.pagingVariables())
@@ -369,11 +369,11 @@ func (c *Client) MustListAliases(t *testing.T) []*model.Alias {
 }
 
 // MustGetDeployment returns a given deployment scoped to a given user.
-func (c *Client) MustGetDeployment(t *testing.T, id graphql.ID) model.Deployment {
+func (c *Client) MustGetDeployment(t *testing.T, id graphql.ID) gqlModel.Deployment {
 	t.Helper()
 
 	var query struct {
-		Deployment model.Deployment `graphql:"deployment(id: $id)"`
+		Deployment gqlModel.Deployment `graphql:"deployment(id: $id)"`
 	}
 
 	err := c.Client.Query(context.Background(), &query, map[string]interface{}{"id": id})
@@ -399,11 +399,11 @@ func (c *Client) DeleteDeployment(t *testing.T, id graphql.ID) error {
 }
 
 // MustListDeployments returns all deployments scoped to a given user.
-func (c *Client) MustListDeployments(t *testing.T) []*model.Deployment {
+func (c *Client) MustListDeployments(t *testing.T) []*gqlModel.Deployment {
 	t.Helper()
 
 	var page struct {
-		Deployments model.DeploymentPage `graphql:"deployments(offset: $offset, limit: $limit)"`
+		Deployments gqlModel.DeploymentPage `graphql:"deployments(offset: $offset, limit: $limit)"`
 	}
 
 	err := c.Client.Query(context.Background(), &page, c.pagingVariables())
@@ -412,11 +412,11 @@ func (c *Client) MustListDeployments(t *testing.T) []*model.Deployment {
 }
 
 // MustListAudits returns all audits scoped to a given user.
-func (c *Client) MustListAudits(t *testing.T) []model.AuditEvent {
+func (c *Client) MustListAudits(t *testing.T) []gqlModel.AuditEvent {
 	t.Helper()
 
 	var page struct {
-		Audits model.AuditEventPage `graphql:"auditEvents(offset: $offset, limit: $limit)"`
+		Audits gqlModel.AuditEventPage `graphql:"auditEvents(offset: $offset, limit: $limit)"`
 	}
 
 	err := c.Client.Query(context.Background(), &page, c.pagingVariables())
@@ -434,7 +434,7 @@ func (c *Client) MustReportDeploymentHeartbeat(t *testing.T, deploymentId string
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
 		"id": graphql.ID(deploymentId),
-		"in": model.DeploymentHeartbeatInput{
+		"in": gqlModel.DeploymentHeartbeatInput{
 			NodeCount: nodeCount,
 		},
 	})
@@ -473,9 +473,9 @@ func (c *Client) MustDeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID 
 	}
 
 	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
-		"input": model.RemovePlatformFromOrganizationInput{
+		"input": gqlModel.RemovePlatformFromOrganizationInput{
 			OrganizationID: orgID,
-			Slack: &model.RemoveSlackFromOrganizationInput{
+			Slack: &gqlModel.RemoveSlackFromOrganizationInput{
 				ID: slackWorkspaceID,
 			},
 		},
@@ -484,7 +484,7 @@ func (c *Client) MustDeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID 
 }
 
 // MustListSlackWorkspacesForOrg returns all slack workspaces scoped to a given organization.
-func (c *Client) MustListSlackWorkspacesForOrg(t *testing.T, orgID string) []*model.SlackWorkspace {
+func (c *Client) MustListSlackWorkspacesForOrg(t *testing.T, orgID string) []*gqlModel.SlackWorkspace {
 	t.Helper()
 
 	var query struct {

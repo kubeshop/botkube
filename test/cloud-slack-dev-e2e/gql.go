@@ -2,7 +2,9 @@
 
 package cloud_slack_dev_e2e
 
-import gqlModel "github.com/kubeshop/botkube/test/cloud_graphql/model"
+import (
+	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+)
 
 // AuditEvent represents audit event.
 type AuditEvent struct {
