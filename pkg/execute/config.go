@@ -62,17 +62,22 @@ func (e *ConfigExecutor) renderBotkubeConfiguration() (string, error) {
 
 	// hide sensitive info
 	// TODO: avoid printing sensitive data without need to resetting them manually (which is an error-prone approach)
-	for key, old := range cfg.Communications {
-		old.Slack.Token = redactedSecretStr
-		old.SocketSlack.AppToken = redactedSecretStr
-		old.SocketSlack.BotToken = redactedSecretStr
-		old.Elasticsearch.Password = redactedSecretStr
-		old.Discord.Token = redactedSecretStr
-		old.Mattermost.Token = redactedSecretStr
-		old.Teams.AppPassword = redactedSecretStr
+	for key, val := range cfg.Communications {
+		val.Slack.Token = redactedSecretStr
+		val.SocketSlack.AppToken = redactedSecretStr
+		val.SocketSlack.BotToken = redactedSecretStr
+		val.Elasticsearch.Password = redactedSecretStr
+		val.Discord.Token = redactedSecretStr
+		val.Mattermost.Token = redactedSecretStr
+		val.Teams.AppPassword = redactedSecretStr
+		val.CloudSlack.Token = redactedSecretStr
+
+		// To keep the printed config readable, we don't print the certificate bytes.
+		val.CloudSlack.Server.TLS.CACertificate = nil
+		val.CloudTeams.Server.TLS.CACertificate = nil
 
 		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
-		cfg.Communications[key] = old
+		cfg.Communications[key] = val
 	}
 
 	b, err := yaml.Marshal(cfg)
