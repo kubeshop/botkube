@@ -502,7 +502,7 @@ type GRPCServer struct {
 
 // GRPCServerTLSConfig describes gRPC server TLS configuration.m
 type GRPCServerTLSConfig struct {
-	CACertificate      []byte `yaml:"caCertificate"`
+	CACertificate      []byte `yaml:"caCertificate,omitempty"`
 	UseSystemCertPool  bool   `yaml:"useSystemCertPool"`
 	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
 }
