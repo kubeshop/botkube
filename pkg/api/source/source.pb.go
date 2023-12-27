@@ -533,7 +533,7 @@ type MetadataResponse struct {
 	ExternalRequest *ExternalRequestMetadata `protobuf:"bytes,5,opt,name=external_request,json=externalRequest,proto3,oneof" json:"external_request,omitempty"`
 	// URL to plugin documentation.
 	DocumentationUrl string `protobuf:"bytes,6,opt,name=documentation_url,json=documentationUrl,proto3" json:"documentation_url,omitempty"`
-	// recommended says if plugin is recommended
+	// Recommended plugin recommended
 	Recommended bool `protobuf:"varint,7,opt,name=recommended,proto3" json:"recommended,omitempty"`
 }
 

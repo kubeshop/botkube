@@ -71,7 +71,7 @@ message MetadataResponse {
 	optional ExternalRequestMetadata external_request = 5;
 	// URL to plugin documentation.
 	string documentation_url = 6;
-	// recommended says if plugin is recommended
+	// Recommended plugin recommended
 	bool recommended = 7;
 }
 

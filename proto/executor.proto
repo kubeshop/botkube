@@ -54,7 +54,7 @@ message MetadataResponse {
 	map<string, Dependency> dependencies = 4;
 	// URL to plugin documentation.
 	string documentation_url = 5;
-	// recommended says if plugin is recommended
+	// Recommended plugin recommended
 	bool recommended = 6;
 }
 

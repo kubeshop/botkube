@@ -394,7 +394,7 @@ type MetadataResponse struct {
 	Dependencies map[string]*Dependency `protobuf:"bytes,4,rep,name=dependencies,proto3" json:"dependencies,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// URL to plugin documentation.
 	DocumentationUrl string `protobuf:"bytes,5,opt,name=documentation_url,json=documentationUrl,proto3" json:"documentation_url,omitempty"`
-	// recommended says if plugin is recommended
+	// Recommended plugin recommended
 	Recommended bool `protobuf:"varint,6,opt,name=recommended,proto3" json:"recommended,omitempty"`
 }
 
