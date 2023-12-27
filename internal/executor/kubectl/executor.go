@@ -78,6 +78,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 				URLs: kcBinaryDownloadLinks,
 			},
 		},
+		Recommended: true,
 	}, nil
 }
 

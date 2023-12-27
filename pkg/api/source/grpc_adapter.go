@@ -247,6 +247,7 @@ func (p *grpcClient) Metadata(ctx context.Context) (api.MetadataOutput, error) {
 		},
 		ExternalRequest: externalRequest,
 		Dependencies:    api.ConvertDependenciesToAPI(resp.Dependencies),
+		Recommended:     resp.Recommended,
 	}, nil
 }
 
@@ -277,6 +278,7 @@ func (p *grpcServer) Metadata(ctx context.Context, _ *emptypb.Empty) (*MetadataR
 			},
 		},
 		Dependencies: api.ConvertDependenciesFromAPI[*Dependency, Dependency](meta.Dependencies),
+		Recommended:  meta.Recommended,
 	}, nil
 }
 

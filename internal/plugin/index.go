@@ -53,6 +53,7 @@ type (
 		URLs             []IndexURL      `yaml:"urls"`
 		JSONSchema       JSONSchema      `yaml:"jsonSchema"`
 		ExternalRequest  ExternalRequest `yaml:"externalRequest,omitempty"`
+		Recommended      bool            `yaml:"recommended"`
 	}
 
 	// ExternalRequest contains the external request metadata for a given plugin.

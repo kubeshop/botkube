@@ -111,6 +111,7 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 		JSONSchema: api.JSONSchema{
 			Value: configJSONSchema,
 		},
+		Recommended: true,
 	}, nil
 }
 

@@ -27,6 +27,7 @@ type (
 		URLs             map[string]URL
 		Dependencies     map[string]map[string]string
 		JSONSchema       JSONSchema
+		Recommended      bool
 	}
 
 	URL struct {
@@ -102,6 +103,7 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 					URLs:             binURLs,
 					Dependencies:     depURLs,
 					JSONSchema:       entry.JSONSchema,
+					Recommended:      entry.Recommended,
 				})
 			case TypeSource:
 				sourcesRepositories.Insert(repo, entry.Name, storeEntry{
@@ -111,6 +113,7 @@ func newStoreRepositories(indexes map[string][]byte) (storeRepository, storeRepo
 					URLs:             binURLs,
 					Dependencies:     depURLs,
 					JSONSchema:       entry.JSONSchema,
+					Recommended:      entry.Recommended,
 				})
 			}
 		}

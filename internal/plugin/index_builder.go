@@ -102,6 +102,7 @@ func (i *IndexBuilder) Build(dir, urlBasePath, pluginNameFilter string, skipChec
 					},
 				},
 			},
+			Recommended: meta.Recommended,
 		})
 	}
 
