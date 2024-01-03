@@ -32,11 +32,6 @@ test-cloud-slack-dev-e2e: system-check
 test-cloud-slack-dev-e2e-show-browser: system-check
 	@go test -tags=cloud_slack_dev_e2e -race -p 1 -v -timeout 30m -rod=show ./test/cloud-slack-dev-e2e/...
 
-# Build the binary
-build: pre-build
-	@cd cmd/botkube-agent;GOOS_VAL=$(shell go env GOOS) CGO_ENABLED=0 GOARCH_VAL=$(shell go env GOARCH) go build -o $(shell go env GOPATH)/bin/botkube
-	@echo "Build completed successfully"
-
 # Build Botkube official plugins for all supported platforms.
 build-plugins: pre-build gen-plugins-goreleaser
 	@echo "Building plugins binaries"
