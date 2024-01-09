@@ -44,7 +44,7 @@ Follow [the official Botkube installation guide](https://docs.botkube.io/install
 
 ### 💬 Connect to your clusters from anywhere at any time
 
-Botkube intergrates with all common messaging platforms including:
+Botkube integrates with all common messaging platforms including:
 
 - Teams
 - Slack
