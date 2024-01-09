@@ -244,18 +244,15 @@ type CloudMsTeams struct {
 }
 
 type CloudMsTeamsAttachmentStorage struct {
-	SharePointSiteName    string `json:"sharePointSiteName"`
-	AutoCreateDirectories bool   `json:"autoCreateDirectories"`
+	SharePointSiteName string `json:"sharePointSiteName"`
 }
 
 type CloudMsTeamsAttachmentStorageCreateInput struct {
-	SharePointSiteName    *string `json:"sharePointSiteName"`
-	AutoCreateDirectories *bool   `json:"autoCreateDirectories"`
+	SharePointSiteName *string `json:"sharePointSiteName"`
 }
 
 type CloudMsTeamsAttachmentStorageUpdateInput struct {
-	SharePointSiteName    string `json:"sharePointSiteName"`
-	AutoCreateDirectories *bool  `json:"autoCreateDirectories"`
+	SharePointSiteName string `json:"sharePointSiteName"`
 }
 
 type CloudMsTeamsUpdateInput struct {
@@ -728,6 +725,7 @@ type PluginTemplate struct {
 	Description      string      `json:"description"`
 	DocumentationURL *string     `json:"documentationUrl"`
 	Type             PluginType  `json:"type"`
+	Recommended      bool        `json:"recommended"`
 	Schema           interface{} `json:"schema"`
 }
 
