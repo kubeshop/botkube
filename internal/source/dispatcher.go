@@ -259,7 +259,16 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 				defer analytics.ReportPanicIfOccurs(d.log, d.reporter)
 				err := n.SendMessage(ctx, genericMsg, sources)
 				if err != nil {
-					d.log.Errorf("while sending action result message: %s", err.Error())
+					d.log.Errorf("while sending action result to %q bot: %s", n.IntegrationName(), err.Error())
+				}
+			}(n)
+		}
+
+		for _, n := range d.getSinkNotifiers(dispatch) {
+			go func(n notifier.Sink) {
+				err := n.SendEvent(ctx, genericMsg, sources)
+				if err != nil {
+					d.log.Errorf("while sending action result to %q sink: %s", n.IntegrationName(), err.Error())
 				}
 			}(n)
 		}
