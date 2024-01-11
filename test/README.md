@@ -231,8 +231,8 @@ export KUBECONFIG="" # path to your kubeconfig
 export BOTKUBE_CLOUD_API_BASE_URL="" e.g. http://localhost:8080
 export BOTKUBE_CLOUD_API_SLACK_APP_INSTALLATION_BASE_URL_OVERRIDE="" # provide if necessary e.g. using ngrok: https://d5ac-194-33-77-250.ngrok-free.app
 export SLACK_BOT_DISPLAY_NAME="" # e.g. BotkubeDev
-export SLACK_WORKSPACE_ALREADY_CONNECTED="true"
-export SLACK_DISCONNECT_WORKSPACE_AFTER_TESTS="false"
+export SLACK_WORKSPACE_ALREADY_CONNECTED="false"
+export SLACK_DISCONNECT_WORKSPACE_AFTER_TESTS="true"
 export PAGE_TIMEOUT="1m"
 export SCREENSHOTS_ENABLED="false" # disable screenshots
 ```
