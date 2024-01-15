@@ -22,9 +22,10 @@ import (
 
 const (
 	PluginName           = "doctor"
-	promptTemplate       = "Can you show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'?"
+	promptTemplate       = "Show me 3 possible kubectl commands to take an action after resource '%s' in namespace '%s' (if namespace needed) fails with error '%s'. Do not include any descriptions, just return raw commands."
 	defaultAPIBaseURL    = "https://api.openai.com/v1"
 	defaultUserAgent     = "go-gpt3"
+	defaultEngineValue   = "gpt-3.5-turbo-instruct" // it is missing from the go-gpt3 library
 	printAPIKeyCharCount = 3
 )
 
@@ -177,7 +178,7 @@ func (d *Executor) getGptClient(log logrus.FieldLogger, cfg Config) (gpt3.Client
 		baseURL = cfg.APIBaseURL
 	}
 
-	defaultEngine := gpt3.TextDavinci003Engine
+	defaultEngine := defaultEngineValue
 	if cfg.DefaultEngine != "" {
 		defaultEngine = cfg.DefaultEngine
 	}
