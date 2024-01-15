@@ -58,15 +58,13 @@ type E2ESlackConfig struct {
 }
 
 type SlackConfig struct {
-	WorkspaceName          string
-	Email                  string
-	Password               string
-	BotDisplayName         string `envconfig:"default=BotkubeDev"`
-	ConversationWithBotURL string `envconfig:"default=https://app.slack.com/client/"`
-
-	// The properties won't be needed once we fix: https://github.com/kubeshop/botkube-cloud/issues/487
-	WorkspaceAlreadyConnected     bool `envconfig:"default=true"`
-	DisconnectWorkspaceAfterTests bool `envconfig:"default=false"`
+	WorkspaceName                 string
+	Email                         string
+	Password                      string
+	BotDisplayName                string `envconfig:"default=BotkubeDev"`
+	ConversationWithBotURL        string `envconfig:"default=https://app.slack.com/client/"`
+	WorkspaceAlreadyConnected     bool   `envconfig:"default=false"`
+	DisconnectWorkspaceAfterTests bool   `envconfig:"default=true"`
 
 	Tester commplatform.SlackConfig
 }
