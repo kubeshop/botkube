@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/morikuni/aec"
 	"sync/atomic"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sourcegraph/conc/pool"
 	"github.com/spf13/cobra"
-	"github.com/vbauerster/mpb/v8"
-	"github.com/vbauerster/mpb/v8/decor"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc"
 
@@ -24,15 +25,17 @@ import (
 )
 
 type Options struct {
-	Requests    int
-	Concurrency int
+	Requests       int
+	Concurrency    int
+	Burst          int
+	BurstSleepTime time.Duration
 }
 
 func NewGRPC() *cobra.Command {
 	var opts Options
 	cmd := &cobra.Command{
 		Use: "grpc [OPTIONS]",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx := cmd.Context()
 
 			remoteConfig, ok := remote.GetConfig()
@@ -46,33 +49,37 @@ func NewGRPC() *cobra.Command {
 			}
 			log := loggerx.New(config.Logger{})
 
-			activityClient, err := getClient(ctx, log, cfg, remoteConfig)
+			activityClient, err := getClient(ctx, log, cfg.Server, remoteConfig)
 			if err != nil {
 				return err
 			}
 			workers := pool.New().WithMaxGoroutines(opts.Concurrency)
 
 			var failed atomic.Int32
-			fmt.Printf("Running %d requests against %s gRPC\n", opts.Requests, cfg.URL)
 
-			p := mpb.New(mpb.WithWidth(64))
-			bar := p.New(int64(opts.Requests),
-				mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
-				mpb.PrependDecorators(
-					decor.OnComplete(decor.AverageETA(decor.ET_STYLE_GO), "done"),
-				),
-				mpb.AppendDecorators(decor.Percentage()),
-			)
+			status := printer.NewStatus(cmd.OutOrStdout(), fmt.Sprintf("Running %d requests against %s gRPC\n", opts.Requests, cfg.Server.URL))
+			defer func() {
+				status.End(err == nil)
+				fmt.Println(aec.Show)
+			}()
 
-			for i := 0; i < opts.Requests; i++ {
+			err = status.InfoStructFields("Run details:", opts)
+
+			dataFmt := `{"baseBody":{"codeBlock":"Load testing: %d"}}`
+
+			for i := 1; i <= opts.Requests; i++ {
 				ii := i
+				if i%opts.Burst == 0 {
+					status.Step("[%d/%d] Pause for %v for next burst to run...", ii, opts.Requests, opts.BurstSleepTime)
+					time.Sleep(opts.BurstSleepTime)
+				}
 				workers.Go(func() {
-
-					defer bar.Increment()
 					err := activityClient.Send(&pb.AgentActivity{
 						Message: &pb.Message{
-							MessageType: pb.MessageType_MESSAGE_SOURCE,
-							Data:        []byte("Load testing"),
+							TeamId:         cfg.Teams[0].ID,
+							ConversationId: maps.Values(cfg.Teams[0].Channels)[0].Identifier(),
+							MessageType:    pb.MessageType_MESSAGE_SOURCE,
+							Data:           []byte(fmt.Sprintf(dataFmt, ii)),
 						},
 					})
 					if err != nil {
@@ -83,37 +90,42 @@ func NewGRPC() *cobra.Command {
 			}
 
 			workers.Wait()
-			p.Wait()
 
+			fmt.Printf("Total requests: %d\n", opts.Requests)
+			fmt.Printf("Failed requests: %d\n", failed.Load())
 			return nil
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.IntVar(&opts.Requests, "n", 100, "Number of requests to run")
-	flags.IntVar(&opts.Concurrency, "c", 10, "Number of requests to run concurrently. Total number of requests cannot be smaller than the concurency level.")
+
+	flags.IntVar(&opts.Requests, "requests", 1000, "Number of requests to run.")
+	flags.IntVar(&opts.Concurrency, "concurrency", 100, "Number of workers")
+	flags.IntVar(&opts.Burst, "burst", 30, "Number of requests to send concurrently. Total number shouldn't be higher than the concurrency level.")
+	flags.DurationVar(&opts.BurstSleepTime, "burst-sleep-time", 5*time.Second, "Duration to sleep between each burst.")
+
 	return cmd
 }
 
-func getConfig(ctx context.Context, remoteConfig remote.Config) (config.GRPCServer, error) {
+func getConfig(ctx context.Context, remoteConfig remote.Config) (config.CloudTeams, error) {
 	gqlClient := remote.NewDefaultGqlClient(remoteConfig)
 	deployClient := remote.NewDeploymentClient(gqlClient)
 
 	cfgProvider := intconfig.GetProvider(true, deployClient)
 	configs, _, err := cfgProvider.Configs(ctx)
 	if err != nil {
-		return config.GRPCServer{}, fmt.Errorf("while loading configuration files: %w", err)
+		return config.CloudTeams{}, fmt.Errorf("while loading configuration files: %w", err)
 	}
 	conf, _, err := config.LoadWithDefaults(configs)
 	if err != nil {
-		return config.GRPCServer{}, fmt.Errorf("while merging app configuration: %w", err)
+		return config.CloudTeams{}, fmt.Errorf("while merging app configuration: %w", err)
 	}
 	if conf == nil {
-		return config.GRPCServer{}, fmt.Errorf("configuration cannot be nil")
+		return config.CloudTeams{}, fmt.Errorf("configuration cannot be nil")
 	}
 
 	c := maps.Values[map[string]config.Communications](conf.Communications)
-	return c[0].CloudTeams.Server, nil
+	return c[0].CloudTeams, nil
 }
 
 func getClient(ctx context.Context, log logrus.FieldLogger, cfg config.GRPCServer, remoteConfig remote.Config) (pb.CloudTeams_StreamActivityClient, error) {
