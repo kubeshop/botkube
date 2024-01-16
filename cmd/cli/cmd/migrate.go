@@ -20,8 +20,8 @@ import (
 	"github.com/kubeshop/botkube/internal/kubex"
 )
 
-const (
-	botkubeVersionConstraints = ">= 1.0, < 1.3"
+var (
+	botkubeMinVersionConstraint = ">= 1.0"
 )
 
 // NewMigrate returns a cobra.Command for migrate the OS into Cloud.
@@ -68,6 +68,7 @@ func NewMigrate() *cobra.Command {
 
 			status.Infof("Checking if Botkube version %q can be migrated safely", botkubeVersionStr)
 
+			botkubeVersionConstraints := getBotkubeVersionConstraints()
 			constraint, err := semver.NewConstraint(botkubeVersionConstraints)
 			if err != nil {
 				return fmt.Errorf("unable to parse Botkube semver version constraints: %w", err)
@@ -143,10 +144,22 @@ func NewMigrate() *cobra.Command {
 	flags.BoolVarP(&opts.SkipConnect, "skip-connect", "q", false, "Skips connecting to Botkube Cloud after migration")
 	flags.BoolVar(&opts.SkipOpenBrowser, "skip-open-browser", false, "Skips opening web browser after migration")
 	flags.BoolVarP(&opts.AutoApprove, "auto-approve", "y", false, "Skips interactive approval for upgrading Botkube installation.")
-	flags.StringVarP(&opts.ImageTag, "image-tag", "", "", "Botkube image tag, possible values latest, v1.2.0, ...")
+	flags.StringVarP(&opts.ImageTag, "image-tag", "", "", `Botkube image tag, e.g. "latest" or "v1.7.0"`)
 
 	opts.ConfigExporter.RegisterFlags(flags)
 	kubex.RegisterKubeconfigFlag(flags)
 
 	return migrate
+}
+
+func getBotkubeVersionConstraints() string {
+	cliVer := version.Get().Version
+	cliVersion, err := semver.NewVersion(cliVer)
+
+	botkubeMaxVersionConstraint := ""
+	if err == nil {
+		botkubeMaxVersionConstraint = fmt.Sprintf(", <= %s", cliVersion.String())
+	}
+
+	return fmt.Sprintf("%s%s", botkubeMinVersionConstraint, botkubeMaxVersionConstraint)
 }
