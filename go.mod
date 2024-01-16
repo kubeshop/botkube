@@ -7,7 +7,7 @@ require (
 	github.com/DanielTitkov/go-adaptive-cards v0.2.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/PullRequestInc/go-gpt3 v1.1.15
+	github.com/PullRequestInc/go-gpt3 v1.2.0
 	github.com/alexflint/go-arg v1.4.3
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/anthhub/forwarder v1.1.1-0.20230315114022-63dcf7b46a1a
