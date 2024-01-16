@@ -28,7 +28,7 @@
 
 ## Overview
 
-Botkube helps you monitor your Kubernetes cluster, debug critical deployments and gives recommendations for standard practices by running checks on the Kubernetes resources. It integrates with multiple communication platforms, such as [Slack](https://slack.com), [Discord](https://discord.com/), or [Mattermost](https://mattermost.com).
+Botkube is a troubleshooting and monitoring solution that empowers DevOps teams to work more efficiently, enables developers to troubleshoot their applications without special Kubernetes access or knowledge, and improves reliability by delivering timely, context-enhanced notifications about events in your Kubernetes environments. It integrates with multiple communication platforms, such as [Slack](https://botkube.io/integration/slack), [Microsoft Teams](https://botkube.io/integration/teams), [Discord](https://botkube.io/integration/discord), or [Mattermost](https://botkube.io/integration/mattermost). Botkube monitors events from various sources, allows you to securely run commands, and run automated actions triggered by any of the [plugins Botkube supports](https://botkube.io/integrations) or your [own custom plugins](https://botkube.io/integration/custom-executor-plugin).
 
 You can also execute `kubectl`, `helm` and other commands on your K8s, which helps debugging an application or cluster.
 
@@ -46,7 +46,7 @@ Follow [the official Botkube installation guide](https://docs.botkube.io/install
 
 Botkube integrates with all common messaging platforms including:
 
-- Teams
+- Microsoft Teams
 - Slack
 - Discord
 - Mattermost
@@ -65,7 +65,7 @@ Read more about Botkube features on [the official website](https://botkube.io/fe
 
 ## Documentation
 
-For full documentation, visit [docs,botkube.io](https://docs.botkube.io). The documentation sources reside on the [botkube-docs](https://github.com/kubeshop/botkube-docs) repository.
+For full documentation, visit [docs.botkube.io](https://docs.botkube.io). The documentation sources reside on the [botkube-docs](https://github.com/kubeshop/botkube-docs) repository.
 
 ## Licence
 
