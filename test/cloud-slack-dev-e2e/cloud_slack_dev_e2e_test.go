@@ -268,8 +268,10 @@ func TestCloudSlackE2E(t *testing.T) {
 		} else {
 			t.Log("Finalizing connection...")
 
-			t.Log("Removing the auto-close query parameter...")
-			slackConnectURL := deleteAutoCloseQueryParam(t, botkubePage.MustInfo().URL)
+			prevSlackConnectURL := botkubePage.MustInfo().URL
+			t.Logf("Removing the auto-close query parameter from %q...", prevSlackConnectURL)
+			slackConnectURL := deleteAutoCloseQueryParam(t, prevSlackConnectURL)
+			t.Logf("Navigating to %q...", slackConnectURL)
 			botkubePage.MustNavigate(slackConnectURL).MustWaitLoad()
 			screenshotIfShould(t, cfg, botkubePage)
 			botkubePage.MustElement("a.logo-link")
@@ -284,6 +286,23 @@ func TestCloudSlackE2E(t *testing.T) {
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
 		require.NotEmpty(t, authHeaderValue, "Previous subtest needs to pass to get authorization header value")
 
+		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
+			stringsutil.ShortenString(authHeaderValue, 15))
+
+		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
+
+		t.Logf("Getting connected Slack workspace...")
+		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
+		require.Len(t, slackWorkspaces, 1)
+		slackWorkspace := slackWorkspaces[0]
+		require.NotNil(t, slackWorkspace)
+		t.Cleanup(func() {
+			if !cfg.Slack.DisconnectWorkspaceAfterTests {
+				return
+			}
+			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
+		})
+
 		t.Log("Initializing Slack...")
 		tester, err := commplatform.NewSlackTester(cfg.Slack.Tester, nil)
 		require.NoError(t, err)
@@ -297,23 +316,6 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		t.Log("Inviting Bot to the channel...")
 		tester.InviteBotToChannel(t, channel.ID())
-
-		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
-			stringsutil.ShortenString(authHeaderValue, 15))
-
-		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
-
-		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
-		require.Len(t, slackWorkspaces, 1)
-		slackWorkspace := slackWorkspaces[0]
-		require.NotNil(t, slackWorkspace)
-
-		t.Cleanup(func() {
-			if !cfg.Slack.DisconnectWorkspaceAfterTests {
-				return
-			}
-			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
-		})
 
 		t.Log("Creating deployment...")
 		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, channel.Name(), slackWorkspace.TeamID, channel.Name())
