@@ -267,15 +267,39 @@ func TestCloudSlackE2E(t *testing.T) {
 			botkubePage.MustElementR("div.ant-result-title", "Organization Already Connected!")
 		} else {
 			t.Log("Finalizing connection...")
-			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
-			// detect homepage
 			screenshotIfShould(t, cfg, botkubePage)
-			botkubePage.MustElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
+			botkubePage.MustElement("a.logo-link")
+			screenshotIfShould(t, cfg, botkubePage)
+			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
+			screenshotIfShould(t, cfg, botkubePage)
+			// detect homepage
+			_, err := botkubePage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
+			assert.NoError(t, err) // fail the test, but move on: capture the screenshot and try to disconnect Slack workspace later
+			if err != nil {
+				screenshotIfShould(t, cfg, botkubePage)
+			}
 		}
 	})
 
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
 		require.NotEmpty(t, authHeaderValue, "Previous subtest needs to pass to get authorization header value")
+
+		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
+			stringsutil.ShortenString(authHeaderValue, 15))
+
+		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
+
+		t.Logf("Getting connected Slack workspace...")
+		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
+		require.Len(t, slackWorkspaces, 1)
+		slackWorkspace := slackWorkspaces[0]
+		require.NotNil(t, slackWorkspace)
+		t.Cleanup(func() {
+			if !cfg.Slack.DisconnectWorkspaceAfterTests {
+				return
+			}
+			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
+		})
 
 		t.Log("Initializing Slack...")
 		tester, err := commplatform.NewSlackTester(cfg.Slack.Tester, nil)
@@ -290,23 +314,6 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		t.Log("Inviting Bot to the channel...")
 		tester.InviteBotToChannel(t, channel.ID())
-
-		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
-			stringsutil.ShortenString(authHeaderValue, 15))
-
-		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
-
-		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
-		require.Len(t, slackWorkspaces, 1)
-		slackWorkspace := slackWorkspaces[0]
-		require.NotNil(t, slackWorkspace)
-
-		t.Cleanup(func() {
-			if !cfg.Slack.DisconnectWorkspaceAfterTests {
-				return
-			}
-			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
-		})
 
 		t.Log("Creating deployment...")
 		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, channel.Name(), slackWorkspace.TeamID, channel.Name())
