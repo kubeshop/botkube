@@ -36,6 +36,7 @@ const (
 	--set communications.default-group.discord.token=%s \
 	--set settings.clusterName=%s \
 	--set executors.k8s-default-tools.botkube/kubectl.enabled=true \
+	--set executors.k8s-default-tools.botkube/helm.enabled=true \
 	--set analytics.disable=true \
 	--set image.tag=v9.99.9-dev \
 	--set plugins.repositories.botkube.url=https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml \
@@ -385,6 +386,14 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "EXECUTOR",
 			ConfigurationName: "k8s-default-tools",
 			Configuration:     "{\"defaultNamespace\":\"default\"}",
+			Rbac:              defaultRBAC,
+		},
+		{
+			Name:              "botkube/helm",
+			DisplayName:       "botkube/helm",
+			Type:              "EXECUTOR",
+			ConfigurationName: "k8s-default-tools",
+			Configuration:     "{\"defaultNamespace\":\"default\",\"helmCacheDir\":\"/tmp/helm/.cache\",\"helmConfigDir\":\"/tmp/helm/\",\"helmDriver\":\"secret\"}",
 			Rbac:              defaultRBAC,
 		},
 	}

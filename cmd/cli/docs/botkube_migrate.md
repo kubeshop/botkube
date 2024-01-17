@@ -46,7 +46,7 @@ botkube migrate [OPTIONS] [flags]
       --cloud-env-endpoint string            Endpoint environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_ENDPOINT")
       --cloud-env-id string                  Identifier environment variable name specified under Deployment for cloud installation. (default "CONFIG_PROVIDER_IDENTIFIER")
   -h, --help                                 help for migrate
-      --image-tag string                     Botkube image tag, possible values latest, v1.2.0, ...
+      --image-tag string                     Botkube image tag, e.g. "latest" or "v1.7.0"
       --instance-name string                 Botkube Cloud Instance name that will be created
       --kubeconfig string                    Paths to a kubeconfig. Only required if out-of-cluster.
   -l, --label string                         Label used for identifying the Botkube pod (default "app=botkube")
