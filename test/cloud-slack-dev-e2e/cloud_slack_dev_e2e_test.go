@@ -267,9 +267,16 @@ func TestCloudSlackE2E(t *testing.T) {
 			botkubePage.MustElementR("div.ant-result-title", "Organization Already Connected!")
 		} else {
 			t.Log("Finalizing connection...")
-			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
-			// detect homepage
+
+			t.Log("Removing the auto-close query parameter...")
+			slackConnectURL := deleteAutoCloseQueryParam(t, botkubePage.MustInfo().URL)
+			botkubePage.MustNavigate(slackConnectURL).MustWaitLoad()
 			screenshotIfShould(t, cfg, botkubePage)
+			botkubePage.MustElement("a.logo-link")
+			screenshotIfShould(t, cfg, botkubePage)
+			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
+			screenshotIfShould(t, cfg, botkubePage)
+			// detect homepage
 			botkubePage.MustElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
 		}
 	})
@@ -676,6 +683,17 @@ func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {
 	queryValues := parsedURL.Query()
 	queryValues.Set("organizationId", orgID)
 	parsedURL.RawQuery = queryValues.Encode()
+
+	return parsedURL.String()
+}
+
+func deleteAutoCloseQueryParam(t *testing.T, inURL string) string {
+	parsedURL, err := url.Parse(inURL)
+	require.NoError(t, err)
+
+	queryParams := parsedURL.Query()
+	queryParams.Del("close-tab")
+	parsedURL.RawQuery = queryParams.Encode()
 
 	return parsedURL.String()
 }
