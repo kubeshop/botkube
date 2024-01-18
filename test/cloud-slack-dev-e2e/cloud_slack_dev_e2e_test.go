@@ -272,12 +272,12 @@ func TestCloudSlackE2E(t *testing.T) {
 			screenshotIfShould(t, cfg, botkubePage)
 			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
 			screenshotIfShould(t, cfg, botkubePage)
+
 			// detect homepage
+			time.Sleep(cfg.DefaultWaitTime) // ensure the screenshots shows a view after button click
+			screenshotIfShould(t, cfg, botkubePage)
 			_, err := botkubePage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
-			assert.NoError(t, err) // fail the test, but move on: capture the screenshot and try to disconnect Slack workspace later
-			if err != nil {
-				screenshotIfShould(t, cfg, botkubePage)
-			}
+			assert.NoError(t, err) // fail the test, but move on: try to disconnect Slack workspace later
 		}
 	})
 
@@ -669,12 +669,22 @@ func screenshotIfShould(t *testing.T, cfg E2ESlackConfig, page *rod.Page) {
 
 	logMsg := fmt.Sprintf("Saving screenshot to %q", filePath)
 	if cfg.DebugMode {
-		logMsg += fmt.Sprintf(" for URL %q", page.MustInfo().URL)
+		info, err := page.Info()
+		assert.NoError(t, err)
+
+		if info != nil {
+			logMsg += fmt.Sprintf(" for URL %q", info.URL)
+		}
 	}
 	t.Log(logMsg)
-	data := page.MustScreenshot()
-	err := os.WriteFile(filePath, data, 0644)
-	require.NoError(t, err)
+	data, err := page.Screenshot(false, nil)
+	assert.NoError(t, err)
+	if err != nil {
+		return
+	}
+
+	err = os.WriteFile(filePath, data, 0644)
+	assert.NoError(t, err)
 }
 
 func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {
