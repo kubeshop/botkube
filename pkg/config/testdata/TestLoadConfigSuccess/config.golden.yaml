@@ -22,12 +22,14 @@ sources:
             context: {}
 executors:
     echo:
+        displayName: Echo
         botkube/echo:
             enabled: true
             config:
                 changeResponseToUpperCase: true
             context: {}
     k8s-tools:
+        displayName: K8S Tools
         botkube/helm:
             enabled: true
             config: null
