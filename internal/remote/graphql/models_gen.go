@@ -678,6 +678,7 @@ type Plugin struct {
 	Type              PluginType `json:"type"`
 	ConfigurationName string     `json:"configurationName"`
 	Configuration     string     `json:"configuration"`
+	Enabled           bool       `json:"enabled"`
 	Rbac              *Rbac      `json:"rbac"`
 }
 
@@ -686,6 +687,7 @@ type PluginConfigurationGroupInput struct {
 	DisplayName    string                      `json:"displayName"`
 	Type           PluginType                  `json:"type"`
 	Configurations []*PluginConfigurationInput `json:"configurations"`
+	Enabled        bool                        `json:"enabled"`
 }
 
 type PluginConfigurationGroupUpdateInput struct {
@@ -693,6 +695,7 @@ type PluginConfigurationGroupUpdateInput struct {
 	Name           string                            `json:"name"`
 	DisplayName    string                            `json:"displayName"`
 	Type           PluginType                        `json:"type"`
+	Enabled        bool                              `json:"enabled"`
 	Configurations []*PluginConfigurationUpdateInput `json:"configurations"`
 }
 

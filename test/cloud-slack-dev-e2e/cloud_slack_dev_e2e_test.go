@@ -264,20 +264,30 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		t.Log("Finalizing Slack workspace connection...")
 		if cfg.Slack.WorkspaceAlreadyConnected {
+			t.Log("Expecting already connected message...")
 			botkubePage.MustElementR("div.ant-result-title", "Organization Already Connected!")
-		} else {
-			t.Log("Finalizing connection...")
-			screenshotIfShould(t, cfg, botkubePage)
-			botkubePage.MustElement("a.logo-link")
-			screenshotIfShould(t, cfg, botkubePage)
-			botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
-			screenshotIfShould(t, cfg, botkubePage)
+			return
+		}
 
-			// detect homepage
-			time.Sleep(cfg.DefaultWaitTime) // ensure the screenshots shows a view after button click
-			screenshotIfShould(t, cfg, botkubePage)
-			_, err := botkubePage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
-			assert.NoError(t, err) // fail the test, but move on: try to disconnect Slack workspace later
+		t.Log("Finalizing connection...")
+		screenshotIfShould(t, cfg, botkubePage)
+		botkubePage.MustElement("a.logo-link")
+		screenshotIfShould(t, cfg, botkubePage)
+		botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
+		screenshotIfShould(t, cfg, botkubePage)
+
+		t.Log("Detecting homepage...")
+		time.Sleep(cfg.DefaultWaitTime) // ensure the screenshots shows a view after button click
+		screenshotIfShould(t, cfg, botkubePage)
+
+		// Case 1: There are other instances on the list
+		_, err := botkubePage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
+		if err != nil {
+			t.Logf("Failed to detect homepage with other instances created: %v", err)
+			// Case 2:
+			t.Logf("Checking if the homepage is in the 'no instances' state...")
+			_, err := botkubePage.ElementR(".ant-layout-content h2", "Create your Botkube instance!")
+			assert.NoError(t, err)
 		}
 	})
 
