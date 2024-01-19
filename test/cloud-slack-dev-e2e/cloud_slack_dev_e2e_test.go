@@ -281,7 +281,8 @@ func TestCloudSlackE2E(t *testing.T) {
 		screenshotIfShould(t, cfg, botkubePage)
 
 		// Case 1: There are other instances on the list
-		_, err := botkubePage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
+		shortBkTimeoutPage := botkubePage.Timeout(cfg.DefaultWaitTime)
+		_, err := shortBkTimeoutPage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
 		if err != nil {
 			t.Logf("Failed to detect homepage with other instances created: %v", err)
 			// Case 2:
