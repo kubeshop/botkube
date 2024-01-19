@@ -4,6 +4,7 @@ package cloud_slack_dev_e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -91,7 +92,6 @@ func TestCloudSlackE2E(t *testing.T) {
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
 
 	authHeaderValue := ""
-	firstPageClosed := false
 	helmChartUninstalled := false
 	gqlEndpoint := fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APIBaseURL, cfg.BotkubeCloud.APIGraphQLEndpoint)
 
@@ -119,14 +119,7 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		page := newBrowserPage(t, browser, cfg)
 		t.Cleanup(func() {
-			if firstPageClosed {
-				return
-			}
-
-			err := page.Close()
-			if err != nil {
-				t.Logf("Failed to close page: %v", err)
-			}
+			closePage(t, "page", page)
 		})
 
 		var slackAppInstallationURL string
@@ -165,16 +158,12 @@ func TestCloudSlackE2E(t *testing.T) {
 		screenshotIfShould(t, cfg, page)
 		page.MustElementR("a", "open this link in your browser")
 		page.MustClose()
-		firstPageClosed = true
 
 		t.Log("Opening new window...")
 		// Workaround for the Slack protocol handler modal which cannot be closed programmatically
 		slackPage := newBrowserPage(t, browser, cfg)
 		t.Cleanup(func() {
-			err := slackPage.Close()
-			if err != nil {
-				t.Logf("Failed to close Slack page: %v", err)
-			}
+			closePage(t, "slackPage", slackPage)
 		})
 
 		t.Logf("Navigating to the conversation with %q bot...", cfg.Slack.BotDisplayName)
@@ -183,6 +172,9 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		// sometimes it shows up - not sure if that really helps as I didn't see it later ¯\_(ツ)_/¯ We need to test it
 		shortTimeoutPage := slackPage.Timeout(cfg.DefaultWaitTime)
+		t.Cleanup(func() {
+			closePage(t, "shortTimeoutPage", shortTimeoutPage)
+		})
 		elem, _ := shortTimeoutPage.Element("button.p-download_modal__not_now")
 		if elem != nil {
 			t.Log("Closing the 'Download the Slack app' modal...")
@@ -215,10 +207,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		elems[len(elems)-1].MustClick()
 		botkubePage := wait()
 		t.Cleanup(func() {
-			err := botkubePage.Close()
-			if err != nil {
-				t.Logf("Failed to close Botkube page: %v", err)
-			}
+			closePage(t, "botkubePage", botkubePage)
 		})
 
 		t.Logf("Signing in to Botkube Cloud as %q...", cfg.BotkubeCloud.Email)
@@ -282,6 +271,9 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		// Case 1: There are other instances on the list
 		shortBkTimeoutPage := botkubePage.Timeout(cfg.DefaultWaitTime)
+		t.Cleanup(func() {
+			closePage(t, "shortBkTimeoutPage", shortBkTimeoutPage)
+		})
 		_, err := shortBkTimeoutPage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
 		if err != nil {
 			t.Logf("Failed to detect homepage with other instances created: %v", err)
@@ -589,12 +581,6 @@ func newBrowserPage(t *testing.T, browser *rod.Browser, cfg E2ESlackConfig) *rod
 
 	page, err := browser.Page(proto.TargetCreateTarget{URL: ""})
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		err := page.Close()
-		if err != nil {
-			t.Logf("Failed to close page: %s", err.Error())
-		}
-	})
 	page.MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
 		UserAgent: chromeUserAgent,
 	})
@@ -738,5 +724,17 @@ func notConnectedMessage(name, id string) interactive.CoreMessage {
 				},
 			},
 		},
+	}
+}
+
+func closePage(t *testing.T, name string, page *rod.Page) {
+	t.Helper()
+	err := page.Close()
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+
+		t.Logf("Failed to close page %q: %v", name, err)
 	}
 }
