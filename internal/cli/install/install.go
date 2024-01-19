@@ -97,6 +97,10 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	if err != nil {
 		return err
 	}
+	if rel == nil {
+		//User answered no on prompt
+		return nil
+	}
 
 	if opts.HelmParams.DryRun {
 		return printSuccessInstallMessage(opts.HelmParams.Version, w)
