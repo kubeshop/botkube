@@ -402,7 +402,6 @@ func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 func (s *SlackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
 	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		fmt.Printf("msg: %s\n\nprintedBlocks: %s", msg, printedBlocks)
 		if !strings.EqualFold(msg, printedBlocks) {
 			count := diff.CountMatchBlock(printedBlocks, msg)
 			msgDiff := diff.Diff(printedBlocks, msg)
