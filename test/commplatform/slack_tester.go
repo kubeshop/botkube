@@ -271,9 +271,7 @@ func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
-	// SA1019 suggested `PollWithContextTimeout` does not exist
-	// nolint:staticcheck
-	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(_ context.Context) (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: limitMessages,
 		})
@@ -404,6 +402,7 @@ func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 func (s *SlackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
 	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
+		fmt.Printf("msg: %s\n\nprintedBlocks: %s", msg, printedBlocks)
 		if !strings.EqualFold(msg, printedBlocks) {
 			count := diff.CountMatchBlock(printedBlocks, msg)
 			msgDiff := diff.Diff(printedBlocks, msg)
