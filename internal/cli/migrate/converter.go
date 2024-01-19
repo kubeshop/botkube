@@ -106,7 +106,7 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 	errs := multierror.New()
 	for cfgName, conf := range executors {
 		for name, p := range conf.Plugins {
-			if !p.Enabled || !strings.HasPrefix(name, "botkube") { // skip all 3rd party plugins
+			if !strings.HasPrefix(name, "botkube") { // skip all 3rd party plugins
 				continue
 			}
 
@@ -114,10 +114,15 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 			if err != nil {
 				return nil, err
 			}
+			displayName := conf.DisplayName
+			if displayName == "" {
+				displayName = name
+			}
 			out = append(out, &gqlModel.PluginConfigurationGroupInput{
 				Name:        name,
-				DisplayName: name,
+				DisplayName: displayName,
 				Type:        gqlModel.PluginTypeExecutor,
+				Enabled:     p.Enabled,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
 						Name:          c.getOrGeneratePluginName(cfgName),
@@ -138,17 +143,22 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 	errs := multierror.New()
 	for cfgName, conf := range sources {
 		for name, p := range conf.Plugins {
-			if !p.Enabled || !strings.HasPrefix(name, "botkube") { // skip all 3rd party plugins
+			if !strings.HasPrefix(name, "botkube") { // skip all 3rd party plugins
 				continue
 			}
 			rawCfg, err := json.Marshal(p.Config)
 			if err != nil {
 				return nil, err
 			}
+			displayName := conf.DisplayName
+			if displayName == "" {
+				displayName = name
+			}
 			out = append(out, &gqlModel.PluginConfigurationGroupInput{
 				Name:        name,
-				DisplayName: conf.DisplayName,
+				DisplayName: displayName,
 				Type:        gqlModel.PluginTypeSource,
+				Enabled:     p.Enabled,
 				Configurations: []*gqlModel.PluginConfigurationInput{
 					{
 						Name:          c.getOrGeneratePluginName(cfgName),
@@ -164,6 +174,16 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 }
 
 func (c *Converter) convertRbac(ctx bkconfig.PluginContext) *gqlModel.RBACInput {
+	if ctx.RBAC == nil {
+		return &gqlModel.RBACInput{
+			User: &gqlModel.UserPolicySubjectInput{
+				Type: gqlModel.PolicySubjectTypeEmpty,
+			},
+			Group: &gqlModel.GroupPolicySubjectInput{
+				Type: gqlModel.PolicySubjectTypeEmpty,
+			},
+		}
+	}
 	return &gqlModel.RBACInput{
 		User: &gqlModel.UserPolicySubjectInput{
 			Type:   graphqlPolicySubjectType(ctx.RBAC.User.Type),

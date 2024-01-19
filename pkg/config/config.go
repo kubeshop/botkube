@@ -347,7 +347,8 @@ const (
 
 // Executors contains executors configuration parameters.
 type Executors struct {
-	Plugins Plugins `yaml:",inline" koanf:",remain"`
+	DisplayName string  `yaml:"displayName"`
+	Plugins     Plugins `yaml:",inline" koanf:",remain"`
 }
 
 // CollectCommandPrefixes returns list of command prefixes for all executors, even disabled ones.
