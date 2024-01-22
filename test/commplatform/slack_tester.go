@@ -271,9 +271,7 @@ func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessag
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	var fetchedMessages []slack.Message
 	var lastErr error
-	// SA1019 suggested `PollWithContextTimeout` does not exist
-	// nolint:staticcheck
-	err := wait.Poll(pollInterval, s.cfg.MessageWaitTimeout, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(_ context.Context) (done bool, err error) {
 		historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			ChannelID: channelID, Limit: limitMessages,
 		})
