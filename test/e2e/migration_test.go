@@ -436,7 +436,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Rbac: &gqlModel.Rbac{
 				User: defaultRBAC.User,
 				Group: &gqlModel.GroupPolicySubject{
-					Type: defaultRBAC.Group.Type,
+					Type: gqlModel.PolicySubjectTypeEmpty,
 					Static: &gqlModel.GroupStaticSubject{
 						Values: []string{},
 					},
