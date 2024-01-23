@@ -469,7 +469,16 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			ConfigurationName: "flux",
 			Configuration:     "{\"github\":{\"auth\":{\"accessToken\":\"\"}},\"log\":{\"level\":\"info\"}}",
 			Enabled:           false,
-			Rbac:              defaultRBAC,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: gqlModel.PolicySubjectTypeStatic,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{"botkube-plugins-default", "flux-read-patch"},
+					},
+					Prefix: defaultRBAC.Group.Prefix,
+				},
+			},
 		},
 		{
 			Name:              "botkube/kubernetes",
@@ -487,7 +496,16 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			ConfigurationName: "prometheus",
 			Configuration:     "{\"alertStates\":[\"firing\",\"pending\",\"inactive\"],\"ignoreOldAlerts\":true,\"log\":{\"level\":\"info\"},\"url\":\"http://localhost:9090\"}",
 			Enabled:           false,
-			Rbac:              defaultRBAC,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: gqlModel.PolicySubjectTypeEmpty,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{},
+					},
+					Prefix: nil,
+				},
+			},
 		},
 	}
 
