@@ -312,9 +312,14 @@ func assertPlatforms(t *testing.T, actual *gqlModel.Platforms, appCfg MigrationC
 						Sources: []string{
 							"k8s-err-events",
 							"k8s-recommendation-events",
+							"k8s-err-events-with-ai-support",
+							"argocd",
 						},
 						Executors: []string{
 							"k8s-default-tools",
+							"bins-management",
+							"ai",
+							"flux",
 						},
 					},
 					NotificationsDisabled: ptr.FromType(false),
@@ -410,7 +415,16 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			ConfigurationName: "argocd",
 			Configuration:     "{\"argoCD\":{\"notificationsConfigMap\":{\"name\":\"argocd-notifications-cm\",\"namespace\":\"argocd\"},\"uiBaseUrl\":\"http://localhost:8080\"},\"defaultSubscriptions\":{\"applications\":[{\"name\":\"guestbook\",\"namespace\":\"argocd\"}]}}",
 			Enabled:           false,
-			Rbac:              defaultRBAC,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: defaultRBAC.Group.Type,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: "argo",
+					},
+					Prefix: defaultRBAC.Group,
+				},
+			},
 		},
 		{
 			Name:              "botkube/keptn",
