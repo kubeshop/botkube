@@ -600,6 +600,7 @@ executors:
     ## Helm executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/helm:
+      displayName: "Helm"
       # -- If true, enables `helm` commands execution.
       enabled: false
       config:
@@ -616,6 +617,7 @@ executors:
     ## Kubectl executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/kubectl:
+      displayName: "Kubectl"
       enabled: false
       # -- Custom kubectl configuration.
       # @default -- See the `values.yaml` file for full object including optional properties related to interactive builder.
@@ -642,6 +644,7 @@ executors:
     ## Exec executor configuration.
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/exec:
+      displayName: "Exec"
       enabled: false
       context: *default-plugin-context
       ## -- Custom exec plugin configuration.
@@ -657,6 +660,7 @@ executors:
     ## Doctor executor configuration.
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/doctor:
+      displayName: "Doctor AI"
       enabled: false
       context: *default-plugin-context
       ## -- Custom doctor plugin configuration.
@@ -679,6 +683,7 @@ executors:
     # Flux executor configuration.
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/flux:
+      displayName: "Flux"
       enabled: false
       context:
         rbac:

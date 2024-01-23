@@ -98,7 +98,8 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return err
 	}
 	if rel == nil {
-		//User answered no on prompt
+		//There wasn't any errors and we don't have release.
+		//User answered "no" on prompt: Do you want to upgrade existing installation?
 		return nil
 	}
 

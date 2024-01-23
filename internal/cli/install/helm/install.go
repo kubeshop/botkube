@@ -74,8 +74,9 @@ func (c *Helm) Install(ctx context.Context, status *printer.StatusPrinter, opts 
 			if err != nil {
 				return nil, fmt.Errorf("while confiriming upgrade: %v", err)
 			}
-
 			if !upgrade {
+				status.Step("Skipped Botkube installation upgrade.")
+				status.End(true)
 				return nil, nil
 			}
 		}
