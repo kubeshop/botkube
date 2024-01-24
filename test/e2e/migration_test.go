@@ -312,9 +312,14 @@ func assertPlatforms(t *testing.T, actual *gqlModel.Platforms, appCfg MigrationC
 						Sources: []string{
 							"k8s-err-events",
 							"k8s-recommendation-events",
+							"k8s-err-events-with-ai-support",
+							"argocd",
 						},
 						Executors: []string{
 							"k8s-default-tools",
+							"bins-management",
+							"ai",
+							"flux",
 						},
 					},
 					NotificationsDisabled: ptr.FromType(false),
@@ -346,6 +351,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "SOURCE",
 			ConfigurationName: "k8s-create-events",
 			Configuration:     "{\"event\":{\"types\":[\"create\"]},\"namespaces\":{\"include\":[\".*\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/configmaps\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -354,6 +360,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "SOURCE",
 			ConfigurationName: "k8s-err-with-logs-events",
 			Configuration:     "{\"event\":{\"types\":[\"error\"]},\"namespaces\":{\"include\":[\".*\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -362,6 +369,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "SOURCE",
 			ConfigurationName: "k8s-recommendation-events",
 			Configuration:     "{\"namespaces\":{\"include\":[\".*\"]},\"recommendations\":{\"ingress\":{\"backendServiceValid\":true,\"tlsSecretValid\":true},\"pod\":{\"labelsSet\":true,\"noLatestImageTag\":true}}}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -370,6 +378,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "SOURCE",
 			ConfigurationName: "k8s-all-events",
 			Configuration:     "{\"annotations\":{},\"event\":{\"message\":{\"exclude\":[],\"include\":[]},\"reason\":{\"exclude\":[],\"include\":[]},\"types\":[\"create\",\"delete\",\"error\"]},\"filters\":{\"nodeEventsChecker\":true,\"objectAnnotationChecker\":true},\"labels\":{},\"namespaces\":{\"include\":[\".*\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"event\":{\"message\":{\"exclude\":[\".*nf_conntrack_buckets.*\"]}},\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/persistentvolumes\"},{\"type\":\"v1/persistentvolumeclaims\"},{\"type\":\"v1/configmaps\"},{\"type\":\"rbac.authorization.k8s.io/v1/roles\"},{\"type\":\"rbac.authorization.k8s.io/v1/rolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterrolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterroles\"},{\"event\":{\"types\":[\"create\",\"update\",\"delete\",\"error\"]},\"type\":\"apps/v1/daemonsets\",\"updateSetting\":{\"fields\":[\"spec.template.spec.containers[*].image\",\"status.numberReady\"],\"includeDiff\":true}},{\"event\":{\"types\":[\"create\",\"update\",\"delete\",\"error\"]},\"type\":\"batch/v1/jobs\",\"updateSetting\":{\"fields\":[\"spec.template.spec.containers[*].image\",\"status.conditions[*].type\"],\"includeDiff\":true}},{\"event\":{\"types\":[\"create\",\"update\",\"delete\",\"error\"]},\"type\":\"apps/v1/deployments\",\"updateSetting\":{\"fields\":[\"spec.template.spec.containers[*].image\",\"status.availableReplicas\"],\"includeDiff\":true}},{\"event\":{\"types\":[\"create\",\"update\",\"delete\",\"error\"]},\"type\":\"apps/v1/statefulsets\",\"updateSetting\":{\"fields\":[\"spec.template.spec.containers[*].image\",\"status.readyReplicas\"],\"includeDiff\":true}}]}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -378,6 +387,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "SOURCE",
 			ConfigurationName: "k8s-err-events",
 			Configuration:     "{\"event\":{\"types\":[\"error\"]},\"namespaces\":{\"include\":[\".*\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"event\":{\"message\":{\"exclude\":[\".*nf_conntrack_buckets.*\"]}},\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/persistentvolumes\"},{\"type\":\"v1/persistentvolumeclaims\"},{\"type\":\"v1/configmaps\"},{\"type\":\"rbac.authorization.k8s.io/v1/roles\"},{\"type\":\"rbac.authorization.k8s.io/v1/rolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterrolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterroles\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -386,6 +396,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "EXECUTOR",
 			ConfigurationName: "k8s-default-tools",
 			Configuration:     "{\"defaultNamespace\":\"default\"}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
 		},
 		{
@@ -394,7 +405,107 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			Type:              "EXECUTOR",
 			ConfigurationName: "k8s-default-tools",
 			Configuration:     "{\"defaultNamespace\":\"default\",\"helmCacheDir\":\"/tmp/helm/.cache\",\"helmConfigDir\":\"/tmp/helm/\",\"helmDriver\":\"secret\"}",
+			Enabled:           true,
 			Rbac:              defaultRBAC,
+		},
+		{
+			Name:              "botkube/argocd",
+			DisplayName:       "botkube/argocd",
+			Type:              "SOURCE",
+			ConfigurationName: "argocd",
+			Configuration:     "{\"argoCD\":{\"notificationsConfigMap\":{\"name\":\"argocd-notifications-cm\",\"namespace\":\"argocd\"},\"uiBaseUrl\":\"http://localhost:8080\"},\"defaultSubscriptions\":{\"applications\":[{\"name\":\"guestbook\",\"namespace\":\"argocd\"}]}}",
+			Enabled:           false,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: defaultRBAC.Group.Type,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{"argocd"},
+					},
+					Prefix: defaultRBAC.Group.Prefix,
+				},
+			},
+		},
+		{
+			Name:              "botkube/keptn",
+			DisplayName:       "botkube/keptn",
+			Type:              "SOURCE",
+			ConfigurationName: "keptn",
+			Configuration:     "{\"log\":{\"level\":\"info\"},\"project\":\"\",\"service\":\"\",\"token\":\"\",\"url\":\"http://api-gateway-nginx.keptn.svc.cluster.local/api\"}",
+			Enabled:           false,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: gqlModel.PolicySubjectTypeEmpty,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{},
+					},
+					Prefix: nil,
+				},
+			},
+		},
+		{
+			Name:              "botkube/exec",
+			DisplayName:       "botkube/exec",
+			Type:              "EXECUTOR",
+			ConfigurationName: "bins-management",
+			Configuration:     "{\"templates\":[{\"ref\":\"github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=v1.7.0\"}]}",
+			Enabled:           false,
+			Rbac:              defaultRBAC,
+		},
+		{
+			Name:              "botkube/doctor",
+			DisplayName:       "botkube/doctor",
+			Type:              "EXECUTOR",
+			ConfigurationName: "ai",
+			Configuration:     "{\"apiBaseUrl\":\"\",\"apiKey\":\"\",\"defaultEngine\":\"\",\"organizationID\":\"\",\"userAgent\":\"\"}",
+			Enabled:           false,
+			Rbac:              defaultRBAC,
+		},
+		{
+			Name:              "botkube/flux",
+			DisplayName:       "botkube/flux",
+			Type:              "EXECUTOR",
+			ConfigurationName: "flux",
+			Configuration:     "{\"github\":{\"auth\":{\"accessToken\":\"\"}},\"log\":{\"level\":\"info\"}}",
+			Enabled:           false,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: gqlModel.PolicySubjectTypeStatic,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{"botkube-plugins-default", "flux-read-patch"},
+					},
+					Prefix: defaultRBAC.Group.Prefix,
+				},
+			},
+		},
+		{
+			Name:              "botkube/kubernetes",
+			DisplayName:       "Kubernetes Errors with AI support",
+			Type:              "SOURCE",
+			ConfigurationName: "k8s-err-events-with-ai-support",
+			Configuration:     "{\"event\":{\"types\":[\"error\"]},\"extraButtons\":[{\"button\":{\"commandTpl\":\"doctor --resource={{ .Kind | lower }}/{{ .Name }} --namespace={{ .Namespace }} --error={{ .Reason }} --bk-cmd-header='AI assistance'\",\"displayName\":\"Get Help\"},\"enabled\":true,\"trigger\":{\"type\":[\"error\"]}}],\"namespaces\":{\"include\":[\".*\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"event\":{\"message\":{\"exclude\":[\".*nf_conntrack_buckets.*\"]}},\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/persistentvolumes\"},{\"type\":\"v1/persistentvolumeclaims\"},{\"type\":\"v1/configmaps\"},{\"type\":\"rbac.authorization.k8s.io/v1/roles\"},{\"type\":\"rbac.authorization.k8s.io/v1/rolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterrolebindings\"},{\"type\":\"rbac.authorization.k8s.io/v1/clusterroles\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}",
+			Enabled:           false,
+			Rbac:              defaultRBAC,
+		},
+		{
+			Name:              "botkube/prometheus",
+			DisplayName:       "botkube/prometheus",
+			Type:              "SOURCE",
+			ConfigurationName: "prometheus",
+			Configuration:     "{\"alertStates\":[\"firing\",\"pending\",\"inactive\"],\"ignoreOldAlerts\":true,\"log\":{\"level\":\"info\"},\"url\":\"http://localhost:9090\"}",
+			Enabled:           false,
+			Rbac: &gqlModel.Rbac{
+				User: defaultRBAC.User,
+				Group: &gqlModel.GroupPolicySubject{
+					Type: gqlModel.PolicySubjectTypeEmpty,
+					Static: &gqlModel.GroupStaticSubject{
+						Values: []string{},
+					},
+					Prefix: nil,
+				},
+			},
 		},
 	}
 
