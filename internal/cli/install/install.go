@@ -97,6 +97,11 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 	if err != nil {
 		return err
 	}
+	if rel == nil {
+		//There wasn't any errors and we don't have release.
+		//User answered "no" on prompt: Do you want to upgrade existing installation?
+		return nil
+	}
 
 	if opts.HelmParams.DryRun {
 		return printSuccessInstallMessage(opts.HelmParams.Version, w)
