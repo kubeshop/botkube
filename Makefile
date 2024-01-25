@@ -23,6 +23,9 @@ test-integration-slack: system-check
 test-integration-discord: system-check
 	@go test -timeout=20m -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
 
+test-integration-teams: system-check
+	@go test -timeout=20m -v -tags=integration -race -count=1 ./test/e2e/... -run "TestTeams"
+
 test-cli-migration-e2e: system-check
 	@go test -v -tags=migration -race -count=1 ./test/e2e/...
 

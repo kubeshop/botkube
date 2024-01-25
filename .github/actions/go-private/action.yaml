@@ -1,0 +1,20 @@
+name: Go modules setup for e2e tests
+description: Download botkube-cloud private repository
+
+inputs:
+  username:
+    description: GitHub username used for cloning private repositories
+    required: true
+  access_token:
+    description: GitHub personal access token used for cloning private repositories
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download Go modules with private repository
+      shell: bash
+      run: |
+        go env -w GOPRIVATE=github.com/kubeshop/botkube-cloud
+        git config --global url."https://${{ inputs.username }}:${{ inputs.access_token }}@github.com".insteadOf "https://github.com"
+        go mod download
