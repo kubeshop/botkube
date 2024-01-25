@@ -2,13 +2,13 @@ package helmx
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/ptr"
 
 	"helm.sh/helm/v3/pkg/action"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/ptr"
 )
 
 const helmDriver = "secrets"

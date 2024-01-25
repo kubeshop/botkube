@@ -3,6 +3,7 @@ package x
 import (
 	"context"
 	"errors"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"path/filepath"
 	"testing"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"

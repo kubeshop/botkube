@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"time"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/hashicorp/go-plugin"
 
 	"github.com/kubeshop/botkube/internal/executor/flux"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 )
 

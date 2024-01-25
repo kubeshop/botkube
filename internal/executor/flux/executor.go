@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	loggerx2 "github.com/kubeshop/botkube/pkg/loggerx"
 
 	"github.com/allegro/bigcache/v3"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x"
 	"github.com/kubeshop/botkube/internal/executor/x/output"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -100,7 +100,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
 
-	log := loggerx.New(cfg.Logger)
+	log := loggerx2.New(cfg.Logger)
 
 	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
@@ -165,7 +165,7 @@ func (d *Executor) Help(context.Context) (api.Message, error) {
 		return api.Message{}, fmt.Errorf("while registering message renderers: %v", err)
 	}
 
-	runner := x.NewRunner(loggerx.NewNoop(), renderer)
+	runner := x.NewRunner(loggerx2.NewNoop(), renderer)
 
 	templates, err := commands.LoadTemplates()
 	if err != nil {

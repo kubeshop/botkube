@@ -29,14 +29,14 @@ import (
 	"k8s.io/client-go/util/homedir"
 	stringsutil "k8s.io/utils/strings"
 
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	"botkube.io/botube/test/cloud_graphql"
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/diff"
+	"botkube.io/botube/test/helmx"
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
-	"github.com/kubeshop/botkube/test/cloud_graphql"
-	"github.com/kubeshop/botkube/test/commplatform"
-	"github.com/kubeshop/botkube/test/diff"
-	"github.com/kubeshop/botkube/test/helmx"
 )
 
 const (

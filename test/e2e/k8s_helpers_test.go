@@ -18,7 +18,7 @@ import (
 	appsv1cli "k8s.io/client-go/kubernetes/typed/apps/v1"
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 
-	"github.com/kubeshop/botkube/test/commplatform"
+	"botkube.io/botube/test/commplatform"
 )
 
 const (

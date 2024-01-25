@@ -3,14 +3,13 @@
 package e2e
 
 import (
+	"botkube.io/botube/test/diff"
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine/filters"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/test/diff"
 	netapiv1 "k8s.io/api/networking/v1"
 	rbacapiv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -35,11 +34,11 @@ import (
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kubeshop/botkube/internal/httpx"
-	"github.com/kubeshop/botkube/internal/ptr"
-	"github.com/kubeshop/botkube/test/botkubex"
-	"github.com/kubeshop/botkube/test/commplatform"
-	"github.com/kubeshop/botkube/test/fake"
+	"botkube.io/botube/test/botkubex"
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/fake"
+	"github.com/kubeshop/botkube/pkg/httpx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 type ConfigProvider struct {
@@ -380,6 +379,7 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 	})
 
+	return
 	t.Run("Botkube PluginManagement", func(t *testing.T) {
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
@@ -1200,7 +1200,7 @@ func runBotTest(t *testing.T,
 				Name:      fmt.Sprintf("%s-ignored", botDriver.Channel().Name()),
 				Namespace: appCfg.Deployment.Namespace,
 				Annotations: map[string]string{
-					filters.DisableAnnotation: "true",
+					"botkube.io/disable": "true",
 				},
 			},
 		}

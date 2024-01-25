@@ -2,13 +2,13 @@ package execute
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -52,7 +52,7 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
 				EXECUTOR        ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
-				botkube/echo    true            0/1      Running 
+				botkube/echo    true            0/1      Running
 				botkube/kubectl true    k, kc   0/1      Running`),
 		},
 		{
@@ -93,8 +93,8 @@ func TestExecutorBindingsExecutor(t *testing.T) {
 			bindings: []string{"kubectl", "botkube/helm", "botkube/echo@v1.0.1-devel"},
 			expOutput: heredoc.Doc(`
 				EXECUTOR                  ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
-				botkube/echo@v1.0.1-devel true    e       0/1      Running 
-				botkube/helm              true    h       0/1      Running 
+				botkube/echo@v1.0.1-devel true    e       0/1      Running
+				botkube/helm              true    h       0/1      Running
 				botkube/kubectl           true            0/1      Running`),
 		},
 	}

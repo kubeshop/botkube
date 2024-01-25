@@ -4,11 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
 )

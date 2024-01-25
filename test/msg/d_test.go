@@ -2,7 +2,7 @@ package msg
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/nsf/jsondiff"
 	"github.com/stretchr/testify/require"
 	"os"

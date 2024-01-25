@@ -3,11 +3,11 @@ package migrate
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"strings"
 
 	"github.com/xyproto/randomstring"
 
-	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"

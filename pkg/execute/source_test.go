@@ -2,13 +2,13 @@ package execute
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 )
@@ -55,10 +55,10 @@ func TestSourceExecutor(t *testing.T) {
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
 				SOURCE       ENABLED RESTARTS STATUS  LAST_RESTART
-				botkube/helm true    0/1      Running 
-				foo          true    0/1      Running 
-				foo/bar      false   0/1      Running 
-				kubernetes   true    0/1      Running 
+				botkube/helm true    0/1      Running
+				foo          true    0/1      Running
+				foo/bar      false   0/1      Running
+				kubernetes   true    0/1      Running
 				repo/bar     true    0/1      Running`),
 		},
 		{
@@ -94,7 +94,7 @@ func TestSourceExecutor(t *testing.T) {
 			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugins"},
 			expOutput: heredoc.Doc(`
 				SOURCE     ENABLED RESTARTS STATUS  LAST_RESTART
-				kubernetes true    0/1      Running 
+				kubernetes true    0/1      Running
 				plugin-a   true    0/1      Running`),
 		},
 	}

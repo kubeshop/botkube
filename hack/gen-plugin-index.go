@@ -2,14 +2,13 @@ package main
 
 import (
 	"flag"
+	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-
-	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/internal/plugin"
 )
 
 const filePerm = 0o644

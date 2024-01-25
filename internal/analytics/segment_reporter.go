@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"time"
 
 	segment "github.com/segmentio/analytics-go"
@@ -13,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/internal/analytics/batched"
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/version"
 )

@@ -9,8 +9,8 @@ import (
 	"github.com/hasura/go-graphql-client"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (

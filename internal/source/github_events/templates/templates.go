@@ -3,13 +3,13 @@ package templates
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v53/github"
 
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/formatx"
 )

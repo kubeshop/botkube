@@ -3,7 +3,7 @@ package teamsxold
 import (
 	"bufio"
 	"bytes"
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"strings"
 
 	cards "github.com/DanielTitkov/go-adaptive-cards"

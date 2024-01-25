@@ -3,7 +3,7 @@ package teamsxold
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/markbates/errx"
 	"reflect"
 	"regexp"

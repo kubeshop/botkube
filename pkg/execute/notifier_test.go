@@ -2,12 +2,12 @@ package execute
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 

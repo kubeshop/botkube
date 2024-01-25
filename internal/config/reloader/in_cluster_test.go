@@ -2,6 +2,7 @@ package reloader
 
 import (
 	"context"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"sync"
 	"testing"
 	"time"
@@ -20,7 +21,6 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 

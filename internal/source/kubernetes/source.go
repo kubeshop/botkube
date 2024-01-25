@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"os"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubeshop/botkube/internal/command"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"

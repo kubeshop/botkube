@@ -4,8 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/internal/source/github_events/gh"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"

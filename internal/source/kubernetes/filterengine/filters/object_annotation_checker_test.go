@@ -1,11 +1,10 @@
 package filters
 
 import (
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 func TestIsObjectNotifDisabled(t *testing.T) {

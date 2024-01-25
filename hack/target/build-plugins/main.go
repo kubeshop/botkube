@@ -3,14 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/mattn/go-shellwords"
-
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 func main() {

@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/kubeshop/botkube/internal/ptr"
+	"botkube.io/botube/test/diff"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
-	"github.com/kubeshop/botkube/test/diff"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (

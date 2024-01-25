@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"runtime"
 
 	"github.com/denisbrodbeck/machineid"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 var _ Reporter = &SegmentReporter{}

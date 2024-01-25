@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	loggerx2 "github.com/kubeshop/botkube/pkg/loggerx"
 	"io"
 	"os"
 	"regexp"
@@ -10,7 +11,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -31,10 +31,10 @@ func NewPluginLoggers(bkLogger logrus.FieldLogger, logConfig config.Logger, plug
 		DisableColors: logConfig.DisableColors,
 		Formatter:     logConfig.Formatter,
 	}
-	log := loggerx.New(cfg).WithField("plugin", pluginKey)
+	log := loggerx2.New(cfg).WithField("plugin", pluginKey)
 
 	var (
-		pluginLogger = loggerx.AsHCLog(log, pluginKey)
+		pluginLogger = loggerx2.AsHCLog(log, pluginKey)
 		stdoutLogger = io.Discard
 		stderrLogger = log.WithField("logger", "stderr").WriterLevel(logrus.ErrorLevel)
 	)

@@ -21,10 +21,10 @@ import (
 	"github.com/vrischmann/envconfig"
 	"golang.org/x/oauth2"
 
-	"github.com/kubeshop/botkube/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
-	"github.com/kubeshop/botkube/test/commplatform"
-	"github.com/kubeshop/botkube/test/helmx"
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/helmx"
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (

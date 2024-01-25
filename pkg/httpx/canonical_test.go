@@ -1,11 +1,10 @@
 package httpx_test
 
 import (
+	"github.com/kubeshop/botkube/pkg/httpx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/kubeshop/botkube/internal/httpx"
 )
 
 func TestCanonicalURLPath(t *testing.T) {

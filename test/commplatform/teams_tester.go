@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/diff"
+	"botkube.io/botube/test/msteamsx"
 	gcppubsub "cloud.google.com/go/pubsub"
 	"github.com/google/uuid"
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/pubsub"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/teamsx"
-	"github.com/kubeshop/botkube/internal/loggerx"
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api"
 	pb "github.com/kubeshop/botkube/pkg/api/cloudteams"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/test/diff"
-	"github.com/kubeshop/botkube/test/msteamsx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/markbates/errx"
 	"github.com/nsf/jsondiff"
 	"github.com/slack-go/slack"
@@ -43,20 +43,18 @@ const (
 )
 
 type TeamsConfig struct {
-	BotDevName string `envconfig:"default=BotkubeDev"`
-
 	AdditionalContextMessage string        `envconfig:"optional"`
 	RecentMessagesLimit      int           `envconfig:"default=6"`
 	MessageWaitTimeout       time.Duration `envconfig:"default=50s"`
 
-	BotTesterName string `envconfig:"default=BotkubeTester"`
+	BotDevName string `envconfig:"default=BotkubeDev"`
 
-	// TODO: check
-	AppID       string
-	AppPassword string
-	TenantID    string
-	TeamID      string
-	AADGroupID  string
+	BotTesterName        string `envconfig:"default=BotkubeTester"`
+	BotTesterAppID       string
+	BotTesterAppPassword string
+
+	OrganizationTenantID string
+	OrganizationTeamID   string
 }
 
 type TeamsChannel struct {
@@ -91,7 +89,7 @@ func (s *TeamsTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, cl
 }
 
 func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) {
-	teamsCli, err := msteamsx.New(teamsCfg.AppID, teamsCfg.AppPassword, teamsCfg.TenantID)
+	teamsCli, err := msteamsx.New(teamsCfg.BotTesterAppID, teamsCfg.BotTesterAppPassword, teamsCfg.OrganizationTenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +101,7 @@ func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) 
 		cfg:                  teamsCfg,
 		pubSubClient:         pubSubClient,
 		configProviderApiKey: ptr.ToValue(apiKey),
-		renderer:             teamsx.NewMessageRendererAdapter(loggerx.NewNoop(), teamsCfg.AppID, teamsCfg.BotDevName),
+		renderer:             teamsx.NewMessageRendererAdapter(loggerx.NewNoop(), teamsCfg.BotTesterAppID, teamsCfg.BotDevName),
 		agentActivityMessage: make(chan *pb.AgentActivity, platformMessageChannelSize),
 	}, nil
 }
@@ -126,13 +124,15 @@ type AgentEvent struct {
 }
 
 // publishBotActivityIntoPubSub puts a given event into queue.
-func (s *TeamsTester) publishBotActivityIntoPubSub(ctx context.Context, event schema.Activity) error {
+func (s *TeamsTester) publishBotActivityIntoPubSub(t *testing.T, ctx context.Context, event schema.Activity) error {
+	t.Helper()
+
 	out, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Publishing event: ", string(out))
+	t.Logf("Publishing event: %s", string(out))
 
 	res := s.pubSubClient.Instance.Topic(devTeamsBotEventsTopicName).Publish(ctx, &gcppubsub.Message{
 		Data: out,
@@ -149,16 +149,10 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 }
 
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
-	s.firstChannel = &TeamsChannel{id: "19:b76dd714d9654ed98855524f66fbae77@thread.tacv2", name: "test-first-f6f495a0-3803-4a1e-b83e-df597dab8950"}
-	s.secondChannel = &TeamsChannel{id: "19:198e3de4857a49158d3f6b70cc47f862@thread.tacv2", name: "test-second-fb0d8d16-55c4-40f6-893b-b950f8a4c28c"}
-	s.thirdChannel = &TeamsChannel{id: "19:2a0978b35da84caebb83f1dc3cb962b4@thread.tacv2", name: "test-rbac-695567e5-e5e4-46d1-b15e-62683fc87cc9"}
-
-	return nil
-
-	channels, err := s.cli.GetChannels(context.Background(), s.cfg.TeamID)
+	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
 	require.NoError(t, err)
 	for _, i := range channels {
-		err := s.cli.DeleteChannel(context.Background(), s.cfg.TeamID, i)
+		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
 		require.NoError(t, err)
 	}
 
@@ -224,6 +218,7 @@ func (s *TeamsTester) PostInitialMessage(t *testing.T, channelName string) {
 }
 
 func (s *TeamsTester) PostMessageToBot(t *testing.T, channel, command string) {
+	ctx := context.Background()
 	msgText := fmt.Sprintf("<at>%s</at> %s", s.cfg.BotDevName, command)
 	activity := schema.Activity{
 		Type:       schema.Message,
@@ -242,15 +237,15 @@ func (s *TeamsTester) PostMessageToBot(t *testing.T, channel, command string) {
 			},
 		},
 		From: schema.ChannelAccount{
-			ID:   fmt.Sprintf("28:%s", s.cfg.AppID),
+			ID:   fmt.Sprintf("28:%s", s.cfg.BotTesterAppID),
 			Name: s.cfg.BotTesterName,
 		},
 	}
 
 	//  message
-	err := s.cli.SendMessage(context.Background(), channel, msgText)
+	err := s.cli.SendMessage(ctx, channel, msgText)
 	assert.NoError(t, err)
-	err = s.publishBotActivityIntoPubSub(context.Background(), activity)
+	err = s.publishBotActivityIntoPubSub(t, ctx, activity)
 	assert.NoError(t, err)
 }
 
@@ -263,7 +258,7 @@ func (s *TeamsTester) InviteBotToChannel(t *testing.T, channelID string) {
 func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
 	// TODO: unify with InteractivePosted
 	msg := api.NewPlaintextMessage(expectedMsg, false)
-	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: msg})
+	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: msg}, s.cfg.BotDevName)
 	card.MsTeams.Entities = nil
 
 	expMsg, err := json.Marshal(card)
@@ -338,7 +333,7 @@ func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 	}
 
 	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, true, func(ctx context.Context) (done bool, err error) {
-		fetchedMessages, err = s.cli.GetMessages(ctx, s.cfg.TeamID, channelID, limitMessages)
+		fetchedMessages, err = s.cli.GetMessages(ctx, s.cfg.OrganizationTeamID, channelID, limitMessages)
 		if err != nil {
 			lastErr = err
 			return false, nil
@@ -429,7 +424,7 @@ func (s *TeamsTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	// for now we don't compare times
 	expAttachment.Message.Timestamp = time.Time{}
 
-	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: expAttachment.Message})
+	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: expAttachment.Message}, s.cfg.BotDevName)
 	card.MsTeams.Entities = nil
 
 	expMsg, err := json.Marshal(card)
@@ -494,7 +489,7 @@ func (s *TeamsTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 
 	t.Logf("Creating channel %q...", channelName)
 	ctx := context.Background()
-	channelID, err := s.cli.CreateChannel(ctx, s.cfg.TeamID, channelName)
+	channelID, err := s.cli.CreateChannel(ctx, s.cfg.OrganizationTeamID, channelName)
 	require.NoError(t, err)
 
 	t.Logf("Channel %q (ID: %q) created", channelName, channelID)
@@ -502,7 +497,7 @@ func (s *TeamsTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 	cleanupFn := func(t *testing.T) {
 		t.Helper()
 		t.Logf("Archiving channel %q...", channelName)
-		err = s.cli.DeleteChannel(ctx, s.cfg.TeamID, channelID)
+		err = s.cli.DeleteChannel(ctx, s.cfg.OrganizationTeamID, channelID)
 		assert.NoError(t, err)
 	}
 
@@ -512,7 +507,7 @@ func (s *TeamsTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 // private
 
 func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limitMessages int, msg interactive.CoreMessage) error {
-	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(msg)
+	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(msg, s.cfg.BotDevName)
 	card.MsTeams.Entities = nil
 
 	expMsg, err := json.Marshal(card)
@@ -527,7 +522,7 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 		ok, msgDiff := jsondiff.Compare(expMsg, []byte(gotMsg), ptr.FromType(opts))
 		switch ok {
 		// SupersetMatch is used as sometimes we sent more details than is returned by Teams API, e.g.:
-		// we sent:
+		// we send:
 		// 				{
 		//					"type": "TableColumnDefinition",
 		//					"width": 1,

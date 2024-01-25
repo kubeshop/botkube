@@ -1,13 +1,12 @@
 package plugin
 
 import (
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/kubeshop/botkube/internal/loggerx"
 )
 
 func TestGetPluginLogLevel(t *testing.T) {
