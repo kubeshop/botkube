@@ -68,7 +68,17 @@ type DriverType string
 const (
 	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
+	TeamsBot   DriverType = "teams"
 )
+
+func (d DriverType) IsCloud() bool {
+	switch d {
+	case SlackBot, TeamsBot:
+		return true
+	default:
+		return false
+	}
+}
 
 // AssertContains checks if message contains expected message
 func AssertContains(expectedMessage string) MessageAssertion {
