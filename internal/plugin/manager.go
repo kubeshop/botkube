@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/httpx"
 	"io"
 	"net/http"
 	"os"
@@ -23,6 +22,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/httpx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 

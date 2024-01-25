@@ -2,11 +2,11 @@ package status
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 type StatusReporter interface {

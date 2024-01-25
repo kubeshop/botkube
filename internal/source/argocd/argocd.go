@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"sync"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 

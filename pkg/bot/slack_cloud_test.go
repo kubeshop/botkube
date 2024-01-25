@@ -3,12 +3,13 @@ package bot
 import (
 	"context"
 	"errors"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 	"time"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestWithRetriesFunc(t *testing.T) {

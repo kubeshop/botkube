@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/discovery"
@@ -16,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 

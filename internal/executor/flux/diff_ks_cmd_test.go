@@ -1,11 +1,12 @@
 package flux
 
 import (
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestNewKustomizeDiffCmd(t *testing.T) {

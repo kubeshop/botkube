@@ -14,6 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/cloud_graphql"
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/diff"
+	"botkube.io/botube/test/helmx"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -29,10 +33,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 	stringsutil "k8s.io/utils/strings"
 
-	"botkube.io/botube/test/cloud_graphql"
-	"botkube.io/botube/test/commplatform"
-	"botkube.io/botube/test/diff"
-	"botkube.io/botube/test/helmx"
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"

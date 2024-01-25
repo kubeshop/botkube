@@ -3,16 +3,9 @@
 package e2e
 
 import (
-	"botkube.io/botube/test/diff"
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
-	"github.com/kubeshop/botkube/pkg/config"
-	netapiv1 "k8s.io/api/networking/v1"
-	rbacapiv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -20,6 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/botkubex"
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/diff"
+	"botkube.io/botube/test/fake"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/anthhub/forwarder"
 	"github.com/hasura/go-graphql-client"
@@ -27,16 +24,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
 	v1 "k8s.io/api/core/v1"
+	netapiv1 "k8s.io/api/networking/v1"
+	rbacapiv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	netv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"botkube.io/botube/test/botkubex"
-	"botkube.io/botube/test/commplatform"
-	"botkube.io/botube/test/fake"
+	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/bot/interactive"
+	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/httpx"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
@@ -216,10 +216,10 @@ func runBotTest(t *testing.T,
 	botDriver.InitUsers(t)
 
 	botDriver.InitChannels(t)
-	//cleanUpChannels := botDriver.InitChannels(t)
-	//for _, fn := range cleanUpChannels {
-	//	t.Cleanup(fn)
-	//}
+	cleanUpChannels := botDriver.InitChannels(t)
+	for _, fn := range cleanUpChannels {
+		t.Cleanup(fn)
+	}
 
 	channels := map[string]commplatform.Channel{
 		deployEnvChannelIDName:          botDriver.Channel(),
@@ -251,7 +251,7 @@ func runBotTest(t *testing.T,
 		}
 		t.Cleanup(func() {
 			// We have a glitch on backend side and the logic below is a workaround for that.
-			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deplyment deletion reports "DELETED" status.
+			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
 			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
 			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
 			for !botkubeDeploymentUninstalled {
@@ -285,51 +285,47 @@ func runBotTest(t *testing.T,
 			botkubeDeploymentUninstalled = true
 		})
 	case commplatform.TeamsBot:
-		//t.Log("Creating Botkube Cloud instance...")
-		//gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
+		t.Log("Creating Botkube Cloud instance...")
+		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
 		appCfg.ClusterName = botDriver.Channel().Name()
-		//deployment := gqlCli.MustCreateBasicDeploymentWithCloudTeams(t, appCfg.ClusterName, appCfg.Teams.AADGroupID, botDriver.Channel().ID(), botDriver.SecondChannel().ID(), botDriver.ThirdChannel().ID())
-		//for _, alias := range aliases {
-		//	gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
-		//}
-		//t.Cleanup(func() {
-		//	// We have a glitch on backend side and the logic below is a workaround for that.
-		//	// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
-		//	// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
-		//	// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
-		//	//for !botkubeDeploymentUninstalled {
-		//	//	t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
-		//	//	time.Sleep(1 * time.Second)
-		//	//}
-		//	//
-		//	//t.Log("Helm chart uninstalled. Waiting a bit...")
-		//	//time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
-		//	//
-		//	t.Log("Deleting Botkube Cloud instance...")
-		//	gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
-		//})
-		//
-		//cmd := exec.Command("kubectl", "delete", "cm", "botkube-system", "-n", "botkube")
-		//output, err := cmd.CombinedOutput()
-		//fmt.Printf("Command Output: %s\n Err: %v \n", string(output), err)
-		//
-		//err = botkubex.Install(t, botkubex.InstallParams{
-		//	BinaryPath:                              appCfg.ConfigProvider.BotkubeCliBinaryPath,
-		//	HelmRepoDirectory:                       appCfg.ConfigProvider.HelmRepoDirectory,
-		//	ConfigProviderEndpoint:                  appCfg.ConfigProvider.Endpoint,
-		//	ConfigProviderIdentifier:                deployment.ID,
-		//	ConfigProviderAPIKey:                    deployment.APIKey.Value,
-		//	ImageTag:                                appCfg.ConfigProvider.ImageTag,
-		//	ImageRegistry:                           appCfg.ConfigProvider.ImageRegistry,
-		//	ImageRepository:                         appCfg.ConfigProvider.ImageRepository,
-		//	PluginRestartPolicyThreshold:            1,
-		//	PluginRestartHealthCheckIntervalSeconds: 2,
-		//})ex
-		//require.NoError(t, err)
+		deployment := gqlCli.MustCreateBasicDeploymentWithCloudTeams(t, appCfg.ClusterName, appCfg.Teams.OrganizationTeamID, botDriver.Channel().ID(), botDriver.SecondChannel().ID(), botDriver.ThirdChannel().ID())
+		for _, alias := range aliases {
+			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
+		}
+		t.Cleanup(func() {
+			// We have a glitch on backend side and the logic below is a workaround for that.
+			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
+			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
+			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
+			for !botkubeDeploymentUninstalled {
+				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
+				time.Sleep(1 * time.Second)
+			}
+
+			t.Log("Helm chart uninstalled. Waiting a bit...")
+			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+
+			t.Log("Deleting Botkube Cloud instance...")
+			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
+		})
+
+		err = botkubex.Install(t, botkubex.InstallParams{
+			BinaryPath:                              appCfg.ConfigProvider.BotkubeCliBinaryPath,
+			HelmRepoDirectory:                       appCfg.ConfigProvider.HelmRepoDirectory,
+			ConfigProviderEndpoint:                  appCfg.ConfigProvider.Endpoint,
+			ConfigProviderIdentifier:                deployment.ID,
+			ConfigProviderAPIKey:                    deployment.APIKey.Value,
+			ImageTag:                                appCfg.ConfigProvider.ImageTag,
+			ImageRegistry:                           appCfg.ConfigProvider.ImageRegistry,
+			ImageRepository:                         appCfg.ConfigProvider.ImageRepository,
+			PluginRestartPolicyThreshold:            1,
+			PluginRestartHealthCheckIntervalSeconds: 2,
+		})
+		require.NoError(t, err)
 
 		t.Cleanup(func() {
 			t.Log("Uninstalling Helm chart...")
-			//botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
 			botkubeDeploymentUninstalled = true
 		})
 	}
@@ -342,13 +338,13 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
-	//expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
-	//botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
-	//err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
-	//	botDriver.Channel().ID(),
-	//	expMessage,
-	//)
-	//require.NoError(t, err)
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
+	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
+	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
+		botDriver.Channel().ID(),
+		expMessage,
+	)
+	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message in channel...")
 	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
@@ -379,7 +375,6 @@ func runBotTest(t *testing.T,
 		assert.NoError(t, err)
 	})
 
-	return
 	t.Run("Botkube PluginManagement", func(t *testing.T) {
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
@@ -654,13 +649,13 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Executor", func(t *testing.T) {
-		hasValidHeader := func(driver commplatform.DriverType, cmd, msg string) bool {
-			if driver == commplatform.TeamsBot {
+		hasValidHeader := func(cmd, msg string) bool {
+			if botDriver.Type() == commplatform.TeamsBot {
 				// Teams uses AdaptiveCard and the built-in table format, that's the reason why we can't
 				// compare it with the plain text message. On the other hand, comparing JSON format would require us
 				// to normalize the table cells (e.g. time)
 
-				if !strings.HasPrefix(msg, "{") {
+				if strings.HasPrefix(msg, "{") {
 					cmd = strconv.Quote(cmd) // it is a JSON so it will be escaped
 				}
 				// message is in JSON
@@ -674,7 +669,7 @@ func runBotTest(t *testing.T,
 		t.Run("Get Deployment", func(t *testing.T) {
 			command := fmt.Sprintf("kubectl get deploy -n %s %s", appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
-				return hasValidHeader(botDriver.Type(), command, msg) && strings.Contains(msg, "botkube"), 0, ""
+				return hasValidHeader(command, msg) && strings.Contains(msg, "botkube"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -685,7 +680,7 @@ func runBotTest(t *testing.T,
 		t.Run("Get Deployment with matching filter", func(t *testing.T) {
 			command := fmt.Sprintf(`kubectl get deploy -n %s %s --filter='botkube'`, appCfg.Deployment.Namespace, appCfg.Deployment.Name)
 			assertionFn := func(msg string) (bool, int, string) {
-				return hasValidHeader(botDriver.Type(), command, msg) && strings.Contains(msg, "botkube"), 0, ""
+				return hasValidHeader(command, msg) && strings.Contains(msg, "botkube"), 0, ""
 			}
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
@@ -708,7 +703,7 @@ func runBotTest(t *testing.T,
 
 			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, func(msg string) (bool, int, string) {
-				return hasValidHeader(botDriver.Type(), command, msg) && assertConfigMaps(msg), 0, ""
+				return hasValidHeader(command, msg) && assertConfigMaps(msg), 0, ""
 			})
 			assert.NoError(t, err)
 		})
@@ -716,7 +711,7 @@ func runBotTest(t *testing.T,
 		t.Run("Get Configmap with mismatching filter", func(t *testing.T) {
 			command := fmt.Sprintf(`kubectl get configmap -n %s --filter='unknown-thing'`, appCfg.Deployment.Namespace)
 			assertionFn := func(msg string) (bool, int, string) {
-				return hasValidHeader(botDriver.Type(), command, msg) &&
+				return hasValidHeader(command, msg) &&
 					!strings.Contains(msg, "kube-root-ca.crt") &&
 					!strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
@@ -737,7 +732,7 @@ func runBotTest(t *testing.T,
 			assert.NoError(t, err)
 
 			assertionFn := func(msg string) (bool, int, string) {
-				return hasValidHeader(botDriver.Type(), command, msg), 0, ""
+				return hasValidHeader(command, msg), 0, ""
 			}
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
 		})
@@ -920,7 +915,7 @@ func runBotTest(t *testing.T,
 				aliasedCommand := "kgda"
 				expandedCommand := "kubectl get deployments -A"
 				assertionFn := func(msg string) (bool, int, string) {
-					return hasValidHeader(botDriver.Type(), expandedCommand, msg) &&
+					return hasValidHeader(expandedCommand, msg) &&
 						strings.Contains(msg, "local-path-provisioner") &&
 						strings.Contains(msg, "coredns") &&
 						strings.Contains(msg, "botkube"), 0, ""
@@ -937,7 +932,7 @@ func runBotTest(t *testing.T,
 			t.Run(fmt.Sprintf("Get Pods with k8s prefix %s", prefix), func(t *testing.T) {
 				aliasedCmd, expandedCmd := kubectlAliasedCommand(prefix, fmt.Sprintf("get pods --namespace %s", appCfg.Deployment.Namespace))
 				assertionFn := func(msg string) (bool, int, string) {
-					return hasValidHeader(botDriver.Type(), expandedCmd, msg) &&
+					return hasValidHeader(expandedCmd, msg) &&
 						hasAllColumns(msg, "NAME", "READY", "STATUS", "RESTART", "AGE"), 0, ""
 				}
 
@@ -1493,7 +1488,6 @@ func runBotTest(t *testing.T,
 
 	t.Run("RBAC", func(t *testing.T) {
 		t.Run("No configuration", func(t *testing.T) {
-			t.Skip()
 			echoParam := "john doe"
 			command := fmt.Sprintf("echo %s", echoParam)
 			assertionFn := func(msg string) (bool, int, string) {

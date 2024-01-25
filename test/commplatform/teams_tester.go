@@ -14,6 +14,13 @@ import (
 	gcppubsub "cloud.google.com/go/pubsub"
 	"github.com/google/uuid"
 	"github.com/infracloudio/msbotbuilder-go/schema"
+	"github.com/markbates/errx"
+	"github.com/nsf/jsondiff"
+	"github.com/slack-go/slack"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/pubsub"
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/teamsx"
 	"github.com/kubeshop/botkube/pkg/api"
@@ -21,12 +28,6 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/ptr"
-	"github.com/markbates/errx"
-	"github.com/nsf/jsondiff"
-	"github.com/slack-go/slack"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -149,12 +150,12 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 }
 
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
-	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
-	require.NoError(t, err)
-	for _, i := range channels {
-		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
-		require.NoError(t, err)
-	}
+	//channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
+	//require.NoError(t, err)
+	//for _, i := range channels {
+	//	err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
+	//	require.NoError(t, err)
+	//}
 
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel

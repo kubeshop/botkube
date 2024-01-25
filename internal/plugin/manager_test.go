@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"strings"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestCollectEnabledRepositories(t *testing.T) {

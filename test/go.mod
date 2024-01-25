@@ -5,7 +5,6 @@ go 1.21.6
 require (
 	cloud.google.com/go/pubsub v1.35.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
-	github.com/DanielTitkov/go-adaptive-cards v0.2.2
 	github.com/JohannesKaufmann/html-to-markdown v1.5.0
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/anthhub/forwarder v1.1.0
@@ -18,16 +17,12 @@ require (
 	github.com/kubeshop/botkube v0.13.1-0.20231215105422-2955f95da8dc
 	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-00010101000000-000000000000
 	github.com/markbates/errx v1.1.0
-	github.com/mattn/go-shellwords v1.0.12
 	github.com/microsoftgraph/msgraph-sdk-go v1.31.0
-	github.com/muesli/reflow v0.3.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sanity-io/litter v1.5.5
-	github.com/sirupsen/logrus v1.9.3
 	github.com/slack-go/slack v0.12.3
-	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/oauth2 v0.16.0
@@ -50,6 +45,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.1 // indirect
+	github.com/DanielTitkov/go-adaptive-cards v0.2.2 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alexflint/go-arg v1.4.3 // indirect
@@ -140,6 +136,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/microsoft/kiota-abstractions-go v1.5.6 // indirect
 	github.com/microsoft/kiota-authentication-azure-go v1.0.1 // indirect
 	github.com/microsoft/kiota-http-go v1.1.1 // indirect
@@ -158,6 +155,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
+	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/oklog/run v1.1.0 // indirect
@@ -170,8 +168,10 @@ require (
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/segmentio/analytics-go v3.1.0+incompatible // indirect
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spiffe/spire v1.5.6 // indirect
 	github.com/std-uritemplate/std-uritemplate/go v0.0.50 // indirect
 	github.com/stripe/stripe-go/v74 v74.14.0 // indirect
@@ -235,7 +235,6 @@ require (
 
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
-	github.com/infracloudio/msbotbuilder-go => /Users/mszostok/workspace/go/src/github.com/kubeshop/msbotbuilder-go
 	github.com/kubeshop/botkube => ./..
 	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240125114458-c3877799ac8b
 )

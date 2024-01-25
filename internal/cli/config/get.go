@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"os"
 	"strings"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (

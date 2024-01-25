@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"gotest.tools/v3/golden"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"botkube.io/botube/test/fake"
+
 	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 

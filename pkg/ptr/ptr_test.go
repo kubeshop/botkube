@@ -1,10 +1,11 @@
 package ptr_test
 
 import (
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestToSlice(t *testing.T) {

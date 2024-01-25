@@ -1,10 +1,11 @@
 package argocd
 
 import (
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestNormalize(t *testing.T) {

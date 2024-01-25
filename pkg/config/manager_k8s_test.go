@@ -3,7 +3,6 @@ package config_test
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestPersistenceManager_PersistSourceBindings(t *testing.T) {

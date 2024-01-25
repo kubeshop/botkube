@@ -1,6 +1,8 @@
 package msteamsx
 
-import "strings"
+import (
+	"strings"
+)
 
 // IsMissingPermissionsError checks if error is related to missing permissions.
 // See: https://github.com/microsoftgraph/msgraph-sdk-go/issues/510

@@ -2,6 +2,7 @@ package github_events
 
 import (
 	"github.com/google/go-github/v53/github"
+
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 

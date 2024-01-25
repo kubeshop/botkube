@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/kubeshop/botkube/internal/plugin"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"os"
 	"path/filepath"
+
+	"github.com/kubeshop/botkube/internal/plugin"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"

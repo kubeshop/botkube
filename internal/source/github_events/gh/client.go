@@ -2,8 +2,6 @@ package gh
 
 import (
 	"errors"
-	httpx2 "github.com/kubeshop/botkube/pkg/httpx"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -13,6 +11,8 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/httpx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -80,7 +80,7 @@ func NewClient(cfg *ClientConfig, log config.Logger) (*github.Client, error) {
 		return nil, err
 	}
 
-	httpClient := httpx2.NewHTTPClient()
+	httpClient := httpx.NewHTTPClient()
 	httpClient.Transport = httpcache.NewMemoryCacheTransport()
 
 	switch {
@@ -102,7 +102,7 @@ func NewClient(cfg *ClientConfig, log config.Logger) (*github.Client, error) {
 		}
 	}
 
-	httpClient.Timeout = httpx2.DefaultTimeout
+	httpClient.Timeout = httpx.DefaultTimeout
 
 	baseURL, uploadURL := cfg.BaseURL, cfg.UploadURL
 
@@ -120,7 +120,7 @@ func NewClient(cfg *ClientConfig, log config.Logger) (*github.Client, error) {
 		uploadURL = baseURL
 	}
 
-	bURL, uURL := httpx2.CanonicalURLPath(baseURL), httpx2.CanonicalURLPath(uploadURL)
+	bURL, uURL := httpx.CanonicalURLPath(baseURL), httpx.CanonicalURLPath(uploadURL)
 	return github.NewEnterpriseClient(bURL, uURL, httpClient)
 }
 

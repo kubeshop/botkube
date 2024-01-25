@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	loggerx2 "github.com/kubeshop/botkube/pkg/loggerx"
 	"io"
 	"os"
 	"regexp"
@@ -12,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 var specialCharsPattern = regexp.MustCompile(`(?i:[^A-Z0-9_])`)
@@ -31,10 +31,10 @@ func NewPluginLoggers(bkLogger logrus.FieldLogger, logConfig config.Logger, plug
 		DisableColors: logConfig.DisableColors,
 		Formatter:     logConfig.Formatter,
 	}
-	log := loggerx2.New(cfg).WithField("plugin", pluginKey)
+	log := loggerx.New(cfg).WithField("plugin", pluginKey)
 
 	var (
-		pluginLogger = loggerx2.AsHCLog(log, pluginKey)
+		pluginLogger = loggerx.AsHCLog(log, pluginKey)
 		stdoutLogger = io.Discard
 		stderrLogger = log.WithField("logger", "stderr").WriterLevel(logrus.ErrorLevel)
 	)

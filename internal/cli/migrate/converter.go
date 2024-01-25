@@ -3,7 +3,6 @@ package migrate
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"strings"
 
 	"github.com/xyproto/randomstring"
@@ -11,6 +10,7 @@ import (
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Converter converts OS config into GraphQL create input.

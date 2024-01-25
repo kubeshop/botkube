@@ -2,7 +2,6 @@ package execute
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestExecutorBindingsExecutor(t *testing.T) {

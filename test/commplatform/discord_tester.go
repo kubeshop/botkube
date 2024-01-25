@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/diff"
 	"github.com/araddon/dateparse"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
@@ -15,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"botkube.io/botube/test/diff"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 )

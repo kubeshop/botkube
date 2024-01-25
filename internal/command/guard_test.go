@@ -2,7 +2,6 @@ package command
 
 import (
 	"errors"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +9,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestCommandGuard_GetAllowedResourcesForVerb(t *testing.T) {

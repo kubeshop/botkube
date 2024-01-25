@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 
 	"github.com/mattn/go-shellwords"
 )

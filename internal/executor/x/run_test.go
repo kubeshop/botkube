@@ -3,7 +3,6 @@ package x
 import (
 	"context"
 	"errors"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"path/filepath"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestRunnerRawOutput(t *testing.T) {

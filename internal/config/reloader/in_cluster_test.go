@@ -2,7 +2,6 @@ package reloader
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"sync"
 	"testing"
 	"time"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 var (

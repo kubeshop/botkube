@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/httpx"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/httpx"
 )
 
 const (

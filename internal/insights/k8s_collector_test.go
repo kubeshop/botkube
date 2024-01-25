@@ -3,7 +3,6 @@ package insights_test
 import (
 	"context"
 	"errors"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/insights"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func Test_Start_Success(t *testing.T) {

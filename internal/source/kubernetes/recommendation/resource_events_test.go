@@ -1,7 +1,6 @@
 package recommendation_test
 
 import (
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +8,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestResourceEventsForConfig(t *testing.T) {

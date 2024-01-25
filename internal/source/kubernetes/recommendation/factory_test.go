@@ -1,8 +1,6 @@
 package recommendation_test
 
 import (
-	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +8,8 @@ import (
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
+	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 func TestFactory_New(t *testing.T) {

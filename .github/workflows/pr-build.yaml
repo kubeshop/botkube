@@ -5,6 +5,7 @@ on:
     types: [ opened, synchronize, reopened ]
     branches:
       - "main"
+      - "teams/integration-tests"
     paths-ignore:
       - 'branding/**'
       - 'design/**'
@@ -29,6 +30,7 @@ env:
   CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/pr/botkube-config-exporter"
   IMAGE_TAG: ${{ github.event.pull_request.number }}-PR
   IMAGE_SAVE_LOAD_DIR: /tmp/botkube-images
+  GIT_USER: botkube-dev
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || 'branch' }} # scope to for the current workflow
@@ -195,6 +197,7 @@ jobs:
         integration:
           - slack
           - discord
+          - teams
 
     steps:
       - name: Checkout code
@@ -209,6 +212,18 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
+      - name: Setup Go modules
+        uses: ./.github/actions/go-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
+
+      - name: Pub/Sub auth
+        uses: 'google-github-actions/auth@v1'
+        if: matrix.integration == 'teams'
+        with:
+          credentials_json: ${{ secrets.E2E_TEST_GCP_PUB_SUB_CREDENTIALS }}
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
@@ -221,14 +236,13 @@ jobs:
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
       - name: Install Botkube to test ${{ matrix.integration }}
+        if: matrix.integration == 'discord'
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
           -f ./helm/botkube/e2e-test-values.yaml \
-          --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
           --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
           --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
           --set image.registry="${IMAGE_REGISTRY}" \
@@ -272,9 +286,17 @@ jobs:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
           SLACK_CLOUD_TESTER_APP_TOKEN: ${{ secrets.SLACK_CLOUD_TESTER_APP_TOKEN }}
           SLACK_ADDITIONAL_CONTEXT_MESSAGE: "Pull request: ${{ github.event.pull_request.number }} - https://github.com/kubeshop/botkube/pull/${{ github.event.pull_request.number }}"
+
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Pull request: ${{ github.event.pull_request.number }} - https://github.com/kubeshop/botkube/pull/${{ github.event.pull_request.number }}"
+
+          TEAMS_BOT_TESTER_APP_ID: ${{ secrets.TEAMS_BOT_TESTER_APP_ID }}
+          TEAMS_BOT_TESTER_APP_PASSWORD: ${{ secrets.TEAMS_BOT_TESTER_APP_PASSWORD }}
+          TEAMS_ORGANIZATION_TEAM_ID: ${{ secrets.TEAMS_ORGANIZATION_TEAM_ID }}
+          TEAMS_ORGANIZATION_TENANT_ID: ${{ secrets.TEAMS_ORGANIZATION_TENANT_ID }}
+          TEAMS_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${{github.sha}} - https://github.com/kubeshop/botkube/commit/${{github.sha}}"
+
           PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/plugin-dist
           CONFIG_PROVIDER_API_KEY: ${{ secrets.CONFIG_PROVIDER_API_KEY }}
           CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}

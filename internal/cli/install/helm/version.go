@@ -2,13 +2,14 @@ package helm
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/httpx"
 	"io"
 	"net/url"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kubeshop/botkube/pkg/httpx"
 )
 
 // GetLatestVersion loads an index file and returns version of the latest chart. Sort by SemVer.

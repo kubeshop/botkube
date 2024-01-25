@@ -1,7 +1,6 @@
 package reloader
 
 import (
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestRemote_ProcessConfig(t *testing.T) {

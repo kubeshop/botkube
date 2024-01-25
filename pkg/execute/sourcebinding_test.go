@@ -2,7 +2,6 @@ package execute
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"strings"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 const (

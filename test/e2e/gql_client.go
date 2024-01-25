@@ -2,11 +2,11 @@ package e2e
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"net/http"
 	"testing"
 
 	"github.com/hasura/go-graphql-client"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"

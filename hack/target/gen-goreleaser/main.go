@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"os"
 	"text/template"
+
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 const (

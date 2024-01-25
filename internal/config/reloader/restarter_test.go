@@ -3,7 +3,6 @@ package reloader_test
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/config/reloader"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestRestarter_Do_HappyPath(t *testing.T) {

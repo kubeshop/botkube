@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/commplatform"
+	"botkube.io/botube/test/helmx"
 	"github.com/hasura/go-graphql-client"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -21,8 +23,6 @@ import (
 	"github.com/vrischmann/envconfig"
 	"golang.org/x/oauth2"
 
-	"botkube.io/botube/test/commplatform"
-	"botkube.io/botube/test/helmx"
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )

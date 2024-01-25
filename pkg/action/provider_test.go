@@ -3,7 +3,6 @@ package action_test
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
@@ -16,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestProvider_RenderedActionsForEvent(t *testing.T) {

@@ -18,22 +18,23 @@ test: system-check
 	@go test -v  -race ./...
 
 test-integration-slack: system-check
-	@go test -timeout=20m -v -tags=integration -race -count=1 ./test/e2e/... -run "TestSlack"
+	@cd ./test; go test -timeout=20m -v -tags=integration -race -count=1 ./e2e/... -run "TestSlack"
 
 test-integration-discord: system-check
-	@go test -timeout=20m -v -tags=integration -race -count=1 ./test/e2e/... -run "TestDiscord"
+	@cd ./test; go test -timeout=20m -v -tags=integration -race -count=1 ./e2e/... -run "TestDiscord"
 
 test-integration-teams: system-check
-	@go test -timeout=20m -v -tags=integration -race -count=1 ./test/e2e/... -run "TestTeams"
+
+	@cd ./test; go test -timeout=20m -v -tags=integration -race -count=1 ./e2e/... -run "TestTeams"
 
 test-cli-migration-e2e: system-check
-	@go test -v -tags=migration -race -count=1 ./test/e2e/...
+	@cd ./test; go test -v -tags=migration -race -count=1 ./e2e/...
 
 test-cloud-slack-dev-e2e: system-check
-	@go test -tags=cloud_slack_dev_e2e -race -p 1 -v -timeout 30m ./test/cloud-slack-dev-e2e/...
+	@cd ./test; go test -tags=cloud_slack_dev_e2e -race -p 1 -v -timeout 30m ./cloud-slack-dev-e2e/...
 
 test-cloud-slack-dev-e2e-show-browser: system-check
-	@go test -tags=cloud_slack_dev_e2e -race -p 1 -v -timeout 30m -rod=show ./test/cloud-slack-dev-e2e/...
+	@cd ./test; go test -tags=cloud_slack_dev_e2e -race -p 1 -v -timeout 30m -rod=show ./cloud-slack-dev-e2e/...
 
 # Build Botkube official plugins for all supported platforms.
 build-plugins: pre-build gen-plugins-goreleaser

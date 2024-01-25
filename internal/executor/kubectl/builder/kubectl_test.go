@@ -3,7 +3,6 @@ package builder_test
 import (
 	"context"
 	"errors"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"testing"
 
 	"github.com/slack-go/slack"
@@ -16,6 +15,7 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/kubectl/builder"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 const (

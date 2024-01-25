@@ -3,16 +3,18 @@ package msteamsx
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/infracloudio/msbotbuilder-go/core"
 	"github.com/infracloudio/msbotbuilder-go/core/activity"
 	"github.com/infracloudio/msbotbuilder-go/schema"
-	"github.com/kubeshop/botkube/pkg/ptr"
 	msgraphsdkgo "github.com/microsoftgraph/msgraph-sdk-go"
 	graphmodels "github.com/microsoftgraph/msgraph-sdk-go/models"
 	"github.com/microsoftgraph/msgraph-sdk-go/teams"
 	"github.com/pkg/errors"
-	"strings"
+
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -174,7 +176,6 @@ func (c *Client) MessageFrom(msg graphmodels.ChatMessageable) string {
 				fmt.Println(err)
 			}
 			markdown = strings.ReplaceAll(markdown, "\n\n\n", "\n")
-			fmt.Println("md ->", markdown)
 			msgTexts = append(msgTexts, markdown)
 		}
 	}
