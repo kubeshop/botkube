@@ -6,7 +6,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/fatih/color"
-	semver "github.com/hashicorp/go-version"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"go.szostok.io/version"
@@ -18,10 +17,6 @@ import (
 	"github.com/kubeshop/botkube/internal/cli/migrate"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/kubex"
-)
-
-var (
-	botkubeMinVersionConstraint = ">= 1.0"
 )
 
 // NewMigrate returns a cobra.Command for migrate the OS into Cloud.
@@ -68,18 +63,12 @@ func NewMigrate() *cobra.Command {
 
 			status.Infof("Checking if Botkube version %q can be migrated safely", botkubeVersionStr)
 
-			botkubeVersionConstraints := getBotkubeVersionConstraints()
-			constraint, err := semver.NewConstraint(botkubeVersionConstraints)
+			botkubeVersionConstraints := migrate.BotkubeVersionConstraints()
+			isCompatible, err := migrate.IsCompatible(botkubeVersionConstraints, botkubeVersionStr)
 			if err != nil {
-				return fmt.Errorf("unable to parse Botkube semver version constraints: %w", err)
+				status.Infof("Unable to check if Botkube version %q is within range of Botkube version constraints %q: %s", botkubeVersionStr, botkubeVersionConstraints, err.Error())
+				// continue anyway as this shouldn't fail the whole migration
 			}
-
-			botkubeVersion, err := semver.NewVersion(botkubeVersionStr)
-			if err != nil {
-				return fmt.Errorf("unable to parse botkube version %s as semver: %w", botkubeVersion, err)
-			}
-
-			isCompatible := constraint.Check(botkubeVersion)
 			if !isCompatible && !opts.AutoApprove {
 				run := false
 
@@ -90,7 +79,7 @@ func NewMigrate() *cobra.Command {
 						Botkube version constraints for the currently installed CLI: %s
 						We recommend upgrading your CLI to the latest version. In order to do so, navigate to https://docs.botkube.io/.
 						
-						Do you wish to continue?`, version.Get().Version, botkubeVersion, botkubeVersionConstraints),
+						Do you wish to continue?`, version.Get().Version, botkubeVersionStr, botkubeVersionConstraints),
 					Default: false,
 				}
 
@@ -150,16 +139,4 @@ func NewMigrate() *cobra.Command {
 	kubex.RegisterKubeconfigFlag(flags)
 
 	return migrate
-}
-
-func getBotkubeVersionConstraints() string {
-	cliVer := version.Get().Version
-	cliVersion, err := semver.NewVersion(cliVer)
-
-	botkubeMaxVersionConstraint := ""
-	if err == nil {
-		botkubeMaxVersionConstraint = fmt.Sprintf(", <= %s", cliVersion.String())
-	}
-
-	return fmt.Sprintf("%s%s", botkubeMinVersionConstraint, botkubeMaxVersionConstraint)
 }
