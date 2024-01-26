@@ -200,7 +200,10 @@ jobs:
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
-#
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+
 #  cli-migration-e2e:
 #    name: CLI Migration E2E tests
 #    runs-on: ubuntu-latest
