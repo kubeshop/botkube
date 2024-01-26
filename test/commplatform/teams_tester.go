@@ -16,7 +16,6 @@ import (
 	"github.com/infracloudio/msbotbuilder-go/schema"
 	"github.com/markbates/errx"
 	"github.com/nsf/jsondiff"
-	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -133,8 +132,6 @@ func (s *TeamsTester) publishBotActivityIntoPubSub(t *testing.T, ctx context.Con
 		return err
 	}
 
-	t.Logf("Publishing event: %s", string(out))
-
 	res := s.pubSubClient.Instance.Topic(devTeamsBotEventsTopicName).Publish(ctx, &gcppubsub.Message{
 		Data: out,
 	})
@@ -156,7 +153,6 @@ func (s *TeamsTester) InitChannels(t *testing.T) []func() {
 	//	err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
 	//	require.NoError(t, err)
 	//}
-
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel
 
@@ -333,8 +329,8 @@ func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 		highestCommonBlockCount = -1 // a single message is fetched, always print diff
 	}
 
-	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, true, func(ctx context.Context) (done bool, err error) {
-		fetchedMessages, err = s.cli.GetMessages(ctx, s.cfg.OrganizationTeamID, channelID, limitMessages)
+	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, true, func(context.Context) (done bool, err error) {
+		fetchedMessages, err = s.cli.GetMessages(context.Background(), s.cfg.OrganizationTeamID, channelID, limitMessages)
 		if err != nil {
 			lastErr = err
 			return false, nil
@@ -361,7 +357,7 @@ func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 		return false, nil
 	})
 	if lastErr == nil {
-		lastErr = fmt.Errorf("message assertion function returned false%s", diffMessage)
+		lastErr = fmt.Errorf("message assertion function returned false; fetched messages: %s\ndiff:\n%s", structDumper.Sdump(fetchedMessages), diffMessage)
 	}
 	if err != nil {
 		if wait.Interrupted(err) {
@@ -375,50 +371,8 @@ func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 
 // FIXME: Valid ones  -- end
 
-func (s *TeamsTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
-	var fetchedMessages []slack.Message
-	var lastErr error
-	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
-		/*	historyRes, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
-				ChannelID: channelID, Limit: 1,
-			})
-			if err != nil {
-				lastErr = err
-				return false, nil
-			}
-
-			fetchedMessages = historyRes.Messages
-			for _, msg := range historyRes.Messages {
-				if msg.User != userID {
-					continue
-				}
-
-				if len(msg.Files) != 1 {
-					return false, nil
-				}
-
-				upload := msg.Files[0]
-				if !assertFn(upload.Title, upload.Mimetype) {
-					// different message
-					return false, nil
-				}
-
-				return true, nil
-			}*/
-
-		return false, nil
-	})
-	if lastErr == nil {
-		lastErr = errors.New("message assertion function returned false")
-	}
-	if err != nil {
-		if wait.Interrupted(err) {
-			return fmt.Errorf("while waiting for condition: last error: %w; fetched messages: %s", lastErr, structDumper.Sdump(fetchedMessages))
-		}
-		return err
-	}
-
-	return nil
+func (s *TeamsTester) WaitForMessagePostedWithFileUpload(_, _ string, _ FileUploadAssertion) error {
+	return errors.New("not implemented")
 }
 
 func (s *TeamsTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, expAttachment ExpAttachmentInput) error {

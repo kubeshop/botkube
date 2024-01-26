@@ -95,30 +95,6 @@ func (c *Client) SendMessage(ctx context.Context, convID, msg string) error {
 	})
 }
 
-func (c *Client) SendMessageV1(ctx context.Context, convID string, msg activity.MsgOption) error {
-	ref := c.getConvReference(serviceURL, convID)
-	return c.bot.ProactiveMessage(ctx, ref, activity.HandlerFuncs{
-		OnMessageFunc: func(turn *activity.TurnContext) (schema.Activity, error) {
-			return turn.SendActivity(msg)
-		},
-	})
-}
-
-func (c *Client) SendMessageV2(ctx context.Context, convID string, msg schema.Activity) error {
-	cli := &activity.DefaultResponse{Client: c.bot.Client}
-	ref := c.getConvReference(serviceURL, convID)
-
-	msg = c.applyConversationReference(msg, ref)
-
-	return cli.SendActivity(ctx, msg)
-	//
-	//return c.bot.ProactiveMessage(ctx, ref, activity.HandlerFuncs{
-	//	OnMessageFunc: func(turn *activity.TurnContext) (schema.Activity, error) {
-	//		return turn.SendActivity(msg)
-	//	},
-	//})
-}
-
 const channelID = "msteams"
 
 func (c *Client) applyConversationReference(activity schema.Activity, reference schema.ConversationReference) schema.Activity {

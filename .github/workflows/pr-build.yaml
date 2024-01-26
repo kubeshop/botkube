@@ -236,7 +236,7 @@ jobs:
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
       - name: Install Botkube to test ${{ matrix.integration }}
-        if: matrix.integration == 'discord'
+#        if: matrix.integration == 'discord'
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
