@@ -1,7 +1,6 @@
 package commplatform
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -51,6 +50,7 @@ type BotDriver interface {
 	SetTimeout(timeout time.Duration)
 	Timeout() time.Duration
 	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
+	AssertEquals(expectedMessage string) MessageAssertion
 }
 
 type MessageAssertion func(content string) (bool, int, string)
@@ -80,15 +80,15 @@ func (d DriverType) IsCloud() bool {
 	}
 }
 
-// AssertContains checks if message contains expected message
-func AssertContains(expectedMessage string) MessageAssertion {
-	return func(msg string) (bool, int, string) {
-		return strings.Contains(msg, expectedMessage), 0, ""
-	}
-}
+//// AssertContains checks if message contains expected message
+//func (d DriverType) AssertContains(expectedMessage string) MessageAssertion {
+//	return func(msg string) (bool, int, string) {
+//		return strings.Contains(msg, expectedMessage), 0, ""
+//	}
+//}
 
 // AssertEquals checks if message is equal to expected message
-func AssertEquals(expectedMessage string) MessageAssertion {
+func (d DriverType) AssertEquals(expectedMessage string) MessageAssertion {
 	return func(msg string) (bool, int, string) {
 		return msg == expectedMessage, 0, ""
 	}

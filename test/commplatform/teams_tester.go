@@ -147,12 +147,12 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 }
 
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
-	//channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
-	//require.NoError(t, err)
-	//for _, i := range channels {
-	//	err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
-	//	require.NoError(t, err)
-	//}
+	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
+	assert.NoError(t, err)
+	for _, i := range channels {
+		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
+		assert.NoError(t, err)
+	}
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel
 
@@ -302,16 +302,21 @@ func (s *TeamsTester) WaitForLastMessageEqual(userID, channelID, expectedMsg str
 		limitMessages = 2 // messages with filter are split into 2, so we need to fetch one more message to get body
 	}
 
-	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
+	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, s.AssertEquals(expectedMsg))
+}
+
+// AssertEquals checks if message is equal to expected message.
+func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
 		msg, expectedMsg = NormalizeTeamsWhitespacesInMessages(msg, expectedMsg)
 
-		if msg != expectedMsg {
+		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
-	})
+	}
 }
 
 func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {

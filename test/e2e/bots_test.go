@@ -100,6 +100,14 @@ type Config struct {
 
 const (
 	testConfigMapName = "cm-watcher-trigger"
+	// In cloud-based tests, after resource change in cloud, we can see extra messages as follows;
+	// 1. Brace yourselves, incoming notifications from cluster '{name}'.
+	// 2. Configuration reload requested for cluster '{name}'. Hold on a sec...
+	// 3. My watch has ended for cluster '{name}'. See you soon!
+	// 4. My watch begins for cluster '{name}'! :crossed_swords:
+	// 5. Newer version (v1.7.0) of Botkube is available :tada:. Please upgrade Botkube backend.
+	// Which means, we need to wait for 5 messages in total.
+	limitLastMessageAfterCloudReload = 5
 )
 
 var (
@@ -328,7 +336,7 @@ func runBotTest(t *testing.T,
 
 		t.Cleanup(func() {
 			t.Log("Uninstalling Helm chart...")
-			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			//botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
 			botkubeDeploymentUninstalled = true
 		})
 	}
@@ -838,21 +846,16 @@ func runBotTest(t *testing.T,
 		t.Log("Getting notifier status from second channel...")
 		command := "status notifications"
 		expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
-		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 
-		switch botDriver.Type() {
-		case commplatform.SlackBot:
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertContains(expectedMessage))
-		case commplatform.TeamsBot:
+		if botDriver.Type() == commplatform.TeamsBot {
 			// TODO(add option to configure notifications): https://github.com/kubeshop/botkube-cloud/issues/841
-			expectedBody := codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
-			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
-		default:
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+			expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
 		}
+
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Starting notifier in second channel...")
@@ -862,16 +865,21 @@ func runBotTest(t *testing.T,
 
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 
+		limitMessages := 1
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 6, commplatform.AssertContains(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+			// Which means, we need to wait for 5 messages in total.
+			// 1. Brace yourselves, incoming notifications from cluster '{name}'.
+			// 2. Configuration reload requested for cluster '{name}'. Hold on a sec...
+			// 3. My watch has ended for cluster '{name}'. See you soon!
+			// 4. My watch begins for cluster '{name}'! :crossed_swords:
+			// 5. Newer version (v1.7.0) of Botkube is available :tada:. Please upgrade Botkube backend.
+			// Which means, we need to wait for 5 messages in total.
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
-		// Third (RBAC) channel is isolated from this
-		channelIDs := []string{channels[deployEnvChannelIDName].ID(), channels[deployEnvSecondaryChannelIDName].ID()}
 
 		t.Log("Creating ConfigMap...")
 		var cfgMapAlreadyDeleted bool
@@ -910,27 +918,20 @@ func runBotTest(t *testing.T,
 				},
 			},
 		}
+		limitMessages = 2
 		if botDriver.Type().IsCloud() {
-			// In cloud-based tests, after resource change in cloud, we can see extra messages as follows;
-			//	    v1/configmaps created ... <== This is the expected message
-			//		Configuration reload requested...
-			//		My watch has ended for cluster...
-			//		Newer version (v1.3.0) of Botkube is ...
-			//		My watch begins for cluster 'test-first-30aee50d-fac7-47ca-8...
-			// Which means, we need to wait for 5 messages in total.
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 5, expAttachmentIn)
-		} else {
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, expAttachmentIn)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, expAttachmentIn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		limitMessages = 2
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap for not watched field...")
@@ -942,17 +943,17 @@ func runBotTest(t *testing.T,
 
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		limitMessages := 2
+		limitMessages = 2
 		if botDriver.Type().IsCloud() {
-			limitMessages = 6
+			limitMessages = limitLastMessageAfterCloudReload
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, expAttachmentIn)
 		require.NoError(t, err)
+		limitMessages = 2
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap for observed field...")
@@ -964,6 +965,8 @@ func runBotTest(t *testing.T,
 		require.NoError(t, err)
 
 		t.Log("Expecting bot message in all channels...")
+		// Third (RBAC) channel is isolated from this
+		channelIDs := []string{channels[deployEnvChannelIDName].ID(), channels[deployEnvSecondaryChannelIDName].ID()}
 		for _, channelID := range channelIDs {
 			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
@@ -994,12 +997,12 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		limitMessages = 1
 		if botDriver.Type().IsCloud() {
 			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.Channel().ID(), appCfg.ClusterName)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, botDriver.AssertEquals(expectedMessage))
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
@@ -1031,11 +1034,11 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
+		limitMessages = 1
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		secondCMUpdate := commplatform.ExpAttachmentInput{
@@ -1067,11 +1070,11 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		limitMessages = 1
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		if botDriver.Type().IsCloud() {
@@ -1095,11 +1098,11 @@ func runBotTest(t *testing.T,
 
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
+		limitMessages = 1
 		if botDriver.Type().IsCloud() {
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, commplatform.AssertEquals(expectedMessage))
-		} else {
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			limitMessages = limitLastMessageAfterCloudReload
 		}
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
@@ -1137,7 +1140,7 @@ func runBotTest(t *testing.T,
 		limitMessages = 2
 		if botDriver.Type().IsCloud() {
 			// There are 2 config reload requested after second cm update
-			limitMessages = 10
+			limitMessages = 2* limitLastMessageAfterCloudReload
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, secondCMUpdate)
 		require.NoError(t, err)

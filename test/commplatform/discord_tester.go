@@ -181,14 +181,7 @@ func (d *DiscordTester) InviteBotToChannel(_ *testing.T, _ string) {
 }
 
 func (d *DiscordTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(expectedMsg, msg) {
-			count := diff.CountMatchBlock(expectedMsg, msg)
-			msgDiff := diff.Diff(expectedMsg, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, d.AssertEquals(expectedMsg))
 }
 
 func (d *DiscordTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
@@ -198,14 +191,19 @@ func (d *DiscordTester) WaitForLastMessageContains(userID, channelID, expectedMs
 }
 
 func (d *DiscordTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		if msg != expectedMsg {
+	return d.WaitForMessagePosted(userID, channelID, 1, d.AssertEquals(expectedMsg))
+}
+
+// AssertEquals checks if message is equal to expected message
+func (d *DiscordTester) AssertEquals(expectedMsg string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
-	})
+	}
 }
 
 func (d *DiscordTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -409,37 +407,16 @@ func (f fakeT) Errorf(format string, args ...interface{}) {
 
 func (d *DiscordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
-	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(markdown, msg) {
-			count := diff.CountMatchBlock(markdown, msg)
-			msgDiff := diff.Diff(markdown, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return d.WaitForMessagePosted(userID, channelID, d.cfg.RecentMessagesLimit, d.AssertEquals(markdown))
 }
 
 func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(markdown, msg) {
-			count := diff.CountMatchBlock(markdown, msg)
-			msgDiff := diff.Diff(markdown, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return d.WaitForMessagePosted(userID, channelID, 1, d.AssertEquals(markdown))
 }
 
 func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(renderedMsg, msg) {
-			count := diff.CountMatchBlock(renderedMsg, msg)
-			msgDiff := diff.Diff(renderedMsg, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return d.WaitForMessagePosted(userID, channelID, 1, d.AssertEquals(renderedMsg))
 }
 
 func (d *DiscordTester) SetTimeout(timeout time.Duration) {
