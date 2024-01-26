@@ -33,7 +33,7 @@ func IsCompatible(botkubeVersionConstraintsStr string, botkubeVersionStr string)
 
 	botkubeVersion, err := semver.NewVersion(botkubeVersionStr)
 	if err != nil {
-		return false, fmt.Errorf("unable to parse botkube version %s as semver: %w", botkubeVersion, err)
+		return false, fmt.Errorf("unable to parse Botkube version %q as semver: %w", botkubeVersion, err)
 	}
 
 	return constraint.Check(botkubeVersion), nil
