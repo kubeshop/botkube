@@ -71,7 +71,7 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	t.Logf("Found version: %s", latestVersion)
 
 	helmOpts := params.ToOptions(latestVersion)
-	t.Logf("Installing chart %s with command %s", params.Name, helmOpts)
+	t.Logf("Installing chart %s with parameters %+v", params.Name, helmOpts)
 	//nolint:gosec // this is not production code
 	cmd = exec.Command("helm", helmOpts...)
 	installOutput, err := cmd.CombinedOutput()
