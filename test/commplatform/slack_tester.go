@@ -146,7 +146,7 @@ func (s *SlackTester) TesterUserID() string {
 	return s.testerUserID
 }
 
-func (s *SlackTester) Channel() Channel {
+func (s *SlackTester) FirstChannel() Channel {
 	return s.channel
 }
 
@@ -204,7 +204,7 @@ func (s *SlackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg str
 // AssertEquals checks if message is equal to expected message
 func (s *SlackTester) AssertEquals(expectedMsg string) MessageAssertion {
 	return func(msg string) (bool, int, string) {
-		msg = formatx.RemoveHyperlinks(msg)                                  // normalize the message URLs
+		msg = formatx.RemoveHyperlinks(msg) // normalize the message URLs
 		//msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
 		msg = strings.ReplaceAll(msg, slackInteractiveElementsMsgSuffix, "") // remove interactive elements suffix
 		if !strings.EqualFold(expectedMsg, msg) {

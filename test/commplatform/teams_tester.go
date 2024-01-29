@@ -53,8 +53,9 @@ type TeamsConfig struct {
 	BotTesterAppID       string
 	BotTesterAppPassword string
 
-	OrganizationTenantID string
-	OrganizationTeamID   string
+	OrganizationTenantID        string
+	OrganizationTeamID          string
+	OrganizationGeneralThreadID string `envconfig:"default=19:R0qJu_rs0Ib3ceRjQ_UkwUXXOXcVfQmf5ZlV21v8L741@thread.tacv2"`
 }
 
 type TeamsChannel struct {
@@ -89,13 +90,15 @@ func (s *TeamsTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, cl
 }
 
 func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) {
-	teamsCli, err := msteamsx.New(teamsCfg.BotTesterAppID, teamsCfg.BotTesterAppPassword, teamsCfg.OrganizationTenantID)
+	teamsCli, err := msteamsx.NewClient(teamsCfg.BotTesterName, teamsCfg.BotTesterAppID, teamsCfg.BotTesterAppPassword, teamsCfg.OrganizationTenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	pubSubClient, err := pubsub.New(context.Background(), false)
-
+	if err != nil {
+		return nil, err
+	}
 	return &TeamsTester{
 		cli:                  teamsCli,
 		cfg:                  teamsCfg,
@@ -104,16 +107,6 @@ func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) 
 		renderer:             teamsx.NewMessageRendererAdapter(loggerx.NewNoop(), teamsCfg.BotTesterAppID, teamsCfg.BotDevName),
 		agentActivityMessage: make(chan *pb.AgentActivity, platformMessageChannelSize),
 	}, nil
-}
-
-// Shutdown performs the shutdown of the dispatcher.
-func (s *TeamsTester) Shutdown() error {
-	//s.log.Info("Shutting down event dispatcher...")
-	err := s.pubSubClient.Instance.Close()
-	if err != nil {
-		return errx.Wrap(err, "while closing pub/sub instance")
-	}
-	return nil
 }
 
 // AgentEvent is the event being sent by Agent either as a new notification or executor response.
@@ -147,12 +140,15 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 }
 
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
-	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
-	assert.NoError(t, err)
-	for _, i := range channels {
-		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
-		assert.NoError(t, err)
-	}
+	t.Helper()
+
+	//channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
+	//assert.NoError(t, err)
+	//for _, i := range channels {
+	//	err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
+	//	assert.NoError(t, err)
+	//}
+
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel
 
@@ -185,7 +181,7 @@ func (s *TeamsTester) TesterUserID() string {
 	return s.cfg.BotTesterName
 }
 
-func (s *TeamsTester) Channel() Channel {
+func (s *TeamsTester) FirstChannel() Channel {
 	return s.firstChannel
 }
 
@@ -216,7 +212,7 @@ func (s *TeamsTester) PostInitialMessage(t *testing.T, channelName string) {
 
 func (s *TeamsTester) PostMessageToBot(t *testing.T, channel, command string) {
 	ctx := context.Background()
-	msgText := fmt.Sprintf("<at>%s</at> %s", s.cfg.BotDevName, command)
+	msgText := fmt.Sprintf("%s %s", s.BotName(), command)
 	activity := schema.Activity{
 		Type:       schema.Message,
 		ServiceURL: serviceURL,
@@ -230,7 +226,7 @@ func (s *TeamsTester) PostMessageToBot(t *testing.T, channel, command string) {
 				"id": channel,
 			},
 			"team": map[string]string{
-				"id": "19:R0qJu_rs0Ib3ceRjQ_UkwUXXOXcVfQmf5ZlV21v8L741@thread.tacv2",
+				"id": s.cfg.OrganizationGeneralThreadID,
 			},
 		},
 		From: schema.ChannelAccount{
@@ -239,7 +235,6 @@ func (s *TeamsTester) PostMessageToBot(t *testing.T, channel, command string) {
 		},
 	}
 
-	//  message
 	err := s.cli.SendMessage(ctx, channel, msgText)
 	assert.NoError(t, err)
 	err = s.publishBotActivityIntoPubSub(t, ctx, activity)
@@ -250,50 +245,11 @@ func (s *TeamsTester) InviteBotToChannel(t *testing.T, channelID string) {
 	t.Logf("No need to invite bot for channel %q since bot is added in Team level...", channelID)
 }
 
-// FIXME: Valid ones
-
-func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	// TODO: unify with InteractivePosted
-	msg := api.NewPlaintextMessage(expectedMsg, false)
-	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: msg}, s.cfg.BotDevName)
-	card.MsTeams.Entities = nil
-
-	expMsg, err := json.Marshal(card)
-	if err != nil {
-		return err
-	}
-	opts := jsondiff.DefaultConsoleOptions()
-	opts.SkipMatches = true
-	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "<at>", "", "</at>", "").Replace(msg)
-		ok, msgDiff := jsondiff.Compare(expMsg, []byte(gotMsg), ptr.FromType(opts))
-		if ok != jsondiff.FullMatch {
-			return false, 1, msgDiff
-		}
-
-		return true, 0, ""
-	})
-}
-
 func (s *TeamsTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
 	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
 		msg, expectedMsgSubstring = NormalizeTeamsWhitespacesInMessages(msg, expectedMsgSubstring)
 		return strings.Contains(msg, expectedMsgSubstring), 0, ""
 	})
-}
-
-// NormalizeTeamsWhitespacesInMessages normalizes messages, as the Teams renderer uses different line breaks in order to make the message
-// more readable. It's hard to come up with a single message that matches all our communication platforms so
-// this makes sure that we're normalizing the message to a single line break.
-//
-// We can consider enchantment in the future, and replace the expectedMsg string with api.Message to allow using dedicated MD renderers in each platform.
-func NormalizeTeamsWhitespacesInMessages(got, exp string) (string, string) {
-	got = strings.ReplaceAll(got, "\n\n", "\n")
-	got = strings.ReplaceAll(got, "\n\n\n", "\n")
-
-	exp = strings.ReplaceAll(exp, "\n\n", "\n")
-	exp = strings.ReplaceAll(exp, "\n\n\n", "\n")
-	return got, exp
 }
 
 func (s *TeamsTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
@@ -305,27 +261,18 @@ func (s *TeamsTester) WaitForLastMessageEqual(userID, channelID, expectedMsg str
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, s.AssertEquals(expectedMsg))
 }
 
-// AssertEquals checks if message is equal to expected message.
-func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
-	return func(msg string) (bool, int, string) {
-		msg, expectedMsg = NormalizeTeamsWhitespacesInMessages(msg, expectedMsg)
-
-		if !strings.EqualFold(expectedMsg, msg) {
-			count := diff.CountMatchBlock(expectedMsg, msg)
-			msgDiff := diff.Diff(expectedMsg, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	}
-}
-
 func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, assertFn)
 }
 
+func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
+	msg := api.NewPlaintextMessage(expectedMsg, false)
+	return s.waitForAdaptiveCardMessage(userID, channelID, s.cfg.RecentMessagesLimit, interactive.CoreMessage{Message: msg})
+}
+
 func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	var (
-		fetchedMessages []msteamsx.MsTeamsMessage
+		fetchedMessages []msteamsx.Message
 		diffMessage     string
 		lastErr         error
 	)
@@ -374,14 +321,8 @@ func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 	return nil
 }
 
-// FIXME: Valid ones  -- end
-
-func (s *TeamsTester) WaitForMessagePostedWithFileUpload(_, _ string, _ FileUploadAssertion) error {
-	return errors.New("not implemented")
-}
-
 func (s *TeamsTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, expAttachment ExpAttachmentInput) error {
-	// for now we don't compare times
+	// for now, we don't compare times
 	expAttachment.Message.Timestamp = time.Time{}
 
 	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(interactive.CoreMessage{Message: expAttachment.Message}, s.cfg.BotDevName)
@@ -391,34 +332,12 @@ func (s *TeamsTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 	if err != nil {
 		return err
 	}
-	opts := jsondiff.DefaultConsoleOptions()
-	opts.SkipMatches = true
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
-		gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "</at>", "", "<at>", "").Replace(msg)
-		gotMsg, err := filterDatesObjects(gotMsg)
+		gotMsg, err := filterDatesObjects(msg)
 		if err != nil {
 			return false, 1, err.Error()
 		}
-		ok, msgDiff := jsondiff.Compare(expMsg, []byte(gotMsg), ptr.FromType(opts))
-		switch ok {
-		// SupersetMatch is used as sometimes we sent more details than is returned by Teams API, e.g.:
-		// we sent:
-		// 				{
-		//					"type": "TableColumnDefinition",
-		//					"width": 1,
-		//					"horizontalCellContentAlignment": "left",
-		//					"verticalCellContentAlignment": "bottom"
-		//				}
-		// while API returns:
-		// 				{
-		//					"verticalCellContentAlignment": "bottom",
-		//					"width": 1
-		//				}
-		case jsondiff.FullMatch, jsondiff.SupersetMatch:
-			return true, 0, ""
-		default:
-			return false, 1, msgDiff
-		}
+		return s.assertJSONEqual(expMsg, gotMsg)
 	})
 }
 
@@ -431,6 +350,10 @@ func (s *TeamsTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 }
 
 func (s *TeamsTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(_, _, _ string) error {
+	return errors.New("not implemented")
+}
+
+func (s *TeamsTester) WaitForMessagePostedWithFileUpload(_, _ string, _ FileUploadAssertion) error {
 	return errors.New("not implemented")
 }
 
@@ -464,7 +387,33 @@ func (s *TeamsTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 	return &TeamsChannel{id: channelID, name: channelName}, cleanupFn
 }
 
-// private
+// AssertEquals checks if message is equal to expected message.
+func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		msg, expectedMsg = NormalizeTeamsWhitespacesInMessages(msg, expectedMsg)
+
+		if !strings.EqualFold(expectedMsg, msg) {
+			count := diff.CountMatchBlock(expectedMsg, msg)
+			msgDiff := diff.Diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+		return true, 0, ""
+	}
+}
+
+// NormalizeTeamsWhitespacesInMessages normalizes messages, as the Teams renderer uses different line breaks in order to make the message
+// more readable. It's hard to come up with a single message that matches all our communication platforms so
+// this makes sure that we're normalizing the message to a single line break.
+//
+// We can consider enchantment in the future, and replace the expectedMsg string with api.Message to allow using dedicated MD renderers in each platform.
+func NormalizeTeamsWhitespacesInMessages(got, exp string) (string, string) {
+	got = strings.ReplaceAll(got, "\n\n", "\n")
+	got = strings.ReplaceAll(got, "\n\n\n", "\n")
+
+	exp = strings.ReplaceAll(exp, "\n\n", "\n")
+	exp = strings.ReplaceAll(exp, "\n\n\n", "\n")
+	return got, exp
+}
 
 func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limitMessages int, msg interactive.CoreMessage) error {
 	_, card, _ := s.renderer.RenderCoreMessageCardAndOptions(msg, s.cfg.BotDevName)
@@ -474,32 +423,36 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 	if err != nil {
 		return err
 	}
+	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
+		return s.assertJSONEqual(expMsg, msg)
+	})
+}
+
+func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string) {
 	opts := jsondiff.DefaultConsoleOptions()
 	opts.SkipMatches = true
-	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
-		gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "</at>", "", "<at>", "").Replace(msg)
+	gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "<at>", "", "</at>", "").Replace(got)
 
-		ok, msgDiff := jsondiff.Compare(expMsg, []byte(gotMsg), ptr.FromType(opts))
-		switch ok {
-		// SupersetMatch is used as sometimes we sent more details than is returned by Teams API, e.g.:
-		// we send:
-		// 				{
-		//					"type": "TableColumnDefinition",
-		//					"width": 1,
-		//					"horizontalCellContentAlignment": "left",
-		//					"verticalCellContentAlignment": "bottom"
-		//				}
-		// while API returns:
-		// 				{
-		//					"verticalCellContentAlignment": "bottom",
-		//					"width": 1
-		//				}
-		case jsondiff.FullMatch, jsondiff.SupersetMatch:
-			return true, 0, ""
-		default:
-			return false, 1, msgDiff
-		}
-	})
+	diffType, diffMsg := jsondiff.Compare(exp, []byte(gotMsg), ptr.FromType(opts))
+	switch diffType {
+	// SupersetMatch is used as sometimes we sent more details than is returned by Teams API, e.g.:
+	// we sent:
+	// 				{
+	//					"type": "TableColumnDefinition",
+	//					"width": 1,
+	//					"horizontalCellContentAlignment": "left",
+	//					"verticalCellContentAlignment": "bottom"
+	//				}
+	// while API returns:
+	// 				{
+	//					"verticalCellContentAlignment": "bottom",
+	//					"width": 1
+	//				}
+	case jsondiff.FullMatch, jsondiff.SupersetMatch:
+		return true, 0, ""
+	default:
+		return false, 1, diffMsg
+	}
 }
 
 func filterDatesObjects(adaptiveCard string) (string, error) {

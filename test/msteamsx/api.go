@@ -6,14 +6,13 @@ import (
 	"strings"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
-	"github.com/infracloudio/msbotbuilder-go/core"
-	"github.com/infracloudio/msbotbuilder-go/core/activity"
-	"github.com/infracloudio/msbotbuilder-go/schema"
 	msgraphsdkgo "github.com/microsoftgraph/msgraph-sdk-go"
 	graphmodels "github.com/microsoftgraph/msgraph-sdk-go/models"
 	"github.com/microsoftgraph/msgraph-sdk-go/teams"
-	"github.com/pkg/errors"
 
+	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/teamsx"
+	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
@@ -21,44 +20,38 @@ const (
 	serviceURL = "https://smba.trafficmanager.net/teams/"
 )
 
+// Client is a client for bot and MS Graph API.
 type Client struct {
-	Cli   *msgraphsdkgo.GraphServiceClient
-	bot   *core.BotFrameworkAdapter
-	appID string
+	graphCLI *msgraphsdkgo.GraphServiceClient
+	bot      *teamsx.Bot
 }
 
-func New(appID, appPassword, tenantID string) (*Client, error) {
-	msGraphAPICli := NewGraphAPIClientGetter(appID, appPassword)
+func NewClient(appName, appID, appPassword, tenantID string) (*Client, error) {
+	bot, err := teamsx.NewBot(loggerx.NewNoop(), teamsx.BotConfig{
+		AppID:       appID,
+		AppPassword: appPassword,
+		AppName:     appName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	msGraphAPICli := teamsx.NewGraphAPIClientGetter(appID, appPassword)
 
 	cli, err := msGraphAPICli.GetForTenant(tenantID)
 	if err != nil {
-		return nil, errors.Wrap(err, "while creating MS Graph API Client")
+		return nil, fmt.Errorf("while creating MS Graph API Client: %w", err)
 	}
 
-	msBot, err := core.NewBotAdapter(core.AdapterSetting{
-		AppID:       appID,
-		AppPassword: appPassword,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "while creating Bot Adapter Client")
-	}
-	bot, ok := msBot.(*core.BotFrameworkAdapter)
-	if !ok {
-		return nil, errors.New("invalid bot type")
-	}
-	return &Client{Cli: cli, appID: appID, bot: bot}, nil
+	return &Client{graphCLI: cli, bot: bot}, nil
 }
 
 func (c *Client) CreateChannel(ctx context.Context, teamID, channelName string) (string, error) {
 	requestBody := graphmodels.NewChannel()
-	displayName := channelName
-	requestBody.SetDisplayName(&displayName)
-	description := "Temp channel for Botkube CI Testing"
-	requestBody.SetDescription(&description)
-	membershipType := graphmodels.STANDARD_CHANNELMEMBERSHIPTYPE
-	requestBody.SetMembershipType(&membershipType)
+	requestBody.SetDisplayName(ptr.FromType(channelName))
+	requestBody.SetDescription(ptr.FromType("Temp channel for Botkube CI Testing"))
+	requestBody.SetMembershipType(ptr.FromType(graphmodels.STANDARD_CHANNELMEMBERSHIPTYPE))
 
-	resp, err := c.Cli.Teams().ByTeamId(teamID).Channels().Post(ctx, requestBody, nil)
+	resp, err := c.graphCLI.Teams().ByTeamId(teamID).Channels().Post(ctx, requestBody, nil)
 	if err != nil {
 		return "", err
 	}
@@ -66,11 +59,11 @@ func (c *Client) CreateChannel(ctx context.Context, teamID, channelName string) 
 }
 
 func (c *Client) DeleteChannel(ctx context.Context, teamID, channelID string) error {
-	return c.Cli.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Delete(ctx, nil)
+	return c.graphCLI.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Delete(ctx, nil)
 }
 
 func (c *Client) GetChannels(ctx context.Context, teamID string) ([]string, error) {
-	channels, err := c.Cli.Teams().ByTeamId(teamID).Channels().Get(ctx, nil)
+	channels, err := c.graphCLI.Teams().ByTeamId(teamID).Channels().Get(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -85,56 +78,30 @@ func (c *Client) GetChannels(ctx context.Context, teamID string) ([]string, erro
 }
 
 func (c *Client) SendMessage(ctx context.Context, convID, msg string) error {
-	var msgOpts []activity.MsgOption
-	msgOpts = append(msgOpts, activity.MsgOptionText(msg))
-	ref := c.getConvReference(serviceURL, convID)
-	return c.bot.ProactiveMessage(ctx, ref, activity.HandlerFuncs{
-		OnMessageFunc: func(turn *activity.TurnContext) (schema.Activity, error) {
-			return turn.SendActivity(msgOpts...)
-		},
-	})
+	plain := api.NewPlaintextMessage(msg, false)
+	return c.bot.PostMessage(ctx, teamsx.WithMessage(plain), teamsx.WithServiceURLAndConvID(serviceURL, convID))
 }
 
-const channelID = "msteams"
-
-func (c *Client) applyConversationReference(activity schema.Activity, reference schema.ConversationReference) schema.Activity {
-	activity.ID = reference.ActivityID
-	activity.Conversation = reference.Conversation
-	activity.ChannelID = channelID
-
-	activity.ServiceURL = reference.ServiceURL
-	if activity.ServiceURL == "" {
-		activity.ServiceURL = serviceURL
-	}
-
-	//activity.Recipient = reference.User
-	//activity.From = schema.ChannelAccount{
-	//	ID:   fmt.Sprintf("%s%s", botPrefix, p.appID),
-	//	Name: p.botName,
-	//}
-
-	return activity
-}
-func (c *Client) GetMessages(ctx context.Context, teamID, channelID string, pageSize int) ([]MsTeamsMessage, error) {
+func (c *Client) GetMessages(ctx context.Context, teamID, channelID string, pageSize int) ([]Message, error) {
 	query := teams.ItemChannelsItemMessagesRequestBuilderGetQueryParameters{
 		Top: ptr.FromType(int32(pageSize)),
 	}
 	options := teams.ItemChannelsItemMessagesRequestBuilderGetRequestConfiguration{
 		QueryParameters: &query,
 	}
-	msgs, err := c.Cli.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Messages().Get(ctx, &options)
+	msgs, err := c.graphCLI.Teams().ByTeamId(teamID).Channels().ByChannelId(channelID).Messages().Get(ctx, &options)
 	if err != nil {
 		return nil, err
 	}
-	var messages []MsTeamsMessage
+	var messages []Message
 	for _, t := range msgs.GetValue() {
-		messages = append(messages, MsTeamsMessage{Raw: t, Rendered: c.MessageFrom(t)})
+		messages = append(messages, Message{Raw: t, Rendered: c.messageFrom(t)})
 	}
 
 	return messages, nil
 }
 
-func (c *Client) MessageFrom(msg graphmodels.ChatMessageable) string {
+func (c *Client) messageFrom(msg graphmodels.ChatMessageable) string {
 	var msgTexts []string
 
 	for _, a := range msg.GetAttachments() {
@@ -158,21 +125,7 @@ func (c *Client) MessageFrom(msg graphmodels.ChatMessageable) string {
 	return strings.Join(msgTexts, "\n")
 }
 
-func (c *Client) getConvReference(url, conversationID string) schema.ConversationReference {
-	return schema.ConversationReference{
-		User: schema.ChannelAccount{
-			ID:   fmt.Sprintf("%s%s", "28:", "82ecdc81-8380-420e-9df5-7d6f85196631"),
-			Name: "BotkubeDev",
-		},
-		Conversation: schema.ConversationAccount{
-			ID: conversationID,
-		},
-		ChannelID:  "msteams",
-		ServiceURL: url,
-	}
-}
-
-type MsTeamsMessage struct {
+type Message struct {
 	Raw      graphmodels.ChatMessageable
 	Rendered string
 }

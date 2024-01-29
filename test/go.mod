@@ -4,7 +4,6 @@ go 1.21.6
 
 require (
 	cloud.google.com/go/pubsub v1.35.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/JohannesKaufmann/html-to-markdown v1.5.0
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/anthhub/forwarder v1.1.0
@@ -42,6 +41,7 @@ require (
 	cloud.google.com/go/storage v1.36.0 // indirect
 	github.com/99designs/gqlgen v0.17.31 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.1 // indirect
@@ -70,7 +70,6 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/getsentry/sentry-go v0.15.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
@@ -236,5 +235,5 @@ require (
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
 	github.com/kubeshop/botkube => ./..
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240125114458-c3877799ac8b
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240129114748-2df001dcc99c
 )

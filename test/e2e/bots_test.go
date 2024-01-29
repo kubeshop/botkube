@@ -133,7 +133,6 @@ var (
 )
 
 func TestSlack(t *testing.T) {
-	return
 	t.Log("Loading configuration...")
 	var appCfg Config
 	err := envconfig.Init(&appCfg)
@@ -150,7 +149,6 @@ func TestSlack(t *testing.T) {
 }
 
 func TestDiscord(t *testing.T) {
-	return
 	t.Log("Loading configuration...")
 	var appCfg Config
 	err := envconfig.Init(&appCfg)
@@ -226,14 +224,15 @@ func runBotTest(t *testing.T,
 	t.Logf("Setting up test %s setup...", driverType)
 	botDriver.InitUsers(t)
 
-	botDriver.InitChannels(t)
-	//cleanUpChannels := botDriver.InitChannels(t)
-	//for _, fn := range cleanUpChannels {
-	//	t.Cleanup(fn)
-	//}
+	cleanUpChannels := botDriver.InitChannels(t)
+	if botDriver.Type() != commplatform.TeamsBot {
+		for _, fn := range cleanUpChannels {
+			t.Cleanup(fn)
+		}
+	}
 
 	channels := map[string]commplatform.Channel{
-		deployEnvChannelIDName:          botDriver.Channel(),
+		deployEnvChannelIDName:          botDriver.FirstChannel(),
 		deployEnvSecondaryChannelIDName: botDriver.SecondChannel(),
 		deployEnvRbacChannelIDName:      botDriver.ThirdChannel(),
 	}
@@ -255,8 +254,8 @@ func runBotTest(t *testing.T,
 	case commplatform.SlackBot:
 		t.Log("Creating Botkube Cloud instance...")
 		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
-		appCfg.ClusterName = botDriver.Channel().Name()
-		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, botDriver.Channel().Name(), botDriver.SecondChannel().Name(), botDriver.ThirdChannel().Name())
+		appCfg.ClusterName = botDriver.FirstChannel().Name()
+		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, botDriver.FirstChannel().Name(), botDriver.SecondChannel().Name(), botDriver.ThirdChannel().Name())
 		for _, alias := range aliases {
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
@@ -298,8 +297,8 @@ func runBotTest(t *testing.T,
 	case commplatform.TeamsBot:
 		t.Log("Creating Botkube Cloud instance...")
 		gqlCli := NewClientForAPIKey(appCfg.ConfigProvider.Endpoint, appCfg.ConfigProvider.ApiKey)
-		appCfg.ClusterName = botDriver.Channel().Name()
-		deployment := gqlCli.MustCreateBasicDeploymentWithCloudTeams(t, appCfg.ClusterName, appCfg.Teams.OrganizationTeamID, botDriver.Channel().ID(), botDriver.SecondChannel().ID(), botDriver.ThirdChannel().ID())
+		appCfg.ClusterName = botDriver.FirstChannel().Name()
+		deployment := gqlCli.MustCreateBasicDeploymentWithCloudTeams(t, appCfg.ClusterName, appCfg.Teams.OrganizationTeamID, botDriver.FirstChannel().ID(), botDriver.SecondChannel().ID(), botDriver.ThirdChannel().ID())
 		for _, alias := range aliases {
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
@@ -336,7 +335,7 @@ func runBotTest(t *testing.T,
 
 		t.Cleanup(func() {
 			t.Log("Uninstalling Helm chart...")
-			//botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
 			botkubeDeploymentUninstalled = true
 		})
 	}
@@ -352,13 +351,13 @@ func runBotTest(t *testing.T,
 	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
 	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
-		botDriver.Channel().ID(),
+		botDriver.FirstChannel().ID(),
 		expMessage,
 	)
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message in channel...")
-	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.Channel().ID(), fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
+	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
 	require.NoError(t, err)
 
 	t.Log("Running actual test cases")
@@ -368,8 +367,8 @@ func runBotTest(t *testing.T,
 		expandedCommand := "ping"
 		expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", expandedCommand, appCfg.ClusterName)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
-		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), aliasedCommand)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -377,9 +376,9 @@ func runBotTest(t *testing.T,
 		command := "help"
 		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
 		botDriver.ReplaceBotNamePlaceholder(&expectedMessage, appCfg.ClusterName)
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
-			botDriver.Channel().ID(),
+			botDriver.FirstChannel().ID(),
 			expectedMessage,
 		)
 
@@ -392,8 +391,8 @@ func runBotTest(t *testing.T,
 			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 		t.Run("Echo Executor success using alias", func(t *testing.T) {
@@ -403,8 +402,8 @@ func runBotTest(t *testing.T,
 			expectedBody := codeBlock(strings.ToUpper("echo alias"))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(expandedCommand), expectedBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), aliasedCommand)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 		t.Run("Echo Executor failure", func(t *testing.T) {
@@ -412,14 +411,14 @@ func runBotTest(t *testing.T,
 			expectedBody := codeBlock("The @fail label was specified. Failing execution.")
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Echo Executor help", func(t *testing.T) {
 			command := "echo help"
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			expectedBody := ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
 			if botDriver.Type() == commplatform.SlackBot {
@@ -474,8 +473,8 @@ func runBotTest(t *testing.T,
 				expectedMessage = fmt.Sprintf("%s %s", cmdHeader(command), expectedBody)
 			}
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -510,8 +509,8 @@ func runBotTest(t *testing.T,
 			if botDriver.Type() == commplatform.SlackBot {
 				expectedMessage = fmt.Sprintf("%s %s", cmdHeader(command), expectedBody)
 			}
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err := botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -538,7 +537,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.Channel().ID(), expectedMsg)
+			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
 
@@ -570,7 +569,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("*Incoming webhook event:* %s", message)
 
-			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.Channel().ID(), expectedMsg)
+			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
 	})
@@ -581,8 +580,8 @@ func runBotTest(t *testing.T,
 			expectedFilteredBody := codeBlock(heredoc.Doc(`cacheDir: /tmp`))
 			expectedMessage := fmt.Sprintf("`show config --filter=cacheDir --cluster-name %s` on `%s`\n%s", appCfg.ClusterName, appCfg.ClusterName, expectedFilteredBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
@@ -591,15 +590,15 @@ func runBotTest(t *testing.T,
 			expectedFilteredBody := codeBlock(heredoc.Doc(`cacheDir: /tmp`))
 			expectedMessage := fmt.Sprintf("`show config --filter=cacheDir` on `%s`\n%s", appCfg.ClusterName, expectedFilteredBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("With unknown cluster name", func(t *testing.T) {
 			command := "show config --cluster-name non-existing"
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 			expMessage := "Instance not found"
 			userId := botDriver.BotUserID()
 
@@ -611,7 +610,7 @@ func runBotTest(t *testing.T,
 			}
 
 			// Same expected message as before
-			err = botDriver.WaitForLastMessageContains(userId, botDriver.Channel().ID(), expMessage)
+			err = botDriver.WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
 			assert.NoError(t, err)
 		})
 	})
@@ -640,8 +639,8 @@ func runBotTest(t *testing.T,
 				return hasValidHeader(command, msg) && strings.Contains(msg, "botkube"), 0, ""
 			}
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
@@ -651,8 +650,8 @@ func runBotTest(t *testing.T,
 				return hasValidHeader(command, msg) && strings.Contains(msg, "botkube"), 0, ""
 			}
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
@@ -668,8 +667,8 @@ func runBotTest(t *testing.T,
 				}
 			}
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, func(msg string) (bool, int, string) {
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, func(msg string) (bool, int, string) {
 				return hasValidHeader(command, msg) && assertConfigMaps(msg), 0, ""
 			})
 			assert.NoError(t, err)
@@ -683,8 +682,8 @@ func runBotTest(t *testing.T,
 					!strings.Contains(msg, "botkube-global-config"), 0, ""
 			}
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 
@@ -696,14 +695,14 @@ func runBotTest(t *testing.T,
 			fileUploadAssertionFn := func(title, mimetype string) bool {
 				return title == "Response.txt" && strings.Contains(mimetype, "text/plain")
 			}
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForMessagePostedWithFileUpload(botDriver.BotUserID(), botDriver.Channel().ID(), fileUploadAssertionFn)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePostedWithFileUpload(botDriver.BotUserID(), botDriver.FirstChannel().ID(), fileUploadAssertionFn)
 			assert.NoError(t, err)
 
 			assertionFn := func(msg string) (bool, int, string) {
 				return hasValidHeader(command, msg), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
@@ -713,7 +712,7 @@ func runBotTest(t *testing.T,
 
 				exit status 1`)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			err := waitForLastCodeBlockMessageWithHeaderEqual(appCfg, botDriver, command, expectedBody)
 			assert.NoError(t, err)
@@ -723,15 +722,15 @@ func runBotTest(t *testing.T,
 			expectedBody := codeBlock("Command not supported. Please use 'help' to see supported commands.")
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 		})
 
 		t.Run("Specify invalid command", func(t *testing.T) {
 			command := "kubectl get"
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			err := waitForLastCodeBlockMessageWithHeaderEqual(appCfg, botDriver, command, invalidCmdTemplate)
 			assert.NoError(t, err)
@@ -744,7 +743,7 @@ func runBotTest(t *testing.T,
 
 				exit status 1`)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			err := waitForLastCodeBlockMessageWithHeaderEqual(appCfg, botDriver, command, expectedBody)
 			assert.NoError(t, err)
@@ -756,8 +755,8 @@ func runBotTest(t *testing.T,
 				expectedBody := codeBlock(`The "wait" command is not supported by the Botkube kubectl plugin.`)
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-				err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+				botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+				err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 				assert.NoError(t, err)
 			})
 
@@ -769,7 +768,7 @@ func runBotTest(t *testing.T,
 				exit status 1`))
 				expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+				botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 				podName, err := regexp.Compile(`"botkube-.*-.*" is`)
 				assert.NoError(t, err)
@@ -791,7 +790,7 @@ func runBotTest(t *testing.T,
 					}
 					return true, 0, ""
 				}
-				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 				assert.NoError(t, err)
 			})
 
@@ -804,7 +803,7 @@ func runBotTest(t *testing.T,
 
 				exit status 1`)
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
+				botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), aliasedCommand)
 				err := waitForLastCodeBlockMessageWithHeaderEqual(appCfg, botDriver, expandedCommand, expectedBody)
 				assert.NoError(t, err)
 			})
@@ -819,8 +818,8 @@ func runBotTest(t *testing.T,
 						strings.Contains(msg, "botkube"), 0, ""
 				}
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCommand)
-				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), aliasedCommand)
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 				assert.NoError(t, err)
 			})
 		})
@@ -834,8 +833,8 @@ func runBotTest(t *testing.T,
 						hasAllColumns(msg, "NAME", "READY", "STATUS", "RESTART", "AGE"), 0, ""
 				}
 
-				botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), aliasedCmd)
-				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+				botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), aliasedCmd)
+				err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 				assert.NoError(t, err)
 			})
 		}
@@ -867,13 +866,6 @@ func runBotTest(t *testing.T,
 
 		limitMessages := 1
 		if botDriver.Type().IsCloud() {
-			// Which means, we need to wait for 5 messages in total.
-			// 1. Brace yourselves, incoming notifications from cluster '{name}'.
-			// 2. Configuration reload requested for cluster '{name}'. Hold on a sec...
-			// 3. My watch has ended for cluster '{name}'. See you soon!
-			// 4. My watch begins for cluster '{name}'! :crossed_swords:
-			// 5. Newer version (v1.7.0) of Botkube is available :tada:. Please upgrade Botkube backend.
-			// Which means, we need to wait for 5 messages in total.
 			limitMessages = limitLastMessageAfterCloudReload
 		}
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
@@ -885,7 +877,7 @@ func runBotTest(t *testing.T,
 		var cfgMapAlreadyDeleted bool
 		cfgMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      botDriver.Channel().Name(),
+				Name:      botDriver.FirstChannel().Name(),
 				Namespace: appCfg.Deployment.Namespace,
 				Labels:    configMapLabels,
 			},
@@ -922,7 +914,7 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, expAttachmentIn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, expAttachmentIn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -931,7 +923,7 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap for not watched field...")
@@ -947,13 +939,13 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, expAttachmentIn)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, expAttachmentIn)
 		require.NoError(t, err)
 		limitMessages = 2
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 5, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Updating ConfigMap for observed field...")
@@ -996,13 +988,13 @@ func runBotTest(t *testing.T,
 		expectedBody = codeBlock(fmt.Sprintf("Sure! I won't send you notifications from cluster '%s' here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		limitMessages = 1
 		if botDriver.Type().IsCloud() {
-			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.Channel().ID(), appCfg.ClusterName)
+			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 5, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
@@ -1019,8 +1011,8 @@ func runBotTest(t *testing.T,
 		expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
 		t.Log("Updating ConfigMap once again...")
@@ -1038,7 +1030,7 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		secondCMUpdate := commplatform.ExpAttachmentInput{
@@ -1069,22 +1061,22 @@ func runBotTest(t *testing.T,
 		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		limitMessages = 1
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		if botDriver.Type().IsCloud() {
-			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.Channel().ID(), appCfg.ClusterName)
+			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
 		}
 
 		t.Log("Creating and deleting ignored ConfigMap")
 		ignoredCfgMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-ignored", botDriver.Channel().Name()),
+				Name:      fmt.Sprintf("%s-ignored", botDriver.FirstChannel().Name()),
 				Namespace: appCfg.Deployment.Namespace,
 				Annotations: map[string]string{
 					"botkube.io/disable": "true",
@@ -1102,7 +1094,7 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
 
 		t.Log("Deleting ConfigMap")
@@ -1132,7 +1124,7 @@ func runBotTest(t *testing.T,
 			},
 		}
 		t.Log("Expecting bot message on first channel...")
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, firstCMUpdate)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -1140,7 +1132,7 @@ func runBotTest(t *testing.T,
 		limitMessages = 2
 		if botDriver.Type().IsCloud() {
 			// There are 2 config reload requested after second cm update
-			limitMessages = 2* limitLastMessageAfterCloudReload
+			limitMessages = 2 * limitLastMessageAfterCloudReload
 		}
 		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages, secondCMUpdate)
 		require.NoError(t, err)
@@ -1154,7 +1146,7 @@ func runBotTest(t *testing.T,
 		t.Log("Creating Pod in namespace 'default'. This pod should not be included in recommendations...")
 		podIgnored := &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      botDriver.Channel().Name(),
+				Name:      botDriver.FirstChannel().Name(),
 				Namespace: "default",
 			},
 			Spec: v1.PodSpec{
@@ -1172,13 +1164,13 @@ func runBotTest(t *testing.T,
 		if botDriver.Type().IsCloud() {
 			limitMessages = 5
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), limitMessages, firstCMUpdate)
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages, firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Creating Pod...")
 		pod := &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      botDriver.Channel().Name(),
+				Name:      botDriver.FirstChannel().Name(),
 				Namespace: appCfg.Deployment.Namespace,
 			},
 			Spec: v1.PodSpec{
@@ -1199,7 +1191,7 @@ func runBotTest(t *testing.T,
 		// - message with recommendations from 'k8s-events'
 		// - massage with pod create event from 'k8s-pod-create-events'
 		// - message with kc execution via 'get-created-resource' automation
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 3, commplatform.ExpAttachmentInput{
+		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -1257,13 +1249,13 @@ func runBotTest(t *testing.T,
 					strings.Count(msg, pod.Name) == podNameCount,
 				0, ""
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, automationAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Creating Service...")
 		svc := &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      botDriver.Channel().Name(),
+				Name:      botDriver.FirstChannel().Name(),
 				Namespace: appCfg.Deployment.Namespace,
 				Labels: map[string]string{
 					"app": "e2e-test",
@@ -1287,7 +1279,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// same expected message as before
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 2, automationAssertionFn)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot automation was executed and label created Service...")
@@ -1312,8 +1304,8 @@ func runBotTest(t *testing.T,
 			show-logs-on-error         false    Show logs on error`))
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -1329,8 +1321,8 @@ func runBotTest(t *testing.T,
 			expectedBody = trimRightWhitespace(expectedBody)
 		}
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -1350,21 +1342,20 @@ func runBotTest(t *testing.T,
 			expectedMessage = fmt.Sprintf("%s %s %s", cmdHeader(command), expectedBody, contextMsg)
 		}
 
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 		switch botDriver.Type() {
 		case commplatform.SlackBot, commplatform.DiscordBot:
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 
 		case commplatform.TeamsBot:
 			// in this case of a plain text message, Teams renderer uses Adaptive Cards format
 			// TODO(fix formatting for aliases table): https://github.com/kubeshop/botkube-cloud/issues/752#issuecomment-1908669638
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, func(msg string) (bool, int, string) {
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, func(msg string) (bool, int, string) {
 				return hasAllColumns(msg, "ALIAS", "COMMAND", "DISPLAY NAME"), 0, ""
 			})
 			require.NoError(t, err)
-
 		}
 	})
 
@@ -1379,8 +1370,8 @@ func runBotTest(t *testing.T,
 		}
 
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-		botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err := botDriver.WaitForLastMessageContains(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 	})
 
@@ -1446,7 +1437,7 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			t.Log("Expecting bot event message...")
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.Channel().ID(), 2, commplatform.ExpAttachmentInput{
+			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
 					Type:      api.NonInteractiveSingleSection,
@@ -1576,7 +1567,7 @@ func runBotTest(t *testing.T,
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 3, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, assertionFn)
 			require.NoError(t, err)
 
 			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
@@ -1587,11 +1578,11 @@ func runBotTest(t *testing.T,
 			command := "echo @panic"
 			expectedMessage := "error reading from server"
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 
 			t.Log("Waiting for echo plugin to recover from panic...")
@@ -1601,38 +1592,38 @@ func runBotTest(t *testing.T,
 			expectedBody := codeBlock(strings.ToUpper(command))
 			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
-			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.Channel().ID(), expectedMessage)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+			err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
 			assert.NoError(t, err)
 
 			command = "echo @panic"
 			expectedMessage = "error reading from server"
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 			assertionFn = func(msg string) (bool, int, string) {
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 
 			t.Log("Waiting for plugin manager to deactivate echo plugin...")
 			time.Sleep(appCfg.ShortWaitTimeout)
 			command = "list executors"
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			assertionFn = func(msg string) (bool, int, string) {
 				return strings.Contains(msg, "Deactivated"), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 
 			command = "echo foo"
-			botDriver.PostMessageToBot(t, botDriver.Channel().Identifier(), command)
+			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 			t.Log("Ensuring bot didn't post anything new...")
 
 			assertionFn = func(msg string) (bool, int, string) {
 				return strings.Contains(msg, command), 0, ""
 			}
-			err = botDriver.WaitForMessagePosted(botDriver.TesterUserID(), botDriver.Channel().ID(), 1, assertionFn)
+			err = botDriver.WaitForMessagePosted(botDriver.TesterUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 			assert.NoError(t, err)
 		})
 	})
@@ -1812,12 +1803,12 @@ func waitForLastMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver
 			msg.Message.BaseBody.Plaintext = expectedBody
 		}
 
-		return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), driver.Channel().ID(), msg)
+		return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), driver.FirstChannel().ID(), msg)
 	default:
 		if asCodeBlock {
 			expectedBody = codeBlock(expectedBody)
 		}
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(cmd), expectedBody)
-		return driver.WaitForLastMessageEqual(driver.BotUserID(), driver.Channel().ID(), expectedMessage)
+		return driver.WaitForLastMessageEqual(driver.BotUserID(), driver.FirstChannel().ID(), expectedMessage)
 	}
 }

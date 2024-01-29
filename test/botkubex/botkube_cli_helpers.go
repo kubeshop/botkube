@@ -59,7 +59,7 @@ func Install(t *testing.T, params InstallParams) error {
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return  cmd.Run()
+	return cmd.Run()
 }
 
 func Uninstall(t *testing.T, binaryPath string) {

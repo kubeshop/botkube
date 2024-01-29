@@ -81,7 +81,7 @@ func (d *DiscordTester) TesterUserID() string {
 	return d.testerUserID
 }
 
-func (d *DiscordTester) Channel() Channel {
+func (d *DiscordTester) FirstChannel() Channel {
 	return d.channel
 }
 
