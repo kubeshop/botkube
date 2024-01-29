@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
-	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/test/commplatform"
 	"github.com/kubeshop/botkube/test/helmx"
 )
@@ -164,9 +163,6 @@ func TestBotkubeMigration(t *testing.T) {
 
 		deploy := deployPage.Data[0]
 		assert.Equal(t, appCfg.DeploymentName, deploy.Name)
-
-		fmt.Println(">>> Deploy Plugins")
-		formatx.StructDumper().Dump(deploy.Plugins)
 
 		assertAliases(t, deploy.Aliases)
 		assertPlatforms(t, deploy.Platforms, appCfg, channel.ID())

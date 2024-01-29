@@ -10,7 +10,6 @@ import (
 	"github.com/kubeshop/botkube/internal/ptr"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -93,9 +92,6 @@ func (c *Converter) ConvertPlugins(exec map[string]bkconfig.Executors, sources m
 	if err != nil {
 		return nil, nil
 	}
-
-	fmt.Println(">>> CLI migration executors")
-	formatx.StructDumper().Dump(createExecutors)
 
 	return []*gqlModel.PluginsCreateInput{
 		{

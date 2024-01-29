@@ -19,7 +19,6 @@ import (
 	"github.com/kubeshop/botkube/internal/kubex"
 	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
 	bkconfig "github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -46,9 +45,6 @@ func Run(ctx context.Context, status *printer.StatusPrinter, config []byte, k8sC
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println(">>> InCluster Plugins")
-	formatx.StructDumper().Dump(botkubeClusterConfig.Plugins)
 
 	return migrate(ctx, status, opts, botkubeClusterConfig, k8sCfg, authToken)
 }
