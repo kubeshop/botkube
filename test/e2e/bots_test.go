@@ -343,7 +343,6 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Botkube PluginManagement", func(t *testing.T) {
-		t.Skip()
 		t.Run("Echo Executor success", func(t *testing.T) {
 			command := "echo test"
 			expectedBody := codeBlock(strings.ToUpper(command))
@@ -533,7 +532,6 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Show config", func(t *testing.T) {
-		t.Skip()
 		t.Run("With custom cluster name and filter", func(t *testing.T) {
 			command := fmt.Sprintf("show config --filter=cacheDir --cluster-name %s", appCfg.ClusterName)
 			expectedFilteredBody := codeBlock(heredoc.Doc(`cacheDir: /tmp`))
@@ -575,7 +573,6 @@ func runBotTest(t *testing.T,
 	})
 
 	t.Run("Executor", func(t *testing.T) {
-		t.Skip()
 		hasValidHeader := func(cmd, msg string) bool {
 			if botDriver.Type() == commplatform.TeamsBot {
 				// Teams uses AdaptiveCard and the built-in table format, that's the reason why we can't
