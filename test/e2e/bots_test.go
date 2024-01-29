@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -36,6 +35,7 @@ import (
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
@@ -1695,10 +1695,10 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 	tester.SetTimeout(90 * time.Second)
 	if tester.Type() == commplatform.TeamsBot {
 		tester.SetTimeout(120 * time.Second)
-	} 
+	}
 	// 2, since time to time latest message becomes upgrade message right after begin message
 	expMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", clusterName)
-	
+
 	assertFn := tester.AssertEquals(expMsg)
 	if tester.Type() == commplatform.TeamsBot { // teams sends AdaptiveCard not a plaintext message
 		expMsg = fmt.Sprintf("My watch begins for cluster '%s'!", clusterName)

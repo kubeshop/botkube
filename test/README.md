@@ -9,6 +9,43 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
 ## General prerequisites
 
 - Kubernetes cluster (e.g. local one created with `k3d`)
+- [Configure access to private `botkube-cloud` dependency](#configure-botkube-cloud-dependency-access) 
+
+## Configure `botkube-cloud` dependency access
+
+1. Export the `GOPRIVATE` environment variable:
+
+   ```shell
+   go env -w GOPRIVATE=github.com/kubeshop/botkube-cloud
+   ```
+
+2. Update your global git config file:
+
+   ```text
+   [url "git@github.com:kubeshop/botkube-cloud.git"]
+    insteadOf = https://github.com/kubeshop/botkube-cloud
+   ```
+
+   Alternatively, if you prefer to use:
+
+   ```text
+   [url "git@github.com:"]
+           insteadOf = https://github.com/
+   ```
+
+   > This new section informs Git that any URL starting with https://github.com/ should have that prefix replaced with ssh://git@github.com/ instead. Since Go uses HTTPS by default, this also affects your `go get` commands.
+
+From now on, you can build and run end-to-end tests and update the version in `go.mod` by running:
+
+```shell
+go get -u github.com/kubeshop/botkube-cloud
+```
+
+If you are using IntelliJ, you can define the following environment variable for Go modules:
+
+```shell
+GOPRIVATE=github.com/kubeshop/botkube-cloud
+```
 
 ## Testing Slack
 
@@ -101,44 +138,6 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
 
    ```bash
    export DISCORD_GUILD_ID="{Botkube Discord tester guildID}"
-   ```
-
-## Testing Teams
-
-### Prerequisites
-
-- Botkube bot app configured for a Slack workspace according to the [instruction](https://docs.botkube.io/installation/teams/)
-- Botkube tester app configured according to the [instruction](#configure-tester-teams-bot)
-
-### Configure Tester Teams bot
-
-### Updating botkube-cloud dependency
-
-If you are using IntelliJ you can also define the:
-```shell
-GOPRIVATE=github.com/kubeshop/botkube-cloud
-```
-for Go modules.
-
-1. Export [`GOPRIVATE`](https://goproxy.io/docs/GOPRIVATE-env.html) env:
-   ```shell
-   export GOPRIVATE=github.com/kubeshop/botkube-cloud
-   ```
-2. Update your global git config file:
-   ```text
-   [url "git@github.com:kubeshop/botkube-cloud.git"]
-    insteadOf = https://github.com/kubeshop/botkube-cloud
-   ```
-   or, if you want to use
-   ```
-   [url "git@github.com:"]
-           insteadOf = https://github.com/
-   ```
-	 > This new section tells Git that any URL you use that starts with https://github.com/ should have that prefixed replaced with ssh://git@github.com/ instead. Since Go uses HTTPS by default, this also affects your go get commands.
-
-3. Update version in `go.mod` by running:
-   ```shell
-   GOPRIVATE=github.com/kubeshop/botkube-cloud go get -u github.com/kubeshop/botkube-cloud
    ```
 
 ## Install Botkube

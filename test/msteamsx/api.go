@@ -20,6 +20,11 @@ const (
 	serviceURL = "https://smba.trafficmanager.net/teams/"
 )
 
+type Message struct {
+	Raw      graphmodels.ChatMessageable
+	Rendered string
+}
+
 // Client is a client for bot and MS Graph API.
 type Client struct {
 	graphCLI *msgraphsdkgo.GraphServiceClient
@@ -123,9 +128,4 @@ func (c *Client) messageFrom(msg graphmodels.ChatMessageable) string {
 		}
 	}
 	return strings.Join(msgTexts, "\n")
-}
-
-type Message struct {
-	Raw      graphmodels.ChatMessageable
-	Rendered string
 }

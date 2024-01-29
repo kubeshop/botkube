@@ -179,7 +179,7 @@ func fixConfigStr(actionEnabled bool) string {
 		          notification:
 		            disabled: false
 		actions:
-		  test:
+		  test:	
 		    enabled: %v
 		    command: "test"
 		`, actionEnabled)

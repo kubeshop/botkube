@@ -39,10 +39,10 @@ func TestAliasExecutor_List(t *testing.T) {
 			  ALIAS COMMAND                    DISPLAY NAME
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
+			  kc    kubectl                    
+			  kcn   kubectl -n ns              
+			  kgp   kubectl get pods           
+			  kk    kubectl                    
 			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
@@ -52,14 +52,14 @@ func TestAliasExecutor_List(t *testing.T) {
 			expOutput: heredoc.Doc(`
 			  ALIAS COMMAND                    DISPLAY NAME
 			  g     gh verb -V                 GH verb
-			  h     helm
+			  h     helm                       
 			  hv    helm version               Helm ver
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
+			  kc    kubectl                    
+			  kcn   kubectl -n ns              
+			  kgp   kubectl get pods           
+			  kk    kubectl                    
 			  kv    kubectl version --filter=3 version with filter`),
 		},
 		{
@@ -70,14 +70,14 @@ func TestAliasExecutor_List(t *testing.T) {
 			  ALIAS COMMAND                    DISPLAY NAME
 			  bkh   help                       Botkube Help
 			  g     gh verb -V                 GH verb
-			  h     helm
+			  h     helm                       
 			  hv    helm version               Helm ver
 			  k     kubectl                    k alias
 			  kb    kubectl -n botkube         kubectl for botkube ns
-			  kc    kubectl
-			  kcn   kubectl -n ns
-			  kgp   kubectl get pods
-			  kk    kubectl
+			  kc    kubectl                    
+			  kcn   kubectl -n ns              
+			  kgp   kubectl get pods           
+			  kk    kubectl                    
 			  kv    kubectl version --filter=3 version with filter
 			  p     ping                       Botkube Ping`),
 		},

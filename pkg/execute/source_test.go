@@ -55,10 +55,10 @@ func TestSourceExecutor(t *testing.T) {
 			bindings: []string{"kubectl-team-a", "kubectl-team-b"},
 			expOutput: heredoc.Doc(`
 				SOURCE       ENABLED RESTARTS STATUS  LAST_RESTART
-				botkube/helm true    0/1      Running
-				foo          true    0/1      Running
-				foo/bar      false   0/1      Running
-				kubernetes   true    0/1      Running
+				botkube/helm true    0/1      Running 
+				foo          true    0/1      Running 
+				foo/bar      false   0/1      Running 
+				kubernetes   true    0/1      Running 
 				repo/bar     true    0/1      Running`),
 		},
 		{
@@ -94,7 +94,7 @@ func TestSourceExecutor(t *testing.T) {
 			bindings: []string{"kubectl-team-a", "kubectl-team-b", "plugins"},
 			expOutput: heredoc.Doc(`
 				SOURCE     ENABLED RESTARTS STATUS  LAST_RESTART
-				kubernetes true    0/1      Running
+				kubernetes true    0/1      Running 
 				plugin-a   true    0/1      Running`),
 		},
 	}
