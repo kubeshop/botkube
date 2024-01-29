@@ -37,6 +37,7 @@ const (
 	--set settings.clusterName=%s \
 	--set executors.k8s-default-tools.botkube/kubectl.enabled=true \
 	--set executors.k8s-default-tools.botkube/helm.enabled=true \
+	--set 'executors.bins-management.botkube/exec.config.templates[0].ref=github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=main' \
 	--set analytics.disable=true \
 	--set image.tag=v9.99.9-dev \
 	--set plugins.repositories.botkube.url=https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml \
@@ -449,7 +450,7 @@ func assertPlugins(t *testing.T, actual []*gqlModel.Plugin) {
 			DisplayName:       "botkube/exec",
 			Type:              "EXECUTOR",
 			ConfigurationName: "bins-management",
-			Configuration:     "{\"templates\":[{\"ref\":\"github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=v1.7.0\"}]}",
+			Configuration:     "{\"templates\":[{\"ref\":\"github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=main\"}]}",
 			Enabled:           false,
 			Rbac:              defaultRBAC,
 		},
