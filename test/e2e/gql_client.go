@@ -51,7 +51,7 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 					Groups: []*gqlModel.PluginConfigurationGroupInput{
 						{
 							Name:        "botkube/kubernetes",
-							DisplayName: "K8s recommendations", // Add commands: null
+							DisplayName: "K8s recommendations",
 							Type:        gqlModel.PluginTypeSource,
 							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
@@ -103,7 +103,7 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 						},
 						{
 							Name:        "botkube/kubernetes",
-							DisplayName: "K8s ConfigMaps updates", // Add commands: null
+							DisplayName: "K8s ConfigMaps updates",
 							Type:        gqlModel.PluginTypeSource,
 							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
@@ -116,7 +116,7 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 						},
 						{
 							Name:        "botkube/kubernetes",
-							DisplayName: "K8s ConfigMaps updates", // Add commands: null
+							DisplayName: "K8s ConfigMaps updates",
 							Type:        gqlModel.PluginTypeSource,
 							Configurations: []*gqlModel.PluginConfigurationInput{
 								{
@@ -451,8 +451,8 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 						{
 							Name:        "botkube/kubernetes",
 							DisplayName: "K8s recommendations",
-							Type:        gqlModel.PluginTypeSource,
 							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
 							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
 								{
 									Name:          "k8s-events",
@@ -623,7 +623,7 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 						},
 						{
 							Name:        "botkube/kubectl",
-							DisplayName: "Not bounded",
+							DisplayName: "Not bound",
 							Enabled:     true,
 							Type:        gqlModel.PluginTypeExecutor,
 							Configurations: []*gqlModel.PluginConfigurationUpdateInput{

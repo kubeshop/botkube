@@ -142,12 +142,12 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
 	t.Helper()
 
-	//channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
-	//assert.NoError(t, err)
-	//for _, i := range channels {
-	//	err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
-	//	assert.NoError(t, err)
-	//}
+	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
+	assert.NoError(t, err)
+	for _, i := range channels {
+		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
+		assert.NoError(t, err)
+	}
 
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel
@@ -170,7 +170,7 @@ func (s *TeamsTester) Type() DriverType {
 }
 
 func (s *TeamsTester) BotName() string {
-	return fmt.Sprintf("<@%s>", s.cfg.BotDevName)
+	return fmt.Sprintf("<at>%s</at>", s.cfg.BotDevName)
 }
 
 func (s *TeamsTester) BotUserID() string {
@@ -389,12 +389,12 @@ func (s *TeamsTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 
 // AssertEquals checks if message is equal to expected message.
 func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
-	return func(msg string) (bool, int, string) {
-		msg, expectedMsg = NormalizeTeamsWhitespacesInMessages(msg, expectedMsg)
-
-		if !strings.EqualFold(expectedMsg, msg) {
-			count := diff.CountMatchBlock(expectedMsg, msg)
-			msgDiff := diff.Diff(expectedMsg, msg)
+	return func(gotMsg string) (bool, int, string) {
+		gotMsg, expectedMsg = NormalizeTeamsWhitespacesInMessages(gotMsg, expectedMsg)
+		expectedMsg = teamsx.ReplaceEmojiTagsWithActualOne(expectedMsg)
+		if !strings.EqualFold(expectedMsg, gotMsg) {
+			count := diff.CountMatchBlock(expectedMsg, gotMsg)
+			msgDiff := diff.Diff(expectedMsg, gotMsg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""

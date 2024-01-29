@@ -80,13 +80,6 @@ func (d DriverType) IsCloud() bool {
 	}
 }
 
-//// AssertContains checks if message contains expected message
-//func (d DriverType) AssertContains(expectedMessage string) MessageAssertion {
-//	return func(msg string) (bool, int, string) {
-//		return strings.Contains(msg, expectedMessage), 0, ""
-//	}
-//}
-
 // AssertEquals checks if message is equal to expected message
 func (d DriverType) AssertEquals(expectedMessage string) MessageAssertion {
 	return func(msg string) (bool, int, string) {

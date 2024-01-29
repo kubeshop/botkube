@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/exp/maps"
 	"regexp"
 	"strings"
 	"sync"
@@ -118,9 +119,9 @@ func (b *CloudTeams) Start(ctx context.Context) error {
 	})
 }
 
-// SendMessageToAll sends the message to MS CloudTeams to all conversations.
+// SendMessageToAll sends the message to MS CloudTeams to all conversations even if notifications are disabled.
 func (b *CloudTeams) SendMessageToAll(ctx context.Context, msg interactive.CoreMessage) error {
-	return b.sendAgentActivity(ctx, msg, b.getChannelsToNotify(nil))
+	return b.sendAgentActivity(ctx, msg, maps.Values(b.getChannels())) 
 }
 
 // SendMessage sends the message to MS CloudTeams to selected conversations.

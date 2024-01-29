@@ -6,6 +6,7 @@ env:
   HELM_VERSION: v3.9.0
   GOLANGCI_LINT_VERSION: v1.54.2
   GOLANGCI_LINT_TIMEOUT: 10m
+  GIT_USER: botkube-dev
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || 'branch' }} # scope to for the current workflow
@@ -27,6 +28,11 @@ jobs:
       - name: Verify Go modules
         run: go mod verify
         if: always()
+      - name: Setup Go modules
+        uses: ./.github/actions/go-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
       - name: Run Go import formatting
         run: make go-import-fmt
         if: always()
