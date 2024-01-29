@@ -17,7 +17,7 @@ image:
   # -- Botkube container image pull policy.
   pullPolicy: IfNotPresent
   # -- Botkube container image tag. Default tag is `appVersion` from Chart.yaml.
-  tag: v1.8.0-rc.1
+  tag: v1.8.0
 
 # -- Configures Pod Security Policy to allow Botkube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
@@ -654,7 +654,7 @@ executors:
           ## -- Link to templates source
           ## It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives.
           ## For more details, see the documentation at https://github.com/hashicorp/go-getter.
-          - ref: github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=v1.8.0-rc.1
+          - ref: github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=v1.8.0
 
   ai:
     ## Doctor executor configuration.
@@ -1208,7 +1208,7 @@ plugins:
   repositories:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
-      url: https://github.com/kubeshop/botkube/releases/download/v1.8.0-rc.1/plugins-index.yaml
+      url: https://github.com/kubeshop/botkube/releases/download/v1.8.0/plugins-index.yaml
   # -- Configure Incoming webhook for source plugins.
   incomingWebhook:
     enabled: true
