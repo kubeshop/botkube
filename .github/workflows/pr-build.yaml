@@ -211,7 +211,7 @@ jobs:
           cache: true
 
       - name: Setup Go modules
-        uses: ./.github/actions/go-private
+        uses: ./.github/actions/setup-go-mod-private
         with:
           access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
           username: ${{ env.GIT_USER }}
@@ -304,7 +304,3 @@ jobs:
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
-
-      - name: Dump cluster
-        if: ${{ failure() }}
-        uses: ./.github/actions/dump-cluster

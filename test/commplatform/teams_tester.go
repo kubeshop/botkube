@@ -40,6 +40,8 @@ const (
 	// more info: https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-identifiers-guide?view=azure-bot-service-4.0#channel-id
 	channelID             = "msteams"
 	lineLimitToShowFilter = 16
+	teamsDateIndicator    = "_{{DATE("
+	teamsActionSetBlock   = "ActionSet"
 )
 
 type TeamsConfig struct {
@@ -141,13 +143,6 @@ func (s *TeamsTester) InitUsers(t *testing.T) {
 
 func (s *TeamsTester) InitChannels(t *testing.T) []func() {
 	t.Helper()
-
-	channels, err := s.cli.GetChannels(context.Background(), s.cfg.OrganizationTeamID)
-	assert.NoError(t, err)
-	for _, i := range channels {
-		err := s.cli.DeleteChannel(context.Background(), s.cfg.OrganizationTeamID, i)
-		assert.NoError(t, err)
-	}
 
 	firstChannel, cleanupFirstChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = firstChannel
@@ -437,17 +432,17 @@ func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string
 	switch diffType {
 	// SupersetMatch is used as sometimes we sent more details than is returned by Teams API, e.g.:
 	// we sent:
-	// 				{
-	//					"type": "TableColumnDefinition",
-	//					"width": 1,
-	//					"horizontalCellContentAlignment": "left",
-	//					"verticalCellContentAlignment": "bottom"
-	//				}
+	//  {
+	//    "type": "TableColumnDefinition",
+	//    "width": 1,
+	//    "horizontalCellContentAlignment": "left",
+	//    "verticalCellContentAlignment": "bottom"
+	//  }
 	// while API returns:
-	// 				{
-	//					"verticalCellContentAlignment": "bottom",
-	//					"width": 1
-	//				}
+	//  {
+	//    "verticalCellContentAlignment": "bottom",
+	//    "width": 1
+	//  }
 	case jsondiff.FullMatch, jsondiff.SupersetMatch:
 		return true, 0, ""
 	default:
@@ -487,8 +482,8 @@ func isDateOrActions(in any) bool {
 	objType, objTypeFound := obj["type"]
 	objText, objTextFound := obj["text"]
 
-	hasDate := objTextFound && objText.(string) != "" && strings.HasPrefix(objText.(string), "_{{DATE(")
-	isActionSet := objTypeFound && objType.(string) == "ActionSet"
+	hasDate := objTextFound && objText.(string) != "" && strings.HasPrefix(objText.(string), teamsDateIndicator)
+	isActionSet := objTypeFound && objType.(string) == teamsActionSetBlock
 
 	return hasDate || isActionSet
 }

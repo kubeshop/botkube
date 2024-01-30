@@ -105,7 +105,7 @@ jobs:
           cache: true
 
       - name: Setup Go modules
-        uses: ./.github/actions/go-private
+        uses: ./.github/actions/setup-go-mod-private
         with:
           access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
           username: ${{ env.GIT_USER }}
@@ -127,7 +127,7 @@ jobs:
       - name: Create cluster to test ${{ matrix.integration }}
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install Botkube to test ${{ matrix.integration }}
+      - name: Install Botkube locally via helm
         if: matrix.integration == 'discord'
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -228,7 +228,7 @@ jobs:
 #          go-version-file: 'go.mod'
 #          cache: true
 #      - name: Setup Go modules
-#        uses: ./.github/actions/go-private
+#        uses: ./.github/actions/setup-go-mod-private
 #        with:
 #          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
 #          username: ${{ env.GIT_USER }}
@@ -294,7 +294,7 @@ jobs:
 #      cancel-in-progress: false
 #    steps:
 #      - name: Setup Go modules
-#        uses: ./.github/actions/go-private
+#        uses: ./.github/actions/setup-go-mod-private
 #        with:
 #          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
 #          username: ${{ env.GIT_USER }}
