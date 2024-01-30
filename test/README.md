@@ -19,7 +19,7 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
    go env -w GOPRIVATE=github.com/kubeshop/botkube-cloud
    ```
 
-2. Update your global git config file:
+2. Update your global git config file (`~/.gitconfig`) with the new section:
 
    ```text
    [url "git@github.com:kubeshop/botkube-cloud.git"]
@@ -33,7 +33,7 @@ On Kubernetes, the E2E tests are self-contained. They just require a Botkube ins
            insteadOf = https://github.com/
    ```
 
-   > This new section informs Git that any URL starting with https://github.com/ should have that prefix replaced with ssh://git@github.com/ instead. Since Go uses HTTPS by default, this also affects your `go get` commands.
+    This new section informs Git that any URL starting with https://github.com/ should have that prefix replaced with ssh://git@github.com/ instead. Since Go uses HTTPS by default, this also affects your `go get` commands.
 
 From now on, you can build and run end-to-end tests and update the version in `go.mod` by running:
 

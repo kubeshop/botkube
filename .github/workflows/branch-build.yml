@@ -3,8 +3,7 @@ name: Branch build
 on:
   push:
     branches:
-#      - main
-      - "teams/integration-tests"
+      - main
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
@@ -17,67 +16,67 @@ env:
   GIT_USER: botkube-dev
 
 jobs:
-#  extract-metadata:
-#    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
-#    runs-on: ubuntu-latest
-#    outputs:
-#      versions: ${{ steps.extract-version.outputs.versions }}
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#      - name: Extract version
-#        id: extract-version
-#        run: |
-#          IMAGE_VERSION=$(git rev-parse --short HEAD)
-#          echo "versions={\"image-version\":[\"v9.99.9-dev\",\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
-#  build:
-#    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
-#    needs: [extract-metadata]
-#    strategy:
-#      matrix: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
-#    runs-on: ubuntu-latest
-#    env:
-#      GO111MODULE: on
-#      GOPATH: /home/runner/work/botkube
-#      GOBIN: /home/runner/work/botkube/bin
-#      DOCKER_CLI_EXPERIMENTAL: "enabled"
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#      - name: Setup Go
-#        uses: actions/setup-go@v4
-#        with:
-#          go-version-file: 'go.mod'
-#          cache: true
-#      - name: Set up QEMU
-#        uses: docker/setup-qemu-action@v3
-#      - name: Docker Login
-#        uses: docker/login-action@v1
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.actor }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
-#      - name: Install GoReleaser
-#        uses: goreleaser/goreleaser-action@v5
-#        with:
-#          install-only: true
-#          version: latest
-#      - name: Run GoReleaser
-#        run: |
-#          make release-snapshot
-#        env:
-#          ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
-#          GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
-#          IMAGE_TAG: ${{ matrix.image-version }}
+  extract-metadata:
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.extract-version.outputs.versions }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract version
+        id: extract-version
+        run: |
+          IMAGE_VERSION=$(git rev-parse --short HEAD)
+          echo "versions={\"image-version\":[\"v9.99.9-dev\",\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
+  build:
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
+    needs: [extract-metadata]
+    strategy:
+      matrix: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+      GOPATH: /home/runner/work/botkube
+      GOBIN: /home/runner/work/botkube/bin
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+          version: latest
+      - name: Run GoReleaser
+        run: |
+          make release-snapshot
+        env:
+          ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
+          GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
+          IMAGE_TAG: ${{ matrix.image-version }}
 
 
   integration-tests:
     if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     name: Integration tests
     runs-on: ubuntu-latest
-#    needs: [ build ]
+    needs: [ build ]
     permissions:
       contents: read
       packages: read
@@ -200,155 +199,155 @@ jobs:
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
 
-#  cli-migration-e2e:
-#    name: CLI Migration E2E tests
-#    runs-on: ubuntu-latest
-#    needs: [ build ]
-#    permissions:
-#      contents: read
-#      packages: read
-#    concurrency:
-#      group: cli-migration-e2e
-#      cancel-in-progress: false
-#    strategy:
-#      fail-fast: false
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#        with:
-#          persist-credentials: false
-#      - name: Install GoReleaser
-#        uses: goreleaser/goreleaser-action@v5
-#        with:
-#          install-only: true
-#          version: latest
-#      - name: Setup Go
-#        uses: actions/setup-go@v4
-#        with:
-#          go-version-file: 'go.mod'
-#          cache: true
-#      - name: Setup Go modules
-#        uses: ./.github/actions/setup-go-mod-private
-#        with:
-#          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-#          username: ${{ env.GIT_USER }}
-#      - name: Run GoReleaser
-#        run: make release-snapshot-cli
-#      - name: Add botkube alias
-#        run: |
-#          echo BOTKUBE_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
-#      - name: Install Helm
-#        uses: azure/setup-helm@v3
-#        with:
-#          version: ${{ env.HELM_VERSION }}
-#      - name: Download k3d
-#        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
-#      - name: Create k3d cluster
-#        run: "k3d cluster create cli-migration-e2e-cluster --wait --timeout=5m"
-#      - name: Run e2e tests for botkube client
-#        env:
-#          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
-#          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-#          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-#          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
-#          BOTKUBE_CLOUD_DEV_GQL_ENDPOINT: ${{ secrets.BOTKUBE_CLOUD_DEV_GQL_ENDPOINT }}
-#          BOTKUBE_CLOUD_DEV_REFRESH_TOKEN: ${{ secrets.BOTKUBE_CLOUD_DEV_REFRESH_TOKEN }}
-#          BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID: ${{ secrets.BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID }}
-#        run: |
-#          KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cli-migration-e2e
-#
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@v3
-#        if: ${{ always() }}
-#        with:
-#          name: screenshots_dump_${{github.sha}}
-#          path: ${{ runner.temp }}/screenshots
-#          retention-days: 5
-#
-#      - name: Dump cluster state
-#        if: ${{ failure() }}
-#        uses: ./.github/actions/dump-cluster
-#
-#      - name: Slack Notification
-#        uses: rtCamp/action-slack-notify@v2
-#        if: ${{ failure() }}
-#        env:
-#          SLACK_USERNAME: Botkube Cloud CI
-#          SLACK_COLOR: 'red'
-#          SLACK_TITLE: 'Message'
-#          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-#          SLACK_MESSAGE: 'CLI Migration E2E tests failed :scream:'
-#          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-#          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
-#          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
-#
-#  cloud-slack-dev-e2e:
-#    name: Botkube Cloud Slack Dev E2E
-#    runs-on: ubuntu-latest
-#    needs: [ build ]
-#    permissions:
-#      contents: read
-#      packages: read
-#    concurrency:
-#      group: cloud-slack-dev-e2e
-#      cancel-in-progress: false
-#    steps:
-#      - name: Setup Go modules
-#        uses: ./.github/actions/setup-go-mod-private
-#        with:
-#          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-#          username: ${{ env.GIT_USER }}
-#      - name: Checkout
-#        uses: actions/checkout@v3
-#
-#      - name: Install Helm
-#        uses: azure/setup-helm@v3
-#        with:
-#          version: ${{ env.HELM_VERSION }}
-#
-#      - name: Download k3d
-#        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
-#      - name: Create k3d cluster
-#        run: "k3d cluster create cloud-slack-dev-e2e-cluster --wait --timeout=5m"
-#
-#      - name: Run e2e tests
-#        env:
-#          SLACK_WORKSPACE_NAME: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
-#          SLACK_EMAIL: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
-#          SLACK_PASSWORD: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
-#          SLACK_TESTER_TESTER_BOT_TOKEN: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
-#          SLACK_TESTER_BOT_NAME: botkubedev
-#          SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 1m
-#          BOTKUBE_CLOUD_EMAIL: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
-#          BOTKUBE_CLOUD_PASSWORD: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
-#          BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
-#          BOTKUBE_CLOUD_FREE_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
-#          SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
-#          DEBUG_MODE: true
-#        run: |
-#          KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cloud-slack-dev-e2e
-#
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@v3
-#        if: ${{ always() }}
-#        with:
-#          name: screenshots_dump_${{github.sha}}
-#          path: ${{ runner.temp }}/screenshots
-#          retention-days: 5
-#
-#      - name: Dump cluster state
-#        if: ${{ failure() }}
-#        uses: ./.github/actions/dump-cluster
-#
-#      - name: Slack Notification
-#        uses: rtCamp/action-slack-notify@v2
-#        if: ${{ failure() }}
-#        env:
-#          SLACK_USERNAME: Botkube Cloud CI
-#          SLACK_COLOR: 'red'
-#          SLACK_TITLE: 'Message'
-#          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-#          SLACK_MESSAGE: 'Cloud Slack Dev E2E tests failed :scream:'
-#          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-#          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
-#          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+  cli-migration-e2e:
+    name: CLI Migration E2E tests
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: cli-migration-e2e
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+          version: latest
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
+      - name: Run GoReleaser
+        run: make release-snapshot-cli
+      - name: Add botkube alias
+        run: |
+          echo BOTKUBE_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+      - name: Create k3d cluster
+        run: "k3d cluster create cli-migration-e2e-cluster --wait --timeout=5m"
+      - name: Run e2e tests for botkube client
+        env:
+          DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
+          BOTKUBE_CLOUD_DEV_GQL_ENDPOINT: ${{ secrets.BOTKUBE_CLOUD_DEV_GQL_ENDPOINT }}
+          BOTKUBE_CLOUD_DEV_REFRESH_TOKEN: ${{ secrets.BOTKUBE_CLOUD_DEV_REFRESH_TOKEN }}
+          BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID: ${{ secrets.BOTKUBE_CLOUD_DEV_AUTH0_CLIENT_ID }}
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cli-migration-e2e
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: screenshots_dump_${{github.sha}}
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 5
+
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: ${{ failure() }}
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'CLI Migration E2E tests failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+
+  cloud-slack-dev-e2e:
+    name: Botkube Cloud Slack Dev E2E
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: cloud-slack-dev-e2e
+      cancel-in-progress: false
+    steps:
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Download k3d
+        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
+      - name: Create k3d cluster
+        run: "k3d cluster create cloud-slack-dev-e2e-cluster --wait --timeout=5m"
+
+      - name: Run e2e tests
+        env:
+          SLACK_WORKSPACE_NAME: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
+          SLACK_EMAIL: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
+          SLACK_PASSWORD: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
+          SLACK_TESTER_TESTER_BOT_TOKEN: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
+          SLACK_TESTER_BOT_NAME: botkubedev
+          SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 1m
+          BOTKUBE_CLOUD_EMAIL: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
+          BOTKUBE_CLOUD_PASSWORD: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
+          BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
+          BOTKUBE_CLOUD_FREE_ORGANIZATION_ID: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
+          SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
+          DEBUG_MODE: true
+        run: |
+          KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cloud-slack-dev-e2e
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: screenshots_dump_${{github.sha}}
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 5
+
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: ${{ failure() }}
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'Cloud Slack Dev E2E tests failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}

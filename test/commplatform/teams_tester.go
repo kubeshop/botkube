@@ -30,9 +30,8 @@ import (
 )
 
 const (
-	platformMessageWorkersCount = 10
-	platformMessageChannelSize  = 100
-	devTeamsBotEventsTopicName  = "dev.teams_router.teams_events"
+	platformMessageChannelSize = 100
+	devTeamsBotEventsTopicName = "dev.teams_router.teams_events"
 	// serviceURL is a generic URL used when you don't yet have the ServiceURL from the received Activity. For more information, see:
 	// https://learn.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#base-uri
 	serviceURL = "https://smba.trafficmanager.net/teams/"

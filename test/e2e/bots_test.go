@@ -644,7 +644,7 @@ func runBotTest(t *testing.T,
 
 		t.Run("Receive large output as plaintext file with executor command as message", func(t *testing.T) {
 			if botDriver.Type() == commplatform.TeamsBot {
-				t.Skip() // FIXME: https://github.com/kubeshop/botkube-cloud/issues/728
+				t.Skip() // TODO(https://github.com/kubeshop/botkube-cloud/issues/728): enable this test case
 			}
 			command := fmt.Sprintf("kubectl get pod -o yaml -n %s", appCfg.Deployment.Namespace)
 			fileUploadAssertionFn := func(title, mimetype string) bool {
@@ -804,7 +804,7 @@ func runBotTest(t *testing.T,
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
 
 		if botDriver.Type() == commplatform.TeamsBot {
-			// TODO(add option to configure notifications): https://github.com/kubeshop/botkube-cloud/issues/841
+			// TODO(https://github.com/kubeshop/botkube-cloud/issues/841): add option to configure notifications
 			expectedBody = codeBlock(fmt.Sprintf("Notifications from cluster '%s' are enabled here.", appCfg.ClusterName))
 		}
 
@@ -1306,7 +1306,7 @@ func runBotTest(t *testing.T,
 
 		case commplatform.TeamsBot:
 			// in this case of a plain text message, Teams renderer uses Adaptive Cards format
-			// TODO(fix formatting for aliases table): https://github.com/kubeshop/botkube-cloud/issues/752#issuecomment-1908669638
+			// TODO(https://github.com/kubeshop/botkube-cloud/issues/752#issuecomment-1908669638): fix formatting for aliases table
 			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, func(msg string) (bool, int, string) {
 				return hasAllColumns(msg, "ALIAS", "COMMAND", "DISPLAY NAME"), 0, ""
 			})

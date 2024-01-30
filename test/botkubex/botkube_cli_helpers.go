@@ -49,10 +49,6 @@ func Install(t *testing.T, params InstallParams) error {
 		"--set-string",
 		fmt.Sprintf("extraEnv[1].value=%ds", params.PluginRestartHealthCheckIntervalSeconds),
 		"--set",
-		fmt.Sprintf("extraEnv[2].name=%s", "BOTKUBE_SETTINGS_UPGRADE_NOTIFIER"),
-		"--set-string",
-		"extraEnv[2].value=false",
-		"--set",
 		fmt.Sprintf("config.provider.apiKey=%s", params.ConfigProviderAPIKey))
 	t.Logf("Executing command: %s", cmd.String())
 	cmd.Env = os.Environ()
