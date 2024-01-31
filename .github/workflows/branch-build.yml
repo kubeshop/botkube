@@ -292,11 +292,6 @@ jobs:
       group: cloud-slack-dev-e2e
       cancel-in-progress: false
     steps:
-      - name: Setup Go modules
-        uses: ./.github/actions/setup-go-mod-private
-        with:
-          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-          username: ${{ env.GIT_USER }}
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -309,6 +304,12 @@ jobs:
         run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
       - name: Create k3d cluster
         run: "k3d cluster create cloud-slack-dev-e2e-cluster --wait --timeout=5m"
+
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
 
       - name: Run e2e tests
         env:
