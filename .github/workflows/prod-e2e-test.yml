@@ -11,6 +11,7 @@ env:
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+  GIT_USER: botkube-dev
 
 jobs:
   cloud-slack-prod-e2e:
@@ -28,57 +29,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: ${{ env.HELM_VERSION }}
-
-      - name: Download k3d
-        run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
-      - name: Create k3d cluster
-        run: "k3d cluster create cloud-slack-prod-e2e-cluster --wait --timeout=5m"
-
       - name: Run e2e tests
-        env:
-          SLACK_WORKSPACE_NAME: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
-          SLACK_EMAIL: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
-          SLACK_PASSWORD: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
-          SLACK_BOT_DISPLAY_NAME: Botkube
-          SLACK_TESTER_TESTER_BOT_TOKEN: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
-          SLACK_TESTER_BOT_NAME: botkube3
-          SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 90s
-          BOTKUBE_CLOUD_API_BASE_URL: https://api.botkube.io
-          BOTKUBE_CLOUD_EMAIL: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
-          BOTKUBE_CLOUD_PASSWORD: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
-          BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
-          BOTKUBE_CLOUD_FREE_ORGANIZATION_ID: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
-          BOTKUBE_CLOUD_PLUGIN_REPO_URL: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
-          SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
-          DEBUG_MODE: true
-        run: |
-          KUBECONFIG=$(k3d kubeconfig write cloud-slack-prod-e2e-cluster) make test-cloud-slack-dev-e2e
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        if: ${{ always() }}
+        uses: ./.github/actions/cloud-slack-e2e
         with:
-          name: screenshots_dump_${{github.sha}}
-          path: ${{ runner.temp }}/screenshots
-          retention-days: 5
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          
+          slack_workspace_name: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
+          slack_email: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
+          slack_password: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
+          slack_bot_display_name: "Botkube"
+          slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
+          slack_tester_bot_name: "botkube3"
+          
+          botkube_cloud_api_base_url: "https://api.botkube.io"
+          botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
+          botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
+          botkube_cloud_team_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
+          botkube_cloud_free_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
+          botkube_cloud_plugin_repo_url: "https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"
 
-      - name: Dump cluster state
-        if: ${{ failure() }}
-        uses: ./.github/actions/dump-cluster
+          slack_alerts_webhook: ${{ secrets.SLACK_PROD_ALERTS_WEBHOOK }}
 
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        if: ${{ failure() }}
-        env:
-          SLACK_USERNAME: Botkube Cloud CI
-          SLACK_COLOR: 'red'
-          SLACK_TITLE: 'Message'
-          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-          SLACK_MESSAGE: 'Cloud Slack Prod E2E tests failed :scream:'
-          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
-          SLACK_WEBHOOK: ${{ secrets.SLACK_PROD_ALERTS_WEBHOOK }}
+          e2e_type: "PROD"

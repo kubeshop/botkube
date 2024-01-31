@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var apiKeyRegex = regexp.MustCompile(`(.*)=\s*key:[a-fA-F0-9-]+`)
+
 // InstallChartParams are parameters for InstallChart.
 type InstallChartParams struct {
 	RepoName      string
@@ -71,7 +73,7 @@ func InstallChart(t *testing.T, params InstallChartParams) func(t *testing.T) {
 	t.Logf("Found version: %s", latestVersion)
 
 	helmOpts := params.ToOptions(latestVersion)
-	t.Logf("Installing chart %s with parameters %+v", params.Name, helmOpts)
+	t.Logf("Installing chart %s with parameters %+v", params.Name, redactAPIKey(helmOpts))
 	//nolint:gosec // this is not production code
 	cmd = exec.Command("helm", helmOpts...)
 	installOutput, err := cmd.CombinedOutput()
@@ -95,4 +97,11 @@ func latestVersion(t *testing.T, versionsOutput []byte) string {
 	require.NoError(t, err)
 	require.NotEmpty(t, versions)
 	return versions[0].Version
+}
+
+func redactAPIKey(in []string) []string {
+	for i := range in {
+		in[i] = apiKeyRegex.ReplaceAllString(in[i], "$1=REDACTED")
+	}
+	return in
 }
