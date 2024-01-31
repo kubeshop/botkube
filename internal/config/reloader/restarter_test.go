@@ -12,8 +12,8 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kubeshop/botkube/internal/config/reloader"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestRestarter_Do_HappyPath(t *testing.T) {

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // Config Kubernetes configuration

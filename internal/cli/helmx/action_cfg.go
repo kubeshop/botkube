@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const helmDriver = "secrets"

@@ -20,8 +20,8 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	"github.com/kubeshop/botkube/internal/analytics"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 var (

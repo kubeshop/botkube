@@ -10,9 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	"github.com/kubeshop/botkube/internal/httpx"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/httpx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 

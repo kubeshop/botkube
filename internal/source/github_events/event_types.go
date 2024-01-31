@@ -3,7 +3,7 @@ package github_events
 import (
 	"github.com/google/go-github/v53/github"
 
-	"github.com/kubeshop/botkube/internal/ptr"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 // CommonEvent defines unified event. As a result we can process both events from /events API and custom e.g. list of all active pull requests.

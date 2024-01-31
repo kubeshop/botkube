@@ -10,7 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/cli"
-	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 var _ Reporter = &SegmentReporter{}

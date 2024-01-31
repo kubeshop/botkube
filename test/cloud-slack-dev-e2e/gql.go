@@ -3,7 +3,7 @@
 package cloud_slack_dev_e2e
 
 import (
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 )
 
 // AuditEvent represents audit event.

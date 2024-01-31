@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/hasura/go-graphql-client"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/ptr"
-	gqlModel "github.com/kubeshop/botkube/internal/remote/graphql"
+	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -406,10 +407,414 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 	return mutation.CreateDeployment, err
 }
 
+// CreateBasicDeploymentWithCloudTeams create deployment with Teams platform and three plugins.
+func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel string) (*gqlModel.Deployment, error) {
+	t.Helper()
+
+	var mutation struct {
+		CreateDeployment *gqlModel.Deployment `graphql:"createDeployment(input: $input)"`
+	}
+
+	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
+		"input": gqlModel.DeploymentCreateInput{
+			Name:      clusterName,
+			Platforms: &gqlModel.PlatformsCreateInput{},
+		},
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "while creating deployment")
+	}
+
+	rbacUpdate := gqlModel.RBACUpdateInput{
+		User: &gqlModel.UserPolicySubjectInput{
+			Type:   gqlModel.PolicySubjectTypeStatic,
+			Static: &gqlModel.UserStaticSubjectInput{Value: "botkube-plugins-default"},
+		},
+		Group: &gqlModel.GroupPolicySubjectInput{
+			Type:   gqlModel.PolicySubjectTypeStatic,
+			Static: &gqlModel.GroupStaticSubjectInput{Values: []string{"botkube-plugins-default"}},
+		},
+	}
+
+	var updateMutation struct {
+		UpdateDeployment *gqlModel.Deployment `graphql:"updateDeployment(id: $id, input: $input)"`
+	}
+
+	err = c.Client.Mutate(context.Background(), &updateMutation, map[string]interface{}{
+		"id": graphql.ID(mutation.CreateDeployment.ID),
+		"input": gqlModel.DeploymentUpdateInput{
+			ResourceVersion: mutation.CreateDeployment.ResourceVersion,
+			Plugins: []*gqlModel.PluginsUpdateInput{
+				{
+					Groups: []*gqlModel.PluginConfigurationGroupUpdateInput{
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "K8s recommendations",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-events",
+									Configuration: "{\"log\":{\"level\":\"debug\"},\"recommendations\":{\"pod\":{\"noLatestImageTag\":true,\"labelsSet\":true},\"ingress\":{\"backendServiceValid\":false,\"tlsSecretValid\":false}},\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\",\"update\"]},\"resources\":[{\"type\":\"v1/configmaps\",\"updateSetting\":{\"includeDiff\":false,\"fields\":[\"data\"]}}]}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "K8s ConfigMap delete events",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-annotated-cm-delete",
+									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"botkube\"]},\"labels\":{\"test.botkube.io\":\"true\"},\"event\":{\"types\":[\"delete\"]},\"resources\":[{\"type\":\"v1/configmaps\"}]}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "Pod Create Events",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-pod-create-events",
+									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/pods\"}]}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "K8s Service creation, used only by action",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-service-create-event-for-action-only",
+									Configuration: "{\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/services\"}]}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "K8s ConfigMaps updates",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-updates",
+									Configuration: "{\"log\":{\"level\":\"debug\"},\"namespaces\":{\"include\":[\"default\"]},\"event\":{\"types\":[\"create\",\"update\",\"delete\"]},\"resources\":[{\"type\":\"v1/configmaps\",\"namespaces\":{\"include\":[\"botkube\"]},\"event\":{\"types\":[\"update\"]},\"updateSetting\":{\"includeDiff\":false,\"fields\":[\"data\"]}}]}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "K8s ConfigMaps updates",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "rbac-with-static-mapping",
+									Configuration: "{\"namespaces\":{\"include\":[\"botkube\"]},\"annotations\":{\"rbac.botkube.io\":\"true\"},\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/configmaps\"}]}",
+									Rbac: &gqlModel.RBACUpdateInput{
+										User: &gqlModel.UserPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.UserStaticSubjectInput{Value: "kc-watch-cm"},
+											Prefix: ptr.FromType[string](""),
+										},
+										Group: &gqlModel.GroupPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{"kc-watch-cm"}},
+											Prefix: ptr.FromType[string](""),
+										},
+									},
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "Kubernetes Resource Created Events",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-create-events",
+									Configuration: "{\"namespaces\":{\"include\":[\"*\"],\"event\":{\"types\":[\"create\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"v1/services\"},{\"type\":\"networking.k8s.io/v1/ingresses\"},{\"type\":\"v1/nodes\"},{\"type\":\"v1/namespaces\"},{\"type\":\"v1/configmaps\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubernetes",
+							DisplayName: "Kubernetes Errors for resources with logs",
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-err-with-logs-events",
+									Configuration: "{\"namespaces\":{\"include\":[\"*\"],\"event\":{\"types\":[\"error\"]},\"resources\":[{\"type\":\"v1/pods\"},{\"type\":\"apps/v1/deployments\"},{\"type\":\"apps/v1/statefulsets\"},{\"type\":\"apps/v1/daemonsets\"},{\"type\":\"batch/v1/jobs\"}]}}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/cm-watcher",
+							DisplayName: "K8s ConfigMaps changes",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "other-plugins",
+									Configuration: "{\"configMap\":{\"name\":\"cm-watcher-trigger\",\"namespace\":\"botkube\",\"event\":\"ADDED\"}}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/cm-watcher",
+							DisplayName: "CM watcher RBAC",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeSource,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "rbac-with-default-configuration",
+									Configuration: "{\"configMap\":{\"name\":\"cm-rbac\",\"namespace\":\"botkube\",\"event\":\"DELETED\"}}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubectl",
+							DisplayName: "Default Tools",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "k8s-default-tools",
+									Configuration: "{}",
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubectl",
+							DisplayName: "First channel",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "kubectl-first-channel-cmd",
+									Configuration: "{}",
+									Rbac: &gqlModel.RBACUpdateInput{
+										User: &gqlModel.UserPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.UserStaticSubjectInput{Value: "kubectl-first-channel"},
+										},
+										Group: &gqlModel.GroupPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{}},
+										}},
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubectl",
+							DisplayName: "Not bound",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "kubectl-not-bound-to-any-channel",
+									Configuration: "{}",
+									Rbac: &gqlModel.RBACUpdateInput{
+										User: &gqlModel.UserPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.UserStaticSubjectInput{Value: "kubectl-first-channel"},
+										},
+										Group: &gqlModel.GroupPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{}},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubectl",
+							DisplayName: "Service label perms",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "kubectl-with-svc-label-perms",
+									Configuration: "{}",
+									Rbac: &gqlModel.RBACUpdateInput{
+										User: &gqlModel.UserPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.UserStaticSubjectInput{Value: "kc-label-svc-all"},
+										},
+										Group: &gqlModel.GroupPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeStatic,
+											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{}},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name:        "botkube/kubectl",
+							DisplayName: "Rbac Channel Mapping",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "rbac-with-channel-mapping",
+									Configuration: "{\"defaultNamespace\":\"botkube\"}",
+									Rbac: &gqlModel.RBACUpdateInput{
+										Group: &gqlModel.GroupPolicySubjectInput{
+											Type:   gqlModel.PolicySubjectTypeChannelName,
+											Static: &gqlModel.GroupStaticSubjectInput{Values: []string{""}},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name:        "botkube/helm",
+							DisplayName: "Helm",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "helm",
+									Configuration: "{}",
+									Rbac:          &rbacUpdate,
+								},
+							},
+						},
+						{
+							Name:        "botkube/echo@v0.0.0-latest",
+							DisplayName: "Echo",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "other-plugins",
+									Configuration: "{\"changeResponseToUpperCase\":true}",
+								},
+							},
+						},
+						{
+							Name:        "botkube/echo@v0.0.0-latest",
+							DisplayName: "Echo with no RBAC",
+							Enabled:     true,
+							Type:        gqlModel.PluginTypeExecutor,
+							Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+								{
+									Name:          "rbac-with-no-configuration",
+									Configuration: "{\"changeResponseToUpperCase\":true}",
+								},
+							},
+						},
+					},
+				},
+			},
+			Actions: []*gqlModel.ActionCreateUpdateInput{
+				{
+					Name:        "get-created-resource",
+					DisplayName: "Get created resource",
+					Enabled:     true,
+					Command:     "kubectl get {{ .Event.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}",
+					Bindings: &gqlModel.ActionCreateUpdateInputBindings{
+						Sources:   []string{"k8s-pod-create-events"},
+						Executors: []string{"k8s-default-tools"},
+					},
+				},
+				{
+					Name:        "label-created-svc-resource",
+					DisplayName: "Label created Service",
+					Enabled:     true,
+					Command:     "kubectl label svc {{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }} botkube-action=true",
+					Bindings: &gqlModel.ActionCreateUpdateInputBindings{
+						Sources:   []string{"k8s-service-create-event-for-action-only"},
+						Executors: []string{"kubectl-with-svc-label-perms"},
+					},
+				},
+				{
+					Name:        "describe-created-resource",
+					DisplayName: "Describe created resource",
+					Enabled:     false,
+					Command:     "kubectl describe {{ .Event.Kind | lower }}{{ if .Event.Namespace }} -n {{ .Event.Namespace }}{{ end }} {{ .Event.Name }}",
+					Bindings: &gqlModel.ActionCreateUpdateInputBindings{
+						Sources:   []string{"k8s-create-events"},
+						Executors: []string{"k8s-default-tools"},
+					},
+				},
+				{
+					Name:        "show-logs-on-error",
+					DisplayName: "Show logs on error",
+					Enabled:     false,
+					Command:     "kubectl logs {{ .Event.Kind | lower }}/{{ .Event.Name }} -n {{ .Event.Namespace }}",
+					Bindings: &gqlModel.ActionCreateUpdateInputBindings{
+						Sources:   []string{"k8s-err-with-logs-events"},
+						Executors: []string{"k8s-default-tools"},
+					},
+				},
+			},
+			Platforms: &gqlModel.PlatformsUpdateInput{
+				CloudMsTeams: []*gqlModel.CloudMsTeamsUpdateInput{
+					{
+						Name:              "Cloud Teams",
+						AadGroupID:        aadGroupID,
+						AttachmentStorage: &gqlModel.CloudMsTeamsAttachmentStorageUpdateInput{},
+						Channels: []*gqlModel.ChannelBindingsByIDUpdateInput{
+							{
+								ID: firstChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
+									Sources:   []*string{ptr.FromType("k8s-events"), ptr.FromType("k8s-annotated-cm-delete"), ptr.FromType("k8s-pod-create-events"), ptr.FromType("other-plugins")},
+									Executors: []*string{ptr.FromType("kubectl-first-channel-cmd"), ptr.FromType("other-plugins"), ptr.FromType("helm")},
+								},
+							},
+							{
+								ID: secondChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
+									Sources:   []*string{ptr.FromType("k8s-updates")},
+									Executors: []*string{ptr.FromType("k8s-default-tools")},
+								},
+							},
+							{
+								ID: thirdChannel,
+								Bindings: &gqlModel.BotBindingsUpdateInput{
+									Sources:   []*string{ptr.FromType("rbac-with-static-mapping"), ptr.FromType("rbac-with-default-configuration")},
+									Executors: []*string{ptr.FromType("rbac-with-channel-mapping"), ptr.FromType("rbac-with-no-configuration")},
+								},
+							},
+						},
+					},
+				},
+			},
+			AttachDefaultAliases: ptr.FromType[bool](true),
+		},
+	})
+	return mutation.CreateDeployment, err
+}
+
 // MustCreateBasicDeploymentWithCloudSlack is like CreateBasicDeploymentWithCloudSlack but fails on error.
 func (c *Client) MustCreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, slackTeamID, firstChannel, secondChannel, thirdChannel string) *gqlModel.Deployment {
 	t.Helper()
 	deployment, err := c.CreateBasicDeploymentWithCloudSlack(t, clusterName, slackTeamID, firstChannel, secondChannel, thirdChannel)
+	require.NoError(t, err)
+	return deployment
+}
+
+// MustCreateBasicDeploymentWithCloudTeams is like CreateBasicDeploymentWithCloudTeams but fails on error.
+func (c *Client) MustCreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel string) *gqlModel.Deployment {
+	t.Helper()
+	deployment, err := c.CreateBasicDeploymentWithCloudTeams(t, clusterName, aadGroupID, firstChannel, secondChannel, thirdChannel)
 	require.NoError(t, err)
 	return deployment
 }

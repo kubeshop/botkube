@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/diff"
 	"github.com/araddon/dateparse"
 	"github.com/google/uuid"
 	"github.com/slack-go/slack"
@@ -16,12 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
-	"github.com/kubeshop/botkube/test/diff"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -146,7 +146,7 @@ func (s *SlackTester) TesterUserID() string {
 	return s.testerUserID
 }
 
-func (s *SlackTester) Channel() Channel {
+func (s *SlackTester) FirstChannel() Channel {
 	return s.channel
 }
 
@@ -188,14 +188,7 @@ func (s *SlackTester) InviteBotToChannel(t *testing.T, channelID string) {
 }
 
 func (s *SlackTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(expectedMsg, msg) {
-			count := diff.CountMatchBlock(expectedMsg, msg)
-			msgDiff := diff.Diff(expectedMsg, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return s.WaitForMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, s.AssertEquals(expectedMsg))
 }
 
 func (s *SlackTester) WaitForLastMessageContains(userID, channelID, expectedMsgSubstring string) error {
@@ -205,16 +198,22 @@ func (s *SlackTester) WaitForLastMessageContains(userID, channelID, expectedMsgS
 }
 
 func (s *SlackTester) WaitForLastMessageEqual(userID, channelID, expectedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		msg = formatx.RemoveHyperlinks(msg)                                  // normalize the message URLs
+	return s.WaitForMessagePosted(userID, channelID, 1, s.AssertEquals(expectedMsg))
+}
+
+// AssertEquals checks if message is equal to expected message
+func (s *SlackTester) AssertEquals(expectedMsg string) MessageAssertion {
+	return func(msg string) (bool, int, string) {
+		msg = formatx.RemoveHyperlinks(msg) // normalize the message URLs
+		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
 		msg = strings.ReplaceAll(msg, slackInteractiveElementsMsgSuffix, "") // remove interactive elements suffix
-		if msg != expectedMsg {
+		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
 			return false, count, msgDiff
 		}
 		return true, 0, ""
-	})
+	}
 }
 
 func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -401,14 +400,7 @@ func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID strin
 
 func (s *SlackTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
-	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(msg, printedBlocks) {
-			count := diff.CountMatchBlock(printedBlocks, msg)
-			msgDiff := diff.Diff(printedBlocks, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, s.AssertEquals(printedBlocks))
 }
 
 func sPrintBlocks(blocks []slack.Block) string {
@@ -445,26 +437,11 @@ func sPrintBlocks(blocks []slack.Block) string {
 
 func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
-	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		if !strings.EqualFold(printedBlocks, msg) {
-			count := diff.CountMatchBlock(printedBlocks, msg)
-			msgDiff := diff.Diff(printedBlocks, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, s.AssertEquals(printedBlocks))
 }
 
 func (s *SlackTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, 1, func(msg string) (bool, int, string) {
-		msg = strings.NewReplacer("<https", "https", ">\n", "\n").Replace(msg)
-		if !strings.EqualFold(renderedMsg, msg) {
-			count := diff.CountMatchBlock(renderedMsg, msg)
-			msgDiff := diff.Diff(renderedMsg, msg)
-			return false, count, msgDiff
-		}
-		return true, 0, ""
-	})
+	return s.WaitForMessagePosted(userID, channelID, 1, s.AssertEquals(renderedMsg))
 }
 
 func (s *SlackTester) SetTimeout(timeout time.Duration) {

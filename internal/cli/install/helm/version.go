@@ -9,7 +9,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubeshop/botkube/internal/httpx"
+	"github.com/kubeshop/botkube/pkg/httpx"
 )
 
 // GetLatestVersion loads an index file and returns version of the latest chart. Sort by SemVer.

@@ -1,7 +1,6 @@
 package commplatform
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -38,7 +37,7 @@ type BotDriver interface {
 	WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error
 	WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error
 	WaitForMessagePostedWithAttachment(userID, channel string, limitMessages int, expInput ExpAttachmentInput) error
-	Channel() Channel
+	FirstChannel() Channel
 	SecondChannel() Channel
 	ThirdChannel() Channel
 	BotName() string
@@ -51,6 +50,7 @@ type BotDriver interface {
 	SetTimeout(timeout time.Duration)
 	Timeout() time.Duration
 	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
+	AssertEquals(expectedMessage string) MessageAssertion
 }
 
 type MessageAssertion func(content string) (bool, int, string)
@@ -68,17 +68,20 @@ type DriverType string
 const (
 	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
+	TeamsBot   DriverType = "teams"
 )
 
-// AssertContains checks if message contains expected message
-func AssertContains(expectedMessage string) MessageAssertion {
-	return func(msg string) (bool, int, string) {
-		return strings.Contains(msg, expectedMessage), 0, ""
+func (d DriverType) IsCloud() bool {
+	switch d {
+	case SlackBot, TeamsBot:
+		return true
+	default:
+		return false
 	}
 }
 
 // AssertEquals checks if message is equal to expected message
-func AssertEquals(expectedMessage string) MessageAssertion {
+func (d DriverType) AssertEquals(expectedMessage string) MessageAssertion {
 	return func(msg string) (bool, int, string) {
 		return msg == expectedMessage, 0, ""
 	}

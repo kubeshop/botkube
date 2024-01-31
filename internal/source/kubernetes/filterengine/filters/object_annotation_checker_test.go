@@ -5,7 +5,7 @@ import (
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubeshop/botkube/internal/loggerx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestIsObjectNotifDisabled(t *testing.T) {

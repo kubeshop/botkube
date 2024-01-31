@@ -11,9 +11,9 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x"
 	"github.com/kubeshop/botkube/internal/executor/x/output"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 

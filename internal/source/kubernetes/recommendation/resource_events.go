@@ -1,9 +1,9 @@
 package recommendation
 
 import (
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (

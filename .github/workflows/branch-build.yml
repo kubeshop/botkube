@@ -12,11 +12,12 @@ env:
   K3D_VERSION: v5.4.6
   IMAGE_REGISTRY: "ghcr.io"
   IMAGE_REPOSITORY: "kubeshop/botkube"
-  CFG_EXPORTER_IMAGE_REPOSITORY: "kubeshop/botkube-config-exporter"
   IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+  GIT_USER: botkube-dev
 
 jobs:
   extract-metadata:
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.extract-version.outputs.versions }}
@@ -31,6 +32,7 @@ jobs:
           IMAGE_VERSION=$(git rev-parse --short HEAD)
           echo "versions={\"image-version\":[\"v9.99.9-dev\",\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
   build:
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     needs: [extract-metadata]
     strategy:
       matrix: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
@@ -68,16 +70,13 @@ jobs:
           ANALYTICS_API_KEY: ${{ secrets.ANALYTICS_API_KEY }}
           GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
           IMAGE_TAG: ${{ matrix.image-version }}
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: ${{ env.HELM_VERSION }}
+
 
   integration-tests:
+    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     name: Integration tests
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     permissions:
       contents: read
       packages: read
@@ -90,6 +89,7 @@ jobs:
         integration:
           - slack
           - discord
+          - teams
 
     steps:
       - name: Checkout code
@@ -103,6 +103,18 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
+
+      - name: Pub/Sub auth
+        uses: 'google-github-actions/auth@v1'
+        if: matrix.integration == 'teams'
+        with:
+          credentials_json: ${{ secrets.E2E_TEST_GCP_PUB_SUB_CREDENTIALS }}
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
@@ -114,15 +126,14 @@ jobs:
       - name: Create cluster to test ${{ matrix.integration }}
         run: "k3d cluster create ${{ matrix.integration }}-test-cluster --wait --timeout=5m"
 
-      - name: Install Botkube to test ${{ matrix.integration }}
+      - name: Install Botkube locally via helm
+        if: matrix.integration == 'discord'
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_BOT_ID: ${{ secrets.DISCORD_BOT_ID }}
         run: |
           helm install botkube --namespace botkube ./helm/botkube --wait --create-namespace \
            -f ./helm/botkube/e2e-test-values.yaml \
-           --set communications.default-group.slack.token="${SLACK_BOT_TOKEN}" \
            --set communications.default-group.discord.token="${DISCORD_BOT_TOKEN}" \
            --set communications.default-group.discord.botID="${DISCORD_BOT_ID}" \
            --set image.registry="${IMAGE_REGISTRY}" \
@@ -166,9 +177,17 @@ jobs:
           SLACK_TESTER_APP_TOKEN: ${{ secrets.SLACK_TESTER_APP_TOKEN }}
           SLACK_CLOUD_TESTER_APP_TOKEN: ${{ secrets.SLACK_CLOUD_TESTER_APP_TOKEN }}
           SLACK_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${{github.sha}} - https://github.com/kubeshop/botkube/commit/${{github.sha}}"
+
           DISCORD_TESTER_APP_TOKEN: ${{ secrets.DISCORD_TESTER_APP_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${{github.sha}} - https://github.com/kubeshop/botkube/commit/${{github.sha}}"
+
+          TEAMS_BOT_TESTER_APP_ID: ${{ secrets.TEAMS_BOT_TESTER_APP_ID }}
+          TEAMS_BOT_TESTER_APP_PASSWORD: ${{ secrets.TEAMS_BOT_TESTER_APP_PASSWORD }}
+          TEAMS_ORGANIZATION_TEAM_ID: ${{ secrets.TEAMS_ORGANIZATION_TEAM_ID }}
+          TEAMS_ORGANIZATION_TENANT_ID: ${{ secrets.TEAMS_ORGANIZATION_TENANT_ID }}
+          TEAMS_ADDITIONAL_CONTEXT_MESSAGE: "Branch test - commit SHA: ${{github.sha}} - https://github.com/kubeshop/botkube/commit/${{github.sha}}"
+
           PLUGINS_BINARIES_DIRECTORY: ${{ github.workspace }}/plugin-dist
           CONFIG_PROVIDER_API_KEY: ${{ secrets.CONFIG_PROVIDER_API_KEY }}
           CONFIG_PROVIDER_ENDPOINT: ${{ secrets.CONFIG_PROVIDER_ENDPOINT }}
@@ -192,9 +211,6 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      matrix:
-        e2e:
-          - discord
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -210,6 +226,11 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
       - name: Run GoReleaser
         run: make release-snapshot-cli
       - name: Add botkube alias
@@ -271,6 +292,11 @@ jobs:
       group: cloud-slack-dev-e2e
       cancel-in-progress: false
     steps:
+      - name: Setup Go modules
+        uses: ./.github/actions/setup-go-mod-private
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+          username: ${{ env.GIT_USER }}
       - name: Checkout
         uses: actions/checkout@v3
 

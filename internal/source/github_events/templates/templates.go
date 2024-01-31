@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-github/v53/github"
 
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 //	Available events:

@@ -26,8 +26,8 @@ import (
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
 	"github.com/kubeshop/botkube/internal/config/remote"
-	"github.com/kubeshop/botkube/internal/ptr"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -275,7 +275,7 @@ func waitForExportJob(ctx context.Context, k8sCli *kubernetes.Clientset, opts Ex
 				%s
 
 				To get all Botkube logs, run:
-				
+
 				  kubectl logs -n %s jobs/%s
 				`, errMsg, job.Namespace, job.Name)
 			}

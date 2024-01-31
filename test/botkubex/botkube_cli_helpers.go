@@ -53,9 +53,9 @@ func Install(t *testing.T, params InstallParams) error {
 	t.Logf("Executing command: %s", cmd.String())
 	cmd.Env = os.Environ()
 
-	o, err := cmd.CombinedOutput()
-	t.Logf("CLI output:\n%s", string(o))
-	return err
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func Uninstall(t *testing.T, binaryPath string) {

@@ -14,10 +14,10 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/executor/x/output"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
@@ -34,16 +34,16 @@ func (i *XExecutor) Help(_ context.Context) (api.Message, error) {
 		Usage:
 		  exec run [COMMAND] [FLAGS]    Run a specified command with optional flags
 		  exec install [SOURCE]         Install a binary using the https://github.com/zyedidia/eget syntax.
-		
+
 		Usage Examples:
 		  # Install the Helm CLI
 
-		  exec install https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz --file helm    
-		  
+		  exec install https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz --file helm
+
 		  # Run the 'helm list -A' command.
 
-		  exec run helm list -A    
-		
+		  exec run helm list -A
+
 		Options:
 		  -h, --help                 Show this help message`)
 	return api.NewCodeBlockMessage(help, true), nil

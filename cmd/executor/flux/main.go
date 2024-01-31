@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/go-plugin"
 
 	"github.com/kubeshop/botkube/internal/executor/flux"
-	"github.com/kubeshop/botkube/internal/loggerx"
 	"github.com/kubeshop/botkube/pkg/api/executor"
+	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 // version is set via ldflags by GoReleaser.
