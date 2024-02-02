@@ -148,7 +148,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		page.MustElement("input#email").MustInput(cfg.Slack.Email)
 		page.MustElement("input#password").MustInput(cfg.Slack.Password)
 		screenshotIfShould(t, cfg, page)
-		page.MustElementR("button", "^Sign In$").MustClick()
+		page.MustElementR("button", "(^Sign in$)|(^Sign In$)").MustClick()
 		screenshotIfShould(t, cfg, page)
 
 		t.Log("Installing Slack app...")

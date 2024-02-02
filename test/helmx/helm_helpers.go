@@ -100,8 +100,11 @@ func latestVersion(t *testing.T, versionsOutput []byte) string {
 }
 
 func redactAPIKey(in []string) []string {
-	for i := range in {
-		in[i] = apiKeyRegex.ReplaceAllString(in[i], "$1=REDACTED")
+	dst := make([]string, len(in))
+	copy(dst, in)
+
+	for i := range dst {
+		dst[i] = apiKeyRegex.ReplaceAllString(dst[i], "$1=REDACTED")
 	}
-	return in
+	return dst
 }
