@@ -9,7 +9,8 @@ require (
 	github.com/anthhub/forwarder v1.1.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/go-rod/rod v0.114.6
+	// go-rod version v0.114.6 was causing unstable results on CI thus we stay for now with v0.113.3  
+	github.com/go-rod/rod v0.113.3
 	github.com/google/uuid v1.6.0
 	github.com/hasura/go-graphql-client v0.10.2
 	github.com/infracloudio/msbotbuilder-go v0.2.6-0.20231130085215-84d2040b3577
