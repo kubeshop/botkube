@@ -109,15 +109,15 @@ runs:
       if: ${{ failure() }}
       uses: ./.github/actions/dump-cluster
 
-#    - name: Slack Notification
-#      uses: rtCamp/action-slack-notify@v2
-#      if: ${{ failure() }}
-#      env:
-#        SLACK_USERNAME: Botkube Cloud CI
-#        SLACK_COLOR: 'red'
-#        SLACK_TITLE: 'Message'
-#        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-#        SLACK_MESSAGE: 'Cloud Slack {{ inputs.e2e_type }} E2E tests failed :scream:' 
-#        SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-#        SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
-#        SLACK_WEBHOOK: ${{ inputs.slack_alerts_webhook }}
+    - name: Slack Notification
+      uses: rtCamp/action-slack-notify@v2
+      if: ${{ failure() }}
+      env:
+        SLACK_USERNAME: Botkube Cloud CI
+        SLACK_COLOR: 'red'
+        SLACK_TITLE: 'Message'
+        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+        SLACK_MESSAGE: 'Cloud Slack {{ inputs.e2e_type }} E2E tests failed :scream:' 
+        SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+        SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+        SLACK_WEBHOOK: ${{ inputs.slack_alerts_webhook }}
