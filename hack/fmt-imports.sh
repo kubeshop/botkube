@@ -92,9 +92,7 @@ imports::format() {
   goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./internal
   echo "- Revising pkg..."
   goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./pkg
-  echo "- Revising test..."
-  goimports-reviser -rm-unused -project-name github.com/kubeshop/botkube -recursive ./test
-
+  
   popd > /dev/null
 }
 

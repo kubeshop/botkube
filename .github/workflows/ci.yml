@@ -28,11 +28,6 @@ jobs:
       - name: Verify Go modules
         run: go mod verify
         if: always()
-      - name: Setup Go modules
-        uses: ./.github/actions/setup-go-mod-private
-        with:
-          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-          username: ${{ env.GIT_USER }}
       - name: Run Go import formatting
         run: make go-import-fmt
         if: always()
