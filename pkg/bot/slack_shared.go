@@ -69,3 +69,13 @@ type slackMessage struct {
 	EventTimeStamp       string
 	RootMessageTimeStamp string
 }
+
+// GetTimestamp returns the timestamp for the response message.
+func (s *slackMessage) GetTimestamp() string {
+	// If the event is coming from the thread, then we simply respond in that thread
+	if s.ThreadTimeStamp != "" {
+		return s.ThreadTimeStamp
+	}
+	// otherwise, we use the event timestamp to respond in the thread to the message that triggered our response
+	return s.EventTimeStamp
+}
