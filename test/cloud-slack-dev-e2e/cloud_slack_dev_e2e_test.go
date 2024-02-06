@@ -458,7 +458,7 @@ func TestCloudSlackE2E(t *testing.T) {
 				}
 				return result, 0, ""
 			}
-			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), 1, assertionFn)
+			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePosted(tester.BotUserID(), channel.ID(), 1, assertionFn)
 			require.NoError(t, err)
 		})
 
@@ -467,7 +467,8 @@ func TestCloudSlackE2E(t *testing.T) {
 			tester.PostMessageToBot(t, channel.ID(), "disable notifications")
 			t.Log("Waiting for config reload message...")
 			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
-			err = tester.WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
+			
+			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
 			t.Log("Waiting for watch begin message...")
@@ -502,7 +503,7 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for config reload message...")
 			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
-			err = tester.WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
+			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
 			t.Log("Waiting for watch begin message...")
