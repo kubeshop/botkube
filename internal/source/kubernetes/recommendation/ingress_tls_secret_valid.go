@@ -14,6 +14,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -41,7 +42,7 @@ func (f *IngressTLSSecretValid) Do(ctx context.Context, event event.Event) (Resu
 	}
 
 	var ingress networkingv1.Ingress
-	err := k8sutil.TransformIntoTypedObject(unstrObj, &ingress)
+	err := k8sx.TransformIntoTypedObject(unstrObj, &ingress)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, ingress, err)
 	}

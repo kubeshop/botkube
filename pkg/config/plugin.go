@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"github.com/kubeshop/botkube/internal/stringx"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/stringx"
 )
 
 // DecomposePluginKey extract details from plugin key.

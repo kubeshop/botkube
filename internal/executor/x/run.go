@@ -10,7 +10,6 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/pluginx"
@@ -104,7 +103,7 @@ func (i *Runner) getTemplates(ctx context.Context, cfg Config) ([]template.Templ
 }
 
 // RunInstalledCommand runs a given user command for already installed CLIs.
-func RunInstalledCommand(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
+func RunInstalledCommand(ctx context.Context, tmp pluginx.TmpDir, in string, envs map[string]string) (string, error) {
 	opts := []pluginx.ExecuteCommandMutation{
 		pluginx.ExecuteCommandEnvs(envs),
 	}

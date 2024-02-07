@@ -17,6 +17,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -72,7 +73,7 @@ func (r registration) handleMapped(ctx context.Context, s Source, eventType conf
 	_, _ = r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
-			err := k8sutil.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+			err := k8sx.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 			if err != nil {
 				r.log.Errorf("Unable to transform object type: %v, into type: %v", reflect.TypeOf(obj), reflect.TypeOf(eventObj))
 				return

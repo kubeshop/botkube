@@ -12,10 +12,10 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/getter"
 	"github.com/kubeshop/botkube/internal/executor/x/state"
 	"github.com/kubeshop/botkube/internal/executor/x/template"
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 func TestRunnerRawOutput(t *testing.T) {
@@ -76,7 +76,7 @@ func TestRunnerNoExecuteTemplate(t *testing.T) {
 				Ref: filepath.Join("./testdata/", t.Name()),
 			},
 		},
-		TmpDir: plugin.TmpDir(t.TempDir()),
+		TmpDir: pluginx.TmpDir(t.TempDir()),
 		Logger: config.Logger{},
 	}
 

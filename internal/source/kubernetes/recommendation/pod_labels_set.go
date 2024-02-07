@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 )
 
 const podLabelsSetName = "PodLabelsSet"
@@ -34,7 +34,7 @@ func (f PodLabelsSet) Do(_ context.Context, event event.Event) (Result, error) {
 	}
 
 	var pod coreV1.Pod
-	err := k8sutil.TransformIntoTypedObject(unstrObj, &pod)
+	err := k8sx.TransformIntoTypedObject(unstrObj, &pod)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, pod, err)
 	}

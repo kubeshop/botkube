@@ -9,9 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/kubeshop/botkube/pkg/k8sx"
 )
 
 // GetObjectMetaData returns metadata of the given object
@@ -38,7 +39,7 @@ func GetObjectMetaData(ctx context.Context, dynamicCli dynamic.Interface, mapper
 	}
 	if GetObjectTypeMetaData(obj).Kind == "Event" {
 		var eventObj coreV1.Event
-		err := TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
+		err := k8sx.TransformIntoTypedObject(obj.(*unstructured.Unstructured), &eventObj)
 		if err != nil {
 			return metaV1.ObjectMeta{}, fmt.Errorf("while transforming object type: %T into type %T: %w", obj, eventObj, err)
 		}
@@ -78,21 +79,6 @@ func GetResourceFromKind(mapper meta.RESTMapper, gvk schema.GroupVersionKind) (s
 		return schema.GroupVersionResource{}, fmt.Errorf("Error while creating REST Mapping for Event Involved Object: %v", err)
 	}
 	return mapping.Resource, nil
-}
-
-// TransformIntoTypedObject uses unstructured interface and creates a typed object
-func TransformIntoTypedObject(obj *unstructured.Unstructured, typedObject interface{}) error {
-	return runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), typedObject)
-}
-
-// TransformIntoUnstructured uses typed object and creates an unstructured interface.
-func TransformIntoUnstructured(obj interface{}) (*unstructured.Unstructured, error) {
-	out, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	return &unstructured.Unstructured{Object: out}, nil
 }
 
 // extractAnnotationsFromEvent returns annotations of a related resource for the given event.

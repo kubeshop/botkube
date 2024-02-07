@@ -1,8 +1,8 @@
 package flux
 
 import (
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 // Config holds Flux executor configuration.
@@ -18,5 +18,5 @@ type Config struct {
 	} `yaml:"github"`
 
 	// Fields not exposed to the user in the JSON schema
-	TmpDir plugin.TmpDir `yaml:"tmpDir"`
+	TmpDir pluginx.TmpDir `yaml:"tmpDir"`
 }
