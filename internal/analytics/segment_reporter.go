@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/internal/analytics/batched"
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -42,6 +43,12 @@ type BatchedDataStore interface {
 	HeartbeatProperties() batched.HeartbeatProperties
 	IncrementTimeWindowInHours()
 	Reset()
+}
+
+type pluginReport struct {
+	Name string
+	Type plugin.Type
+	RBAC *config.PolicyRule
 }
 
 // SegmentReporter is a default Reporter implementation that uses Twilio Segment.
@@ -104,6 +111,25 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 		"type":                 config.BotIntegrationType,
 		"communicationGroupID": commGroupIdx,
 	})
+}
+
+func (r *SegmentReporter) ReportPluginsConfig(executors map[string]config.Executors, sources map[string]config.Sources) error {
+	pluginsConfig := make(map[string]interface{})
+	for _, values := range executors {
+		for name, pluginValue := range values.Plugins {
+			if pluginValue.Enabled {
+				pluginsConfig[name] = generatePluginReport(pluginValue, name, plugin.TypeExecutor)
+			}
+		}
+	}
+	for _, values := range sources {
+		for name, pluginValue := range values.Plugins {
+			if pluginValue.Enabled {
+				pluginsConfig[name] = generatePluginReport(pluginValue, name, plugin.TypeSource)
+			}
+		}
+	}
+	return r.reportEvent("PluginConfig", pluginsConfig)
 }
 
 // ReportSinkEnabled reports an enabled sink.
@@ -332,4 +358,12 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	}
 
 	return workerNodesCount, controlPlaneNodesCount, nil
+}
+
+func generatePluginReport(plugin config.Plugin, pluginName string, pluginType plugin.Type) pluginReport {
+	return pluginReport{
+		Name: pluginName,
+		Type: pluginType,
+		RBAC: plugin.Context.RBAC,
+	}
 }
