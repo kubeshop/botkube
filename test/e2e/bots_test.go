@@ -492,7 +492,6 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
@@ -525,7 +524,6 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("*Incoming webhook event:* %s", message)
 
-			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
@@ -570,7 +568,6 @@ func runBotTest(t *testing.T,
 			err = botDriver.WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
 			if err != nil && botDriver.Type() == commplatform.SlackBot { // the new cloud backend not release yet
 				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 				err = botDriver.OnChannel().WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
 			}
 			assert.NoError(t, err)
@@ -664,7 +661,6 @@ func runBotTest(t *testing.T,
 			assertionFn := func(msg string) (bool, int, string) {
 				return hasValidHeader(command, msg), 0, ""
 			}
-			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 		})
 
@@ -876,7 +872,6 @@ func runBotTest(t *testing.T,
 				},
 			},
 		}
-		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), expAttachmentIn)
 		require.NoError(t, err)
 
@@ -914,7 +909,6 @@ func runBotTest(t *testing.T,
 		// Third (RBAC) channel is isolated from this
 		channelIDs := []string{channels[deployEnvChannelIDName].ID(), channels[deployEnvSecondaryChannelIDName].ID()}
 		for _, channelID := range channelIDs {
-			//ensureChannelMessageIsExpected(botDriver, channelID)
 			err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
@@ -1004,7 +998,6 @@ func runBotTest(t *testing.T,
 			},
 		}
 		t.Log("Expecting bot message in second channel...")
-		//ensureChannelMessageIsExpected(botDriver, botDriver.SecondChannel().ID())
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
 		assert.NoError(t, err)
 
@@ -1068,7 +1061,6 @@ func runBotTest(t *testing.T,
 			},
 		}
 		t.Log("Expecting bot message on first channel...")
-		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, firstCMUpdate)
 		require.NoError(t, err)
 
@@ -1106,7 +1098,6 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podDefaultNSCli, podIgnored.Name) })
 
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), firstCMUpdate)
 		require.NoError(t, err)
 
@@ -1356,7 +1347,6 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message in third channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `DELETED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			//ensureChannelMessageIsExpected(botDriver, botDriver.ThirdChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.ThirdChannel().ID(), expectedMsg)
 			require.NoError(t, err)
 
@@ -1381,7 +1371,6 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			t.Log("Expecting bot event message...")
-			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
@@ -1512,7 +1501,6 @@ func runBotTest(t *testing.T,
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
-			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, assertionFn)
 			require.NoError(t, err)
 
@@ -1677,8 +1665,6 @@ func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterfac
 
 func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel, clusterName string) {
 	t.Log("Waiting for restart...")
-	//revert := ensureChannelMessageIsExpected(tester, channel)
-	//defer revert()
 
 	originalTimeout := tester.Timeout()
 	tester.SetTimeout(90 * time.Second)
@@ -1788,16 +1774,4 @@ func createCloudDeployment(t *testing.T, gqlCli *Client, driver commplatform.Bot
 		return gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, driver.FirstChannel().Name(), driver.SecondChannel().Name(), driver.ThirdChannel().Name())
 	}
 	return nil
-}
-
-// ensureChannelMessageIsExpected is needed because Cloud Slack, by default, expects that a given message is posted in the thread
-// of the recently sent message. In the context of source notification, we need to alter that default behavior and expect
-// the message on the channel instead.
-func ensureChannelMessageIsExpected(driver commplatform.BotDriver, channelID string) func() {
-	// in the context of Cloud Slack we need to reset it TS to expect channel message
-	switch t := driver.(type) {
-	case *commplatform.SlackTester:
-		return t.ExpectChannelMessageRestore(channelID)
-	}
-	return func() {}
 }

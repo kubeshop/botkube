@@ -232,12 +232,6 @@ func (s *SlackTester) AssertEquals(expectedMsg string) MessageAssertion {
 	}
 }
 
-func (s *SlackTester) restoreMsgTsIfNeeded() {
-	if s.restoreRecentlyPostedMsgTS != nil {
-		s.restoreRecentlyPostedMsgTS()
-	}
-	s.restoreRecentlyPostedMsgTS = nil
-}
 func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
 	defer s.restoreMsgTsIfNeeded()
 
@@ -586,6 +580,7 @@ func (s *SlackTester) trimAttachmentTimestamp(in string) (string, string) {
 }
 
 // OnChannel removes expectation that messages should be posted in the thread of recently sent message.
+// After first assertion it restores expectation.
 func (s *SlackTester) OnChannel() BotDriver {
 	old := make(map[string]string)
 	maps.Copy(old, s.recentlyPostedMsgTS)
@@ -596,13 +591,11 @@ func (s *SlackTester) OnChannel() BotDriver {
 	return s
 }
 
-// ExpectChannelMessageRestore removes expectation that messages should be posted in the thread of recently sent message.
-func (s *SlackTester) ExpectChannelMessageRestore(channelID string) func() {
-	old := s.recentlyPostedMsgTS[channelID]
-	s.recentlyPostedMsgTS[channelID] = ""
-	return func() {
-		s.recentlyPostedMsgTS[channelID] = old
+func (s *SlackTester) restoreMsgTsIfNeeded() {
+	if s.restoreRecentlyPostedMsgTS != nil {
+		s.restoreRecentlyPostedMsgTS()
 	}
+	s.restoreRecentlyPostedMsgTS = nil
 }
 
 var emojiSlackMapping = map[string]string{
