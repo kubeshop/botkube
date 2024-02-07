@@ -98,12 +98,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-
       - name: Setup Go modules
         uses: ./.github/actions/setup-go-mod-private
         with:
@@ -281,39 +275,39 @@ jobs:
 #          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
 #          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
 #          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
-#
-#  cloud-slack-dev-e2e:
-#    name: Botkube Cloud Slack Dev E2E
-#    runs-on: ubuntu-latest
+
+  cloud-slack-dev-e2e:
+    name: Botkube Cloud Slack Dev E2E
+    runs-on: ubuntu-latest
 #    needs: [ build ]
-#    permissions:
-#      contents: read
-#      packages: read
-#    concurrency:
-#      group: cloud-slack-dev-e2e
-#      cancel-in-progress: false
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#      - name: Run e2e tests 
-#        uses: ./.github/actions/cloud-slack-e2e
-#        with:
-#          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-#          
-#          slack_workspace_name: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
-#          slack_email: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
-#          slack_password: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
-#          slack_bot_display_name: "BotkubeDev"
-#          slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
-#          slack_tester_bot_name: "botkubedev"
-#            
-#          botkube_cloud_api_base_url: "https://api-dev.botkube.io"
-#          botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
-#          botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
-#          botkube_cloud_team_organization_id: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
-#          botkube_cloud_free_organization_id: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
-#          botkube_cloud_plugin_repo_url: "https://storage.googleapis.com/botkube-plugins-latest/plugins-dev-index.yaml"
-#
-#          slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
-#
-#          e2e_type: "DEV"
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: cloud-slack-dev-e2e
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run e2e tests 
+        uses: ./.github/actions/cloud-slack-e2e
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+
+          slack_workspace_name: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
+          slack_email: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
+          slack_password: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
+          slack_bot_display_name: "BotkubeDev"
+          slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
+          slack_tester_bot_name: "botkubedev"
+
+          botkube_cloud_api_base_url: "https://api-dev.botkube.io"
+          botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
+          botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
+          botkube_cloud_team_organization_id: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
+          botkube_cloud_free_organization_id: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
+          botkube_cloud_plugin_repo_url: "https://storage.googleapis.com/botkube-plugins-latest/plugins-dev-index.yaml"
+
+          slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+
+          e2e_type: "DEV"

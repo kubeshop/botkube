@@ -374,34 +374,46 @@ func TestCloudSlackE2E(t *testing.T) {
 			t.Log("Testing ping with --cluster-name")
 			command := fmt.Sprintf("ping --cluster-name %s", deployment.Name)
 			expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", command, deployment.Name)
-			tester.PostMessageToBot(t, channel.ID(), command)
+			tester.PostMessageToBot(t, channel.Identifier(), command)
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			require.NoError(t, err)
 
 			t.Log("Testing ping for not connected deployment #2")
 			command = "ping"
 			expectedBlockMessage := notConnectedMessage(deployment2.Name, deployment2.ID)
-			tester.PostMessageToBot(t, channel.ID(), fmt.Sprintf("%s --cluster-name %s", command, deployment2.Name))
+			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, deployment2.Name))
 
 			renderedMsg := interactive.RenderMessage(tester.MDFormatter(), expectedBlockMessage)
 			renderedMsg = strings.Replace(renderedMsg, "\n", " ", -1)
 			renderedMsg = strings.TrimSuffix(renderedMsg, " ")
 			err = tester.WaitForLastInteractiveMessagePostedEqualWithCustomRender(tester.BotUserID(), channel.ID(), renderedMsg)
+			if err != nil { // the new cloud backend not release yet
+				t.Logf("Fallback to the old behavior with message sent at the channel level...")
+				err = tester.OnChannel().WaitForLastInteractiveMessagePostedEqualWithCustomRender(tester.BotUserID(), channel.ID(), renderedMsg)
+			}
 			require.NoError(t, err)
 
 			t.Log("Testing ping for not existing deployment")
 			command = "ping"
 			deployName := "non-existing-deployment"
 			expectedMessage = fmt.Sprintf("*Instance not found* The cluster %q does not exist.", deployName)
-			tester.PostMessageToBot(t, channel.ID(), fmt.Sprintf("%s --cluster-name %s", command, deployName))
+			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, deployName))
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
+			if err != nil { // the new cloud backend not release yet
+				t.Logf("Fallback to the old behavior with message sent at the channel level...")
+				err = tester.OnChannel().WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
+			}
 			require.NoError(t, err)
 
 			t.Log("Setting cluster as default")
-			tester.PostMessageToBot(t, channel.ID(), fmt.Sprintf("cloud set default-instance %s", deployment.ID))
+			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("cloud set default-instance %s", deployment.ID))
 			t.Log("Waiting for confirmation message...")
 			expectedClusterDefaultMsg := fmt.Sprintf(":white_check_mark: Instance %s was successfully selected as the default cluster for this channel.", deployment.Name)
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedClusterDefaultMsg)
+			if err != nil { // the new cloud backend not release yet
+				t.Logf("Fallback to the old behavior with message sent at the channel level...")
+				err = tester.OnChannel().WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedClusterDefaultMsg)
+			}
 			require.NoError(t, err)
 
 			t.Log("Testing getting all deployments")
@@ -411,7 +423,7 @@ func TestCloudSlackE2E(t *testing.T) {
 					strings.Contains(msg, "coredns") &&
 					strings.Contains(msg, "botkube"), 0, ""
 			}
-			tester.PostMessageToBot(t, channel.ID(), command)
+			tester.PostMessageToBot(t, channel.Identifier(), command)
 			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), 1, assertionFn)
 			require.NoError(t, err)
 		})
@@ -458,23 +470,23 @@ func TestCloudSlackE2E(t *testing.T) {
 				}
 				return result, 0, ""
 			}
-			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePosted(tester.BotUserID(), channel.ID(), 1, assertionFn)
+			err = tester.OnChannel().WaitForMessagePosted(tester.BotUserID(), channel.ID(), 1, assertionFn)
 			require.NoError(t, err)
 		})
 
 		t.Run("Botkube Deployment -> Cloud sync", func(t *testing.T) {
 			t.Log("Disabling notification...")
-			tester.PostMessageToBot(t, channel.ID(), "disable notifications")
+			tester.PostMessageToBot(t, channel.Identifier(), "disable notifications")
 			t.Log("Waiting for config reload message...")
 			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
-			
-			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
+
+			err = tester.OnChannel().WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
 			recentMessages := 2 // take into the account the optional "upgrade checker message"
-			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
+			err = tester.OnChannel().WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
 				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
 					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
 					msgDiff := diff.Diff(expectedWatchBeginMsg, msg)
@@ -491,7 +503,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			command := "status notifications"
 			expectedBody := formatx.CodeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", deployment.Name))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
-			tester.PostMessageToBot(t, channel.ID(), "status notifications")
+			tester.PostMessageToBot(t, channel.Identifier(), "status notifications")
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedMessage)
 			require.NoError(t, err)
 		})
@@ -503,13 +515,13 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Waiting for config reload message...")
 			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
-			err = tester.ExpectChannelMessage(channel.ID()).WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
+			err = tester.OnChannel().WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
 			t.Log("Waiting for watch begin message...")
 			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
 			recentMessages := 2 // take into the account the  optional "upgrade checker message"
-			err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
+			err = tester.OnChannel().WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
 				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
 					count := diff.CountMatchBlock(expectedWatchBeginMsg, msg)
 					msgDiff := diff.Diff(expectedWatchBeginMsg, msg)
@@ -518,13 +530,13 @@ func TestCloudSlackE2E(t *testing.T) {
 				return true, 0, ""
 			})
 			require.NoError(t, err)
-			tester.PostMessageToBot(t, channel.ID(), "list sources")
+			tester.PostMessageToBot(t, channel.Identifier(), "list sources")
 
 			t.Log("Waiting for empty source list...")
 			expectedSourceListMsg := fmt.Sprintf("%s\n```\nSOURCE ENABLED RESTARTS STATUS LAST_RESTART\n```", cmdHeader("list sources"))
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedSourceListMsg)
 			require.NoError(t, err)
-			tester.PostMessageToBot(t, channel.ID(), "list actions")
+			tester.PostMessageToBot(t, channel.Identifier(), "list actions")
 			t.Log("Waiting for actions list...")
 			expectedActionsListMsg := fmt.Sprintf("%s\n```\nACTION       ENABLED  DISPLAY NAME\naction_xxx22 true     Action Name\n```", cmdHeader("list actions"))
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedActionsListMsg)

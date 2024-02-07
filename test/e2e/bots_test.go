@@ -492,7 +492,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
@@ -525,7 +525,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("*Incoming webhook event:* %s", message)
 
-			ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
@@ -570,8 +570,8 @@ func runBotTest(t *testing.T,
 			err = botDriver.WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
 			if err != nil && botDriver.Type() == commplatform.SlackBot { // the new cloud backend not release yet
 				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-				err = botDriver.WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
+				//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+				err = botDriver.OnChannel().WaitForLastMessageContains(userId, botDriver.FirstChannel().ID(), expMessage)
 			}
 			assert.NoError(t, err)
 		})
@@ -664,8 +664,8 @@ func runBotTest(t *testing.T,
 			assertionFn := func(msg string) (bool, int, string) {
 				return hasValidHeader(command, msg), 0, ""
 			}
-			ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
+			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+			err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 1, assertionFn)
 		})
 
 		t.Run("Get forbidden resource", func(t *testing.T) {
@@ -876,8 +876,8 @@ func runBotTest(t *testing.T,
 				},
 			},
 		}
-		ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), expAttachmentIn)
+		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), expAttachmentIn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -896,7 +896,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), expAttachmentIn)
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), expAttachmentIn)
 		require.NoError(t, err)
 
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
@@ -914,8 +914,8 @@ func runBotTest(t *testing.T,
 		// Third (RBAC) channel is isolated from this
 		channelIDs := []string{channels[deployEnvChannelIDName].ID(), channels[deployEnvSecondaryChannelIDName].ID()}
 		for _, channelID := range channelIDs {
-			ensureChannelMessageIsExpected(botDriver, channelID)
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, commplatform.ExpAttachmentInput{
+			//ensureChannelMessageIsExpected(botDriver, channelID)
+			err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), channelID, 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
 					Type:      api.NonInteractiveSingleSection,
@@ -980,8 +980,8 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// Same expected message as before
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
-		require.NoError(t, err)
+		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMessage)
+		assert.NoError(t, err)
 
 		secondCMUpdate := commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
@@ -1004,8 +1004,9 @@ func runBotTest(t *testing.T,
 			},
 		}
 		t.Log("Expecting bot message in second channel...")
-		ensureChannelMessageIsExpected(botDriver, botDriver.SecondChannel().ID())
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
+		//ensureChannelMessageIsExpected(botDriver, botDriver.SecondChannel().ID())
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), 2, secondCMUpdate)
+		assert.NoError(t, err)
 
 		t.Log("Starting notifier in first channel")
 		command = "enable notifications"
@@ -1014,7 +1015,7 @@ func runBotTest(t *testing.T,
 
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		if botDriver.Type().IsCloud() {
 			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
@@ -1067,8 +1068,8 @@ func runBotTest(t *testing.T,
 			},
 		}
 		t.Log("Expecting bot message on first channel...")
-		ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, firstCMUpdate)
+		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot didn't post anything new in second channel...")
@@ -1079,7 +1080,7 @@ func runBotTest(t *testing.T,
 			// There are 2 config reload requested after second cm update
 			limitMessagesNo = 2 * limitLastMessageAfterCloudReload
 		}
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessagesNo, secondCMUpdate)
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessagesNo, secondCMUpdate)
 		require.NoError(t, err)
 	})
 
@@ -1105,8 +1106,8 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() { cleanupCreatedPod(t, podDefaultNSCli, podIgnored.Name) })
 
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
-		ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), firstCMUpdate)
+		//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), firstCMUpdate)
 		require.NoError(t, err)
 
 		t.Log("Creating Pod...")
@@ -1133,7 +1134,7 @@ func runBotTest(t *testing.T,
 		// - message with recommendations from 'k8s-events'
 		// - massage with pod create event from 'k8s-pod-create-events'
 		// - message with kc execution via 'get-created-resource' automation
-		err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, commplatform.ExpAttachmentInput{
+		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, commplatform.ExpAttachmentInput{
 			AllowedTimestampDelta: time.Minute,
 			Message: api.Message{
 				Type:      api.NonInteractiveSingleSection,
@@ -1191,7 +1192,7 @@ func runBotTest(t *testing.T,
 					strings.Count(msg, pod.Name) == podNameCount,
 				0, ""
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
+		err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Creating Service...")
@@ -1221,7 +1222,7 @@ func runBotTest(t *testing.T,
 		t.Log("Ensuring bot didn't post anything new on first channel...")
 		time.Sleep(appCfg.Slack.MessageWaitTimeout)
 		// same expected message as before
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
+		err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, automationAssertionFn)
 		require.NoError(t, err)
 
 		t.Log("Ensuring bot automation was executed and label created Service...")
@@ -1355,7 +1356,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message in third channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `DELETED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			ensureChannelMessageIsExpected(botDriver, botDriver.ThirdChannel().ID())
+			//ensureChannelMessageIsExpected(botDriver, botDriver.ThirdChannel().ID())
 			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.ThirdChannel().ID(), expectedMsg)
 			require.NoError(t, err)
 
@@ -1380,8 +1381,8 @@ func runBotTest(t *testing.T,
 			require.NoError(t, err)
 
 			t.Log("Expecting bot event message...")
-			ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-			err = botDriver.WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, commplatform.ExpAttachmentInput{
+			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+			err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 2, commplatform.ExpAttachmentInput{
 				AllowedTimestampDelta: time.Minute,
 				Message: api.Message{
 					Type:      api.NonInteractiveSingleSection,
@@ -1511,8 +1512,8 @@ func runBotTest(t *testing.T,
 			assertionFn := func(msg string) (bool, int, string) {
 				return strings.Contains(msg, expectedMessage), 0, ""
 			}
-			ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
-			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, assertionFn)
+			//ensureChannelMessageIsExpected(botDriver, botDriver.FirstChannel().ID())
+			err = botDriver.OnChannel().WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), 3, assertionFn)
 			require.NoError(t, err)
 
 			err = cfgMapCli.Delete(context.Background(), testConfigMapName, metav1.DeleteOptions{})
@@ -1676,8 +1677,8 @@ func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterfac
 
 func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel, clusterName string) {
 	t.Log("Waiting for restart...")
-	revert := ensureChannelMessageIsExpected(tester, channel)
-	defer revert()
+	//revert := ensureChannelMessageIsExpected(tester, channel)
+	//defer revert()
 
 	originalTimeout := tester.Timeout()
 	tester.SetTimeout(90 * time.Second)
@@ -1695,7 +1696,7 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 		}
 	}
 
-	err := tester.WaitForMessagePosted(userID, channel, 2, assertFn)
+	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 2, assertFn)
 	if err != nil && tester.Type() == commplatform.TeamsBot {
 		// TODO(https://github.com/kubeshop/botkube-cloud/issues/854): for some reason, Teams restarts are not deterministic and sometimes it doesn't happen
 		// We should add fetching Agent logs to see why it happens.
@@ -1739,7 +1740,7 @@ func waitForLastPlaintextMessageEqual(driver commplatform.BotDriver, channelID, 
 			},
 		})
 	default:
-		return driver.WaitForLastMessageEqual(driver.BotUserID(), channelID, expectedMsg)
+		return driver.OnChannel().WaitForLastMessageEqual(driver.BotUserID(), channelID, expectedMsg)
 	}
 }
 

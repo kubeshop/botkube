@@ -51,6 +51,7 @@ type BotDriver interface {
 	Timeout() time.Duration
 	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
 	AssertEquals(expectedMessage string) MessageAssertion
+	OnChannel() BotDriver
 }
 
 type MessageAssertion func(content string) (bool, int, string)

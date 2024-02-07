@@ -12,6 +12,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: './test/go.mod'
+        cache: true
     - name: Download Go modules with private repository
       shell: bash
       run: |

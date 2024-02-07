@@ -42,6 +42,10 @@ func (p *InstallChartParams) ToOptions(version string) []string {
 		fmt.Sprintf("extraEnv[0].name=%s", "BOTKUBE_PLUGINS_REPOSITORIES_BOTKUBE_URL"),
 		"--set-string",
 		fmt.Sprintf("extraEnv[0].value=%s", p.PluginRepoURL),
+		"--set",
+		fmt.Sprintf("image.repository=%s", "kubeshop/pr/botkube"),
+		"--set",
+		fmt.Sprintf("image.tag=%s", "1371-PR"),
 	}
 	cmdParts = append(cmdParts, extraEnvs...)
 	return cmdParts

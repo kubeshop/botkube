@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 	"testing"
@@ -63,17 +64,18 @@ func (s *SlackChannel) Identifier() string {
 }
 
 type SlackTester struct {
-	cli                  *slack.Client
-	cfg                  SlackConfig
-	botUserID            string
-	testerUserID         string
-	firstChannel         Channel
-	secondChannel        Channel
-	thirdChannel         Channel
-	mdFormatter          interactive.MDFormatter
-	configProviderApiKey string
-	recentlyPostedMsgTS  map[string]string
-	channelsByName       map[string]Channel
+	cli                        *slack.Client
+	cfg                        SlackConfig
+	botUserID                  string
+	testerUserID               string
+	firstChannel               Channel
+	secondChannel              Channel
+	thirdChannel               Channel
+	mdFormatter                interactive.MDFormatter
+	configProviderApiKey       string
+	recentlyPostedMsgTS        map[string]string
+	channelsByName             map[string]Channel
+	restoreRecentlyPostedMsgTS func()
 }
 
 func (s *SlackTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string) {
@@ -105,11 +107,13 @@ func NewSlackTester(slackCfg SlackConfig, apiKey *string) (*SlackTester, error) 
 		return fmt.Sprintf("*%s*", msg)
 	})
 	return &SlackTester{
-		cli:                  slackCli,
-		cfg:                  slackCfg,
-		mdFormatter:          mdFormatter,
-		configProviderApiKey: ptr.ToValue(apiKey),
-		recentlyPostedMsgTS:  make(map[string]string),
+		cli:                        slackCli,
+		cfg:                        slackCfg,
+		mdFormatter:                mdFormatter,
+		configProviderApiKey:       ptr.ToValue(apiKey),
+		recentlyPostedMsgTS:        make(map[string]string),
+		channelsByName:             make(map[string]Channel),
+		restoreRecentlyPostedMsgTS: func() {},
 	}, nil
 }
 
@@ -124,20 +128,14 @@ func (s *SlackTester) InitUsers(t *testing.T) {
 }
 
 func (s *SlackTester) InitChannels(t *testing.T) []func() {
-	channel, cleanupChannelFn := s.CreateChannel(t, "first-ms-local")
+	channel, cleanupChannelFn := s.CreateChannel(t, "first")
 	s.firstChannel = channel
 
-	secondChannel, cleanupSecondChannelFn := s.CreateChannel(t, "second-ms-local")
+	secondChannel, cleanupSecondChannelFn := s.CreateChannel(t, "second")
 	s.secondChannel = secondChannel
 
-	thirdChannel, cleanupThirdChannelFn := s.CreateChannel(t, "rbac-ms-local")
+	thirdChannel, cleanupThirdChannelFn := s.CreateChannel(t, "rbac")
 	s.thirdChannel = thirdChannel
-
-	s.channelsByName = map[string]Channel{
-		s.firstChannel.Name():  s.firstChannel,
-		s.secondChannel.Name(): s.secondChannel,
-		s.thirdChannel.Name():  s.thirdChannel,
-	}
 
 	return []func(){
 		func() { cleanupChannelFn(t) },
@@ -234,7 +232,15 @@ func (s *SlackTester) AssertEquals(expectedMsg string) MessageAssertion {
 	}
 }
 
+func (s *SlackTester) restoreMsgTsIfNeeded() {
+	if s.restoreRecentlyPostedMsgTS != nil {
+		s.restoreRecentlyPostedMsgTS()
+	}
+	s.restoreRecentlyPostedMsgTS = nil
+}
 func (s *SlackTester) WaitForMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+	defer s.restoreMsgTsIfNeeded()
+
 	var fetchedMessages []slack.Message
 	var lastErr error
 	var diffMessage string
@@ -299,6 +305,7 @@ func (s *SlackTester) getMessages(channelID string, limitMessages int) ([]slack.
 }
 
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
+	defer s.restoreMsgTsIfNeeded()
 	var fetchedMessages []slack.Message
 	var lastErr error
 	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(_ context.Context) (done bool, err error) {
@@ -341,6 +348,7 @@ func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, 
 }
 
 func (s *SlackTester) WaitForMessagePostedWithFileUpload(userID, channelID string, assertFn FileUploadAssertion) error {
+	defer s.restoreMsgTsIfNeeded()
 	var fetchedMessages []slack.Message
 	var lastErr error
 	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
@@ -384,6 +392,7 @@ func (s *SlackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 }
 
 func (s *SlackTester) WaitForMessagePostedWithAttachment(userID, channelID string, limitMessages int, assertFn ExpAttachmentInput) error {
+	defer s.restoreMsgTsIfNeeded()
 	renderer := bot.NewSlackRenderer()
 
 	var expTime time.Time
@@ -537,8 +546,10 @@ func (s *SlackTester) CreateChannel(t *testing.T, prefix string) (Channel, func(
 		err = s.cli.ArchiveConversation(channel.ID)
 		assert.NoError(t, err)
 	}
+	out := &SlackChannel{Channel: channel}
 
-	return &SlackChannel{channel}, cleanupFn
+	s.channelsByName[out.Name()] = out
+	return out, cleanupFn
 }
 
 func (s *SlackConfig) BotUsername() string {
@@ -574,13 +585,18 @@ func (s *SlackTester) trimAttachmentTimestamp(in string) (string, string) {
 	return msgParts[0], ts
 }
 
-// ExpectChannelMessage removes expectation that messages should be posted in the thread of recently sent message.
-func (s *SlackTester) ExpectChannelMessage(channelID string) *SlackTester {
-	s.recentlyPostedMsgTS[channelID] = ""
+// OnChannel removes expectation that messages should be posted in the thread of recently sent message.
+func (s *SlackTester) OnChannel() BotDriver {
+	old := make(map[string]string)
+	maps.Copy(old, s.recentlyPostedMsgTS)
+	s.recentlyPostedMsgTS = map[string]string{}
+	s.restoreRecentlyPostedMsgTS = func() {
+		s.recentlyPostedMsgTS = old
+	}
 	return s
 }
 
-// ExpectChannelMessage removes expectation that messages should be posted in the thread of recently sent message.
+// ExpectChannelMessageRestore removes expectation that messages should be posted in the thread of recently sent message.
 func (s *SlackTester) ExpectChannelMessageRestore(channelID string) func() {
 	old := s.recentlyPostedMsgTS[channelID]
 	s.recentlyPostedMsgTS[channelID] = ""
